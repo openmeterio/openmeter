@@ -16,7 +16,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider/openmetersandbox"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider/stripe"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type BillingProfile struct {
@@ -44,6 +48,8 @@ func (BillingProfile) Fields() []ent.Field {
 			}),
 		field.String("workflow_config_id").
 			NotEmpty(),
+		field.String("timezone").
+			GoType(timezone.Timezone("")),
 		field.Bool("default").
 			Default(false),
 	}
@@ -78,12 +84,12 @@ var ProviderConfigValueScanner = field.ValueScannerFunc[provider.Configuration, 
 	V: func(config provider.Configuration) (driver.Value, error) {
 		switch config.Type {
 		case provider.TypeOpenMeter:
-			return json.Marshal(providerConfigSerde[provider.OpenMeterConfig]{
+			return json.Marshal(providerConfigSerde[openmetersandbox.Config]{
 				Meta:   provider.Meta{Type: provider.TypeOpenMeter},
-				Config: config.OpenMeter,
+				Config: config.OpenMeterSandbox,
 			})
 		case provider.TypeStripe:
-			return json.Marshal(providerConfigSerde[provider.StripeConfig]{
+			return json.Marshal(providerConfigSerde[stripe.Config]{
 				Meta:   provider.Meta{Type: provider.TypeStripe},
 				Config: config.Stripe,
 			})
@@ -105,18 +111,18 @@ var ProviderConfigValueScanner = field.ValueScannerFunc[provider.Configuration, 
 
 		switch meta.Type {
 		case provider.TypeOpenMeter:
-			serde := providerConfigSerde[provider.OpenMeterConfig]{}
+			serde := providerConfigSerde[openmetersandbox.Config]{}
 
 			if err := json.Unmarshal(data, &serde); err != nil {
 				return provider.Configuration{}, err
 			}
 
 			return provider.Configuration{
-				Meta:      serde.Meta,
-				OpenMeter: serde.Config,
+				Meta:             serde.Meta,
+				OpenMeterSandbox: serde.Config,
 			}, nil
 		case provider.TypeStripe:
-			serde := providerConfigSerde[provider.StripeConfig]{}
+			serde := providerConfigSerde[stripe.Config]{}
 
 			if err := json.Unmarshal(data, &serde); err != nil {
 				return provider.Configuration{}, err
@@ -146,7 +152,7 @@ func (BillingWorkflowConfig) Mixin() []ent.Mixin {
 
 func (BillingWorkflowConfig) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("alignment").
+		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")),
 
 		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
@@ -158,15 +164,17 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		field.Int64("invoice_draft_period_seconds"),
 
-		field.Int64("invoice_due_after_seconds"),
+		field.Int64("invoice_due_after_days").
+			Optional().
+			Comment("Optional as if we have auto collection we don't need this"),
 
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")),
 
-		field.Enum("invoice_line_item_resolution").
+		field.Enum("invoice_item_resolution").
 			GoType(billing.GranualityResolution("")),
 
-		field.Bool("invoice_line_item_per_subject").
+		field.Bool("invoice_item_per_subject").
 			Default(false),
 	}
 }
@@ -226,6 +234,7 @@ func (BillingInvoiceItem) Fields() []ent.Field {
 				"postgres": "numeric",
 			}),
 		field.String("currency").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
@@ -263,10 +272,15 @@ type BillingInvoice struct {
 
 func (BillingInvoice) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		// TODO: resource mixin
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},
+
+		entutils.CustomerAddressMixin{
+			FieldPrefix: "billing",
+		},
 	}
 }
 
@@ -282,40 +296,63 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.String("key_number"). // TODO:?!?! int maybe?
 						NotEmpty().
 						Immutable(),
+
 		field.Enum("type").
 			GoType(invoice.InvoiceType("")).
 			Immutable(),
+
+		// Customer related fields
 		field.String("customer_id").
 			NotEmpty().
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}).
 			Immutable(),
+		field.Bool("customer_snapshot_taken").
+			Default(false),
+		field.String("customer_name").
+			Optional().Nillable(),
+		field.String("customer_primary_email").Optional().Nillable(),
 		field.String("billing_profile_id").
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
+
+		// Lifecycle
 		field.Strings("preceding_invoice_ids").
 			Optional().
 			SchemaType(map[string]string{
 				"postgres": "char(26)[]",
 			}),
+		field.Time("issued_at").
+			Optional().
+			Nillable().
+			Comment("issued_at specifies the date when the invoice was issued. Not set if the invoice is not yet issued (e.g. in draft state)."),
 		field.Time("voided_at").
 			Optional().
 			Nillable(),
 		field.String("currency").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
 				"postgres": "varchar(3)",
 			}),
-		field.Other("total_amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}),
-		field.Time("due_date"),
+		field.String("timezone").
+			GoType(timezone.Timezone("")),
+
+		field.Time("due_date").
+			Optional().
+			Nillable().
+			Comment(`due_date specifies the date when the invoice is due to be paid. Not set if the invoice is paid immediately.
+
+			Stored as a timestamp, so that if the billing is done in a different timezone than the customer's timezone we can still calculate this
+			in a consistent manner.
+
+			For invoicing only the date part is relevant, always returned in the timezone set in the invoice.
+			`),
 		field.Enum("status").
 			GoType(invoice.InvoiceStatus("")),
 
@@ -363,9 +400,15 @@ func (BillingInvoice) Edges() []ent.Edge {
 		edge.From("billing_workflow_config", BillingWorkflowConfig.Type).
 			Ref("billing_invoices").
 			Field("workflow_config_id").
-			Unique().
-			Required(),
+			Required().
+			Unique(),
 		edge.To("billing_invoice_items", BillingInvoiceItem.Type),
+		edge.From("customer", Customer.Type).
+			Ref("billing_invoices").
+			Field("customer_id").
+			Required().
+			Unique().
+			Immutable(),
 	}
 }
 

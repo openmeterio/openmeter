@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -12,15 +14,15 @@ import (
 type Customer struct {
 	models.ManagedResource
 
-	Name              string                    `json:"name"`
-	UsageAttribution  CustomerUsageAttribution  `json:"usageAttribution"`
-	PrimaryEmail      *string                   `json:"primaryEmail"`
-	Currency          *models.CurrencyCode      `json:"currency"`
-	BillingAddress    *models.Address           `json:"billingAddress"`
-	TaxProvider       *models.TaxProvider       `json:"taxProvider"`
-	InvoicingProvider *models.InvoicingProvider `json:"invoicingProvider"`
-	PaymentProvider   *models.PaymentProvider   `json:"paymentProvider"`
-	External          *CustomerExternalMapping  `json:"external"`
+	Name              string                      `json:"name"`
+	UsageAttribution  CustomerUsageAttribution    `json:"usageAttribution"`
+	PrimaryEmail      *string                     `json:"primaryEmail"`
+	Currency          *currencyx.Code             `json:"currency"`
+	BillingAddress    *models.Address             `json:"billingAddress"`
+	TaxProvider       *provider.TaxProvider       `json:"taxProvider"`
+	InvoicingProvider *provider.InvoicingProvider `json:"invoicingProvider"`
+	PaymentProvider   *provider.PaymentProvider   `json:"paymentProvider"`
+	External          *CustomerExternalMapping    `json:"external"`
 }
 
 type CustomerID models.NamespacedID

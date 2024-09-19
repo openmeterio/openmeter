@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // ID filters vertices based on their ID field.
@@ -93,6 +94,12 @@ func Key(v string) predicate.BillingProfile {
 // WorkflowConfigID applies equality check predicate on the "workflow_config_id" field. It's identical to WorkflowConfigIDEQ.
 func WorkflowConfigID(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldWorkflowConfigID, v))
+}
+
+// Timezone applies equality check predicate on the "timezone" field. It's identical to TimezoneEQ.
+func Timezone(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldEQ(FieldTimezone, vc))
 }
 
 // Default applies equality check predicate on the "default" field. It's identical to DefaultEQ.
@@ -423,6 +430,90 @@ func WorkflowConfigIDEqualFold(v string) predicate.BillingProfile {
 // WorkflowConfigIDContainsFold applies the ContainsFold predicate on the "workflow_config_id" field.
 func WorkflowConfigIDContainsFold(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldContainsFold(FieldWorkflowConfigID, v))
+}
+
+// TimezoneEQ applies the EQ predicate on the "timezone" field.
+func TimezoneEQ(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldEQ(FieldTimezone, vc))
+}
+
+// TimezoneNEQ applies the NEQ predicate on the "timezone" field.
+func TimezoneNEQ(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldNEQ(FieldTimezone, vc))
+}
+
+// TimezoneIn applies the In predicate on the "timezone" field.
+func TimezoneIn(vs ...timezone.Timezone) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.BillingProfile(sql.FieldIn(FieldTimezone, v...))
+}
+
+// TimezoneNotIn applies the NotIn predicate on the "timezone" field.
+func TimezoneNotIn(vs ...timezone.Timezone) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.BillingProfile(sql.FieldNotIn(FieldTimezone, v...))
+}
+
+// TimezoneGT applies the GT predicate on the "timezone" field.
+func TimezoneGT(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldGT(FieldTimezone, vc))
+}
+
+// TimezoneGTE applies the GTE predicate on the "timezone" field.
+func TimezoneGTE(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldGTE(FieldTimezone, vc))
+}
+
+// TimezoneLT applies the LT predicate on the "timezone" field.
+func TimezoneLT(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldLT(FieldTimezone, vc))
+}
+
+// TimezoneLTE applies the LTE predicate on the "timezone" field.
+func TimezoneLTE(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldLTE(FieldTimezone, vc))
+}
+
+// TimezoneContains applies the Contains predicate on the "timezone" field.
+func TimezoneContains(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldContains(FieldTimezone, vc))
+}
+
+// TimezoneHasPrefix applies the HasPrefix predicate on the "timezone" field.
+func TimezoneHasPrefix(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldTimezone, vc))
+}
+
+// TimezoneHasSuffix applies the HasSuffix predicate on the "timezone" field.
+func TimezoneHasSuffix(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldTimezone, vc))
+}
+
+// TimezoneEqualFold applies the EqualFold predicate on the "timezone" field.
+func TimezoneEqualFold(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldTimezone, vc))
+}
+
+// TimezoneContainsFold applies the ContainsFold predicate on the "timezone" field.
+func TimezoneContainsFold(v timezone.Timezone) predicate.BillingProfile {
+	vc := string(v)
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldTimezone, vc))
 }
 
 // DefaultEQ applies the EQ predicate on the "default" field.

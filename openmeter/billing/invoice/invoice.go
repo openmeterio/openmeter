@@ -4,16 +4,24 @@ import (
 	"fmt"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/bill"
+	"github.com/invopop/gobl/cal"
+	goblcurrency "github.com/invopop/gobl/currency"
 	"github.com/invopop/gobl/l10n"
+	"github.com/invopop/gobl/num"
 	"github.com/invopop/gobl/org"
 	"github.com/invopop/gobl/pay"
 	"github.com/invopop/gobl/tax"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
-	"github.com/openmeterio/openmeter/pkg/currency"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type InvoiceStatus string
@@ -70,9 +78,6 @@ type (
 	InvoiceItemID models.NamespacedID
 )
 
-// TODO: move this to the customer package when it's ready
-type CustomerID models.NamespacedID
-
 type InvoiceItem struct {
 	ID InvoiceItemID `json:"id"`
 
@@ -80,9 +85,9 @@ type InvoiceItem struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	Metadata map[string]string `json:"metadata"`
-	Invoice  InvoiceID         `json:"invoice,omitempty"`
-	Customer CustomerID        `json:"customer"`
+	Metadata   map[string]string `json:"metadata"`
+	Invoice    *InvoiceID        `json:"invoice,omitempty"`
+	CustomerID string            `json:"customer"`
 
 	PeriodStart time.Time `json:"periodStart"`
 	PeriodEnd   time.Time `json:"periodEnd"`
@@ -91,7 +96,7 @@ type InvoiceItem struct {
 
 	Quantity  alpacadecimal.Decimal `json:"quantity"`
 	UnitPrice alpacadecimal.Decimal `json:"unitPrice"`
-	Currency  currency.Currency     `json:"currency"`
+	Currency  currencyx.Code        `json:"currency"`
 
 	TaxCodeOverride TaxOverrides `json:"taxCodeOverride"`
 }
@@ -103,27 +108,32 @@ type Invoice struct {
 	Key  string      `json:"key"`
 	Type InvoiceType `json:"type"`
 
-	Customer CustomerID `json:"customer"`
-	// TODO: expand?
 	BillingProfileID  string                 `json:"billingProfile"`
-	WorkflowConfigID  string                 `json:"workflowConfig"`
+	WorkflowConfig    *WorkflowConfig        `json:"workflowConfig"`
 	ProviderConfig    provider.Configuration `json:"providerConfig"`
 	ProviderReference provider.Reference     `json:"providerReference,omitempty"`
 
 	Metadata map[string]string `json:"metadata"`
 
-	Currency currency.Currency `json:"currency,omitempty"`
+	Currency currencyx.Code    `json:"currency,omitempty"`
+	Timezone timezone.Timezone `json:"timezone,omitempty"`
 	Status   InvoiceStatus     `json:"status"`
 
 	PeriodStart time.Time `json:"periodStart,omitempty"`
 	PeriodEnd   time.Time `json:"periodEnd,omitempty"`
 
-	DueDate time.Time `json:"dueDate,omitempty"`
+	DueDate *time.Time `json:"dueDate,omitempty"`
 
-	CreatedAt time.Time  `json:"createdAt,omitempty"`
-	UpdatedAt time.Time  `json:"updatedAt,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 	VoidedAt  *time.Time `json:"voidedAt,omitempty"`
+	IssuedAt  *time.Time `json:"issuedAt,omitempty"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+
+	// Customer is either a snapshot of the contact information of the customer at the time of invoice being sent
+	// or the data from the customer entity (draft state)
+	// This is required so that we are not modifying the invoice after it has been sent to the customer.
+	Customer InvoiceCustomer `json:"customerSnapshot"`
 
 	// Line items
 	Items       []InvoiceItem         `json:"items,omitempty"`
@@ -148,53 +158,108 @@ func (s InvoiceSupplier) Validate() error {
 	return nil
 }
 
+type InvoiceCustomer struct {
+	CustomerID     string          `json:"customerID"`
+	Name           string          `json:"name"`
+	BillingAddress *models.Address `json:"billingAddress"`
+}
+
+// TODO: Name is required at least!
+
+func (i *InvoiceCustomer) ToParty() *org.Party {
+	party := &org.Party{
+		Name: i.Name,
+		Addresses: []*org.Address{
+			{
+				Country:     l10n.ISOCountryCode(lo.FromPtrOr(i.BillingAddress.Country, "")),
+				Street:      lo.FromPtrOr(i.BillingAddress.Line1, ""),
+				StreetExtra: lo.FromPtrOr(i.BillingAddress.Line2, ""),
+				Region:      lo.FromPtrOr(i.BillingAddress.State, ""),
+				Locality:    lo.FromPtrOr(i.BillingAddress.City, ""),
+
+				Code: lo.FromPtrOr(i.BillingAddress.PostalCode, ""),
+			},
+		},
+	}
+
+	if i.BillingAddress.PhoneNumber != nil {
+		party.Telephones = append(party.Telephones, &org.Telephone{
+			Number: *i.BillingAddress.PhoneNumber,
+		})
+	}
+	return party
+}
+
 type CustomerMetadata struct {
 	Name string `json:"name"`
 }
 
 type GOBLMetadata struct {
 	Supplier InvoiceSupplier `json:"supplier"`
-	// TODO: Customer should be coming from the customer entity
-	Customer CustomerMetadata `json:"customer"`
 }
 
 func (m GOBLMetadata) Validate() error {
 	if err := m.Supplier.Validate(); err != nil {
 		return fmt.Errorf("error validating supplier: %w", err)
 	}
+
+	return nil
 }
 
-func (i *Invoice) ToGOBL(meta GOBLMetadata) (bill.Invoice, error) {
-	invoice := bill.Invoice{
-		// TODO: does this worth it or should we just validate ourselfs?
-		Type:      i.Type.CBCKey(),
-		Series:    "",                  // TODO,
-		Code:      "",                  // TODO,
-		IssueDate: dbInvoice.CreatedAt, // TODO?!
-		Currency:  "",                  // TODO,
-		Suplier: &org.Party{
-			Name: meta.Supplier.Name, // TODO,
+func (i *Invoice) ToGOBL(meta GOBLMetadata) (*bill.Invoice, error) {
+	if i.WorkflowConfig == nil {
+		return nil, fmt.Errorf("workflow config is required to generate GOBL invoice")
+	}
+
+	loc, err := i.Timezone.LoadLocation()
+	if err != nil {
+		return nil, fmt.Errorf("error loading timezone location[%s]: %w", i.Timezone, err)
+	}
+
+	invoice := &bill.Invoice{
+		Type:   i.Type.CBCKey(),
+		Series: "", // TODO,
+		Code:   "", // TODO,
+		IssueDate: cal.Date{
+			Date: civil.DateOf(lo.FromPtrOr(i.IssuedAt, i.CreatedAt).In(loc)),
+		},
+		Currency: goblcurrency.Code(i.Currency),
+		Supplier: &org.Party{
+			Name: meta.Supplier.Name,
 			TaxID: &tax.Identity{
 				Country: l10n.TaxCountryCode(meta.Supplier.TaxCountryCode),
 			},
 		},
-		Customer: &org.Party{
-			Name: "", // TODO[when customer is ready]
-		},
-		Payment: &bill.Payment{
-			Key: pay.TermKeyDueDate,
-			DueDates: []*pay.DueDate{
-				{
-					Date:   nil, // TODO
-					Amount: nil, // TODO
+		Customer: i.Customer.ToParty(),
+		Meta:     convert.MetadataToGOBLMeta(i.Metadata),
+	}
+
+	switch i.WorkflowConfig.Invoicing.CollectionMethod {
+	case billing.CollectionMethodChargeAutomatically:
+		invoice.Payment = &bill.Payment{
+			Terms: &pay.Terms{
+				Key: pay.TermKeyInstant,
+			},
+		}
+
+	case billing.CollectionMethodSendInvoice:
+		invoice.Payment = &bill.Payment{
+			Terms: &pay.Terms{
+				Key: pay.TermKeyDueDate,
+				DueDates: []*pay.DueDate{
+					{
+						Date: &cal.Date{
+							Date: civil.DateOf(i.DueDate.In(loc)),
+						},
+						Amount: num.AmountZero, // TODO
+					},
 				},
 			},
-		},
-		Meta: dbInvoice.Metadata,
+		}
 	}
 
 	// TODO: line items => let's add the period etc. as metadata field
 	// Series will most probably end up in Complements
 
-	return invoice
+	return invoice, nil
 }

@@ -24,22 +24,22 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldAlignment holds the string denoting the alignment field in the database.
-	FieldAlignment = "alignment"
+	// FieldCollectionAlignment holds the string denoting the collection_alignment field in the database.
+	FieldCollectionAlignment = "collection_alignment"
 	// FieldCollectionPeriodSeconds holds the string denoting the collection_period_seconds field in the database.
 	FieldCollectionPeriodSeconds = "collection_period_seconds"
 	// FieldInvoiceAutoAdvance holds the string denoting the invoice_auto_advance field in the database.
 	FieldInvoiceAutoAdvance = "invoice_auto_advance"
 	// FieldInvoiceDraftPeriodSeconds holds the string denoting the invoice_draft_period_seconds field in the database.
 	FieldInvoiceDraftPeriodSeconds = "invoice_draft_period_seconds"
-	// FieldInvoiceDueAfterSeconds holds the string denoting the invoice_due_after_seconds field in the database.
-	FieldInvoiceDueAfterSeconds = "invoice_due_after_seconds"
+	// FieldInvoiceDueAfterDays holds the string denoting the invoice_due_after_days field in the database.
+	FieldInvoiceDueAfterDays = "invoice_due_after_days"
 	// FieldInvoiceCollectionMethod holds the string denoting the invoice_collection_method field in the database.
 	FieldInvoiceCollectionMethod = "invoice_collection_method"
-	// FieldInvoiceLineItemResolution holds the string denoting the invoice_line_item_resolution field in the database.
-	FieldInvoiceLineItemResolution = "invoice_line_item_resolution"
-	// FieldInvoiceLineItemPerSubject holds the string denoting the invoice_line_item_per_subject field in the database.
-	FieldInvoiceLineItemPerSubject = "invoice_line_item_per_subject"
+	// FieldInvoiceItemResolution holds the string denoting the invoice_item_resolution field in the database.
+	FieldInvoiceItemResolution = "invoice_item_resolution"
+	// FieldInvoiceItemPerSubject holds the string denoting the invoice_item_per_subject field in the database.
+	FieldInvoiceItemPerSubject = "invoice_item_per_subject"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
@@ -69,14 +69,14 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldAlignment,
+	FieldCollectionAlignment,
 	FieldCollectionPeriodSeconds,
 	FieldInvoiceAutoAdvance,
 	FieldInvoiceDraftPeriodSeconds,
-	FieldInvoiceDueAfterSeconds,
+	FieldInvoiceDueAfterDays,
 	FieldInvoiceCollectionMethod,
-	FieldInvoiceLineItemResolution,
-	FieldInvoiceLineItemPerSubject,
+	FieldInvoiceItemResolution,
+	FieldInvoiceItemPerSubject,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -98,19 +98,19 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultInvoiceLineItemPerSubject holds the default value on creation for the "invoice_line_item_per_subject" field.
-	DefaultInvoiceLineItemPerSubject bool
+	// DefaultInvoiceItemPerSubject holds the default value on creation for the "invoice_item_per_subject" field.
+	DefaultInvoiceItemPerSubject bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
 
-// AlignmentValidator is a validator for the "alignment" field enum values. It is called by the builders before save.
-func AlignmentValidator(a billing.AlignmentKind) error {
-	switch a {
+// CollectionAlignmentValidator is a validator for the "collection_alignment" field enum values. It is called by the builders before save.
+func CollectionAlignmentValidator(ca billing.AlignmentKind) error {
+	switch ca {
 	case "subscription":
 		return nil
 	default:
-		return fmt.Errorf("billingworkflowconfig: invalid enum value for alignment field: %q", a)
+		return fmt.Errorf("billingworkflowconfig: invalid enum value for collection_alignment field: %q", ca)
 	}
 }
 
@@ -124,13 +124,13 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 	}
 }
 
-// InvoiceLineItemResolutionValidator is a validator for the "invoice_line_item_resolution" field enum values. It is called by the builders before save.
-func InvoiceLineItemResolutionValidator(ilir billing.GranualityResolution) error {
-	switch ilir {
+// InvoiceItemResolutionValidator is a validator for the "invoice_item_resolution" field enum values. It is called by the builders before save.
+func InvoiceItemResolutionValidator(iir billing.GranualityResolution) error {
+	switch iir {
 	case "day", "period":
 		return nil
 	default:
-		return fmt.Errorf("billingworkflowconfig: invalid enum value for invoice_line_item_resolution field: %q", ilir)
+		return fmt.Errorf("billingworkflowconfig: invalid enum value for invoice_item_resolution field: %q", iir)
 	}
 }
 
@@ -162,9 +162,9 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByAlignment orders the results by the alignment field.
-func ByAlignment(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAlignment, opts...).ToFunc()
+// ByCollectionAlignment orders the results by the collection_alignment field.
+func ByCollectionAlignment(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCollectionAlignment, opts...).ToFunc()
 }
 
 // ByCollectionPeriodSeconds orders the results by the collection_period_seconds field.
@@ -182,9 +182,9 @@ func ByInvoiceDraftPeriodSeconds(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceDraftPeriodSeconds, opts...).ToFunc()
 }
 
-// ByInvoiceDueAfterSeconds orders the results by the invoice_due_after_seconds field.
-func ByInvoiceDueAfterSeconds(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoiceDueAfterSeconds, opts...).ToFunc()
+// ByInvoiceDueAfterDays orders the results by the invoice_due_after_days field.
+func ByInvoiceDueAfterDays(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceDueAfterDays, opts...).ToFunc()
 }
 
 // ByInvoiceCollectionMethod orders the results by the invoice_collection_method field.
@@ -192,14 +192,14 @@ func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceCollectionMethod, opts...).ToFunc()
 }
 
-// ByInvoiceLineItemResolution orders the results by the invoice_line_item_resolution field.
-func ByInvoiceLineItemResolution(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoiceLineItemResolution, opts...).ToFunc()
+// ByInvoiceItemResolution orders the results by the invoice_item_resolution field.
+func ByInvoiceItemResolution(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceItemResolution, opts...).ToFunc()
 }
 
-// ByInvoiceLineItemPerSubject orders the results by the invoice_line_item_per_subject field.
-func ByInvoiceLineItemPerSubject(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoiceLineItemPerSubject, opts...).ToFunc()
+// ByInvoiceItemPerSubject orders the results by the invoice_item_per_subject field.
+func ByInvoiceItemPerSubject(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceItemPerSubject, opts...).ToFunc()
 }
 
 // ByBillingInvoicesCount orders the results by billing_invoices count.

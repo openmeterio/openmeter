@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingProfileCreate is the builder for creating a BillingProfile entity.
@@ -89,6 +90,12 @@ func (bpc *BillingProfileCreate) SetProviderConfig(pr provider.Configuration) *B
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (bpc *BillingProfileCreate) SetWorkflowConfigID(s string) *BillingProfileCreate {
 	bpc.mutation.SetWorkflowConfigID(s)
+	return bpc
+}
+
+// SetTimezone sets the "timezone" field.
+func (bpc *BillingProfileCreate) SetTimezone(t timezone.Timezone) *BillingProfileCreate {
+	bpc.mutation.SetTimezone(t)
 	return bpc
 }
 
@@ -239,6 +246,9 @@ func (bpc *BillingProfileCreate) check() error {
 			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
 		}
 	}
+	if _, ok := bpc.mutation.Timezone(); !ok {
+		return &ValidationError{Name: "timezone", err: errors.New(`db: missing required field "BillingProfile.timezone"`)}
+	}
 	if _, ok := bpc.mutation.Default(); !ok {
 		return &ValidationError{Name: "default", err: errors.New(`db: missing required field "BillingProfile.default"`)}
 	}
@@ -311,6 +321,10 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		}
 		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
 		_node.ProviderConfig = value
+	}
+	if value, ok := bpc.mutation.Timezone(); ok {
+		_spec.SetField(billingprofile.FieldTimezone, field.TypeString, value)
+		_node.Timezone = value
 	}
 	if value, ok := bpc.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
@@ -455,6 +469,18 @@ func (u *BillingProfileUpsert) UpdateWorkflowConfigID() *BillingProfileUpsert {
 	return u
 }
 
+// SetTimezone sets the "timezone" field.
+func (u *BillingProfileUpsert) SetTimezone(v timezone.Timezone) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldTimezone, v)
+	return u
+}
+
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateTimezone() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldTimezone)
+	return u
+}
+
 // SetDefault sets the "default" field.
 func (u *BillingProfileUpsert) SetDefault(v bool) *BillingProfileUpsert {
 	u.Set(billingprofile.FieldDefault, v)
@@ -584,6 +610,20 @@ func (u *BillingProfileUpsertOne) SetWorkflowConfigID(v string) *BillingProfileU
 func (u *BillingProfileUpsertOne) UpdateWorkflowConfigID() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.UpdateWorkflowConfigID()
+	})
+}
+
+// SetTimezone sets the "timezone" field.
+func (u *BillingProfileUpsertOne) SetTimezone(v timezone.Timezone) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetTimezone(v)
+	})
+}
+
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateTimezone() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateTimezone()
 	})
 }
 
@@ -888,6 +928,20 @@ func (u *BillingProfileUpsertBulk) SetWorkflowConfigID(v string) *BillingProfile
 func (u *BillingProfileUpsertBulk) UpdateWorkflowConfigID() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.UpdateWorkflowConfigID()
+	})
+}
+
+// SetTimezone sets the "timezone" field.
+func (u *BillingProfileUpsertBulk) SetTimezone(v timezone.Timezone) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetTimezone(v)
+	})
+}
+
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateTimezone() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateTimezone()
 	})
 }
 

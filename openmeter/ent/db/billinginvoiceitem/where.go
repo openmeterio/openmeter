@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ID filters vertices based on their ID field.
@@ -122,8 +123,9 @@ func UnitPrice(v alpacadecimal.Decimal) predicate.BillingInvoiceItem {
 }
 
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldEQ(FieldCurrency, v))
+func Currency(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -672,68 +674,87 @@ func UnitPriceLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceItem {
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldEQ(FieldCurrency, v))
+func CurrencyEQ(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldNEQ(FieldCurrency, v))
+func CurrencyNEQ(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldNEQ(FieldCurrency, vc))
 }
 
 // CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldIn(FieldCurrency, vs...))
+func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoiceItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.BillingInvoiceItem(sql.FieldIn(FieldCurrency, v...))
 }
 
 // CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldNotIn(FieldCurrency, vs...))
+func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoiceItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.BillingInvoiceItem(sql.FieldNotIn(FieldCurrency, v...))
 }
 
 // CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldGT(FieldCurrency, v))
+func CurrencyGT(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldGT(FieldCurrency, vc))
 }
 
 // CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldGTE(FieldCurrency, v))
+func CurrencyGTE(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldGTE(FieldCurrency, vc))
 }
 
 // CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldLT(FieldCurrency, v))
+func CurrencyLT(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldLT(FieldCurrency, vc))
 }
 
 // CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldLTE(FieldCurrency, v))
+func CurrencyLTE(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldLTE(FieldCurrency, vc))
 }
 
 // CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldContains(FieldCurrency, v))
+func CurrencyContains(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldContains(FieldCurrency, vc))
 }
 
 // CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldHasPrefix(FieldCurrency, v))
+func CurrencyHasPrefix(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldHasPrefix(FieldCurrency, vc))
 }
 
 // CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldHasSuffix(FieldCurrency, v))
+func CurrencyHasSuffix(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldHasSuffix(FieldCurrency, vc))
 }
 
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldEqualFold(FieldCurrency, v))
+func CurrencyEqualFold(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldEqualFold(FieldCurrency, vc))
 }
 
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v string) predicate.BillingInvoiceItem {
-	return predicate.BillingInvoiceItem(sql.FieldContainsFold(FieldCurrency, v))
+func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoiceItem {
+	vc := string(v)
+	return predicate.BillingInvoiceItem(sql.FieldContainsFold(FieldCurrency, vc))
 }
 
 // HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.

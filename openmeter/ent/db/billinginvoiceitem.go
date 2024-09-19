@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // BillingInvoiceItem is the model entity for the BillingInvoiceItem schema.
@@ -46,7 +47,7 @@ type BillingInvoiceItem struct {
 	// UnitPrice holds the value of the "unit_price" field.
 	UnitPrice alpacadecimal.Decimal `json:"unit_price,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency string `json:"currency,omitempty"`
+	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxCodeOverride holds the value of the "tax_code_override" field.
 	TaxCodeOverride invoice.TaxOverrides `json:"tax_code_override,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -188,7 +189,7 @@ func (bii *BillingInvoiceItem) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				bii.Currency = value.String
+				bii.Currency = currencyx.Code(value.String)
 			}
 		case billinginvoiceitem.FieldTaxCodeOverride:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -278,7 +279,7 @@ func (bii *BillingInvoiceItem) String() string {
 	builder.WriteString(fmt.Sprintf("%v", bii.UnitPrice))
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
-	builder.WriteString(bii.Currency)
+	builder.WriteString(fmt.Sprintf("%v", bii.Currency))
 	builder.WriteString(", ")
 	builder.WriteString("tax_code_override=")
 	builder.WriteString(fmt.Sprintf("%v", bii.TaxCodeOverride))

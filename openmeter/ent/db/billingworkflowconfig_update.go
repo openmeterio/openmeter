@@ -57,16 +57,16 @@ func (bwcu *BillingWorkflowConfigUpdate) ClearDeletedAt() *BillingWorkflowConfig
 	return bwcu
 }
 
-// SetAlignment sets the "alignment" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetAlignment(bk)
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetCollectionAlignment(bk)
 	return bwcu
 }
 
-// SetNillableAlignment sets the "alignment" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdate {
+// SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdate {
 	if bk != nil {
-		bwcu.SetAlignment(*bk)
+		bwcu.SetCollectionAlignment(*bk)
 	}
 	return bwcu
 }
@@ -127,24 +127,30 @@ func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDraftPeriodSeconds(i int64) *
 	return bwcu
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ResetInvoiceDueAfterSeconds()
-	bwcu.mutation.SetInvoiceDueAfterSeconds(i)
+// SetInvoiceDueAfterDays sets the "invoice_due_after_days" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfterDays(i int64) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ResetInvoiceDueAfterDays()
+	bwcu.mutation.SetInvoiceDueAfterDays(i)
 	return bwcu
 }
 
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingWorkflowConfigUpdate {
+// SetNillableInvoiceDueAfterDays sets the "invoice_due_after_days" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfterDays(i *int64) *BillingWorkflowConfigUpdate {
 	if i != nil {
-		bwcu.SetInvoiceDueAfterSeconds(*i)
+		bwcu.SetInvoiceDueAfterDays(*i)
 	}
 	return bwcu
 }
 
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddInvoiceDueAfterSeconds(i)
+// AddInvoiceDueAfterDays adds i to the "invoice_due_after_days" field.
+func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDueAfterDays(i int64) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.AddInvoiceDueAfterDays(i)
+	return bwcu
+}
+
+// ClearInvoiceDueAfterDays clears the value of the "invoice_due_after_days" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceDueAfterDays() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceDueAfterDays()
 	return bwcu
 }
 
@@ -162,30 +168,30 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *
 	return bwcu
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceLineItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceLineItemResolution(br)
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceItemResolution(br)
 	return bwcu
 }
 
-// SetNillableInvoiceLineItemResolution sets the "invoice_line_item_resolution" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceLineItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigUpdate {
+// SetNillableInvoiceItemResolution sets the "invoice_item_resolution" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigUpdate {
 	if br != nil {
-		bwcu.SetInvoiceLineItemResolution(*br)
+		bwcu.SetInvoiceItemResolution(*br)
 	}
 	return bwcu
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceLineItemPerSubject(b)
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceItemPerSubject(b)
 	return bwcu
 }
 
-// SetNillableInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceLineItemPerSubject(b *bool) *BillingWorkflowConfigUpdate {
+// SetNillableInvoiceItemPerSubject sets the "invoice_item_per_subject" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceItemPerSubject(b *bool) *BillingWorkflowConfigUpdate {
 	if b != nil {
-		bwcu.SetInvoiceLineItemPerSubject(*b)
+		bwcu.SetInvoiceItemPerSubject(*b)
 	}
 	return bwcu
 }
@@ -305,9 +311,9 @@ func (bwcu *BillingWorkflowConfigUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bwcu *BillingWorkflowConfigUpdate) check() error {
-	if v, ok := bwcu.mutation.Alignment(); ok {
-		if err := billingworkflowconfig.AlignmentValidator(v); err != nil {
-			return &ValidationError{Name: "alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.alignment": %w`, err)}
+	if v, ok := bwcu.mutation.CollectionAlignment(); ok {
+		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
+			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
 	if v, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
@@ -315,9 +321,9 @@ func (bwcu *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcu.mutation.InvoiceLineItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceLineItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_line_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_line_item_resolution": %w`, err)}
+	if v, ok := bwcu.mutation.InvoiceItemResolution(); ok {
+		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
 		}
 	}
 	return nil
@@ -344,8 +350,8 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if bwcu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bwcu.mutation.Alignment(); ok {
-		_spec.SetField(billingworkflowconfig.FieldAlignment, field.TypeEnum, value)
+	if value, ok := bwcu.mutation.CollectionAlignment(); ok {
+		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
 	if value, ok := bwcu.mutation.CollectionPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
@@ -362,20 +368,23 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := bwcu.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
+	if value, ok := bwcu.mutation.InvoiceDueAfterDays(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterDays, field.TypeInt64, value)
 	}
-	if value, ok := bwcu.mutation.AddedInvoiceDueAfterSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
+	if value, ok := bwcu.mutation.AddedInvoiceDueAfterDays(); ok {
+		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterDays, field.TypeInt64, value)
+	}
+	if bwcu.mutation.InvoiceDueAfterDaysCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDueAfterDays, field.TypeInt64)
 	}
 	if value, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceLineItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
+	if value, ok := bwcu.mutation.InvoiceItemResolution(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceLineItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
+	if value, ok := bwcu.mutation.InvoiceItemPerSubject(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -513,16 +522,16 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) ClearDeletedAt() *BillingWorkflowCo
 	return bwcuo
 }
 
-// SetAlignment sets the "alignment" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetAlignment(bk)
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetCollectionAlignment(bk)
 	return bwcuo
 }
 
-// SetNillableAlignment sets the "alignment" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+// SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	if bk != nil {
-		bwcuo.SetAlignment(*bk)
+		bwcuo.SetCollectionAlignment(*bk)
 	}
 	return bwcuo
 }
@@ -583,24 +592,30 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDraftPeriodSeconds(i int6
 	return bwcuo
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ResetInvoiceDueAfterSeconds()
-	bwcuo.mutation.SetInvoiceDueAfterSeconds(i)
+// SetInvoiceDueAfterDays sets the "invoice_due_after_days" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfterDays(i int64) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ResetInvoiceDueAfterDays()
+	bwcuo.mutation.SetInvoiceDueAfterDays(i)
 	return bwcuo
 }
 
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingWorkflowConfigUpdateOne {
+// SetNillableInvoiceDueAfterDays sets the "invoice_due_after_days" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfterDays(i *int64) *BillingWorkflowConfigUpdateOne {
 	if i != nil {
-		bwcuo.SetInvoiceDueAfterSeconds(*i)
+		bwcuo.SetInvoiceDueAfterDays(*i)
 	}
 	return bwcuo
 }
 
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddInvoiceDueAfterSeconds(i)
+// AddInvoiceDueAfterDays adds i to the "invoice_due_after_days" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDueAfterDays(i int64) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.AddInvoiceDueAfterDays(i)
+	return bwcuo
+}
+
+// ClearInvoiceDueAfterDays clears the value of the "invoice_due_after_days" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceDueAfterDays() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceDueAfterDays()
 	return bwcuo
 }
 
@@ -618,30 +633,30 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(
 	return bwcuo
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceLineItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceLineItemResolution(br)
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceItemResolution(br)
 	return bwcuo
 }
 
-// SetNillableInvoiceLineItemResolution sets the "invoice_line_item_resolution" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceLineItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigUpdateOne {
+// SetNillableInvoiceItemResolution sets the "invoice_item_resolution" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigUpdateOne {
 	if br != nil {
-		bwcuo.SetInvoiceLineItemResolution(*br)
+		bwcuo.SetInvoiceItemResolution(*br)
 	}
 	return bwcuo
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceLineItemPerSubject(b)
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceItemPerSubject(b)
 	return bwcuo
 }
 
-// SetNillableInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceLineItemPerSubject(b *bool) *BillingWorkflowConfigUpdateOne {
+// SetNillableInvoiceItemPerSubject sets the "invoice_item_per_subject" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceItemPerSubject(b *bool) *BillingWorkflowConfigUpdateOne {
 	if b != nil {
-		bwcuo.SetInvoiceLineItemPerSubject(*b)
+		bwcuo.SetInvoiceItemPerSubject(*b)
 	}
 	return bwcuo
 }
@@ -774,9 +789,9 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
-	if v, ok := bwcuo.mutation.Alignment(); ok {
-		if err := billingworkflowconfig.AlignmentValidator(v); err != nil {
-			return &ValidationError{Name: "alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.alignment": %w`, err)}
+	if v, ok := bwcuo.mutation.CollectionAlignment(); ok {
+		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
+			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
 	if v, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
@@ -784,9 +799,9 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcuo.mutation.InvoiceLineItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceLineItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_line_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_line_item_resolution": %w`, err)}
+	if v, ok := bwcuo.mutation.InvoiceItemResolution(); ok {
+		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
 		}
 	}
 	return nil
@@ -830,8 +845,8 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if bwcuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bwcuo.mutation.Alignment(); ok {
-		_spec.SetField(billingworkflowconfig.FieldAlignment, field.TypeEnum, value)
+	if value, ok := bwcuo.mutation.CollectionAlignment(); ok {
+		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
 	if value, ok := bwcuo.mutation.CollectionPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
@@ -848,20 +863,23 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if value, ok := bwcuo.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
+	if value, ok := bwcuo.mutation.InvoiceDueAfterDays(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterDays, field.TypeInt64, value)
 	}
-	if value, ok := bwcuo.mutation.AddedInvoiceDueAfterSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
+	if value, ok := bwcuo.mutation.AddedInvoiceDueAfterDays(); ok {
+		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterDays, field.TypeInt64, value)
+	}
+	if bwcuo.mutation.InvoiceDueAfterDaysCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDueAfterDays, field.TypeInt64)
 	}
 	if value, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceLineItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
+	if value, ok := bwcuo.mutation.InvoiceItemResolution(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceLineItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
+	if value, ok := bwcuo.mutation.InvoiceItemPerSubject(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

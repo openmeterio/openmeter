@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
 
 const (
@@ -60,6 +60,8 @@ const (
 	FieldPrimaryEmail = "primary_email"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
+	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
+	EdgeBillingInvoices = "billing_invoices"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// SubjectsTable is the table that holds the subjects relation/edge.
@@ -69,6 +71,13 @@ const (
 	SubjectsInverseTable = "customer_subjects"
 	// SubjectsColumn is the table column denoting the subjects relation/edge.
 	SubjectsColumn = "customer_id"
+	// BillingInvoicesTable is the table that holds the billing_invoices relation/edge.
+	BillingInvoicesTable = "billing_invoices"
+	// BillingInvoicesInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoicesInverseTable = "billing_invoices"
+	// BillingInvoicesColumn is the table column denoting the billing_invoices relation/edge.
+	BillingInvoicesColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -127,7 +136,7 @@ var (
 )
 
 // TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
-func TaxProviderValidator(tp models.TaxProvider) error {
+func TaxProviderValidator(tp provider.TaxProvider) error {
 	switch tp {
 	case "openmeter_sandbox", "stripe_tax":
 		return nil
@@ -137,7 +146,7 @@ func TaxProviderValidator(tp models.TaxProvider) error {
 }
 
 // InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
-func InvoicingProviderValidator(ip models.InvoicingProvider) error {
+func InvoicingProviderValidator(ip provider.InvoicingProvider) error {
 	switch ip {
 	case "openmeter_sandbox", "stripe_invoicing":
 		return nil
@@ -147,7 +156,7 @@ func InvoicingProviderValidator(ip models.InvoicingProvider) error {
 }
 
 // PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
-func PaymentProviderValidator(pp models.PaymentProvider) error {
+func PaymentProviderValidator(pp provider.PaymentProvider) error {
 	switch pp {
 	case "openmeter_sandbox", "stripe_payments":
 		return nil
@@ -277,10 +286,31 @@ func BySubjects(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubjectsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingInvoicesCount orders the results by billing_invoices count.
+func ByBillingInvoicesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoicesStep(), opts...)
+	}
+}
+
+// ByBillingInvoices orders the results by billing_invoices terms.
+func ByBillingInvoices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoicesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSubjectsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubjectsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubjectsTable, SubjectsColumn),
+	)
+}
+func newBillingInvoicesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoicesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicesTable, BillingInvoicesColumn),
 	)
 }

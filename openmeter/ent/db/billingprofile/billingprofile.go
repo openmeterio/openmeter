@@ -30,6 +30,8 @@ const (
 	FieldProviderConfig = "provider_config"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
 	// FieldDefault holds the string denoting the default field in the database.
 	FieldDefault = "default"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
@@ -64,6 +66,7 @@ var Columns = []string{
 	FieldKey,
 	FieldProviderConfig,
 	FieldWorkflowConfigID,
+	FieldTimezone,
 	FieldDefault,
 }
 
@@ -141,6 +144,11 @@ func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
 // ByWorkflowConfigID orders the results by the workflow_config_id field.
 func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWorkflowConfigID, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
 }
 
 // ByDefault orders the results by the default field.

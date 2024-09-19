@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -30,6 +31,7 @@ type BillingInvoiceQuery struct {
 	withBillingProfile        *BillingProfileQuery
 	withBillingWorkflowConfig *BillingWorkflowConfigQuery
 	withBillingInvoiceItems   *BillingInvoiceItemQuery
+	withCustomer              *CustomerQuery
 	modifiers                 []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -126,6 +128,28 @@ func (biq *BillingInvoiceQuery) QueryBillingInvoiceItems() *BillingInvoiceItemQu
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoiceitem.Table, billinginvoiceitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceItemsTable, billinginvoice.BillingInvoiceItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCustomer chains the current query on the "customer" edge.
+func (biq *BillingInvoiceQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: biq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := biq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := biq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.CustomerTable, billinginvoice.CustomerColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
 		return fromU, nil
@@ -328,6 +352,7 @@ func (biq *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withBillingProfile:        biq.withBillingProfile.Clone(),
 		withBillingWorkflowConfig: biq.withBillingWorkflowConfig.Clone(),
 		withBillingInvoiceItems:   biq.withBillingInvoiceItems.Clone(),
+		withCustomer:              biq.withCustomer.Clone(),
 		// clone intermediate query.
 		sql:  biq.sql.Clone(),
 		path: biq.path,
@@ -364,6 +389,17 @@ func (biq *BillingInvoiceQuery) WithBillingInvoiceItems(opts ...func(*BillingInv
 		opt(query)
 	}
 	biq.withBillingInvoiceItems = query
+	return biq
+}
+
+// WithCustomer tells the query-builder to eager-load the nodes that are connected to
+// the "customer" edge. The optional arguments are used to configure the query builder of the edge.
+func (biq *BillingInvoiceQuery) WithCustomer(opts ...func(*CustomerQuery)) *BillingInvoiceQuery {
+	query := (&CustomerClient{config: biq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	biq.withCustomer = query
 	return biq
 }
 
@@ -445,10 +481,11 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = biq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			biq.withBillingProfile != nil,
 			biq.withBillingWorkflowConfig != nil,
 			biq.withBillingInvoiceItems != nil,
+			biq.withCustomer != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -490,6 +527,12 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			func(n *BillingInvoice, e *BillingInvoiceItem) {
 				n.Edges.BillingInvoiceItems = append(n.Edges.BillingInvoiceItems, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := biq.withCustomer; query != nil {
+		if err := biq.loadCustomer(ctx, query, nodes, nil,
+			func(n *BillingInvoice, e *Customer) { n.Edges.Customer = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -584,6 +627,35 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceItems(ctx context.Context, que
 	}
 	return nil
 }
+func (biq *BillingInvoiceQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *Customer)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingInvoice)
+	for i := range nodes {
+		fk := nodes[i].CustomerID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customer.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "customer_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (biq *BillingInvoiceQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := biq.querySpec()
@@ -618,6 +690,9 @@ func (biq *BillingInvoiceQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if biq.withBillingWorkflowConfig != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldWorkflowConfigID)
+		}
+		if biq.withCustomer != nil {
+			_spec.Node.AddColumnOnce(billinginvoice.FieldCustomerID)
 		}
 	}
 	if ps := biq.predicates; len(ps) > 0 {

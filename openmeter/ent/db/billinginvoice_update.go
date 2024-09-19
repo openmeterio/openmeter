@@ -12,13 +12,14 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
-	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/l10n"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingInvoiceUpdate is the builder for updating BillingInvoice entities.
@@ -72,6 +73,200 @@ func (biu *BillingInvoiceUpdate) ClearMetadata() *BillingInvoiceUpdate {
 	return biu
 }
 
+// SetBillingAddressCountry sets the "billing_address_country" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressCountry(lcc l10n.ISOCountryCode) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressCountry(lcc)
+	return biu
+}
+
+// SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressCountry(lcc *l10n.ISOCountryCode) *BillingInvoiceUpdate {
+	if lcc != nil {
+		biu.SetBillingAddressCountry(*lcc)
+	}
+	return biu
+}
+
+// ClearBillingAddressCountry clears the value of the "billing_address_country" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressCountry() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressCountry()
+	return biu
+}
+
+// SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressPostalCode(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressPostalCode(s)
+	return biu
+}
+
+// SetNillableBillingAddressPostalCode sets the "billing_address_postal_code" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressPostalCode(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetBillingAddressPostalCode(*s)
+	}
+	return biu
+}
+
+// ClearBillingAddressPostalCode clears the value of the "billing_address_postal_code" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressPostalCode() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressPostalCode()
+	return biu
+}
+
+// SetBillingAddressState sets the "billing_address_state" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressState(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressState(s)
+	return biu
+}
+
+// SetNillableBillingAddressState sets the "billing_address_state" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressState(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetBillingAddressState(*s)
+	}
+	return biu
+}
+
+// ClearBillingAddressState clears the value of the "billing_address_state" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressState() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressState()
+	return biu
+}
+
+// SetBillingAddressCity sets the "billing_address_city" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressCity(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressCity(s)
+	return biu
+}
+
+// SetNillableBillingAddressCity sets the "billing_address_city" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressCity(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetBillingAddressCity(*s)
+	}
+	return biu
+}
+
+// ClearBillingAddressCity clears the value of the "billing_address_city" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressCity() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressCity()
+	return biu
+}
+
+// SetBillingAddressLine1 sets the "billing_address_line1" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressLine1(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressLine1(s)
+	return biu
+}
+
+// SetNillableBillingAddressLine1 sets the "billing_address_line1" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressLine1(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetBillingAddressLine1(*s)
+	}
+	return biu
+}
+
+// ClearBillingAddressLine1 clears the value of the "billing_address_line1" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressLine1() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressLine1()
+	return biu
+}
+
+// SetBillingAddressLine2 sets the "billing_address_line2" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressLine2(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressLine2(s)
+	return biu
+}
+
+// SetNillableBillingAddressLine2 sets the "billing_address_line2" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressLine2(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetBillingAddressLine2(*s)
+	}
+	return biu
+}
+
+// ClearBillingAddressLine2 clears the value of the "billing_address_line2" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressLine2() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressLine2()
+	return biu
+}
+
+// SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
+func (biu *BillingInvoiceUpdate) SetBillingAddressPhoneNumber(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetBillingAddressPhoneNumber(s)
+	return biu
+}
+
+// SetNillableBillingAddressPhoneNumber sets the "billing_address_phone_number" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableBillingAddressPhoneNumber(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetBillingAddressPhoneNumber(*s)
+	}
+	return biu
+}
+
+// ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
+func (biu *BillingInvoiceUpdate) ClearBillingAddressPhoneNumber() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingAddressPhoneNumber()
+	return biu
+}
+
+// SetCustomerSnapshotTaken sets the "customer_snapshot_taken" field.
+func (biu *BillingInvoiceUpdate) SetCustomerSnapshotTaken(b bool) *BillingInvoiceUpdate {
+	biu.mutation.SetCustomerSnapshotTaken(b)
+	return biu
+}
+
+// SetNillableCustomerSnapshotTaken sets the "customer_snapshot_taken" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableCustomerSnapshotTaken(b *bool) *BillingInvoiceUpdate {
+	if b != nil {
+		biu.SetCustomerSnapshotTaken(*b)
+	}
+	return biu
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (biu *BillingInvoiceUpdate) SetCustomerName(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetCustomerName(s)
+	return biu
+}
+
+// SetNillableCustomerName sets the "customer_name" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableCustomerName(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetCustomerName(*s)
+	}
+	return biu
+}
+
+// ClearCustomerName clears the value of the "customer_name" field.
+func (biu *BillingInvoiceUpdate) ClearCustomerName() *BillingInvoiceUpdate {
+	biu.mutation.ClearCustomerName()
+	return biu
+}
+
+// SetCustomerPrimaryEmail sets the "customer_primary_email" field.
+func (biu *BillingInvoiceUpdate) SetCustomerPrimaryEmail(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetCustomerPrimaryEmail(s)
+	return biu
+}
+
+// SetNillableCustomerPrimaryEmail sets the "customer_primary_email" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableCustomerPrimaryEmail(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetCustomerPrimaryEmail(*s)
+	}
+	return biu
+}
+
+// ClearCustomerPrimaryEmail clears the value of the "customer_primary_email" field.
+func (biu *BillingInvoiceUpdate) ClearCustomerPrimaryEmail() *BillingInvoiceUpdate {
+	biu.mutation.ClearCustomerPrimaryEmail()
+	return biu
+}
+
 // SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
 func (biu *BillingInvoiceUpdate) SetPrecedingInvoiceIds(s []string) *BillingInvoiceUpdate {
 	biu.mutation.SetPrecedingInvoiceIds(s)
@@ -87,6 +282,26 @@ func (biu *BillingInvoiceUpdate) AppendPrecedingInvoiceIds(s []string) *BillingI
 // ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
 func (biu *BillingInvoiceUpdate) ClearPrecedingInvoiceIds() *BillingInvoiceUpdate {
 	biu.mutation.ClearPrecedingInvoiceIds()
+	return biu
+}
+
+// SetIssuedAt sets the "issued_at" field.
+func (biu *BillingInvoiceUpdate) SetIssuedAt(t time.Time) *BillingInvoiceUpdate {
+	biu.mutation.SetIssuedAt(t)
+	return biu
+}
+
+// SetNillableIssuedAt sets the "issued_at" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableIssuedAt(t *time.Time) *BillingInvoiceUpdate {
+	if t != nil {
+		biu.SetIssuedAt(*t)
+	}
+	return biu
+}
+
+// ClearIssuedAt clears the value of the "issued_at" field.
+func (biu *BillingInvoiceUpdate) ClearIssuedAt() *BillingInvoiceUpdate {
+	biu.mutation.ClearIssuedAt()
 	return biu
 }
 
@@ -110,16 +325,16 @@ func (biu *BillingInvoiceUpdate) ClearVoidedAt() *BillingInvoiceUpdate {
 	return biu
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (biu *BillingInvoiceUpdate) SetTotalAmount(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
-	biu.mutation.SetTotalAmount(a)
+// SetTimezone sets the "timezone" field.
+func (biu *BillingInvoiceUpdate) SetTimezone(t timezone.Timezone) *BillingInvoiceUpdate {
+	biu.mutation.SetTimezone(t)
 	return biu
 }
 
-// SetNillableTotalAmount sets the "total_amount" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableTotalAmount(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
-	if a != nil {
-		biu.SetTotalAmount(*a)
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableTimezone(t *timezone.Timezone) *BillingInvoiceUpdate {
+	if t != nil {
+		biu.SetTimezone(*t)
 	}
 	return biu
 }
@@ -135,6 +350,12 @@ func (biu *BillingInvoiceUpdate) SetNillableDueDate(t *time.Time) *BillingInvoic
 	if t != nil {
 		biu.SetDueDate(*t)
 	}
+	return biu
+}
+
+// ClearDueDate clears the value of the "due_date" field.
+func (biu *BillingInvoiceUpdate) ClearDueDate() *BillingInvoiceUpdate {
+	biu.mutation.ClearDueDate()
 	return biu
 }
 
@@ -318,6 +539,11 @@ func (biu *BillingInvoiceUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (biu *BillingInvoiceUpdate) check() error {
+	if v, ok := biu.mutation.BillingAddressCountry(); ok {
+		if err := billinginvoice.BillingAddressCountryValidator(string(v)); err != nil {
+			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.billing_address_country": %w`, err)}
+		}
+	}
 	if v, ok := biu.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
@@ -333,6 +559,9 @@ func (biu *BillingInvoiceUpdate) check() error {
 	}
 	if biu.mutation.BillingWorkflowConfigCleared() && len(biu.mutation.BillingWorkflowConfigIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoice.billing_workflow_config"`)
+	}
+	if biu.mutation.CustomerCleared() && len(biu.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingInvoice.customer"`)
 	}
 	return nil
 }
@@ -364,6 +593,63 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if biu.mutation.MetadataCleared() {
 		_spec.ClearField(billinginvoice.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := biu.mutation.BillingAddressCountry(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressCountry, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressCountryCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressCountry, field.TypeString)
+	}
+	if value, ok := biu.mutation.BillingAddressPostalCode(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressPostalCode, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressPostalCodeCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressPostalCode, field.TypeString)
+	}
+	if value, ok := biu.mutation.BillingAddressState(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressState, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressStateCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressState, field.TypeString)
+	}
+	if value, ok := biu.mutation.BillingAddressCity(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressCity, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressCityCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressCity, field.TypeString)
+	}
+	if value, ok := biu.mutation.BillingAddressLine1(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressLine1, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressLine1Cleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressLine1, field.TypeString)
+	}
+	if value, ok := biu.mutation.BillingAddressLine2(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressLine2, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressLine2Cleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressLine2, field.TypeString)
+	}
+	if value, ok := biu.mutation.BillingAddressPhoneNumber(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressPhoneNumber, field.TypeString, value)
+	}
+	if biu.mutation.BillingAddressPhoneNumberCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressPhoneNumber, field.TypeString)
+	}
+	if value, ok := biu.mutation.CustomerSnapshotTaken(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerSnapshotTaken, field.TypeBool, value)
+	}
+	if value, ok := biu.mutation.CustomerName(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
+	}
+	if biu.mutation.CustomerNameCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerName, field.TypeString)
+	}
+	if value, ok := biu.mutation.CustomerPrimaryEmail(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerPrimaryEmail, field.TypeString, value)
+	}
+	if biu.mutation.CustomerPrimaryEmailCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerPrimaryEmail, field.TypeString)
+	}
 	if value, ok := biu.mutation.PrecedingInvoiceIds(); ok {
 		_spec.SetField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON, value)
 	}
@@ -375,17 +661,26 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if biu.mutation.PrecedingInvoiceIdsCleared() {
 		_spec.ClearField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON)
 	}
+	if value, ok := biu.mutation.IssuedAt(); ok {
+		_spec.SetField(billinginvoice.FieldIssuedAt, field.TypeTime, value)
+	}
+	if biu.mutation.IssuedAtCleared() {
+		_spec.ClearField(billinginvoice.FieldIssuedAt, field.TypeTime)
+	}
 	if value, ok := biu.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
 	}
 	if biu.mutation.VoidedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldVoidedAt, field.TypeTime)
 	}
-	if value, ok := biu.mutation.TotalAmount(); ok {
-		_spec.SetField(billinginvoice.FieldTotalAmount, field.TypeOther, value)
+	if value, ok := biu.mutation.Timezone(); ok {
+		_spec.SetField(billinginvoice.FieldTimezone, field.TypeString, value)
 	}
 	if value, ok := biu.mutation.DueDate(); ok {
 		_spec.SetField(billinginvoice.FieldDueDate, field.TypeTime, value)
+	}
+	if biu.mutation.DueDateCleared() {
+		_spec.ClearField(billinginvoice.FieldDueDate, field.TypeTime)
 	}
 	if value, ok := biu.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
@@ -542,6 +837,200 @@ func (biuo *BillingInvoiceUpdateOne) ClearMetadata() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
+// SetBillingAddressCountry sets the "billing_address_country" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressCountry(lcc l10n.ISOCountryCode) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressCountry(lcc)
+	return biuo
+}
+
+// SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressCountry(lcc *l10n.ISOCountryCode) *BillingInvoiceUpdateOne {
+	if lcc != nil {
+		biuo.SetBillingAddressCountry(*lcc)
+	}
+	return biuo
+}
+
+// ClearBillingAddressCountry clears the value of the "billing_address_country" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressCountry() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressCountry()
+	return biuo
+}
+
+// SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressPostalCode(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressPostalCode(s)
+	return biuo
+}
+
+// SetNillableBillingAddressPostalCode sets the "billing_address_postal_code" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressPostalCode(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetBillingAddressPostalCode(*s)
+	}
+	return biuo
+}
+
+// ClearBillingAddressPostalCode clears the value of the "billing_address_postal_code" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressPostalCode() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressPostalCode()
+	return biuo
+}
+
+// SetBillingAddressState sets the "billing_address_state" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressState(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressState(s)
+	return biuo
+}
+
+// SetNillableBillingAddressState sets the "billing_address_state" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressState(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetBillingAddressState(*s)
+	}
+	return biuo
+}
+
+// ClearBillingAddressState clears the value of the "billing_address_state" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressState() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressState()
+	return biuo
+}
+
+// SetBillingAddressCity sets the "billing_address_city" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressCity(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressCity(s)
+	return biuo
+}
+
+// SetNillableBillingAddressCity sets the "billing_address_city" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressCity(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetBillingAddressCity(*s)
+	}
+	return biuo
+}
+
+// ClearBillingAddressCity clears the value of the "billing_address_city" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressCity() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressCity()
+	return biuo
+}
+
+// SetBillingAddressLine1 sets the "billing_address_line1" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressLine1(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressLine1(s)
+	return biuo
+}
+
+// SetNillableBillingAddressLine1 sets the "billing_address_line1" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressLine1(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetBillingAddressLine1(*s)
+	}
+	return biuo
+}
+
+// ClearBillingAddressLine1 clears the value of the "billing_address_line1" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressLine1() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressLine1()
+	return biuo
+}
+
+// SetBillingAddressLine2 sets the "billing_address_line2" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressLine2(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressLine2(s)
+	return biuo
+}
+
+// SetNillableBillingAddressLine2 sets the "billing_address_line2" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressLine2(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetBillingAddressLine2(*s)
+	}
+	return biuo
+}
+
+// ClearBillingAddressLine2 clears the value of the "billing_address_line2" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressLine2() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressLine2()
+	return biuo
+}
+
+// SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
+func (biuo *BillingInvoiceUpdateOne) SetBillingAddressPhoneNumber(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetBillingAddressPhoneNumber(s)
+	return biuo
+}
+
+// SetNillableBillingAddressPhoneNumber sets the "billing_address_phone_number" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableBillingAddressPhoneNumber(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetBillingAddressPhoneNumber(*s)
+	}
+	return biuo
+}
+
+// ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingAddressPhoneNumber() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingAddressPhoneNumber()
+	return biuo
+}
+
+// SetCustomerSnapshotTaken sets the "customer_snapshot_taken" field.
+func (biuo *BillingInvoiceUpdateOne) SetCustomerSnapshotTaken(b bool) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCustomerSnapshotTaken(b)
+	return biuo
+}
+
+// SetNillableCustomerSnapshotTaken sets the "customer_snapshot_taken" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableCustomerSnapshotTaken(b *bool) *BillingInvoiceUpdateOne {
+	if b != nil {
+		biuo.SetCustomerSnapshotTaken(*b)
+	}
+	return biuo
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (biuo *BillingInvoiceUpdateOne) SetCustomerName(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCustomerName(s)
+	return biuo
+}
+
+// SetNillableCustomerName sets the "customer_name" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableCustomerName(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetCustomerName(*s)
+	}
+	return biuo
+}
+
+// ClearCustomerName clears the value of the "customer_name" field.
+func (biuo *BillingInvoiceUpdateOne) ClearCustomerName() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearCustomerName()
+	return biuo
+}
+
+// SetCustomerPrimaryEmail sets the "customer_primary_email" field.
+func (biuo *BillingInvoiceUpdateOne) SetCustomerPrimaryEmail(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCustomerPrimaryEmail(s)
+	return biuo
+}
+
+// SetNillableCustomerPrimaryEmail sets the "customer_primary_email" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableCustomerPrimaryEmail(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetCustomerPrimaryEmail(*s)
+	}
+	return biuo
+}
+
+// ClearCustomerPrimaryEmail clears the value of the "customer_primary_email" field.
+func (biuo *BillingInvoiceUpdateOne) ClearCustomerPrimaryEmail() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearCustomerPrimaryEmail()
+	return biuo
+}
+
 // SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
 func (biuo *BillingInvoiceUpdateOne) SetPrecedingInvoiceIds(s []string) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetPrecedingInvoiceIds(s)
@@ -557,6 +1046,26 @@ func (biuo *BillingInvoiceUpdateOne) AppendPrecedingInvoiceIds(s []string) *Bill
 // ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
 func (biuo *BillingInvoiceUpdateOne) ClearPrecedingInvoiceIds() *BillingInvoiceUpdateOne {
 	biuo.mutation.ClearPrecedingInvoiceIds()
+	return biuo
+}
+
+// SetIssuedAt sets the "issued_at" field.
+func (biuo *BillingInvoiceUpdateOne) SetIssuedAt(t time.Time) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetIssuedAt(t)
+	return biuo
+}
+
+// SetNillableIssuedAt sets the "issued_at" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableIssuedAt(t *time.Time) *BillingInvoiceUpdateOne {
+	if t != nil {
+		biuo.SetIssuedAt(*t)
+	}
+	return biuo
+}
+
+// ClearIssuedAt clears the value of the "issued_at" field.
+func (biuo *BillingInvoiceUpdateOne) ClearIssuedAt() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearIssuedAt()
 	return biuo
 }
 
@@ -580,16 +1089,16 @@ func (biuo *BillingInvoiceUpdateOne) ClearVoidedAt() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (biuo *BillingInvoiceUpdateOne) SetTotalAmount(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetTotalAmount(a)
+// SetTimezone sets the "timezone" field.
+func (biuo *BillingInvoiceUpdateOne) SetTimezone(t timezone.Timezone) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetTimezone(t)
 	return biuo
 }
 
-// SetNillableTotalAmount sets the "total_amount" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableTotalAmount(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
-	if a != nil {
-		biuo.SetTotalAmount(*a)
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableTimezone(t *timezone.Timezone) *BillingInvoiceUpdateOne {
+	if t != nil {
+		biuo.SetTimezone(*t)
 	}
 	return biuo
 }
@@ -605,6 +1114,12 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableDueDate(t *time.Time) *BillingIn
 	if t != nil {
 		biuo.SetDueDate(*t)
 	}
+	return biuo
+}
+
+// ClearDueDate clears the value of the "due_date" field.
+func (biuo *BillingInvoiceUpdateOne) ClearDueDate() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearDueDate()
 	return biuo
 }
 
@@ -801,6 +1316,11 @@ func (biuo *BillingInvoiceUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (biuo *BillingInvoiceUpdateOne) check() error {
+	if v, ok := biuo.mutation.BillingAddressCountry(); ok {
+		if err := billinginvoice.BillingAddressCountryValidator(string(v)); err != nil {
+			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.billing_address_country": %w`, err)}
+		}
+	}
 	if v, ok := biuo.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
@@ -816,6 +1336,9 @@ func (biuo *BillingInvoiceUpdateOne) check() error {
 	}
 	if biuo.mutation.BillingWorkflowConfigCleared() && len(biuo.mutation.BillingWorkflowConfigIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoice.billing_workflow_config"`)
+	}
+	if biuo.mutation.CustomerCleared() && len(biuo.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingInvoice.customer"`)
 	}
 	return nil
 }
@@ -864,6 +1387,63 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	if biuo.mutation.MetadataCleared() {
 		_spec.ClearField(billinginvoice.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := biuo.mutation.BillingAddressCountry(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressCountry, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressCountryCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressCountry, field.TypeString)
+	}
+	if value, ok := biuo.mutation.BillingAddressPostalCode(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressPostalCode, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressPostalCodeCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressPostalCode, field.TypeString)
+	}
+	if value, ok := biuo.mutation.BillingAddressState(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressState, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressStateCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressState, field.TypeString)
+	}
+	if value, ok := biuo.mutation.BillingAddressCity(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressCity, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressCityCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressCity, field.TypeString)
+	}
+	if value, ok := biuo.mutation.BillingAddressLine1(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressLine1, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressLine1Cleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressLine1, field.TypeString)
+	}
+	if value, ok := biuo.mutation.BillingAddressLine2(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressLine2, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressLine2Cleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressLine2, field.TypeString)
+	}
+	if value, ok := biuo.mutation.BillingAddressPhoneNumber(); ok {
+		_spec.SetField(billinginvoice.FieldBillingAddressPhoneNumber, field.TypeString, value)
+	}
+	if biuo.mutation.BillingAddressPhoneNumberCleared() {
+		_spec.ClearField(billinginvoice.FieldBillingAddressPhoneNumber, field.TypeString)
+	}
+	if value, ok := biuo.mutation.CustomerSnapshotTaken(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerSnapshotTaken, field.TypeBool, value)
+	}
+	if value, ok := biuo.mutation.CustomerName(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
+	}
+	if biuo.mutation.CustomerNameCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerName, field.TypeString)
+	}
+	if value, ok := biuo.mutation.CustomerPrimaryEmail(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerPrimaryEmail, field.TypeString, value)
+	}
+	if biuo.mutation.CustomerPrimaryEmailCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerPrimaryEmail, field.TypeString)
+	}
 	if value, ok := biuo.mutation.PrecedingInvoiceIds(); ok {
 		_spec.SetField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON, value)
 	}
@@ -875,17 +1455,26 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	if biuo.mutation.PrecedingInvoiceIdsCleared() {
 		_spec.ClearField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON)
 	}
+	if value, ok := biuo.mutation.IssuedAt(); ok {
+		_spec.SetField(billinginvoice.FieldIssuedAt, field.TypeTime, value)
+	}
+	if biuo.mutation.IssuedAtCleared() {
+		_spec.ClearField(billinginvoice.FieldIssuedAt, field.TypeTime)
+	}
 	if value, ok := biuo.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
 	}
 	if biuo.mutation.VoidedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldVoidedAt, field.TypeTime)
 	}
-	if value, ok := biuo.mutation.TotalAmount(); ok {
-		_spec.SetField(billinginvoice.FieldTotalAmount, field.TypeOther, value)
+	if value, ok := biuo.mutation.Timezone(); ok {
+		_spec.SetField(billinginvoice.FieldTimezone, field.TypeString, value)
 	}
 	if value, ok := biuo.mutation.DueDate(); ok {
 		_spec.SetField(billinginvoice.FieldDueDate, field.TypeTime, value)
+	}
+	if biuo.mutation.DueDateCleared() {
+		_spec.ClearField(billinginvoice.FieldDueDate, field.TypeTime)
 	}
 	if value, ok := biuo.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
