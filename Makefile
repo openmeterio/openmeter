@@ -14,9 +14,9 @@ down: ## Stop the dependencies via docker compose
 gen-api: ## Generate API and SDKs
 	$(call print-target)
 	go generate ./api/...
-	dagger call --source .:default generate node-sdk -o api/client/node
-	dagger call --source .:default generate web-sdk -o api/client/web
-	dagger call --source .:default generate python-sdk -o api/client/python
+	dagger call generate node-sdk -o api/client/node
+	dagger call generate web-sdk -o api/client/web
+	dagger call generate python-sdk -o api/client/python
 
 .PHONY: migrate-check
 migrate-check: ## Validate migrations
@@ -83,17 +83,17 @@ notification-service: ## Run notification-service
 .PHONY: etoe
 etoe: ## Run e2e tests
 	$(call print-target)
-	dagger call --source .:default etoe
+	dagger call etoe
 
 .PHONY: test
 test: ## Run tests
 	$(call print-target)
-	dagger call --source .:default test
+	dagger call test
 
 .PHONY: lint
 lint: ## Run linters
 	$(call print-target)
-	dagger call --source .:default lint all
+	dagger call lint all
 
 .PHONY: fmt
 fmt: ## Format code

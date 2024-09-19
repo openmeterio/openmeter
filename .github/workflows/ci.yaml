@@ -51,8 +51,7 @@ jobs:
         uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} test
+          args: test
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
@@ -87,8 +86,7 @@ jobs:
         uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} migrate check
+          args: migrate check
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
@@ -121,8 +119,7 @@ jobs:
         uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} lint all
+          args: lint all
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
@@ -287,8 +284,7 @@ jobs:
         uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} etoe
+          args: etoe
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
@@ -321,8 +317,7 @@ jobs:
         uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} ci
+          args: ci
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 

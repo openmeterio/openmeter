@@ -54,8 +54,13 @@ func (m *Migrate) Check(ctx context.Context) error {
 
 	// Always validate migrations are in sync with schema
 	p.Go(func(ctx context.Context) error {
+		postgres := dag.Postgres(dagger.PostgresOpts{
+			Version: postgresVersion,
+			Name:    "no-diff",
+		})
+
 		result := atlas.
-			WithServiceBinding("postgres", postgresNamed("no-diff")).
+			WithServiceBinding("postgres", postgres.Service()).
 			WithExec([]string{"atlas", "migrate", "--env", "ci", "diff", "test"}).
 			Directory("tools/migrate/migrations")
 
@@ -71,14 +76,20 @@ func (m *Migrate) Check(ctx context.Context) error {
 	// Always lint last 10 migrations
 	p.Go(syncFunc(
 		atlas.
-			WithServiceBinding("postgres", postgresNamed("last-10")).
+			WithServiceBinding("postgres", dag.Postgres(dagger.PostgresOpts{
+				Version: postgresVersion,
+				Name:    "last-10",
+			}).Service()).
 			WithExec([]string{"atlas", "migrate", "--env", "ci", "lint", "--latest", "10"}),
 	))
 
 	// Validate checksum is intact
 	p.Go(syncFunc(
 		atlas.
-			WithServiceBinding("postgres", postgresNamed("validate")).
+			WithServiceBinding("postgres", dag.Postgres(dagger.PostgresOpts{
+				Version: postgresVersion,
+				Name:    "validate",
+			}).Service()).
 			WithExec([]string{"atlas", "migrate", "--env", "ci", "validate"}),
 	))
 

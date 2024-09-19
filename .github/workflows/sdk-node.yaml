@@ -28,7 +28,7 @@ jobs:
         uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
         with:
           verb: call
-          args: --source .:default generate node-sdk -o api/client/node
+          args: generate node-sdk -o api/client/node
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.13.1"
 

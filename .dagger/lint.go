@@ -15,6 +15,7 @@ func (m *Openmeter) Lint() *Lint {
 }
 
 type Lint struct {
+	// +private
 	Source *dagger.Directory
 }
 
