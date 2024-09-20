@@ -1,4 +1,4 @@
-h1:SAhlNZw5SuCJAs1BJuSSUlyd+3uEzAEm6pqpPSKioQA=
+h1:xsZpOJs6jnPPXtbUTxid8GPAZlJGCfc2ub2ZxVr457M=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -9,5 +9,5 @@ h1:SAhlNZw5SuCJAs1BJuSSUlyd+3uEzAEm6pqpPSKioQA=
 20240918204720_customer.up.sql h1:o1giScZ2bR9qOF1CSkno+n9rhHFlX/g5nenMRUukeDI=
 20240919144910_customer-timezone.down.sql h1:YHTwr/Xw3Wm7lwDIBX16UQD8wp01nGTixmhkGhCN/IA=
 20240919144910_customer-timezone.up.sql h1:l/L/85zsacSORnsgUdBSOjzQvf0L91byK2wh4Dz6eCI=
-20240920070940_indexing-fixes.down.sql h1:rpRnjrLEF50atNeMfc7VMxRjJSEynQqBlst/GnpN55w=
-20240920070940_indexing-fixes.up.sql h1:w+8fyqMOuD2pJJ8ZgfhwR2+MsquC95cffJDflIAg+XE=
+20240920070940_indexing-fixes.down.sql h1:IhKm+adPcfd7XOWYmFurnMpWCSSkWTosCs/aYstpvgc=
+20240920070940_indexing-fixes.up.sql h1:ne1XfTKACTk02BAJhxLWb/xFLLI/UWYWEyn17nDHaKQ=

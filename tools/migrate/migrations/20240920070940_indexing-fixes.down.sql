@@ -1,3 +1,4 @@
+-- atlas:nolint MF101
 -- reverse: create index "usagereset_id" to table: "usage_resets"
 DROP INDEX "usagereset_id";
 -- reverse: drop index "usagereset_id" from table: "usage_resets"
