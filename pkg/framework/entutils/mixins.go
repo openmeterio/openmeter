@@ -33,12 +33,25 @@ func (ResourceMixin) Fields() []ent.Field {
 func (ResourceMixin) Indexes() []ent.Index {
 	var indexes []ent.Index
 	indexes = append(indexes, IDMixin{}.Indexes()...)
-	indexes = append(indexes, KeyMixin{}.Indexes()...)
 	indexes = append(indexes, NamespaceMixin{}.Indexes()...)
 	indexes = append(indexes, MetadataAnnotationsMixin{}.Indexes()...)
 	indexes = append(indexes, TimeMixin{}.Indexes()...)
-	indexes = append(indexes, index.Fields("namespace", "id"))
-	indexes = append(indexes, index.Fields("namespace", "key").Unique())
+	indexes = append(indexes, index.Fields("namespace", "id").Unique())
+
+	// Key mixin indexes are not used, as now that we know we have namespaces, we can use a better index
+
+	// Soft deleted items should not create a conflict with a new item with the same key.
+	// The proper index would be:
+	//
+	// 	CREATE UNIQE INDEX x ON y (namespace, key) WHERE deleted_at IS NULL
+	//
+	// ENT only supports WHERE clauses on indexes via manually creating migrations, so
+	// we could approximate that behavior using this index.
+	//
+	// Caveats: If two resources with the same key are deleted in the same microsecond then the
+	// deletion will fail. (e.g. by doing a create, delete, create, delete in the same microsecond)
+	indexes = append(indexes, index.Fields("namespace", "key", "deleted_at").Unique())
+
 	return indexes
 }
 
@@ -64,7 +77,7 @@ func (IDMixin) Fields() []ent.Field {
 
 func (IDMixin) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("id"),
+		index.Fields("id").Unique(),
 	}
 }
 
