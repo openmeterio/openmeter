@@ -1,4 +1,4 @@
-package repository
+package invoiceRepo
 
 import (
 	"context"
@@ -33,14 +33,14 @@ func New(c Config) (invoice.Repository, error) {
 		return nil, err
 	}
 
-	return repository{db: c.Client}, nil
+	return invoiceRepo{db: c.Client}, nil
 }
 
-type repository struct {
+type invoiceRepo struct {
 	db *entdb.Client
 }
 
-func (r repository) GetInvoice(ctx context.Context, id invoice.InvoiceID, inp invoice.RepoGetInvoiceInput) (*invoice.Invoice, error) {
+func (r invoiceRepo) GetInvoice(ctx context.Context, id invoice.InvoiceID, inp invoice.RepoGetInvoiceInput) (*invoice.Invoice, error) {
 	query := r.db.BillingInvoice.Query().
 		Where(invoicedb.ID(id.ID)).
 		Where(invoicedb.Namespace(id.Namespace)).
@@ -62,7 +62,7 @@ func (r repository) GetInvoice(ctx context.Context, id invoice.InvoiceID, inp in
 	return invoiceFromDBEntity(invoice), nil
 }
 
-func (r repository) CreateInvoiceItems(ctx context.Context, invoiceID *invoice.InvoiceID, items []invoice.InvoiceItem) ([]invoice.InvoiceItem, error) {
+func (r invoiceRepo) CreateInvoiceItems(ctx context.Context, invoiceID *invoice.InvoiceID, items []invoice.InvoiceItem) ([]invoice.InvoiceItem, error) {
 	result := make([]invoice.InvoiceItem, 0, len(items))
 
 	for _, item := range items {
@@ -94,7 +94,7 @@ func (r repository) CreateInvoiceItems(ctx context.Context, invoiceID *invoice.I
 	return result, nil
 }
 
-func (r repository) GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]invoice.InvoiceItem, error) {
+func (r invoiceRepo) GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]invoice.InvoiceItem, error) {
 	items, err := r.db.BillingInvoiceItem.Query().
 		Where(invoiceitemdb.CustomerID(customerID.ID)).
 		Where(invoiceitemdb.Namespace(customerID.Namespace)).

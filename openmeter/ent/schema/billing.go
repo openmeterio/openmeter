@@ -40,12 +40,9 @@ func (BillingProfile) Fields() []ent.Field {
 		field.String("key").
 			NotEmpty().
 			Immutable(),
-		field.String("provider_config").
-			GoType(provider.Configuration{}).
-			ValueScanner(ProviderConfigValueScanner).
-			SchemaType(map[string]string{
-				"postgres": "jsonb",
-			}),
+		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
+		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
+		field.Enum("payment_provider").GoType(provider.PaymentProvider("")).Optional().Nillable(),
 		field.String("workflow_config_id").
 			NotEmpty(),
 		field.String("timezone").
