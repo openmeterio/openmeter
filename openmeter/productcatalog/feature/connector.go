@@ -1,11 +1,10 @@
-package productcatalog
+package feature
 
 import (
 	"context"
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -69,17 +68,6 @@ type ListFeaturesParams struct {
 	Limit int
 	// will be deprecated
 	Offset int
-}
-
-type FeatureRepo interface {
-	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
-	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
-	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error)
-	HasActiveFeatureForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
-
-	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)
-	entutils.TxCreator
-	entutils.TxUser[FeatureRepo]
 }
 
 type featureConnector struct {
