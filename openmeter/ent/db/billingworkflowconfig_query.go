@@ -79,7 +79,7 @@ func (bwcq *BillingWorkflowConfigQuery) QueryBillingInvoices() *BillingInvoiceQu
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billingworkflowconfig.BillingInvoicesTable, billingworkflowconfig.BillingInvoicesColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingInvoicesTable, billingworkflowconfig.BillingInvoicesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bwcq.driver.Dialect(), step)
 		return fromU, nil
@@ -101,7 +101,7 @@ func (bwcq *BillingWorkflowConfigQuery) QueryBillingProfile() *BillingProfileQue
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bwcq.driver.Dialect(), step)
 		return fromU, nil
@@ -436,20 +436,14 @@ func (bwcq *BillingWorkflowConfigQuery) sqlAll(ctx context.Context, hooks ...que
 		return nodes, nil
 	}
 	if query := bwcq.withBillingInvoices; query != nil {
-		if err := bwcq.loadBillingInvoices(ctx, query, nodes,
-			func(n *BillingWorkflowConfig) { n.Edges.BillingInvoices = []*BillingInvoice{} },
-			func(n *BillingWorkflowConfig, e *BillingInvoice) {
-				n.Edges.BillingInvoices = append(n.Edges.BillingInvoices, e)
-			}); err != nil {
+		if err := bwcq.loadBillingInvoices(ctx, query, nodes, nil,
+			func(n *BillingWorkflowConfig, e *BillingInvoice) { n.Edges.BillingInvoices = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := bwcq.withBillingProfile; query != nil {
-		if err := bwcq.loadBillingProfile(ctx, query, nodes,
-			func(n *BillingWorkflowConfig) { n.Edges.BillingProfile = []*BillingProfile{} },
-			func(n *BillingWorkflowConfig, e *BillingProfile) {
-				n.Edges.BillingProfile = append(n.Edges.BillingProfile, e)
-			}); err != nil {
+		if err := bwcq.loadBillingProfile(ctx, query, nodes, nil,
+			func(n *BillingWorkflowConfig, e *BillingProfile) { n.Edges.BillingProfile = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -462,9 +456,6 @@ func (bwcq *BillingWorkflowConfigQuery) loadBillingInvoices(ctx context.Context,
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
 	}
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(billinginvoice.FieldWorkflowConfigID)
@@ -492,9 +483,6 @@ func (bwcq *BillingWorkflowConfigQuery) loadBillingProfile(ctx context.Context, 
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
 	}
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(billingprofile.FieldWorkflowConfigID)

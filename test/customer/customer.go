@@ -7,6 +7,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -31,9 +32,9 @@ var (
 		PhoneNumber: &TestAddressPhoneNumber,
 	}
 	TestSubjectKeys       = []string{"subject-0"}
-	TestTaxProvider       = models.TaxProviderOpenMeterSandbox
-	TestInvoicingProvider = models.InvoicingProviderOpenMeterSandbox
-	TestPaymentProvider   = models.PaymentProviderOpenMeterSandbox
+	TestTaxProvider       = provider.TaxProviderOpenMeterSandbox
+	TestInvoicingProvider = provider.InvoicingProviderOpenMeterSandbox
+	TestPaymentProvider   = provider.PaymentProviderOpenMeterSandbox
 )
 
 type CustomerHandlerTestSuite struct {

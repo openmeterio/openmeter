@@ -3,11 +3,11 @@
 package billingprofile
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
 
@@ -18,6 +18,8 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -26,16 +28,36 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
-	// FieldProviderConfig holds the string denoting the provider_config field in the database.
-	FieldProviderConfig = "provider_config"
+	// FieldSupplierAddressCountry holds the string denoting the supplier_address_country field in the database.
+	FieldSupplierAddressCountry = "supplier_address_country"
+	// FieldSupplierAddressPostalCode holds the string denoting the supplier_address_postal_code field in the database.
+	FieldSupplierAddressPostalCode = "supplier_address_postal_code"
+	// FieldSupplierAddressState holds the string denoting the supplier_address_state field in the database.
+	FieldSupplierAddressState = "supplier_address_state"
+	// FieldSupplierAddressCity holds the string denoting the supplier_address_city field in the database.
+	FieldSupplierAddressCity = "supplier_address_city"
+	// FieldSupplierAddressLine1 holds the string denoting the supplier_address_line1 field in the database.
+	FieldSupplierAddressLine1 = "supplier_address_line1"
+	// FieldSupplierAddressLine2 holds the string denoting the supplier_address_line2 field in the database.
+	FieldSupplierAddressLine2 = "supplier_address_line2"
+	// FieldSupplierAddressPhoneNumber holds the string denoting the supplier_address_phone_number field in the database.
+	FieldSupplierAddressPhoneNumber = "supplier_address_phone_number"
+	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
+	FieldTaxProvider = "tax_provider"
+	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
+	FieldInvoicingProvider = "invoicing_provider"
+	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
+	FieldPaymentProvider = "payment_provider"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
 	// FieldDefault holds the string denoting the default field in the database.
 	FieldDefault = "default"
+	// FieldSupplierName holds the string denoting the supplier_name field in the database.
+	FieldSupplierName = "supplier_name"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
-	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
-	EdgeBillingWorkflowConfig = "billing_workflow_config"
+	// EdgeWorkflowConfig holds the string denoting the workflow_config edge name in mutations.
+	EdgeWorkflowConfig = "workflow_config"
 	// Table holds the table name of the billingprofile in the database.
 	Table = "billing_profiles"
 	// BillingInvoicesTable is the table that holds the billing_invoices relation/edge.
@@ -45,26 +67,37 @@ const (
 	BillingInvoicesInverseTable = "billing_invoices"
 	// BillingInvoicesColumn is the table column denoting the billing_invoices relation/edge.
 	BillingInvoicesColumn = "billing_profile_id"
-	// BillingWorkflowConfigTable is the table that holds the billing_workflow_config relation/edge.
-	BillingWorkflowConfigTable = "billing_profiles"
-	// BillingWorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
+	// WorkflowConfigTable is the table that holds the workflow_config relation/edge.
+	WorkflowConfigTable = "billing_profiles"
+	// WorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
 	// It exists in this package in order to avoid circular dependency with the "billingworkflowconfig" package.
-	BillingWorkflowConfigInverseTable = "billing_workflow_configs"
-	// BillingWorkflowConfigColumn is the table column denoting the billing_workflow_config relation/edge.
-	BillingWorkflowConfigColumn = "workflow_config_id"
+	WorkflowConfigInverseTable = "billing_workflow_configs"
+	// WorkflowConfigColumn is the table column denoting the workflow_config relation/edge.
+	WorkflowConfigColumn = "workflow_config_id"
 )
 
 // Columns holds all SQL columns for billingprofile fields.
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
+	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldKey,
-	FieldProviderConfig,
+	FieldSupplierAddressCountry,
+	FieldSupplierAddressPostalCode,
+	FieldSupplierAddressState,
+	FieldSupplierAddressCity,
+	FieldSupplierAddressLine1,
+	FieldSupplierAddressLine2,
+	FieldSupplierAddressPhoneNumber,
+	FieldTaxProvider,
+	FieldInvoicingProvider,
+	FieldPaymentProvider,
 	FieldWorkflowConfigID,
 	FieldDefault,
+	FieldSupplierName,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -88,17 +121,47 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
+	// SupplierAddressCountryValidator is a validator for the "supplier_address_country" field. It is called by the builders before save.
+	SupplierAddressCountryValidator func(string) error
 	// WorkflowConfigIDValidator is a validator for the "workflow_config_id" field. It is called by the builders before save.
 	WorkflowConfigIDValidator func(string) error
 	// DefaultDefault holds the default value on creation for the "default" field.
 	DefaultDefault bool
+	// SupplierNameValidator is a validator for the "supplier_name" field. It is called by the builders before save.
+	SupplierNameValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all BillingProfile fields.
-	ValueScanner struct {
-		ProviderConfig field.TypeValueScanner[provider.Configuration]
-	}
 )
+
+// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
+func TaxProviderValidator(tp provider.TaxProvider) error {
+	switch tp {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billingprofile: invalid enum value for tax_provider field: %q", tp)
+	}
+}
+
+// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
+func InvoicingProviderValidator(ip provider.InvoicingProvider) error {
+	switch ip {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billingprofile: invalid enum value for invoicing_provider field: %q", ip)
+	}
+}
+
+// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
+func PaymentProviderValidator(pp provider.PaymentProvider) error {
+	switch pp {
+	case "openmeter_sandbox", "stripe_payments":
+		return nil
+	default:
+		return fmt.Errorf("billingprofile: invalid enum value for payment_provider field: %q", pp)
+	}
+}
 
 // OrderOption defines the ordering options for the BillingProfile queries.
 type OrderOption func(*sql.Selector)
@@ -133,9 +196,54 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
-// ByProviderConfig orders the results by the provider_config field.
-func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderConfig, opts...).ToFunc()
+// BySupplierAddressCountry orders the results by the supplier_address_country field.
+func BySupplierAddressCountry(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressCountry, opts...).ToFunc()
+}
+
+// BySupplierAddressPostalCode orders the results by the supplier_address_postal_code field.
+func BySupplierAddressPostalCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressPostalCode, opts...).ToFunc()
+}
+
+// BySupplierAddressState orders the results by the supplier_address_state field.
+func BySupplierAddressState(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressState, opts...).ToFunc()
+}
+
+// BySupplierAddressCity orders the results by the supplier_address_city field.
+func BySupplierAddressCity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressCity, opts...).ToFunc()
+}
+
+// BySupplierAddressLine1 orders the results by the supplier_address_line1 field.
+func BySupplierAddressLine1(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressLine1, opts...).ToFunc()
+}
+
+// BySupplierAddressLine2 orders the results by the supplier_address_line2 field.
+func BySupplierAddressLine2(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressLine2, opts...).ToFunc()
+}
+
+// BySupplierAddressPhoneNumber orders the results by the supplier_address_phone_number field.
+func BySupplierAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressPhoneNumber, opts...).ToFunc()
+}
+
+// ByTaxProvider orders the results by the tax_provider field.
+func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
+}
+
+// ByInvoicingProvider orders the results by the invoicing_provider field.
+func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
+}
+
+// ByPaymentProvider orders the results by the payment_provider field.
+func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
 }
 
 // ByWorkflowConfigID orders the results by the workflow_config_id field.
@@ -146,6 +254,11 @@ func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
 // ByDefault orders the results by the default field.
 func ByDefault(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDefault, opts...).ToFunc()
+}
+
+// BySupplierName orders the results by the supplier_name field.
+func BySupplierName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierName, opts...).ToFunc()
 }
 
 // ByBillingInvoicesCount orders the results by billing_invoices count.
@@ -162,10 +275,10 @@ func ByBillingInvoices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByBillingWorkflowConfigField orders the results by billing_workflow_config field.
-func ByBillingWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByWorkflowConfigField orders the results by workflow_config field.
+func ByWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingWorkflowConfigStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newWorkflowConfigStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newBillingInvoicesStep() *sqlgraph.Step {
@@ -175,10 +288,10 @@ func newBillingInvoicesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicesTable, BillingInvoicesColumn),
 	)
 }
-func newBillingWorkflowConfigStep() *sqlgraph.Step {
+func newWorkflowConfigStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+		sqlgraph.To(WorkflowConfigInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, WorkflowConfigTable, WorkflowConfigColumn),
 	)
 }

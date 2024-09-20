@@ -1,12 +1,6 @@
 package schema
 
 import (
-	"database/sql"
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
-	"fmt"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -25,34 +19,31 @@ type BillingProfile struct {
 
 func (BillingProfile) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
+		entutils.UniqueResourceMixin{},
+		entutils.CustomerAddressMixin{
+			FieldPrefix: "supplier",
+		},
 	}
 }
 
 func (BillingProfile) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("key").
-			NotEmpty().
-			Immutable(),
-		field.String("provider_config").
-			GoType(provider.Configuration{}).
-			ValueScanner(ProviderConfigValueScanner).
-			SchemaType(map[string]string{
-				"postgres": "jsonb",
-			}),
+		field.Enum("tax_provider").GoType(provider.TaxProvider("")),
+		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")),
+		field.Enum("payment_provider").GoType(provider.PaymentProvider("")),
 		field.String("workflow_config_id").
 			NotEmpty(),
 		field.Bool("default").
 			Default(false),
+		field.String("supplier_name").
+			NotEmpty(),
 	}
 }
 
 func (BillingProfile) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("billing_invoices", BillingInvoice.Type),
-		edge.From("billing_workflow_config", BillingWorkflowConfig.Type).
+		edge.From("workflow_config", BillingWorkflowConfig.Type).
 			Ref("billing_profile").
 			Field("workflow_config_id").
 			Unique().
@@ -62,74 +53,8 @@ func (BillingProfile) Edges() []ent.Edge {
 
 func (BillingProfile) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "key"),
-		index.Fields("namespace", "id"),
-		index.Fields("namespace", "default"),
+		index.Fields("namespace", "default", "deleted_at").Unique(),
 	}
-}
-
-type providerConfigSerde[T any] struct {
-	provider.Meta
-
-	Config T `json:"config"`
-}
-
-var ProviderConfigValueScanner = field.ValueScannerFunc[provider.Configuration, *sql.NullString]{
-	V: func(config provider.Configuration) (driver.Value, error) {
-		switch config.Type {
-		case provider.TypeOpenMeter:
-			return json.Marshal(providerConfigSerde[provider.OpenMeterConfig]{
-				Meta:   provider.Meta{Type: provider.TypeOpenMeter},
-				Config: config.OpenMeter,
-			})
-		case provider.TypeStripe:
-			return json.Marshal(providerConfigSerde[provider.StripeConfig]{
-				Meta:   provider.Meta{Type: provider.TypeStripe},
-				Config: config.Stripe,
-			})
-		default:
-			return nil, fmt.Errorf("unknown backend type: %s", config.Type)
-		}
-	},
-	S: func(ns *sql.NullString) (provider.Configuration, error) {
-		if !ns.Valid {
-			return provider.Configuration{}, errors.New("backend config is null")
-		}
-
-		data := []byte(ns.String)
-
-		var meta provider.Meta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return provider.Configuration{}, err
-		}
-
-		switch meta.Type {
-		case provider.TypeOpenMeter:
-			serde := providerConfigSerde[provider.OpenMeterConfig]{}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Configuration{}, err
-			}
-
-			return provider.Configuration{
-				Meta:      serde.Meta,
-				OpenMeter: serde.Config,
-			}, nil
-		case provider.TypeStripe:
-			serde := providerConfigSerde[provider.StripeConfig]{}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Configuration{}, err
-			}
-
-			return provider.Configuration{
-				Meta:   serde.Meta,
-				Stripe: serde.Config,
-			}, nil
-		default:
-			return provider.Configuration{}, fmt.Errorf("unknown backend type: %s", meta.Type)
-		}
-	},
 }
 
 type BillingWorkflowConfig struct {
@@ -146,15 +71,13 @@ func (BillingWorkflowConfig) Mixin() []ent.Mixin {
 
 func (BillingWorkflowConfig) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("alignment").
+		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
+		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")),
 
-		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
+		field.Int64("item_collection_period_seconds"),
 
-		field.Int64("collection_period_seconds"),
-
-		field.Bool("invoice_auto_advance").
-			Nillable(),
+		field.Bool("invoice_auto_advance"),
 
 		field.Int64("invoice_draft_period_seconds"),
 
@@ -163,11 +86,10 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")),
 
-		field.Enum("invoice_line_item_resolution").
-			GoType(billing.GranualityResolution("")),
+		field.Enum("invoice_item_resolution").
+			GoType(billing.GranularityResolution("")),
 
-		field.Bool("invoice_line_item_per_subject").
-			Default(false),
+		field.Bool("invoice_item_per_subject"),
 	}
 }
 
@@ -179,8 +101,22 @@ func (BillingWorkflowConfig) Indexes() []ent.Index {
 
 func (BillingWorkflowConfig) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("billing_invoices", BillingInvoice.Type),
-		edge.To("billing_profile", BillingProfile.Type),
+		edge.To("billing_invoices", BillingInvoice.Type).
+			Unique(),
+		edge.To("billing_profile", BillingProfile.Type).
+			Unique(),
+	}
+}
+
+type BillingWorkflowConfigOverride struct {
+	ent.Schema
+}
+
+func (BillingWorkflowConfigOverride) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
 	}
 }
 
@@ -303,23 +239,16 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Enum("status").
 			GoType(invoice.InvoiceStatus("")),
 
-		field.String("provider_config").
-			GoType(provider.Configuration{}).
-			ValueScanner(ProviderConfigValueScanner).
-			SchemaType(map[string]string{
-				"postgres": "jsonb",
-			}),
+		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
+		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
+		field.Enum("payment_provider").GoType(provider.PaymentProvider("")).Optional().Nillable(),
 
 		field.String("workflow_config_id").
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
-		field.String("provider_reference").
-			GoType(provider.Reference{}).
-			ValueScanner(ProviderReferenceValueScanner).
-			SchemaType(map[string]string{
-				"postgres": "jsonb",
-			}),
+
+		// TODO[later]: Add either provider annotations or typed provider status fields
 
 		field.Time("period_start"),
 		field.Time("period_end"),
@@ -351,68 +280,4 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Required(),
 		edge.To("billing_invoice_items", BillingInvoiceItem.Type),
 	}
-}
-
-type providerReferenceSerde[T any] struct {
-	provider.Meta
-
-	Reference T `json:"ref"`
-}
-
-var ProviderReferenceValueScanner = field.ValueScannerFunc[provider.Reference, *sql.NullString]{
-	V: func(ref provider.Reference) (driver.Value, error) {
-		switch ref.Type {
-		case provider.TypeOpenMeter:
-			return json.Marshal(providerReferenceSerde[provider.OpenMeterReference]{
-				Meta:      provider.Meta{Type: provider.TypeOpenMeter},
-				Reference: ref.OpenMeter,
-			})
-		case provider.TypeStripe:
-			return json.Marshal(providerReferenceSerde[provider.StripeReference]{
-				Meta:      provider.Meta{Type: provider.TypeStripe},
-				Reference: ref.Stripe,
-			})
-		default:
-			return nil, fmt.Errorf("unknown backend type: %s", ref.Type)
-		}
-	},
-	S: func(ns *sql.NullString) (provider.Reference, error) {
-		if !ns.Valid {
-			return provider.Reference{}, errors.New("backend config is null")
-		}
-
-		data := []byte(ns.String)
-
-		var meta provider.Meta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return provider.Reference{}, err
-		}
-
-		switch meta.Type {
-		case provider.TypeOpenMeter:
-			serde := providerReferenceSerde[provider.OpenMeterReference]{}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Reference{}, err
-			}
-
-			return provider.Reference{
-				Meta:      serde.Meta,
-				OpenMeter: serde.Reference,
-			}, nil
-		case provider.TypeStripe:
-			serde := providerConfigSerde[provider.StripeReference]{}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Reference{}, err
-			}
-
-			return provider.Reference{
-				Meta:   serde.Meta,
-				Stripe: serde.Config,
-			}, nil
-		default:
-			return provider.Reference{}, fmt.Errorf("unknown backend type: %s", meta.Type)
-		}
-	},
 }

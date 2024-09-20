@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingProfile is the model entity for the BillingProfile schema.
@@ -21,6 +23,8 @@ type BillingProfile struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -29,12 +33,32 @@ type BillingProfile struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
-	// ProviderConfig holds the value of the "provider_config" field.
-	ProviderConfig provider.Configuration `json:"provider_config,omitempty"`
+	// SupplierAddressCountry holds the value of the "supplier_address_country" field.
+	SupplierAddressCountry *models.CountryCode `json:"supplier_address_country,omitempty"`
+	// SupplierAddressPostalCode holds the value of the "supplier_address_postal_code" field.
+	SupplierAddressPostalCode *string `json:"supplier_address_postal_code,omitempty"`
+	// SupplierAddressState holds the value of the "supplier_address_state" field.
+	SupplierAddressState *string `json:"supplier_address_state,omitempty"`
+	// SupplierAddressCity holds the value of the "supplier_address_city" field.
+	SupplierAddressCity *string `json:"supplier_address_city,omitempty"`
+	// SupplierAddressLine1 holds the value of the "supplier_address_line1" field.
+	SupplierAddressLine1 *string `json:"supplier_address_line1,omitempty"`
+	// SupplierAddressLine2 holds the value of the "supplier_address_line2" field.
+	SupplierAddressLine2 *string `json:"supplier_address_line2,omitempty"`
+	// SupplierAddressPhoneNumber holds the value of the "supplier_address_phone_number" field.
+	SupplierAddressPhoneNumber *string `json:"supplier_address_phone_number,omitempty"`
+	// TaxProvider holds the value of the "tax_provider" field.
+	TaxProvider provider.TaxProvider `json:"tax_provider,omitempty"`
+	// InvoicingProvider holds the value of the "invoicing_provider" field.
+	InvoicingProvider provider.InvoicingProvider `json:"invoicing_provider,omitempty"`
+	// PaymentProvider holds the value of the "payment_provider" field.
+	PaymentProvider provider.PaymentProvider `json:"payment_provider,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// Default holds the value of the "default" field.
 	Default bool `json:"default,omitempty"`
+	// SupplierName holds the value of the "supplier_name" field.
+	SupplierName string `json:"supplier_name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingProfileQuery when eager-loading is set.
 	Edges        BillingProfileEdges `json:"edges"`
@@ -45,8 +69,8 @@ type BillingProfile struct {
 type BillingProfileEdges struct {
 	// BillingInvoices holds the value of the billing_invoices edge.
 	BillingInvoices []*BillingInvoice `json:"billing_invoices,omitempty"`
-	// BillingWorkflowConfig holds the value of the billing_workflow_config edge.
-	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
+	// WorkflowConfig holds the value of the workflow_config edge.
+	WorkflowConfig *BillingWorkflowConfig `json:"workflow_config,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -61,15 +85,15 @@ func (e BillingProfileEdges) BillingInvoicesOrErr() ([]*BillingInvoice, error) {
 	return nil, &NotLoadedError{edge: "billing_invoices"}
 }
 
-// BillingWorkflowConfigOrErr returns the BillingWorkflowConfig value or an error if the edge
+// WorkflowConfigOrErr returns the WorkflowConfig value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e BillingProfileEdges) BillingWorkflowConfigOrErr() (*BillingWorkflowConfig, error) {
-	if e.BillingWorkflowConfig != nil {
-		return e.BillingWorkflowConfig, nil
+func (e BillingProfileEdges) WorkflowConfigOrErr() (*BillingWorkflowConfig, error) {
+	if e.WorkflowConfig != nil {
+		return e.WorkflowConfig, nil
 	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: billingworkflowconfig.Label}
 	}
-	return nil, &NotLoadedError{edge: "billing_workflow_config"}
+	return nil, &NotLoadedError{edge: "workflow_config"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -77,14 +101,14 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case billingprofile.FieldMetadata:
+			values[i] = new([]byte)
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldWorkflowConfigID:
+		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldSupplierAddressCountry, billingprofile.FieldSupplierAddressPostalCode, billingprofile.FieldSupplierAddressState, billingprofile.FieldSupplierAddressCity, billingprofile.FieldSupplierAddressLine1, billingprofile.FieldSupplierAddressLine2, billingprofile.FieldSupplierAddressPhoneNumber, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID, billingprofile.FieldSupplierName:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case billingprofile.FieldProviderConfig:
-			values[i] = billingprofile.ValueScanner.ProviderConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -112,6 +136,14 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bp.Namespace = value.String
 			}
+		case billingprofile.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bp.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
 		case billingprofile.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -137,11 +169,72 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bp.Key = value.String
 			}
-		case billingprofile.FieldProviderConfig:
-			if value, err := billingprofile.ValueScanner.ProviderConfig.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				bp.ProviderConfig = value
+		case billingprofile.FieldSupplierAddressCountry:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_country", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressCountry = new(models.CountryCode)
+				*bp.SupplierAddressCountry = models.CountryCode(value.String)
+			}
+		case billingprofile.FieldSupplierAddressPostalCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_postal_code", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressPostalCode = new(string)
+				*bp.SupplierAddressPostalCode = value.String
+			}
+		case billingprofile.FieldSupplierAddressState:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_state", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressState = new(string)
+				*bp.SupplierAddressState = value.String
+			}
+		case billingprofile.FieldSupplierAddressCity:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_city", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressCity = new(string)
+				*bp.SupplierAddressCity = value.String
+			}
+		case billingprofile.FieldSupplierAddressLine1:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_line1", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressLine1 = new(string)
+				*bp.SupplierAddressLine1 = value.String
+			}
+		case billingprofile.FieldSupplierAddressLine2:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_line2", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressLine2 = new(string)
+				*bp.SupplierAddressLine2 = value.String
+			}
+		case billingprofile.FieldSupplierAddressPhoneNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_phone_number", values[i])
+			} else if value.Valid {
+				bp.SupplierAddressPhoneNumber = new(string)
+				*bp.SupplierAddressPhoneNumber = value.String
+			}
+		case billingprofile.FieldTaxProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
+			} else if value.Valid {
+				bp.TaxProvider = provider.TaxProvider(value.String)
+			}
+		case billingprofile.FieldInvoicingProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
+			} else if value.Valid {
+				bp.InvoicingProvider = provider.InvoicingProvider(value.String)
+			}
+		case billingprofile.FieldPaymentProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
+			} else if value.Valid {
+				bp.PaymentProvider = provider.PaymentProvider(value.String)
 			}
 		case billingprofile.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -154,6 +247,12 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field default", values[i])
 			} else if value.Valid {
 				bp.Default = value.Bool
+			}
+		case billingprofile.FieldSupplierName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_name", values[i])
+			} else if value.Valid {
+				bp.SupplierName = value.String
 			}
 		default:
 			bp.selectValues.Set(columns[i], values[i])
@@ -173,9 +272,9 @@ func (bp *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
 	return NewBillingProfileClient(bp.config).QueryBillingInvoices(bp)
 }
 
-// QueryBillingWorkflowConfig queries the "billing_workflow_config" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
-	return NewBillingProfileClient(bp.config).QueryBillingWorkflowConfig(bp)
+// QueryWorkflowConfig queries the "workflow_config" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
+	return NewBillingProfileClient(bp.config).QueryWorkflowConfig(bp)
 }
 
 // Update returns a builder for updating this BillingProfile.
@@ -204,6 +303,9 @@ func (bp *BillingProfile) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(bp.Namespace)
 	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", bp.Metadata))
+	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(bp.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -218,14 +320,58 @@ func (bp *BillingProfile) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(bp.Key)
 	builder.WriteString(", ")
-	builder.WriteString("provider_config=")
-	builder.WriteString(fmt.Sprintf("%v", bp.ProviderConfig))
+	if v := bp.SupplierAddressCountry; v != nil {
+		builder.WriteString("supplier_address_country=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bp.SupplierAddressPostalCode; v != nil {
+		builder.WriteString("supplier_address_postal_code=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bp.SupplierAddressState; v != nil {
+		builder.WriteString("supplier_address_state=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bp.SupplierAddressCity; v != nil {
+		builder.WriteString("supplier_address_city=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bp.SupplierAddressLine1; v != nil {
+		builder.WriteString("supplier_address_line1=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bp.SupplierAddressLine2; v != nil {
+		builder.WriteString("supplier_address_line2=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bp.SupplierAddressPhoneNumber; v != nil {
+		builder.WriteString("supplier_address_phone_number=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("tax_provider=")
+	builder.WriteString(fmt.Sprintf("%v", bp.TaxProvider))
+	builder.WriteString(", ")
+	builder.WriteString("invoicing_provider=")
+	builder.WriteString(fmt.Sprintf("%v", bp.InvoicingProvider))
+	builder.WriteString(", ")
+	builder.WriteString("payment_provider=")
+	builder.WriteString(fmt.Sprintf("%v", bp.PaymentProvider))
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bp.WorkflowConfigID)
 	builder.WriteString(", ")
 	builder.WriteString("default=")
 	builder.WriteString(fmt.Sprintf("%v", bp.Default))
+	builder.WriteString(", ")
+	builder.WriteString("supplier_name=")
+	builder.WriteString(bp.SupplierName)
 	builder.WriteByte(')')
 	return builder.String()
 }

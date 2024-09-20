@@ -12,36 +12,17 @@ type BalanceSnapshot func(*sql.Selector)
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
 
-// BillingInvoiceOrErr calls the predicate only if the error is not nit.
-func BillingInvoiceOrErr(p BillingInvoice, err error) BillingInvoice {
-	return func(s *sql.Selector) {
-		if err != nil {
-			s.AddError(err)
-			return
-		}
-		p(s)
-	}
-}
-
 // BillingInvoiceItem is the predicate function for billinginvoiceitem builders.
 type BillingInvoiceItem func(*sql.Selector)
 
 // BillingProfile is the predicate function for billingprofile builders.
 type BillingProfile func(*sql.Selector)
 
-// BillingProfileOrErr calls the predicate only if the error is not nit.
-func BillingProfileOrErr(p BillingProfile, err error) BillingProfile {
-	return func(s *sql.Selector) {
-		if err != nil {
-			s.AddError(err)
-			return
-		}
-		p(s)
-	}
-}
-
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
+
+// BillingWorkflowConfigOverride is the predicate function for billingworkflowconfigoverride builders.
+type BillingWorkflowConfigOverride func(*sql.Selector)
 
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
