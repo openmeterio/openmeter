@@ -102,7 +102,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "billinginvoice_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{BillingInvoicesColumns[0]},
 			},
 			{
@@ -171,7 +171,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "billinginvoiceitem_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{BillingInvoiceItemsColumns[0]},
 			},
 			{
@@ -224,7 +224,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "billingprofile_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{BillingProfilesColumns[0]},
 			},
 			{
@@ -273,7 +273,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "billingworkflowconfig_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 			},
 			{
@@ -321,7 +321,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "customer_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{CustomersColumns[0]},
 			},
 			{
@@ -331,13 +331,13 @@ var (
 			},
 			{
 				Name:    "customer_namespace_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[0]},
 			},
 			{
-				Name:    "customer_namespace_key",
+				Name:    "customer_namespace_key_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[1]},
+				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[1], CustomersColumns[6]},
 			},
 		},
 	}
@@ -408,7 +408,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "entitlement_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{EntitlementsColumns[0]},
 			},
 			{
@@ -470,7 +470,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "feature_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{FeaturesColumns[0]},
 			},
 			{
@@ -516,7 +516,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "grant_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{GrantsColumns[0]},
 			},
 			{
@@ -556,7 +556,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "notificationchannel_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{NotificationChannelsColumns[0]},
 			},
 			{
@@ -602,7 +602,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "notificationevent_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{NotificationEventsColumns[0]},
 			},
 			{
@@ -651,7 +651,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "notificationeventdeliverystatus_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[0]},
 			},
 			{
@@ -696,7 +696,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "notificationrule_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{NotificationRulesColumns[0]},
 			},
 			{
@@ -742,7 +742,7 @@ var (
 		Indexes: []*schema.Index{
 			{
 				Name:    "usagereset_id",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{UsageResetsColumns[0]},
 			},
 			{
