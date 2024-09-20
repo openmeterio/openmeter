@@ -13,8 +13,8 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -37,7 +37,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotRepo(opts.DatabaseClient)
 
 	// Initialize connectors
-	featureConnector := productcatalog.NewFeatureConnector(featureDBAdapter, opts.MeterRepository)
+	featureConnector := feature.NewFeatureConnector(featureDBAdapter, opts.MeterRepository)
 	entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureDBAdapter,
 		entitlementDBAdapter,

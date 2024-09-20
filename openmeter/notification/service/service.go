@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/eventhandler"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 var _ notification.Service = (*Service)(nil)
 
 type Service struct {
-	feature productcatalog.FeatureConnector
+	feature feature.FeatureConnector
 
 	repo    notification.Repository
 	webhook webhook.Handler
@@ -34,7 +34,7 @@ func (s Service) Close() error {
 }
 
 type Config struct {
-	FeatureConnector productcatalog.FeatureConnector
+	FeatureConnector feature.FeatureConnector
 
 	Repository notification.Repository
 	Webhook    webhook.Handler
@@ -82,8 +82,8 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s Service) ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error) {
-	resp, err := s.feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+func (s Service) ListFeature(ctx context.Context, namespace string, features ...string) ([]feature.Feature, error) {
+	resp, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
 		IDsOrKeys:       features,
 		Namespace:       namespace,
 		MeterSlugs:      nil,

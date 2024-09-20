@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -27,7 +27,7 @@ func TestCreateFeature(t *testing.T) {
 		GroupBy:   map[string]string{"key": "$.path"},
 	}
 
-	testFeature := productcatalog.CreateFeatureInputs{
+	testFeature := feature.CreateFeatureInputs{
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
@@ -39,11 +39,11 @@ func TestCreateFeature(t *testing.T) {
 
 	tt := []struct {
 		name string
-		run  func(t *testing.T, connector productcatalog.FeatureRepo)
+		run  func(t *testing.T, connector feature.FeatureRepo)
 	}{
 		{
 			name: "Should create a feature and return the created feature with defaults",
-			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
+			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()
 				featureIn := testFeature
 
@@ -69,7 +69,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should archive a feature that exists and error on a feature that doesnt",
-			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
+			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()
 				featureIn := testFeature
 
@@ -94,7 +94,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should search and order",
-			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
+			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-3"
@@ -111,7 +111,7 @@ func TestCreateFeature(t *testing.T) {
 				_, err = connector.CreateFeature(ctx, featureIn2)
 				assert.NoError(t, err)
 
-				features, err := connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+				features, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace: namespace,
 				})
 				assert.NoError(t, err)
@@ -119,7 +119,7 @@ func TestCreateFeature(t *testing.T) {
 				assert.Len(t, features.Items, 2)
 				assert.Equal(t, "feature-3", features.Items[0].Name)
 
-				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace: namespace,
 					Page: pagination.Page{
 						PageSize:   1,
@@ -131,7 +131,7 @@ func TestCreateFeature(t *testing.T) {
 				assert.Len(t, features.Items, 1)
 				assert.Equal(t, "feature-3", features.Items[0].Name)
 
-				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace: namespace,
 					Page: pagination.Page{
 						PageSize:   1,
@@ -149,7 +149,7 @@ func TestCreateFeature(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace:       namespace,
 					IncludeArchived: true,
 				})
@@ -157,7 +157,7 @@ func TestCreateFeature(t *testing.T) {
 
 				assert.Len(t, features.Items, 2)
 
-				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace:       namespace,
 					IncludeArchived: false,
 				})
@@ -169,7 +169,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should find by name",
-			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
+			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-1"

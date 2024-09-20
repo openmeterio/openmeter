@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 type EntitlementValue interface {
@@ -16,7 +16,7 @@ type SubTypeConnector interface {
 
 	// Runs before creating the entitlement, building the Repository inputs.
 	// If it returns an error the operation has to fail.
-	BeforeCreate(entitlement CreateEntitlementInputs, feature productcatalog.Feature) (*CreateEntitlementRepoInputs, error)
+	BeforeCreate(entitlement CreateEntitlementInputs, feature feature.Feature) (*CreateEntitlementRepoInputs, error)
 
 	// Runs after entitlement creation.
 	// If it returns an error the operation has to fail.

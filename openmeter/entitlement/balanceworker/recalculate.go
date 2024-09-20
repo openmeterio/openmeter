@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
@@ -61,7 +61,7 @@ func (o RecalculatorOptions) Validate() error {
 type Recalculator struct {
 	opts RecalculatorOptions
 
-	featureCache *lru.Cache[string, productcatalog.Feature]
+	featureCache *lru.Cache[string, feature.Feature]
 	subjectCache *lru.Cache[string, models.Subject]
 
 	metricRecalculationTime                 metric.Int64Histogram
@@ -73,7 +73,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
-	featureCache, err := lru.New[string, productcatalog.Feature](defaultLRUCacheSize)
+	featureCache, err := lru.New[string, feature.Feature](defaultLRUCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create feature cache: %w", err)
 	}
@@ -257,16 +257,16 @@ func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (mod
 	return id, nil
 }
 
-func (r *Recalculator) getFeature(ctx context.Context, ns, id string) (productcatalog.Feature, error) {
-	if feature, ok := r.featureCache.Get(id); ok {
-		return feature, nil
+func (r *Recalculator) getFeature(ctx context.Context, ns, id string) (feature.Feature, error) {
+	if feat, ok := r.featureCache.Get(id); ok {
+		return feat, nil
 	}
 
-	feature, err := r.opts.Entitlement.Feature.GetFeature(ctx, ns, id, productcatalog.IncludeArchivedFeatureTrue)
+	feat, err := r.opts.Entitlement.Feature.GetFeature(ctx, ns, id, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
-		return productcatalog.Feature{}, err
+		return feature.Feature{}, err
 	}
 
-	r.featureCache.Add(id, *feature)
-	return *feature, nil
+	r.featureCache.Add(id, *feat)
+	return *feat, nil
 }

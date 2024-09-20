@@ -9,14 +9,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type entitlementGrantOwner struct {
-	featureRepo     productcatalog.FeatureRepo
+	featureRepo     feature.FeatureRepo
 	entitlementRepo entitlement.EntitlementRepo
 	usageResetRepo  UsageResetRepo
 	meterRepo       meter.Repository
@@ -24,7 +24,7 @@ type entitlementGrantOwner struct {
 }
 
 func NewEntitlementGrantOwnerAdapter(
-	featureRepo productcatalog.FeatureRepo,
+	featureRepo feature.FeatureRepo,
 	entitlementRepo entitlement.EntitlementRepo,
 	usageResetRepo UsageResetRepo,
 	meterRepo meter.Repository,

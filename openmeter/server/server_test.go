@@ -23,7 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -541,8 +541,8 @@ var _ notification.Service = (*NoopNotificationService)(nil)
 
 type NoopNotificationService struct{}
 
-func (n NoopNotificationService) ListFeature(_ context.Context, _ string, _ ...string) ([]productcatalog.Feature, error) {
-	return []productcatalog.Feature{}, nil
+func (n NoopNotificationService) ListFeature(_ context.Context, _ string, _ ...string) ([]feature.Feature, error) {
+	return []feature.Feature{}, nil
 }
 
 func (n NoopNotificationService) ListChannels(_ context.Context, _ notification.ListChannelsInput) (notification.ListChannelsResult, error) {

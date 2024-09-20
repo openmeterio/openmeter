@@ -24,8 +24,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -61,7 +61,7 @@ type Config struct {
 
 	// deps
 	DebugConnector              debug.DebugConnector
-	FeatureConnector            productcatalog.FeatureConnector
+	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
 	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector

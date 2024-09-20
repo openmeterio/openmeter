@@ -15,7 +15,7 @@ import (
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -27,7 +27,7 @@ type BalanceNotificaiontHandlerTestSuite struct {
 
 	channel   notification.Channel
 	rule      notification.Rule
-	feature   productcatalog.Feature
+	feature   feature.Feature
 	handler   consumer.BalanceThresholdEventHandler
 	namespace string
 }
@@ -45,7 +45,7 @@ var (
 )
 
 type BalanceSnapshotEventInput struct {
-	Feature   productcatalog.Feature
+	Feature   feature.Feature
 	Value     snapshot.EntitlementValue
 	Namespace string
 }
@@ -96,7 +96,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, s.namespace, TestMeterSlug)
 	require.NoError(t, err, "Getting meter must not return error")
 
-	s.feature, err = s.Env.Feature().CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	s.feature, err = s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:                TestFeatureName,
 		Key:                 TestFeatureKey,
 		Namespace:           s.namespace,
@@ -397,7 +397,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 	feature1 := s.feature
 	require.NotNil(t, feature1, "Feature must not be nil")
 
-	feature2, err := s.Env.Feature().CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature2, err := s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:                TestFeature2Name,
 		Key:                 TestFeature2Key,
 		Namespace:           s.namespace,
@@ -406,7 +406,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 	})
 	require.NoError(t, err, "Creating feature must not return error")
 
-	feature3, err := s.Env.Feature().CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature3, err := s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:                TestFeature3Name,
 		Key:                 TestFeature3Key,
 		Namespace:           s.namespace,

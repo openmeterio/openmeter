@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -40,7 +40,7 @@ type SnapshotEvent struct {
 	Entitlement entitlement.Entitlement `json:"entitlement"`
 	Namespace   models.NamespaceID      `json:"namespace"`
 	Subject     models.Subject          `json:"subject"`
-	Feature     productcatalog.Feature  `json:"feature"`
+	Feature     feature.Feature         `json:"feature"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation ValueOperationType `json:"operation"`
 

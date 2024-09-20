@@ -16,8 +16,8 @@ import (
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streaming_testutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -31,7 +31,7 @@ type dependencies struct {
 	dbClient            *db.Client
 	pgDriver            *pgdriver.Driver
 	entDriver           *entdriver.EntPostgresDriver
-	featureRepo         productcatalog.FeatureRepo
+	featureRepo         feature.FeatureRepo
 	entitlementRepo     entitlement.EntitlementRepo
 	usageResetRepo      meteredentitlement.UsageResetRepo
 	grantRepo           grant.Repo

@@ -3,7 +3,7 @@ package notification
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 type Service interface {
@@ -42,5 +42,5 @@ type EventService interface {
 }
 
 type FeatureService interface {
-	ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error)
+	ListFeature(ctx context.Context, namespace string, features ...string) ([]feature.Feature, error)
 }
