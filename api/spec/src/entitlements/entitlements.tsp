@@ -66,7 +66,7 @@ interface Entitlements {
   get(
     @path
     entitlementId: ULID,
-  ): Entitlement | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
+  ): Entitlement | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 /**
