@@ -18,7 +18,7 @@ type Entitlement struct {
 
 func (Entitlement) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixEntitlement)),
 		entutils.NamespaceMixin{},
 		entutils.MetadataAnnotationsMixin{},
 		entutils.TimeMixin{},

@@ -15,7 +15,7 @@ type Feature struct {
 
 func (Feature) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixFeature)),
 		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},
 	}

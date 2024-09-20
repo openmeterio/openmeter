@@ -25,7 +25,7 @@ type BillingProfile struct {
 
 func (BillingProfile) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixBillingProfile)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}
@@ -138,7 +138,7 @@ type BillingWorkflowConfig struct {
 
 func (BillingWorkflowConfig) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixWorkflowConfig)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}
@@ -190,7 +190,7 @@ type BillingInvoiceItem struct {
 
 func (BillingInvoiceItem) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixBillingInvoiceItem)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},
@@ -263,7 +263,7 @@ type BillingInvoice struct {
 
 func (BillingInvoice) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixBillingInvoice)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},

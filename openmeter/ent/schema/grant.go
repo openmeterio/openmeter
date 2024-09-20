@@ -18,7 +18,7 @@ type Grant struct {
 
 func (Grant) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixGrant)),
 		entutils.NamespaceMixin{},
 		entutils.MetadataAnnotationsMixin{},
 		entutils.TimeMixin{},
