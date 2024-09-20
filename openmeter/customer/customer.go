@@ -12,15 +12,12 @@ import (
 type Customer struct {
 	models.ManagedResource
 
-	Name              string                    `json:"name"`
-	UsageAttribution  CustomerUsageAttribution  `json:"usageAttribution"`
-	PrimaryEmail      *string                   `json:"primaryEmail"`
-	Currency          *models.CurrencyCode      `json:"currency"`
-	BillingAddress    *models.Address           `json:"billingAddress"`
-	TaxProvider       *models.TaxProvider       `json:"taxProvider"`
-	InvoicingProvider *models.InvoicingProvider `json:"invoicingProvider"`
-	PaymentProvider   *models.PaymentProvider   `json:"paymentProvider"`
-	External          *CustomerExternalMapping  `json:"external"`
+	Name             string                   `json:"name"`
+	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
+	PrimaryEmail     *string                  `json:"primaryEmail"`
+	Currency         *models.CurrencyCode     `json:"currency"`
+	BillingAddress   *models.Address          `json:"billingAddress"`
+	External         *CustomerExternalMapping `json:"external"`
 }
 
 type CustomerID models.NamespacedID

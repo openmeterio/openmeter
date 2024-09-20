@@ -3,12 +3,10 @@
 package customer
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -46,12 +44,6 @@ const (
 	FieldCurrency = "currency"
 	// FieldTimezone holds the string denoting the timezone field in the database.
 	FieldTimezone = "timezone"
-	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
-	FieldTaxProvider = "tax_provider"
-	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
-	FieldInvoicingProvider = "invoicing_provider"
-	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
-	FieldPaymentProvider = "payment_provider"
 	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
 	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
 	// FieldName holds the string denoting the name field in the database.
@@ -89,9 +81,6 @@ var Columns = []string{
 	FieldBillingAddressPhoneNumber,
 	FieldCurrency,
 	FieldTimezone,
-	FieldTaxProvider,
-	FieldInvoicingProvider,
-	FieldPaymentProvider,
 	FieldExternalMappingStripeCustomerID,
 	FieldName,
 	FieldPrimaryEmail,
@@ -125,36 +114,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
-func TaxProviderValidator(tp models.TaxProvider) error {
-	switch tp {
-	case "openmeter_sandbox", "stripe_tax":
-		return nil
-	default:
-		return fmt.Errorf("customer: invalid enum value for tax_provider field: %q", tp)
-	}
-}
-
-// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
-func InvoicingProviderValidator(ip models.InvoicingProvider) error {
-	switch ip {
-	case "openmeter_sandbox", "stripe_invoicing":
-		return nil
-	default:
-		return fmt.Errorf("customer: invalid enum value for invoicing_provider field: %q", ip)
-	}
-}
-
-// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
-func PaymentProviderValidator(pp models.PaymentProvider) error {
-	switch pp {
-	case "openmeter_sandbox", "stripe_payments":
-		return nil
-	default:
-		return fmt.Errorf("customer: invalid enum value for payment_provider field: %q", pp)
-	}
-}
 
 // OrderOption defines the ordering options for the Customer queries.
 type OrderOption func(*sql.Selector)
@@ -232,21 +191,6 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByTimezone orders the results by the timezone field.
 func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
-}
-
-// ByTaxProvider orders the results by the tax_provider field.
-func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
-}
-
-// ByInvoicingProvider orders the results by the invoicing_provider field.
-func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
-}
-
-// ByPaymentProvider orders the results by the payment_provider field.
-func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
 }
 
 // ByExternalMappingStripeCustomerID orders the results by the external_mapping_stripe_customer_id field.

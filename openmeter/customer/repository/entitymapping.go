@@ -47,11 +47,8 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 		UsageAttribution: customer.CustomerUsageAttribution{
 			SubjectKeys: subjectKeys,
 		},
-		PrimaryEmail:      e.PrimaryEmail,
-		Currency:          e.Currency,
-		TaxProvider:       e.TaxProvider,
-		InvoicingProvider: e.InvoicingProvider,
-		PaymentProvider:   e.PaymentProvider,
+		PrimaryEmail: e.PrimaryEmail,
+		Currency:     e.Currency,
 	}
 
 	if e.BillingAddressCity != nil || e.BillingAddressCountry != nil || e.BillingAddressLine1 != nil || e.BillingAddressLine2 != nil || e.BillingAddressPhoneNumber != nil || e.BillingAddressPostalCode != nil || e.BillingAddressState != nil {

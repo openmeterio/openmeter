@@ -50,12 +50,6 @@ type Customer struct {
 	Currency *models.CurrencyCode `json:"currency,omitempty"`
 	// Timezone holds the value of the "timezone" field.
 	Timezone *timezone.Timezone `json:"timezone,omitempty"`
-	// TaxProvider holds the value of the "tax_provider" field.
-	TaxProvider *models.TaxProvider `json:"tax_provider,omitempty"`
-	// InvoicingProvider holds the value of the "invoicing_provider" field.
-	InvoicingProvider *models.InvoicingProvider `json:"invoicing_provider,omitempty"`
-	// PaymentProvider holds the value of the "payment_provider" field.
-	PaymentProvider *models.PaymentProvider `json:"payment_provider,omitempty"`
 	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
 	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Name holds the value of the "name" field.
@@ -93,7 +87,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldTaxProvider, customer.FieldInvoicingProvider, customer.FieldPaymentProvider, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail:
+		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -220,27 +214,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.Timezone = new(timezone.Timezone)
 				*c.Timezone = timezone.Timezone(value.String)
 			}
-		case customer.FieldTaxProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
-			} else if value.Valid {
-				c.TaxProvider = new(models.TaxProvider)
-				*c.TaxProvider = models.TaxProvider(value.String)
-			}
-		case customer.FieldInvoicingProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
-			} else if value.Valid {
-				c.InvoicingProvider = new(models.InvoicingProvider)
-				*c.InvoicingProvider = models.InvoicingProvider(value.String)
-			}
-		case customer.FieldPaymentProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
-			} else if value.Valid {
-				c.PaymentProvider = new(models.PaymentProvider)
-				*c.PaymentProvider = models.PaymentProvider(value.String)
-			}
 		case customer.FieldExternalMappingStripeCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field external_mapping_stripe_customer_id", values[i])
@@ -364,21 +337,6 @@ func (c *Customer) String() string {
 	builder.WriteString(", ")
 	if v := c.Timezone; v != nil {
 		builder.WriteString("timezone=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := c.TaxProvider; v != nil {
-		builder.WriteString("tax_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := c.InvoicingProvider; v != nil {
-		builder.WriteString("invoicing_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := c.PaymentProvider; v != nil {
-		builder.WriteString("payment_provider=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

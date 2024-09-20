@@ -249,66 +249,6 @@ func (cu *CustomerUpdate) ClearTimezone() *CustomerUpdate {
 	return cu
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (cu *CustomerUpdate) SetTaxProvider(mp models.TaxProvider) *CustomerUpdate {
-	cu.mutation.SetTaxProvider(mp)
-	return cu
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableTaxProvider(mp *models.TaxProvider) *CustomerUpdate {
-	if mp != nil {
-		cu.SetTaxProvider(*mp)
-	}
-	return cu
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (cu *CustomerUpdate) ClearTaxProvider() *CustomerUpdate {
-	cu.mutation.ClearTaxProvider()
-	return cu
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (cu *CustomerUpdate) SetInvoicingProvider(mp models.InvoicingProvider) *CustomerUpdate {
-	cu.mutation.SetInvoicingProvider(mp)
-	return cu
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableInvoicingProvider(mp *models.InvoicingProvider) *CustomerUpdate {
-	if mp != nil {
-		cu.SetInvoicingProvider(*mp)
-	}
-	return cu
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (cu *CustomerUpdate) ClearInvoicingProvider() *CustomerUpdate {
-	cu.mutation.ClearInvoicingProvider()
-	return cu
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (cu *CustomerUpdate) SetPaymentProvider(mp models.PaymentProvider) *CustomerUpdate {
-	cu.mutation.SetPaymentProvider(mp)
-	return cu
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillablePaymentProvider(mp *models.PaymentProvider) *CustomerUpdate {
-	if mp != nil {
-		cu.SetPaymentProvider(*mp)
-	}
-	return cu
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (cu *CustomerUpdate) ClearPaymentProvider() *CustomerUpdate {
-	cu.mutation.ClearPaymentProvider()
-	return cu
-}
-
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (cu *CustomerUpdate) SetExternalMappingStripeCustomerID(s string) *CustomerUpdate {
 	cu.mutation.SetExternalMappingStripeCustomerID(s)
@@ -452,21 +392,6 @@ func (cu *CustomerUpdate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
 		}
 	}
-	if v, ok := cu.mutation.TaxProvider(); ok {
-		if err := customer.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "Customer.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := cu.mutation.InvoicingProvider(); ok {
-		if err := customer.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "Customer.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := cu.mutation.PaymentProvider(); ok {
-		if err := customer.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "Customer.payment_provider": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -550,24 +475,6 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.TimezoneCleared() {
 		_spec.ClearField(customer.FieldTimezone, field.TypeString)
-	}
-	if value, ok := cu.mutation.TaxProvider(); ok {
-		_spec.SetField(customer.FieldTaxProvider, field.TypeEnum, value)
-	}
-	if cu.mutation.TaxProviderCleared() {
-		_spec.ClearField(customer.FieldTaxProvider, field.TypeEnum)
-	}
-	if value, ok := cu.mutation.InvoicingProvider(); ok {
-		_spec.SetField(customer.FieldInvoicingProvider, field.TypeEnum, value)
-	}
-	if cu.mutation.InvoicingProviderCleared() {
-		_spec.ClearField(customer.FieldInvoicingProvider, field.TypeEnum)
-	}
-	if value, ok := cu.mutation.PaymentProvider(); ok {
-		_spec.SetField(customer.FieldPaymentProvider, field.TypeEnum, value)
-	}
-	if cu.mutation.PaymentProviderCleared() {
-		_spec.ClearField(customer.FieldPaymentProvider, field.TypeEnum)
 	}
 	if value, ok := cu.mutation.ExternalMappingStripeCustomerID(); ok {
 		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
@@ -867,66 +774,6 @@ func (cuo *CustomerUpdateOne) ClearTimezone() *CustomerUpdateOne {
 	return cuo
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (cuo *CustomerUpdateOne) SetTaxProvider(mp models.TaxProvider) *CustomerUpdateOne {
-	cuo.mutation.SetTaxProvider(mp)
-	return cuo
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableTaxProvider(mp *models.TaxProvider) *CustomerUpdateOne {
-	if mp != nil {
-		cuo.SetTaxProvider(*mp)
-	}
-	return cuo
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (cuo *CustomerUpdateOne) ClearTaxProvider() *CustomerUpdateOne {
-	cuo.mutation.ClearTaxProvider()
-	return cuo
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (cuo *CustomerUpdateOne) SetInvoicingProvider(mp models.InvoicingProvider) *CustomerUpdateOne {
-	cuo.mutation.SetInvoicingProvider(mp)
-	return cuo
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableInvoicingProvider(mp *models.InvoicingProvider) *CustomerUpdateOne {
-	if mp != nil {
-		cuo.SetInvoicingProvider(*mp)
-	}
-	return cuo
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (cuo *CustomerUpdateOne) ClearInvoicingProvider() *CustomerUpdateOne {
-	cuo.mutation.ClearInvoicingProvider()
-	return cuo
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (cuo *CustomerUpdateOne) SetPaymentProvider(mp models.PaymentProvider) *CustomerUpdateOne {
-	cuo.mutation.SetPaymentProvider(mp)
-	return cuo
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillablePaymentProvider(mp *models.PaymentProvider) *CustomerUpdateOne {
-	if mp != nil {
-		cuo.SetPaymentProvider(*mp)
-	}
-	return cuo
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (cuo *CustomerUpdateOne) ClearPaymentProvider() *CustomerUpdateOne {
-	cuo.mutation.ClearPaymentProvider()
-	return cuo
-}
-
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (cuo *CustomerUpdateOne) SetExternalMappingStripeCustomerID(s string) *CustomerUpdateOne {
 	cuo.mutation.SetExternalMappingStripeCustomerID(s)
@@ -1083,21 +930,6 @@ func (cuo *CustomerUpdateOne) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
 		}
 	}
-	if v, ok := cuo.mutation.TaxProvider(); ok {
-		if err := customer.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "Customer.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := cuo.mutation.InvoicingProvider(); ok {
-		if err := customer.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "Customer.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := cuo.mutation.PaymentProvider(); ok {
-		if err := customer.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "Customer.payment_provider": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -1198,24 +1030,6 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.TimezoneCleared() {
 		_spec.ClearField(customer.FieldTimezone, field.TypeString)
-	}
-	if value, ok := cuo.mutation.TaxProvider(); ok {
-		_spec.SetField(customer.FieldTaxProvider, field.TypeEnum, value)
-	}
-	if cuo.mutation.TaxProviderCleared() {
-		_spec.ClearField(customer.FieldTaxProvider, field.TypeEnum)
-	}
-	if value, ok := cuo.mutation.InvoicingProvider(); ok {
-		_spec.SetField(customer.FieldInvoicingProvider, field.TypeEnum, value)
-	}
-	if cuo.mutation.InvoicingProviderCleared() {
-		_spec.ClearField(customer.FieldInvoicingProvider, field.TypeEnum)
-	}
-	if value, ok := cuo.mutation.PaymentProvider(); ok {
-		_spec.SetField(customer.FieldPaymentProvider, field.TypeEnum, value)
-	}
-	if cuo.mutation.PaymentProviderCleared() {
-		_spec.ClearField(customer.FieldPaymentProvider, field.TypeEnum)
 	}
 	if value, ok := cuo.mutation.ExternalMappingStripeCustomerID(); ok {
 		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)

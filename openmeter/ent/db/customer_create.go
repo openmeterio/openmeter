@@ -212,48 +212,6 @@ func (cc *CustomerCreate) SetNillableTimezone(t *timezone.Timezone) *CustomerCre
 	return cc
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (cc *CustomerCreate) SetTaxProvider(mp models.TaxProvider) *CustomerCreate {
-	cc.mutation.SetTaxProvider(mp)
-	return cc
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableTaxProvider(mp *models.TaxProvider) *CustomerCreate {
-	if mp != nil {
-		cc.SetTaxProvider(*mp)
-	}
-	return cc
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (cc *CustomerCreate) SetInvoicingProvider(mp models.InvoicingProvider) *CustomerCreate {
-	cc.mutation.SetInvoicingProvider(mp)
-	return cc
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableInvoicingProvider(mp *models.InvoicingProvider) *CustomerCreate {
-	if mp != nil {
-		cc.SetInvoicingProvider(*mp)
-	}
-	return cc
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (cc *CustomerCreate) SetPaymentProvider(mp models.PaymentProvider) *CustomerCreate {
-	cc.mutation.SetPaymentProvider(mp)
-	return cc
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillablePaymentProvider(mp *models.PaymentProvider) *CustomerCreate {
-	if mp != nil {
-		cc.SetPaymentProvider(*mp)
-	}
-	return cc
-}
-
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (cc *CustomerCreate) SetExternalMappingStripeCustomerID(s string) *CustomerCreate {
 	cc.mutation.SetExternalMappingStripeCustomerID(s)
@@ -400,21 +358,6 @@ func (cc *CustomerCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
 		}
 	}
-	if v, ok := cc.mutation.TaxProvider(); ok {
-		if err := customer.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "Customer.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := cc.mutation.InvoicingProvider(); ok {
-		if err := customer.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "Customer.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := cc.mutation.PaymentProvider(); ok {
-		if err := customer.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "Customer.payment_provider": %w`, err)}
-		}
-	}
 	if _, ok := cc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
 	}
@@ -513,18 +456,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.Timezone(); ok {
 		_spec.SetField(customer.FieldTimezone, field.TypeString, value)
 		_node.Timezone = &value
-	}
-	if value, ok := cc.mutation.TaxProvider(); ok {
-		_spec.SetField(customer.FieldTaxProvider, field.TypeEnum, value)
-		_node.TaxProvider = &value
-	}
-	if value, ok := cc.mutation.InvoicingProvider(); ok {
-		_spec.SetField(customer.FieldInvoicingProvider, field.TypeEnum, value)
-		_node.InvoicingProvider = &value
-	}
-	if value, ok := cc.mutation.PaymentProvider(); ok {
-		_spec.SetField(customer.FieldPaymentProvider, field.TypeEnum, value)
-		_node.PaymentProvider = &value
 	}
 	if value, ok := cc.mutation.ExternalMappingStripeCustomerID(); ok {
 		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
@@ -813,60 +744,6 @@ func (u *CustomerUpsert) UpdateTimezone() *CustomerUpsert {
 // ClearTimezone clears the value of the "timezone" field.
 func (u *CustomerUpsert) ClearTimezone() *CustomerUpsert {
 	u.SetNull(customer.FieldTimezone)
-	return u
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (u *CustomerUpsert) SetTaxProvider(v models.TaxProvider) *CustomerUpsert {
-	u.Set(customer.FieldTaxProvider, v)
-	return u
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateTaxProvider() *CustomerUpsert {
-	u.SetExcluded(customer.FieldTaxProvider)
-	return u
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (u *CustomerUpsert) ClearTaxProvider() *CustomerUpsert {
-	u.SetNull(customer.FieldTaxProvider)
-	return u
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *CustomerUpsert) SetInvoicingProvider(v models.InvoicingProvider) *CustomerUpsert {
-	u.Set(customer.FieldInvoicingProvider, v)
-	return u
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateInvoicingProvider() *CustomerUpsert {
-	u.SetExcluded(customer.FieldInvoicingProvider)
-	return u
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (u *CustomerUpsert) ClearInvoicingProvider() *CustomerUpsert {
-	u.SetNull(customer.FieldInvoicingProvider)
-	return u
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *CustomerUpsert) SetPaymentProvider(v models.PaymentProvider) *CustomerUpsert {
-	u.Set(customer.FieldPaymentProvider, v)
-	return u
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdatePaymentProvider() *CustomerUpsert {
-	u.SetExcluded(customer.FieldPaymentProvider)
-	return u
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (u *CustomerUpsert) ClearPaymentProvider() *CustomerUpsert {
-	u.SetNull(customer.FieldPaymentProvider)
 	return u
 }
 
@@ -1217,69 +1094,6 @@ func (u *CustomerUpsertOne) UpdateTimezone() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearTimezone() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearTimezone()
-	})
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (u *CustomerUpsertOne) SetTaxProvider(v models.TaxProvider) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetTaxProvider(v)
-	})
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateTaxProvider() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateTaxProvider()
-	})
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (u *CustomerUpsertOne) ClearTaxProvider() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearTaxProvider()
-	})
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *CustomerUpsertOne) SetInvoicingProvider(v models.InvoicingProvider) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetInvoicingProvider(v)
-	})
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateInvoicingProvider() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateInvoicingProvider()
-	})
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (u *CustomerUpsertOne) ClearInvoicingProvider() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearInvoicingProvider()
-	})
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *CustomerUpsertOne) SetPaymentProvider(v models.PaymentProvider) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetPaymentProvider(v)
-	})
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdatePaymentProvider() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdatePaymentProvider()
-	})
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (u *CustomerUpsertOne) ClearPaymentProvider() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearPaymentProvider()
 	})
 }
 
@@ -1805,69 +1619,6 @@ func (u *CustomerUpsertBulk) UpdateTimezone() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearTimezone() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearTimezone()
-	})
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (u *CustomerUpsertBulk) SetTaxProvider(v models.TaxProvider) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetTaxProvider(v)
-	})
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateTaxProvider() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateTaxProvider()
-	})
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (u *CustomerUpsertBulk) ClearTaxProvider() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearTaxProvider()
-	})
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *CustomerUpsertBulk) SetInvoicingProvider(v models.InvoicingProvider) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetInvoicingProvider(v)
-	})
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateInvoicingProvider() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateInvoicingProvider()
-	})
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (u *CustomerUpsertBulk) ClearInvoicingProvider() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearInvoicingProvider()
-	})
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *CustomerUpsertBulk) SetPaymentProvider(v models.PaymentProvider) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetPaymentProvider(v)
-	})
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdatePaymentProvider() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdatePaymentProvider()
-	})
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (u *CustomerUpsertBulk) ClearPaymentProvider() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearPaymentProvider()
 	})
 }
 

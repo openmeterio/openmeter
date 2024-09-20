@@ -5781,9 +5781,6 @@ type CustomerMutation struct {
 	billing_address_phone_number        *string
 	currency                            *models.CurrencyCode
 	timezone                            *timezone.Timezone
-	tax_provider                        *models.TaxProvider
-	invoicing_provider                  *models.InvoicingProvider
-	payment_provider                    *models.PaymentProvider
 	external_mapping_stripe_customer_id *string
 	name                                *string
 	primary_email                       *string
@@ -6583,153 +6580,6 @@ func (m *CustomerMutation) ResetTimezone() {
 	delete(m.clearedFields, customer.FieldTimezone)
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (m *CustomerMutation) SetTaxProvider(mp models.TaxProvider) {
-	m.tax_provider = &mp
-}
-
-// TaxProvider returns the value of the "tax_provider" field in the mutation.
-func (m *CustomerMutation) TaxProvider() (r models.TaxProvider, exists bool) {
-	v := m.tax_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxProvider returns the old "tax_provider" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldTaxProvider(ctx context.Context) (v *models.TaxProvider, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxProvider: %w", err)
-	}
-	return oldValue.TaxProvider, nil
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (m *CustomerMutation) ClearTaxProvider() {
-	m.tax_provider = nil
-	m.clearedFields[customer.FieldTaxProvider] = struct{}{}
-}
-
-// TaxProviderCleared returns if the "tax_provider" field was cleared in this mutation.
-func (m *CustomerMutation) TaxProviderCleared() bool {
-	_, ok := m.clearedFields[customer.FieldTaxProvider]
-	return ok
-}
-
-// ResetTaxProvider resets all changes to the "tax_provider" field.
-func (m *CustomerMutation) ResetTaxProvider() {
-	m.tax_provider = nil
-	delete(m.clearedFields, customer.FieldTaxProvider)
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (m *CustomerMutation) SetInvoicingProvider(mp models.InvoicingProvider) {
-	m.invoicing_provider = &mp
-}
-
-// InvoicingProvider returns the value of the "invoicing_provider" field in the mutation.
-func (m *CustomerMutation) InvoicingProvider() (r models.InvoicingProvider, exists bool) {
-	v := m.invoicing_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingProvider returns the old "invoicing_provider" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldInvoicingProvider(ctx context.Context) (v *models.InvoicingProvider, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingProvider: %w", err)
-	}
-	return oldValue.InvoicingProvider, nil
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (m *CustomerMutation) ClearInvoicingProvider() {
-	m.invoicing_provider = nil
-	m.clearedFields[customer.FieldInvoicingProvider] = struct{}{}
-}
-
-// InvoicingProviderCleared returns if the "invoicing_provider" field was cleared in this mutation.
-func (m *CustomerMutation) InvoicingProviderCleared() bool {
-	_, ok := m.clearedFields[customer.FieldInvoicingProvider]
-	return ok
-}
-
-// ResetInvoicingProvider resets all changes to the "invoicing_provider" field.
-func (m *CustomerMutation) ResetInvoicingProvider() {
-	m.invoicing_provider = nil
-	delete(m.clearedFields, customer.FieldInvoicingProvider)
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (m *CustomerMutation) SetPaymentProvider(mp models.PaymentProvider) {
-	m.payment_provider = &mp
-}
-
-// PaymentProvider returns the value of the "payment_provider" field in the mutation.
-func (m *CustomerMutation) PaymentProvider() (r models.PaymentProvider, exists bool) {
-	v := m.payment_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPaymentProvider returns the old "payment_provider" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldPaymentProvider(ctx context.Context) (v *models.PaymentProvider, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPaymentProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPaymentProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPaymentProvider: %w", err)
-	}
-	return oldValue.PaymentProvider, nil
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (m *CustomerMutation) ClearPaymentProvider() {
-	m.payment_provider = nil
-	m.clearedFields[customer.FieldPaymentProvider] = struct{}{}
-}
-
-// PaymentProviderCleared returns if the "payment_provider" field was cleared in this mutation.
-func (m *CustomerMutation) PaymentProviderCleared() bool {
-	_, ok := m.clearedFields[customer.FieldPaymentProvider]
-	return ok
-}
-
-// ResetPaymentProvider resets all changes to the "payment_provider" field.
-func (m *CustomerMutation) ResetPaymentProvider() {
-	m.payment_provider = nil
-	delete(m.clearedFields, customer.FieldPaymentProvider)
-}
-
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (m *CustomerMutation) SetExternalMappingStripeCustomerID(s string) {
 	m.external_mapping_stripe_customer_id = &s
@@ -6952,7 +6802,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 18)
 	if m.key != nil {
 		fields = append(fields, customer.FieldKey)
 	}
@@ -6997,15 +6847,6 @@ func (m *CustomerMutation) Fields() []string {
 	}
 	if m.timezone != nil {
 		fields = append(fields, customer.FieldTimezone)
-	}
-	if m.tax_provider != nil {
-		fields = append(fields, customer.FieldTaxProvider)
-	}
-	if m.invoicing_provider != nil {
-		fields = append(fields, customer.FieldInvoicingProvider)
-	}
-	if m.payment_provider != nil {
-		fields = append(fields, customer.FieldPaymentProvider)
 	}
 	if m.external_mapping_stripe_customer_id != nil {
 		fields = append(fields, customer.FieldExternalMappingStripeCustomerID)
@@ -7054,12 +6895,6 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.Currency()
 	case customer.FieldTimezone:
 		return m.Timezone()
-	case customer.FieldTaxProvider:
-		return m.TaxProvider()
-	case customer.FieldInvoicingProvider:
-		return m.InvoicingProvider()
-	case customer.FieldPaymentProvider:
-		return m.PaymentProvider()
 	case customer.FieldExternalMappingStripeCustomerID:
 		return m.ExternalMappingStripeCustomerID()
 	case customer.FieldName:
@@ -7105,12 +6940,6 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldCurrency(ctx)
 	case customer.FieldTimezone:
 		return m.OldTimezone(ctx)
-	case customer.FieldTaxProvider:
-		return m.OldTaxProvider(ctx)
-	case customer.FieldInvoicingProvider:
-		return m.OldInvoicingProvider(ctx)
-	case customer.FieldPaymentProvider:
-		return m.OldPaymentProvider(ctx)
 	case customer.FieldExternalMappingStripeCustomerID:
 		return m.OldExternalMappingStripeCustomerID(ctx)
 	case customer.FieldName:
@@ -7231,27 +7060,6 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetTimezone(v)
 		return nil
-	case customer.FieldTaxProvider:
-		v, ok := value.(models.TaxProvider)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxProvider(v)
-		return nil
-	case customer.FieldInvoicingProvider:
-		v, ok := value.(models.InvoicingProvider)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingProvider(v)
-		return nil
-	case customer.FieldPaymentProvider:
-		v, ok := value.(models.PaymentProvider)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPaymentProvider(v)
-		return nil
 	case customer.FieldExternalMappingStripeCustomerID:
 		v, ok := value.(string)
 		if !ok {
@@ -7336,15 +7144,6 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldTimezone) {
 		fields = append(fields, customer.FieldTimezone)
 	}
-	if m.FieldCleared(customer.FieldTaxProvider) {
-		fields = append(fields, customer.FieldTaxProvider)
-	}
-	if m.FieldCleared(customer.FieldInvoicingProvider) {
-		fields = append(fields, customer.FieldInvoicingProvider)
-	}
-	if m.FieldCleared(customer.FieldPaymentProvider) {
-		fields = append(fields, customer.FieldPaymentProvider)
-	}
 	if m.FieldCleared(customer.FieldExternalMappingStripeCustomerID) {
 		fields = append(fields, customer.FieldExternalMappingStripeCustomerID)
 	}
@@ -7397,15 +7196,6 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldTimezone:
 		m.ClearTimezone()
-		return nil
-	case customer.FieldTaxProvider:
-		m.ClearTaxProvider()
-		return nil
-	case customer.FieldInvoicingProvider:
-		m.ClearInvoicingProvider()
-		return nil
-	case customer.FieldPaymentProvider:
-		m.ClearPaymentProvider()
 		return nil
 	case customer.FieldExternalMappingStripeCustomerID:
 		m.ClearExternalMappingStripeCustomerID()
@@ -7465,15 +7255,6 @@ func (m *CustomerMutation) ResetField(name string) error {
 		return nil
 	case customer.FieldTimezone:
 		m.ResetTimezone()
-		return nil
-	case customer.FieldTaxProvider:
-		m.ResetTaxProvider()
-		return nil
-	case customer.FieldInvoicingProvider:
-		m.ResetInvoicingProvider()
-		return nil
-	case customer.FieldPaymentProvider:
-		m.ResetPaymentProvider()
 		return nil
 	case customer.FieldExternalMappingStripeCustomerID:
 		m.ResetExternalMappingStripeCustomerID()
