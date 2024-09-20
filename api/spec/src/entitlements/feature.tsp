@@ -39,7 +39,7 @@ interface Features {
      */
     @query includeArchived?: boolean = false,
 
-    ...OpenMeter.Pagination,
+    ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<FeatureOrderBy>,
   ): Feature[] | OpenMeter.PaginatedResponse<Feature> | OpenMeter.CommonErrors;
