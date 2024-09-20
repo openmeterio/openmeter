@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider/openmetersandbox"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider/stripe"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -36,12 +38,31 @@ func (BillingProfile) Fields() []ent.Field {
 		field.String("key").
 			NotEmpty().
 			Immutable(),
-		field.String("provider_config").
-			GoType(provider.Configuration{}).
-			ValueScanner(ProviderConfigValueScanner).
+
+		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
+		field.String("tax_provider_config").
+			GoType(provider.TaxConfiguration{}).
+			ValueScanner(ProviderTaxConfigurationValueScanner).
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
-			}),
+			}).Optional(),
+
+		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
+		field.String("invoicing_provider_config").
+			GoType(provider.InvoicingConfiguration{}).
+			ValueScanner(ProviderInvoicingConfigurationValueScanner).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional(),
+
+		field.Enum("payment_provider").GoType(provider.PaymentProvider("")).Optional().Nillable(),
+		field.String("payment_provider_config").
+			GoType(provider.PaymentConfiguration{}).
+			ValueScanner(ProviderPaymentConfigurationValueScanner).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional(),
+
 		field.String("workflow_config_id").
 			NotEmpty(),
 		field.Bool("default").
@@ -57,6 +78,8 @@ func (BillingProfile) Edges() []ent.Edge {
 			Field("workflow_config_id").
 			Unique().
 			Required(),
+		edge.From("customers", Customer.Type).
+			Ref("override_billing_profile"),
 	}
 }
 
@@ -71,63 +94,182 @@ func (BillingProfile) Indexes() []ent.Index {
 type providerConfigSerde[T any] struct {
 	provider.Meta
 
-	Config T `json:"config"`
+	Config T `json:"config,omitempty"`
 }
 
-var ProviderConfigValueScanner = field.ValueScannerFunc[provider.Configuration, *sql.NullString]{
-	V: func(config provider.Configuration) (driver.Value, error) {
-		switch config.Type {
-		case provider.TypeOpenMeter:
-			return json.Marshal(providerConfigSerde[provider.OpenMeterConfig]{
-				Meta:   provider.Meta{Type: provider.TypeOpenMeter},
-				Config: config.OpenMeter,
+func billingProviderTypeFromField(ns *sql.NullString) (provider.Type, error) {
+	if !ns.Valid {
+		return "", errors.New("backend config is null")
+	}
+
+	data := []byte(ns.String)
+
+	var meta provider.Meta
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return "", err
+	}
+
+	return meta.Type, nil
+}
+
+var ProviderTaxConfigurationValueScanner = field.ValueScannerFunc[provider.TaxConfiguration, *sql.NullString]{
+	V: func(ref provider.TaxConfiguration) (driver.Value, error) {
+		switch ref.Type {
+		case provider.TypeOpenMeterSandbox:
+			return json.Marshal(providerConfigSerde[openmetersandbox.TaxConfiguration]{
+				Meta:   provider.Meta{Type: provider.TypeOpenMeterSandbox},
+				Config: ref.OpenMeter,
 			})
 		case provider.TypeStripe:
-			return json.Marshal(providerConfigSerde[provider.StripeConfig]{
+			return json.Marshal(providerConfigSerde[stripe.TaxConfiguration]{
 				Meta:   provider.Meta{Type: provider.TypeStripe},
-				Config: config.Stripe,
+				Config: ref.Stripe,
 			})
 		default:
-			return nil, fmt.Errorf("unknown backend type: %s", config.Type)
+			return nil, fmt.Errorf("unknown backend type: %s", ref.Type)
 		}
 	},
-	S: func(ns *sql.NullString) (provider.Configuration, error) {
-		if !ns.Valid {
-			return provider.Configuration{}, errors.New("backend config is null")
+	S: func(ns *sql.NullString) (provider.TaxConfiguration, error) {
+		providerType, err := billingProviderTypeFromField(ns)
+		if err != nil {
+			return provider.TaxConfiguration{}, err
 		}
 
 		data := []byte(ns.String)
 
-		var meta provider.Meta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return provider.Configuration{}, err
-		}
-
-		switch meta.Type {
-		case provider.TypeOpenMeter:
-			serde := providerConfigSerde[provider.OpenMeterConfig]{}
+		switch providerType {
+		case provider.TypeOpenMeterSandbox:
+			serde := providerConfigSerde[openmetersandbox.TaxConfiguration]{}
 
 			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Configuration{}, err
+				return provider.TaxConfiguration{}, err
 			}
 
-			return provider.Configuration{
+			return provider.TaxConfiguration{
 				Meta:      serde.Meta,
 				OpenMeter: serde.Config,
 			}, nil
 		case provider.TypeStripe:
-			serde := providerConfigSerde[provider.StripeConfig]{}
+			serde := providerConfigSerde[stripe.TaxConfiguration]{}
 
 			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Configuration{}, err
+				return provider.TaxConfiguration{}, err
 			}
 
-			return provider.Configuration{
+			return provider.TaxConfiguration{
 				Meta:   serde.Meta,
 				Stripe: serde.Config,
 			}, nil
 		default:
-			return provider.Configuration{}, fmt.Errorf("unknown backend type: %s", meta.Type)
+			return provider.TaxConfiguration{}, fmt.Errorf("unknown backend type: %s", providerType)
+		}
+	},
+}
+
+var ProviderInvoicingConfigurationValueScanner = field.ValueScannerFunc[provider.InvoicingConfiguration, *sql.NullString]{
+	V: func(ref provider.InvoicingConfiguration) (driver.Value, error) {
+		switch ref.Type {
+		case provider.TypeOpenMeterSandbox:
+			return json.Marshal(providerConfigSerde[openmetersandbox.InvoicingConfiguration]{
+				Meta:   provider.Meta{Type: provider.TypeOpenMeterSandbox},
+				Config: ref.OpenMeter,
+			})
+		case provider.TypeStripe:
+			return json.Marshal(providerConfigSerde[stripe.InvoicingConfiguration]{
+				Meta:   provider.Meta{Type: provider.TypeStripe},
+				Config: ref.Stripe,
+			})
+		default:
+			return nil, fmt.Errorf("unknown backend type: %s", ref.Type)
+		}
+	},
+	S: func(ns *sql.NullString) (provider.InvoicingConfiguration, error) {
+		providerType, err := billingProviderTypeFromField(ns)
+		if err != nil {
+			return provider.InvoicingConfiguration{}, err
+		}
+
+		data := []byte(ns.String)
+
+		switch providerType {
+		case provider.TypeOpenMeterSandbox:
+			serde := providerConfigSerde[openmetersandbox.InvoicingConfiguration]{}
+
+			if err := json.Unmarshal(data, &serde); err != nil {
+				return provider.InvoicingConfiguration{}, err
+			}
+
+			return provider.InvoicingConfiguration{
+				Meta:      serde.Meta,
+				OpenMeter: serde.Config,
+			}, nil
+		case provider.TypeStripe:
+			serde := providerConfigSerde[stripe.InvoicingConfiguration]{}
+
+			if err := json.Unmarshal(data, &serde); err != nil {
+				return provider.InvoicingConfiguration{}, err
+			}
+
+			return provider.InvoicingConfiguration{
+				Meta:   serde.Meta,
+				Stripe: serde.Config,
+			}, nil
+		default:
+			return provider.InvoicingConfiguration{}, fmt.Errorf("unknown backend type: %s", providerType)
+		}
+	},
+}
+
+var ProviderPaymentConfigurationValueScanner = field.ValueScannerFunc[provider.PaymentConfiguration, *sql.NullString]{
+	V: func(ref provider.PaymentConfiguration) (driver.Value, error) {
+		switch ref.Type {
+		case provider.TypeOpenMeterSandbox:
+			return json.Marshal(providerConfigSerde[openmetersandbox.PaymentConfiguration]{
+				Meta:   provider.Meta{Type: provider.TypeOpenMeterSandbox},
+				Config: ref.OpenMeter,
+			})
+		case provider.TypeStripe:
+			return json.Marshal(providerConfigSerde[stripe.PaymentConfiguration]{
+				Meta:   provider.Meta{Type: provider.TypeStripe},
+				Config: ref.Stripe,
+			})
+		default:
+			return nil, fmt.Errorf("unknown backend type: %s", ref.Type)
+		}
+	},
+	S: func(ns *sql.NullString) (provider.PaymentConfiguration, error) {
+		providerType, err := billingProviderTypeFromField(ns)
+		if err != nil {
+			return provider.PaymentConfiguration{}, err
+		}
+
+		data := []byte(ns.String)
+
+		switch providerType {
+		case provider.TypeOpenMeterSandbox:
+			serde := providerConfigSerde[openmetersandbox.PaymentConfiguration]{}
+
+			if err := json.Unmarshal(data, &serde); err != nil {
+				return provider.PaymentConfiguration{}, err
+			}
+
+			return provider.PaymentConfiguration{
+				Meta:      serde.Meta,
+				OpenMeter: serde.Config,
+			}, nil
+		case provider.TypeStripe:
+			serde := providerConfigSerde[stripe.PaymentConfiguration]{}
+
+			if err := json.Unmarshal(data, &serde); err != nil {
+				return provider.PaymentConfiguration{}, err
+			}
+
+			return provider.PaymentConfiguration{
+				Meta:   serde.Meta,
+				Stripe: serde.Config,
+			}, nil
+		default:
+			return provider.PaymentConfiguration{}, fmt.Errorf("unknown backend type: %s", providerType)
 		}
 	},
 }
@@ -303,23 +445,36 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Enum("status").
 			GoType(invoice.InvoiceStatus("")),
 
-		field.String("provider_config").
-			GoType(provider.Configuration{}).
-			ValueScanner(ProviderConfigValueScanner).
+		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
+		field.String("tax_provider_config").
+			GoType(provider.TaxConfiguration{}).
+			ValueScanner(ProviderTaxConfigurationValueScanner).
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
-			}),
+			}).Optional(),
+
+		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
+		field.String("invoicing_provider_config").
+			GoType(provider.InvoicingConfiguration{}).
+			ValueScanner(ProviderInvoicingConfigurationValueScanner).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional(),
+
+		field.Enum("payment_provider").GoType(provider.PaymentProvider("")).Optional().Nillable(),
+		field.String("payment_provider_config").
+			GoType(provider.PaymentConfiguration{}).
+			ValueScanner(ProviderPaymentConfigurationValueScanner).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional(),
 
 		field.String("workflow_config_id").
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
-		field.String("provider_reference").
-			GoType(provider.Reference{}).
-			ValueScanner(ProviderReferenceValueScanner).
-			SchemaType(map[string]string{
-				"postgres": "jsonb",
-			}),
+
+		// TODO[later]: Add either provider annotations or typed provider status fields
 
 		field.Time("period_start"),
 		field.Time("period_end"),
@@ -351,68 +506,4 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Required(),
 		edge.To("billing_invoice_items", BillingInvoiceItem.Type),
 	}
-}
-
-type providerReferenceSerde[T any] struct {
-	provider.Meta
-
-	Reference T `json:"ref"`
-}
-
-var ProviderReferenceValueScanner = field.ValueScannerFunc[provider.Reference, *sql.NullString]{
-	V: func(ref provider.Reference) (driver.Value, error) {
-		switch ref.Type {
-		case provider.TypeOpenMeter:
-			return json.Marshal(providerReferenceSerde[provider.OpenMeterReference]{
-				Meta:      provider.Meta{Type: provider.TypeOpenMeter},
-				Reference: ref.OpenMeter,
-			})
-		case provider.TypeStripe:
-			return json.Marshal(providerReferenceSerde[provider.StripeReference]{
-				Meta:      provider.Meta{Type: provider.TypeStripe},
-				Reference: ref.Stripe,
-			})
-		default:
-			return nil, fmt.Errorf("unknown backend type: %s", ref.Type)
-		}
-	},
-	S: func(ns *sql.NullString) (provider.Reference, error) {
-		if !ns.Valid {
-			return provider.Reference{}, errors.New("backend config is null")
-		}
-
-		data := []byte(ns.String)
-
-		var meta provider.Meta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return provider.Reference{}, err
-		}
-
-		switch meta.Type {
-		case provider.TypeOpenMeter:
-			serde := providerReferenceSerde[provider.OpenMeterReference]{}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Reference{}, err
-			}
-
-			return provider.Reference{
-				Meta:      serde.Meta,
-				OpenMeter: serde.Reference,
-			}, nil
-		case provider.TypeStripe:
-			serde := providerConfigSerde[provider.StripeReference]{}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return provider.Reference{}, err
-			}
-
-			return provider.Reference{
-				Meta:   serde.Meta,
-				Stripe: serde.Config,
-			}, nil
-		default:
-			return provider.Reference{}, fmt.Errorf("unknown backend type: %s", meta.Type)
-		}
-	},
 }

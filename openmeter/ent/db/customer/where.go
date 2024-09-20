@@ -155,6 +155,11 @@ func PrimaryEmail(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
 }
 
+// OverrideBillingProfileID applies equality check predicate on the "override_billing_profile_id" field. It's identical to OverrideBillingProfileIDEQ.
+func OverrideBillingProfileID(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldOverrideBillingProfileID, v))
+}
+
 // KeyEQ applies the EQ predicate on the "key" field.
 func KeyEQ(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldKey, v))
@@ -1372,6 +1377,111 @@ func PrimaryEmailContainsFold(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldPrimaryEmail, v))
 }
 
+// OverrideBillingProfileIDEQ applies the EQ predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDNEQ applies the NEQ predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDNEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDIn applies the In predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldIn(FieldOverrideBillingProfileID, vs...))
+}
+
+// OverrideBillingProfileIDNotIn applies the NotIn predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDNotIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldNotIn(FieldOverrideBillingProfileID, vs...))
+}
+
+// OverrideBillingProfileIDGT applies the GT predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDGT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGT(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDGTE applies the GTE predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDGTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGTE(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDLT applies the LT predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDLT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLT(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDLTE applies the LTE predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDLTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLTE(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDContains applies the Contains predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDContains(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContains(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDHasPrefix applies the HasPrefix predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDHasPrefix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasPrefix(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDHasSuffix applies the HasSuffix predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDHasSuffix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasSuffix(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDIsNil applies the IsNil predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldOverrideBillingProfileID))
+}
+
+// OverrideBillingProfileIDNotNil applies the NotNil predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldOverrideBillingProfileID))
+}
+
+// OverrideBillingProfileIDEqualFold applies the EqualFold predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDEqualFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEqualFold(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideBillingProfileIDContainsFold applies the ContainsFold predicate on the "override_billing_profile_id" field.
+func OverrideBillingProfileIDContainsFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContainsFold(FieldOverrideBillingProfileID, v))
+}
+
+// OverrideTaxProviderConfigIsNil applies the IsNil predicate on the "override_tax_provider_config" field.
+func OverrideTaxProviderConfigIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldOverrideTaxProviderConfig))
+}
+
+// OverrideTaxProviderConfigNotNil applies the NotNil predicate on the "override_tax_provider_config" field.
+func OverrideTaxProviderConfigNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldOverrideTaxProviderConfig))
+}
+
+// OverrideInvoicingProviderConfigIsNil applies the IsNil predicate on the "override_invoicing_provider_config" field.
+func OverrideInvoicingProviderConfigIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldOverrideInvoicingProviderConfig))
+}
+
+// OverrideInvoicingProviderConfigNotNil applies the NotNil predicate on the "override_invoicing_provider_config" field.
+func OverrideInvoicingProviderConfigNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldOverrideInvoicingProviderConfig))
+}
+
+// OverridePaymentProviderConfigIsNil applies the IsNil predicate on the "override_payment_provider_config" field.
+func OverridePaymentProviderConfigIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldOverridePaymentProviderConfig))
+}
+
+// OverridePaymentProviderConfigNotNil applies the NotNil predicate on the "override_payment_provider_config" field.
+func OverridePaymentProviderConfigNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldOverridePaymentProviderConfig))
+}
+
 // HasSubjects applies the HasEdge predicate on the "subjects" edge.
 func HasSubjects() predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
@@ -1387,6 +1497,29 @@ func HasSubjects() predicate.Customer {
 func HasSubjectsWith(preds ...predicate.CustomerSubjects) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := newSubjectsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOverrideBillingProfile applies the HasEdge predicate on the "override_billing_profile" edge.
+func HasOverrideBillingProfile() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, OverrideBillingProfileTable, OverrideBillingProfileColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOverrideBillingProfileWith applies the HasEdge predicate on the "override_billing_profile" edge with a given conditions (other predicates).
+func HasOverrideBillingProfileWith(preds ...predicate.BillingProfile) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newOverrideBillingProfileStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

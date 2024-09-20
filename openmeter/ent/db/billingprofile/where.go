@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -360,6 +361,156 @@ func KeyContainsFold(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldContainsFold(FieldKey, v))
 }
 
+// TaxProviderEQ applies the EQ predicate on the "tax_provider" field.
+func TaxProviderEQ(v provider.TaxProvider) predicate.BillingProfile {
+	vc := v
+	return predicate.BillingProfile(sql.FieldEQ(FieldTaxProvider, vc))
+}
+
+// TaxProviderNEQ applies the NEQ predicate on the "tax_provider" field.
+func TaxProviderNEQ(v provider.TaxProvider) predicate.BillingProfile {
+	vc := v
+	return predicate.BillingProfile(sql.FieldNEQ(FieldTaxProvider, vc))
+}
+
+// TaxProviderIn applies the In predicate on the "tax_provider" field.
+func TaxProviderIn(vs ...provider.TaxProvider) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingProfile(sql.FieldIn(FieldTaxProvider, v...))
+}
+
+// TaxProviderNotIn applies the NotIn predicate on the "tax_provider" field.
+func TaxProviderNotIn(vs ...provider.TaxProvider) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingProfile(sql.FieldNotIn(FieldTaxProvider, v...))
+}
+
+// TaxProviderIsNil applies the IsNil predicate on the "tax_provider" field.
+func TaxProviderIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldTaxProvider))
+}
+
+// TaxProviderNotNil applies the NotNil predicate on the "tax_provider" field.
+func TaxProviderNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldTaxProvider))
+}
+
+// TaxProviderConfigIsNil applies the IsNil predicate on the "tax_provider_config" field.
+func TaxProviderConfigIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldTaxProviderConfig))
+}
+
+// TaxProviderConfigNotNil applies the NotNil predicate on the "tax_provider_config" field.
+func TaxProviderConfigNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldTaxProviderConfig))
+}
+
+// InvoicingProviderEQ applies the EQ predicate on the "invoicing_provider" field.
+func InvoicingProviderEQ(v provider.InvoicingProvider) predicate.BillingProfile {
+	vc := v
+	return predicate.BillingProfile(sql.FieldEQ(FieldInvoicingProvider, vc))
+}
+
+// InvoicingProviderNEQ applies the NEQ predicate on the "invoicing_provider" field.
+func InvoicingProviderNEQ(v provider.InvoicingProvider) predicate.BillingProfile {
+	vc := v
+	return predicate.BillingProfile(sql.FieldNEQ(FieldInvoicingProvider, vc))
+}
+
+// InvoicingProviderIn applies the In predicate on the "invoicing_provider" field.
+func InvoicingProviderIn(vs ...provider.InvoicingProvider) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingProfile(sql.FieldIn(FieldInvoicingProvider, v...))
+}
+
+// InvoicingProviderNotIn applies the NotIn predicate on the "invoicing_provider" field.
+func InvoicingProviderNotIn(vs ...provider.InvoicingProvider) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingProfile(sql.FieldNotIn(FieldInvoicingProvider, v...))
+}
+
+// InvoicingProviderIsNil applies the IsNil predicate on the "invoicing_provider" field.
+func InvoicingProviderIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldInvoicingProvider))
+}
+
+// InvoicingProviderNotNil applies the NotNil predicate on the "invoicing_provider" field.
+func InvoicingProviderNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldInvoicingProvider))
+}
+
+// InvoicingProviderConfigIsNil applies the IsNil predicate on the "invoicing_provider_config" field.
+func InvoicingProviderConfigIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldInvoicingProviderConfig))
+}
+
+// InvoicingProviderConfigNotNil applies the NotNil predicate on the "invoicing_provider_config" field.
+func InvoicingProviderConfigNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldInvoicingProviderConfig))
+}
+
+// PaymentProviderEQ applies the EQ predicate on the "payment_provider" field.
+func PaymentProviderEQ(v provider.PaymentProvider) predicate.BillingProfile {
+	vc := v
+	return predicate.BillingProfile(sql.FieldEQ(FieldPaymentProvider, vc))
+}
+
+// PaymentProviderNEQ applies the NEQ predicate on the "payment_provider" field.
+func PaymentProviderNEQ(v provider.PaymentProvider) predicate.BillingProfile {
+	vc := v
+	return predicate.BillingProfile(sql.FieldNEQ(FieldPaymentProvider, vc))
+}
+
+// PaymentProviderIn applies the In predicate on the "payment_provider" field.
+func PaymentProviderIn(vs ...provider.PaymentProvider) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingProfile(sql.FieldIn(FieldPaymentProvider, v...))
+}
+
+// PaymentProviderNotIn applies the NotIn predicate on the "payment_provider" field.
+func PaymentProviderNotIn(vs ...provider.PaymentProvider) predicate.BillingProfile {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingProfile(sql.FieldNotIn(FieldPaymentProvider, v...))
+}
+
+// PaymentProviderIsNil applies the IsNil predicate on the "payment_provider" field.
+func PaymentProviderIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldPaymentProvider))
+}
+
+// PaymentProviderNotNil applies the NotNil predicate on the "payment_provider" field.
+func PaymentProviderNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldPaymentProvider))
+}
+
+// PaymentProviderConfigIsNil applies the IsNil predicate on the "payment_provider_config" field.
+func PaymentProviderConfigIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldPaymentProviderConfig))
+}
+
+// PaymentProviderConfigNotNil applies the NotNil predicate on the "payment_provider_config" field.
+func PaymentProviderConfigNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldPaymentProviderConfig))
+}
+
 // WorkflowConfigIDEQ applies the EQ predicate on the "workflow_config_id" field.
 func WorkflowConfigIDEQ(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldWorkflowConfigID, v))
@@ -473,6 +624,29 @@ func HasBillingWorkflowConfig() predicate.BillingProfile {
 func HasBillingWorkflowConfigWith(preds ...predicate.BillingWorkflowConfig) predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {
 		step := newBillingWorkflowConfigStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomers applies the HasEdge predicate on the "customers" edge.
+func HasCustomers() predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CustomersTable, CustomersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomersWith applies the HasEdge predicate on the "customers" edge with a given conditions (other predicates).
+func HasCustomersWith(preds ...predicate.Customer) predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := newCustomersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

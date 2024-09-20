@@ -91,12 +91,15 @@ func init() {
 	billinginvoiceDescCurrency := billinginvoiceFields[4].Descriptor()
 	// billinginvoice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoice.CurrencyValidator = billinginvoiceDescCurrency.Validators[0].(func(string) error)
-	// billinginvoiceDescProviderConfig is the schema descriptor for provider_config field.
-	billinginvoiceDescProviderConfig := billinginvoiceFields[8].Descriptor()
-	billinginvoice.ValueScanner.ProviderConfig = billinginvoiceDescProviderConfig.ValueScanner.(field.TypeValueScanner[provider.Configuration])
-	// billinginvoiceDescProviderReference is the schema descriptor for provider_reference field.
-	billinginvoiceDescProviderReference := billinginvoiceFields[10].Descriptor()
-	billinginvoice.ValueScanner.ProviderReference = billinginvoiceDescProviderReference.ValueScanner.(field.TypeValueScanner[provider.Reference])
+	// billinginvoiceDescTaxProviderConfig is the schema descriptor for tax_provider_config field.
+	billinginvoiceDescTaxProviderConfig := billinginvoiceFields[9].Descriptor()
+	billinginvoice.ValueScanner.TaxProviderConfig = billinginvoiceDescTaxProviderConfig.ValueScanner.(field.TypeValueScanner[provider.TaxConfiguration])
+	// billinginvoiceDescInvoicingProviderConfig is the schema descriptor for invoicing_provider_config field.
+	billinginvoiceDescInvoicingProviderConfig := billinginvoiceFields[11].Descriptor()
+	billinginvoice.ValueScanner.InvoicingProviderConfig = billinginvoiceDescInvoicingProviderConfig.ValueScanner.(field.TypeValueScanner[provider.InvoicingConfiguration])
+	// billinginvoiceDescPaymentProviderConfig is the schema descriptor for payment_provider_config field.
+	billinginvoiceDescPaymentProviderConfig := billinginvoiceFields[13].Descriptor()
+	billinginvoice.ValueScanner.PaymentProviderConfig = billinginvoiceDescPaymentProviderConfig.ValueScanner.(field.TypeValueScanner[provider.PaymentConfiguration])
 	// billinginvoiceDescID is the schema descriptor for id field.
 	billinginvoiceDescID := billinginvoiceMixinFields0[0].Descriptor()
 	// billinginvoice.DefaultID holds the default value on creation for the id field.
@@ -163,15 +166,21 @@ func init() {
 	billingprofileDescKey := billingprofileFields[0].Descriptor()
 	// billingprofile.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	billingprofile.KeyValidator = billingprofileDescKey.Validators[0].(func(string) error)
-	// billingprofileDescProviderConfig is the schema descriptor for provider_config field.
-	billingprofileDescProviderConfig := billingprofileFields[1].Descriptor()
-	billingprofile.ValueScanner.ProviderConfig = billingprofileDescProviderConfig.ValueScanner.(field.TypeValueScanner[provider.Configuration])
+	// billingprofileDescTaxProviderConfig is the schema descriptor for tax_provider_config field.
+	billingprofileDescTaxProviderConfig := billingprofileFields[2].Descriptor()
+	billingprofile.ValueScanner.TaxProviderConfig = billingprofileDescTaxProviderConfig.ValueScanner.(field.TypeValueScanner[provider.TaxConfiguration])
+	// billingprofileDescInvoicingProviderConfig is the schema descriptor for invoicing_provider_config field.
+	billingprofileDescInvoicingProviderConfig := billingprofileFields[4].Descriptor()
+	billingprofile.ValueScanner.InvoicingProviderConfig = billingprofileDescInvoicingProviderConfig.ValueScanner.(field.TypeValueScanner[provider.InvoicingConfiguration])
+	// billingprofileDescPaymentProviderConfig is the schema descriptor for payment_provider_config field.
+	billingprofileDescPaymentProviderConfig := billingprofileFields[6].Descriptor()
+	billingprofile.ValueScanner.PaymentProviderConfig = billingprofileDescPaymentProviderConfig.ValueScanner.(field.TypeValueScanner[provider.PaymentConfiguration])
 	// billingprofileDescWorkflowConfigID is the schema descriptor for workflow_config_id field.
-	billingprofileDescWorkflowConfigID := billingprofileFields[2].Descriptor()
+	billingprofileDescWorkflowConfigID := billingprofileFields[7].Descriptor()
 	// billingprofile.WorkflowConfigIDValidator is a validator for the "workflow_config_id" field. It is called by the builders before save.
 	billingprofile.WorkflowConfigIDValidator = billingprofileDescWorkflowConfigID.Validators[0].(func(string) error)
 	// billingprofileDescDefault is the schema descriptor for default field.
-	billingprofileDescDefault := billingprofileFields[3].Descriptor()
+	billingprofileDescDefault := billingprofileFields[8].Descriptor()
 	// billingprofile.DefaultDefault holds the default value on creation for the default field.
 	billingprofile.DefaultDefault = billingprofileDescDefault.Default.(bool)
 	// billingprofileDescID is the schema descriptor for id field.
@@ -270,6 +279,15 @@ func init() {
 			return nil
 		}
 	}()
+	// customerDescOverrideTaxProviderConfig is the schema descriptor for override_tax_provider_config field.
+	customerDescOverrideTaxProviderConfig := customerFields[6].Descriptor()
+	customer.ValueScanner.OverrideTaxProviderConfig = customerDescOverrideTaxProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.TaxConfiguration])
+	// customerDescOverrideInvoicingProviderConfig is the schema descriptor for override_invoicing_provider_config field.
+	customerDescOverrideInvoicingProviderConfig := customerFields[7].Descriptor()
+	customer.ValueScanner.OverrideInvoicingProviderConfig = customerDescOverrideInvoicingProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.InvoicingConfiguration])
+	// customerDescOverridePaymentProviderConfig is the schema descriptor for override_payment_provider_config field.
+	customerDescOverridePaymentProviderConfig := customerFields[8].Descriptor()
+	customer.ValueScanner.OverridePaymentProviderConfig = customerDescOverridePaymentProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.PaymentConfiguration])
 	// customerDescID is the schema descriptor for id field.
 	customerDescID := customerMixinFields0[0].Descriptor()
 	// customer.DefaultID holds the default value on creation for the id field.

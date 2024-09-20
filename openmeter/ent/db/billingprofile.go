@@ -29,8 +29,18 @@ type BillingProfile struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
-	// ProviderConfig holds the value of the "provider_config" field.
-	ProviderConfig provider.Configuration `json:"provider_config,omitempty"`
+	// TaxProvider holds the value of the "tax_provider" field.
+	TaxProvider *provider.TaxProvider `json:"tax_provider,omitempty"`
+	// TaxProviderConfig holds the value of the "tax_provider_config" field.
+	TaxProviderConfig provider.TaxConfiguration `json:"tax_provider_config,omitempty"`
+	// InvoicingProvider holds the value of the "invoicing_provider" field.
+	InvoicingProvider *provider.InvoicingProvider `json:"invoicing_provider,omitempty"`
+	// InvoicingProviderConfig holds the value of the "invoicing_provider_config" field.
+	InvoicingProviderConfig provider.InvoicingConfiguration `json:"invoicing_provider_config,omitempty"`
+	// PaymentProvider holds the value of the "payment_provider" field.
+	PaymentProvider *provider.PaymentProvider `json:"payment_provider,omitempty"`
+	// PaymentProviderConfig holds the value of the "payment_provider_config" field.
+	PaymentProviderConfig provider.PaymentConfiguration `json:"payment_provider_config,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// Default holds the value of the "default" field.
@@ -47,9 +57,11 @@ type BillingProfileEdges struct {
 	BillingInvoices []*BillingInvoice `json:"billing_invoices,omitempty"`
 	// BillingWorkflowConfig holds the value of the billing_workflow_config edge.
 	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
+	// Customers holds the value of the customers edge.
+	Customers []*Customer `json:"customers,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
@@ -72,6 +84,15 @@ func (e BillingProfileEdges) BillingWorkflowConfigOrErr() (*BillingWorkflowConfi
 	return nil, &NotLoadedError{edge: "billing_workflow_config"}
 }
 
+// CustomersOrErr returns the Customers value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingProfileEdges) CustomersOrErr() ([]*Customer, error) {
+	if e.loadedTypes[2] {
+		return e.Customers, nil
+	}
+	return nil, &NotLoadedError{edge: "customers"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -79,12 +100,16 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldWorkflowConfigID:
+		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case billingprofile.FieldProviderConfig:
-			values[i] = billingprofile.ValueScanner.ProviderConfig.ScanValue()
+		case billingprofile.FieldTaxProviderConfig:
+			values[i] = billingprofile.ValueScanner.TaxProviderConfig.ScanValue()
+		case billingprofile.FieldInvoicingProviderConfig:
+			values[i] = billingprofile.ValueScanner.InvoicingProviderConfig.ScanValue()
+		case billingprofile.FieldPaymentProviderConfig:
+			values[i] = billingprofile.ValueScanner.PaymentProviderConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -137,11 +162,44 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bp.Key = value.String
 			}
-		case billingprofile.FieldProviderConfig:
-			if value, err := billingprofile.ValueScanner.ProviderConfig.FromValue(values[i]); err != nil {
+		case billingprofile.FieldTaxProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
+			} else if value.Valid {
+				bp.TaxProvider = new(provider.TaxProvider)
+				*bp.TaxProvider = provider.TaxProvider(value.String)
+			}
+		case billingprofile.FieldTaxProviderConfig:
+			if value, err := billingprofile.ValueScanner.TaxProviderConfig.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				bp.ProviderConfig = value
+				bp.TaxProviderConfig = value
+			}
+		case billingprofile.FieldInvoicingProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
+			} else if value.Valid {
+				bp.InvoicingProvider = new(provider.InvoicingProvider)
+				*bp.InvoicingProvider = provider.InvoicingProvider(value.String)
+			}
+		case billingprofile.FieldInvoicingProviderConfig:
+			if value, err := billingprofile.ValueScanner.InvoicingProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				bp.InvoicingProviderConfig = value
+			}
+		case billingprofile.FieldPaymentProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
+			} else if value.Valid {
+				bp.PaymentProvider = new(provider.PaymentProvider)
+				*bp.PaymentProvider = provider.PaymentProvider(value.String)
+			}
+		case billingprofile.FieldPaymentProviderConfig:
+			if value, err := billingprofile.ValueScanner.PaymentProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				bp.PaymentProviderConfig = value
 			}
 		case billingprofile.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -176,6 +234,11 @@ func (bp *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
 // QueryBillingWorkflowConfig queries the "billing_workflow_config" edge of the BillingProfile entity.
 func (bp *BillingProfile) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
 	return NewBillingProfileClient(bp.config).QueryBillingWorkflowConfig(bp)
+}
+
+// QueryCustomers queries the "customers" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryCustomers() *CustomerQuery {
+	return NewBillingProfileClient(bp.config).QueryCustomers(bp)
 }
 
 // Update returns a builder for updating this BillingProfile.
@@ -218,8 +281,29 @@ func (bp *BillingProfile) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(bp.Key)
 	builder.WriteString(", ")
-	builder.WriteString("provider_config=")
-	builder.WriteString(fmt.Sprintf("%v", bp.ProviderConfig))
+	if v := bp.TaxProvider; v != nil {
+		builder.WriteString("tax_provider=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("tax_provider_config=")
+	builder.WriteString(fmt.Sprintf("%v", bp.TaxProviderConfig))
+	builder.WriteString(", ")
+	if v := bp.InvoicingProvider; v != nil {
+		builder.WriteString("invoicing_provider=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("invoicing_provider_config=")
+	builder.WriteString(fmt.Sprintf("%v", bp.InvoicingProviderConfig))
+	builder.WriteString(", ")
+	if v := bp.PaymentProvider; v != nil {
+		builder.WriteString("payment_provider=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("payment_provider_config=")
+	builder.WriteString(fmt.Sprintf("%v", bp.PaymentProviderConfig))
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bp.WorkflowConfigID)

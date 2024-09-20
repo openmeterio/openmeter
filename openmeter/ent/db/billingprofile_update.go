@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -57,17 +58,123 @@ func (bpu *BillingProfileUpdate) ClearDeletedAt() *BillingProfileUpdate {
 	return bpu
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (bpu *BillingProfileUpdate) SetProviderConfig(pr provider.Configuration) *BillingProfileUpdate {
-	bpu.mutation.SetProviderConfig(pr)
+// SetTaxProvider sets the "tax_provider" field.
+func (bpu *BillingProfileUpdate) SetTaxProvider(pp provider.TaxProvider) *BillingProfileUpdate {
+	bpu.mutation.SetTaxProvider(pp)
 	return bpu
 }
 
-// SetNillableProviderConfig sets the "provider_config" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableProviderConfig(pr *provider.Configuration) *BillingProfileUpdate {
-	if pr != nil {
-		bpu.SetProviderConfig(*pr)
+// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingProfileUpdate {
+	if pp != nil {
+		bpu.SetTaxProvider(*pp)
 	}
+	return bpu
+}
+
+// ClearTaxProvider clears the value of the "tax_provider" field.
+func (bpu *BillingProfileUpdate) ClearTaxProvider() *BillingProfileUpdate {
+	bpu.mutation.ClearTaxProvider()
+	return bpu
+}
+
+// SetTaxProviderConfig sets the "tax_provider_config" field.
+func (bpu *BillingProfileUpdate) SetTaxProviderConfig(pc provider.TaxConfiguration) *BillingProfileUpdate {
+	bpu.mutation.SetTaxProviderConfig(pc)
+	return bpu
+}
+
+// SetNillableTaxProviderConfig sets the "tax_provider_config" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableTaxProviderConfig(pc *provider.TaxConfiguration) *BillingProfileUpdate {
+	if pc != nil {
+		bpu.SetTaxProviderConfig(*pc)
+	}
+	return bpu
+}
+
+// ClearTaxProviderConfig clears the value of the "tax_provider_config" field.
+func (bpu *BillingProfileUpdate) ClearTaxProviderConfig() *BillingProfileUpdate {
+	bpu.mutation.ClearTaxProviderConfig()
+	return bpu
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (bpu *BillingProfileUpdate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileUpdate {
+	bpu.mutation.SetInvoicingProvider(pp)
+	return bpu
+}
+
+// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingProfileUpdate {
+	if pp != nil {
+		bpu.SetInvoicingProvider(*pp)
+	}
+	return bpu
+}
+
+// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
+func (bpu *BillingProfileUpdate) ClearInvoicingProvider() *BillingProfileUpdate {
+	bpu.mutation.ClearInvoicingProvider()
+	return bpu
+}
+
+// SetInvoicingProviderConfig sets the "invoicing_provider_config" field.
+func (bpu *BillingProfileUpdate) SetInvoicingProviderConfig(pc provider.InvoicingConfiguration) *BillingProfileUpdate {
+	bpu.mutation.SetInvoicingProviderConfig(pc)
+	return bpu
+}
+
+// SetNillableInvoicingProviderConfig sets the "invoicing_provider_config" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableInvoicingProviderConfig(pc *provider.InvoicingConfiguration) *BillingProfileUpdate {
+	if pc != nil {
+		bpu.SetInvoicingProviderConfig(*pc)
+	}
+	return bpu
+}
+
+// ClearInvoicingProviderConfig clears the value of the "invoicing_provider_config" field.
+func (bpu *BillingProfileUpdate) ClearInvoicingProviderConfig() *BillingProfileUpdate {
+	bpu.mutation.ClearInvoicingProviderConfig()
+	return bpu
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (bpu *BillingProfileUpdate) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileUpdate {
+	bpu.mutation.SetPaymentProvider(pp)
+	return bpu
+}
+
+// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingProfileUpdate {
+	if pp != nil {
+		bpu.SetPaymentProvider(*pp)
+	}
+	return bpu
+}
+
+// ClearPaymentProvider clears the value of the "payment_provider" field.
+func (bpu *BillingProfileUpdate) ClearPaymentProvider() *BillingProfileUpdate {
+	bpu.mutation.ClearPaymentProvider()
+	return bpu
+}
+
+// SetPaymentProviderConfig sets the "payment_provider_config" field.
+func (bpu *BillingProfileUpdate) SetPaymentProviderConfig(pc provider.PaymentConfiguration) *BillingProfileUpdate {
+	bpu.mutation.SetPaymentProviderConfig(pc)
+	return bpu
+}
+
+// SetNillablePaymentProviderConfig sets the "payment_provider_config" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillablePaymentProviderConfig(pc *provider.PaymentConfiguration) *BillingProfileUpdate {
+	if pc != nil {
+		bpu.SetPaymentProviderConfig(*pc)
+	}
+	return bpu
+}
+
+// ClearPaymentProviderConfig clears the value of the "payment_provider_config" field.
+func (bpu *BillingProfileUpdate) ClearPaymentProviderConfig() *BillingProfileUpdate {
+	bpu.mutation.ClearPaymentProviderConfig()
 	return bpu
 }
 
@@ -125,6 +232,21 @@ func (bpu *BillingProfileUpdate) SetBillingWorkflowConfig(b *BillingWorkflowConf
 	return bpu.SetBillingWorkflowConfigID(b.ID)
 }
 
+// AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
+func (bpu *BillingProfileUpdate) AddCustomerIDs(ids ...string) *BillingProfileUpdate {
+	bpu.mutation.AddCustomerIDs(ids...)
+	return bpu
+}
+
+// AddCustomers adds the "customers" edges to the Customer entity.
+func (bpu *BillingProfileUpdate) AddCustomers(c ...*Customer) *BillingProfileUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return bpu.AddCustomerIDs(ids...)
+}
+
 // Mutation returns the BillingProfileMutation object of the builder.
 func (bpu *BillingProfileUpdate) Mutation() *BillingProfileMutation {
 	return bpu.mutation
@@ -155,6 +277,27 @@ func (bpu *BillingProfileUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *Bi
 func (bpu *BillingProfileUpdate) ClearBillingWorkflowConfig() *BillingProfileUpdate {
 	bpu.mutation.ClearBillingWorkflowConfig()
 	return bpu
+}
+
+// ClearCustomers clears all "customers" edges to the Customer entity.
+func (bpu *BillingProfileUpdate) ClearCustomers() *BillingProfileUpdate {
+	bpu.mutation.ClearCustomers()
+	return bpu
+}
+
+// RemoveCustomerIDs removes the "customers" edge to Customer entities by IDs.
+func (bpu *BillingProfileUpdate) RemoveCustomerIDs(ids ...string) *BillingProfileUpdate {
+	bpu.mutation.RemoveCustomerIDs(ids...)
+	return bpu
+}
+
+// RemoveCustomers removes "customers" edges to Customer entities.
+func (bpu *BillingProfileUpdate) RemoveCustomers(c ...*Customer) *BillingProfileUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return bpu.RemoveCustomerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -195,9 +338,34 @@ func (bpu *BillingProfileUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bpu *BillingProfileUpdate) check() error {
-	if v, ok := bpu.mutation.ProviderConfig(); ok {
+	if v, ok := bpu.mutation.TaxProvider(); ok {
+		if err := billingprofile.TaxProviderValidator(v); err != nil {
+			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpu.mutation.TaxProviderConfig(); ok {
 		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
+			return &ValidationError{Name: "tax_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpu.mutation.InvoicingProvider(); ok {
+		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpu.mutation.InvoicingProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoicing_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpu.mutation.PaymentProvider(); ok {
+		if err := billingprofile.PaymentProviderValidator(v); err != nil {
+			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpu.mutation.PaymentProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "payment_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider_config": %w`, err)}
 		}
 	}
 	if v, ok := bpu.mutation.WorkflowConfigID(); ok {
@@ -232,12 +400,53 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if bpu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingprofile.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bpu.mutation.ProviderConfig(); ok {
-		vv, err := billingprofile.ValueScanner.ProviderConfig.Value(value)
+	if value, ok := bpu.mutation.TaxProvider(); ok {
+		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
+	}
+	if bpu.mutation.TaxProviderCleared() {
+		_spec.ClearField(billingprofile.FieldTaxProvider, field.TypeEnum)
+	}
+	if value, ok := bpu.mutation.TaxProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.TaxProviderConfig.Value(value)
 		if err != nil {
 			return 0, err
 		}
-		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
+		_spec.SetField(billingprofile.FieldTaxProviderConfig, field.TypeString, vv)
+	}
+	if bpu.mutation.TaxProviderConfigCleared() {
+		_spec.ClearField(billingprofile.FieldTaxProviderConfig, field.TypeString)
+	}
+	if value, ok := bpu.mutation.InvoicingProvider(); ok {
+		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
+	}
+	if bpu.mutation.InvoicingProviderCleared() {
+		_spec.ClearField(billingprofile.FieldInvoicingProvider, field.TypeEnum)
+	}
+	if value, ok := bpu.mutation.InvoicingProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.InvoicingProviderConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billingprofile.FieldInvoicingProviderConfig, field.TypeString, vv)
+	}
+	if bpu.mutation.InvoicingProviderConfigCleared() {
+		_spec.ClearField(billingprofile.FieldInvoicingProviderConfig, field.TypeString)
+	}
+	if value, ok := bpu.mutation.PaymentProvider(); ok {
+		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
+	}
+	if bpu.mutation.PaymentProviderCleared() {
+		_spec.ClearField(billingprofile.FieldPaymentProvider, field.TypeEnum)
+	}
+	if value, ok := bpu.mutation.PaymentProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.PaymentProviderConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billingprofile.FieldPaymentProviderConfig, field.TypeString, vv)
+	}
+	if bpu.mutation.PaymentProviderConfigCleared() {
+		_spec.ClearField(billingprofile.FieldPaymentProviderConfig, field.TypeString)
 	}
 	if value, ok := bpu.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
@@ -316,6 +525,51 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if bpu.mutation.CustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpu.mutation.RemovedCustomersIDs(); len(nodes) > 0 && !bpu.mutation.CustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpu.mutation.CustomersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bpu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingprofile.Label}
@@ -362,17 +616,123 @@ func (bpuo *BillingProfileUpdateOne) ClearDeletedAt() *BillingProfileUpdateOne {
 	return bpuo
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (bpuo *BillingProfileUpdateOne) SetProviderConfig(pr provider.Configuration) *BillingProfileUpdateOne {
-	bpuo.mutation.SetProviderConfig(pr)
+// SetTaxProvider sets the "tax_provider" field.
+func (bpuo *BillingProfileUpdateOne) SetTaxProvider(pp provider.TaxProvider) *BillingProfileUpdateOne {
+	bpuo.mutation.SetTaxProvider(pp)
 	return bpuo
 }
 
-// SetNillableProviderConfig sets the "provider_config" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableProviderConfig(pr *provider.Configuration) *BillingProfileUpdateOne {
-	if pr != nil {
-		bpuo.SetProviderConfig(*pr)
+// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingProfileUpdateOne {
+	if pp != nil {
+		bpuo.SetTaxProvider(*pp)
 	}
+	return bpuo
+}
+
+// ClearTaxProvider clears the value of the "tax_provider" field.
+func (bpuo *BillingProfileUpdateOne) ClearTaxProvider() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearTaxProvider()
+	return bpuo
+}
+
+// SetTaxProviderConfig sets the "tax_provider_config" field.
+func (bpuo *BillingProfileUpdateOne) SetTaxProviderConfig(pc provider.TaxConfiguration) *BillingProfileUpdateOne {
+	bpuo.mutation.SetTaxProviderConfig(pc)
+	return bpuo
+}
+
+// SetNillableTaxProviderConfig sets the "tax_provider_config" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableTaxProviderConfig(pc *provider.TaxConfiguration) *BillingProfileUpdateOne {
+	if pc != nil {
+		bpuo.SetTaxProviderConfig(*pc)
+	}
+	return bpuo
+}
+
+// ClearTaxProviderConfig clears the value of the "tax_provider_config" field.
+func (bpuo *BillingProfileUpdateOne) ClearTaxProviderConfig() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearTaxProviderConfig()
+	return bpuo
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (bpuo *BillingProfileUpdateOne) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileUpdateOne {
+	bpuo.mutation.SetInvoicingProvider(pp)
+	return bpuo
+}
+
+// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingProfileUpdateOne {
+	if pp != nil {
+		bpuo.SetInvoicingProvider(*pp)
+	}
+	return bpuo
+}
+
+// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
+func (bpuo *BillingProfileUpdateOne) ClearInvoicingProvider() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearInvoicingProvider()
+	return bpuo
+}
+
+// SetInvoicingProviderConfig sets the "invoicing_provider_config" field.
+func (bpuo *BillingProfileUpdateOne) SetInvoicingProviderConfig(pc provider.InvoicingConfiguration) *BillingProfileUpdateOne {
+	bpuo.mutation.SetInvoicingProviderConfig(pc)
+	return bpuo
+}
+
+// SetNillableInvoicingProviderConfig sets the "invoicing_provider_config" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableInvoicingProviderConfig(pc *provider.InvoicingConfiguration) *BillingProfileUpdateOne {
+	if pc != nil {
+		bpuo.SetInvoicingProviderConfig(*pc)
+	}
+	return bpuo
+}
+
+// ClearInvoicingProviderConfig clears the value of the "invoicing_provider_config" field.
+func (bpuo *BillingProfileUpdateOne) ClearInvoicingProviderConfig() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearInvoicingProviderConfig()
+	return bpuo
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (bpuo *BillingProfileUpdateOne) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileUpdateOne {
+	bpuo.mutation.SetPaymentProvider(pp)
+	return bpuo
+}
+
+// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingProfileUpdateOne {
+	if pp != nil {
+		bpuo.SetPaymentProvider(*pp)
+	}
+	return bpuo
+}
+
+// ClearPaymentProvider clears the value of the "payment_provider" field.
+func (bpuo *BillingProfileUpdateOne) ClearPaymentProvider() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearPaymentProvider()
+	return bpuo
+}
+
+// SetPaymentProviderConfig sets the "payment_provider_config" field.
+func (bpuo *BillingProfileUpdateOne) SetPaymentProviderConfig(pc provider.PaymentConfiguration) *BillingProfileUpdateOne {
+	bpuo.mutation.SetPaymentProviderConfig(pc)
+	return bpuo
+}
+
+// SetNillablePaymentProviderConfig sets the "payment_provider_config" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillablePaymentProviderConfig(pc *provider.PaymentConfiguration) *BillingProfileUpdateOne {
+	if pc != nil {
+		bpuo.SetPaymentProviderConfig(*pc)
+	}
+	return bpuo
+}
+
+// ClearPaymentProviderConfig clears the value of the "payment_provider_config" field.
+func (bpuo *BillingProfileUpdateOne) ClearPaymentProviderConfig() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearPaymentProviderConfig()
 	return bpuo
 }
 
@@ -430,6 +790,21 @@ func (bpuo *BillingProfileUpdateOne) SetBillingWorkflowConfig(b *BillingWorkflow
 	return bpuo.SetBillingWorkflowConfigID(b.ID)
 }
 
+// AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
+func (bpuo *BillingProfileUpdateOne) AddCustomerIDs(ids ...string) *BillingProfileUpdateOne {
+	bpuo.mutation.AddCustomerIDs(ids...)
+	return bpuo
+}
+
+// AddCustomers adds the "customers" edges to the Customer entity.
+func (bpuo *BillingProfileUpdateOne) AddCustomers(c ...*Customer) *BillingProfileUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return bpuo.AddCustomerIDs(ids...)
+}
+
 // Mutation returns the BillingProfileMutation object of the builder.
 func (bpuo *BillingProfileUpdateOne) Mutation() *BillingProfileMutation {
 	return bpuo.mutation
@@ -460,6 +835,27 @@ func (bpuo *BillingProfileUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice)
 func (bpuo *BillingProfileUpdateOne) ClearBillingWorkflowConfig() *BillingProfileUpdateOne {
 	bpuo.mutation.ClearBillingWorkflowConfig()
 	return bpuo
+}
+
+// ClearCustomers clears all "customers" edges to the Customer entity.
+func (bpuo *BillingProfileUpdateOne) ClearCustomers() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearCustomers()
+	return bpuo
+}
+
+// RemoveCustomerIDs removes the "customers" edge to Customer entities by IDs.
+func (bpuo *BillingProfileUpdateOne) RemoveCustomerIDs(ids ...string) *BillingProfileUpdateOne {
+	bpuo.mutation.RemoveCustomerIDs(ids...)
+	return bpuo
+}
+
+// RemoveCustomers removes "customers" edges to Customer entities.
+func (bpuo *BillingProfileUpdateOne) RemoveCustomers(c ...*Customer) *BillingProfileUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return bpuo.RemoveCustomerIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingProfileUpdate builder.
@@ -513,9 +909,34 @@ func (bpuo *BillingProfileUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bpuo *BillingProfileUpdateOne) check() error {
-	if v, ok := bpuo.mutation.ProviderConfig(); ok {
+	if v, ok := bpuo.mutation.TaxProvider(); ok {
+		if err := billingprofile.TaxProviderValidator(v); err != nil {
+			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpuo.mutation.TaxProviderConfig(); ok {
 		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
+			return &ValidationError{Name: "tax_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpuo.mutation.InvoicingProvider(); ok {
+		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpuo.mutation.InvoicingProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoicing_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpuo.mutation.PaymentProvider(); ok {
+		if err := billingprofile.PaymentProviderValidator(v); err != nil {
+			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpuo.mutation.PaymentProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "payment_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider_config": %w`, err)}
 		}
 	}
 	if v, ok := bpuo.mutation.WorkflowConfigID(); ok {
@@ -567,12 +988,53 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	if bpuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingprofile.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bpuo.mutation.ProviderConfig(); ok {
-		vv, err := billingprofile.ValueScanner.ProviderConfig.Value(value)
+	if value, ok := bpuo.mutation.TaxProvider(); ok {
+		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
+	}
+	if bpuo.mutation.TaxProviderCleared() {
+		_spec.ClearField(billingprofile.FieldTaxProvider, field.TypeEnum)
+	}
+	if value, ok := bpuo.mutation.TaxProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.TaxProviderConfig.Value(value)
 		if err != nil {
 			return nil, err
 		}
-		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
+		_spec.SetField(billingprofile.FieldTaxProviderConfig, field.TypeString, vv)
+	}
+	if bpuo.mutation.TaxProviderConfigCleared() {
+		_spec.ClearField(billingprofile.FieldTaxProviderConfig, field.TypeString)
+	}
+	if value, ok := bpuo.mutation.InvoicingProvider(); ok {
+		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
+	}
+	if bpuo.mutation.InvoicingProviderCleared() {
+		_spec.ClearField(billingprofile.FieldInvoicingProvider, field.TypeEnum)
+	}
+	if value, ok := bpuo.mutation.InvoicingProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.InvoicingProviderConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billingprofile.FieldInvoicingProviderConfig, field.TypeString, vv)
+	}
+	if bpuo.mutation.InvoicingProviderConfigCleared() {
+		_spec.ClearField(billingprofile.FieldInvoicingProviderConfig, field.TypeString)
+	}
+	if value, ok := bpuo.mutation.PaymentProvider(); ok {
+		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
+	}
+	if bpuo.mutation.PaymentProviderCleared() {
+		_spec.ClearField(billingprofile.FieldPaymentProvider, field.TypeEnum)
+	}
+	if value, ok := bpuo.mutation.PaymentProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.PaymentProviderConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billingprofile.FieldPaymentProviderConfig, field.TypeString, vv)
+	}
+	if bpuo.mutation.PaymentProviderConfigCleared() {
+		_spec.ClearField(billingprofile.FieldPaymentProviderConfig, field.TypeString)
 	}
 	if value, ok := bpuo.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
@@ -644,6 +1106,51 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bpuo.mutation.CustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpuo.mutation.RemovedCustomersIDs(); len(nodes) > 0 && !bpuo.mutation.CustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpuo.mutation.CustomersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

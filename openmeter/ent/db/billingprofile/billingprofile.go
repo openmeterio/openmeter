@@ -3,6 +3,7 @@
 package billingprofile
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -26,8 +27,18 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
-	// FieldProviderConfig holds the string denoting the provider_config field in the database.
-	FieldProviderConfig = "provider_config"
+	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
+	FieldTaxProvider = "tax_provider"
+	// FieldTaxProviderConfig holds the string denoting the tax_provider_config field in the database.
+	FieldTaxProviderConfig = "tax_provider_config"
+	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
+	FieldInvoicingProvider = "invoicing_provider"
+	// FieldInvoicingProviderConfig holds the string denoting the invoicing_provider_config field in the database.
+	FieldInvoicingProviderConfig = "invoicing_provider_config"
+	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
+	FieldPaymentProvider = "payment_provider"
+	// FieldPaymentProviderConfig holds the string denoting the payment_provider_config field in the database.
+	FieldPaymentProviderConfig = "payment_provider_config"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
 	// FieldDefault holds the string denoting the default field in the database.
@@ -36,6 +47,8 @@ const (
 	EdgeBillingInvoices = "billing_invoices"
 	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
 	EdgeBillingWorkflowConfig = "billing_workflow_config"
+	// EdgeCustomers holds the string denoting the customers edge name in mutations.
+	EdgeCustomers = "customers"
 	// Table holds the table name of the billingprofile in the database.
 	Table = "billing_profiles"
 	// BillingInvoicesTable is the table that holds the billing_invoices relation/edge.
@@ -52,6 +65,13 @@ const (
 	BillingWorkflowConfigInverseTable = "billing_workflow_configs"
 	// BillingWorkflowConfigColumn is the table column denoting the billing_workflow_config relation/edge.
 	BillingWorkflowConfigColumn = "workflow_config_id"
+	// CustomersTable is the table that holds the customers relation/edge.
+	CustomersTable = "customers"
+	// CustomersInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomersInverseTable = "customers"
+	// CustomersColumn is the table column denoting the customers relation/edge.
+	CustomersColumn = "override_billing_profile_id"
 )
 
 // Columns holds all SQL columns for billingprofile fields.
@@ -62,7 +82,12 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldKey,
-	FieldProviderConfig,
+	FieldTaxProvider,
+	FieldTaxProviderConfig,
+	FieldInvoicingProvider,
+	FieldInvoicingProviderConfig,
+	FieldPaymentProvider,
+	FieldPaymentProviderConfig,
 	FieldWorkflowConfigID,
 	FieldDefault,
 }
@@ -96,9 +121,41 @@ var (
 	DefaultID func() string
 	// ValueScanner of all BillingProfile fields.
 	ValueScanner struct {
-		ProviderConfig field.TypeValueScanner[provider.Configuration]
+		TaxProviderConfig       field.TypeValueScanner[provider.TaxConfiguration]
+		InvoicingProviderConfig field.TypeValueScanner[provider.InvoicingConfiguration]
+		PaymentProviderConfig   field.TypeValueScanner[provider.PaymentConfiguration]
 	}
 )
+
+// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
+func TaxProviderValidator(tp provider.TaxProvider) error {
+	switch tp {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billingprofile: invalid enum value for tax_provider field: %q", tp)
+	}
+}
+
+// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
+func InvoicingProviderValidator(ip provider.InvoicingProvider) error {
+	switch ip {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billingprofile: invalid enum value for invoicing_provider field: %q", ip)
+	}
+}
+
+// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
+func PaymentProviderValidator(pp provider.PaymentProvider) error {
+	switch pp {
+	case "openmeter_sandbox", "stripe_payments":
+		return nil
+	default:
+		return fmt.Errorf("billingprofile: invalid enum value for payment_provider field: %q", pp)
+	}
+}
 
 // OrderOption defines the ordering options for the BillingProfile queries.
 type OrderOption func(*sql.Selector)
@@ -133,9 +190,34 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
-// ByProviderConfig orders the results by the provider_config field.
-func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderConfig, opts...).ToFunc()
+// ByTaxProvider orders the results by the tax_provider field.
+func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
+}
+
+// ByTaxProviderConfig orders the results by the tax_provider_config field.
+func ByTaxProviderConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProviderConfig, opts...).ToFunc()
+}
+
+// ByInvoicingProvider orders the results by the invoicing_provider field.
+func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
+}
+
+// ByInvoicingProviderConfig orders the results by the invoicing_provider_config field.
+func ByInvoicingProviderConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProviderConfig, opts...).ToFunc()
+}
+
+// ByPaymentProvider orders the results by the payment_provider field.
+func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
+}
+
+// ByPaymentProviderConfig orders the results by the payment_provider_config field.
+func ByPaymentProviderConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProviderConfig, opts...).ToFunc()
 }
 
 // ByWorkflowConfigID orders the results by the workflow_config_id field.
@@ -168,6 +250,20 @@ func ByBillingWorkflowConfigField(field string, opts ...sql.OrderTermOption) Ord
 		sqlgraph.OrderByNeighborTerms(s, newBillingWorkflowConfigStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCustomersCount orders the results by customers count.
+func ByCustomersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCustomersStep(), opts...)
+	}
+}
+
+// ByCustomers orders the results by customers terms.
+func ByCustomers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBillingInvoicesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -180,5 +276,12 @@ func newBillingWorkflowConfigStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+	)
+}
+func newCustomersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, CustomersTable, CustomersColumn),
 	)
 }

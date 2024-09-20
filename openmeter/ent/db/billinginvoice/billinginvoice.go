@@ -44,12 +44,20 @@ const (
 	FieldDueDate = "due_date"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldProviderConfig holds the string denoting the provider_config field in the database.
-	FieldProviderConfig = "provider_config"
+	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
+	FieldTaxProvider = "tax_provider"
+	// FieldTaxProviderConfig holds the string denoting the tax_provider_config field in the database.
+	FieldTaxProviderConfig = "tax_provider_config"
+	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
+	FieldInvoicingProvider = "invoicing_provider"
+	// FieldInvoicingProviderConfig holds the string denoting the invoicing_provider_config field in the database.
+	FieldInvoicingProviderConfig = "invoicing_provider_config"
+	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
+	FieldPaymentProvider = "payment_provider"
+	// FieldPaymentProviderConfig holds the string denoting the payment_provider_config field in the database.
+	FieldPaymentProviderConfig = "payment_provider_config"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
-	// FieldProviderReference holds the string denoting the provider_reference field in the database.
-	FieldProviderReference = "provider_reference"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
@@ -101,9 +109,13 @@ var Columns = []string{
 	FieldTotalAmount,
 	FieldDueDate,
 	FieldStatus,
-	FieldProviderConfig,
+	FieldTaxProvider,
+	FieldTaxProviderConfig,
+	FieldInvoicingProvider,
+	FieldInvoicingProviderConfig,
+	FieldPaymentProvider,
+	FieldPaymentProviderConfig,
 	FieldWorkflowConfigID,
-	FieldProviderReference,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 }
@@ -139,8 +151,9 @@ var (
 	DefaultID func() string
 	// ValueScanner of all BillingInvoice fields.
 	ValueScanner struct {
-		ProviderConfig    field.TypeValueScanner[provider.Configuration]
-		ProviderReference field.TypeValueScanner[provider.Reference]
+		TaxProviderConfig       field.TypeValueScanner[provider.TaxConfiguration]
+		InvoicingProviderConfig field.TypeValueScanner[provider.InvoicingConfiguration]
+		PaymentProviderConfig   field.TypeValueScanner[provider.PaymentConfiguration]
 	}
 )
 
@@ -151,6 +164,36 @@ func StatusValidator(s invoice.InvoiceStatus) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for status field: %q", s)
+	}
+}
+
+// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
+func TaxProviderValidator(tp provider.TaxProvider) error {
+	switch tp {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for tax_provider field: %q", tp)
+	}
+}
+
+// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
+func InvoicingProviderValidator(ip provider.InvoicingProvider) error {
+	switch ip {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for invoicing_provider field: %q", ip)
+	}
+}
+
+// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
+func PaymentProviderValidator(pp provider.PaymentProvider) error {
+	switch pp {
+	case "openmeter_sandbox", "stripe_payments":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for payment_provider field: %q", pp)
 	}
 }
 
@@ -222,19 +265,39 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByProviderConfig orders the results by the provider_config field.
-func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderConfig, opts...).ToFunc()
+// ByTaxProvider orders the results by the tax_provider field.
+func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
+}
+
+// ByTaxProviderConfig orders the results by the tax_provider_config field.
+func ByTaxProviderConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProviderConfig, opts...).ToFunc()
+}
+
+// ByInvoicingProvider orders the results by the invoicing_provider field.
+func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
+}
+
+// ByInvoicingProviderConfig orders the results by the invoicing_provider_config field.
+func ByInvoicingProviderConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProviderConfig, opts...).ToFunc()
+}
+
+// ByPaymentProvider orders the results by the payment_provider field.
+func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
+}
+
+// ByPaymentProviderConfig orders the results by the payment_provider_config field.
+func ByPaymentProviderConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProviderConfig, opts...).ToFunc()
 }
 
 // ByWorkflowConfigID orders the results by the workflow_config_id field.
 func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWorkflowConfigID, opts...).ToFunc()
-}
-
-// ByProviderReference orders the results by the provider_reference field.
-func ByProviderReference(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderReference, opts...).ToFunc()
 }
 
 // ByPeriodStart orders the results by the period_start field.

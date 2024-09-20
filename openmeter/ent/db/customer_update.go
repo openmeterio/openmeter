@@ -11,6 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -303,6 +305,62 @@ func (cu *CustomerUpdate) ClearPrimaryEmail() *CustomerUpdate {
 	return cu
 }
 
+// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
+func (cu *CustomerUpdate) SetOverrideBillingProfileID(s string) *CustomerUpdate {
+	cu.mutation.SetOverrideBillingProfileID(s)
+	return cu
+}
+
+// SetNillableOverrideBillingProfileID sets the "override_billing_profile_id" field if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableOverrideBillingProfileID(s *string) *CustomerUpdate {
+	if s != nil {
+		cu.SetOverrideBillingProfileID(*s)
+	}
+	return cu
+}
+
+// ClearOverrideBillingProfileID clears the value of the "override_billing_profile_id" field.
+func (cu *CustomerUpdate) ClearOverrideBillingProfileID() *CustomerUpdate {
+	cu.mutation.ClearOverrideBillingProfileID()
+	return cu
+}
+
+// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
+func (cu *CustomerUpdate) SetOverrideTaxProviderConfig(pc *provider.TaxConfiguration) *CustomerUpdate {
+	cu.mutation.SetOverrideTaxProviderConfig(pc)
+	return cu
+}
+
+// ClearOverrideTaxProviderConfig clears the value of the "override_tax_provider_config" field.
+func (cu *CustomerUpdate) ClearOverrideTaxProviderConfig() *CustomerUpdate {
+	cu.mutation.ClearOverrideTaxProviderConfig()
+	return cu
+}
+
+// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
+func (cu *CustomerUpdate) SetOverrideInvoicingProviderConfig(pc *provider.InvoicingConfiguration) *CustomerUpdate {
+	cu.mutation.SetOverrideInvoicingProviderConfig(pc)
+	return cu
+}
+
+// ClearOverrideInvoicingProviderConfig clears the value of the "override_invoicing_provider_config" field.
+func (cu *CustomerUpdate) ClearOverrideInvoicingProviderConfig() *CustomerUpdate {
+	cu.mutation.ClearOverrideInvoicingProviderConfig()
+	return cu
+}
+
+// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
+func (cu *CustomerUpdate) SetOverridePaymentProviderConfig(pc *provider.PaymentConfiguration) *CustomerUpdate {
+	cu.mutation.SetOverridePaymentProviderConfig(pc)
+	return cu
+}
+
+// ClearOverridePaymentProviderConfig clears the value of the "override_payment_provider_config" field.
+func (cu *CustomerUpdate) ClearOverridePaymentProviderConfig() *CustomerUpdate {
+	cu.mutation.ClearOverridePaymentProviderConfig()
+	return cu
+}
+
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by IDs.
 func (cu *CustomerUpdate) AddSubjectIDs(ids ...int) *CustomerUpdate {
 	cu.mutation.AddSubjectIDs(ids...)
@@ -316,6 +374,11 @@ func (cu *CustomerUpdate) AddSubjects(c ...*CustomerSubjects) *CustomerUpdate {
 		ids[i] = c[i].ID
 	}
 	return cu.AddSubjectIDs(ids...)
+}
+
+// SetOverrideBillingProfile sets the "override_billing_profile" edge to the BillingProfile entity.
+func (cu *CustomerUpdate) SetOverrideBillingProfile(b *BillingProfile) *CustomerUpdate {
+	return cu.SetOverrideBillingProfileID(b.ID)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -342,6 +405,12 @@ func (cu *CustomerUpdate) RemoveSubjects(c ...*CustomerSubjects) *CustomerUpdate
 		ids[i] = c[i].ID
 	}
 	return cu.RemoveSubjectIDs(ids...)
+}
+
+// ClearOverrideBillingProfile clears the "override_billing_profile" edge to the BillingProfile entity.
+func (cu *CustomerUpdate) ClearOverrideBillingProfile() *CustomerUpdate {
+	cu.mutation.ClearOverrideBillingProfile()
+	return cu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -390,6 +459,21 @@ func (cu *CustomerUpdate) check() error {
 	if v, ok := cu.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
+		}
+	}
+	if v, ok := cu.mutation.OverrideTaxProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_tax_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_tax_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := cu.mutation.OverrideInvoicingProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_invoicing_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_invoicing_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := cu.mutation.OverridePaymentProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_payment_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_payment_provider_config": %w`, err)}
 		}
 	}
 	return nil
@@ -491,6 +575,36 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if cu.mutation.PrimaryEmailCleared() {
 		_spec.ClearField(customer.FieldPrimaryEmail, field.TypeString)
 	}
+	if value, ok := cu.mutation.OverrideTaxProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverrideTaxProviderConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(customer.FieldOverrideTaxProviderConfig, field.TypeString, vv)
+	}
+	if cu.mutation.OverrideTaxProviderConfigCleared() {
+		_spec.ClearField(customer.FieldOverrideTaxProviderConfig, field.TypeString)
+	}
+	if value, ok := cu.mutation.OverrideInvoicingProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverrideInvoicingProviderConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(customer.FieldOverrideInvoicingProviderConfig, field.TypeString, vv)
+	}
+	if cu.mutation.OverrideInvoicingProviderConfigCleared() {
+		_spec.ClearField(customer.FieldOverrideInvoicingProviderConfig, field.TypeString)
+	}
+	if value, ok := cu.mutation.OverridePaymentProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverridePaymentProviderConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(customer.FieldOverridePaymentProviderConfig, field.TypeString, vv)
+	}
+	if cu.mutation.OverridePaymentProviderConfigCleared() {
+		_spec.ClearField(customer.FieldOverridePaymentProviderConfig, field.TypeString)
+	}
 	if cu.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -529,6 +643,35 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.OverrideBillingProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.OverrideBillingProfileTable,
+			Columns: []string{customer.OverrideBillingProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.OverrideBillingProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.OverrideBillingProfileTable,
+			Columns: []string{customer.OverrideBillingProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -828,6 +971,62 @@ func (cuo *CustomerUpdateOne) ClearPrimaryEmail() *CustomerUpdateOne {
 	return cuo
 }
 
+// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
+func (cuo *CustomerUpdateOne) SetOverrideBillingProfileID(s string) *CustomerUpdateOne {
+	cuo.mutation.SetOverrideBillingProfileID(s)
+	return cuo
+}
+
+// SetNillableOverrideBillingProfileID sets the "override_billing_profile_id" field if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableOverrideBillingProfileID(s *string) *CustomerUpdateOne {
+	if s != nil {
+		cuo.SetOverrideBillingProfileID(*s)
+	}
+	return cuo
+}
+
+// ClearOverrideBillingProfileID clears the value of the "override_billing_profile_id" field.
+func (cuo *CustomerUpdateOne) ClearOverrideBillingProfileID() *CustomerUpdateOne {
+	cuo.mutation.ClearOverrideBillingProfileID()
+	return cuo
+}
+
+// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
+func (cuo *CustomerUpdateOne) SetOverrideTaxProviderConfig(pc *provider.TaxConfiguration) *CustomerUpdateOne {
+	cuo.mutation.SetOverrideTaxProviderConfig(pc)
+	return cuo
+}
+
+// ClearOverrideTaxProviderConfig clears the value of the "override_tax_provider_config" field.
+func (cuo *CustomerUpdateOne) ClearOverrideTaxProviderConfig() *CustomerUpdateOne {
+	cuo.mutation.ClearOverrideTaxProviderConfig()
+	return cuo
+}
+
+// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
+func (cuo *CustomerUpdateOne) SetOverrideInvoicingProviderConfig(pc *provider.InvoicingConfiguration) *CustomerUpdateOne {
+	cuo.mutation.SetOverrideInvoicingProviderConfig(pc)
+	return cuo
+}
+
+// ClearOverrideInvoicingProviderConfig clears the value of the "override_invoicing_provider_config" field.
+func (cuo *CustomerUpdateOne) ClearOverrideInvoicingProviderConfig() *CustomerUpdateOne {
+	cuo.mutation.ClearOverrideInvoicingProviderConfig()
+	return cuo
+}
+
+// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
+func (cuo *CustomerUpdateOne) SetOverridePaymentProviderConfig(pc *provider.PaymentConfiguration) *CustomerUpdateOne {
+	cuo.mutation.SetOverridePaymentProviderConfig(pc)
+	return cuo
+}
+
+// ClearOverridePaymentProviderConfig clears the value of the "override_payment_provider_config" field.
+func (cuo *CustomerUpdateOne) ClearOverridePaymentProviderConfig() *CustomerUpdateOne {
+	cuo.mutation.ClearOverridePaymentProviderConfig()
+	return cuo
+}
+
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by IDs.
 func (cuo *CustomerUpdateOne) AddSubjectIDs(ids ...int) *CustomerUpdateOne {
 	cuo.mutation.AddSubjectIDs(ids...)
@@ -841,6 +1040,11 @@ func (cuo *CustomerUpdateOne) AddSubjects(c ...*CustomerSubjects) *CustomerUpdat
 		ids[i] = c[i].ID
 	}
 	return cuo.AddSubjectIDs(ids...)
+}
+
+// SetOverrideBillingProfile sets the "override_billing_profile" edge to the BillingProfile entity.
+func (cuo *CustomerUpdateOne) SetOverrideBillingProfile(b *BillingProfile) *CustomerUpdateOne {
+	return cuo.SetOverrideBillingProfileID(b.ID)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -867,6 +1071,12 @@ func (cuo *CustomerUpdateOne) RemoveSubjects(c ...*CustomerSubjects) *CustomerUp
 		ids[i] = c[i].ID
 	}
 	return cuo.RemoveSubjectIDs(ids...)
+}
+
+// ClearOverrideBillingProfile clears the "override_billing_profile" edge to the BillingProfile entity.
+func (cuo *CustomerUpdateOne) ClearOverrideBillingProfile() *CustomerUpdateOne {
+	cuo.mutation.ClearOverrideBillingProfile()
+	return cuo
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -928,6 +1138,21 @@ func (cuo *CustomerUpdateOne) check() error {
 	if v, ok := cuo.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
+		}
+	}
+	if v, ok := cuo.mutation.OverrideTaxProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_tax_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_tax_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := cuo.mutation.OverrideInvoicingProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_invoicing_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_invoicing_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := cuo.mutation.OverridePaymentProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_payment_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_payment_provider_config": %w`, err)}
 		}
 	}
 	return nil
@@ -1046,6 +1271,36 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	if cuo.mutation.PrimaryEmailCleared() {
 		_spec.ClearField(customer.FieldPrimaryEmail, field.TypeString)
 	}
+	if value, ok := cuo.mutation.OverrideTaxProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverrideTaxProviderConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(customer.FieldOverrideTaxProviderConfig, field.TypeString, vv)
+	}
+	if cuo.mutation.OverrideTaxProviderConfigCleared() {
+		_spec.ClearField(customer.FieldOverrideTaxProviderConfig, field.TypeString)
+	}
+	if value, ok := cuo.mutation.OverrideInvoicingProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverrideInvoicingProviderConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(customer.FieldOverrideInvoicingProviderConfig, field.TypeString, vv)
+	}
+	if cuo.mutation.OverrideInvoicingProviderConfigCleared() {
+		_spec.ClearField(customer.FieldOverrideInvoicingProviderConfig, field.TypeString)
+	}
+	if value, ok := cuo.mutation.OverridePaymentProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverridePaymentProviderConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(customer.FieldOverridePaymentProviderConfig, field.TypeString, vv)
+	}
+	if cuo.mutation.OverridePaymentProviderConfigCleared() {
+		_spec.ClearField(customer.FieldOverridePaymentProviderConfig, field.TypeString)
+	}
 	if cuo.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1084,6 +1339,35 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.OverrideBillingProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.OverrideBillingProfileTable,
+			Columns: []string{customer.OverrideBillingProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.OverrideBillingProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.OverrideBillingProfileTable,
+			Columns: []string{customer.OverrideBillingProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

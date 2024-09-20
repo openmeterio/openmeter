@@ -12,6 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -246,6 +248,38 @@ func (cc *CustomerCreate) SetNillablePrimaryEmail(s *string) *CustomerCreate {
 	return cc
 }
 
+// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
+func (cc *CustomerCreate) SetOverrideBillingProfileID(s string) *CustomerCreate {
+	cc.mutation.SetOverrideBillingProfileID(s)
+	return cc
+}
+
+// SetNillableOverrideBillingProfileID sets the "override_billing_profile_id" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableOverrideBillingProfileID(s *string) *CustomerCreate {
+	if s != nil {
+		cc.SetOverrideBillingProfileID(*s)
+	}
+	return cc
+}
+
+// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
+func (cc *CustomerCreate) SetOverrideTaxProviderConfig(pc *provider.TaxConfiguration) *CustomerCreate {
+	cc.mutation.SetOverrideTaxProviderConfig(pc)
+	return cc
+}
+
+// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
+func (cc *CustomerCreate) SetOverrideInvoicingProviderConfig(pc *provider.InvoicingConfiguration) *CustomerCreate {
+	cc.mutation.SetOverrideInvoicingProviderConfig(pc)
+	return cc
+}
+
+// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
+func (cc *CustomerCreate) SetOverridePaymentProviderConfig(pc *provider.PaymentConfiguration) *CustomerCreate {
+	cc.mutation.SetOverridePaymentProviderConfig(pc)
+	return cc
+}
+
 // SetID sets the "id" field.
 func (cc *CustomerCreate) SetID(s string) *CustomerCreate {
 	cc.mutation.SetID(s)
@@ -273,6 +307,11 @@ func (cc *CustomerCreate) AddSubjects(c ...*CustomerSubjects) *CustomerCreate {
 		ids[i] = c[i].ID
 	}
 	return cc.AddSubjectIDs(ids...)
+}
+
+// SetOverrideBillingProfile sets the "override_billing_profile" edge to the BillingProfile entity.
+func (cc *CustomerCreate) SetOverrideBillingProfile(b *BillingProfile) *CustomerCreate {
+	return cc.SetOverrideBillingProfileID(b.ID)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -361,6 +400,21 @@ func (cc *CustomerCreate) check() error {
 	if _, ok := cc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
 	}
+	if v, ok := cc.mutation.OverrideTaxProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_tax_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_tax_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := cc.mutation.OverrideInvoicingProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_invoicing_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_invoicing_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := cc.mutation.OverridePaymentProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_payment_provider_config", err: fmt.Errorf(`db: validator failed for field "Customer.override_payment_provider_config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -368,7 +422,10 @@ func (cc *CustomerCreate) sqlSave(ctx context.Context) (*Customer, error) {
 	if err := cc.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := cc.createSpec()
+	_node, _spec, err := cc.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, cc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -387,7 +444,7 @@ func (cc *CustomerCreate) sqlSave(ctx context.Context) (*Customer, error) {
 	return _node, nil
 }
 
-func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
+func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Customer{config: cc.config}
 		_spec = sqlgraph.NewCreateSpec(customer.Table, sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString))
@@ -469,6 +526,30 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 		_node.PrimaryEmail = &value
 	}
+	if value, ok := cc.mutation.OverrideTaxProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverrideTaxProviderConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(customer.FieldOverrideTaxProviderConfig, field.TypeString, vv)
+		_node.OverrideTaxProviderConfig = value
+	}
+	if value, ok := cc.mutation.OverrideInvoicingProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverrideInvoicingProviderConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(customer.FieldOverrideInvoicingProviderConfig, field.TypeString, vv)
+		_node.OverrideInvoicingProviderConfig = value
+	}
+	if value, ok := cc.mutation.OverridePaymentProviderConfig(); ok {
+		vv, err := customer.ValueScanner.OverridePaymentProviderConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(customer.FieldOverridePaymentProviderConfig, field.TypeString, vv)
+		_node.OverridePaymentProviderConfig = value
+	}
 	if nodes := cc.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -485,7 +566,24 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	if nodes := cc.mutation.OverrideBillingProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.OverrideBillingProfileTable,
+			Columns: []string{customer.OverrideBillingProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.OverrideBillingProfileID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -792,6 +890,78 @@ func (u *CustomerUpsert) UpdatePrimaryEmail() *CustomerUpsert {
 // ClearPrimaryEmail clears the value of the "primary_email" field.
 func (u *CustomerUpsert) ClearPrimaryEmail() *CustomerUpsert {
 	u.SetNull(customer.FieldPrimaryEmail)
+	return u
+}
+
+// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
+func (u *CustomerUpsert) SetOverrideBillingProfileID(v string) *CustomerUpsert {
+	u.Set(customer.FieldOverrideBillingProfileID, v)
+	return u
+}
+
+// UpdateOverrideBillingProfileID sets the "override_billing_profile_id" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateOverrideBillingProfileID() *CustomerUpsert {
+	u.SetExcluded(customer.FieldOverrideBillingProfileID)
+	return u
+}
+
+// ClearOverrideBillingProfileID clears the value of the "override_billing_profile_id" field.
+func (u *CustomerUpsert) ClearOverrideBillingProfileID() *CustomerUpsert {
+	u.SetNull(customer.FieldOverrideBillingProfileID)
+	return u
+}
+
+// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
+func (u *CustomerUpsert) SetOverrideTaxProviderConfig(v *provider.TaxConfiguration) *CustomerUpsert {
+	u.Set(customer.FieldOverrideTaxProviderConfig, v)
+	return u
+}
+
+// UpdateOverrideTaxProviderConfig sets the "override_tax_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateOverrideTaxProviderConfig() *CustomerUpsert {
+	u.SetExcluded(customer.FieldOverrideTaxProviderConfig)
+	return u
+}
+
+// ClearOverrideTaxProviderConfig clears the value of the "override_tax_provider_config" field.
+func (u *CustomerUpsert) ClearOverrideTaxProviderConfig() *CustomerUpsert {
+	u.SetNull(customer.FieldOverrideTaxProviderConfig)
+	return u
+}
+
+// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
+func (u *CustomerUpsert) SetOverrideInvoicingProviderConfig(v *provider.InvoicingConfiguration) *CustomerUpsert {
+	u.Set(customer.FieldOverrideInvoicingProviderConfig, v)
+	return u
+}
+
+// UpdateOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateOverrideInvoicingProviderConfig() *CustomerUpsert {
+	u.SetExcluded(customer.FieldOverrideInvoicingProviderConfig)
+	return u
+}
+
+// ClearOverrideInvoicingProviderConfig clears the value of the "override_invoicing_provider_config" field.
+func (u *CustomerUpsert) ClearOverrideInvoicingProviderConfig() *CustomerUpsert {
+	u.SetNull(customer.FieldOverrideInvoicingProviderConfig)
+	return u
+}
+
+// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
+func (u *CustomerUpsert) SetOverridePaymentProviderConfig(v *provider.PaymentConfiguration) *CustomerUpsert {
+	u.Set(customer.FieldOverridePaymentProviderConfig, v)
+	return u
+}
+
+// UpdateOverridePaymentProviderConfig sets the "override_payment_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateOverridePaymentProviderConfig() *CustomerUpsert {
+	u.SetExcluded(customer.FieldOverridePaymentProviderConfig)
+	return u
+}
+
+// ClearOverridePaymentProviderConfig clears the value of the "override_payment_provider_config" field.
+func (u *CustomerUpsert) ClearOverridePaymentProviderConfig() *CustomerUpsert {
+	u.SetNull(customer.FieldOverridePaymentProviderConfig)
 	return u
 }
 
@@ -1153,6 +1323,90 @@ func (u *CustomerUpsertOne) ClearPrimaryEmail() *CustomerUpsertOne {
 	})
 }
 
+// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
+func (u *CustomerUpsertOne) SetOverrideBillingProfileID(v string) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverrideBillingProfileID(v)
+	})
+}
+
+// UpdateOverrideBillingProfileID sets the "override_billing_profile_id" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateOverrideBillingProfileID() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverrideBillingProfileID()
+	})
+}
+
+// ClearOverrideBillingProfileID clears the value of the "override_billing_profile_id" field.
+func (u *CustomerUpsertOne) ClearOverrideBillingProfileID() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverrideBillingProfileID()
+	})
+}
+
+// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
+func (u *CustomerUpsertOne) SetOverrideTaxProviderConfig(v *provider.TaxConfiguration) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverrideTaxProviderConfig(v)
+	})
+}
+
+// UpdateOverrideTaxProviderConfig sets the "override_tax_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateOverrideTaxProviderConfig() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverrideTaxProviderConfig()
+	})
+}
+
+// ClearOverrideTaxProviderConfig clears the value of the "override_tax_provider_config" field.
+func (u *CustomerUpsertOne) ClearOverrideTaxProviderConfig() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverrideTaxProviderConfig()
+	})
+}
+
+// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
+func (u *CustomerUpsertOne) SetOverrideInvoicingProviderConfig(v *provider.InvoicingConfiguration) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverrideInvoicingProviderConfig(v)
+	})
+}
+
+// UpdateOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateOverrideInvoicingProviderConfig() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverrideInvoicingProviderConfig()
+	})
+}
+
+// ClearOverrideInvoicingProviderConfig clears the value of the "override_invoicing_provider_config" field.
+func (u *CustomerUpsertOne) ClearOverrideInvoicingProviderConfig() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverrideInvoicingProviderConfig()
+	})
+}
+
+// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
+func (u *CustomerUpsertOne) SetOverridePaymentProviderConfig(v *provider.PaymentConfiguration) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverridePaymentProviderConfig(v)
+	})
+}
+
+// UpdateOverridePaymentProviderConfig sets the "override_payment_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateOverridePaymentProviderConfig() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverridePaymentProviderConfig()
+	})
+}
+
+// ClearOverridePaymentProviderConfig clears the value of the "override_payment_provider_config" field.
+func (u *CustomerUpsertOne) ClearOverridePaymentProviderConfig() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverridePaymentProviderConfig()
+	})
+}
+
 // Exec executes the query.
 func (u *CustomerUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -1221,7 +1475,10 @@ func (ccb *CustomerCreateBulk) Save(ctx context.Context) ([]*Customer, error) {
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, ccb.builders[i+1].mutation)
 				} else {
@@ -1675,6 +1932,90 @@ func (u *CustomerUpsertBulk) UpdatePrimaryEmail() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearPrimaryEmail() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearPrimaryEmail()
+	})
+}
+
+// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
+func (u *CustomerUpsertBulk) SetOverrideBillingProfileID(v string) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverrideBillingProfileID(v)
+	})
+}
+
+// UpdateOverrideBillingProfileID sets the "override_billing_profile_id" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateOverrideBillingProfileID() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverrideBillingProfileID()
+	})
+}
+
+// ClearOverrideBillingProfileID clears the value of the "override_billing_profile_id" field.
+func (u *CustomerUpsertBulk) ClearOverrideBillingProfileID() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverrideBillingProfileID()
+	})
+}
+
+// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
+func (u *CustomerUpsertBulk) SetOverrideTaxProviderConfig(v *provider.TaxConfiguration) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverrideTaxProviderConfig(v)
+	})
+}
+
+// UpdateOverrideTaxProviderConfig sets the "override_tax_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateOverrideTaxProviderConfig() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverrideTaxProviderConfig()
+	})
+}
+
+// ClearOverrideTaxProviderConfig clears the value of the "override_tax_provider_config" field.
+func (u *CustomerUpsertBulk) ClearOverrideTaxProviderConfig() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverrideTaxProviderConfig()
+	})
+}
+
+// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
+func (u *CustomerUpsertBulk) SetOverrideInvoicingProviderConfig(v *provider.InvoicingConfiguration) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverrideInvoicingProviderConfig(v)
+	})
+}
+
+// UpdateOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateOverrideInvoicingProviderConfig() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverrideInvoicingProviderConfig()
+	})
+}
+
+// ClearOverrideInvoicingProviderConfig clears the value of the "override_invoicing_provider_config" field.
+func (u *CustomerUpsertBulk) ClearOverrideInvoicingProviderConfig() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverrideInvoicingProviderConfig()
+	})
+}
+
+// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
+func (u *CustomerUpsertBulk) SetOverridePaymentProviderConfig(v *provider.PaymentConfiguration) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetOverridePaymentProviderConfig(v)
+	})
+}
+
+// UpdateOverridePaymentProviderConfig sets the "override_payment_provider_config" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateOverridePaymentProviderConfig() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateOverridePaymentProviderConfig()
+	})
+}
+
+// ClearOverridePaymentProviderConfig clears the value of the "override_payment_provider_config" field.
+func (u *CustomerUpsertBulk) ClearOverridePaymentProviderConfig() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearOverridePaymentProviderConfig()
 	})
 }
 

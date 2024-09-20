@@ -10,6 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -56,6 +58,14 @@ type Customer struct {
 	Name string `json:"name,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
 	PrimaryEmail *string `json:"primary_email,omitempty"`
+	// OverrideBillingProfileID holds the value of the "override_billing_profile_id" field.
+	OverrideBillingProfileID *string `json:"override_billing_profile_id,omitempty"`
+	// OverrideTaxProviderConfig holds the value of the "override_tax_provider_config" field.
+	OverrideTaxProviderConfig *provider.TaxConfiguration `json:"override_tax_provider_config,omitempty"`
+	// OverrideInvoicingProviderConfig holds the value of the "override_invoicing_provider_config" field.
+	OverrideInvoicingProviderConfig *provider.InvoicingConfiguration `json:"override_invoicing_provider_config,omitempty"`
+	// OverridePaymentProviderConfig holds the value of the "override_payment_provider_config" field.
+	OverridePaymentProviderConfig *provider.PaymentConfiguration `json:"override_payment_provider_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges        CustomerEdges `json:"edges"`
@@ -66,9 +76,11 @@ type Customer struct {
 type CustomerEdges struct {
 	// Subjects holds the value of the subjects edge.
 	Subjects []*CustomerSubjects `json:"subjects,omitempty"`
+	// OverrideBillingProfile holds the value of the override_billing_profile edge.
+	OverrideBillingProfile *BillingProfile `json:"override_billing_profile,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // SubjectsOrErr returns the Subjects value or an error if the edge
@@ -80,6 +92,17 @@ func (e CustomerEdges) SubjectsOrErr() ([]*CustomerSubjects, error) {
 	return nil, &NotLoadedError{edge: "subjects"}
 }
 
+// OverrideBillingProfileOrErr returns the OverrideBillingProfile value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CustomerEdges) OverrideBillingProfileOrErr() (*BillingProfile, error) {
+	if e.OverrideBillingProfile != nil {
+		return e.OverrideBillingProfile, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: billingprofile.Label}
+	}
+	return nil, &NotLoadedError{edge: "override_billing_profile"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Customer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -87,10 +110,16 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail:
+		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail, customer.FieldOverrideBillingProfileID:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case customer.FieldOverrideTaxProviderConfig:
+			values[i] = customer.ValueScanner.OverrideTaxProviderConfig.ScanValue()
+		case customer.FieldOverrideInvoicingProviderConfig:
+			values[i] = customer.ValueScanner.OverrideInvoicingProviderConfig.ScanValue()
+		case customer.FieldOverridePaymentProviderConfig:
+			values[i] = customer.ValueScanner.OverridePaymentProviderConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -234,6 +263,31 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.PrimaryEmail = new(string)
 				*c.PrimaryEmail = value.String
 			}
+		case customer.FieldOverrideBillingProfileID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_billing_profile_id", values[i])
+			} else if value.Valid {
+				c.OverrideBillingProfileID = new(string)
+				*c.OverrideBillingProfileID = value.String
+			}
+		case customer.FieldOverrideTaxProviderConfig:
+			if value, err := customer.ValueScanner.OverrideTaxProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				c.OverrideTaxProviderConfig = value
+			}
+		case customer.FieldOverrideInvoicingProviderConfig:
+			if value, err := customer.ValueScanner.OverrideInvoicingProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				c.OverrideInvoicingProviderConfig = value
+			}
+		case customer.FieldOverridePaymentProviderConfig:
+			if value, err := customer.ValueScanner.OverridePaymentProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				c.OverridePaymentProviderConfig = value
+			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
 		}
@@ -250,6 +304,11 @@ func (c *Customer) Value(name string) (ent.Value, error) {
 // QuerySubjects queries the "subjects" edge of the Customer entity.
 func (c *Customer) QuerySubjects() *CustomerSubjectsQuery {
 	return NewCustomerClient(c.config).QuerySubjects(c)
+}
+
+// QueryOverrideBillingProfile queries the "override_billing_profile" edge of the Customer entity.
+func (c *Customer) QueryOverrideBillingProfile() *BillingProfileQuery {
+	return NewCustomerClient(c.config).QueryOverrideBillingProfile(c)
 }
 
 // Update returns a builder for updating this Customer.
@@ -351,6 +410,26 @@ func (c *Customer) String() string {
 	if v := c.PrimaryEmail; v != nil {
 		builder.WriteString("primary_email=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.OverrideBillingProfileID; v != nil {
+		builder.WriteString("override_billing_profile_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.OverrideTaxProviderConfig; v != nil {
+		builder.WriteString("override_tax_provider_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := c.OverrideInvoicingProviderConfig; v != nil {
+		builder.WriteString("override_invoicing_provider_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := c.OverridePaymentProviderConfig; v != nil {
+		builder.WriteString("override_payment_provider_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

@@ -49,12 +49,20 @@ type BillingInvoice struct {
 	DueDate time.Time `json:"due_date,omitempty"`
 	// Status holds the value of the "status" field.
 	Status invoice.InvoiceStatus `json:"status,omitempty"`
-	// ProviderConfig holds the value of the "provider_config" field.
-	ProviderConfig provider.Configuration `json:"provider_config,omitempty"`
+	// TaxProvider holds the value of the "tax_provider" field.
+	TaxProvider *provider.TaxProvider `json:"tax_provider,omitempty"`
+	// TaxProviderConfig holds the value of the "tax_provider_config" field.
+	TaxProviderConfig provider.TaxConfiguration `json:"tax_provider_config,omitempty"`
+	// InvoicingProvider holds the value of the "invoicing_provider" field.
+	InvoicingProvider *provider.InvoicingProvider `json:"invoicing_provider,omitempty"`
+	// InvoicingProviderConfig holds the value of the "invoicing_provider_config" field.
+	InvoicingProviderConfig provider.InvoicingConfiguration `json:"invoicing_provider_config,omitempty"`
+	// PaymentProvider holds the value of the "payment_provider" field.
+	PaymentProvider *provider.PaymentProvider `json:"payment_provider,omitempty"`
+	// PaymentProviderConfig holds the value of the "payment_provider_config" field.
+	PaymentProviderConfig provider.PaymentConfiguration `json:"payment_provider_config,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
-	// ProviderReference holds the value of the "provider_reference" field.
-	ProviderReference provider.Reference `json:"provider_reference,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
 	PeriodStart time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
@@ -118,14 +126,16 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoice.FieldTotalAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldTaxProvider, billinginvoice.FieldInvoicingProvider, billinginvoice.FieldPaymentProvider, billinginvoice.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldDueDate, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
-		case billinginvoice.FieldProviderConfig:
-			values[i] = billinginvoice.ValueScanner.ProviderConfig.ScanValue()
-		case billinginvoice.FieldProviderReference:
-			values[i] = billinginvoice.ValueScanner.ProviderReference.ScanValue()
+		case billinginvoice.FieldTaxProviderConfig:
+			values[i] = billinginvoice.ValueScanner.TaxProviderConfig.ScanValue()
+		case billinginvoice.FieldInvoicingProviderConfig:
+			values[i] = billinginvoice.ValueScanner.InvoicingProviderConfig.ScanValue()
+		case billinginvoice.FieldPaymentProviderConfig:
+			values[i] = billinginvoice.ValueScanner.PaymentProviderConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -228,23 +238,50 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.Status = invoice.InvoiceStatus(value.String)
 			}
-		case billinginvoice.FieldProviderConfig:
-			if value, err := billinginvoice.ValueScanner.ProviderConfig.FromValue(values[i]); err != nil {
+		case billinginvoice.FieldTaxProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
+			} else if value.Valid {
+				bi.TaxProvider = new(provider.TaxProvider)
+				*bi.TaxProvider = provider.TaxProvider(value.String)
+			}
+		case billinginvoice.FieldTaxProviderConfig:
+			if value, err := billinginvoice.ValueScanner.TaxProviderConfig.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				bi.ProviderConfig = value
+				bi.TaxProviderConfig = value
+			}
+		case billinginvoice.FieldInvoicingProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
+			} else if value.Valid {
+				bi.InvoicingProvider = new(provider.InvoicingProvider)
+				*bi.InvoicingProvider = provider.InvoicingProvider(value.String)
+			}
+		case billinginvoice.FieldInvoicingProviderConfig:
+			if value, err := billinginvoice.ValueScanner.InvoicingProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				bi.InvoicingProviderConfig = value
+			}
+		case billinginvoice.FieldPaymentProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
+			} else if value.Valid {
+				bi.PaymentProvider = new(provider.PaymentProvider)
+				*bi.PaymentProvider = provider.PaymentProvider(value.String)
+			}
+		case billinginvoice.FieldPaymentProviderConfig:
+			if value, err := billinginvoice.ValueScanner.PaymentProviderConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				bi.PaymentProviderConfig = value
 			}
 		case billinginvoice.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field workflow_config_id", values[i])
 			} else if value.Valid {
 				bi.WorkflowConfigID = value.String
-			}
-		case billinginvoice.FieldProviderReference:
-			if value, err := billinginvoice.ValueScanner.ProviderReference.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				bi.ProviderReference = value
 			}
 		case billinginvoice.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -350,14 +387,32 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", bi.Status))
 	builder.WriteString(", ")
-	builder.WriteString("provider_config=")
-	builder.WriteString(fmt.Sprintf("%v", bi.ProviderConfig))
+	if v := bi.TaxProvider; v != nil {
+		builder.WriteString("tax_provider=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("tax_provider_config=")
+	builder.WriteString(fmt.Sprintf("%v", bi.TaxProviderConfig))
+	builder.WriteString(", ")
+	if v := bi.InvoicingProvider; v != nil {
+		builder.WriteString("invoicing_provider=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("invoicing_provider_config=")
+	builder.WriteString(fmt.Sprintf("%v", bi.InvoicingProviderConfig))
+	builder.WriteString(", ")
+	if v := bi.PaymentProvider; v != nil {
+		builder.WriteString("payment_provider=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("payment_provider_config=")
+	builder.WriteString(fmt.Sprintf("%v", bi.PaymentProviderConfig))
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bi.WorkflowConfigID)
-	builder.WriteString(", ")
-	builder.WriteString("provider_reference=")
-	builder.WriteString(fmt.Sprintf("%v", bi.ProviderReference))
 	builder.WriteString(", ")
 	builder.WriteString("period_start=")
 	builder.WriteString(bi.PeriodStart.Format(time.ANSIC))

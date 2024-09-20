@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,12 +35,42 @@ func (Customer) Fields() []ent.Field {
 		field.String("external_mapping_stripe_customer_id").Optional().Nillable(),
 		field.String("name"),
 		field.String("primary_email").Optional().Nillable(),
+
+		// Billing
+		field.String("override_billing_profile_id").Optional().Nillable(),
+
+		field.String("override_tax_provider_config").
+			GoType(&provider.TaxConfiguration{}).
+			ValueScanner(entutils.NillableValueScannerFunc(ProviderTaxConfigurationValueScanner)).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional().
+			Nillable(),
+
+		field.String("override_invoicing_provider_config").
+			GoType(&provider.InvoicingConfiguration{}).
+			ValueScanner(entutils.NillableValueScannerFunc(ProviderInvoicingConfigurationValueScanner)).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional().
+			Nillable(),
+
+		field.String("override_payment_provider_config").
+			GoType(&provider.PaymentConfiguration{}).
+			ValueScanner(entutils.NillableValueScannerFunc(ProviderPaymentConfigurationValueScanner)).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional().
+			Nillable(),
 	}
 }
 
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("subjects", CustomerSubjects.Type),
+		edge.To("override_billing_profile", BillingProfile.Type).
+			Field("override_billing_profile_id").
+			Unique(),
 	}
 }
 

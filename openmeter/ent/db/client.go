@@ -942,6 +942,22 @@ func (c *BillingProfileClient) QueryBillingWorkflowConfig(bp *BillingProfile) *B
 	return query
 }
 
+// QueryCustomers queries the customers edge of a BillingProfile.
+func (c *BillingProfileClient) QueryCustomers(bp *BillingProfile) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, billingprofile.CustomersTable, billingprofile.CustomersColumn),
+		)
+		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BillingProfileClient) Hooks() []Hook {
 	return c.hooks.BillingProfile
@@ -1249,6 +1265,22 @@ func (c *CustomerClient) QuerySubjects(cu *Customer) *CustomerSubjectsQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(customersubjects.Table, customersubjects.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubjectsTable, customer.SubjectsColumn),
+		)
+		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOverrideBillingProfile queries the override_billing_profile edge of a Customer.
+func (c *CustomerClient) QueryOverrideBillingProfile(cu *Customer) *BillingProfileQuery {
+	query := (&BillingProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := cu.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, customer.OverrideBillingProfileTable, customer.OverrideBillingProfileColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil

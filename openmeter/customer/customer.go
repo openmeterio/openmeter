@@ -97,9 +97,9 @@ func (i UpdateCustomerInput) Validate(_ context.Context, _ Service) error {
 		}
 	}
 
-	if i.ID == "" {
+	if i.Key == "" {
 		return ValidationError{
-			Err: errors.New("customer id is required"),
+			Err: errors.New("customer key is required"),
 		}
 	}
 

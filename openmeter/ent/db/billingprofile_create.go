@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 )
 
 // BillingProfileCreate is the builder for creating a BillingProfile entity.
@@ -80,9 +81,87 @@ func (bpc *BillingProfileCreate) SetKey(s string) *BillingProfileCreate {
 	return bpc
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (bpc *BillingProfileCreate) SetProviderConfig(pr provider.Configuration) *BillingProfileCreate {
-	bpc.mutation.SetProviderConfig(pr)
+// SetTaxProvider sets the "tax_provider" field.
+func (bpc *BillingProfileCreate) SetTaxProvider(pp provider.TaxProvider) *BillingProfileCreate {
+	bpc.mutation.SetTaxProvider(pp)
+	return bpc
+}
+
+// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingProfileCreate {
+	if pp != nil {
+		bpc.SetTaxProvider(*pp)
+	}
+	return bpc
+}
+
+// SetTaxProviderConfig sets the "tax_provider_config" field.
+func (bpc *BillingProfileCreate) SetTaxProviderConfig(pc provider.TaxConfiguration) *BillingProfileCreate {
+	bpc.mutation.SetTaxProviderConfig(pc)
+	return bpc
+}
+
+// SetNillableTaxProviderConfig sets the "tax_provider_config" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableTaxProviderConfig(pc *provider.TaxConfiguration) *BillingProfileCreate {
+	if pc != nil {
+		bpc.SetTaxProviderConfig(*pc)
+	}
+	return bpc
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (bpc *BillingProfileCreate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileCreate {
+	bpc.mutation.SetInvoicingProvider(pp)
+	return bpc
+}
+
+// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingProfileCreate {
+	if pp != nil {
+		bpc.SetInvoicingProvider(*pp)
+	}
+	return bpc
+}
+
+// SetInvoicingProviderConfig sets the "invoicing_provider_config" field.
+func (bpc *BillingProfileCreate) SetInvoicingProviderConfig(pc provider.InvoicingConfiguration) *BillingProfileCreate {
+	bpc.mutation.SetInvoicingProviderConfig(pc)
+	return bpc
+}
+
+// SetNillableInvoicingProviderConfig sets the "invoicing_provider_config" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableInvoicingProviderConfig(pc *provider.InvoicingConfiguration) *BillingProfileCreate {
+	if pc != nil {
+		bpc.SetInvoicingProviderConfig(*pc)
+	}
+	return bpc
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (bpc *BillingProfileCreate) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileCreate {
+	bpc.mutation.SetPaymentProvider(pp)
+	return bpc
+}
+
+// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingProfileCreate {
+	if pp != nil {
+		bpc.SetPaymentProvider(*pp)
+	}
+	return bpc
+}
+
+// SetPaymentProviderConfig sets the "payment_provider_config" field.
+func (bpc *BillingProfileCreate) SetPaymentProviderConfig(pc provider.PaymentConfiguration) *BillingProfileCreate {
+	bpc.mutation.SetPaymentProviderConfig(pc)
+	return bpc
+}
+
+// SetNillablePaymentProviderConfig sets the "payment_provider_config" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillablePaymentProviderConfig(pc *provider.PaymentConfiguration) *BillingProfileCreate {
+	if pc != nil {
+		bpc.SetPaymentProviderConfig(*pc)
+	}
 	return bpc
 }
 
@@ -144,6 +223,21 @@ func (bpc *BillingProfileCreate) SetBillingWorkflowConfigID(id string) *BillingP
 // SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
 func (bpc *BillingProfileCreate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
 	return bpc.SetBillingWorkflowConfigID(b.ID)
+}
+
+// AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
+func (bpc *BillingProfileCreate) AddCustomerIDs(ids ...string) *BillingProfileCreate {
+	bpc.mutation.AddCustomerIDs(ids...)
+	return bpc
+}
+
+// AddCustomers adds the "customers" edges to the Customer entity.
+func (bpc *BillingProfileCreate) AddCustomers(c ...*Customer) *BillingProfileCreate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return bpc.AddCustomerIDs(ids...)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
@@ -223,12 +317,34 @@ func (bpc *BillingProfileCreate) check() error {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingProfile.key": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.ProviderConfig(); !ok {
-		return &ValidationError{Name: "provider_config", err: errors.New(`db: missing required field "BillingProfile.provider_config"`)}
+	if v, ok := bpc.mutation.TaxProvider(); ok {
+		if err := billingprofile.TaxProviderValidator(v); err != nil {
+			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
+		}
 	}
-	if v, ok := bpc.mutation.ProviderConfig(); ok {
+	if v, ok := bpc.mutation.TaxProviderConfig(); ok {
 		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
+			return &ValidationError{Name: "tax_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpc.mutation.InvoicingProvider(); ok {
+		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpc.mutation.InvoicingProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoicing_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpc.mutation.PaymentProvider(); ok {
+		if err := billingprofile.PaymentProviderValidator(v); err != nil {
+			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
+		}
+	}
+	if v, ok := bpc.mutation.PaymentProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "payment_provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider_config": %w`, err)}
 		}
 	}
 	if _, ok := bpc.mutation.WorkflowConfigID(); !ok {
@@ -304,13 +420,41 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_spec.SetField(billingprofile.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := bpc.mutation.ProviderConfig(); ok {
-		vv, err := billingprofile.ValueScanner.ProviderConfig.Value(value)
+	if value, ok := bpc.mutation.TaxProvider(); ok {
+		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
+		_node.TaxProvider = &value
+	}
+	if value, ok := bpc.mutation.TaxProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.TaxProviderConfig.Value(value)
 		if err != nil {
 			return nil, nil, err
 		}
-		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
-		_node.ProviderConfig = value
+		_spec.SetField(billingprofile.FieldTaxProviderConfig, field.TypeString, vv)
+		_node.TaxProviderConfig = value
+	}
+	if value, ok := bpc.mutation.InvoicingProvider(); ok {
+		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
+		_node.InvoicingProvider = &value
+	}
+	if value, ok := bpc.mutation.InvoicingProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.InvoicingProviderConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billingprofile.FieldInvoicingProviderConfig, field.TypeString, vv)
+		_node.InvoicingProviderConfig = value
+	}
+	if value, ok := bpc.mutation.PaymentProvider(); ok {
+		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
+		_node.PaymentProvider = &value
+	}
+	if value, ok := bpc.mutation.PaymentProviderConfig(); ok {
+		vv, err := billingprofile.ValueScanner.PaymentProviderConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billingprofile.FieldPaymentProviderConfig, field.TypeString, vv)
+		_node.PaymentProviderConfig = value
 	}
 	if value, ok := bpc.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
@@ -347,6 +491,22 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.WorkflowConfigID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bpc.mutation.CustomersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   billingprofile.CustomersTable,
+			Columns: []string{billingprofile.CustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -431,15 +591,111 @@ func (u *BillingProfileUpsert) ClearDeletedAt() *BillingProfileUpsert {
 	return u
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (u *BillingProfileUpsert) SetProviderConfig(v provider.Configuration) *BillingProfileUpsert {
-	u.Set(billingprofile.FieldProviderConfig, v)
+// SetTaxProvider sets the "tax_provider" field.
+func (u *BillingProfileUpsert) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldTaxProvider, v)
 	return u
 }
 
-// UpdateProviderConfig sets the "provider_config" field to the value that was provided on create.
-func (u *BillingProfileUpsert) UpdateProviderConfig() *BillingProfileUpsert {
-	u.SetExcluded(billingprofile.FieldProviderConfig)
+// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateTaxProvider() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldTaxProvider)
+	return u
+}
+
+// ClearTaxProvider clears the value of the "tax_provider" field.
+func (u *BillingProfileUpsert) ClearTaxProvider() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldTaxProvider)
+	return u
+}
+
+// SetTaxProviderConfig sets the "tax_provider_config" field.
+func (u *BillingProfileUpsert) SetTaxProviderConfig(v provider.TaxConfiguration) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldTaxProviderConfig, v)
+	return u
+}
+
+// UpdateTaxProviderConfig sets the "tax_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateTaxProviderConfig() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldTaxProviderConfig)
+	return u
+}
+
+// ClearTaxProviderConfig clears the value of the "tax_provider_config" field.
+func (u *BillingProfileUpsert) ClearTaxProviderConfig() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldTaxProviderConfig)
+	return u
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (u *BillingProfileUpsert) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldInvoicingProvider, v)
+	return u
+}
+
+// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateInvoicingProvider() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldInvoicingProvider)
+	return u
+}
+
+// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
+func (u *BillingProfileUpsert) ClearInvoicingProvider() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldInvoicingProvider)
+	return u
+}
+
+// SetInvoicingProviderConfig sets the "invoicing_provider_config" field.
+func (u *BillingProfileUpsert) SetInvoicingProviderConfig(v provider.InvoicingConfiguration) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldInvoicingProviderConfig, v)
+	return u
+}
+
+// UpdateInvoicingProviderConfig sets the "invoicing_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateInvoicingProviderConfig() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldInvoicingProviderConfig)
+	return u
+}
+
+// ClearInvoicingProviderConfig clears the value of the "invoicing_provider_config" field.
+func (u *BillingProfileUpsert) ClearInvoicingProviderConfig() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldInvoicingProviderConfig)
+	return u
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (u *BillingProfileUpsert) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldPaymentProvider, v)
+	return u
+}
+
+// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdatePaymentProvider() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldPaymentProvider)
+	return u
+}
+
+// ClearPaymentProvider clears the value of the "payment_provider" field.
+func (u *BillingProfileUpsert) ClearPaymentProvider() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldPaymentProvider)
+	return u
+}
+
+// SetPaymentProviderConfig sets the "payment_provider_config" field.
+func (u *BillingProfileUpsert) SetPaymentProviderConfig(v provider.PaymentConfiguration) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldPaymentProviderConfig, v)
+	return u
+}
+
+// UpdatePaymentProviderConfig sets the "payment_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdatePaymentProviderConfig() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldPaymentProviderConfig)
+	return u
+}
+
+// ClearPaymentProviderConfig clears the value of the "payment_provider_config" field.
+func (u *BillingProfileUpsert) ClearPaymentProviderConfig() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldPaymentProviderConfig)
 	return u
 }
 
@@ -559,17 +815,129 @@ func (u *BillingProfileUpsertOne) ClearDeletedAt() *BillingProfileUpsertOne {
 	})
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (u *BillingProfileUpsertOne) SetProviderConfig(v provider.Configuration) *BillingProfileUpsertOne {
+// SetTaxProvider sets the "tax_provider" field.
+func (u *BillingProfileUpsertOne) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetProviderConfig(v)
+		s.SetTaxProvider(v)
 	})
 }
 
-// UpdateProviderConfig sets the "provider_config" field to the value that was provided on create.
-func (u *BillingProfileUpsertOne) UpdateProviderConfig() *BillingProfileUpsertOne {
+// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateTaxProvider() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateProviderConfig()
+		s.UpdateTaxProvider()
+	})
+}
+
+// ClearTaxProvider clears the value of the "tax_provider" field.
+func (u *BillingProfileUpsertOne) ClearTaxProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearTaxProvider()
+	})
+}
+
+// SetTaxProviderConfig sets the "tax_provider_config" field.
+func (u *BillingProfileUpsertOne) SetTaxProviderConfig(v provider.TaxConfiguration) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetTaxProviderConfig(v)
+	})
+}
+
+// UpdateTaxProviderConfig sets the "tax_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateTaxProviderConfig() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateTaxProviderConfig()
+	})
+}
+
+// ClearTaxProviderConfig clears the value of the "tax_provider_config" field.
+func (u *BillingProfileUpsertOne) ClearTaxProviderConfig() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearTaxProviderConfig()
+	})
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (u *BillingProfileUpsertOne) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetInvoicingProvider(v)
+	})
+}
+
+// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateInvoicingProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateInvoicingProvider()
+	})
+}
+
+// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
+func (u *BillingProfileUpsertOne) ClearInvoicingProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearInvoicingProvider()
+	})
+}
+
+// SetInvoicingProviderConfig sets the "invoicing_provider_config" field.
+func (u *BillingProfileUpsertOne) SetInvoicingProviderConfig(v provider.InvoicingConfiguration) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetInvoicingProviderConfig(v)
+	})
+}
+
+// UpdateInvoicingProviderConfig sets the "invoicing_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateInvoicingProviderConfig() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateInvoicingProviderConfig()
+	})
+}
+
+// ClearInvoicingProviderConfig clears the value of the "invoicing_provider_config" field.
+func (u *BillingProfileUpsertOne) ClearInvoicingProviderConfig() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearInvoicingProviderConfig()
+	})
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (u *BillingProfileUpsertOne) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetPaymentProvider(v)
+	})
+}
+
+// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdatePaymentProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdatePaymentProvider()
+	})
+}
+
+// ClearPaymentProvider clears the value of the "payment_provider" field.
+func (u *BillingProfileUpsertOne) ClearPaymentProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearPaymentProvider()
+	})
+}
+
+// SetPaymentProviderConfig sets the "payment_provider_config" field.
+func (u *BillingProfileUpsertOne) SetPaymentProviderConfig(v provider.PaymentConfiguration) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetPaymentProviderConfig(v)
+	})
+}
+
+// UpdatePaymentProviderConfig sets the "payment_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdatePaymentProviderConfig() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdatePaymentProviderConfig()
+	})
+}
+
+// ClearPaymentProviderConfig clears the value of the "payment_provider_config" field.
+func (u *BillingProfileUpsertOne) ClearPaymentProviderConfig() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearPaymentProviderConfig()
 	})
 }
 
@@ -863,17 +1231,129 @@ func (u *BillingProfileUpsertBulk) ClearDeletedAt() *BillingProfileUpsertBulk {
 	})
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (u *BillingProfileUpsertBulk) SetProviderConfig(v provider.Configuration) *BillingProfileUpsertBulk {
+// SetTaxProvider sets the "tax_provider" field.
+func (u *BillingProfileUpsertBulk) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetProviderConfig(v)
+		s.SetTaxProvider(v)
 	})
 }
 
-// UpdateProviderConfig sets the "provider_config" field to the value that was provided on create.
-func (u *BillingProfileUpsertBulk) UpdateProviderConfig() *BillingProfileUpsertBulk {
+// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateTaxProvider() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateProviderConfig()
+		s.UpdateTaxProvider()
+	})
+}
+
+// ClearTaxProvider clears the value of the "tax_provider" field.
+func (u *BillingProfileUpsertBulk) ClearTaxProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearTaxProvider()
+	})
+}
+
+// SetTaxProviderConfig sets the "tax_provider_config" field.
+func (u *BillingProfileUpsertBulk) SetTaxProviderConfig(v provider.TaxConfiguration) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetTaxProviderConfig(v)
+	})
+}
+
+// UpdateTaxProviderConfig sets the "tax_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateTaxProviderConfig() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateTaxProviderConfig()
+	})
+}
+
+// ClearTaxProviderConfig clears the value of the "tax_provider_config" field.
+func (u *BillingProfileUpsertBulk) ClearTaxProviderConfig() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearTaxProviderConfig()
+	})
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (u *BillingProfileUpsertBulk) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetInvoicingProvider(v)
+	})
+}
+
+// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateInvoicingProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateInvoicingProvider()
+	})
+}
+
+// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
+func (u *BillingProfileUpsertBulk) ClearInvoicingProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearInvoicingProvider()
+	})
+}
+
+// SetInvoicingProviderConfig sets the "invoicing_provider_config" field.
+func (u *BillingProfileUpsertBulk) SetInvoicingProviderConfig(v provider.InvoicingConfiguration) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetInvoicingProviderConfig(v)
+	})
+}
+
+// UpdateInvoicingProviderConfig sets the "invoicing_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateInvoicingProviderConfig() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateInvoicingProviderConfig()
+	})
+}
+
+// ClearInvoicingProviderConfig clears the value of the "invoicing_provider_config" field.
+func (u *BillingProfileUpsertBulk) ClearInvoicingProviderConfig() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearInvoicingProviderConfig()
+	})
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (u *BillingProfileUpsertBulk) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetPaymentProvider(v)
+	})
+}
+
+// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdatePaymentProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdatePaymentProvider()
+	})
+}
+
+// ClearPaymentProvider clears the value of the "payment_provider" field.
+func (u *BillingProfileUpsertBulk) ClearPaymentProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearPaymentProvider()
+	})
+}
+
+// SetPaymentProviderConfig sets the "payment_provider_config" field.
+func (u *BillingProfileUpsertBulk) SetPaymentProviderConfig(v provider.PaymentConfiguration) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetPaymentProviderConfig(v)
+	})
+}
+
+// UpdatePaymentProviderConfig sets the "payment_provider_config" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdatePaymentProviderConfig() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdatePaymentProviderConfig()
+	})
+}
+
+// ClearPaymentProviderConfig clears the value of the "payment_provider_config" field.
+func (u *BillingProfileUpsertBulk) ClearPaymentProviderConfig() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearPaymentProviderConfig()
 	})
 }
 
