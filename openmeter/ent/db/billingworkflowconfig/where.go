@@ -376,6 +376,16 @@ func CollectionPeriodSecondsLTE(v int64) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldCollectionPeriodSeconds, v))
 }
 
+// CollectionPeriodSecondsIsNil applies the IsNil predicate on the "collection_period_seconds" field.
+func CollectionPeriodSecondsIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldCollectionPeriodSeconds))
+}
+
+// CollectionPeriodSecondsNotNil applies the NotNil predicate on the "collection_period_seconds" field.
+func CollectionPeriodSecondsNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldCollectionPeriodSeconds))
+}
+
 // InvoiceAutoAdvanceEQ applies the EQ predicate on the "invoice_auto_advance" field.
 func InvoiceAutoAdvanceEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceAutoAdvance, v))
@@ -384,6 +394,16 @@ func InvoiceAutoAdvanceEQ(v bool) predicate.BillingWorkflowConfig {
 // InvoiceAutoAdvanceNEQ applies the NEQ predicate on the "invoice_auto_advance" field.
 func InvoiceAutoAdvanceNEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceAutoAdvance, v))
+}
+
+// InvoiceAutoAdvanceIsNil applies the IsNil predicate on the "invoice_auto_advance" field.
+func InvoiceAutoAdvanceIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceAutoAdvance))
+}
+
+// InvoiceAutoAdvanceNotNil applies the NotNil predicate on the "invoice_auto_advance" field.
+func InvoiceAutoAdvanceNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceAutoAdvance))
 }
 
 // InvoiceDraftPeriodSecondsEQ applies the EQ predicate on the "invoice_draft_period_seconds" field.
@@ -426,6 +446,16 @@ func InvoiceDraftPeriodSecondsLTE(v int64) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDraftPeriodSeconds, v))
 }
 
+// InvoiceDraftPeriodSecondsIsNil applies the IsNil predicate on the "invoice_draft_period_seconds" field.
+func InvoiceDraftPeriodSecondsIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceDraftPeriodSeconds))
+}
+
+// InvoiceDraftPeriodSecondsNotNil applies the NotNil predicate on the "invoice_draft_period_seconds" field.
+func InvoiceDraftPeriodSecondsNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceDraftPeriodSeconds))
+}
+
 // InvoiceDueAfterSecondsEQ applies the EQ predicate on the "invoice_due_after_seconds" field.
 func InvoiceDueAfterSecondsEQ(v int64) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfterSeconds, v))
@@ -466,6 +496,16 @@ func InvoiceDueAfterSecondsLTE(v int64) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDueAfterSeconds, v))
 }
 
+// InvoiceDueAfterSecondsIsNil applies the IsNil predicate on the "invoice_due_after_seconds" field.
+func InvoiceDueAfterSecondsIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceDueAfterSeconds))
+}
+
+// InvoiceDueAfterSecondsNotNil applies the NotNil predicate on the "invoice_due_after_seconds" field.
+func InvoiceDueAfterSecondsNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceDueAfterSeconds))
+}
+
 // InvoiceCollectionMethodEQ applies the EQ predicate on the "invoice_collection_method" field.
 func InvoiceCollectionMethodEQ(v billing.CollectionMethod) predicate.BillingWorkflowConfig {
 	vc := v
@@ -494,6 +534,16 @@ func InvoiceCollectionMethodNotIn(vs ...billing.CollectionMethod) predicate.Bill
 		v[i] = vs[i]
 	}
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceCollectionMethod, v...))
+}
+
+// InvoiceCollectionMethodIsNil applies the IsNil predicate on the "invoice_collection_method" field.
+func InvoiceCollectionMethodIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceCollectionMethod))
+}
+
+// InvoiceCollectionMethodNotNil applies the NotNil predicate on the "invoice_collection_method" field.
+func InvoiceCollectionMethodNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceCollectionMethod))
 }
 
 // InvoiceLineItemResolutionEQ applies the EQ predicate on the "invoice_line_item_resolution" field.
@@ -526,6 +576,16 @@ func InvoiceLineItemResolutionNotIn(vs ...billing.GranualityResolution) predicat
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceLineItemResolution, v...))
 }
 
+// InvoiceLineItemResolutionIsNil applies the IsNil predicate on the "invoice_line_item_resolution" field.
+func InvoiceLineItemResolutionIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceLineItemResolution))
+}
+
+// InvoiceLineItemResolutionNotNil applies the NotNil predicate on the "invoice_line_item_resolution" field.
+func InvoiceLineItemResolutionNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceLineItemResolution))
+}
+
 // InvoiceLineItemPerSubjectEQ applies the EQ predicate on the "invoice_line_item_per_subject" field.
 func InvoiceLineItemPerSubjectEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceLineItemPerSubject, v))
@@ -534,6 +594,16 @@ func InvoiceLineItemPerSubjectEQ(v bool) predicate.BillingWorkflowConfig {
 // InvoiceLineItemPerSubjectNEQ applies the NEQ predicate on the "invoice_line_item_per_subject" field.
 func InvoiceLineItemPerSubjectNEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceLineItemPerSubject, v))
+}
+
+// InvoiceLineItemPerSubjectIsNil applies the IsNil predicate on the "invoice_line_item_per_subject" field.
+func InvoiceLineItemPerSubjectIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceLineItemPerSubject))
+}
+
+// InvoiceLineItemPerSubjectNotNil applies the NotNil predicate on the "invoice_line_item_per_subject" field.
+func InvoiceLineItemPerSubjectNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceLineItemPerSubject))
 }
 
 // HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.

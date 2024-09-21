@@ -27,9 +27,21 @@ type BillingProfileCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetKey sets the "key" field.
+func (bpc *BillingProfileCreate) SetKey(s string) *BillingProfileCreate {
+	bpc.mutation.SetKey(s)
+	return bpc
+}
+
 // SetNamespace sets the "namespace" field.
 func (bpc *BillingProfileCreate) SetNamespace(s string) *BillingProfileCreate {
 	bpc.mutation.SetNamespace(s)
+	return bpc
+}
+
+// SetMetadata sets the "metadata" field.
+func (bpc *BillingProfileCreate) SetMetadata(m map[string]string) *BillingProfileCreate {
+	bpc.mutation.SetMetadata(m)
 	return bpc
 }
 
@@ -72,12 +84,6 @@ func (bpc *BillingProfileCreate) SetNillableDeletedAt(t *time.Time) *BillingProf
 	if t != nil {
 		bpc.SetDeletedAt(*t)
 	}
-	return bpc
-}
-
-// SetKey sets the "key" field.
-func (bpc *BillingProfileCreate) SetKey(s string) *BillingProfileCreate {
-	bpc.mutation.SetKey(s)
 	return bpc
 }
 
@@ -295,6 +301,14 @@ func (bpc *BillingProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bpc *BillingProfileCreate) check() error {
+	if _, ok := bpc.mutation.Key(); !ok {
+		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "BillingProfile.key"`)}
+	}
+	if v, ok := bpc.mutation.Key(); ok {
+		if err := billingprofile.KeyValidator(v); err != nil {
+			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingProfile.key": %w`, err)}
+		}
+	}
 	if _, ok := bpc.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingProfile.namespace"`)}
 	}
@@ -308,14 +322,6 @@ func (bpc *BillingProfileCreate) check() error {
 	}
 	if _, ok := bpc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingProfile.updated_at"`)}
-	}
-	if _, ok := bpc.mutation.Key(); !ok {
-		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "BillingProfile.key"`)}
-	}
-	if v, ok := bpc.mutation.Key(); ok {
-		if err := billingprofile.KeyValidator(v); err != nil {
-			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingProfile.key": %w`, err)}
-		}
 	}
 	if v, ok := bpc.mutation.TaxProvider(); ok {
 		if err := billingprofile.TaxProviderValidator(v); err != nil {
@@ -400,9 +406,17 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := bpc.mutation.Key(); ok {
+		_spec.SetField(billingprofile.FieldKey, field.TypeString, value)
+		_node.Key = value
+	}
 	if value, ok := bpc.mutation.Namespace(); ok {
 		_spec.SetField(billingprofile.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
+	}
+	if value, ok := bpc.mutation.Metadata(); ok {
+		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
 	}
 	if value, ok := bpc.mutation.CreatedAt(); ok {
 		_spec.SetField(billingprofile.FieldCreatedAt, field.TypeTime, value)
@@ -415,10 +429,6 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 	if value, ok := bpc.mutation.DeletedAt(); ok {
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
-	}
-	if value, ok := bpc.mutation.Key(); ok {
-		_spec.SetField(billingprofile.FieldKey, field.TypeString, value)
-		_node.Key = value
 	}
 	if value, ok := bpc.mutation.TaxProvider(); ok {
 		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
@@ -516,7 +526,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 // of the `INSERT` statement. For example:
 //
 //	client.BillingProfile.Create().
-//		SetNamespace(v).
+//		SetKey(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -525,7 +535,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.BillingProfileUpsert) {
-//			SetNamespace(v+v).
+//			SetKey(v+v).
 //		}).
 //		Exec(ctx)
 func (bpc *BillingProfileCreate) OnConflict(opts ...sql.ConflictOption) *BillingProfileUpsertOne {
@@ -560,6 +570,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingProfileUpsert) SetMetadata(v map[string]string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateMetadata() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingProfileUpsert) ClearMetadata() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldMetadata)
+	return u
+}
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BillingProfileUpsert) SetUpdatedAt(v time.Time) *BillingProfileUpsert {
@@ -740,14 +768,14 @@ func (u *BillingProfileUpsertOne) UpdateNewValues() *BillingProfileUpsertOne {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(billingprofile.FieldID)
 		}
+		if _, exists := u.create.mutation.Key(); exists {
+			s.SetIgnore(billingprofile.FieldKey)
+		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(billingprofile.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billingprofile.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(billingprofile.FieldKey)
 		}
 	}))
 	return u
@@ -778,6 +806,27 @@ func (u *BillingProfileUpsertOne) Update(set func(*BillingProfileUpsert)) *Billi
 		set(&BillingProfileUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingProfileUpsertOne) SetMetadata(v map[string]string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateMetadata() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingProfileUpsertOne) ClearMetadata() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -1108,7 +1157,7 @@ func (bpcb *BillingProfileCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.BillingProfileUpsert) {
-//			SetNamespace(v+v).
+//			SetKey(v+v).
 //		}).
 //		Exec(ctx)
 func (bpcb *BillingProfileCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingProfileUpsertBulk {
@@ -1155,14 +1204,14 @@ func (u *BillingProfileUpsertBulk) UpdateNewValues() *BillingProfileUpsertBulk {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(billingprofile.FieldID)
 			}
+			if _, exists := b.mutation.Key(); exists {
+				s.SetIgnore(billingprofile.FieldKey)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(billingprofile.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billingprofile.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(billingprofile.FieldKey)
 			}
 		}
 	}))
@@ -1194,6 +1243,27 @@ func (u *BillingProfileUpsertBulk) Update(set func(*BillingProfileUpsert)) *Bill
 		set(&BillingProfileUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingProfileUpsertBulk) SetMetadata(v map[string]string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateMetadata() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingProfileUpsertBulk) ClearMetadata() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.

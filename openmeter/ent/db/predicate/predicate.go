@@ -9,6 +9,20 @@ import (
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
+// BillingCustomerOverride is the predicate function for billingcustomeroverride builders.
+type BillingCustomerOverride func(*sql.Selector)
+
+// BillingCustomerOverrideOrErr calls the predicate only if the error is not nit.
+func BillingCustomerOverrideOrErr(p BillingCustomerOverride, err error) BillingCustomerOverride {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
 

@@ -92,6 +92,12 @@ func (bwcu *BillingWorkflowConfigUpdate) AddCollectionPeriodSeconds(i int64) *Bi
 	return bwcu
 }
 
+// ClearCollectionPeriodSeconds clears the value of the "collection_period_seconds" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearCollectionPeriodSeconds() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearCollectionPeriodSeconds()
+	return bwcu
+}
+
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
 func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceAutoAdvance(b bool) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetInvoiceAutoAdvance(b)
@@ -103,6 +109,12 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceAutoAdvance(b *bool) 
 	if b != nil {
 		bwcu.SetInvoiceAutoAdvance(*b)
 	}
+	return bwcu
+}
+
+// ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceAutoAdvance() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceAutoAdvance()
 	return bwcu
 }
 
@@ -127,6 +139,12 @@ func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDraftPeriodSeconds(i int64) *
 	return bwcu
 }
 
+// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceDraftPeriodSeconds()
+	return bwcu
+}
+
 // SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
 func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.ResetInvoiceDueAfterSeconds()
@@ -148,6 +166,12 @@ func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDueAfterSeconds(i int64) *Bil
 	return bwcu
 }
 
+// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceDueAfterSeconds() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceDueAfterSeconds()
+	return bwcu
+}
+
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
 func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetInvoiceCollectionMethod(bm)
@@ -159,6 +183,12 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *
 	if bm != nil {
 		bwcu.SetInvoiceCollectionMethod(*bm)
 	}
+	return bwcu
+}
+
+// ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceCollectionMethod() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceCollectionMethod()
 	return bwcu
 }
 
@@ -176,6 +206,12 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceLineItemResolution(br
 	return bwcu
 }
 
+// ClearInvoiceLineItemResolution clears the value of the "invoice_line_item_resolution" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceLineItemResolution() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceLineItemResolution()
+	return bwcu
+}
+
 // SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
 func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetInvoiceLineItemPerSubject(b)
@@ -187,6 +223,12 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceLineItemPerSubject(b 
 	if b != nil {
 		bwcu.SetInvoiceLineItemPerSubject(*b)
 	}
+	return bwcu
+}
+
+// ClearInvoiceLineItemPerSubject clears the value of the "invoice_line_item_per_subject" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceLineItemPerSubject() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceLineItemPerSubject()
 	return bwcu
 }
 
@@ -353,8 +395,14 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := bwcu.mutation.AddedCollectionPeriodSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
 	}
+	if bwcu.mutation.CollectionPeriodSecondsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64)
+	}
 	if value, ok := bwcu.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
+	}
+	if bwcu.mutation.InvoiceAutoAdvanceCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool)
 	}
 	if value, ok := bwcu.mutation.InvoiceDraftPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
@@ -362,20 +410,35 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := bwcu.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
 	}
+	if bwcu.mutation.InvoiceDraftPeriodSecondsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64)
+	}
 	if value, ok := bwcu.mutation.InvoiceDueAfterSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
 	}
 	if value, ok := bwcu.mutation.AddedInvoiceDueAfterSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
 	}
+	if bwcu.mutation.InvoiceDueAfterSecondsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64)
+	}
 	if value, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
+	}
+	if bwcu.mutation.InvoiceCollectionMethodCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum)
 	}
 	if value, ok := bwcu.mutation.InvoiceLineItemResolution(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
 	}
+	if bwcu.mutation.InvoiceLineItemResolutionCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum)
+	}
 	if value, ok := bwcu.mutation.InvoiceLineItemPerSubject(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
+	}
+	if bwcu.mutation.InvoiceLineItemPerSubjectCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -548,6 +611,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) AddCollectionPeriodSeconds(i int64)
 	return bwcuo
 }
 
+// ClearCollectionPeriodSeconds clears the value of the "collection_period_seconds" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearCollectionPeriodSeconds() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearCollectionPeriodSeconds()
+	return bwcuo
+}
+
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
 func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceAutoAdvance(b bool) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetInvoiceAutoAdvance(b)
@@ -559,6 +628,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceAutoAdvance(b *bo
 	if b != nil {
 		bwcuo.SetInvoiceAutoAdvance(*b)
 	}
+	return bwcuo
+}
+
+// ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceAutoAdvance() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceAutoAdvance()
 	return bwcuo
 }
 
@@ -583,6 +658,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDraftPeriodSeconds(i int6
 	return bwcuo
 }
 
+// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceDraftPeriodSeconds()
+	return bwcuo
+}
+
 // SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
 func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.ResetInvoiceDueAfterSeconds()
@@ -604,6 +685,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDueAfterSeconds(i int64) 
 	return bwcuo
 }
 
+// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceDueAfterSeconds() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceDueAfterSeconds()
+	return bwcuo
+}
+
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
 func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetInvoiceCollectionMethod(bm)
@@ -615,6 +702,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(
 	if bm != nil {
 		bwcuo.SetInvoiceCollectionMethod(*bm)
 	}
+	return bwcuo
+}
+
+// ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceCollectionMethod() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceCollectionMethod()
 	return bwcuo
 }
 
@@ -632,6 +725,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceLineItemResolutio
 	return bwcuo
 }
 
+// ClearInvoiceLineItemResolution clears the value of the "invoice_line_item_resolution" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceLineItemResolution() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceLineItemResolution()
+	return bwcuo
+}
+
 // SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
 func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetInvoiceLineItemPerSubject(b)
@@ -643,6 +742,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceLineItemPerSubjec
 	if b != nil {
 		bwcuo.SetInvoiceLineItemPerSubject(*b)
 	}
+	return bwcuo
+}
+
+// ClearInvoiceLineItemPerSubject clears the value of the "invoice_line_item_per_subject" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceLineItemPerSubject() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceLineItemPerSubject()
 	return bwcuo
 }
 
@@ -839,8 +944,14 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if value, ok := bwcuo.mutation.AddedCollectionPeriodSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
 	}
+	if bwcuo.mutation.CollectionPeriodSecondsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64)
+	}
 	if value, ok := bwcuo.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
+	}
+	if bwcuo.mutation.InvoiceAutoAdvanceCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool)
 	}
 	if value, ok := bwcuo.mutation.InvoiceDraftPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
@@ -848,20 +959,35 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if value, ok := bwcuo.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
 	}
+	if bwcuo.mutation.InvoiceDraftPeriodSecondsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64)
+	}
 	if value, ok := bwcuo.mutation.InvoiceDueAfterSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
 	}
 	if value, ok := bwcuo.mutation.AddedInvoiceDueAfterSeconds(); ok {
 		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
 	}
+	if bwcuo.mutation.InvoiceDueAfterSecondsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64)
+	}
 	if value, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
+	}
+	if bwcuo.mutation.InvoiceCollectionMethodCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum)
 	}
 	if value, ok := bwcuo.mutation.InvoiceLineItemResolution(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
 	}
+	if bwcuo.mutation.InvoiceLineItemResolutionCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum)
+	}
 	if value, ok := bwcuo.mutation.InvoiceLineItemPerSubject(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
+	}
+	if bwcuo.mutation.InvoiceLineItemPerSubjectCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

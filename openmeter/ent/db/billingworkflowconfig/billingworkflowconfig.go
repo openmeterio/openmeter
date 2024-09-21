@@ -98,8 +98,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultInvoiceLineItemPerSubject holds the default value on creation for the "invoice_line_item_per_subject" field.
-	DefaultInvoiceLineItemPerSubject bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )

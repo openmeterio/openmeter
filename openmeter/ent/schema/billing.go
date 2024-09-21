@@ -27,18 +27,12 @@ type BillingProfile struct {
 
 func (BillingProfile) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
+		entutils.ResourceMixin{},
 	}
 }
 
 func (BillingProfile) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("key").
-			NotEmpty().
-			Immutable(),
-
 		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
 		field.String("tax_provider_config").
 			GoType(provider.TaxConfiguration{}).
@@ -85,8 +79,6 @@ func (BillingProfile) Edges() []ent.Edge {
 
 func (BillingProfile) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "key"),
-		index.Fields("namespace", "id"),
 		index.Fields("namespace", "default"),
 	}
 }
@@ -274,6 +266,72 @@ var ProviderPaymentConfigurationValueScanner = field.ValueScannerFunc[provider.P
 	},
 }
 
+type BillingCustomerOverride struct {
+	ent.Schema
+}
+
+func (BillingCustomerOverride) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingCustomerOverride) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("customer_id").
+			NotEmpty().
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}),
+
+		field.String("billing_profile_id").
+			NotEmpty().
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}),
+
+		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
+		field.String("tax_provider_config").
+			GoType(&provider.TaxConfiguration{}).
+			ValueScanner(entutils.NillableValueScannerFunc(ProviderTaxConfigurationValueScanner)).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional().
+			Nillable(),
+
+		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
+		field.String("invoicing_provider_config").
+			GoType(&provider.InvoicingConfiguration{}).
+			ValueScanner(entutils.NillableValueScannerFunc(ProviderInvoicingConfigurationValueScanner)).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional().
+			Nillable(),
+
+		field.Enum("payment_provider").GoType(provider.PaymentProvider("")).Optional().Nillable(),
+		field.String("payment_provider_config").
+			GoType(&provider.PaymentConfiguration{}).
+			ValueScanner(entutils.NillableValueScannerFunc(ProviderPaymentConfigurationValueScanner)).
+			SchemaType(map[string]string{
+				"postgres": "jsonb",
+			}).Optional().
+			Nillable(),
+
+		field.String("workflow_config_id").
+			Optional().
+			Nillable(),
+	}
+}
+
+func (BillingCustomerOverride) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "customer_id"),
+		index.Fields("namespace", "billing_profile_id"),
+	}
+}
+
 type BillingWorkflowConfig struct {
 	ent.Schema
 }
@@ -293,23 +351,37 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
 
-		field.Int64("collection_period_seconds"),
+		// Here everything can be null so that we can rely on this table as an override table too
+		// this means that null validation must be done in the service layer.
 
-		field.Bool("invoice_auto_advance").
+		field.Int64("collection_period_seconds").
+			Optional().
 			Nillable(),
 
-		field.Int64("invoice_draft_period_seconds"),
+		field.Bool("invoice_auto_advance").
+			Optional().
+			Nillable(),
 
-		field.Int64("invoice_due_after_seconds"),
+		field.Int64("invoice_draft_period_seconds").
+			Optional().
+			Nillable(),
+		field.Int64("invoice_due_after_seconds").
+			Optional().
+			Nillable(),
 
 		field.Enum("invoice_collection_method").
-			GoType(billing.CollectionMethod("")),
+			GoType(billing.CollectionMethod("")).
+			Optional().
+			Nillable(),
 
 		field.Enum("invoice_line_item_resolution").
-			GoType(billing.GranualityResolution("")),
+			GoType(billing.GranualityResolution("")).
+			Optional().
+			Nillable(),
 
 		field.Bool("invoice_line_item_per_subject").
-			Default(false),
+			Optional().
+			Nillable(),
 	}
 }
 

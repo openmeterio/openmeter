@@ -86,9 +86,25 @@ func (bwcc *BillingWorkflowConfigCreate) SetCollectionPeriodSeconds(i int64) *Bi
 	return bwcc
 }
 
+// SetNillableCollectionPeriodSeconds sets the "collection_period_seconds" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigCreate {
+	if i != nil {
+		bwcc.SetCollectionPeriodSeconds(*i)
+	}
+	return bwcc
+}
+
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
 func (bwcc *BillingWorkflowConfigCreate) SetInvoiceAutoAdvance(b bool) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetInvoiceAutoAdvance(b)
+	return bwcc
+}
+
+// SetNillableInvoiceAutoAdvance sets the "invoice_auto_advance" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceAutoAdvance(b *bool) *BillingWorkflowConfigCreate {
+	if b != nil {
+		bwcc.SetInvoiceAutoAdvance(*b)
+	}
 	return bwcc
 }
 
@@ -98,9 +114,25 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDraftPeriodSeconds(i int64) *
 	return bwcc
 }
 
+// SetNillableInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceDraftPeriodSeconds(i *int64) *BillingWorkflowConfigCreate {
+	if i != nil {
+		bwcc.SetInvoiceDraftPeriodSeconds(*i)
+	}
+	return bwcc
+}
+
 // SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
 func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetInvoiceDueAfterSeconds(i)
+	return bwcc
+}
+
+// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingWorkflowConfigCreate {
+	if i != nil {
+		bwcc.SetInvoiceDueAfterSeconds(*i)
+	}
 	return bwcc
 }
 
@@ -110,9 +142,25 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceCollectionMethod(bm billing.C
 	return bwcc
 }
 
+// SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingWorkflowConfigCreate {
+	if bm != nil {
+		bwcc.SetInvoiceCollectionMethod(*bm)
+	}
+	return bwcc
+}
+
 // SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
 func (bwcc *BillingWorkflowConfigCreate) SetInvoiceLineItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetInvoiceLineItemResolution(br)
+	return bwcc
+}
+
+// SetNillableInvoiceLineItemResolution sets the "invoice_line_item_resolution" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceLineItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigCreate {
+	if br != nil {
+		bwcc.SetInvoiceLineItemResolution(*br)
+	}
 	return bwcc
 }
 
@@ -217,10 +265,6 @@ func (bwcc *BillingWorkflowConfigCreate) defaults() {
 		v := billingworkflowconfig.DefaultUpdatedAt()
 		bwcc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bwcc.mutation.InvoiceLineItemPerSubject(); !ok {
-		v := billingworkflowconfig.DefaultInvoiceLineItemPerSubject
-		bwcc.mutation.SetInvoiceLineItemPerSubject(v)
-	}
 	if _, ok := bwcc.mutation.ID(); !ok {
 		v := billingworkflowconfig.DefaultID()
 		bwcc.mutation.SetID(v)
@@ -251,36 +295,15 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.alignment": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.CollectionPeriodSeconds(); !ok {
-		return &ValidationError{Name: "collection_period_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.collection_period_seconds"`)}
-	}
-	if _, ok := bwcc.mutation.InvoiceAutoAdvance(); !ok {
-		return &ValidationError{Name: "invoice_auto_advance", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_auto_advance"`)}
-	}
-	if _, ok := bwcc.mutation.InvoiceDraftPeriodSeconds(); !ok {
-		return &ValidationError{Name: "invoice_draft_period_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_draft_period_seconds"`)}
-	}
-	if _, ok := bwcc.mutation.InvoiceDueAfterSeconds(); !ok {
-		return &ValidationError{Name: "invoice_due_after_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_due_after_seconds"`)}
-	}
-	if _, ok := bwcc.mutation.InvoiceCollectionMethod(); !ok {
-		return &ValidationError{Name: "invoice_collection_method", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_collection_method"`)}
-	}
 	if v, ok := bwcc.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingworkflowconfig.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.InvoiceLineItemResolution(); !ok {
-		return &ValidationError{Name: "invoice_line_item_resolution", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_line_item_resolution"`)}
-	}
 	if v, ok := bwcc.mutation.InvoiceLineItemResolution(); ok {
 		if err := billingworkflowconfig.InvoiceLineItemResolutionValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_line_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_line_item_resolution": %w`, err)}
 		}
-	}
-	if _, ok := bwcc.mutation.InvoiceLineItemPerSubject(); !ok {
-		return &ValidationError{Name: "invoice_line_item_per_subject", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_line_item_per_subject"`)}
 	}
 	return nil
 }
@@ -340,7 +363,7 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 	}
 	if value, ok := bwcc.mutation.CollectionPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
-		_node.CollectionPeriodSeconds = value
+		_node.CollectionPeriodSeconds = &value
 	}
 	if value, ok := bwcc.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -348,23 +371,23 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 	}
 	if value, ok := bwcc.mutation.InvoiceDraftPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
-		_node.InvoiceDraftPeriodSeconds = value
+		_node.InvoiceDraftPeriodSeconds = &value
 	}
 	if value, ok := bwcc.mutation.InvoiceDueAfterSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-		_node.InvoiceDueAfterSeconds = value
+		_node.InvoiceDueAfterSeconds = &value
 	}
 	if value, ok := bwcc.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
-		_node.InvoiceCollectionMethod = value
+		_node.InvoiceCollectionMethod = &value
 	}
 	if value, ok := bwcc.mutation.InvoiceLineItemResolution(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
-		_node.InvoiceLineItemResolution = value
+		_node.InvoiceLineItemResolution = &value
 	}
 	if value, ok := bwcc.mutation.InvoiceLineItemPerSubject(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
-		_node.InvoiceLineItemPerSubject = value
+		_node.InvoiceLineItemPerSubject = &value
 	}
 	if nodes := bwcc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -510,6 +533,12 @@ func (u *BillingWorkflowConfigUpsert) AddCollectionPeriodSeconds(v int64) *Billi
 	return u
 }
 
+// ClearCollectionPeriodSeconds clears the value of the "collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsert) ClearCollectionPeriodSeconds() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldCollectionPeriodSeconds)
+	return u
+}
+
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
 func (u *BillingWorkflowConfigUpsert) SetInvoiceAutoAdvance(v bool) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceAutoAdvance, v)
@@ -519,6 +548,12 @@ func (u *BillingWorkflowConfigUpsert) SetInvoiceAutoAdvance(v bool) *BillingWork
 // UpdateInvoiceAutoAdvance sets the "invoice_auto_advance" field to the value that was provided on create.
 func (u *BillingWorkflowConfigUpsert) UpdateInvoiceAutoAdvance() *BillingWorkflowConfigUpsert {
 	u.SetExcluded(billingworkflowconfig.FieldInvoiceAutoAdvance)
+	return u
+}
+
+// ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceAutoAdvance() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceAutoAdvance)
 	return u
 }
 
@@ -540,6 +575,12 @@ func (u *BillingWorkflowConfigUpsert) AddInvoiceDraftPeriodSeconds(v int64) *Bil
 	return u
 }
 
+// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds)
+	return u
+}
+
 // SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
 func (u *BillingWorkflowConfigUpsert) SetInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceDueAfterSeconds, v)
@@ -558,6 +599,12 @@ func (u *BillingWorkflowConfigUpsert) AddInvoiceDueAfterSeconds(v int64) *Billin
 	return u
 }
 
+// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceDueAfterSeconds() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceDueAfterSeconds)
+	return u
+}
+
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
 func (u *BillingWorkflowConfigUpsert) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceCollectionMethod, v)
@@ -567,6 +614,12 @@ func (u *BillingWorkflowConfigUpsert) SetInvoiceCollectionMethod(v billing.Colle
 // UpdateInvoiceCollectionMethod sets the "invoice_collection_method" field to the value that was provided on create.
 func (u *BillingWorkflowConfigUpsert) UpdateInvoiceCollectionMethod() *BillingWorkflowConfigUpsert {
 	u.SetExcluded(billingworkflowconfig.FieldInvoiceCollectionMethod)
+	return u
+}
+
+// ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceCollectionMethod() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceCollectionMethod)
 	return u
 }
 
@@ -582,6 +635,12 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceLineItemResolution() *Billing
 	return u
 }
 
+// ClearInvoiceLineItemResolution clears the value of the "invoice_line_item_resolution" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceLineItemResolution() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceLineItemResolution)
+	return u
+}
+
 // SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
 func (u *BillingWorkflowConfigUpsert) SetInvoiceLineItemPerSubject(v bool) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceLineItemPerSubject, v)
@@ -591,6 +650,12 @@ func (u *BillingWorkflowConfigUpsert) SetInvoiceLineItemPerSubject(v bool) *Bill
 // UpdateInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field to the value that was provided on create.
 func (u *BillingWorkflowConfigUpsert) UpdateInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsert {
 	u.SetExcluded(billingworkflowconfig.FieldInvoiceLineItemPerSubject)
+	return u
+}
+
+// ClearInvoiceLineItemPerSubject clears the value of the "invoice_line_item_per_subject" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceLineItemPerSubject)
 	return u
 }
 
@@ -718,6 +783,13 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionPeriodSeconds() *Billin
 	})
 }
 
+// ClearCollectionPeriodSeconds clears the value of the "collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearCollectionPeriodSeconds() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearCollectionPeriodSeconds()
+	})
+}
+
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
 func (u *BillingWorkflowConfigUpsertOne) SetInvoiceAutoAdvance(v bool) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -729,6 +801,13 @@ func (u *BillingWorkflowConfigUpsertOne) SetInvoiceAutoAdvance(v bool) *BillingW
 func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceAutoAdvance() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceAutoAdvance()
+	})
+}
+
+// ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceAutoAdvance() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceAutoAdvance()
 	})
 }
 
@@ -753,6 +832,13 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDraftPeriodSeconds() *Bill
 	})
 }
 
+// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceDraftPeriodSeconds()
+	})
+}
+
 // SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
 func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -774,6 +860,13 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDueAfterSeconds() *Billing
 	})
 }
 
+// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceDueAfterSeconds() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceDueAfterSeconds()
+	})
+}
+
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
 func (u *BillingWorkflowConfigUpsertOne) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -785,6 +878,13 @@ func (u *BillingWorkflowConfigUpsertOne) SetInvoiceCollectionMethod(v billing.Co
 func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceCollectionMethod() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceCollectionMethod()
+	})
+}
+
+// ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceCollectionMethod() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceCollectionMethod()
 	})
 }
 
@@ -802,6 +902,13 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceLineItemResolution() *Bill
 	})
 }
 
+// ClearInvoiceLineItemResolution clears the value of the "invoice_line_item_resolution" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceLineItemResolution() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceLineItemResolution()
+	})
+}
+
 // SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
 func (u *BillingWorkflowConfigUpsertOne) SetInvoiceLineItemPerSubject(v bool) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -813,6 +920,13 @@ func (u *BillingWorkflowConfigUpsertOne) SetInvoiceLineItemPerSubject(v bool) *B
 func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceLineItemPerSubject()
+	})
+}
+
+// ClearInvoiceLineItemPerSubject clears the value of the "invoice_line_item_per_subject" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceLineItemPerSubject()
 	})
 }
 
@@ -1107,6 +1221,13 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionPeriodSeconds() *Billi
 	})
 }
 
+// ClearCollectionPeriodSeconds clears the value of the "collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearCollectionPeriodSeconds() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearCollectionPeriodSeconds()
+	})
+}
+
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
 func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceAutoAdvance(v bool) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -1118,6 +1239,13 @@ func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceAutoAdvance(v bool) *Billing
 func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceAutoAdvance() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceAutoAdvance()
+	})
+}
+
+// ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceAutoAdvance() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceAutoAdvance()
 	})
 }
 
@@ -1142,6 +1270,13 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDraftPeriodSeconds() *Bil
 	})
 }
 
+// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceDraftPeriodSeconds()
+	})
+}
+
 // SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
 func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -1163,6 +1298,13 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDueAfterSeconds() *Billin
 	})
 }
 
+// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceDueAfterSeconds() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceDueAfterSeconds()
+	})
+}
+
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
 func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -1174,6 +1316,13 @@ func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceCollectionMethod(v billing.C
 func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceCollectionMethod() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceCollectionMethod()
+	})
+}
+
+// ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceCollectionMethod() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceCollectionMethod()
 	})
 }
 
@@ -1191,6 +1340,13 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceLineItemResolution() *Bil
 	})
 }
 
+// ClearInvoiceLineItemResolution clears the value of the "invoice_line_item_resolution" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceLineItemResolution() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceLineItemResolution()
+	})
+}
+
 // SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
 func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceLineItemPerSubject(v bool) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
@@ -1202,6 +1358,13 @@ func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceLineItemPerSubject(v bool) *
 func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceLineItemPerSubject()
+	})
+}
+
+// ClearInvoiceLineItemPerSubject clears the value of the "invoice_line_item_per_subject" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceLineItemPerSubject()
 	})
 }
 

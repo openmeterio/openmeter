@@ -373,12 +373,12 @@ func (bpq *BillingProfileQuery) WithCustomers(opts ...func(*CustomerQuery)) *Bil
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		Key string `json:"key,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.BillingProfile.Query().
-//		GroupBy(billingprofile.FieldNamespace).
+//		GroupBy(billingprofile.FieldKey).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (bpq *BillingProfileQuery) GroupBy(field string, fields ...string) *BillingProfileGroupBy {
@@ -396,11 +396,11 @@ func (bpq *BillingProfileQuery) GroupBy(field string, fields ...string) *Billing
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		Key string `json:"key,omitempty"`
 //	}
 //
 //	client.BillingProfile.Query().
-//		Select(billingprofile.FieldNamespace).
+//		Select(billingprofile.FieldKey).
 //		Scan(ctx, &v)
 func (bpq *BillingProfileQuery) Select(fields ...string) *BillingProfileSelect {
 	bpq.ctx.Fields = append(bpq.ctx.Fields, fields...)

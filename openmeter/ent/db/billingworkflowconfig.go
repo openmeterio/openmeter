@@ -29,19 +29,19 @@ type BillingWorkflowConfig struct {
 	// Alignment holds the value of the "alignment" field.
 	Alignment billing.AlignmentKind `json:"alignment,omitempty"`
 	// CollectionPeriodSeconds holds the value of the "collection_period_seconds" field.
-	CollectionPeriodSeconds int64 `json:"collection_period_seconds,omitempty"`
+	CollectionPeriodSeconds *int64 `json:"collection_period_seconds,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
 	InvoiceAutoAdvance *bool `json:"invoice_auto_advance,omitempty"`
 	// InvoiceDraftPeriodSeconds holds the value of the "invoice_draft_period_seconds" field.
-	InvoiceDraftPeriodSeconds int64 `json:"invoice_draft_period_seconds,omitempty"`
+	InvoiceDraftPeriodSeconds *int64 `json:"invoice_draft_period_seconds,omitempty"`
 	// InvoiceDueAfterSeconds holds the value of the "invoice_due_after_seconds" field.
-	InvoiceDueAfterSeconds int64 `json:"invoice_due_after_seconds,omitempty"`
+	InvoiceDueAfterSeconds *int64 `json:"invoice_due_after_seconds,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
-	InvoiceCollectionMethod billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
+	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceLineItemResolution holds the value of the "invoice_line_item_resolution" field.
-	InvoiceLineItemResolution billing.GranualityResolution `json:"invoice_line_item_resolution,omitempty"`
+	InvoiceLineItemResolution *billing.GranualityResolution `json:"invoice_line_item_resolution,omitempty"`
 	// InvoiceLineItemPerSubject holds the value of the "invoice_line_item_per_subject" field.
-	InvoiceLineItemPerSubject bool `json:"invoice_line_item_per_subject,omitempty"`
+	InvoiceLineItemPerSubject *bool `json:"invoice_line_item_per_subject,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingWorkflowConfigQuery when eager-loading is set.
 	Edges        BillingWorkflowConfigEdges `json:"edges"`
@@ -146,7 +146,8 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_period_seconds", values[i])
 			} else if value.Valid {
-				bwc.CollectionPeriodSeconds = value.Int64
+				bwc.CollectionPeriodSeconds = new(int64)
+				*bwc.CollectionPeriodSeconds = value.Int64
 			}
 		case billingworkflowconfig.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -159,31 +160,36 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_draft_period_seconds", values[i])
 			} else if value.Valid {
-				bwc.InvoiceDraftPeriodSeconds = value.Int64
+				bwc.InvoiceDraftPeriodSeconds = new(int64)
+				*bwc.InvoiceDraftPeriodSeconds = value.Int64
 			}
 		case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_due_after_seconds", values[i])
 			} else if value.Valid {
-				bwc.InvoiceDueAfterSeconds = value.Int64
+				bwc.InvoiceDueAfterSeconds = new(int64)
+				*bwc.InvoiceDueAfterSeconds = value.Int64
 			}
 		case billingworkflowconfig.FieldInvoiceCollectionMethod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_collection_method", values[i])
 			} else if value.Valid {
-				bwc.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
+				bwc.InvoiceCollectionMethod = new(billing.CollectionMethod)
+				*bwc.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
 			}
 		case billingworkflowconfig.FieldInvoiceLineItemResolution:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_line_item_resolution", values[i])
 			} else if value.Valid {
-				bwc.InvoiceLineItemResolution = billing.GranualityResolution(value.String)
+				bwc.InvoiceLineItemResolution = new(billing.GranualityResolution)
+				*bwc.InvoiceLineItemResolution = billing.GranualityResolution(value.String)
 			}
 		case billingworkflowconfig.FieldInvoiceLineItemPerSubject:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_line_item_per_subject", values[i])
 			} else if value.Valid {
-				bwc.InvoiceLineItemPerSubject = value.Bool
+				bwc.InvoiceLineItemPerSubject = new(bool)
+				*bwc.InvoiceLineItemPerSubject = value.Bool
 			}
 		default:
 			bwc.selectValues.Set(columns[i], values[i])
@@ -248,28 +254,40 @@ func (bwc *BillingWorkflowConfig) String() string {
 	builder.WriteString("alignment=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.Alignment))
 	builder.WriteString(", ")
-	builder.WriteString("collection_period_seconds=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.CollectionPeriodSeconds))
+	if v := bwc.CollectionPeriodSeconds; v != nil {
+		builder.WriteString("collection_period_seconds=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := bwc.InvoiceAutoAdvance; v != nil {
 		builder.WriteString("invoice_auto_advance=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("invoice_draft_period_seconds=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceDraftPeriodSeconds))
+	if v := bwc.InvoiceDraftPeriodSeconds; v != nil {
+		builder.WriteString("invoice_draft_period_seconds=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("invoice_due_after_seconds=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceDueAfterSeconds))
+	if v := bwc.InvoiceDueAfterSeconds; v != nil {
+		builder.WriteString("invoice_due_after_seconds=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("invoice_collection_method=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceCollectionMethod))
+	if v := bwc.InvoiceCollectionMethod; v != nil {
+		builder.WriteString("invoice_collection_method=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("invoice_line_item_resolution=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceLineItemResolution))
+	if v := bwc.InvoiceLineItemResolution; v != nil {
+		builder.WriteString("invoice_line_item_resolution=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("invoice_line_item_per_subject=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceLineItemPerSubject))
+	if v := bwc.InvoiceLineItemPerSubject; v != nil {
+		builder.WriteString("invoice_line_item_per_subject=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

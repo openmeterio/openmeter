@@ -32,6 +32,18 @@ func (bpu *BillingProfileUpdate) Where(ps ...predicate.BillingProfile) *BillingP
 	return bpu
 }
 
+// SetMetadata sets the "metadata" field.
+func (bpu *BillingProfileUpdate) SetMetadata(m map[string]string) *BillingProfileUpdate {
+	bpu.mutation.SetMetadata(m)
+	return bpu
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (bpu *BillingProfileUpdate) ClearMetadata() *BillingProfileUpdate {
+	bpu.mutation.ClearMetadata()
+	return bpu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (bpu *BillingProfileUpdate) SetUpdatedAt(t time.Time) *BillingProfileUpdate {
 	bpu.mutation.SetUpdatedAt(t)
@@ -391,6 +403,12 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 			}
 		}
 	}
+	if value, ok := bpu.mutation.Metadata(); ok {
+		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
+	}
+	if bpu.mutation.MetadataCleared() {
+		_spec.ClearField(billingprofile.FieldMetadata, field.TypeJSON)
+	}
 	if value, ok := bpu.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -588,6 +606,18 @@ type BillingProfileUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *BillingProfileMutation
+}
+
+// SetMetadata sets the "metadata" field.
+func (bpuo *BillingProfileUpdateOne) SetMetadata(m map[string]string) *BillingProfileUpdateOne {
+	bpuo.mutation.SetMetadata(m)
+	return bpuo
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (bpuo *BillingProfileUpdateOne) ClearMetadata() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearMetadata()
+	return bpuo
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -978,6 +1008,12 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := bpuo.mutation.Metadata(); ok {
+		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
+	}
+	if bpuo.mutation.MetadataCleared() {
+		_spec.ClearField(billingprofile.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := bpuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingprofile.FieldUpdatedAt, field.TypeTime, value)

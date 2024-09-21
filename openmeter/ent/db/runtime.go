@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -52,6 +53,50 @@ func init() {
 	balancesnapshot.DefaultUpdatedAt = balancesnapshotDescUpdatedAt.Default.(func() time.Time)
 	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
+	billingcustomeroverrideMixin := schema.BillingCustomerOverride{}.Mixin()
+	billingcustomeroverrideMixinFields0 := billingcustomeroverrideMixin[0].Fields()
+	_ = billingcustomeroverrideMixinFields0
+	billingcustomeroverrideMixinFields1 := billingcustomeroverrideMixin[1].Fields()
+	_ = billingcustomeroverrideMixinFields1
+	billingcustomeroverrideMixinFields2 := billingcustomeroverrideMixin[2].Fields()
+	_ = billingcustomeroverrideMixinFields2
+	billingcustomeroverrideFields := schema.BillingCustomerOverride{}.Fields()
+	_ = billingcustomeroverrideFields
+	// billingcustomeroverrideDescNamespace is the schema descriptor for namespace field.
+	billingcustomeroverrideDescNamespace := billingcustomeroverrideMixinFields1[0].Descriptor()
+	// billingcustomeroverride.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingcustomeroverride.NamespaceValidator = billingcustomeroverrideDescNamespace.Validators[0].(func(string) error)
+	// billingcustomeroverrideDescCreatedAt is the schema descriptor for created_at field.
+	billingcustomeroverrideDescCreatedAt := billingcustomeroverrideMixinFields2[0].Descriptor()
+	// billingcustomeroverride.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingcustomeroverride.DefaultCreatedAt = billingcustomeroverrideDescCreatedAt.Default.(func() time.Time)
+	// billingcustomeroverrideDescUpdatedAt is the schema descriptor for updated_at field.
+	billingcustomeroverrideDescUpdatedAt := billingcustomeroverrideMixinFields2[1].Descriptor()
+	// billingcustomeroverride.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingcustomeroverride.DefaultUpdatedAt = billingcustomeroverrideDescUpdatedAt.Default.(func() time.Time)
+	// billingcustomeroverride.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingcustomeroverride.UpdateDefaultUpdatedAt = billingcustomeroverrideDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingcustomeroverrideDescCustomerID is the schema descriptor for customer_id field.
+	billingcustomeroverrideDescCustomerID := billingcustomeroverrideFields[0].Descriptor()
+	// billingcustomeroverride.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	billingcustomeroverride.CustomerIDValidator = billingcustomeroverrideDescCustomerID.Validators[0].(func(string) error)
+	// billingcustomeroverrideDescBillingProfileID is the schema descriptor for billing_profile_id field.
+	billingcustomeroverrideDescBillingProfileID := billingcustomeroverrideFields[1].Descriptor()
+	// billingcustomeroverride.BillingProfileIDValidator is a validator for the "billing_profile_id" field. It is called by the builders before save.
+	billingcustomeroverride.BillingProfileIDValidator = billingcustomeroverrideDescBillingProfileID.Validators[0].(func(string) error)
+	// billingcustomeroverrideDescTaxProviderConfig is the schema descriptor for tax_provider_config field.
+	billingcustomeroverrideDescTaxProviderConfig := billingcustomeroverrideFields[3].Descriptor()
+	billingcustomeroverride.ValueScanner.TaxProviderConfig = billingcustomeroverrideDescTaxProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.TaxConfiguration])
+	// billingcustomeroverrideDescInvoicingProviderConfig is the schema descriptor for invoicing_provider_config field.
+	billingcustomeroverrideDescInvoicingProviderConfig := billingcustomeroverrideFields[5].Descriptor()
+	billingcustomeroverride.ValueScanner.InvoicingProviderConfig = billingcustomeroverrideDescInvoicingProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.InvoicingConfiguration])
+	// billingcustomeroverrideDescPaymentProviderConfig is the schema descriptor for payment_provider_config field.
+	billingcustomeroverrideDescPaymentProviderConfig := billingcustomeroverrideFields[7].Descriptor()
+	billingcustomeroverride.ValueScanner.PaymentProviderConfig = billingcustomeroverrideDescPaymentProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.PaymentConfiguration])
+	// billingcustomeroverrideDescID is the schema descriptor for id field.
+	billingcustomeroverrideDescID := billingcustomeroverrideMixinFields0[0].Descriptor()
+	// billingcustomeroverride.DefaultID holds the default value on creation for the id field.
+	billingcustomeroverride.DefaultID = billingcustomeroverrideDescID.Default.(func() string)
 	billinginvoiceMixin := schema.BillingInvoice{}.Mixin()
 	billinginvoiceMixinFields0 := billinginvoiceMixin[0].Fields()
 	_ = billinginvoiceMixinFields0
@@ -142,45 +187,41 @@ func init() {
 	billingprofileMixin := schema.BillingProfile{}.Mixin()
 	billingprofileMixinFields0 := billingprofileMixin[0].Fields()
 	_ = billingprofileMixinFields0
-	billingprofileMixinFields1 := billingprofileMixin[1].Fields()
-	_ = billingprofileMixinFields1
-	billingprofileMixinFields2 := billingprofileMixin[2].Fields()
-	_ = billingprofileMixinFields2
 	billingprofileFields := schema.BillingProfile{}.Fields()
 	_ = billingprofileFields
+	// billingprofileDescKey is the schema descriptor for key field.
+	billingprofileDescKey := billingprofileMixinFields0[1].Descriptor()
+	// billingprofile.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	billingprofile.KeyValidator = billingprofileDescKey.Validators[0].(func(string) error)
 	// billingprofileDescNamespace is the schema descriptor for namespace field.
-	billingprofileDescNamespace := billingprofileMixinFields1[0].Descriptor()
+	billingprofileDescNamespace := billingprofileMixinFields0[2].Descriptor()
 	// billingprofile.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billingprofile.NamespaceValidator = billingprofileDescNamespace.Validators[0].(func(string) error)
 	// billingprofileDescCreatedAt is the schema descriptor for created_at field.
-	billingprofileDescCreatedAt := billingprofileMixinFields2[0].Descriptor()
+	billingprofileDescCreatedAt := billingprofileMixinFields0[4].Descriptor()
 	// billingprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
 	billingprofile.DefaultCreatedAt = billingprofileDescCreatedAt.Default.(func() time.Time)
 	// billingprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	billingprofileDescUpdatedAt := billingprofileMixinFields2[1].Descriptor()
+	billingprofileDescUpdatedAt := billingprofileMixinFields0[5].Descriptor()
 	// billingprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	billingprofile.DefaultUpdatedAt = billingprofileDescUpdatedAt.Default.(func() time.Time)
 	// billingprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billingprofile.UpdateDefaultUpdatedAt = billingprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// billingprofileDescKey is the schema descriptor for key field.
-	billingprofileDescKey := billingprofileFields[0].Descriptor()
-	// billingprofile.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	billingprofile.KeyValidator = billingprofileDescKey.Validators[0].(func(string) error)
 	// billingprofileDescTaxProviderConfig is the schema descriptor for tax_provider_config field.
-	billingprofileDescTaxProviderConfig := billingprofileFields[2].Descriptor()
+	billingprofileDescTaxProviderConfig := billingprofileFields[1].Descriptor()
 	billingprofile.ValueScanner.TaxProviderConfig = billingprofileDescTaxProviderConfig.ValueScanner.(field.TypeValueScanner[provider.TaxConfiguration])
 	// billingprofileDescInvoicingProviderConfig is the schema descriptor for invoicing_provider_config field.
-	billingprofileDescInvoicingProviderConfig := billingprofileFields[4].Descriptor()
+	billingprofileDescInvoicingProviderConfig := billingprofileFields[3].Descriptor()
 	billingprofile.ValueScanner.InvoicingProviderConfig = billingprofileDescInvoicingProviderConfig.ValueScanner.(field.TypeValueScanner[provider.InvoicingConfiguration])
 	// billingprofileDescPaymentProviderConfig is the schema descriptor for payment_provider_config field.
-	billingprofileDescPaymentProviderConfig := billingprofileFields[6].Descriptor()
+	billingprofileDescPaymentProviderConfig := billingprofileFields[5].Descriptor()
 	billingprofile.ValueScanner.PaymentProviderConfig = billingprofileDescPaymentProviderConfig.ValueScanner.(field.TypeValueScanner[provider.PaymentConfiguration])
 	// billingprofileDescWorkflowConfigID is the schema descriptor for workflow_config_id field.
-	billingprofileDescWorkflowConfigID := billingprofileFields[7].Descriptor()
+	billingprofileDescWorkflowConfigID := billingprofileFields[6].Descriptor()
 	// billingprofile.WorkflowConfigIDValidator is a validator for the "workflow_config_id" field. It is called by the builders before save.
 	billingprofile.WorkflowConfigIDValidator = billingprofileDescWorkflowConfigID.Validators[0].(func(string) error)
 	// billingprofileDescDefault is the schema descriptor for default field.
-	billingprofileDescDefault := billingprofileFields[8].Descriptor()
+	billingprofileDescDefault := billingprofileFields[7].Descriptor()
 	// billingprofile.DefaultDefault holds the default value on creation for the default field.
 	billingprofile.DefaultDefault = billingprofileDescDefault.Default.(bool)
 	// billingprofileDescID is the schema descriptor for id field.
@@ -210,10 +251,6 @@ func init() {
 	billingworkflowconfig.DefaultUpdatedAt = billingworkflowconfigDescUpdatedAt.Default.(func() time.Time)
 	// billingworkflowconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billingworkflowconfig.UpdateDefaultUpdatedAt = billingworkflowconfigDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// billingworkflowconfigDescInvoiceLineItemPerSubject is the schema descriptor for invoice_line_item_per_subject field.
-	billingworkflowconfigDescInvoiceLineItemPerSubject := billingworkflowconfigFields[7].Descriptor()
-	// billingworkflowconfig.DefaultInvoiceLineItemPerSubject holds the default value on creation for the invoice_line_item_per_subject field.
-	billingworkflowconfig.DefaultInvoiceLineItemPerSubject = billingworkflowconfigDescInvoiceLineItemPerSubject.Default.(bool)
 	// billingworkflowconfigDescID is the schema descriptor for id field.
 	billingworkflowconfigDescID := billingworkflowconfigMixinFields0[0].Descriptor()
 	// billingworkflowconfig.DefaultID holds the default value on creation for the id field.

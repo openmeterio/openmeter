@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -19,16 +20,18 @@ type BillingProfile struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// Key holds the value of the "key" field.
+	Key string `json:"key,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Key holds the value of the "key" field.
-	Key string `json:"key,omitempty"`
 	// TaxProvider holds the value of the "tax_provider" field.
 	TaxProvider *provider.TaxProvider `json:"tax_provider,omitempty"`
 	// TaxProviderConfig holds the value of the "tax_provider_config" field.
@@ -98,9 +101,11 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case billingprofile.FieldMetadata:
+			values[i] = new([]byte)
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID:
+		case billingprofile.FieldID, billingprofile.FieldKey, billingprofile.FieldNamespace, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -131,11 +136,25 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bp.ID = value.String
 			}
+		case billingprofile.FieldKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field key", values[i])
+			} else if value.Valid {
+				bp.Key = value.String
+			}
 		case billingprofile.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				bp.Namespace = value.String
+			}
+		case billingprofile.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bp.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case billingprofile.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -155,12 +174,6 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bp.DeletedAt = new(time.Time)
 				*bp.DeletedAt = value.Time
-			}
-		case billingprofile.FieldKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field key", values[i])
-			} else if value.Valid {
-				bp.Key = value.String
 			}
 		case billingprofile.FieldTaxProvider:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -264,8 +277,14 @@ func (bp *BillingProfile) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingProfile(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", bp.ID))
+	builder.WriteString("key=")
+	builder.WriteString(bp.Key)
+	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(bp.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", bp.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(bp.CreatedAt.Format(time.ANSIC))
@@ -277,9 +296,6 @@ func (bp *BillingProfile) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("key=")
-	builder.WriteString(bp.Key)
 	builder.WriteString(", ")
 	if v := bp.TaxProvider; v != nil {
 		builder.WriteString("tax_provider=")

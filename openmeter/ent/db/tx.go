@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
+	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
+	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
 	// BillingInvoiceItem is the client for interacting with the BillingInvoiceItem builders.
@@ -174,6 +176,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
+	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
 	tx.BillingInvoiceItem = NewBillingInvoiceItemClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
