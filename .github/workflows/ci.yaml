@@ -167,6 +167,46 @@ jobs:
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
+  license-check:
+    name: License check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@8887e596b4ee1134dae06b98d573bd674693f47c # v26
+        with:
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up magic Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@eeabdb06718ac63a7021c6132129679a8e22d0c7 # v3
+
+      - name: Cache license information
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+        with:
+          path: .licensei.cache
+          key: licensei-v1-${{ github.ref_name }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            licensei-v1-${{ github.ref_name }}
+            licensei-v1-main
+            licensei-v1
+
+      - name: Prepare Nix shell
+        run: nix develop --impure .#ci
+
+      - name: Populate license cache
+        run: nix develop --impure .#ci -c licensei cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check licenses
+        run: nix develop --impure .#ci -c make license-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   dev:
     name: Developer environment
     runs-on: ubuntu-latest

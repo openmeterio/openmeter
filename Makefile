@@ -57,7 +57,7 @@ config.yaml:
 	cp config.example.yaml config.yaml
 
 .PHONY: server
-server: ## Run sink-worker
+server: ## Run server
 	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
 	$(call print-target)
 	air -c ./cmd/server/.air.toml
@@ -94,6 +94,12 @@ test: ## Run tests
 lint: ## Run linters
 	$(call print-target)
 	dagger call lint all
+
+.PHONY: license-check
+license-check: ## Run license check
+	$(call print-target)
+	licensei check
+	licensei header
 
 .PHONY: fmt
 fmt: ## Format code
