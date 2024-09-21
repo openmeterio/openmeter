@@ -25,8 +25,17 @@ type NamespaceHandler struct {
 
 // CreateNamespace implements the namespace handler interface.
 func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string) error {
-	topic := h.getTopicName(namespace)
-	return pkgkafka.ProvisionTopic(ctx, h.AdminClient, h.Logger, topic, h.Partitions)
+	topicName := h.getTopicName(namespace)
+
+	err := pkgkafka.ProvisionTopics(ctx, h.AdminClient, pkgkafka.TopicConfig{
+		Name:       h.getTopicName(namespace),
+		Partitions: h.Partitions,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to provision topic %s: %s", topicName, err)
+	}
+
+	return nil
 }
 
 // DeleteNamespace implements the namespace handler interface.

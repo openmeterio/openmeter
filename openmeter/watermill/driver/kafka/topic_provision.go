@@ -17,6 +17,7 @@ type AutoProvisionTopic struct {
 
 // provisionTopics creates the topics if they don't exist. This relies on the confluent kafka lib, as the sarama doesn't seem to
 // properly support interacting with the confluent cloud.
+// FIXME(chrisgacsal): use kafka.ProvisionTopics() from openmeter/pkg/kafka
 func provisionTopics(ctx context.Context, logger *slog.Logger, config kafka.ConfigMap, topics []AutoProvisionTopic) error {
 	// This is not supported on admin client, so we need to remove it
 	delete(config, "go.logs.channel.enable")
