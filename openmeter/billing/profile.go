@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -207,6 +210,40 @@ func (p Profile) Validate() error {
 
 	if err := p.Supplier.Validate(); err != nil {
 		return fmt.Errorf("invalid supplier: %w", err)
+	}
+
+	return nil
+}
+
+func (p Profile) Merge(o *CustomerOverride) Profile {
+	p.WorkflowConfig.Collection = CollectionConfig{
+		Alignment:            lo.FromPtrOr(o.Collection.Alignment, p.WorkflowConfig.Collection.Alignment),
+		ItemCollectionPeriod: lo.FromPtrOr(o.Collection.ItemCollectionPeriod, p.WorkflowConfig.Collection.ItemCollectionPeriod),
+	}
+
+	p.WorkflowConfig.Invoicing = InvoicingConfig{
+		AutoAdvance:    lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
+		DraftPeriod:    lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
+		DueAfter:       lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
+		ItemResolution: lo.FromPtrOr(o.Invoicing.ItemResolution, p.WorkflowConfig.Invoicing.ItemResolution),
+		ItemPerSubject: lo.FromPtrOr(o.Invoicing.ItemPerSubject, p.WorkflowConfig.Invoicing.ItemPerSubject),
+	}
+
+	p.WorkflowConfig.Payment = PaymentConfig{
+		CollectionMethod: lo.FromPtrOr(o.Payment.CollectionMethod, p.WorkflowConfig.Payment.CollectionMethod),
+	}
+
+	return p
+}
+
+type ProfileWithCustomerDetails struct {
+	Profile  Profile           `json:"profile"`
+	Customer customer.Customer `json:"customer"`
+}
+
+func (p ProfileWithCustomerDetails) Validate() error {
+	if err := p.Profile.Validate(); err != nil {
+		return fmt.Errorf("invalid profile: %w", err)
 	}
 
 	return nil

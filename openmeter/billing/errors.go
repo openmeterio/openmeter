@@ -8,20 +8,42 @@ import (
 )
 
 var (
-	ErrDefaultProfileAlreadyExists = errors.New("default profile already exists")
-	ErrProfileNotFound             = errors.New("profile not found")
-	ErrProfileAlreadyDeleted       = errors.New("profile already deleted")
-	ErrProfileUpdateAfterDelete    = errors.New("profile cannot be updated after deletion")
+	ErrDefaultProfileAlreadyExists  = errors.New("default profile already exists")
+	ErrDefaultProfileNotFound       = errors.New("default profile not found")
+	ErrProfileNotFound              = errors.New("profile not found")
+	ErrProfileAlreadyDeleted        = errors.New("profile already deleted")
+	ErrProfileConflict              = errors.New("profile has been already updated")
+	ErrProfileReferencedByOverrides = errors.New("profile is referenced by customer overrides")
+	ErrProfileTaxTypeChange         = errors.New("profile tax type change is not allowed")
+	ErrProfileInvoicingTypeChange   = errors.New("profile invoicing type change is not allowed")
+	ErrProfilePaymentTypeChange     = errors.New("profile payment type change is not allowed")
+
+	ErrCustomerOverrideNotFound       = errors.New("customer override not found")
+	ErrCustomerOverrideConflict       = errors.New("customer override has been already updated conflict")
+	ErrCustomerOverrideAlreadyDeleted = errors.New("customer override already deleted")
+	ErrCustomerNotFound               = errors.New("customer not found")
 )
 
 var _ error = (*NotFoundError)(nil)
 
+const (
+	EntityCustomerOverride = "billingCustomerOverride"
+	EntityCustomer         = "customer"
+	EntityDefaultProfile   = "defaultBillingProfile"
+)
+
 type NotFoundError struct {
 	models.NamespacedID
+	Entity string
+	Err    error
 }
 
 func (e NotFoundError) Error() string {
-	return fmt.Sprintf("resource with id %s not found in %s namespace", e.ID, e.Namespace)
+	return fmt.Sprintf("%s with id %s not found: %s", e.Entity, e.ID, e.Err)
+}
+
+func (e NotFoundError) Unwrap() error {
+	return e.Err
 }
 
 type genericError struct {

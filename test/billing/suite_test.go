@@ -67,7 +67,8 @@ func (s *BaseSuite) SetupSuite() {
 	s.BillingAdapter = billingAdapter
 
 	billingService, err := billingservice.New(billingservice.Config{
-		Adapter: billingAdapter,
+		Adapter:         billingAdapter,
+		CustomerService: s.CustomerService,
 	})
 	require.NoError(t, err)
 	s.BillingService = billingService

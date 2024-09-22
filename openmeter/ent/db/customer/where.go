@@ -1325,6 +1325,29 @@ func HasSubjectsWith(preds ...predicate.CustomerSubjects) predicate.Customer {
 	})
 }
 
+// HasBillingCustomerOverride applies the HasEdge predicate on the "billing_customer_override" edge.
+func HasBillingCustomerOverride() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, BillingCustomerOverrideTable, BillingCustomerOverrideColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingCustomerOverrideWith applies the HasEdge predicate on the "billing_customer_override" edge with a given conditions (other predicates).
+func HasBillingCustomerOverrideWith(preds ...predicate.BillingCustomerOverride) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newBillingCustomerOverrideStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Customer) predicate.Customer {
 	return predicate.Customer(sql.AndPredicates(predicates...))

@@ -54,6 +54,8 @@ const (
 	FieldSupplierName = "supplier_name"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
+	// EdgeBillingCustomerOverride holds the string denoting the billing_customer_override edge name in mutations.
+	EdgeBillingCustomerOverride = "billing_customer_override"
 	// EdgeWorkflowConfig holds the string denoting the workflow_config edge name in mutations.
 	EdgeWorkflowConfig = "workflow_config"
 	// Table holds the table name of the billingprofile in the database.
@@ -65,6 +67,13 @@ const (
 	BillingInvoicesInverseTable = "billing_invoices"
 	// BillingInvoicesColumn is the table column denoting the billing_invoices relation/edge.
 	BillingInvoicesColumn = "billing_profile_id"
+	// BillingCustomerOverrideTable is the table that holds the billing_customer_override relation/edge.
+	BillingCustomerOverrideTable = "billing_customer_overrides"
+	// BillingCustomerOverrideInverseTable is the table name for the BillingCustomerOverride entity.
+	// It exists in this package in order to avoid circular dependency with the "billingcustomeroverride" package.
+	BillingCustomerOverrideInverseTable = "billing_customer_overrides"
+	// BillingCustomerOverrideColumn is the table column denoting the billing_customer_override relation/edge.
+	BillingCustomerOverrideColumn = "billing_profile_id"
 	// WorkflowConfigTable is the table that holds the workflow_config relation/edge.
 	WorkflowConfigTable = "billing_profiles"
 	// WorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
@@ -265,6 +274,20 @@ func ByBillingInvoices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByBillingCustomerOverrideCount orders the results by billing_customer_override count.
+func ByBillingCustomerOverrideCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingCustomerOverrideStep(), opts...)
+	}
+}
+
+// ByBillingCustomerOverride orders the results by billing_customer_override terms.
+func ByBillingCustomerOverride(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingCustomerOverrideStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByWorkflowConfigField orders the results by workflow_config field.
 func ByWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -276,6 +299,13 @@ func newBillingInvoicesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoicesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicesTable, BillingInvoicesColumn),
+	)
+}
+func newBillingCustomerOverrideStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingCustomerOverrideInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingCustomerOverrideTable, BillingCustomerOverrideColumn),
 	)
 }
 func newWorkflowConfigStep() *sqlgraph.Step {

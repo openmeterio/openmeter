@@ -194,6 +194,10 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 }
 
 func mapProfileFromDB(dbProfile *db.BillingProfile) *billing.Profile {
+	if dbProfile == nil {
+		return nil
+	}
+
 	return &billing.Profile{
 		Namespace: dbProfile.Namespace,
 		ID:        dbProfile.ID,

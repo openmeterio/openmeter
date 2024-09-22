@@ -58,6 +58,12 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 		}
 	}
 
+	if e.ExternalMappingStripeCustomerID != nil {
+		result.External = &customer.CustomerExternalMapping{
+			StripeCustomerID: e.ExternalMappingStripeCustomerID,
+		}
+	}
+
 	if e.BillingAddressCity != nil || e.BillingAddressCountry != nil || e.BillingAddressLine1 != nil || e.BillingAddressLine2 != nil || e.BillingAddressPhoneNumber != nil || e.BillingAddressPostalCode != nil || e.BillingAddressState != nil {
 		result.BillingAddress = &models.Address{
 			City:        e.BillingAddressCity,

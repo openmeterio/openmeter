@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -269,6 +270,25 @@ func (cc *CustomerCreate) AddSubjects(c ...*CustomerSubjects) *CustomerCreate {
 	return cc.AddSubjectIDs(ids...)
 }
 
+// SetBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID.
+func (cc *CustomerCreate) SetBillingCustomerOverrideID(id string) *CustomerCreate {
+	cc.mutation.SetBillingCustomerOverrideID(id)
+	return cc
+}
+
+// SetNillableBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingCustomerOverrideID(id *string) *CustomerCreate {
+	if id != nil {
+		cc = cc.SetBillingCustomerOverrideID(*id)
+	}
+	return cc
+}
+
+// SetBillingCustomerOverride sets the "billing_customer_override" edge to the BillingCustomerOverride entity.
+func (cc *CustomerCreate) SetBillingCustomerOverride(b *BillingCustomerOverride) *CustomerCreate {
+	return cc.SetBillingCustomerOverrideID(b.ID)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cc *CustomerCreate) Mutation() *CustomerMutation {
 	return cc.mutation
@@ -460,6 +480,22 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   customer.BillingCustomerOverrideTable,
+			Columns: []string{customer.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

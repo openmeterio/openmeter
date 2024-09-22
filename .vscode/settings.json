@@ -14,7 +14,12 @@
     "formatting.gofumpt": true
   },
   "go.lintTool": "golangci-lint",
-  "go.lintFlags": ["--fast", "--fix", "-c", ".golangci.yaml"],
+  "go.lintFlags": [
+    "--fast",
+    "--fix",
+    "-c",
+    ".golangci.yaml"
+  ],
   "files.exclude": {
     "**/node_modules": false
   },

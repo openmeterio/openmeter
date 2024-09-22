@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -21,12 +22,13 @@ import (
 // CustomerQuery is the builder for querying Customer entities.
 type CustomerQuery struct {
 	config
-	ctx          *QueryContext
-	order        []customer.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Customer
-	withSubjects *CustomerSubjectsQuery
-	modifiers    []func(*sql.Selector)
+	ctx                         *QueryContext
+	order                       []customer.OrderOption
+	inters                      []Interceptor
+	predicates                  []predicate.Customer
+	withSubjects                *CustomerSubjectsQuery
+	withBillingCustomerOverride *BillingCustomerOverrideQuery
+	modifiers                   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +80,28 @@ func (cq *CustomerQuery) QuerySubjects() *CustomerSubjectsQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(customersubjects.Table, customersubjects.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubjectsTable, customer.SubjectsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingCustomerOverride chains the current query on the "billing_customer_override" edge.
+func (cq *CustomerQuery) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	query := (&BillingCustomerOverrideClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, customer.BillingCustomerOverrideTable, customer.BillingCustomerOverrideColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -272,12 +296,13 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 		return nil
 	}
 	return &CustomerQuery{
-		config:       cq.config,
-		ctx:          cq.ctx.Clone(),
-		order:        append([]customer.OrderOption{}, cq.order...),
-		inters:       append([]Interceptor{}, cq.inters...),
-		predicates:   append([]predicate.Customer{}, cq.predicates...),
-		withSubjects: cq.withSubjects.Clone(),
+		config:                      cq.config,
+		ctx:                         cq.ctx.Clone(),
+		order:                       append([]customer.OrderOption{}, cq.order...),
+		inters:                      append([]Interceptor{}, cq.inters...),
+		predicates:                  append([]predicate.Customer{}, cq.predicates...),
+		withSubjects:                cq.withSubjects.Clone(),
+		withBillingCustomerOverride: cq.withBillingCustomerOverride.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -292,6 +317,17 @@ func (cq *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *Cus
 		opt(query)
 	}
 	cq.withSubjects = query
+	return cq
+}
+
+// WithBillingCustomerOverride tells the query-builder to eager-load the nodes that are connected to
+// the "billing_customer_override" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CustomerQuery) WithBillingCustomerOverride(opts ...func(*BillingCustomerOverrideQuery)) *CustomerQuery {
+	query := (&BillingCustomerOverrideClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withBillingCustomerOverride = query
 	return cq
 }
 
@@ -373,8 +409,9 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = cq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			cq.withSubjects != nil,
+			cq.withBillingCustomerOverride != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -405,6 +442,12 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 			return nil, err
 		}
 	}
+	if query := cq.withBillingCustomerOverride; query != nil {
+		if err := cq.loadBillingCustomerOverride(ctx, query, nodes, nil,
+			func(n *Customer, e *BillingCustomerOverride) { n.Edges.BillingCustomerOverride = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -423,6 +466,33 @@ func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjec
 	}
 	query.Where(predicate.CustomerSubjects(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customer.SubjectsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (cq *CustomerQuery) loadBillingCustomerOverride(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingCustomerOverride)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingcustomeroverride.FieldCustomerID)
+	}
+	query.Where(predicate.BillingCustomerOverride(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.BillingCustomerOverrideColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

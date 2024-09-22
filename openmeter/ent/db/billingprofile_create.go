@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -250,6 +251,21 @@ func (bpc *BillingProfileCreate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 		ids[i] = b[i].ID
 	}
 	return bpc.AddBillingInvoiceIDs(ids...)
+}
+
+// AddBillingCustomerOverrideIDs adds the "billing_customer_override" edge to the BillingCustomerOverride entity by IDs.
+func (bpc *BillingProfileCreate) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileCreate {
+	bpc.mutation.AddBillingCustomerOverrideIDs(ids...)
+	return bpc
+}
+
+// AddBillingCustomerOverride adds the "billing_customer_override" edges to the BillingCustomerOverride entity.
+func (bpc *BillingProfileCreate) AddBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bpc.AddBillingCustomerOverrideIDs(ids...)
 }
 
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
@@ -490,6 +506,22 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bpc.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -1140,6 +1140,29 @@ func HasBillingInvoicesWith(preds ...predicate.BillingInvoice) predicate.Billing
 	})
 }
 
+// HasBillingCustomerOverride applies the HasEdge predicate on the "billing_customer_override" edge.
+func HasBillingCustomerOverride() predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingCustomerOverrideTable, BillingCustomerOverrideColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingCustomerOverrideWith applies the HasEdge predicate on the "billing_customer_override" edge with a given conditions (other predicates).
+func HasBillingCustomerOverrideWith(preds ...predicate.BillingCustomerOverride) predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := newBillingCustomerOverrideStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasWorkflowConfig applies the HasEdge predicate on the "workflow_config" edge.
 func HasWorkflowConfig() predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {

@@ -50,6 +50,8 @@ const (
 	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
+	// EdgeBillingCustomerOverride holds the string denoting the billing_customer_override edge name in mutations.
+	EdgeBillingCustomerOverride = "billing_customer_override"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// SubjectsTable is the table that holds the subjects relation/edge.
@@ -59,6 +61,13 @@ const (
 	SubjectsInverseTable = "customer_subjects"
 	// SubjectsColumn is the table column denoting the subjects relation/edge.
 	SubjectsColumn = "customer_id"
+	// BillingCustomerOverrideTable is the table that holds the billing_customer_override relation/edge.
+	BillingCustomerOverrideTable = "billing_customer_overrides"
+	// BillingCustomerOverrideInverseTable is the table name for the BillingCustomerOverride entity.
+	// It exists in this package in order to avoid circular dependency with the "billingcustomeroverride" package.
+	BillingCustomerOverrideInverseTable = "billing_customer_overrides"
+	// BillingCustomerOverrideColumn is the table column denoting the billing_customer_override relation/edge.
+	BillingCustomerOverrideColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -211,10 +220,24 @@ func BySubjects(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubjectsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingCustomerOverrideField orders the results by billing_customer_override field.
+func ByBillingCustomerOverrideField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingCustomerOverrideStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newSubjectsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubjectsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubjectsTable, SubjectsColumn),
+	)
+}
+func newBillingCustomerOverrideStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingCustomerOverrideInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, BillingCustomerOverrideTable, BillingCustomerOverrideColumn),
 	)
 }

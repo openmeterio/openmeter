@@ -9,6 +9,9 @@ import (
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
+// BillingCustomerOverride is the predicate function for billingcustomeroverride builders.
+type BillingCustomerOverride func(*sql.Selector)
+
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
 
