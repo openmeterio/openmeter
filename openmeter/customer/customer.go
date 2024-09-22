@@ -64,6 +64,66 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 	return customer, nil
 }
 
+// AsAPICustomer converts a Customer to an API Customer
+func (c Customer) AsAPICustomer() (api.Customer, error) {
+	customer := api.Customer{
+		Id:               &c.ManagedResource.ID,
+		Name:             c.Name,
+		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
+		PrimaryEmail:     c.PrimaryEmail,
+	}
+
+	if c.BillingAddress != nil {
+		address := api.Address{
+			City:        c.BillingAddress.City,
+			State:       c.BillingAddress.State,
+			PostalCode:  c.BillingAddress.PostalCode,
+			Line1:       c.BillingAddress.Line1,
+			Line2:       c.BillingAddress.Line2,
+			PhoneNumber: c.BillingAddress.PhoneNumber,
+		}
+
+		if c.BillingAddress.Country != nil {
+			country := string(*c.BillingAddress.Country)
+			address.Country = &country
+		}
+
+		customer.BillingAddress = &address
+	}
+
+	if c.External != nil {
+		external := api.CustomerExternalMapping{}
+
+		if c.External.StripeCustomerID != nil {
+			external.StripeCustomerId = c.External.StripeCustomerID
+		}
+
+		customer.External = &external
+	}
+
+	if c.Currency != nil {
+		currency := string(*c.Currency)
+		customer.Currency = &currency
+	}
+
+	if c.TaxProvider != nil {
+		taxProvider := api.TaxProvider(string(*c.TaxProvider))
+		customer.TaxProvider = &taxProvider
+	}
+
+	if c.InvoicingProvider != nil {
+		invoicingProvider := api.InvoicingProvider(string(*c.InvoicingProvider))
+		customer.InvoicingProvider = &invoicingProvider
+	}
+
+	if c.PaymentProvider != nil {
+		paymentProvider := api.PaymentProvider(string(*c.PaymentProvider))
+		customer.PaymentProvider = &paymentProvider
+	}
+
+	return customer, nil
+}
+
 type CustomerID models.NamespacedID
 
 func (i CustomerID) Validate() error {

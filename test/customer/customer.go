@@ -18,8 +18,6 @@ var (
 	TestCurrency           = models.CurrencyCode("USD")
 	TestTimezone           = timezone.Timezone("America/Los_Angeles")
 	TestAddressCountry     = models.CountryCode("US")
-	TestAddressCity        = "San Francisco"
-	TestAddressState       = "CA"
 	TestAddressPostalCode  = "94105"
 	TestAddressLine1       = "123 Main St"
 	TestAddressLine2       = "Apt 1"
