@@ -14,6 +14,8 @@ const (
 	Label = "customer_subjects"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldNamespace holds the string denoting the namespace field in the database.
+	FieldNamespace = "namespace"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldSubjectKey holds the string denoting the subject_key field in the database.
@@ -36,6 +38,7 @@ const (
 // Columns holds all SQL columns for customersubjects fields.
 var Columns = []string{
 	FieldID,
+	FieldNamespace,
 	FieldCustomerID,
 	FieldSubjectKey,
 	FieldCreatedAt,
@@ -52,6 +55,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	NamespaceValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
 	// SubjectKeyValidator is a validator for the "subject_key" field. It is called by the builders before save.
@@ -66,6 +71,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByNamespace orders the results by the namespace field.
+func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.

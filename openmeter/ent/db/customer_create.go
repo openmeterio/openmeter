@@ -26,12 +26,6 @@ type CustomerCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetKey sets the "key" field.
-func (cc *CustomerCreate) SetKey(s string) *CustomerCreate {
-	cc.mutation.SetKey(s)
-	return cc
-}
-
 // SetNamespace sets the "namespace" field.
 func (cc *CustomerCreate) SetNamespace(s string) *CustomerCreate {
 	cc.mutation.SetNamespace(s)
@@ -368,14 +362,6 @@ func (cc *CustomerCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (cc *CustomerCreate) check() error {
-	if _, ok := cc.mutation.Key(); !ok {
-		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Customer.key"`)}
-	}
-	if v, ok := cc.mutation.Key(); ok {
-		if err := customer.KeyValidator(v); err != nil {
-			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Customer.key": %w`, err)}
-		}
-	}
 	if _, ok := cc.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Customer.namespace"`)}
 	}
@@ -453,10 +439,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if id, ok := cc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
-	}
-	if value, ok := cc.mutation.Key(); ok {
-		_spec.SetField(customer.FieldKey, field.TypeString, value)
-		_node.Key = value
 	}
 	if value, ok := cc.mutation.Namespace(); ok {
 		_spec.SetField(customer.FieldNamespace, field.TypeString, value)
@@ -561,7 +543,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Customer.Create().
-//		SetKey(v).
+//		SetNamespace(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -570,7 +552,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerUpsert) {
-//			SetKey(v+v).
+//			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
 func (cc *CustomerCreate) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertOne {
@@ -934,9 +916,6 @@ func (u *CustomerUpsertOne) UpdateNewValues() *CustomerUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(customer.FieldID)
-		}
-		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(customer.FieldKey)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(customer.FieldNamespace)
@@ -1475,7 +1454,7 @@ func (ccb *CustomerCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerUpsert) {
-//			SetKey(v+v).
+//			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
 func (ccb *CustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertBulk {
@@ -1521,9 +1500,6 @@ func (u *CustomerUpsertBulk) UpdateNewValues() *CustomerUpsertBulk {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(customer.FieldID)
-			}
-			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(customer.FieldKey)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(customer.FieldNamespace)

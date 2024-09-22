@@ -34,6 +34,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestadapter"
@@ -369,6 +371,35 @@ func main() {
 		})
 	}
 
+	// Initialize Customer
+	var customerService customer.CustomerService
+
+	if entClient != nil {
+		var customerRepo customer.Repository
+		customerRepo, err = customerrepository.New(customerrepository.Config{
+			Client: entClient,
+			Logger: logger.WithGroup("customer.postgres"),
+		})
+		if err != nil {
+			logger.Error("failed to initialize customer repository", "error", err)
+			os.Exit(1)
+		}
+
+		customerService, err = customer.NewService(customer.ServiceConfig{
+			Repository: customerRepo,
+		})
+		if err != nil {
+			logger.Error("failed to initialize customer service", "error", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if err = customerService.Close(); err != nil {
+				logger.Error("failed to close customer service", "error", err)
+			}
+		}()
+	}
+
+	// Initialize Notification
 	var notificationService notification.Service
 
 	if conf.Notification.Enabled {
@@ -429,6 +460,7 @@ func main() {
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
+			Customer:                    customerService,
 			DebugConnector:              debugConnector,
 			FeatureConnector:            entitlementConnRegistry.Feature,
 			EntitlementConnector:        entitlementConnRegistry.Entitlement,

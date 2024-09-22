@@ -24,7 +24,7 @@ enum PlanStatus {
  * Plans provide a template for subscriptions.
  */
 @friendlyName("Plan")
-model Plan extends Resource {
+model Plan extends UniqueResource {
   /**
    * Version of the plan. Incremented when the plan is updated.
    */

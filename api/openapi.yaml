@@ -19,6 +19,9 @@ servers:
   - url: https://openmeter.cloud
     description: cloud
 tags:
+  - name: Customers
+    description: |
+      Customers are used in billing.
   - name: Events
     description: |
       Endpoints related to ingesting and debugging usage events.
@@ -49,6 +52,137 @@ tags:
 
       [Learn more](https://openmeter.io/docs/getting-started/notification/overview)
 paths:
+  # Customer Endpoints
+  /api/v1/customers:
+    post:
+      operationId: createCustomer
+      description: Create a new customer.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+    get:
+      operationId: listCustomers
+      description: List customers.
+      parameters:
+        - $ref: '#/components/parameters/queryCustomerList'
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerList'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - Customers
+  /api/v1/customers/{customerIdOrKey}:
+    get:
+      operationId: getCustomer
+      description: Get a customer by ID or key.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/CustomerIdentifier'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - Customers
+    put:
+      operationId: updateCustomer
+      description: Update a customer by ID or key.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/CustomerIdentifier'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+    delete:
+      operationId: deleteCustomer
+      description: Delete a customer by ID or key.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/CustomerIdentifier'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - Customers
+
   /api/v1/events:
     get:
       summary: List ingested events
@@ -1798,6 +1932,24 @@ paths:
 
 components:
   schemas:
+    Address:
+      type: object
+      properties:
+        country:
+          $ref: '#/components/schemas/CountryCode'
+        postalCode:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        phoneNumber:
+          type: string
+      description: Address
     SharedMetaFields:
       type: object
       description: |
@@ -1929,6 +2081,185 @@ components:
         title: "Bad Request"
         status: 400
         detail: "body must be a JSON object"
+    CountryCode:
+      type: string
+      example: US
+      minLength: 2
+      maxLength: 2
+      pattern: ^[A-Z]{2}$
+      description: |-
+        [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+        Custom two-letter country codes are also supported for convenience.
+    CurrencyCode:
+      type: string
+      example: USD
+      minLength: 3
+      maxLength: 3
+      pattern: ^[A-Z]{3}$
+      description: |-
+        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+        Custom three-letter currency codes are also supported for convenience.
+    Customer:
+      type: object
+      required:
+        - id
+        - name
+        - usageAttribution
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          description: A unique identifier for the customer.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        archivedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was archived.
+          title: Archival Time
+          readOnly: true
+        usageAttribution:
+          allOf:
+            - $ref: '#/components/schemas/CustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer
+          title: Usage Attribution
+        primaryEmail:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billingAddress:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+        taxProvider:
+          $ref: '#/components/schemas/TaxProvider'
+        invoicingProvider:
+          $ref: '#/components/schemas/InvoicingProvider'
+        paymentProvider:
+          $ref: '#/components/schemas/PaymentProvider'
+        external:
+          allOf:
+            - $ref: '#/components/schemas/CustomerExternalMapping'
+          description: External mappings for the customer.
+          title: External Mappings
+      example:
+        id: 01G65Z755AFWAKHE12NY0CQ9FH
+        key: my_customer_key
+        name: ACME Inc.
+        usageAttribution:
+          subjectKeys:
+            - my_subject_key
+        taxProvider: stripe_tax
+        invoicingProvider: stripe_invoicing
+        paymentProvider: stripe_payments
+        external:
+          stripeCustomerId: cus_xxxxxxxxxxxxxx
+      description: A customer object.
+    CustomerIdentifier:
+      anyOf:
+        - $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/schemas/Key'
+      description: A unique customer identifier.
+      x-go-type: string
+    CustomerExternalMapping:
+      type: object
+      properties:
+        stripeCustomerId:
+          type: string
+          description: |-
+            The Stripe customer ID.
+            Mapping to a Stripe Customer object.
+            Required to use Stripe as an invocing provider.
+          title: Stripe Customer
+      description: External mappings for the customer.
+    CustomerList:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - items
+      properties:
+        page:
+          type: integer
+          description: The page number.
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: The number of items in the page.
+        totalCount:
+          type: integer
+          description: The total number of items.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+          maxItems: 1000
+          description: The items in the page.
+      description: A page of results.
+    CustomerUsageAttribution:
+      type: object
+      required:
+        - subjectKeys
+      properties:
+        subjectKeys:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+          description: The subjects that are attributed to the customer.
+          title: SubjectKeys
+      description: |-
+        Mapping to attribute metered usage to the customer.
+        One customer can have multiple subjects,
+        but one subject can only belong to one customer.
     Event:
       description: CloudEvents Specification JSON Schema
       x-go-type: event.Event
@@ -2047,6 +2378,12 @@ components:
         validationError: "meter not found for event"
         ingestedAt: "2024-01-01T00:00:00Z"
         storedAt: "2024-01-01T00:00:00Z"
+    InvoicingProvider:
+      type: string
+      enum:
+        - openmeter_sandbox
+        - stripe_invoicing
+      description: A invoicing provider.
     FeatureCreateInputs:
       type: object
       description: |
@@ -2142,6 +2479,12 @@ components:
             for example when interacting with a subject's entitlements.
           type: string
           example: "gpt4_tokens"
+
+    DateTime:
+      type: string
+      format: date-time
+      example: 2023-01-01T01:01:01.001Z
+      description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
 
     # Entitlement has 3 subtypes
     EntitlementCreateSharedFields:
@@ -2827,6 +3170,15 @@ components:
         - MIN
         - MAX
       example: SUM
+    Metadata:
+      type: object
+      additionalProperties:
+        type: string
+      example:
+        externalId: 019142cc-a016-796a-8113-1a942fecd26d
+      description: |-
+        Set of key-value pairs.
+        Metadata can be used to store additional information about a resource.
     WindowSize:
       type: string
       description: Aggregation window size.
@@ -3614,8 +3966,109 @@ components:
           type: integer
           description: Number of items per page.
           example: 100
+    PaymentProvider:
+      type: string
+      enum:
+        - openmeter_sandbox
+        - stripe_payments
+      description: A payment provider.
+    Resource:
+      type: object
+      required:
+        - key
+        - name
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/Key'
+          description: A semi-unique identifier for the resource.
+          title: Key
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        archivedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of when the resource was archived.
+          title: Archival Time
+          readOnly: true
+      description: Represents common fields of resources.
+    TaxProvider:
+      type: string
+      enum:
+        - openmeter_sandbox
+        - stripe_tax
+      description: A tax provider.
+    Key:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      description: A key is a unique string that is used to identify a resource.
+    ULID:
+      type: string
+      example: 01G65Z755AFWAKHE12NY0CQ9FH
+      pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      description: ULID (Universally Unique Lexicographically Sortable Identifier).
 
   parameters:
+    PaginatedQuery.page:
+      name: page
+      in: query
+      required: false
+      description: The page number.
+      schema:
+        type: integer
+        default: 1
+      explode: false
+    PaginatedQuery.pageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: The number of items in the page.
+      schema:
+        type: integer
+        default: 100
+    queryCustomerList:
+      name: includeDeleted
+      in: query
+      required: false
+      description: Include deleted customers.
+      schema:
+        type: boolean
+        default: false
+      explode: false
     meterIdOrSlug:
       name: meterIdOrSlug
       description: A unique identifier for the meter.

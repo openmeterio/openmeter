@@ -216,20 +216,16 @@ func init() {
 	_ = customerMixinFields1
 	customerFields := schema.Customer{}.Fields()
 	_ = customerFields
-	// customerDescKey is the schema descriptor for key field.
-	customerDescKey := customerMixinFields0[1].Descriptor()
-	// customer.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	customer.KeyValidator = customerDescKey.Validators[0].(func(string) error)
 	// customerDescNamespace is the schema descriptor for namespace field.
-	customerDescNamespace := customerMixinFields0[2].Descriptor()
+	customerDescNamespace := customerMixinFields0[1].Descriptor()
 	// customer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	customer.NamespaceValidator = customerDescNamespace.Validators[0].(func(string) error)
 	// customerDescCreatedAt is the schema descriptor for created_at field.
-	customerDescCreatedAt := customerMixinFields0[4].Descriptor()
+	customerDescCreatedAt := customerMixinFields0[3].Descriptor()
 	// customer.DefaultCreatedAt holds the default value on creation for the created_at field.
 	customer.DefaultCreatedAt = customerDescCreatedAt.Default.(func() time.Time)
 	// customerDescUpdatedAt is the schema descriptor for updated_at field.
-	customerDescUpdatedAt := customerMixinFields0[5].Descriptor()
+	customerDescUpdatedAt := customerMixinFields0[4].Descriptor()
 	// customer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	customer.DefaultUpdatedAt = customerDescUpdatedAt.Default.(func() time.Time)
 	// customer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -274,8 +270,15 @@ func init() {
 	customerDescID := customerMixinFields0[0].Descriptor()
 	// customer.DefaultID holds the default value on creation for the id field.
 	customer.DefaultID = customerDescID.Default.(func() string)
+	customersubjectsMixin := schema.CustomerSubjects{}.Mixin()
+	customersubjectsMixinFields0 := customersubjectsMixin[0].Fields()
+	_ = customersubjectsMixinFields0
 	customersubjectsFields := schema.CustomerSubjects{}.Fields()
 	_ = customersubjectsFields
+	// customersubjectsDescNamespace is the schema descriptor for namespace field.
+	customersubjectsDescNamespace := customersubjectsMixinFields0[0].Descriptor()
+	// customersubjects.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	customersubjects.NamespaceValidator = customersubjectsDescNamespace.Validators[0].(func(string) error)
 	// customersubjectsDescCustomerID is the schema descriptor for customer_id field.
 	customersubjectsDescCustomerID := customersubjectsFields[0].Descriptor()
 	// customersubjects.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.

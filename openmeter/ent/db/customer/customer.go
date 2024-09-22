@@ -16,8 +16,6 @@ const (
 	Label = "customer"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldKey holds the string denoting the key field in the database.
-	FieldKey = "key"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -74,7 +72,6 @@ const (
 // Columns holds all SQL columns for customer fields.
 var Columns = []string{
 	FieldID,
-	FieldKey,
 	FieldNamespace,
 	FieldMetadata,
 	FieldCreatedAt,
@@ -108,8 +105,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	KeyValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -162,11 +157,6 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
-}
-
-// ByKey orders the results by the key field.
-func ByKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.

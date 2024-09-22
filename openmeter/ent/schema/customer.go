@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -42,13 +43,20 @@ func (Customer) Fields() []ent.Field {
 
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("subjects", CustomerSubjects.Type),
+		edge.To("subjects", CustomerSubjects.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
 // CustomerSubject stores the subject keys for a customer
 type CustomerSubjects struct {
 	ent.Schema
+}
+
+func (CustomerSubjects) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+	}
 }
 
 func (CustomerSubjects) Fields() []ent.Field {
@@ -71,6 +79,8 @@ func (CustomerSubjects) Fields() []ent.Field {
 func (CustomerSubjects) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("customer_id", "subject_key").
+			Unique(),
+		index.Fields("namespace", "subject_key").
 			Unique(),
 	}
 }

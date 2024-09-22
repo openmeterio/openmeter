@@ -9,6 +9,7 @@ import "./errors.tsp";
 import "./types.tsp";
 
 import "./query.tsp";
+import "./customer.tsp";
 import "./events.tsp";
 import "./meters.tsp";
 import "./portal.tsp";

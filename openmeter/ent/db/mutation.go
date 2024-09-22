@@ -5766,7 +5766,6 @@ type CustomerMutation struct {
 	op                                  Op
 	typ                                 string
 	id                                  *string
-	key                                 *string
 	namespace                           *string
 	metadata                            *map[string]string
 	created_at                          *time.Time
@@ -5898,42 +5897,6 @@ func (m *CustomerMutation) IDs(ctx context.Context) ([]string, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetKey sets the "key" field.
-func (m *CustomerMutation) SetKey(s string) {
-	m.key = &s
-}
-
-// Key returns the value of the "key" field in the mutation.
-func (m *CustomerMutation) Key() (r string, exists bool) {
-	v := m.key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldKey returns the old "key" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldKey(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKey: %w", err)
-	}
-	return oldValue.Key, nil
-}
-
-// ResetKey resets all changes to the "key" field.
-func (m *CustomerMutation) ResetKey() {
-	m.key = nil
 }
 
 // SetNamespace sets the "namespace" field.
@@ -6952,10 +6915,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 21)
-	if m.key != nil {
-		fields = append(fields, customer.FieldKey)
-	}
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, customer.FieldNamespace)
 	}
@@ -7024,8 +6984,6 @@ func (m *CustomerMutation) Fields() []string {
 // schema.
 func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case customer.FieldKey:
-		return m.Key()
 	case customer.FieldNamespace:
 		return m.Namespace()
 	case customer.FieldMetadata:
@@ -7075,8 +7033,6 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case customer.FieldKey:
-		return m.OldKey(ctx)
 	case customer.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case customer.FieldMetadata:
@@ -7126,13 +7082,6 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 // type.
 func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case customer.FieldKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetKey(v)
-		return nil
 	case customer.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
@@ -7421,9 +7370,6 @@ func (m *CustomerMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *CustomerMutation) ResetField(name string) error {
 	switch name {
-	case customer.FieldKey:
-		m.ResetKey()
-		return nil
 	case customer.FieldNamespace:
 		m.ResetNamespace()
 		return nil
@@ -7578,6 +7524,7 @@ type CustomerSubjectsMutation struct {
 	op              Op
 	typ             string
 	id              *int
+	namespace       *string
 	subject_key     *string
 	created_at      *time.Time
 	clearedFields   map[string]struct{}
@@ -7684,6 +7631,42 @@ func (m *CustomerSubjectsMutation) IDs(ctx context.Context) ([]int, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *CustomerSubjectsMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *CustomerSubjectsMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the CustomerSubjects entity.
+// If the CustomerSubjects object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerSubjectsMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *CustomerSubjectsMutation) ResetNamespace() {
+	m.namespace = nil
 }
 
 // SetCustomerID sets the "customer_id" field.
@@ -7855,7 +7838,10 @@ func (m *CustomerSubjectsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerSubjectsMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
+	if m.namespace != nil {
+		fields = append(fields, customersubjects.FieldNamespace)
+	}
 	if m.customer != nil {
 		fields = append(fields, customersubjects.FieldCustomerID)
 	}
@@ -7873,6 +7859,8 @@ func (m *CustomerSubjectsMutation) Fields() []string {
 // schema.
 func (m *CustomerSubjectsMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case customersubjects.FieldNamespace:
+		return m.Namespace()
 	case customersubjects.FieldCustomerID:
 		return m.CustomerID()
 	case customersubjects.FieldSubjectKey:
@@ -7888,6 +7876,8 @@ func (m *CustomerSubjectsMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *CustomerSubjectsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case customersubjects.FieldNamespace:
+		return m.OldNamespace(ctx)
 	case customersubjects.FieldCustomerID:
 		return m.OldCustomerID(ctx)
 	case customersubjects.FieldSubjectKey:
@@ -7903,6 +7893,13 @@ func (m *CustomerSubjectsMutation) OldField(ctx context.Context, name string) (e
 // type.
 func (m *CustomerSubjectsMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case customersubjects.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
 	case customersubjects.FieldCustomerID:
 		v, ok := value.(string)
 		if !ok {
@@ -7973,6 +7970,9 @@ func (m *CustomerSubjectsMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *CustomerSubjectsMutation) ResetField(name string) error {
 	switch name {
+	case customersubjects.FieldNamespace:
+		m.ResetNamespace()
+		return nil
 	case customersubjects.FieldCustomerID:
 		m.ResetCustomerID()
 		return nil

@@ -20,8 +20,6 @@ type Customer struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
-	// Key holds the value of the "key" field.
-	Key string `json:"key,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -93,7 +91,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldTaxProvider, customer.FieldInvoicingProvider, customer.FieldPaymentProvider, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail:
+		case customer.FieldID, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldTaxProvider, customer.FieldInvoicingProvider, customer.FieldPaymentProvider, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -117,12 +115,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				c.ID = value.String
-			}
-		case customer.FieldKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field key", values[i])
-			} else if value.Valid {
-				c.Key = value.String
 			}
 		case customer.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -302,9 +294,6 @@ func (c *Customer) String() string {
 	var builder strings.Builder
 	builder.WriteString("Customer(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", c.ID))
-	builder.WriteString("key=")
-	builder.WriteString(c.Key)
-	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(c.Namespace)
 	builder.WriteString(", ")
