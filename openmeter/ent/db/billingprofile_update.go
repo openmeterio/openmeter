@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingProfileUpdate is the builder for updating BillingProfile entities.
@@ -81,6 +82,20 @@ func (bpu *BillingProfileUpdate) SetWorkflowConfigID(s string) *BillingProfileUp
 func (bpu *BillingProfileUpdate) SetNillableWorkflowConfigID(s *string) *BillingProfileUpdate {
 	if s != nil {
 		bpu.SetWorkflowConfigID(*s)
+	}
+	return bpu
+}
+
+// SetTimezone sets the "timezone" field.
+func (bpu *BillingProfileUpdate) SetTimezone(t timezone.Timezone) *BillingProfileUpdate {
+	bpu.mutation.SetTimezone(t)
+	return bpu
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableTimezone(t *timezone.Timezone) *BillingProfileUpdate {
+	if t != nil {
+		bpu.SetTimezone(*t)
 	}
 	return bpu
 }
@@ -239,6 +254,9 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
 	}
+	if value, ok := bpu.mutation.Timezone(); ok {
+		_spec.SetField(billingprofile.FieldTimezone, field.TypeString, value)
+	}
 	if value, ok := bpu.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 	}
@@ -386,6 +404,20 @@ func (bpuo *BillingProfileUpdateOne) SetWorkflowConfigID(s string) *BillingProfi
 func (bpuo *BillingProfileUpdateOne) SetNillableWorkflowConfigID(s *string) *BillingProfileUpdateOne {
 	if s != nil {
 		bpuo.SetWorkflowConfigID(*s)
+	}
+	return bpuo
+}
+
+// SetTimezone sets the "timezone" field.
+func (bpuo *BillingProfileUpdateOne) SetTimezone(t timezone.Timezone) *BillingProfileUpdateOne {
+	bpuo.mutation.SetTimezone(t)
+	return bpuo
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableTimezone(t *timezone.Timezone) *BillingProfileUpdateOne {
+	if t != nil {
+		bpuo.SetTimezone(*t)
 	}
 	return bpuo
 }
@@ -573,6 +605,9 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			return nil, err
 		}
 		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
+	}
+	if value, ok := bpuo.mutation.Timezone(); ok {
+		_spec.SetField(billingprofile.FieldTimezone, field.TypeString, value)
 	}
 	if value, ok := bpuo.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)

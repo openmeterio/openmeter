@@ -12,9 +12,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/invopop/gobl/l10n"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -87,15 +90,15 @@ func (cc *CustomerCreate) SetNillableDeletedAt(t *time.Time) *CustomerCreate {
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (cc *CustomerCreate) SetBillingAddressCountry(mc models.CountryCode) *CustomerCreate {
-	cc.mutation.SetBillingAddressCountry(mc)
+func (cc *CustomerCreate) SetBillingAddressCountry(lcc l10n.ISOCountryCode) *CustomerCreate {
+	cc.mutation.SetBillingAddressCountry(lcc)
 	return cc
 }
 
 // SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressCountry(mc *models.CountryCode) *CustomerCreate {
-	if mc != nil {
-		cc.SetBillingAddressCountry(*mc)
+func (cc *CustomerCreate) SetNillableBillingAddressCountry(lcc *l10n.ISOCountryCode) *CustomerCreate {
+	if lcc != nil {
+		cc.SetBillingAddressCountry(*lcc)
 	}
 	return cc
 }
@@ -185,15 +188,15 @@ func (cc *CustomerCreate) SetNillableBillingAddressPhoneNumber(s *string) *Custo
 }
 
 // SetCurrency sets the "currency" field.
-func (cc *CustomerCreate) SetCurrency(mc models.CurrencyCode) *CustomerCreate {
-	cc.mutation.SetCurrency(mc)
+func (cc *CustomerCreate) SetCurrency(c currencyx.Code) *CustomerCreate {
+	cc.mutation.SetCurrency(c)
 	return cc
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableCurrency(mc *models.CurrencyCode) *CustomerCreate {
-	if mc != nil {
-		cc.SetCurrency(*mc)
+func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate {
+	if c != nil {
+		cc.SetCurrency(*c)
 	}
 	return cc
 }
@@ -213,43 +216,43 @@ func (cc *CustomerCreate) SetNillableTimezone(t *timezone.Timezone) *CustomerCre
 }
 
 // SetTaxProvider sets the "tax_provider" field.
-func (cc *CustomerCreate) SetTaxProvider(mp models.TaxProvider) *CustomerCreate {
-	cc.mutation.SetTaxProvider(mp)
+func (cc *CustomerCreate) SetTaxProvider(pp provider.TaxProvider) *CustomerCreate {
+	cc.mutation.SetTaxProvider(pp)
 	return cc
 }
 
 // SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableTaxProvider(mp *models.TaxProvider) *CustomerCreate {
-	if mp != nil {
-		cc.SetTaxProvider(*mp)
+func (cc *CustomerCreate) SetNillableTaxProvider(pp *provider.TaxProvider) *CustomerCreate {
+	if pp != nil {
+		cc.SetTaxProvider(*pp)
 	}
 	return cc
 }
 
 // SetInvoicingProvider sets the "invoicing_provider" field.
-func (cc *CustomerCreate) SetInvoicingProvider(mp models.InvoicingProvider) *CustomerCreate {
-	cc.mutation.SetInvoicingProvider(mp)
+func (cc *CustomerCreate) SetInvoicingProvider(pp provider.InvoicingProvider) *CustomerCreate {
+	cc.mutation.SetInvoicingProvider(pp)
 	return cc
 }
 
 // SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableInvoicingProvider(mp *models.InvoicingProvider) *CustomerCreate {
-	if mp != nil {
-		cc.SetInvoicingProvider(*mp)
+func (cc *CustomerCreate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *CustomerCreate {
+	if pp != nil {
+		cc.SetInvoicingProvider(*pp)
 	}
 	return cc
 }
 
 // SetPaymentProvider sets the "payment_provider" field.
-func (cc *CustomerCreate) SetPaymentProvider(mp models.PaymentProvider) *CustomerCreate {
-	cc.mutation.SetPaymentProvider(mp)
+func (cc *CustomerCreate) SetPaymentProvider(pp provider.PaymentProvider) *CustomerCreate {
+	cc.mutation.SetPaymentProvider(pp)
 	return cc
 }
 
 // SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillablePaymentProvider(mp *models.PaymentProvider) *CustomerCreate {
-	if mp != nil {
-		cc.SetPaymentProvider(*mp)
+func (cc *CustomerCreate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *CustomerCreate {
+	if pp != nil {
+		cc.SetPaymentProvider(*pp)
 	}
 	return cc
 }
@@ -315,6 +318,21 @@ func (cc *CustomerCreate) AddSubjects(c ...*CustomerSubjects) *CustomerCreate {
 		ids[i] = c[i].ID
 	}
 	return cc.AddSubjectIDs(ids...)
+}
+
+// AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
+func (cc *CustomerCreate) AddBillingInvoiceIDs(ids ...string) *CustomerCreate {
+	cc.mutation.AddBillingInvoiceIDs(ids...)
+	return cc
+}
+
+// AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
+func (cc *CustomerCreate) AddBillingInvoices(b ...*BillingInvoice) *CustomerCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cc.AddBillingInvoiceIDs(ids...)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -554,6 +572,22 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := cc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -655,7 +689,7 @@ func (u *CustomerUpsert) ClearDeletedAt() *CustomerUpsert {
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (u *CustomerUpsert) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsert {
+func (u *CustomerUpsert) SetBillingAddressCountry(v l10n.ISOCountryCode) *CustomerUpsert {
 	u.Set(customer.FieldBillingAddressCountry, v)
 	return u
 }
@@ -781,7 +815,7 @@ func (u *CustomerUpsert) ClearBillingAddressPhoneNumber() *CustomerUpsert {
 }
 
 // SetCurrency sets the "currency" field.
-func (u *CustomerUpsert) SetCurrency(v models.CurrencyCode) *CustomerUpsert {
+func (u *CustomerUpsert) SetCurrency(v currencyx.Code) *CustomerUpsert {
 	u.Set(customer.FieldCurrency, v)
 	return u
 }
@@ -817,7 +851,7 @@ func (u *CustomerUpsert) ClearTimezone() *CustomerUpsert {
 }
 
 // SetTaxProvider sets the "tax_provider" field.
-func (u *CustomerUpsert) SetTaxProvider(v models.TaxProvider) *CustomerUpsert {
+func (u *CustomerUpsert) SetTaxProvider(v provider.TaxProvider) *CustomerUpsert {
 	u.Set(customer.FieldTaxProvider, v)
 	return u
 }
@@ -835,7 +869,7 @@ func (u *CustomerUpsert) ClearTaxProvider() *CustomerUpsert {
 }
 
 // SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *CustomerUpsert) SetInvoicingProvider(v models.InvoicingProvider) *CustomerUpsert {
+func (u *CustomerUpsert) SetInvoicingProvider(v provider.InvoicingProvider) *CustomerUpsert {
 	u.Set(customer.FieldInvoicingProvider, v)
 	return u
 }
@@ -853,7 +887,7 @@ func (u *CustomerUpsert) ClearInvoicingProvider() *CustomerUpsert {
 }
 
 // SetPaymentProvider sets the "payment_provider" field.
-func (u *CustomerUpsert) SetPaymentProvider(v models.PaymentProvider) *CustomerUpsert {
+func (u *CustomerUpsert) SetPaymentProvider(v provider.PaymentProvider) *CustomerUpsert {
 	u.Set(customer.FieldPaymentProvider, v)
 	return u
 }
@@ -1032,7 +1066,7 @@ func (u *CustomerUpsertOne) ClearDeletedAt() *CustomerUpsertOne {
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (u *CustomerUpsertOne) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetBillingAddressCountry(v l10n.ISOCountryCode) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetBillingAddressCountry(v)
 	})
@@ -1179,7 +1213,7 @@ func (u *CustomerUpsertOne) ClearBillingAddressPhoneNumber() *CustomerUpsertOne 
 }
 
 // SetCurrency sets the "currency" field.
-func (u *CustomerUpsertOne) SetCurrency(v models.CurrencyCode) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetCurrency(v currencyx.Code) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetCurrency(v)
 	})
@@ -1221,7 +1255,7 @@ func (u *CustomerUpsertOne) ClearTimezone() *CustomerUpsertOne {
 }
 
 // SetTaxProvider sets the "tax_provider" field.
-func (u *CustomerUpsertOne) SetTaxProvider(v models.TaxProvider) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetTaxProvider(v provider.TaxProvider) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetTaxProvider(v)
 	})
@@ -1242,7 +1276,7 @@ func (u *CustomerUpsertOne) ClearTaxProvider() *CustomerUpsertOne {
 }
 
 // SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *CustomerUpsertOne) SetInvoicingProvider(v models.InvoicingProvider) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetInvoicingProvider(v provider.InvoicingProvider) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetInvoicingProvider(v)
 	})
@@ -1263,7 +1297,7 @@ func (u *CustomerUpsertOne) ClearInvoicingProvider() *CustomerUpsertOne {
 }
 
 // SetPaymentProvider sets the "payment_provider" field.
-func (u *CustomerUpsertOne) SetPaymentProvider(v models.PaymentProvider) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetPaymentProvider(v provider.PaymentProvider) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetPaymentProvider(v)
 	})
@@ -1620,7 +1654,7 @@ func (u *CustomerUpsertBulk) ClearDeletedAt() *CustomerUpsertBulk {
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (u *CustomerUpsertBulk) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetBillingAddressCountry(v l10n.ISOCountryCode) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetBillingAddressCountry(v)
 	})
@@ -1767,7 +1801,7 @@ func (u *CustomerUpsertBulk) ClearBillingAddressPhoneNumber() *CustomerUpsertBul
 }
 
 // SetCurrency sets the "currency" field.
-func (u *CustomerUpsertBulk) SetCurrency(v models.CurrencyCode) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetCurrency(v currencyx.Code) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetCurrency(v)
 	})
@@ -1809,7 +1843,7 @@ func (u *CustomerUpsertBulk) ClearTimezone() *CustomerUpsertBulk {
 }
 
 // SetTaxProvider sets the "tax_provider" field.
-func (u *CustomerUpsertBulk) SetTaxProvider(v models.TaxProvider) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetTaxProvider(v provider.TaxProvider) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetTaxProvider(v)
 	})
@@ -1830,7 +1864,7 @@ func (u *CustomerUpsertBulk) ClearTaxProvider() *CustomerUpsertBulk {
 }
 
 // SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *CustomerUpsertBulk) SetInvoicingProvider(v models.InvoicingProvider) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetInvoicingProvider(v provider.InvoicingProvider) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetInvoicingProvider(v)
 	})
@@ -1851,7 +1885,7 @@ func (u *CustomerUpsertBulk) ClearInvoicingProvider() *CustomerUpsertBulk {
 }
 
 // SetPaymentProvider sets the "payment_provider" field.
-func (u *CustomerUpsertBulk) SetPaymentProvider(v models.PaymentProvider) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetPaymentProvider(v provider.PaymentProvider) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetPaymentProvider(v)
 	})

@@ -11,10 +11,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/invopop/gobl/l10n"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -70,15 +73,15 @@ func (cu *CustomerUpdate) ClearDeletedAt() *CustomerUpdate {
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (cu *CustomerUpdate) SetBillingAddressCountry(mc models.CountryCode) *CustomerUpdate {
-	cu.mutation.SetBillingAddressCountry(mc)
+func (cu *CustomerUpdate) SetBillingAddressCountry(lcc l10n.ISOCountryCode) *CustomerUpdate {
+	cu.mutation.SetBillingAddressCountry(lcc)
 	return cu
 }
 
 // SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableBillingAddressCountry(mc *models.CountryCode) *CustomerUpdate {
-	if mc != nil {
-		cu.SetBillingAddressCountry(*mc)
+func (cu *CustomerUpdate) SetNillableBillingAddressCountry(lcc *l10n.ISOCountryCode) *CustomerUpdate {
+	if lcc != nil {
+		cu.SetBillingAddressCountry(*lcc)
 	}
 	return cu
 }
@@ -210,15 +213,15 @@ func (cu *CustomerUpdate) ClearBillingAddressPhoneNumber() *CustomerUpdate {
 }
 
 // SetCurrency sets the "currency" field.
-func (cu *CustomerUpdate) SetCurrency(mc models.CurrencyCode) *CustomerUpdate {
-	cu.mutation.SetCurrency(mc)
+func (cu *CustomerUpdate) SetCurrency(c currencyx.Code) *CustomerUpdate {
+	cu.mutation.SetCurrency(c)
 	return cu
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableCurrency(mc *models.CurrencyCode) *CustomerUpdate {
-	if mc != nil {
-		cu.SetCurrency(*mc)
+func (cu *CustomerUpdate) SetNillableCurrency(c *currencyx.Code) *CustomerUpdate {
+	if c != nil {
+		cu.SetCurrency(*c)
 	}
 	return cu
 }
@@ -250,15 +253,15 @@ func (cu *CustomerUpdate) ClearTimezone() *CustomerUpdate {
 }
 
 // SetTaxProvider sets the "tax_provider" field.
-func (cu *CustomerUpdate) SetTaxProvider(mp models.TaxProvider) *CustomerUpdate {
-	cu.mutation.SetTaxProvider(mp)
+func (cu *CustomerUpdate) SetTaxProvider(pp provider.TaxProvider) *CustomerUpdate {
+	cu.mutation.SetTaxProvider(pp)
 	return cu
 }
 
 // SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableTaxProvider(mp *models.TaxProvider) *CustomerUpdate {
-	if mp != nil {
-		cu.SetTaxProvider(*mp)
+func (cu *CustomerUpdate) SetNillableTaxProvider(pp *provider.TaxProvider) *CustomerUpdate {
+	if pp != nil {
+		cu.SetTaxProvider(*pp)
 	}
 	return cu
 }
@@ -270,15 +273,15 @@ func (cu *CustomerUpdate) ClearTaxProvider() *CustomerUpdate {
 }
 
 // SetInvoicingProvider sets the "invoicing_provider" field.
-func (cu *CustomerUpdate) SetInvoicingProvider(mp models.InvoicingProvider) *CustomerUpdate {
-	cu.mutation.SetInvoicingProvider(mp)
+func (cu *CustomerUpdate) SetInvoicingProvider(pp provider.InvoicingProvider) *CustomerUpdate {
+	cu.mutation.SetInvoicingProvider(pp)
 	return cu
 }
 
 // SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableInvoicingProvider(mp *models.InvoicingProvider) *CustomerUpdate {
-	if mp != nil {
-		cu.SetInvoicingProvider(*mp)
+func (cu *CustomerUpdate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *CustomerUpdate {
+	if pp != nil {
+		cu.SetInvoicingProvider(*pp)
 	}
 	return cu
 }
@@ -290,15 +293,15 @@ func (cu *CustomerUpdate) ClearInvoicingProvider() *CustomerUpdate {
 }
 
 // SetPaymentProvider sets the "payment_provider" field.
-func (cu *CustomerUpdate) SetPaymentProvider(mp models.PaymentProvider) *CustomerUpdate {
-	cu.mutation.SetPaymentProvider(mp)
+func (cu *CustomerUpdate) SetPaymentProvider(pp provider.PaymentProvider) *CustomerUpdate {
+	cu.mutation.SetPaymentProvider(pp)
 	return cu
 }
 
 // SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillablePaymentProvider(mp *models.PaymentProvider) *CustomerUpdate {
-	if mp != nil {
-		cu.SetPaymentProvider(*mp)
+func (cu *CustomerUpdate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *CustomerUpdate {
+	if pp != nil {
+		cu.SetPaymentProvider(*pp)
 	}
 	return cu
 }
@@ -378,6 +381,21 @@ func (cu *CustomerUpdate) AddSubjects(c ...*CustomerSubjects) *CustomerUpdate {
 	return cu.AddSubjectIDs(ids...)
 }
 
+// AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
+func (cu *CustomerUpdate) AddBillingInvoiceIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.AddBillingInvoiceIDs(ids...)
+	return cu
+}
+
+// AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
+func (cu *CustomerUpdate) AddBillingInvoices(b ...*BillingInvoice) *CustomerUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cu.AddBillingInvoiceIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
@@ -402,6 +420,27 @@ func (cu *CustomerUpdate) RemoveSubjects(c ...*CustomerSubjects) *CustomerUpdate
 		ids[i] = c[i].ID
 	}
 	return cu.RemoveSubjectIDs(ids...)
+}
+
+// ClearBillingInvoices clears all "billing_invoices" edges to the BillingInvoice entity.
+func (cu *CustomerUpdate) ClearBillingInvoices() *CustomerUpdate {
+	cu.mutation.ClearBillingInvoices()
+	return cu
+}
+
+// RemoveBillingInvoiceIDs removes the "billing_invoices" edge to BillingInvoice entities by IDs.
+func (cu *CustomerUpdate) RemoveBillingInvoiceIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.RemoveBillingInvoiceIDs(ids...)
+	return cu
+}
+
+// RemoveBillingInvoices removes "billing_invoices" edges to BillingInvoice entities.
+func (cu *CustomerUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *CustomerUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cu.RemoveBillingInvoiceIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -629,6 +668,51 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if cu.mutation.BillingInvoicesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !cu.mutation.BillingInvoicesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customer.Label}
@@ -688,15 +772,15 @@ func (cuo *CustomerUpdateOne) ClearDeletedAt() *CustomerUpdateOne {
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (cuo *CustomerUpdateOne) SetBillingAddressCountry(mc models.CountryCode) *CustomerUpdateOne {
-	cuo.mutation.SetBillingAddressCountry(mc)
+func (cuo *CustomerUpdateOne) SetBillingAddressCountry(lcc l10n.ISOCountryCode) *CustomerUpdateOne {
+	cuo.mutation.SetBillingAddressCountry(lcc)
 	return cuo
 }
 
 // SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableBillingAddressCountry(mc *models.CountryCode) *CustomerUpdateOne {
-	if mc != nil {
-		cuo.SetBillingAddressCountry(*mc)
+func (cuo *CustomerUpdateOne) SetNillableBillingAddressCountry(lcc *l10n.ISOCountryCode) *CustomerUpdateOne {
+	if lcc != nil {
+		cuo.SetBillingAddressCountry(*lcc)
 	}
 	return cuo
 }
@@ -828,15 +912,15 @@ func (cuo *CustomerUpdateOne) ClearBillingAddressPhoneNumber() *CustomerUpdateOn
 }
 
 // SetCurrency sets the "currency" field.
-func (cuo *CustomerUpdateOne) SetCurrency(mc models.CurrencyCode) *CustomerUpdateOne {
-	cuo.mutation.SetCurrency(mc)
+func (cuo *CustomerUpdateOne) SetCurrency(c currencyx.Code) *CustomerUpdateOne {
+	cuo.mutation.SetCurrency(c)
 	return cuo
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableCurrency(mc *models.CurrencyCode) *CustomerUpdateOne {
-	if mc != nil {
-		cuo.SetCurrency(*mc)
+func (cuo *CustomerUpdateOne) SetNillableCurrency(c *currencyx.Code) *CustomerUpdateOne {
+	if c != nil {
+		cuo.SetCurrency(*c)
 	}
 	return cuo
 }
@@ -868,15 +952,15 @@ func (cuo *CustomerUpdateOne) ClearTimezone() *CustomerUpdateOne {
 }
 
 // SetTaxProvider sets the "tax_provider" field.
-func (cuo *CustomerUpdateOne) SetTaxProvider(mp models.TaxProvider) *CustomerUpdateOne {
-	cuo.mutation.SetTaxProvider(mp)
+func (cuo *CustomerUpdateOne) SetTaxProvider(pp provider.TaxProvider) *CustomerUpdateOne {
+	cuo.mutation.SetTaxProvider(pp)
 	return cuo
 }
 
 // SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableTaxProvider(mp *models.TaxProvider) *CustomerUpdateOne {
-	if mp != nil {
-		cuo.SetTaxProvider(*mp)
+func (cuo *CustomerUpdateOne) SetNillableTaxProvider(pp *provider.TaxProvider) *CustomerUpdateOne {
+	if pp != nil {
+		cuo.SetTaxProvider(*pp)
 	}
 	return cuo
 }
@@ -888,15 +972,15 @@ func (cuo *CustomerUpdateOne) ClearTaxProvider() *CustomerUpdateOne {
 }
 
 // SetInvoicingProvider sets the "invoicing_provider" field.
-func (cuo *CustomerUpdateOne) SetInvoicingProvider(mp models.InvoicingProvider) *CustomerUpdateOne {
-	cuo.mutation.SetInvoicingProvider(mp)
+func (cuo *CustomerUpdateOne) SetInvoicingProvider(pp provider.InvoicingProvider) *CustomerUpdateOne {
+	cuo.mutation.SetInvoicingProvider(pp)
 	return cuo
 }
 
 // SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableInvoicingProvider(mp *models.InvoicingProvider) *CustomerUpdateOne {
-	if mp != nil {
-		cuo.SetInvoicingProvider(*mp)
+func (cuo *CustomerUpdateOne) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *CustomerUpdateOne {
+	if pp != nil {
+		cuo.SetInvoicingProvider(*pp)
 	}
 	return cuo
 }
@@ -908,15 +992,15 @@ func (cuo *CustomerUpdateOne) ClearInvoicingProvider() *CustomerUpdateOne {
 }
 
 // SetPaymentProvider sets the "payment_provider" field.
-func (cuo *CustomerUpdateOne) SetPaymentProvider(mp models.PaymentProvider) *CustomerUpdateOne {
-	cuo.mutation.SetPaymentProvider(mp)
+func (cuo *CustomerUpdateOne) SetPaymentProvider(pp provider.PaymentProvider) *CustomerUpdateOne {
+	cuo.mutation.SetPaymentProvider(pp)
 	return cuo
 }
 
 // SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillablePaymentProvider(mp *models.PaymentProvider) *CustomerUpdateOne {
-	if mp != nil {
-		cuo.SetPaymentProvider(*mp)
+func (cuo *CustomerUpdateOne) SetNillablePaymentProvider(pp *provider.PaymentProvider) *CustomerUpdateOne {
+	if pp != nil {
+		cuo.SetPaymentProvider(*pp)
 	}
 	return cuo
 }
@@ -996,6 +1080,21 @@ func (cuo *CustomerUpdateOne) AddSubjects(c ...*CustomerSubjects) *CustomerUpdat
 	return cuo.AddSubjectIDs(ids...)
 }
 
+// AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
+func (cuo *CustomerUpdateOne) AddBillingInvoiceIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.AddBillingInvoiceIDs(ids...)
+	return cuo
+}
+
+// AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
+func (cuo *CustomerUpdateOne) AddBillingInvoices(b ...*BillingInvoice) *CustomerUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cuo.AddBillingInvoiceIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
@@ -1020,6 +1119,27 @@ func (cuo *CustomerUpdateOne) RemoveSubjects(c ...*CustomerSubjects) *CustomerUp
 		ids[i] = c[i].ID
 	}
 	return cuo.RemoveSubjectIDs(ids...)
+}
+
+// ClearBillingInvoices clears all "billing_invoices" edges to the BillingInvoice entity.
+func (cuo *CustomerUpdateOne) ClearBillingInvoices() *CustomerUpdateOne {
+	cuo.mutation.ClearBillingInvoices()
+	return cuo
+}
+
+// RemoveBillingInvoiceIDs removes the "billing_invoices" edge to BillingInvoice entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveBillingInvoiceIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.RemoveBillingInvoiceIDs(ids...)
+	return cuo
+}
+
+// RemoveBillingInvoices removes "billing_invoices" edges to BillingInvoice entities.
+func (cuo *CustomerUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice) *CustomerUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cuo.RemoveBillingInvoiceIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1270,6 +1390,51 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.BillingInvoicesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !cuo.mutation.BillingInvoicesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoicesTable,
+			Columns: []string{customer.BillingInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

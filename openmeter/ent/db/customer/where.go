@@ -7,8 +7,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/invopop/gobl/l10n"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -93,7 +95,7 @@ func DeletedAt(v time.Time) predicate.Customer {
 }
 
 // BillingAddressCountry applies equality check predicate on the "billing_address_country" field. It's identical to BillingAddressCountryEQ.
-func BillingAddressCountry(v models.CountryCode) predicate.Customer {
+func BillingAddressCountry(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldBillingAddressCountry, vc))
 }
@@ -129,7 +131,7 @@ func BillingAddressPhoneNumber(v string) predicate.Customer {
 }
 
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v models.CurrencyCode) predicate.Customer {
+func Currency(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
 }
@@ -426,19 +428,19 @@ func DeletedAtNotNil() predicate.Customer {
 }
 
 // BillingAddressCountryEQ applies the EQ predicate on the "billing_address_country" field.
-func BillingAddressCountryEQ(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryEQ(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryNEQ applies the NEQ predicate on the "billing_address_country" field.
-func BillingAddressCountryNEQ(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryNEQ(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldNEQ(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryIn applies the In predicate on the "billing_address_country" field.
-func BillingAddressCountryIn(vs ...models.CountryCode) predicate.Customer {
+func BillingAddressCountryIn(vs ...l10n.ISOCountryCode) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -447,7 +449,7 @@ func BillingAddressCountryIn(vs ...models.CountryCode) predicate.Customer {
 }
 
 // BillingAddressCountryNotIn applies the NotIn predicate on the "billing_address_country" field.
-func BillingAddressCountryNotIn(vs ...models.CountryCode) predicate.Customer {
+func BillingAddressCountryNotIn(vs ...l10n.ISOCountryCode) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -456,43 +458,43 @@ func BillingAddressCountryNotIn(vs ...models.CountryCode) predicate.Customer {
 }
 
 // BillingAddressCountryGT applies the GT predicate on the "billing_address_country" field.
-func BillingAddressCountryGT(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryGT(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldGT(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryGTE applies the GTE predicate on the "billing_address_country" field.
-func BillingAddressCountryGTE(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryGTE(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldGTE(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryLT applies the LT predicate on the "billing_address_country" field.
-func BillingAddressCountryLT(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryLT(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldLT(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryLTE applies the LTE predicate on the "billing_address_country" field.
-func BillingAddressCountryLTE(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryLTE(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldLTE(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryContains applies the Contains predicate on the "billing_address_country" field.
-func BillingAddressCountryContains(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryContains(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContains(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryHasPrefix applies the HasPrefix predicate on the "billing_address_country" field.
-func BillingAddressCountryHasPrefix(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryHasPrefix(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldHasPrefix(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryHasSuffix applies the HasSuffix predicate on the "billing_address_country" field.
-func BillingAddressCountryHasSuffix(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryHasSuffix(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldHasSuffix(FieldBillingAddressCountry, vc))
 }
@@ -508,13 +510,13 @@ func BillingAddressCountryNotNil() predicate.Customer {
 }
 
 // BillingAddressCountryEqualFold applies the EqualFold predicate on the "billing_address_country" field.
-func BillingAddressCountryEqualFold(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryEqualFold(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEqualFold(FieldBillingAddressCountry, vc))
 }
 
 // BillingAddressCountryContainsFold applies the ContainsFold predicate on the "billing_address_country" field.
-func BillingAddressCountryContainsFold(v models.CountryCode) predicate.Customer {
+func BillingAddressCountryContainsFold(v l10n.ISOCountryCode) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContainsFold(FieldBillingAddressCountry, vc))
 }
@@ -970,19 +972,19 @@ func BillingAddressPhoneNumberContainsFold(v string) predicate.Customer {
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v models.CurrencyCode) predicate.Customer {
+func CurrencyEQ(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v models.CurrencyCode) predicate.Customer {
+func CurrencyNEQ(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldNEQ(FieldCurrency, vc))
 }
 
 // CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...models.CurrencyCode) predicate.Customer {
+func CurrencyIn(vs ...currencyx.Code) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -991,7 +993,7 @@ func CurrencyIn(vs ...models.CurrencyCode) predicate.Customer {
 }
 
 // CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...models.CurrencyCode) predicate.Customer {
+func CurrencyNotIn(vs ...currencyx.Code) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -1000,43 +1002,43 @@ func CurrencyNotIn(vs ...models.CurrencyCode) predicate.Customer {
 }
 
 // CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v models.CurrencyCode) predicate.Customer {
+func CurrencyGT(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldGT(FieldCurrency, vc))
 }
 
 // CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v models.CurrencyCode) predicate.Customer {
+func CurrencyGTE(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldGTE(FieldCurrency, vc))
 }
 
 // CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v models.CurrencyCode) predicate.Customer {
+func CurrencyLT(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldLT(FieldCurrency, vc))
 }
 
 // CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v models.CurrencyCode) predicate.Customer {
+func CurrencyLTE(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldLTE(FieldCurrency, vc))
 }
 
 // CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v models.CurrencyCode) predicate.Customer {
+func CurrencyContains(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContains(FieldCurrency, vc))
 }
 
 // CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v models.CurrencyCode) predicate.Customer {
+func CurrencyHasPrefix(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldHasPrefix(FieldCurrency, vc))
 }
 
 // CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v models.CurrencyCode) predicate.Customer {
+func CurrencyHasSuffix(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldHasSuffix(FieldCurrency, vc))
 }
@@ -1052,13 +1054,13 @@ func CurrencyNotNil() predicate.Customer {
 }
 
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v models.CurrencyCode) predicate.Customer {
+func CurrencyEqualFold(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEqualFold(FieldCurrency, vc))
 }
 
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v models.CurrencyCode) predicate.Customer {
+func CurrencyContainsFold(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
 }
@@ -1158,19 +1160,19 @@ func TimezoneContainsFold(v timezone.Timezone) predicate.Customer {
 }
 
 // TaxProviderEQ applies the EQ predicate on the "tax_provider" field.
-func TaxProviderEQ(v models.TaxProvider) predicate.Customer {
+func TaxProviderEQ(v provider.TaxProvider) predicate.Customer {
 	vc := v
 	return predicate.Customer(sql.FieldEQ(FieldTaxProvider, vc))
 }
 
 // TaxProviderNEQ applies the NEQ predicate on the "tax_provider" field.
-func TaxProviderNEQ(v models.TaxProvider) predicate.Customer {
+func TaxProviderNEQ(v provider.TaxProvider) predicate.Customer {
 	vc := v
 	return predicate.Customer(sql.FieldNEQ(FieldTaxProvider, vc))
 }
 
 // TaxProviderIn applies the In predicate on the "tax_provider" field.
-func TaxProviderIn(vs ...models.TaxProvider) predicate.Customer {
+func TaxProviderIn(vs ...provider.TaxProvider) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1179,7 +1181,7 @@ func TaxProviderIn(vs ...models.TaxProvider) predicate.Customer {
 }
 
 // TaxProviderNotIn applies the NotIn predicate on the "tax_provider" field.
-func TaxProviderNotIn(vs ...models.TaxProvider) predicate.Customer {
+func TaxProviderNotIn(vs ...provider.TaxProvider) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1198,19 +1200,19 @@ func TaxProviderNotNil() predicate.Customer {
 }
 
 // InvoicingProviderEQ applies the EQ predicate on the "invoicing_provider" field.
-func InvoicingProviderEQ(v models.InvoicingProvider) predicate.Customer {
+func InvoicingProviderEQ(v provider.InvoicingProvider) predicate.Customer {
 	vc := v
 	return predicate.Customer(sql.FieldEQ(FieldInvoicingProvider, vc))
 }
 
 // InvoicingProviderNEQ applies the NEQ predicate on the "invoicing_provider" field.
-func InvoicingProviderNEQ(v models.InvoicingProvider) predicate.Customer {
+func InvoicingProviderNEQ(v provider.InvoicingProvider) predicate.Customer {
 	vc := v
 	return predicate.Customer(sql.FieldNEQ(FieldInvoicingProvider, vc))
 }
 
 // InvoicingProviderIn applies the In predicate on the "invoicing_provider" field.
-func InvoicingProviderIn(vs ...models.InvoicingProvider) predicate.Customer {
+func InvoicingProviderIn(vs ...provider.InvoicingProvider) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1219,7 +1221,7 @@ func InvoicingProviderIn(vs ...models.InvoicingProvider) predicate.Customer {
 }
 
 // InvoicingProviderNotIn applies the NotIn predicate on the "invoicing_provider" field.
-func InvoicingProviderNotIn(vs ...models.InvoicingProvider) predicate.Customer {
+func InvoicingProviderNotIn(vs ...provider.InvoicingProvider) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1238,19 +1240,19 @@ func InvoicingProviderNotNil() predicate.Customer {
 }
 
 // PaymentProviderEQ applies the EQ predicate on the "payment_provider" field.
-func PaymentProviderEQ(v models.PaymentProvider) predicate.Customer {
+func PaymentProviderEQ(v provider.PaymentProvider) predicate.Customer {
 	vc := v
 	return predicate.Customer(sql.FieldEQ(FieldPaymentProvider, vc))
 }
 
 // PaymentProviderNEQ applies the NEQ predicate on the "payment_provider" field.
-func PaymentProviderNEQ(v models.PaymentProvider) predicate.Customer {
+func PaymentProviderNEQ(v provider.PaymentProvider) predicate.Customer {
 	vc := v
 	return predicate.Customer(sql.FieldNEQ(FieldPaymentProvider, vc))
 }
 
 // PaymentProviderIn applies the In predicate on the "payment_provider" field.
-func PaymentProviderIn(vs ...models.PaymentProvider) predicate.Customer {
+func PaymentProviderIn(vs ...provider.PaymentProvider) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1259,7 +1261,7 @@ func PaymentProviderIn(vs ...models.PaymentProvider) predicate.Customer {
 }
 
 // PaymentProviderNotIn applies the NotIn predicate on the "payment_provider" field.
-func PaymentProviderNotIn(vs ...models.PaymentProvider) predicate.Customer {
+func PaymentProviderNotIn(vs ...provider.PaymentProvider) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1507,6 +1509,29 @@ func HasSubjects() predicate.Customer {
 func HasSubjectsWith(preds ...predicate.CustomerSubjects) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := newSubjectsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.
+func HasBillingInvoices() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicesTable, BillingInvoicesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoicesWith applies the HasEdge predicate on the "billing_invoices" edge with a given conditions (other predicates).
+func HasBillingInvoicesWith(preds ...predicate.BillingInvoice) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newBillingInvoicesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

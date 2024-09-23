@@ -101,14 +101,14 @@ func InvoiceDraftPeriodSeconds(v int64) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDraftPeriodSeconds, v))
 }
 
-// InvoiceDueAfterSeconds applies equality check predicate on the "invoice_due_after_seconds" field. It's identical to InvoiceDueAfterSecondsEQ.
-func InvoiceDueAfterSeconds(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDays applies equality check predicate on the "invoice_due_after_days" field. It's identical to InvoiceDueAfterDaysEQ.
+func InvoiceDueAfterDays(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfterDays, v))
 }
 
-// InvoiceLineItemPerSubject applies equality check predicate on the "invoice_line_item_per_subject" field. It's identical to InvoiceLineItemPerSubjectEQ.
-func InvoiceLineItemPerSubject(v bool) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceLineItemPerSubject, v))
+// InvoiceItemPerSubject applies equality check predicate on the "invoice_item_per_subject" field. It's identical to InvoiceItemPerSubjectEQ.
+func InvoiceItemPerSubject(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceItemPerSubject, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -306,34 +306,34 @@ func DeletedAtNotNil() predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// AlignmentEQ applies the EQ predicate on the "alignment" field.
-func AlignmentEQ(v billing.AlignmentKind) predicate.BillingWorkflowConfig {
+// CollectionAlignmentEQ applies the EQ predicate on the "collection_alignment" field.
+func CollectionAlignmentEQ(v billing.AlignmentKind) predicate.BillingWorkflowConfig {
 	vc := v
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldAlignment, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldCollectionAlignment, vc))
 }
 
-// AlignmentNEQ applies the NEQ predicate on the "alignment" field.
-func AlignmentNEQ(v billing.AlignmentKind) predicate.BillingWorkflowConfig {
+// CollectionAlignmentNEQ applies the NEQ predicate on the "collection_alignment" field.
+func CollectionAlignmentNEQ(v billing.AlignmentKind) predicate.BillingWorkflowConfig {
 	vc := v
-	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldAlignment, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldCollectionAlignment, vc))
 }
 
-// AlignmentIn applies the In predicate on the "alignment" field.
-func AlignmentIn(vs ...billing.AlignmentKind) predicate.BillingWorkflowConfig {
+// CollectionAlignmentIn applies the In predicate on the "collection_alignment" field.
+func CollectionAlignmentIn(vs ...billing.AlignmentKind) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
 	}
-	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldAlignment, v...))
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldCollectionAlignment, v...))
 }
 
-// AlignmentNotIn applies the NotIn predicate on the "alignment" field.
-func AlignmentNotIn(vs ...billing.AlignmentKind) predicate.BillingWorkflowConfig {
+// CollectionAlignmentNotIn applies the NotIn predicate on the "collection_alignment" field.
+func CollectionAlignmentNotIn(vs ...billing.AlignmentKind) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
 	}
-	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldAlignment, v...))
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldCollectionAlignment, v...))
 }
 
 // CollectionPeriodSecondsEQ applies the EQ predicate on the "collection_period_seconds" field.
@@ -426,44 +426,54 @@ func InvoiceDraftPeriodSecondsLTE(v int64) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDraftPeriodSeconds, v))
 }
 
-// InvoiceDueAfterSecondsEQ applies the EQ predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsEQ(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDaysEQ applies the EQ predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysEQ(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfterDays, v))
 }
 
-// InvoiceDueAfterSecondsNEQ applies the NEQ predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsNEQ(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDaysNEQ applies the NEQ predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysNEQ(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceDueAfterDays, v))
 }
 
-// InvoiceDueAfterSecondsIn applies the In predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsIn(vs ...int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldInvoiceDueAfterSeconds, vs...))
+// InvoiceDueAfterDaysIn applies the In predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysIn(vs ...int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldInvoiceDueAfterDays, vs...))
 }
 
-// InvoiceDueAfterSecondsNotIn applies the NotIn predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsNotIn(vs ...int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceDueAfterSeconds, vs...))
+// InvoiceDueAfterDaysNotIn applies the NotIn predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysNotIn(vs ...int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceDueAfterDays, vs...))
 }
 
-// InvoiceDueAfterSecondsGT applies the GT predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsGT(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDaysGT applies the GT predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysGT(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldInvoiceDueAfterDays, v))
 }
 
-// InvoiceDueAfterSecondsGTE applies the GTE predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsGTE(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDaysGTE applies the GTE predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysGTE(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldInvoiceDueAfterDays, v))
 }
 
-// InvoiceDueAfterSecondsLT applies the LT predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsLT(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDaysLT applies the LT predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysLT(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldInvoiceDueAfterDays, v))
 }
 
-// InvoiceDueAfterSecondsLTE applies the LTE predicate on the "invoice_due_after_seconds" field.
-func InvoiceDueAfterSecondsLTE(v int64) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDueAfterSeconds, v))
+// InvoiceDueAfterDaysLTE applies the LTE predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysLTE(v int64) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDueAfterDays, v))
+}
+
+// InvoiceDueAfterDaysIsNil applies the IsNil predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceDueAfterDays))
+}
+
+// InvoiceDueAfterDaysNotNil applies the NotNil predicate on the "invoice_due_after_days" field.
+func InvoiceDueAfterDaysNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceDueAfterDays))
 }
 
 // InvoiceCollectionMethodEQ applies the EQ predicate on the "invoice_collection_method" field.
@@ -496,44 +506,44 @@ func InvoiceCollectionMethodNotIn(vs ...billing.CollectionMethod) predicate.Bill
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceCollectionMethod, v...))
 }
 
-// InvoiceLineItemResolutionEQ applies the EQ predicate on the "invoice_line_item_resolution" field.
-func InvoiceLineItemResolutionEQ(v billing.GranualityResolution) predicate.BillingWorkflowConfig {
+// InvoiceItemResolutionEQ applies the EQ predicate on the "invoice_item_resolution" field.
+func InvoiceItemResolutionEQ(v billing.GranualityResolution) predicate.BillingWorkflowConfig {
 	vc := v
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceLineItemResolution, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceItemResolution, vc))
 }
 
-// InvoiceLineItemResolutionNEQ applies the NEQ predicate on the "invoice_line_item_resolution" field.
-func InvoiceLineItemResolutionNEQ(v billing.GranualityResolution) predicate.BillingWorkflowConfig {
+// InvoiceItemResolutionNEQ applies the NEQ predicate on the "invoice_item_resolution" field.
+func InvoiceItemResolutionNEQ(v billing.GranualityResolution) predicate.BillingWorkflowConfig {
 	vc := v
-	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceLineItemResolution, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceItemResolution, vc))
 }
 
-// InvoiceLineItemResolutionIn applies the In predicate on the "invoice_line_item_resolution" field.
-func InvoiceLineItemResolutionIn(vs ...billing.GranualityResolution) predicate.BillingWorkflowConfig {
+// InvoiceItemResolutionIn applies the In predicate on the "invoice_item_resolution" field.
+func InvoiceItemResolutionIn(vs ...billing.GranualityResolution) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
 	}
-	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldInvoiceLineItemResolution, v...))
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldInvoiceItemResolution, v...))
 }
 
-// InvoiceLineItemResolutionNotIn applies the NotIn predicate on the "invoice_line_item_resolution" field.
-func InvoiceLineItemResolutionNotIn(vs ...billing.GranualityResolution) predicate.BillingWorkflowConfig {
+// InvoiceItemResolutionNotIn applies the NotIn predicate on the "invoice_item_resolution" field.
+func InvoiceItemResolutionNotIn(vs ...billing.GranualityResolution) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
 	}
-	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceLineItemResolution, v...))
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceItemResolution, v...))
 }
 
-// InvoiceLineItemPerSubjectEQ applies the EQ predicate on the "invoice_line_item_per_subject" field.
-func InvoiceLineItemPerSubjectEQ(v bool) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceLineItemPerSubject, v))
+// InvoiceItemPerSubjectEQ applies the EQ predicate on the "invoice_item_per_subject" field.
+func InvoiceItemPerSubjectEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceItemPerSubject, v))
 }
 
-// InvoiceLineItemPerSubjectNEQ applies the NEQ predicate on the "invoice_line_item_per_subject" field.
-func InvoiceLineItemPerSubjectNEQ(v bool) predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceLineItemPerSubject, v))
+// InvoiceItemPerSubjectNEQ applies the NEQ predicate on the "invoice_item_per_subject" field.
+func InvoiceItemPerSubjectNEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceItemPerSubject, v))
 }
 
 // HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.

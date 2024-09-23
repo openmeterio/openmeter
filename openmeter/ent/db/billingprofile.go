@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingProfile is the model entity for the BillingProfile schema.
@@ -33,6 +34,8 @@ type BillingProfile struct {
 	ProviderConfig provider.Configuration `json:"provider_config,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
+	// Timezone holds the value of the "timezone" field.
+	Timezone timezone.Timezone `json:"timezone,omitempty"`
 	// Default holds the value of the "default" field.
 	Default bool `json:"default,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -79,7 +82,7 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldWorkflowConfigID:
+		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldWorkflowConfigID, billingprofile.FieldTimezone:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -148,6 +151,12 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field workflow_config_id", values[i])
 			} else if value.Valid {
 				bp.WorkflowConfigID = value.String
+			}
+		case billingprofile.FieldTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field timezone", values[i])
+			} else if value.Valid {
+				bp.Timezone = timezone.Timezone(value.String)
 			}
 		case billingprofile.FieldDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -223,6 +232,9 @@ func (bp *BillingProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bp.WorkflowConfigID)
+	builder.WriteString(", ")
+	builder.WriteString("timezone=")
+	builder.WriteString(fmt.Sprintf("%v", bp.Timezone))
 	builder.WriteString(", ")
 	builder.WriteString("default=")
 	builder.WriteString(fmt.Sprintf("%v", bp.Default))

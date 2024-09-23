@@ -10,8 +10,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/invopop/gobl/l10n"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -33,7 +35,7 @@ type Customer struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// BillingAddressCountry holds the value of the "billing_address_country" field.
-	BillingAddressCountry *models.CountryCode `json:"billing_address_country,omitempty"`
+	BillingAddressCountry *l10n.ISOCountryCode `json:"billing_address_country,omitempty"`
 	// BillingAddressPostalCode holds the value of the "billing_address_postal_code" field.
 	BillingAddressPostalCode *string `json:"billing_address_postal_code,omitempty"`
 	// BillingAddressState holds the value of the "billing_address_state" field.
@@ -47,15 +49,15 @@ type Customer struct {
 	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency *models.CurrencyCode `json:"currency,omitempty"`
+	Currency *currencyx.Code `json:"currency,omitempty"`
 	// Timezone holds the value of the "timezone" field.
 	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// TaxProvider holds the value of the "tax_provider" field.
-	TaxProvider *models.TaxProvider `json:"tax_provider,omitempty"`
+	TaxProvider *provider.TaxProvider `json:"tax_provider,omitempty"`
 	// InvoicingProvider holds the value of the "invoicing_provider" field.
-	InvoicingProvider *models.InvoicingProvider `json:"invoicing_provider,omitempty"`
+	InvoicingProvider *provider.InvoicingProvider `json:"invoicing_provider,omitempty"`
 	// PaymentProvider holds the value of the "payment_provider" field.
-	PaymentProvider *models.PaymentProvider `json:"payment_provider,omitempty"`
+	PaymentProvider *provider.PaymentProvider `json:"payment_provider,omitempty"`
 	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
 	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Name holds the value of the "name" field.
@@ -72,9 +74,11 @@ type Customer struct {
 type CustomerEdges struct {
 	// Subjects holds the value of the subjects edge.
 	Subjects []*CustomerSubjects `json:"subjects,omitempty"`
+	// BillingInvoices holds the value of the billing_invoices edge.
+	BillingInvoices []*BillingInvoice `json:"billing_invoices,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // SubjectsOrErr returns the Subjects value or an error if the edge
@@ -84,6 +88,15 @@ func (e CustomerEdges) SubjectsOrErr() ([]*CustomerSubjects, error) {
 		return e.Subjects, nil
 	}
 	return nil, &NotLoadedError{edge: "subjects"}
+}
+
+// BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) BillingInvoicesOrErr() ([]*BillingInvoice, error) {
+	if e.loadedTypes[1] {
+		return e.BillingInvoices, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_invoices"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -161,8 +174,8 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_country", values[i])
 			} else if value.Valid {
-				c.BillingAddressCountry = new(models.CountryCode)
-				*c.BillingAddressCountry = models.CountryCode(value.String)
+				c.BillingAddressCountry = new(l10n.ISOCountryCode)
+				*c.BillingAddressCountry = l10n.ISOCountryCode(value.String)
 			}
 		case customer.FieldBillingAddressPostalCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -210,8 +223,8 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				c.Currency = new(models.CurrencyCode)
-				*c.Currency = models.CurrencyCode(value.String)
+				c.Currency = new(currencyx.Code)
+				*c.Currency = currencyx.Code(value.String)
 			}
 		case customer.FieldTimezone:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -224,22 +237,22 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
 			} else if value.Valid {
-				c.TaxProvider = new(models.TaxProvider)
-				*c.TaxProvider = models.TaxProvider(value.String)
+				c.TaxProvider = new(provider.TaxProvider)
+				*c.TaxProvider = provider.TaxProvider(value.String)
 			}
 		case customer.FieldInvoicingProvider:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
 			} else if value.Valid {
-				c.InvoicingProvider = new(models.InvoicingProvider)
-				*c.InvoicingProvider = models.InvoicingProvider(value.String)
+				c.InvoicingProvider = new(provider.InvoicingProvider)
+				*c.InvoicingProvider = provider.InvoicingProvider(value.String)
 			}
 		case customer.FieldPaymentProvider:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
 			} else if value.Valid {
-				c.PaymentProvider = new(models.PaymentProvider)
-				*c.PaymentProvider = models.PaymentProvider(value.String)
+				c.PaymentProvider = new(provider.PaymentProvider)
+				*c.PaymentProvider = provider.PaymentProvider(value.String)
 			}
 		case customer.FieldExternalMappingStripeCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -277,6 +290,11 @@ func (c *Customer) Value(name string) (ent.Value, error) {
 // QuerySubjects queries the "subjects" edge of the Customer entity.
 func (c *Customer) QuerySubjects() *CustomerSubjectsQuery {
 	return NewCustomerClient(c.config).QuerySubjects(c)
+}
+
+// QueryBillingInvoices queries the "billing_invoices" edge of the Customer entity.
+func (c *Customer) QueryBillingInvoices() *BillingInvoiceQuery {
+	return NewCustomerClient(c.config).QueryBillingInvoices(c)
 }
 
 // Update returns a builder for updating this Customer.

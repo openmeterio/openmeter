@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // BillingInvoiceItemCreate is the builder for creating a BillingInvoiceItem entity.
@@ -131,8 +132,8 @@ func (biic *BillingInvoiceItemCreate) SetUnitPrice(a alpacadecimal.Decimal) *Bil
 }
 
 // SetCurrency sets the "currency" field.
-func (biic *BillingInvoiceItemCreate) SetCurrency(s string) *BillingInvoiceItemCreate {
-	biic.mutation.SetCurrency(s)
+func (biic *BillingInvoiceItemCreate) SetCurrency(c currencyx.Code) *BillingInvoiceItemCreate {
+	biic.mutation.SetCurrency(c)
 	return biic
 }
 
@@ -267,7 +268,7 @@ func (biic *BillingInvoiceItemCreate) check() error {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoiceItem.currency"`)}
 	}
 	if v, ok := biic.mutation.Currency(); ok {
-		if err := billinginvoiceitem.CurrencyValidator(v); err != nil {
+		if err := billinginvoiceitem.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.currency": %w`, err)}
 		}
 	}

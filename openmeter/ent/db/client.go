@@ -628,6 +628,22 @@ func (c *BillingInvoiceClient) QueryBillingInvoiceItems(bi *BillingInvoice) *Bil
 	return query
 }
 
+// QueryCustomer queries the customer edge of a BillingInvoice.
+func (c *BillingInvoiceClient) QueryCustomer(bi *BillingInvoice) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bi.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.CustomerTable, billinginvoice.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BillingInvoiceClient) Hooks() []Hook {
 	return c.hooks.BillingInvoice
@@ -1249,6 +1265,22 @@ func (c *CustomerClient) QuerySubjects(cu *Customer) *CustomerSubjectsQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(customersubjects.Table, customersubjects.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubjectsTable, customer.SubjectsColumn),
+		)
+		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingInvoices queries the billing_invoices edge of a Customer.
+func (c *CustomerClient) QueryBillingInvoices(cu *Customer) *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := cu.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingInvoicesTable, customer.BillingInvoicesColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
