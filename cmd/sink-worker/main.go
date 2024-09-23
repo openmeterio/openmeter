@@ -83,7 +83,8 @@ func main() {
 
 	err = conf.Validate()
 	if err != nil {
-		slog.Error("invalid configuration", slog.String("error", err.Error()))
+		println("configuration error:")
+		println(err.Error())
 		os.Exit(1)
 	}
 
