@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	modelref "github.com/openmeterio/openmeter/pkg/models/ref"
+)
 
 type ManagedUniqueResource struct {
 	NamespacedModel
@@ -59,9 +63,28 @@ type VersionedModel struct {
 	Version int `json:"version,omitempty"`
 }
 
+func (v VersionedModel) AsRef() modelref.VersionedKeyRef {
+	return modelref.VersionedKeyRef{
+		Key:     v.Key,
+		Version: v.Version,
+	}
+}
+
 // CadencedModel represents a model with active from and to dates.
 // The interval described is incluse on the from side and exclusive on the to side.
 type CadencedModel struct {
 	ActiveFrom time.Time  `json:"activeFrom"`
 	ActiveTo   *time.Time `json:"activeTo"`
+}
+
+func (c CadencedModel) IsActiveAt(t time.Time) bool {
+	if c.ActiveFrom.After(t) {
+		return false
+	}
+
+	if c.ActiveTo != nil && c.ActiveTo.Before(t) {
+		return false
+	}
+
+	return true
 }
