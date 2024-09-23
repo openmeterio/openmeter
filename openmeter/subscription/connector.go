@@ -2,33 +2,39 @@ package subscription
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/pkg/dummy"
 	"github.com/openmeterio/openmeter/pkg/models"
 	modelref "github.com/openmeterio/openmeter/pkg/models/ref"
 	"github.com/samber/lo"
 )
+
+type NewSubscriptionRequest struct {
+	Namespace         string
+	ActiveFrom        time.Time
+	CustomerID        string
+	TemplatingPlanRef modelref.VersionedKeyRef // TODO: maybe just use IDs instead of versioned keys?
+
+	// Phase overrides are applied to the Plan's phases in order
+	PhaseOverrides [][]Override[RateCard]
+}
 
 type Connector interface {
 	// EndAt ends a subscription effective at the provided time.
 	EndAt(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error)
 
 	// StartNew attempts to start a new subscription for a customer effective at the provided time.
-	StartNew(ctx context.Context, customerID string, sub SubscriptionCreateInput, contents []ContentCreateInput) (Subscription, error)
-
-	// ChangeContents changes the contents of a subscription effective retroactively.
-	//
-	// Effective retroactively means that the subscription contents are changed and no new version is created to replace the old.
-	// For example, if you change some usage based price included in the subscription, the prior usage will also be billed based on the new price.
-	ChangeContents(ctx context.Context, subscriptionID string, overrides SubscriptionOverrides) (Subscription, error)
+	StartNew(ctx context.Context, customerID string, req NewSubscriptionRequest) (Subscription, error)
 }
 
 type connector struct {
 	customerSubscriptionRepo CustomerSubscriptionRepo
 	subscriptionRepo         SubscriptionRepo
-	contentRepo              ContentRepo
-	planRepo                 PlanRepo
+	subscriptionPhaseRepo    SubscriptionPhaseRepo
+	planAdapter              PlanAdapter
 
 	lifecycleManager LifecycleManager
 
@@ -39,10 +45,12 @@ var _ Connector = (*connector)(nil)
 
 // EndAt ends a subscription effective at the provided time.
 func (c *connector) EndAt(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error) {
-	sub, err := c.subscriptionRepo.GetByID(ctx, modelref.IDRef(subscriptionID))
+	sub, err := c.subscriptionRepo.GetByID(ctx, subscriptionID)
 	if err != nil {
 		return Subscription{}, err
 	}
+
+	// Lets validate that the request makes sense
 
 	if sub.ActiveTo != nil {
 		return Subscription{}, &models.GenericUserError{Message: "Subscription is already ended at a different time."}
@@ -52,67 +60,101 @@ func (c *connector) EndAt(ctx context.Context, subscriptionID string, at time.Ti
 		return Subscription{}, &models.GenericUserError{Message: "End time is before start time."}
 	}
 
-	return c.subscriptionRepo.UpdateCadence(ctx, modelref.IDRef(subscriptionID), models.CadencedModel{
+	// Lets end the subscription
+	return c.subscriptionRepo.UpdateCadence(ctx, subscriptionID, models.CadencedModel{
 		ActiveFrom: sub.ActiveFrom,
 		ActiveTo:   &at,
 	})
 }
 
-func (c *connector) StartNew(ctx context.Context, customerID string, input SubscriptionCreateInput, inputContents []ContentCreateInput) (Subscription, error) {
-	prevCustomerSubs, err := c.customerSubscriptionRepo.GetAll(ctx, modelref.IDRef(customerID), SubscriptionFilters{})
+// StartNew attempts to start a new subscription for a customer based on the provided templating plan.
+func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubscriptionRequest) (Subscription, error) {
+	prevCustomerSubs, err := c.customerSubscriptionRepo.GetAll(ctx, customerID, CustomerSubscriptionRepoParams{})
+	if err != nil {
+		return Subscription{}, err
+	}
+
+	templatingPlan, err := c.planAdapter.GetVersion(ctx, req.TemplatingPlanRef)
 	if err != nil {
 		return Subscription{}, err
 	}
 
 	// We need to validate that the new subscription meets lifecycle rules
-	err = c.lifecycleManager.CanStartNew(ctx, customerID, prevCustomerSubs, input)
+	err = c.lifecycleManager.CanStartNew(ctx, customerID, prevCustomerSubs, templatingPlan)
 	if err != nil {
 		return Subscription{}, err
 	}
 
-	activatesAt := input.CadencedModel.ActiveFrom
-
-	// TODO: start a transaction here
-
-	// Persist the subscription and its contents
-	sub, err := c.subscriptionRepo.Create(ctx, input)
-	if err != nil {
-		return Subscription{}, err
-	}
-
-	contents, err := c.contentRepo.CreateMany(ctx, modelref.IDRef(sub.ID), lo.Map(inputContents, func(c ContentCreateInput, _ int) ContentCreateInput {
-		// Contents have to become active alongside the subscription
-		c.ActiveFrom = activatesAt
-		return c
-	}))
-	if err != nil {
-		return Subscription{}, err
-	}
-
-	// Create Entitlements for the subscription
-	for _, content := range contents {
-		_, err := c.entitlementConnector.CreateEntitlement(ctx, ContentToEntitlementCreateInput(content))
-		if entitlementExistsError, ok := lo.ErrorsAs[*entitlement.AlreadyExistsError](err); ok {
-			// TODO: there might be a cleaner upsert than using the override flow, probably a custom method is needed
-
-			// FIXME: OverrideEntitlement closes the transaction used which is not okay for us
-			//
-			// Idea:
-			// We could manage nested transactions with PG SAVEPOINTs
-			// - commits turn into RELEASE SAVEPOINT
-			// - rollbacks turn into ROLLBACK TO SAVEPOINT
-			// for the nested operations, while the top level context can manage overall commit/rollback
-			_, err = c.entitlementConnector.OverrideEntitlement(ctx, entitlementExistsError.SubjectKey, entitlementExistsError.EntitlementID, ContentToEntitlementCreateInput(content))
-		}
-
+	return dummy.Transaction(ctx, func(ctx context.Context) (Subscription, error) {
+		// Fetch the Plan contents and apply overrides
+		phases, err := c.planAdapter.GetPhases(ctx, modelref.VersionedKeyRef{
+			Key:     templatingPlan.Key,
+			Version: templatingPlan.Version,
+		})
 		if err != nil {
 			return Subscription{}, err
 		}
-	}
 
-	return sub, nil
-}
+		if len(phases) != len(req.PhaseOverrides) {
+			return Subscription{}, &models.GenericUserError{Message: "PhaseOverrides must have the same length as the Plan's phases"}
+		}
 
-func (c *connector) ChangeContents(ctx context.Context, subscriptionID string, overrides SubscriptionOverrides) (Subscription, error) {
-	panic("not implemented")
+		// Lets create the subscription
+		sub, err := c.subscriptionRepo.Create(ctx, SubscriptionCreateInput{
+			NamespacedModel:   models.NamespacedModel{Namespace: req.Namespace},
+			CadencedModel:     models.CadencedModel{ActiveFrom: req.ActiveFrom},
+			TemplatingPlanRef: req.TemplatingPlanRef,
+		})
+		if err != nil {
+			return Subscription{}, err
+		}
+
+		startOfPhase := req.ActiveFrom
+
+		for phaseIdx, phase := range phases {
+			// Lets create the subscription phase
+			_, err := c.subscriptionPhaseRepo.Create(ctx, SubscriptionPhaseCreateInput{
+				NamespacedModel: models.NamespacedModel{Namespace: req.Namespace},
+				SubscriptionId:  sub.ID,
+				ActiveFrom:      startOfPhase,
+			})
+			if err != nil {
+				return Subscription{}, fmt.Errorf("failed to create subscription phase #%d: %w", phaseIdx, err)
+			}
+
+			startOfPhase = startOfPhase.Add(phase.Duration())
+
+			// Lets create dependent resources from the RateCards
+			// Lets find any overrides for ratecards in this phase
+			overrides := req.PhaseOverrides[phaseIdx]
+
+			rateCards := ApplyOverrides(phase.RateCards(), overrides)
+
+			for _, rateCard := range rateCards {
+				// Lets create the entitlements
+
+				// FIXME: clean up this control flow
+
+				entSpec, err := rateCard.GetEntitlementSpec()
+				// If it's an unexpected error we return with the error
+				if _, ok := lo.ErrorsAs[*DoesntCreateNewResourceError](err); !ok && err != nil {
+					return Subscription{}, fmt.Errorf("failed to get entitlement spec: %w", err)
+				} else if err == nil {
+					// If theres no error, we create the entitlements
+					_, err := c.entitlementConnector.CreateEntitlement(ctx, entSpec)
+					if entitlementExistsError, ok := lo.ErrorsAs[*entitlement.AlreadyExistsError](err); ok {
+						// TODO: there might be a cleaner upsert than using the override flow, probably a custom method is needed
+						_, err = c.entitlementConnector.OverrideEntitlement(ctx, entitlementExistsError.SubjectKey, entitlementExistsError.EntitlementID, entSpec)
+						if err != nil {
+							return Subscription{}, fmt.Errorf("failed to override entitlement: %w", err)
+						}
+					} else if err != nil {
+						return Subscription{}, fmt.Errorf("failed to create entitlement: %w", err)
+					}
+				}
+			}
+		}
+
+		return sub, nil
+	})
 }
