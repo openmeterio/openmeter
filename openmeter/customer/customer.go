@@ -106,21 +106,6 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 		customer.Currency = &currency
 	}
 
-	if c.TaxProvider != nil {
-		taxProvider := api.TaxProvider(string(*c.TaxProvider))
-		customer.TaxProvider = &taxProvider
-	}
-
-	if c.InvoicingProvider != nil {
-		invoicingProvider := api.InvoicingProvider(string(*c.InvoicingProvider))
-		customer.InvoicingProvider = &invoicingProvider
-	}
-
-	if c.PaymentProvider != nil {
-		paymentProvider := api.PaymentProvider(string(*c.PaymentProvider))
-		customer.PaymentProvider = &paymentProvider
-	}
-
 	return customer, nil
 }
 
