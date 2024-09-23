@@ -238,9 +238,6 @@ model MeterQuery {
   @example(#["customer-1", "customer-2"])
   subject?: string[];
 
-  // TODO: should be deepObject
-  // See: https://github.com/microsoft/typespec/issues/4440
-
   /**
    * Simple filter for group bys with exact match.
    */

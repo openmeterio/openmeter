@@ -2,6 +2,10 @@ import "@typespec/http";
 
 using TypeSpec.Http;
 
+/**
+ * Paginated query parameters.
+ */
+@friendlyName("PaginatedQuery")
 model PaginatedQuery {
   /**
    * The page number.
