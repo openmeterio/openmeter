@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timezone"
-	"github.com/samber/lo"
 )
 
 // Customer represents a customer

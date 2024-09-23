@@ -1,11 +1,12 @@
 package httpdriver
 
 import (
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
-	"github.com/samber/lo"
 )
 
 // newCreateCustomerInput creates a new customer.CreateCustomerInput.
