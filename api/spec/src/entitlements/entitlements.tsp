@@ -30,6 +30,7 @@ interface Entitlements {
    */
   @get
   @operationId("listEntitlements")
+  @sharedRoute
   @summary("List all entitlements")
   list(
     /**
@@ -56,7 +57,50 @@ interface Entitlements {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
-  ): Entitlement[] | OpenMeter.PaginatedResponse<Entitlement> | OpenMeter.CommonErrors;
+
+    @header accept?: "application/json" = "application/json",
+  ): {
+    @header contentType: "application/json";
+    @body _: Entitlement[];
+  } | {
+    @header contentType: "application/json";
+    @body _: OpenMeter.PaginatedResponse<Entitlement>;
+  } | OpenMeter.CommonErrors;
+
+  @get
+  @operationId("listEntitlements")
+  @sharedRoute
+  listPaginated(
+    /**
+     * Filtering by multiple features.
+     *
+     * Usage: `?feature=feature-1&feature=feature-2`
+     */
+    @query feature?: string[],
+
+    /**
+     * Filtering by multiple subjects.
+     *
+     * Usage: `?subject=customer-1&subject=customer-2`
+     */
+    @query subject?: string[],
+
+    /**
+     * Filtering by multiple entitlement types.
+     *
+     * Usage: `?entitlementType=metered&entitlementType=boolean`
+     */
+    @query entitlementType?: EntitlementType[],
+
+    ...OpenMeter.QueryPagination,
+    ...OpenMeter.QueryLimitOffset,
+    ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
+
+    @header accept?: "application/json;paginated=true",
+  ): {
+    @header contentType: "application/json;paginated=true";
+    @body _: OpenMeter.PaginatedResponse<Entitlement>;
+  } | OpenMeter.CommonErrors;
 
   /**
    * Get entitlement by id.

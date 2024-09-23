@@ -39,6 +39,7 @@ func (m *Generate) Openapi() *dagger.File {
 		WithExec([]string{"sed", "-i", "s/ingestEvents_ingestEvents/ingestEvents/", "openapi.yaml"}).
 		WithExec([]string{"sed", "-i", "s/queryMeter_queryMeter/queryMeter/", "openapi.yaml"}).
 		WithExec([]string{"sed", "-i", "s/queryPortalMeter_queryPortalMeter/queryPortalMeter/", "openapi.yaml"}).
+		WithExec([]string{"sed", "-i", "s/listEntitlements_listEntitlements/listEntitlements/", "openapi.yaml"}).
 		File("/work/openapi.yaml")
 
 	return file
