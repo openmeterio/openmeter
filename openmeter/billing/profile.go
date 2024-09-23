@@ -1,8 +1,11 @@
 package billing
 
 import (
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
 
 // AlignmentKind specifies what governs when an invoice is issued
@@ -20,9 +23,10 @@ func (k AlignmentKind) Values() []string {
 	}
 }
 
+// TODO: billingconfiguration?!
 type Configuration struct {
 	// Collection describes the rules for collecting pending line items
-	Collection *CollectionConfig `json:"collection,omitempty"`
+	ItemCollection *ItemCollectionConfig `json:"itemCollection,omitempty"`
 	// Workflow describes the rules for advancing the billing process
 	Workflow *WorkflowConfig `json:"workflow,omitempty"`
 	// Granuality describes the rules for line item granuality
@@ -30,9 +34,9 @@ type Configuration struct {
 }
 
 func (c *Configuration) Validate() error {
-	if c.Collection != nil {
-		if err := c.Collection.Validate(); err != nil {
-			return fmt.Errorf("failed to validate collection: %w", err)
+	if c.ItemCollection != nil {
+		if err := c.ItemCollection.Validate(); err != nil {
+			return fmt.Errorf("failed to validate item collection: %w", err)
 		}
 	}
 
@@ -51,11 +55,11 @@ func (c *Configuration) Validate() error {
 	return nil
 }
 
-type CollectionConfig struct {
+type ItemCollectionConfig struct {
 	Period time.Duration `json:"period,omitempty"`
 }
 
-func (c *CollectionConfig) Validate() error {
+func (c *ItemCollectionConfig) Validate() error {
 	if c.Period < 0 {
 		return fmt.Errorf("period must be greater or equal to 0")
 	}
@@ -82,7 +86,7 @@ func (c CollectionMethod) Values() []string {
 type WorkflowConfig struct {
 	// AutoAdvance specifies if the workflow will automatically advance from draft to issued after DraftPeriod, if not set it
 	// will default to the billing provider's default behavior
-	AutoAdvance *bool `json:"autoAdvance,omitempty"`
+	AutoAdvance bool `json:"autoAdvance,omitempty"`
 	// DraftPeriod specifies how long to wait before automatically advancing from draft to issued
 	DraftPeriod time.Duration `json:"draftPeriod,omitempty"`
 	// DueAfter specifies how long after the invoice is issued that it is due
@@ -92,7 +96,7 @@ type WorkflowConfig struct {
 }
 
 func (c *WorkflowConfig) Validate() error {
-	if c.DraftPeriod < 0 && c.AutoAdvance != nil && *c.AutoAdvance {
+	if c.DraftPeriod < 0 && c.AutoAdvance {
 		return fmt.Errorf("draft period must be greater or equal to 0")
 	}
 
@@ -129,7 +133,7 @@ type GranualityConfig struct {
 	// Resolution specifies the resolution of the line items
 	Resolution GranualityResolution `json:"resolution,omitempty"`
 	// PerSubjectDetails specifies if the line items should be split per subject or not
-	PerSubjectDetails *bool `json:"perSubjectDetails,omitempty"`
+	PerSubjectDetails bool `json:"perSubjectDetails,omitempty"`
 }
 
 func (c *GranualityConfig) Validate() error {
@@ -137,6 +141,87 @@ func (c *GranualityConfig) Validate() error {
 	case GranualityResolutionDay, GranualityResolutionPeriod:
 	default:
 		return fmt.Errorf("invalid resolution: %s", c.Resolution)
+	}
+
+	return nil
+}
+
+type Profile struct {
+	ID        string
+	Namespace string
+	Key       string
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+
+	TaxConfiguration       provider.TaxConfiguration
+	InvoicingConfiguration provider.InvoicingConfiguration
+	PaymentConfiguration   provider.PaymentConfiguration
+
+	Configuration Configuration
+	Default       bool
+}
+
+func (p Profile) Validate() error {
+	// TODO: this is mostly matching the create except of the ID part
+	if p.ID == "" {
+		return errors.New("id is required")
+	}
+
+	if p.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if p.Key == "" {
+		return errors.New("key is required")
+	}
+
+	if err := p.TaxConfiguration.Validate(); err != nil {
+		return fmt.Errorf("invalid tax configuration: %w", err)
+	}
+
+	if err := p.InvoicingConfiguration.Validate(); err != nil {
+		return fmt.Errorf("invalid invoicing configuration: %w", err)
+	}
+
+	if err := p.PaymentConfiguration.Validate(); err != nil {
+		return fmt.Errorf("invalid payment configuration: %w", err)
+	}
+
+	if err := p.Configuration.Validate(); err != nil {
+		return fmt.Errorf("invalid workflow configuration: %w", err)
+	}
+	return nil
+}
+
+type CreateProfileInput struct {
+	Profile
+}
+
+func (i CreateProfileInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Key == "" {
+		return errors.New("key is required")
+	}
+
+	if err := i.TaxConfiguration.Validate(); err != nil {
+		return fmt.Errorf("invalid tax configuration: %w", err)
+	}
+
+	if err := i.InvoicingConfiguration.Validate(); err != nil {
+		return fmt.Errorf("invalid invoicing configuration: %w", err)
+	}
+
+	if err := i.PaymentConfiguration.Validate(); err != nil {
+		return fmt.Errorf("invalid payment configuration: %w", err)
+	}
+
+	if err := i.Configuration.Validate(); err != nil {
+		return fmt.Errorf("invalid workflow configuration: %w", err)
 	}
 
 	return nil

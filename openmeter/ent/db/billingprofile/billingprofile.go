@@ -47,8 +47,8 @@ const (
 	FieldDefault = "default"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
-	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
-	EdgeBillingWorkflowConfig = "billing_workflow_config"
+	// EdgeWorkflowConfig holds the string denoting the workflow_config edge name in mutations.
+	EdgeWorkflowConfig = "workflow_config"
 	// EdgeCustomers holds the string denoting the customers edge name in mutations.
 	EdgeCustomers = "customers"
 	// Table holds the table name of the billingprofile in the database.
@@ -60,13 +60,13 @@ const (
 	BillingInvoicesInverseTable = "billing_invoices"
 	// BillingInvoicesColumn is the table column denoting the billing_invoices relation/edge.
 	BillingInvoicesColumn = "billing_profile_id"
-	// BillingWorkflowConfigTable is the table that holds the billing_workflow_config relation/edge.
-	BillingWorkflowConfigTable = "billing_profiles"
-	// BillingWorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
+	// WorkflowConfigTable is the table that holds the workflow_config relation/edge.
+	WorkflowConfigTable = "billing_profiles"
+	// WorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
 	// It exists in this package in order to avoid circular dependency with the "billingworkflowconfig" package.
-	BillingWorkflowConfigInverseTable = "billing_workflow_configs"
-	// BillingWorkflowConfigColumn is the table column denoting the billing_workflow_config relation/edge.
-	BillingWorkflowConfigColumn = "workflow_config_id"
+	WorkflowConfigInverseTable = "billing_workflow_configs"
+	// WorkflowConfigColumn is the table column denoting the workflow_config relation/edge.
+	WorkflowConfigColumn = "workflow_config_id"
 	// CustomersTable is the table that holds the customers relation/edge.
 	CustomersTable = "customers"
 	// CustomersInverseTable is the table name for the Customer entity.
@@ -247,10 +247,10 @@ func ByBillingInvoices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByBillingWorkflowConfigField orders the results by billing_workflow_config field.
-func ByBillingWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByWorkflowConfigField orders the results by workflow_config field.
+func ByWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingWorkflowConfigStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newWorkflowConfigStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -274,11 +274,11 @@ func newBillingInvoicesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicesTable, BillingInvoicesColumn),
 	)
 }
-func newBillingWorkflowConfigStep() *sqlgraph.Step {
+func newWorkflowConfigStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+		sqlgraph.To(WorkflowConfigInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, WorkflowConfigTable, WorkflowConfigColumn),
 	)
 }
 func newCustomersStep() *sqlgraph.Step {

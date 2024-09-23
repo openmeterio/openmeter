@@ -619,21 +619,21 @@ func HasBillingInvoicesWith(preds ...predicate.BillingInvoice) predicate.Billing
 	})
 }
 
-// HasBillingWorkflowConfig applies the HasEdge predicate on the "billing_workflow_config" edge.
-func HasBillingWorkflowConfig() predicate.BillingProfile {
+// HasWorkflowConfig applies the HasEdge predicate on the "workflow_config" edge.
+func HasWorkflowConfig() predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, WorkflowConfigTable, WorkflowConfigColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasBillingWorkflowConfigWith applies the HasEdge predicate on the "billing_workflow_config" edge with a given conditions (other predicates).
-func HasBillingWorkflowConfigWith(preds ...predicate.BillingWorkflowConfig) predicate.BillingProfile {
+// HasWorkflowConfigWith applies the HasEdge predicate on the "workflow_config" edge with a given conditions (other predicates).
+func HasWorkflowConfigWith(preds ...predicate.BillingWorkflowConfig) predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {
-		step := newBillingWorkflowConfigStep()
+		step := newWorkflowConfigStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

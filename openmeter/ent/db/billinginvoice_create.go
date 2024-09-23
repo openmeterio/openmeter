@@ -592,7 +592,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	}
 	if nodes := bic.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   billinginvoice.BillingWorkflowConfigTable,
 			Columns: []string{billinginvoice.BillingWorkflowConfigColumn},

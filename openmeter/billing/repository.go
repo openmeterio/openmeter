@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -18,7 +19,40 @@ type Repository interface {
 	WithTx(context.Context) (TxRepository, error)
 }
 
-type ProfileRepository interface{}
+type ProfileRepository interface {
+	CreateProfile(ctx context.Context, params CreateProfileInput) (*Profile, error)
+	GetProfileByKey(ctx context.Context, params RepoGetProfileByKeyInput) (*Profile, error)
+	GetDefaultProfile(ctx context.Context, params RepoGetDefaultProfileInput) (*Profile, error)
+}
+
+type RepoGetProfileByKeyInput struct {
+	Namespace string
+	Key       string
+}
+
+func (i RepoGetProfileByKeyInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Key == "" {
+		return errors.New("key is required")
+	}
+
+	return nil
+}
+
+type RepoGetDefaultProfileInput struct {
+	Namespace string
+}
+
+func (i RepoGetDefaultProfileInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	return nil
+}
 
 func WithTxNoValue(ctx context.Context, repo Repository, fn func(ctx context.Context, repo TxRepository) error) error {
 	var err error

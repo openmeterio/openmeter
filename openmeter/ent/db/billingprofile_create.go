@@ -220,15 +220,9 @@ func (bpc *BillingProfileCreate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 	return bpc.AddBillingInvoiceIDs(ids...)
 }
 
-// SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
-func (bpc *BillingProfileCreate) SetBillingWorkflowConfigID(id string) *BillingProfileCreate {
-	bpc.mutation.SetBillingWorkflowConfigID(id)
-	return bpc
-}
-
-// SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpc *BillingProfileCreate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
-	return bpc.SetBillingWorkflowConfigID(b.ID)
+// SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpc *BillingProfileCreate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
+	return bpc.SetWorkflowConfigID(b.ID)
 }
 
 // AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
@@ -364,8 +358,8 @@ func (bpc *BillingProfileCreate) check() error {
 	if _, ok := bpc.mutation.Default(); !ok {
 		return &ValidationError{Name: "default", err: errors.New(`db: missing required field "BillingProfile.default"`)}
 	}
-	if len(bpc.mutation.BillingWorkflowConfigIDs()) == 0 {
-		return &ValidationError{Name: "billing_workflow_config", err: errors.New(`db: missing required edge "BillingProfile.billing_workflow_config"`)}
+	if len(bpc.mutation.WorkflowConfigIDs()) == 0 {
+		return &ValidationError{Name: "workflow_config", err: errors.New(`db: missing required edge "BillingProfile.workflow_config"`)}
 	}
 	return nil
 }
@@ -486,12 +480,12 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+	if nodes := bpc.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   billingprofile.BillingWorkflowConfigTable,
-			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Table:   billingprofile.WorkflowConfigTable,
+			Columns: []string{billingprofile.WorkflowConfigColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),

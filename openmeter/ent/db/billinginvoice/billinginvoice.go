@@ -348,7 +348,7 @@ func newBillingWorkflowConfigStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+		sqlgraph.Edge(sqlgraph.O2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
 	)
 }
 func newBillingInvoiceItemsStep() *sqlgraph.Step {

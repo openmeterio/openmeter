@@ -1086,7 +1086,7 @@ func HasBillingWorkflowConfig() predicate.BillingInvoice {
 	return predicate.BillingInvoice(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

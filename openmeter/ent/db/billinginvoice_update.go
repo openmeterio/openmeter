@@ -533,7 +533,7 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if biu.mutation.BillingWorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   billinginvoice.BillingWorkflowConfigTable,
 			Columns: []string{billinginvoice.BillingWorkflowConfigColumn},
@@ -546,7 +546,7 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if nodes := biu.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   billinginvoice.BillingWorkflowConfigTable,
 			Columns: []string{billinginvoice.BillingWorkflowConfigColumn},
@@ -1155,7 +1155,7 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.BillingWorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   billinginvoice.BillingWorkflowConfigTable,
 			Columns: []string{billinginvoice.BillingWorkflowConfigColumn},
@@ -1168,7 +1168,7 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if nodes := biuo.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   billinginvoice.BillingWorkflowConfigTable,
 			Columns: []string{billinginvoice.BillingWorkflowConfigColumn},

@@ -67,7 +67,7 @@ func (BillingProfile) Fields() []ent.Field {
 func (BillingProfile) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("billing_invoices", BillingInvoice.Type),
-		edge.From("billing_workflow_config", BillingWorkflowConfig.Type).
+		edge.From("workflow_config", BillingWorkflowConfig.Type).
 			Ref("billing_profile").
 			Field("workflow_config_id").
 			Unique().
@@ -79,7 +79,7 @@ func (BillingProfile) Edges() []ent.Edge {
 
 func (BillingProfile) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "default"),
+		index.Fields("namespace", "default", "deleted_at").Unique(),
 	}
 }
 
@@ -354,7 +354,64 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		// Here everything can be null so that we can rely on this table as an override table too
 		// this means that null validation must be done in the service layer.
 
-		field.Int64("collection_period_seconds").
+		field.Int64("item_collection_period_seconds"),
+
+		field.Bool("invoice_auto_advance"),
+
+		field.Int64("invoice_draft_period_seconds"),
+
+		field.Int64("invoice_due_after_seconds"),
+
+		field.Enum("invoice_collection_method").
+			GoType(billing.CollectionMethod("")),
+
+		field.Enum("invoice_line_item_resolution").
+			GoType(billing.GranualityResolution("")),
+
+		field.Bool("invoice_line_item_per_subject"),
+	}
+}
+
+func (BillingWorkflowConfig) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id"),
+	}
+}
+
+func (BillingWorkflowConfig) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("billing_invoices", BillingInvoice.Type).
+			Unique(),
+		edge.To("billing_profile", BillingProfile.Type).
+			Unique(),
+	}
+}
+
+type BillingWorkflowConfigOverride struct {
+	ent.Schema
+}
+
+func (BillingWorkflowConfigOverride) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingWorkflowConfigOverride) Fields() []ent.Field {
+	return []ent.Field{
+		field.Enum("alignment").
+			GoType(billing.AlignmentKind("")).
+			Optional().
+			Nillable(),
+
+		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
+
+		// Here everything can be null so that we can rely on this table as an override table too
+		// this means that null validation must be done in the service layer.
+
+		field.Int64("item_collection_period_seconds").
 			Optional().
 			Nillable(),
 
@@ -385,17 +442,14 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 	}
 }
 
-func (BillingWorkflowConfig) Indexes() []ent.Index {
+func (BillingWorkflowConfigOverride) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 	}
 }
 
-func (BillingWorkflowConfig) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.To("billing_invoices", BillingInvoice.Type),
-		edge.To("billing_profile", BillingProfile.Type),
-	}
+func (BillingWorkflowConfigOverride) Edges() []ent.Edge {
+	return []ent.Edge{}
 }
 
 type BillingInvoiceItem struct {

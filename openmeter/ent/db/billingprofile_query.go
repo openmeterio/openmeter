@@ -23,14 +23,14 @@ import (
 // BillingProfileQuery is the builder for querying BillingProfile entities.
 type BillingProfileQuery struct {
 	config
-	ctx                       *QueryContext
-	order                     []billingprofile.OrderOption
-	inters                    []Interceptor
-	predicates                []predicate.BillingProfile
-	withBillingInvoices       *BillingInvoiceQuery
-	withBillingWorkflowConfig *BillingWorkflowConfigQuery
-	withCustomers             *CustomerQuery
-	modifiers                 []func(*sql.Selector)
+	ctx                 *QueryContext
+	order               []billingprofile.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.BillingProfile
+	withBillingInvoices *BillingInvoiceQuery
+	withWorkflowConfig  *BillingWorkflowConfigQuery
+	withCustomers       *CustomerQuery
+	modifiers           []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -89,8 +89,8 @@ func (bpq *BillingProfileQuery) QueryBillingInvoices() *BillingInvoiceQuery {
 	return query
 }
 
-// QueryBillingWorkflowConfig chains the current query on the "billing_workflow_config" edge.
-func (bpq *BillingProfileQuery) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
+// QueryWorkflowConfig chains the current query on the "workflow_config" edge.
+func (bpq *BillingProfileQuery) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
 	query := (&BillingWorkflowConfigClient{config: bpq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := bpq.prepareQuery(ctx); err != nil {
@@ -103,7 +103,7 @@ func (bpq *BillingProfileQuery) QueryBillingWorkflowConfig() *BillingWorkflowCon
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.BillingWorkflowConfigTable, billingprofile.BillingWorkflowConfigColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, billingprofile.WorkflowConfigTable, billingprofile.WorkflowConfigColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
 		return fromU, nil
@@ -320,14 +320,14 @@ func (bpq *BillingProfileQuery) Clone() *BillingProfileQuery {
 		return nil
 	}
 	return &BillingProfileQuery{
-		config:                    bpq.config,
-		ctx:                       bpq.ctx.Clone(),
-		order:                     append([]billingprofile.OrderOption{}, bpq.order...),
-		inters:                    append([]Interceptor{}, bpq.inters...),
-		predicates:                append([]predicate.BillingProfile{}, bpq.predicates...),
-		withBillingInvoices:       bpq.withBillingInvoices.Clone(),
-		withBillingWorkflowConfig: bpq.withBillingWorkflowConfig.Clone(),
-		withCustomers:             bpq.withCustomers.Clone(),
+		config:              bpq.config,
+		ctx:                 bpq.ctx.Clone(),
+		order:               append([]billingprofile.OrderOption{}, bpq.order...),
+		inters:              append([]Interceptor{}, bpq.inters...),
+		predicates:          append([]predicate.BillingProfile{}, bpq.predicates...),
+		withBillingInvoices: bpq.withBillingInvoices.Clone(),
+		withWorkflowConfig:  bpq.withWorkflowConfig.Clone(),
+		withCustomers:       bpq.withCustomers.Clone(),
 		// clone intermediate query.
 		sql:  bpq.sql.Clone(),
 		path: bpq.path,
@@ -345,14 +345,14 @@ func (bpq *BillingProfileQuery) WithBillingInvoices(opts ...func(*BillingInvoice
 	return bpq
 }
 
-// WithBillingWorkflowConfig tells the query-builder to eager-load the nodes that are connected to
-// the "billing_workflow_config" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithBillingWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingProfileQuery {
+// WithWorkflowConfig tells the query-builder to eager-load the nodes that are connected to
+// the "workflow_config" edge. The optional arguments are used to configure the query builder of the edge.
+func (bpq *BillingProfileQuery) WithWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingProfileQuery {
 	query := (&BillingWorkflowConfigClient{config: bpq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withBillingWorkflowConfig = query
+	bpq.withWorkflowConfig = query
 	return bpq
 }
 
@@ -447,7 +447,7 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 		_spec       = bpq.querySpec()
 		loadedTypes = [3]bool{
 			bpq.withBillingInvoices != nil,
-			bpq.withBillingWorkflowConfig != nil,
+			bpq.withWorkflowConfig != nil,
 			bpq.withCustomers != nil,
 		}
 	)
@@ -481,9 +481,9 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			return nil, err
 		}
 	}
-	if query := bpq.withBillingWorkflowConfig; query != nil {
-		if err := bpq.loadBillingWorkflowConfig(ctx, query, nodes, nil,
-			func(n *BillingProfile, e *BillingWorkflowConfig) { n.Edges.BillingWorkflowConfig = e }); err != nil {
+	if query := bpq.withWorkflowConfig; query != nil {
+		if err := bpq.loadWorkflowConfig(ctx, query, nodes, nil,
+			func(n *BillingProfile, e *BillingWorkflowConfig) { n.Edges.WorkflowConfig = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -527,7 +527,7 @@ func (bpq *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *
 	}
 	return nil
 }
-func (bpq *BillingProfileQuery) loadBillingWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingWorkflowConfig)) error {
+func (bpq *BillingProfileQuery) loadWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingWorkflowConfig)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingProfile)
 	for i := range nodes {
@@ -618,7 +618,7 @@ func (bpq *BillingProfileQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if bpq.withBillingWorkflowConfig != nil {
+		if bpq.withWorkflowConfig != nil {
 			_spec.Node.AddColumnOnce(billingprofile.FieldWorkflowConfigID)
 		}
 	}

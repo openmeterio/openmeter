@@ -127,7 +127,7 @@ var (
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "workflow_config_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoicesTable holds the schema information for the "billing_invoices" table.
 	BillingInvoicesTable = &schema.Table{
@@ -261,7 +261,7 @@ var (
 		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
 		{Name: "payment_provider_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "default", Type: field.TypeBool, Default: false},
-		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "workflow_config_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingProfilesTable holds the schema information for the "billing_profiles" table.
 	BillingProfilesTable = &schema.Table{
@@ -298,9 +298,9 @@ var (
 				Columns: []*schema.Column{BillingProfilesColumns[2], BillingProfilesColumns[1], BillingProfilesColumns[6]},
 			},
 			{
-				Name:    "billingprofile_namespace_default",
-				Unique:  false,
-				Columns: []*schema.Column{BillingProfilesColumns[2], BillingProfilesColumns[13]},
+				Name:    "billingprofile_namespace_default_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{BillingProfilesColumns[2], BillingProfilesColumns[13], BillingProfilesColumns[6]},
 			},
 		},
 	}
@@ -312,13 +312,13 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "alignment", Type: field.TypeEnum, Enums: []string{"subscription"}},
-		{Name: "collection_period_seconds", Type: field.TypeInt64, Nullable: true},
-		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
-		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64, Nullable: true},
-		{Name: "invoice_due_after_seconds", Type: field.TypeInt64, Nullable: true},
-		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
-		{Name: "invoice_line_item_resolution", Type: field.TypeEnum, Nullable: true, Enums: []string{"day", "period"}},
-		{Name: "invoice_line_item_per_subject", Type: field.TypeBool, Nullable: true},
+		{Name: "item_collection_period_seconds", Type: field.TypeInt64},
+		{Name: "invoice_auto_advance", Type: field.TypeBool},
+		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64},
+		{Name: "invoice_due_after_seconds", Type: field.TypeInt64},
+		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
+		{Name: "invoice_line_item_resolution", Type: field.TypeEnum, Enums: []string{"day", "period"}},
+		{Name: "invoice_line_item_per_subject", Type: field.TypeBool},
 	}
 	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsTable = &schema.Table{
@@ -340,6 +340,45 @@ var (
 				Name:    "billingworkflowconfig_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingWorkflowConfigsColumns[1], BillingWorkflowConfigsColumns[0]},
+			},
+		},
+	}
+	// BillingWorkflowConfigOverridesColumns holds the columns for the "billing_workflow_config_overrides" table.
+	BillingWorkflowConfigOverridesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription"}},
+		{Name: "item_collection_period_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
+		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_due_after_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
+		{Name: "invoice_line_item_resolution", Type: field.TypeEnum, Nullable: true, Enums: []string{"day", "period"}},
+		{Name: "invoice_line_item_per_subject", Type: field.TypeBool, Nullable: true},
+	}
+	// BillingWorkflowConfigOverridesTable holds the schema information for the "billing_workflow_config_overrides" table.
+	BillingWorkflowConfigOverridesTable = &schema.Table{
+		Name:       "billing_workflow_config_overrides",
+		Columns:    BillingWorkflowConfigOverridesColumns,
+		PrimaryKey: []*schema.Column{BillingWorkflowConfigOverridesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingworkflowconfigoverride_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingWorkflowConfigOverridesColumns[0]},
+			},
+			{
+				Name:    "billingworkflowconfigoverride_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingWorkflowConfigOverridesColumns[1]},
+			},
+			{
+				Name:    "billingworkflowconfigoverride_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingWorkflowConfigOverridesColumns[1], BillingWorkflowConfigOverridesColumns[0]},
 			},
 		},
 	}
@@ -884,6 +923,7 @@ var (
 		BillingInvoiceItemsTable,
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
+		BillingWorkflowConfigOverridesTable,
 		CustomersTable,
 		CustomerSubjectsTable,
 		EntitlementsTable,
