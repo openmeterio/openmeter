@@ -92,18 +92,13 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 	}
 
 	if c.External != nil {
-		external := api.CustomerExternalMapping{}
-
-		if c.External.StripeCustomerID != nil {
-			external.StripeCustomerId = c.External.StripeCustomerID
+		customer.External = &api.CustomerExternalMapping{
+			StripeCustomerId: c.External.StripeCustomerID,
 		}
-
-		customer.External = &external
 	}
 
 	if c.Currency != nil {
-		currency := string(*c.Currency)
-		customer.Currency = &currency
+		customer.Currency = lo.ToPtr(string(*c.Currency))
 	}
 
 	return customer, nil

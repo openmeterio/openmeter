@@ -17,7 +17,6 @@ type CustomerService interface {
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
-	Close() error
 }
 
 type service struct {
@@ -70,8 +69,4 @@ func (s *service) UpdateCustomer(ctx context.Context, params UpdateCustomerInput
 	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*Customer, error) {
 		return repo.UpdateCustomer(ctx, params)
 	})
-}
-
-func (s *service) Close() error {
-	return nil
 }
