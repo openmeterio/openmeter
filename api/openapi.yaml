@@ -2169,6 +2169,10 @@ components:
             Currency of the customer.
             Used for billing, tax and invoicing.
           title: Currency
+        timezone:
+          type: string
+          description: Timezone of the customer.
+          title: Timezone
         billingAddress:
           allOf:
             - $ref: '#/components/schemas/Address'
@@ -2176,12 +2180,6 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        taxProvider:
-          $ref: '#/components/schemas/TaxProvider'
-        invoicingProvider:
-          $ref: '#/components/schemas/InvoicingProvider'
-        paymentProvider:
-          $ref: '#/components/schemas/PaymentProvider'
         external:
           allOf:
             - $ref: '#/components/schemas/CustomerExternalMapping'

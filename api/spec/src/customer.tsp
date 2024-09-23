@@ -87,15 +87,20 @@ union CustomerIdentifier {
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   name: "ACME Inc.",
   usageAttribution: #{ subjectKeys: #["my_subject_key"] },
-  taxProvider: "stripe_tax",
-  invoicingProvider: "stripe_invoicing",
-  paymentProvider: "stripe_payments",
   external: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
   createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
 })
 model Customer {
   ...Resource;
+
+  /**
+   * Timezone of the customer.
+   *
+   * @TODO: use a Timezone type to validate the value
+   */
+  @summary("Timezone")
+  timezone?: string;
 
   /**
    * Mapping to attribute metered usage to the customer
@@ -122,24 +127,6 @@ model Customer {
    */
   @summary("Billing Address")
   billingAddress?: Address;
-
-  /**
-   * The tax provider for the customer.
-   */
-  @summary("Tax Provider")
-  taxProvider?: TaxProvider;
-
-  /**
-   * The invoicing provider for the customer.
-   */
-  @summary("Invoicing Provider")
-  invoicingProvider?: InvoicingProvider;
-
-  /**
-   * The payment provider for the customer.
-   */
-  @summary("Payment Provider")
-  paymentProvider?: PaymentProvider;
 
   /**
    * External mappings for the customer.

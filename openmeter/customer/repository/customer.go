@@ -77,9 +77,7 @@ func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCu
 		SetName(params.Name).
 		SetNillablePrimaryEmail(params.PrimaryEmail).
 		SetNillableCurrency(params.Currency).
-		SetNillableTaxProvider(params.TaxProvider).
-		SetNillableInvoicingProvider(params.InvoicingProvider).
-		SetNillablePaymentProvider(params.PaymentProvider)
+		SetNillableTimezone(params.Timezone)
 
 	if params.BillingAddress != nil {
 		query = query.
@@ -224,10 +222,8 @@ func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCus
 		SetUpdatedAt(clock.Now().UTC()).
 		SetName(input.Name).
 		SetNillablePrimaryEmail(input.PrimaryEmail).
-		SetNillableCurrency(input.Currency).
-		SetNillableTaxProvider(input.TaxProvider).
-		SetNillableInvoicingProvider(input.InvoicingProvider).
-		SetNillablePaymentProvider(input.PaymentProvider)
+		SetNillableTimezone(input.Timezone).
+		SetNillableCurrency(input.Currency)
 
 	if input.BillingAddress != nil {
 		query = query.

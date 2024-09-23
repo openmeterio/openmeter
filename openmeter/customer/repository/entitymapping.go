@@ -47,11 +47,9 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 		UsageAttribution: customer.CustomerUsageAttribution{
 			SubjectKeys: subjectKeys,
 		},
-		PrimaryEmail:      e.PrimaryEmail,
-		Currency:          e.Currency,
-		TaxProvider:       e.TaxProvider,
-		InvoicingProvider: e.InvoicingProvider,
-		PaymentProvider:   e.PaymentProvider,
+		PrimaryEmail: e.PrimaryEmail,
+		Currency:     e.Currency,
+		Timezone:     e.Timezone,
 	}
 
 	if e.ExternalMappingStripeCustomerID != nil {

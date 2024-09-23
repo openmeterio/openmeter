@@ -249,7 +249,7 @@ func init() {
 		}
 	}()
 	// customerDescCurrency is the schema descriptor for currency field.
-	customerDescCurrency := customerFields[0].Descriptor()
+	customerDescCurrency := customerFields[3].Descriptor()
 	// customer.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	customer.CurrencyValidator = func() func(string) error {
 		validators := customerDescCurrency.Validators

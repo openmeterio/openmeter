@@ -30,14 +30,11 @@ func (Customer) Mixin() []ent.Mixin {
 
 func (Customer) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("currency").GoType(models.CurrencyCode("")).MinLen(3).MaxLen(3).Optional().Nillable(),
-		field.String("timezone").GoType(timezone.Timezone("")).Optional().Nillable(),
-		field.Enum("tax_provider").GoType(models.TaxProvider("")).Optional().Nillable(),
-		field.Enum("invoicing_provider").GoType(models.InvoicingProvider("")).Optional().Nillable(),
-		field.Enum("payment_provider").GoType(models.PaymentProvider("")).Optional().Nillable(),
-		field.String("external_mapping_stripe_customer_id").Optional().Nillable(),
 		field.String("name"),
 		field.String("primary_email").Optional().Nillable(),
+		field.String("timezone").GoType(timezone.Timezone("")).Optional().Nillable(),
+		field.String("currency").GoType(models.CurrencyCode("")).MinLen(3).MaxLen(3).Optional().Nillable(),
+		field.String("external_mapping_stripe_customer_id").Optional().Nillable(),
 	}
 }
 

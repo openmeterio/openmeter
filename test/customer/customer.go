@@ -9,12 +9,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 var (
 	TestName               = "Test Customer"
 	TestPrimaryEmail       = "test@openmeter.io"
 	TestCurrency           = models.CurrencyCode("USD")
+	TestTimezone           = timezone.Timezone("America/Los_Angeles")
 	TestAddressCountry     = models.CountryCode("US")
 	TestAddressCity        = "San Francisco"
 	TestAddressState       = "CA"
@@ -63,13 +65,11 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			Name:           TestName,
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
+			Timezone:       &TestTimezone,
 			BillingAddress: &TestAddress,
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
-			TaxProvider:       &TestTaxProvider,
-			InvoicingProvider: &TestInvoicingProvider,
-			PaymentProvider:   &TestPaymentProvider,
 		},
 	})
 
@@ -81,6 +81,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	require.Equal(t, TestName, createdCustomer.Name, "Customer name must match")
 	require.Equal(t, &TestPrimaryEmail, createdCustomer.PrimaryEmail, "Customer primary email must match")
 	require.Equal(t, &TestCurrency, createdCustomer.Currency, "Customer currency must match")
+	require.Equal(t, &TestTimezone, createdCustomer.Timezone, "Customer timezone must match")
 	require.Equal(t, &TestAddressCountry, createdCustomer.BillingAddress.Country, "Customer billing address country must match")
 	require.Equal(t, &TestAddressCity, createdCustomer.BillingAddress.City, "Customer billing address city must match")
 	require.Equal(t, &TestAddressLine1, createdCustomer.BillingAddress.Line1, "Customer billing address line1 must match")
@@ -88,9 +89,6 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	require.Equal(t, &TestAddressPostalCode, createdCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
 	require.Equal(t, &TestAddressPhoneNumber, createdCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
 	require.Equal(t, TestSubjectKeys, createdCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
-	require.Equal(t, &TestTaxProvider, createdCustomer.TaxProvider, "Customer tax provider must match")
-	require.Equal(t, &TestInvoicingProvider, createdCustomer.InvoicingProvider, "Customer invoicing provider must match")
-	require.Equal(t, &TestPaymentProvider, createdCustomer.PaymentProvider, "Customer payment provider must match")
 
 	// Test conflicts
 	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -144,13 +142,11 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 			Name:           newName,
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
+			Timezone:       &TestTimezone,
 			BillingAddress: &TestAddress,
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: newSubjectKeys,
 			},
-			TaxProvider:       &TestTaxProvider,
-			InvoicingProvider: &TestInvoicingProvider,
-			PaymentProvider:   &TestPaymentProvider,
 		},
 	})
 
@@ -162,15 +158,13 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	require.Equal(t, newSubjectKeys, updatedCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 	require.Equal(t, &TestPrimaryEmail, updatedCustomer.PrimaryEmail, "Customer primary email must match")
 	require.Equal(t, &TestCurrency, updatedCustomer.Currency, "Customer currency must match")
+	require.Equal(t, &TestTimezone, updatedCustomer.Timezone, "Customer timezone must match")
 	require.Equal(t, &TestAddressCountry, updatedCustomer.BillingAddress.Country, "Customer billing address country must match")
 	require.Equal(t, &TestAddressCity, updatedCustomer.BillingAddress.City, "Customer billing address city must match")
 	require.Equal(t, &TestAddressLine1, updatedCustomer.BillingAddress.Line1, "Customer billing address line1 must match")
 	require.Equal(t, &TestAddressLine2, updatedCustomer.BillingAddress.Line2, "Customer billing address line2 must match")
 	require.Equal(t, &TestAddressPostalCode, updatedCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
 	require.Equal(t, &TestAddressPhoneNumber, updatedCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
-	require.Equal(t, &TestTaxProvider, updatedCustomer.TaxProvider, "Customer tax provider must match")
-	require.Equal(t, &TestInvoicingProvider, updatedCustomer.InvoicingProvider, "Customer invoicing provider must match")
-	require.Equal(t, &TestPaymentProvider, updatedCustomer.PaymentProvider, "Customer payment provider must match")
 }
 
 // TestList tests the listing of customers

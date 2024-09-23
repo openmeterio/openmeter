@@ -4,6 +4,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // newCreateCustomerInput creates a new customer.CreateCustomerInput.
@@ -68,19 +69,9 @@ func newFromAPICustomer(namespace string, apiCustomer api.Customer) customer.Cus
 		customerModel.Currency = &currency
 	}
 
-	if apiCustomer.TaxProvider != nil {
-		taxProvider := models.TaxProvider(string(*apiCustomer.TaxProvider))
-		customerModel.TaxProvider = &taxProvider
-	}
-
-	if apiCustomer.InvoicingProvider != nil {
-		invoicingProvider := models.InvoicingProvider(string(*apiCustomer.InvoicingProvider))
-		customerModel.InvoicingProvider = &invoicingProvider
-	}
-
-	if apiCustomer.PaymentProvider != nil {
-		paymentProvider := models.PaymentProvider(string(*apiCustomer.PaymentProvider))
-		customerModel.PaymentProvider = &paymentProvider
+	if apiCustomer.Timezone != nil {
+		timezone := timezone.Timezone(*apiCustomer.Timezone)
+		customerModel.Timezone = &timezone
 	}
 
 	return customerModel

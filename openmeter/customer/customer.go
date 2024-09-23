@@ -7,21 +7,20 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // Customer represents a customer
 type Customer struct {
 	models.ManagedResource
 
-	Name              string                    `json:"name"`
-	UsageAttribution  CustomerUsageAttribution  `json:"usageAttribution"`
-	PrimaryEmail      *string                   `json:"primaryEmail"`
-	Currency          *models.CurrencyCode      `json:"currency"`
-	BillingAddress    *models.Address           `json:"billingAddress"`
-	TaxProvider       *models.TaxProvider       `json:"taxProvider"`
-	InvoicingProvider *models.InvoicingProvider `json:"invoicingProvider"`
-	PaymentProvider   *models.PaymentProvider   `json:"paymentProvider"`
-	External          *CustomerExternalMapping  `json:"external"`
+	Name             string                   `json:"name"`
+	Timezone         *timezone.Timezone       `json:"timezone"`
+	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
+	PrimaryEmail     *string                  `json:"primaryEmail"`
+	Currency         *models.CurrencyCode     `json:"currency"`
+	BillingAddress   *models.Address          `json:"billingAddress"`
+	External         *CustomerExternalMapping `json:"external"`
 }
 
 // AsAPICustomer converts a Customer to an API Customer
@@ -64,21 +63,6 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 	if c.Currency != nil {
 		currency := string(*c.Currency)
 		customer.Currency = &currency
-	}
-
-	if c.TaxProvider != nil {
-		taxProvider := api.TaxProvider(string(*c.TaxProvider))
-		customer.TaxProvider = &taxProvider
-	}
-
-	if c.InvoicingProvider != nil {
-		invoicingProvider := api.InvoicingProvider(string(*c.InvoicingProvider))
-		customer.InvoicingProvider = &invoicingProvider
-	}
-
-	if c.PaymentProvider != nil {
-		paymentProvider := api.PaymentProvider(string(*c.PaymentProvider))
-		customer.PaymentProvider = &paymentProvider
 	}
 
 	return customer, nil
