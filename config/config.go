@@ -3,12 +3,12 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -37,44 +37,46 @@ type Configuration struct {
 
 // Validate validates the configuration.
 func (c Configuration) Validate() error {
+	var errs []error
+
 	if c.Address == "" {
-		return errors.New("server address is required")
+		errs = append(errs, errors.New("server address is required"))
 	}
 
 	if err := c.Telemetry.Validate(); err != nil {
-		return fmt.Errorf("telemetry: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "telemetry"))
 	}
 
 	if err := c.Namespace.Validate(); err != nil {
-		return fmt.Errorf("namespace: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "namespace"))
 	}
 
 	if err := c.Ingest.Validate(); err != nil {
-		return fmt.Errorf("ingest: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "ingest"))
 	}
 
 	if err := c.Aggregation.Validate(); err != nil {
-		return fmt.Errorf("aggregation: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "aggregation"))
 	}
 
 	if err := c.Sink.Validate(); err != nil {
-		return fmt.Errorf("sink: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "sink"))
 	}
 
 	if err := c.Dedupe.Validate(); err != nil {
-		return fmt.Errorf("dedupe: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "dedupe"))
 	}
 
 	if err := c.Portal.Validate(); err != nil {
-		return fmt.Errorf("portal: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "portal"))
 	}
 
 	if err := c.Entitlements.Validate(); err != nil {
-		return fmt.Errorf("entitlements: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "entitlements"))
 	}
 
 	if len(c.Meters) == 0 {
-		return errors.New("no meters configured: add meter to configuration file")
+		errs = append(errs, errors.New("no meters configured: add meter to configuration file"))
 	}
 
 	for _, m := range c.Meters {
@@ -87,25 +89,25 @@ func (c Configuration) Validate() error {
 		}
 
 		if err := m.Validate(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
 	if err := c.BalanceWorker.Validate(); err != nil {
-		return fmt.Errorf("balance worker: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "balance worker"))
 	}
 
 	if c.Notification.Enabled {
 		if err := c.Notification.Validate(); err != nil {
-			return fmt.Errorf("notification: %w", err)
+			errs = append(errs, errorsx.WithPrefix(err, "notification"))
 		}
 
 		if err := c.Svix.Validate(); err != nil {
-			return fmt.Errorf("svix: %w", err)
+			errs = append(errs, errorsx.WithPrefix(err, "svix"))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {

@@ -13,11 +13,13 @@ type NamespaceConfiguration struct {
 }
 
 func (c NamespaceConfiguration) Validate() error {
+	var errs []error
+
 	if c.Default == "" {
-		return errors.New("default namespace is required")
+		errs = append(errs, errors.New("default namespace is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ConfigureNamespace configures some defaults in the Viper instance.

@@ -1,7 +1,11 @@
 package config
 
 import (
+	"errors"
+
 	"github.com/spf13/viper"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type BalanceWorkerConfiguration struct {
@@ -9,11 +13,13 @@ type BalanceWorkerConfiguration struct {
 }
 
 func (c BalanceWorkerConfiguration) Validate() error {
+	var errs []error
+
 	if err := c.ConsumerConfiguration.Validate(); err != nil {
-		return err
+		errs = append(errs, errorsx.WithPrefix(err, "consumer"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func ConfigureBalanceWorker(v *viper.Viper) {

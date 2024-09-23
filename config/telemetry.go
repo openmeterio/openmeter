@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-cz/devslog"
 	"github.com/lmittmann/tint"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -31,11 +32,13 @@ type OTLPExporterTelemetryConfig struct {
 
 // Validate validates the configuration.
 func (c OTLPExporterTelemetryConfig) Validate() error {
+	var errs []error
+
 	if c.Address == "" {
-		return errors.New("address is required")
+		errs = append(errs, errors.New("address is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (c OTLPExporterTelemetryConfig) DialExporter(ctx context.Context) (*grpc.ClientConn, error) {
@@ -64,23 +67,25 @@ type TelemetryConfig struct {
 
 // Validate validates the configuration.
 func (c TelemetryConfig) Validate() error {
+	var errs []error
+
 	if c.Address == "" {
-		return errors.New("http server address is required")
+		errs = append(errs, errors.New("http server address is required"))
 	}
 
 	if err := c.Trace.Validate(); err != nil {
-		return fmt.Errorf("trace: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "trace"))
 	}
 
 	if err := c.Metrics.Validate(); err != nil {
-		return fmt.Errorf("metrics: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "metrics"))
 	}
 
 	if err := c.Log.Validate(); err != nil {
-		return fmt.Errorf("log: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "log"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type TraceTelemetryConfig struct {
@@ -90,15 +95,17 @@ type TraceTelemetryConfig struct {
 
 // Validate validates the configuration.
 func (c TraceTelemetryConfig) Validate() error {
+	var errs []error
+
 	if _, err := strconv.ParseFloat(c.Sampler, 64); err != nil && !slices.Contains([]string{"always", "never"}, c.Sampler) {
-		return fmt.Errorf("sampler either needs to be always|never or a ration, got: %s", c.Sampler)
+		errs = append(errs, fmt.Errorf("sampler either needs to be always|never or a ration, got: %s", c.Sampler))
 	}
 
 	if err := c.Exporters.Validate(); err != nil {
-		return fmt.Errorf("exporter: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "exporters"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (c TraceTelemetryConfig) GetSampler() sdktrace.Sampler {
@@ -143,11 +150,13 @@ type ExportersTraceTelemetryConfig struct {
 
 // Validate validates the configuration.
 func (c ExportersTraceTelemetryConfig) Validate() error {
+	var errs []error
+
 	if err := c.OTLP.Validate(); err != nil {
-		return fmt.Errorf("otlp: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "otlp"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type OTLPExportersTraceTelemetryConfig struct {
@@ -234,15 +243,17 @@ type ExportersMetricsTelemetryConfig struct {
 
 // Validate validates the configuration.
 func (c ExportersMetricsTelemetryConfig) Validate() error {
+	var errs []error
+
 	if err := c.Prometheus.Validate(); err != nil {
-		return fmt.Errorf("prometheus: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "prometheus"))
 	}
 
 	if err := c.OTLP.Validate(); err != nil {
-		return fmt.Errorf("otlp: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "otlp"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type PrometheusExportersMetricsTelemetryConfig struct {
@@ -319,15 +330,17 @@ type LogTelemetryConfiguration struct {
 
 // Validate validates the configuration.
 func (c LogTelemetryConfiguration) Validate() error {
+	var errs []error
+
 	if !slices.Contains([]string{"json", "text", "tint", "prettydev"}, c.Format) {
-		return fmt.Errorf("invalid format: %q", c.Format)
+		errs = append(errs, fmt.Errorf("invalid format: %q", c.Format))
 	}
 
 	if !slices.Contains([]slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn, slog.LevelError}, c.Level) {
-		return fmt.Errorf("invalid level: %q", c.Level)
+		errs = append(errs, fmt.Errorf("invalid level: %q", c.Level))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // NewHandler creates a new [slog.Handler].

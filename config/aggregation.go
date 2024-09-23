@@ -45,31 +45,33 @@ type ClickHouseAggregationConfiguration struct {
 }
 
 func (c ClickHouseAggregationConfiguration) Validate() error {
+	var errs []error
+
 	if c.Address == "" {
-		return errors.New("address is required")
+		errs = append(errs, errors.New("address is required"))
 	}
 
 	if c.DialTimeout <= 0 {
-		return errors.New("dial timeout must be greater than 0")
+		errs = append(errs, errors.New("dial timeout must be greater than 0"))
 	}
 
 	if c.MaxOpenConns <= 0 {
-		return errors.New("max open connections must be greater than 0")
+		errs = append(errs, errors.New("max open connections must be greater than 0"))
 	}
 
 	if c.MaxIdleConns <= 0 {
-		return errors.New("max idle connections must be greater than 0")
+		errs = append(errs, errors.New("max idle connections must be greater than 0"))
 	}
 
 	if c.ConnMaxLifetime <= 0 {
-		return errors.New("connection max lifetime must be greater than 0")
+		errs = append(errs, errors.New("connection max lifetime must be greater than 0"))
 	}
 
 	if c.BlockBufferSize <= 0 {
-		return errors.New("block buffer size must be greater than 0")
+		errs = append(errs, errors.New("block buffer size must be greater than 0"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Options {

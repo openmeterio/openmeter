@@ -20,15 +20,21 @@ type PortalConfiguration struct {
 
 // Validate validates the configuration.
 func (c PortalConfiguration) Validate() error {
-	if c.Enabled && c.TokenSecret == "" {
-		return errors.New("token secret is required")
+	if !c.Enabled {
+		return nil
 	}
 
-	if c.Enabled && c.TokenExpiration.Seconds() == 0 {
-		return errors.New("token duration is required")
+	var errs []error
+
+	if c.TokenSecret == "" {
+		errs = append(errs, errors.New("token secret is required"))
 	}
 
-	return nil
+	if c.TokenExpiration.Seconds() == 0 {
+		errs = append(errs, errors.New("token duration is required"))
+	}
+
+	return errors.Join(errs...)
 }
 
 // ConfigurePortal configures some defaults in the Viper instance.

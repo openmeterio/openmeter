@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+
 	"github.com/spf13/viper"
 
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
@@ -35,13 +37,15 @@ func (c KafkaConfig) Validate() error {
 		c.ProducerConfigParams,
 	}
 
+	var errs []error
+
 	for _, validator := range validators {
 		if err := validator.Validate(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ConfigureKafkaConfiguration sets defaults in the Viper instance.
