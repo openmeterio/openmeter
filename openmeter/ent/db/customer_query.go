@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -22,13 +21,12 @@ import (
 // CustomerQuery is the builder for querying Customer entities.
 type CustomerQuery struct {
 	config
-	ctx                        *QueryContext
-	order                      []customer.OrderOption
-	inters                     []Interceptor
-	predicates                 []predicate.Customer
-	withSubjects               *CustomerSubjectsQuery
-	withOverrideBillingProfile *BillingProfileQuery
-	modifiers                  []func(*sql.Selector)
+	ctx          *QueryContext
+	order        []customer.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Customer
+	withSubjects *CustomerSubjectsQuery
+	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,28 +78,6 @@ func (cq *CustomerQuery) QuerySubjects() *CustomerSubjectsQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(customersubjects.Table, customersubjects.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubjectsTable, customer.SubjectsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryOverrideBillingProfile chains the current query on the "override_billing_profile" edge.
-func (cq *CustomerQuery) QueryOverrideBillingProfile() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: cq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := cq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := cq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(customer.Table, customer.FieldID, selector),
-			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, customer.OverrideBillingProfileTable, customer.OverrideBillingProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +272,12 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 		return nil
 	}
 	return &CustomerQuery{
-		config:                     cq.config,
-		ctx:                        cq.ctx.Clone(),
-		order:                      append([]customer.OrderOption{}, cq.order...),
-		inters:                     append([]Interceptor{}, cq.inters...),
-		predicates:                 append([]predicate.Customer{}, cq.predicates...),
-		withSubjects:               cq.withSubjects.Clone(),
-		withOverrideBillingProfile: cq.withOverrideBillingProfile.Clone(),
+		config:       cq.config,
+		ctx:          cq.ctx.Clone(),
+		order:        append([]customer.OrderOption{}, cq.order...),
+		inters:       append([]Interceptor{}, cq.inters...),
+		predicates:   append([]predicate.Customer{}, cq.predicates...),
+		withSubjects: cq.withSubjects.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -317,17 +292,6 @@ func (cq *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *Cus
 		opt(query)
 	}
 	cq.withSubjects = query
-	return cq
-}
-
-// WithOverrideBillingProfile tells the query-builder to eager-load the nodes that are connected to
-// the "override_billing_profile" edge. The optional arguments are used to configure the query builder of the edge.
-func (cq *CustomerQuery) WithOverrideBillingProfile(opts ...func(*BillingProfileQuery)) *CustomerQuery {
-	query := (&BillingProfileClient{config: cq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	cq.withOverrideBillingProfile = query
 	return cq
 }
 
@@ -409,9 +373,8 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = cq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [1]bool{
 			cq.withSubjects != nil,
-			cq.withOverrideBillingProfile != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -439,12 +402,6 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 		if err := cq.loadSubjects(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Subjects = []*CustomerSubjects{} },
 			func(n *Customer, e *CustomerSubjects) { n.Edges.Subjects = append(n.Edges.Subjects, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := cq.withOverrideBillingProfile; query != nil {
-		if err := cq.loadOverrideBillingProfile(ctx, query, nodes, nil,
-			func(n *Customer, e *BillingProfile) { n.Edges.OverrideBillingProfile = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -481,38 +438,6 @@ func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjec
 	}
 	return nil
 }
-func (cq *CustomerQuery) loadOverrideBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingProfile)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*Customer)
-	for i := range nodes {
-		if nodes[i].OverrideBillingProfileID == nil {
-			continue
-		}
-		fk := *nodes[i].OverrideBillingProfileID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(billingprofile.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "override_billing_profile_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 
 func (cq *CustomerQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := cq.querySpec()
@@ -541,9 +466,6 @@ func (cq *CustomerQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != customer.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if cq.withOverrideBillingProfile != nil {
-			_spec.Node.AddColumnOnce(customer.FieldOverrideBillingProfileID)
 		}
 	}
 	if ps := cq.predicates; len(ps) > 0 {

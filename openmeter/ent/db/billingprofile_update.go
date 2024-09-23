@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -238,21 +237,6 @@ func (bpu *BillingProfileUpdate) SetWorkflowConfig(b *BillingWorkflowConfig) *Bi
 	return bpu.SetWorkflowConfigID(b.ID)
 }
 
-// AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
-func (bpu *BillingProfileUpdate) AddCustomerIDs(ids ...string) *BillingProfileUpdate {
-	bpu.mutation.AddCustomerIDs(ids...)
-	return bpu
-}
-
-// AddCustomers adds the "customers" edges to the Customer entity.
-func (bpu *BillingProfileUpdate) AddCustomers(c ...*Customer) *BillingProfileUpdate {
-	ids := make([]string, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return bpu.AddCustomerIDs(ids...)
-}
-
 // Mutation returns the BillingProfileMutation object of the builder.
 func (bpu *BillingProfileUpdate) Mutation() *BillingProfileMutation {
 	return bpu.mutation
@@ -283,27 +267,6 @@ func (bpu *BillingProfileUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *Bi
 func (bpu *BillingProfileUpdate) ClearWorkflowConfig() *BillingProfileUpdate {
 	bpu.mutation.ClearWorkflowConfig()
 	return bpu
-}
-
-// ClearCustomers clears all "customers" edges to the Customer entity.
-func (bpu *BillingProfileUpdate) ClearCustomers() *BillingProfileUpdate {
-	bpu.mutation.ClearCustomers()
-	return bpu
-}
-
-// RemoveCustomerIDs removes the "customers" edge to Customer entities by IDs.
-func (bpu *BillingProfileUpdate) RemoveCustomerIDs(ids ...string) *BillingProfileUpdate {
-	bpu.mutation.RemoveCustomerIDs(ids...)
-	return bpu
-}
-
-// RemoveCustomers removes "customers" edges to Customer entities.
-func (bpu *BillingProfileUpdate) RemoveCustomers(c ...*Customer) *BillingProfileUpdate {
-	ids := make([]string, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return bpu.RemoveCustomerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -537,51 +500,6 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bpu.mutation.CustomersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bpu.mutation.RemovedCustomersIDs(); len(nodes) > 0 && !bpu.mutation.CustomersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bpu.mutation.CustomersIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bpu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingprofile.Label}
@@ -808,21 +726,6 @@ func (bpuo *BillingProfileUpdateOne) SetWorkflowConfig(b *BillingWorkflowConfig)
 	return bpuo.SetWorkflowConfigID(b.ID)
 }
 
-// AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
-func (bpuo *BillingProfileUpdateOne) AddCustomerIDs(ids ...string) *BillingProfileUpdateOne {
-	bpuo.mutation.AddCustomerIDs(ids...)
-	return bpuo
-}
-
-// AddCustomers adds the "customers" edges to the Customer entity.
-func (bpuo *BillingProfileUpdateOne) AddCustomers(c ...*Customer) *BillingProfileUpdateOne {
-	ids := make([]string, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return bpuo.AddCustomerIDs(ids...)
-}
-
 // Mutation returns the BillingProfileMutation object of the builder.
 func (bpuo *BillingProfileUpdateOne) Mutation() *BillingProfileMutation {
 	return bpuo.mutation
@@ -853,27 +756,6 @@ func (bpuo *BillingProfileUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice)
 func (bpuo *BillingProfileUpdateOne) ClearWorkflowConfig() *BillingProfileUpdateOne {
 	bpuo.mutation.ClearWorkflowConfig()
 	return bpuo
-}
-
-// ClearCustomers clears all "customers" edges to the Customer entity.
-func (bpuo *BillingProfileUpdateOne) ClearCustomers() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearCustomers()
-	return bpuo
-}
-
-// RemoveCustomerIDs removes the "customers" edge to Customer entities by IDs.
-func (bpuo *BillingProfileUpdateOne) RemoveCustomerIDs(ids ...string) *BillingProfileUpdateOne {
-	bpuo.mutation.RemoveCustomerIDs(ids...)
-	return bpuo
-}
-
-// RemoveCustomers removes "customers" edges to Customer entities.
-func (bpuo *BillingProfileUpdateOne) RemoveCustomers(c ...*Customer) *BillingProfileUpdateOne {
-	ids := make([]string, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return bpuo.RemoveCustomerIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingProfileUpdate builder.
@@ -1130,51 +1012,6 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if bpuo.mutation.CustomersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bpuo.mutation.RemovedCustomersIDs(); len(nodes) > 0 && !bpuo.mutation.CustomersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bpuo.mutation.CustomersIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

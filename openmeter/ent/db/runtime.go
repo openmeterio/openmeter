@@ -344,15 +344,6 @@ func init() {
 			return nil
 		}
 	}()
-	// customerDescOverrideTaxProviderConfig is the schema descriptor for override_tax_provider_config field.
-	customerDescOverrideTaxProviderConfig := customerFields[6].Descriptor()
-	customer.ValueScanner.OverrideTaxProviderConfig = customerDescOverrideTaxProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.TaxConfiguration])
-	// customerDescOverrideInvoicingProviderConfig is the schema descriptor for override_invoicing_provider_config field.
-	customerDescOverrideInvoicingProviderConfig := customerFields[7].Descriptor()
-	customer.ValueScanner.OverrideInvoicingProviderConfig = customerDescOverrideInvoicingProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.InvoicingConfiguration])
-	// customerDescOverridePaymentProviderConfig is the schema descriptor for override_payment_provider_config field.
-	customerDescOverridePaymentProviderConfig := customerFields[8].Descriptor()
-	customer.ValueScanner.OverridePaymentProviderConfig = customerDescOverridePaymentProviderConfig.ValueScanner.(field.TypeValueScanner[*provider.PaymentConfiguration])
 	// customerDescID is the schema descriptor for id field.
 	customerDescID := customerMixinFields0[0].Descriptor()
 	// customer.DefaultID holds the default value on creation for the id field.

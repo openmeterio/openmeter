@@ -72,8 +72,6 @@ func (BillingProfile) Edges() []ent.Edge {
 			Field("workflow_config_id").
 			Unique().
 			Required(),
-		edge.From("customers", Customer.Type).
-			Ref("override_billing_profile"),
 	}
 }
 

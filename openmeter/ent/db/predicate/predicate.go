@@ -63,17 +63,6 @@ type BillingWorkflowConfigOverride func(*sql.Selector)
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
 
-// CustomerOrErr calls the predicate only if the error is not nit.
-func CustomerOrErr(p Customer, err error) Customer {
-	return func(s *sql.Selector) {
-		if err != nil {
-			s.AddError(err)
-			return
-		}
-		p(s)
-	}
-}
-
 // CustomerSubjects is the predicate function for customersubjects builders.
 type CustomerSubjects func(*sql.Selector)
 

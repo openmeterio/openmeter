@@ -5144,9 +5144,6 @@ type BillingProfileMutation struct {
 	clearedbilling_invoices   bool
 	workflow_config           *string
 	clearedworkflow_config    bool
-	customers                 map[string]struct{}
-	removedcustomers          map[string]struct{}
-	clearedcustomers          bool
 	done                      bool
 	oldValue                  func(context.Context) (*BillingProfile, error)
 	predicates                []predicate.BillingProfile
@@ -5945,60 +5942,6 @@ func (m *BillingProfileMutation) ResetWorkflowConfig() {
 	m.clearedworkflow_config = false
 }
 
-// AddCustomerIDs adds the "customers" edge to the Customer entity by ids.
-func (m *BillingProfileMutation) AddCustomerIDs(ids ...string) {
-	if m.customers == nil {
-		m.customers = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.customers[ids[i]] = struct{}{}
-	}
-}
-
-// ClearCustomers clears the "customers" edge to the Customer entity.
-func (m *BillingProfileMutation) ClearCustomers() {
-	m.clearedcustomers = true
-}
-
-// CustomersCleared reports if the "customers" edge to the Customer entity was cleared.
-func (m *BillingProfileMutation) CustomersCleared() bool {
-	return m.clearedcustomers
-}
-
-// RemoveCustomerIDs removes the "customers" edge to the Customer entity by IDs.
-func (m *BillingProfileMutation) RemoveCustomerIDs(ids ...string) {
-	if m.removedcustomers == nil {
-		m.removedcustomers = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.customers, ids[i])
-		m.removedcustomers[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedCustomers returns the removed IDs of the "customers" edge to the Customer entity.
-func (m *BillingProfileMutation) RemovedCustomersIDs() (ids []string) {
-	for id := range m.removedcustomers {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// CustomersIDs returns the "customers" edge IDs in the mutation.
-func (m *BillingProfileMutation) CustomersIDs() (ids []string) {
-	for id := range m.customers {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetCustomers resets all changes to the "customers" edge.
-func (m *BillingProfileMutation) ResetCustomers() {
-	m.customers = nil
-	m.clearedcustomers = false
-	m.removedcustomers = nil
-}
-
 // Where appends a list predicates to the BillingProfileMutation builder.
 func (m *BillingProfileMutation) Where(ps ...predicate.BillingProfile) {
 	m.predicates = append(m.predicates, ps...)
@@ -6404,15 +6347,12 @@ func (m *BillingProfileMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.billing_invoices != nil {
 		edges = append(edges, billingprofile.EdgeBillingInvoices)
 	}
 	if m.workflow_config != nil {
 		edges = append(edges, billingprofile.EdgeWorkflowConfig)
-	}
-	if m.customers != nil {
-		edges = append(edges, billingprofile.EdgeCustomers)
 	}
 	return edges
 }
@@ -6431,24 +6371,15 @@ func (m *BillingProfileMutation) AddedIDs(name string) []ent.Value {
 		if id := m.workflow_config; id != nil {
 			return []ent.Value{*id}
 		}
-	case billingprofile.EdgeCustomers:
-		ids := make([]ent.Value, 0, len(m.customers))
-		for id := range m.customers {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.removedbilling_invoices != nil {
 		edges = append(edges, billingprofile.EdgeBillingInvoices)
-	}
-	if m.removedcustomers != nil {
-		edges = append(edges, billingprofile.EdgeCustomers)
 	}
 	return edges
 }
@@ -6463,27 +6394,18 @@ func (m *BillingProfileMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case billingprofile.EdgeCustomers:
-		ids := make([]ent.Value, 0, len(m.removedcustomers))
-		for id := range m.removedcustomers {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.clearedbilling_invoices {
 		edges = append(edges, billingprofile.EdgeBillingInvoices)
 	}
 	if m.clearedworkflow_config {
 		edges = append(edges, billingprofile.EdgeWorkflowConfig)
-	}
-	if m.clearedcustomers {
-		edges = append(edges, billingprofile.EdgeCustomers)
 	}
 	return edges
 }
@@ -6496,8 +6418,6 @@ func (m *BillingProfileMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoices
 	case billingprofile.EdgeWorkflowConfig:
 		return m.clearedworkflow_config
-	case billingprofile.EdgeCustomers:
-		return m.clearedcustomers
 	}
 	return false
 }
@@ -6522,9 +6442,6 @@ func (m *BillingProfileMutation) ResetEdge(name string) error {
 		return nil
 	case billingprofile.EdgeWorkflowConfig:
 		m.ResetWorkflowConfig()
-		return nil
-	case billingprofile.EdgeCustomers:
-		m.ResetCustomers()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingProfile edge %s", name)
@@ -8935,15 +8852,10 @@ type CustomerMutation struct {
 	external_mapping_stripe_customer_id *string
 	name                                *string
 	primary_email                       *string
-	override_tax_provider_config        **provider.TaxConfiguration
-	override_invoicing_provider_config  **provider.InvoicingConfiguration
-	override_payment_provider_config    **provider.PaymentConfiguration
 	clearedFields                       map[string]struct{}
 	subjects                            map[int]struct{}
 	removedsubjects                     map[int]struct{}
 	clearedsubjects                     bool
-	override_billing_profile            *string
-	clearedoverride_billing_profile     bool
 	done                                bool
 	oldValue                            func(context.Context) (*Customer, error)
 	predicates                          []predicate.Customer
@@ -9870,202 +9782,6 @@ func (m *CustomerMutation) ResetPrimaryEmail() {
 	delete(m.clearedFields, customer.FieldPrimaryEmail)
 }
 
-// SetOverrideBillingProfileID sets the "override_billing_profile_id" field.
-func (m *CustomerMutation) SetOverrideBillingProfileID(s string) {
-	m.override_billing_profile = &s
-}
-
-// OverrideBillingProfileID returns the value of the "override_billing_profile_id" field in the mutation.
-func (m *CustomerMutation) OverrideBillingProfileID() (r string, exists bool) {
-	v := m.override_billing_profile
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideBillingProfileID returns the old "override_billing_profile_id" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldOverrideBillingProfileID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideBillingProfileID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideBillingProfileID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideBillingProfileID: %w", err)
-	}
-	return oldValue.OverrideBillingProfileID, nil
-}
-
-// ClearOverrideBillingProfileID clears the value of the "override_billing_profile_id" field.
-func (m *CustomerMutation) ClearOverrideBillingProfileID() {
-	m.override_billing_profile = nil
-	m.clearedFields[customer.FieldOverrideBillingProfileID] = struct{}{}
-}
-
-// OverrideBillingProfileIDCleared returns if the "override_billing_profile_id" field was cleared in this mutation.
-func (m *CustomerMutation) OverrideBillingProfileIDCleared() bool {
-	_, ok := m.clearedFields[customer.FieldOverrideBillingProfileID]
-	return ok
-}
-
-// ResetOverrideBillingProfileID resets all changes to the "override_billing_profile_id" field.
-func (m *CustomerMutation) ResetOverrideBillingProfileID() {
-	m.override_billing_profile = nil
-	delete(m.clearedFields, customer.FieldOverrideBillingProfileID)
-}
-
-// SetOverrideTaxProviderConfig sets the "override_tax_provider_config" field.
-func (m *CustomerMutation) SetOverrideTaxProviderConfig(pc *provider.TaxConfiguration) {
-	m.override_tax_provider_config = &pc
-}
-
-// OverrideTaxProviderConfig returns the value of the "override_tax_provider_config" field in the mutation.
-func (m *CustomerMutation) OverrideTaxProviderConfig() (r *provider.TaxConfiguration, exists bool) {
-	v := m.override_tax_provider_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideTaxProviderConfig returns the old "override_tax_provider_config" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldOverrideTaxProviderConfig(ctx context.Context) (v *provider.TaxConfiguration, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideTaxProviderConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideTaxProviderConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideTaxProviderConfig: %w", err)
-	}
-	return oldValue.OverrideTaxProviderConfig, nil
-}
-
-// ClearOverrideTaxProviderConfig clears the value of the "override_tax_provider_config" field.
-func (m *CustomerMutation) ClearOverrideTaxProviderConfig() {
-	m.override_tax_provider_config = nil
-	m.clearedFields[customer.FieldOverrideTaxProviderConfig] = struct{}{}
-}
-
-// OverrideTaxProviderConfigCleared returns if the "override_tax_provider_config" field was cleared in this mutation.
-func (m *CustomerMutation) OverrideTaxProviderConfigCleared() bool {
-	_, ok := m.clearedFields[customer.FieldOverrideTaxProviderConfig]
-	return ok
-}
-
-// ResetOverrideTaxProviderConfig resets all changes to the "override_tax_provider_config" field.
-func (m *CustomerMutation) ResetOverrideTaxProviderConfig() {
-	m.override_tax_provider_config = nil
-	delete(m.clearedFields, customer.FieldOverrideTaxProviderConfig)
-}
-
-// SetOverrideInvoicingProviderConfig sets the "override_invoicing_provider_config" field.
-func (m *CustomerMutation) SetOverrideInvoicingProviderConfig(pc *provider.InvoicingConfiguration) {
-	m.override_invoicing_provider_config = &pc
-}
-
-// OverrideInvoicingProviderConfig returns the value of the "override_invoicing_provider_config" field in the mutation.
-func (m *CustomerMutation) OverrideInvoicingProviderConfig() (r *provider.InvoicingConfiguration, exists bool) {
-	v := m.override_invoicing_provider_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideInvoicingProviderConfig returns the old "override_invoicing_provider_config" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldOverrideInvoicingProviderConfig(ctx context.Context) (v *provider.InvoicingConfiguration, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideInvoicingProviderConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideInvoicingProviderConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideInvoicingProviderConfig: %w", err)
-	}
-	return oldValue.OverrideInvoicingProviderConfig, nil
-}
-
-// ClearOverrideInvoicingProviderConfig clears the value of the "override_invoicing_provider_config" field.
-func (m *CustomerMutation) ClearOverrideInvoicingProviderConfig() {
-	m.override_invoicing_provider_config = nil
-	m.clearedFields[customer.FieldOverrideInvoicingProviderConfig] = struct{}{}
-}
-
-// OverrideInvoicingProviderConfigCleared returns if the "override_invoicing_provider_config" field was cleared in this mutation.
-func (m *CustomerMutation) OverrideInvoicingProviderConfigCleared() bool {
-	_, ok := m.clearedFields[customer.FieldOverrideInvoicingProviderConfig]
-	return ok
-}
-
-// ResetOverrideInvoicingProviderConfig resets all changes to the "override_invoicing_provider_config" field.
-func (m *CustomerMutation) ResetOverrideInvoicingProviderConfig() {
-	m.override_invoicing_provider_config = nil
-	delete(m.clearedFields, customer.FieldOverrideInvoicingProviderConfig)
-}
-
-// SetOverridePaymentProviderConfig sets the "override_payment_provider_config" field.
-func (m *CustomerMutation) SetOverridePaymentProviderConfig(pc *provider.PaymentConfiguration) {
-	m.override_payment_provider_config = &pc
-}
-
-// OverridePaymentProviderConfig returns the value of the "override_payment_provider_config" field in the mutation.
-func (m *CustomerMutation) OverridePaymentProviderConfig() (r *provider.PaymentConfiguration, exists bool) {
-	v := m.override_payment_provider_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverridePaymentProviderConfig returns the old "override_payment_provider_config" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldOverridePaymentProviderConfig(ctx context.Context) (v *provider.PaymentConfiguration, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverridePaymentProviderConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverridePaymentProviderConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverridePaymentProviderConfig: %w", err)
-	}
-	return oldValue.OverridePaymentProviderConfig, nil
-}
-
-// ClearOverridePaymentProviderConfig clears the value of the "override_payment_provider_config" field.
-func (m *CustomerMutation) ClearOverridePaymentProviderConfig() {
-	m.override_payment_provider_config = nil
-	m.clearedFields[customer.FieldOverridePaymentProviderConfig] = struct{}{}
-}
-
-// OverridePaymentProviderConfigCleared returns if the "override_payment_provider_config" field was cleared in this mutation.
-func (m *CustomerMutation) OverridePaymentProviderConfigCleared() bool {
-	_, ok := m.clearedFields[customer.FieldOverridePaymentProviderConfig]
-	return ok
-}
-
-// ResetOverridePaymentProviderConfig resets all changes to the "override_payment_provider_config" field.
-func (m *CustomerMutation) ResetOverridePaymentProviderConfig() {
-	m.override_payment_provider_config = nil
-	delete(m.clearedFields, customer.FieldOverridePaymentProviderConfig)
-}
-
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by ids.
 func (m *CustomerMutation) AddSubjectIDs(ids ...int) {
 	if m.subjects == nil {
@@ -10120,33 +9836,6 @@ func (m *CustomerMutation) ResetSubjects() {
 	m.removedsubjects = nil
 }
 
-// ClearOverrideBillingProfile clears the "override_billing_profile" edge to the BillingProfile entity.
-func (m *CustomerMutation) ClearOverrideBillingProfile() {
-	m.clearedoverride_billing_profile = true
-	m.clearedFields[customer.FieldOverrideBillingProfileID] = struct{}{}
-}
-
-// OverrideBillingProfileCleared reports if the "override_billing_profile" edge to the BillingProfile entity was cleared.
-func (m *CustomerMutation) OverrideBillingProfileCleared() bool {
-	return m.OverrideBillingProfileIDCleared() || m.clearedoverride_billing_profile
-}
-
-// OverrideBillingProfileIDs returns the "override_billing_profile" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OverrideBillingProfileID instead. It exists only for internal usage by the builders.
-func (m *CustomerMutation) OverrideBillingProfileIDs() (ids []string) {
-	if id := m.override_billing_profile; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetOverrideBillingProfile resets all changes to the "override_billing_profile" edge.
-func (m *CustomerMutation) ResetOverrideBillingProfile() {
-	m.override_billing_profile = nil
-	m.clearedoverride_billing_profile = false
-}
-
 // Where appends a list predicates to the CustomerMutation builder.
 func (m *CustomerMutation) Where(ps ...predicate.Customer) {
 	m.predicates = append(m.predicates, ps...)
@@ -10181,7 +9870,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 18)
 	if m.key != nil {
 		fields = append(fields, customer.FieldKey)
 	}
@@ -10236,18 +9925,6 @@ func (m *CustomerMutation) Fields() []string {
 	if m.primary_email != nil {
 		fields = append(fields, customer.FieldPrimaryEmail)
 	}
-	if m.override_billing_profile != nil {
-		fields = append(fields, customer.FieldOverrideBillingProfileID)
-	}
-	if m.override_tax_provider_config != nil {
-		fields = append(fields, customer.FieldOverrideTaxProviderConfig)
-	}
-	if m.override_invoicing_provider_config != nil {
-		fields = append(fields, customer.FieldOverrideInvoicingProviderConfig)
-	}
-	if m.override_payment_provider_config != nil {
-		fields = append(fields, customer.FieldOverridePaymentProviderConfig)
-	}
 	return fields
 }
 
@@ -10292,14 +9969,6 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case customer.FieldPrimaryEmail:
 		return m.PrimaryEmail()
-	case customer.FieldOverrideBillingProfileID:
-		return m.OverrideBillingProfileID()
-	case customer.FieldOverrideTaxProviderConfig:
-		return m.OverrideTaxProviderConfig()
-	case customer.FieldOverrideInvoicingProviderConfig:
-		return m.OverrideInvoicingProviderConfig()
-	case customer.FieldOverridePaymentProviderConfig:
-		return m.OverridePaymentProviderConfig()
 	}
 	return nil, false
 }
@@ -10345,14 +10014,6 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldName(ctx)
 	case customer.FieldPrimaryEmail:
 		return m.OldPrimaryEmail(ctx)
-	case customer.FieldOverrideBillingProfileID:
-		return m.OldOverrideBillingProfileID(ctx)
-	case customer.FieldOverrideTaxProviderConfig:
-		return m.OldOverrideTaxProviderConfig(ctx)
-	case customer.FieldOverrideInvoicingProviderConfig:
-		return m.OldOverrideInvoicingProviderConfig(ctx)
-	case customer.FieldOverridePaymentProviderConfig:
-		return m.OldOverridePaymentProviderConfig(ctx)
 	}
 	return nil, fmt.Errorf("unknown Customer field %s", name)
 }
@@ -10488,34 +10149,6 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrimaryEmail(v)
 		return nil
-	case customer.FieldOverrideBillingProfileID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideBillingProfileID(v)
-		return nil
-	case customer.FieldOverrideTaxProviderConfig:
-		v, ok := value.(*provider.TaxConfiguration)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideTaxProviderConfig(v)
-		return nil
-	case customer.FieldOverrideInvoicingProviderConfig:
-		v, ok := value.(*provider.InvoicingConfiguration)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideInvoicingProviderConfig(v)
-		return nil
-	case customer.FieldOverridePaymentProviderConfig:
-		v, ok := value.(*provider.PaymentConfiguration)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverridePaymentProviderConfig(v)
-		return nil
 	}
 	return fmt.Errorf("unknown Customer field %s", name)
 }
@@ -10585,18 +10218,6 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldPrimaryEmail) {
 		fields = append(fields, customer.FieldPrimaryEmail)
 	}
-	if m.FieldCleared(customer.FieldOverrideBillingProfileID) {
-		fields = append(fields, customer.FieldOverrideBillingProfileID)
-	}
-	if m.FieldCleared(customer.FieldOverrideTaxProviderConfig) {
-		fields = append(fields, customer.FieldOverrideTaxProviderConfig)
-	}
-	if m.FieldCleared(customer.FieldOverrideInvoicingProviderConfig) {
-		fields = append(fields, customer.FieldOverrideInvoicingProviderConfig)
-	}
-	if m.FieldCleared(customer.FieldOverridePaymentProviderConfig) {
-		fields = append(fields, customer.FieldOverridePaymentProviderConfig)
-	}
 	return fields
 }
 
@@ -10649,18 +10270,6 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldPrimaryEmail:
 		m.ClearPrimaryEmail()
-		return nil
-	case customer.FieldOverrideBillingProfileID:
-		m.ClearOverrideBillingProfileID()
-		return nil
-	case customer.FieldOverrideTaxProviderConfig:
-		m.ClearOverrideTaxProviderConfig()
-		return nil
-	case customer.FieldOverrideInvoicingProviderConfig:
-		m.ClearOverrideInvoicingProviderConfig()
-		return nil
-	case customer.FieldOverridePaymentProviderConfig:
-		m.ClearOverridePaymentProviderConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown Customer nullable field %s", name)
@@ -10724,30 +10333,15 @@ func (m *CustomerMutation) ResetField(name string) error {
 	case customer.FieldPrimaryEmail:
 		m.ResetPrimaryEmail()
 		return nil
-	case customer.FieldOverrideBillingProfileID:
-		m.ResetOverrideBillingProfileID()
-		return nil
-	case customer.FieldOverrideTaxProviderConfig:
-		m.ResetOverrideTaxProviderConfig()
-		return nil
-	case customer.FieldOverrideInvoicingProviderConfig:
-		m.ResetOverrideInvoicingProviderConfig()
-		return nil
-	case customer.FieldOverridePaymentProviderConfig:
-		m.ResetOverridePaymentProviderConfig()
-		return nil
 	}
 	return fmt.Errorf("unknown Customer field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.subjects != nil {
 		edges = append(edges, customer.EdgeSubjects)
-	}
-	if m.override_billing_profile != nil {
-		edges = append(edges, customer.EdgeOverrideBillingProfile)
 	}
 	return edges
 }
@@ -10762,17 +10356,13 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case customer.EdgeOverrideBillingProfile:
-		if id := m.override_billing_profile; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.removedsubjects != nil {
 		edges = append(edges, customer.EdgeSubjects)
 	}
@@ -10795,12 +10385,9 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.clearedsubjects {
 		edges = append(edges, customer.EdgeSubjects)
-	}
-	if m.clearedoverride_billing_profile {
-		edges = append(edges, customer.EdgeOverrideBillingProfile)
 	}
 	return edges
 }
@@ -10811,8 +10398,6 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 	switch name {
 	case customer.EdgeSubjects:
 		return m.clearedsubjects
-	case customer.EdgeOverrideBillingProfile:
-		return m.clearedoverride_billing_profile
 	}
 	return false
 }
@@ -10821,9 +10406,6 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *CustomerMutation) ClearEdge(name string) error {
 	switch name {
-	case customer.EdgeOverrideBillingProfile:
-		m.ClearOverrideBillingProfile()
-		return nil
 	}
 	return fmt.Errorf("unknown Customer unique edge %s", name)
 }
@@ -10834,9 +10416,6 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 	switch name {
 	case customer.EdgeSubjects:
 		m.ResetSubjects()
-		return nil
-	case customer.EdgeOverrideBillingProfile:
-		m.ResetOverrideBillingProfile()
 		return nil
 	}
 	return fmt.Errorf("unknown Customer edge %s", name)

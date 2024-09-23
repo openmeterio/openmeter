@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -29,7 +28,6 @@ type BillingProfileQuery struct {
 	predicates          []predicate.BillingProfile
 	withBillingInvoices *BillingInvoiceQuery
 	withWorkflowConfig  *BillingWorkflowConfigQuery
-	withCustomers       *CustomerQuery
 	modifiers           []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -104,28 +102,6 @@ func (bpq *BillingProfileQuery) QueryWorkflowConfig() *BillingWorkflowConfigQuer
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, billingprofile.WorkflowConfigTable, billingprofile.WorkflowConfigColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryCustomers chains the current query on the "customers" edge.
-func (bpq *BillingProfileQuery) QueryCustomers() *CustomerQuery {
-	query := (&CustomerClient{config: bpq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := bpq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
-			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, billingprofile.CustomersTable, billingprofile.CustomersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
 		return fromU, nil
@@ -327,7 +303,6 @@ func (bpq *BillingProfileQuery) Clone() *BillingProfileQuery {
 		predicates:          append([]predicate.BillingProfile{}, bpq.predicates...),
 		withBillingInvoices: bpq.withBillingInvoices.Clone(),
 		withWorkflowConfig:  bpq.withWorkflowConfig.Clone(),
-		withCustomers:       bpq.withCustomers.Clone(),
 		// clone intermediate query.
 		sql:  bpq.sql.Clone(),
 		path: bpq.path,
@@ -353,17 +328,6 @@ func (bpq *BillingProfileQuery) WithWorkflowConfig(opts ...func(*BillingWorkflow
 		opt(query)
 	}
 	bpq.withWorkflowConfig = query
-	return bpq
-}
-
-// WithCustomers tells the query-builder to eager-load the nodes that are connected to
-// the "customers" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithCustomers(opts ...func(*CustomerQuery)) *BillingProfileQuery {
-	query := (&CustomerClient{config: bpq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	bpq.withCustomers = query
 	return bpq
 }
 
@@ -445,10 +409,9 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingProfile{}
 		_spec       = bpq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			bpq.withBillingInvoices != nil,
 			bpq.withWorkflowConfig != nil,
-			bpq.withCustomers != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -484,13 +447,6 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if query := bpq.withWorkflowConfig; query != nil {
 		if err := bpq.loadWorkflowConfig(ctx, query, nodes, nil,
 			func(n *BillingProfile, e *BillingWorkflowConfig) { n.Edges.WorkflowConfig = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := bpq.withCustomers; query != nil {
-		if err := bpq.loadCustomers(ctx, query, nodes,
-			func(n *BillingProfile) { n.Edges.Customers = []*Customer{} },
-			func(n *BillingProfile, e *Customer) { n.Edges.Customers = append(n.Edges.Customers, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -553,39 +509,6 @@ func (bpq *BillingProfileQuery) loadWorkflowConfig(ctx context.Context, query *B
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
-	}
-	return nil
-}
-func (bpq *BillingProfileQuery) loadCustomers(ctx context.Context, query *CustomerQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *Customer)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*BillingProfile)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(customer.FieldOverrideBillingProfileID)
-	}
-	query.Where(predicate.Customer(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(billingprofile.CustomersColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.OverrideBillingProfileID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "override_billing_profile_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "override_billing_profile_id" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
 	}
 	return nil
 }

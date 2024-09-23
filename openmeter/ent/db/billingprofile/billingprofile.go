@@ -49,8 +49,6 @@ const (
 	EdgeBillingInvoices = "billing_invoices"
 	// EdgeWorkflowConfig holds the string denoting the workflow_config edge name in mutations.
 	EdgeWorkflowConfig = "workflow_config"
-	// EdgeCustomers holds the string denoting the customers edge name in mutations.
-	EdgeCustomers = "customers"
 	// Table holds the table name of the billingprofile in the database.
 	Table = "billing_profiles"
 	// BillingInvoicesTable is the table that holds the billing_invoices relation/edge.
@@ -67,13 +65,6 @@ const (
 	WorkflowConfigInverseTable = "billing_workflow_configs"
 	// WorkflowConfigColumn is the table column denoting the workflow_config relation/edge.
 	WorkflowConfigColumn = "workflow_config_id"
-	// CustomersTable is the table that holds the customers relation/edge.
-	CustomersTable = "customers"
-	// CustomersInverseTable is the table name for the Customer entity.
-	// It exists in this package in order to avoid circular dependency with the "customer" package.
-	CustomersInverseTable = "customers"
-	// CustomersColumn is the table column denoting the customers relation/edge.
-	CustomersColumn = "override_billing_profile_id"
 )
 
 // Columns holds all SQL columns for billingprofile fields.
@@ -253,20 +244,6 @@ func ByWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newWorkflowConfigStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByCustomersCount orders the results by customers count.
-func ByCustomersCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCustomersStep(), opts...)
-	}
-}
-
-// ByCustomers orders the results by customers terms.
-func ByCustomers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCustomersStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
 func newBillingInvoicesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -279,12 +256,5 @@ func newWorkflowConfigStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(WorkflowConfigInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, WorkflowConfigTable, WorkflowConfigColumn),
-	)
-}
-func newCustomersStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CustomersInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, CustomersTable, CustomersColumn),
 	)
 }

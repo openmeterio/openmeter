@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 )
 
 // BillingProfileCreate is the builder for creating a BillingProfile entity.
@@ -223,21 +222,6 @@ func (bpc *BillingProfileCreate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
 func (bpc *BillingProfileCreate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
 	return bpc.SetWorkflowConfigID(b.ID)
-}
-
-// AddCustomerIDs adds the "customers" edge to the Customer entity by IDs.
-func (bpc *BillingProfileCreate) AddCustomerIDs(ids ...string) *BillingProfileCreate {
-	bpc.mutation.AddCustomerIDs(ids...)
-	return bpc
-}
-
-// AddCustomers adds the "customers" edges to the Customer entity.
-func (bpc *BillingProfileCreate) AddCustomers(c ...*Customer) *BillingProfileCreate {
-	ids := make([]string, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return bpc.AddCustomerIDs(ids...)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
@@ -495,22 +479,6 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.WorkflowConfigID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := bpc.mutation.CustomersIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   billingprofile.CustomersTable,
-			Columns: []string{billingprofile.CustomersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil

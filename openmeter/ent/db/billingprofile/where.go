@@ -642,29 +642,6 @@ func HasWorkflowConfigWith(preds ...predicate.BillingWorkflowConfig) predicate.B
 	})
 }
 
-// HasCustomers applies the HasEdge predicate on the "customers" edge.
-func HasCustomers() predicate.BillingProfile {
-	return predicate.BillingProfile(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, CustomersTable, CustomersColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCustomersWith applies the HasEdge predicate on the "customers" edge with a given conditions (other predicates).
-func HasCustomersWith(preds ...predicate.Customer) predicate.BillingProfile {
-	return predicate.BillingProfile(func(s *sql.Selector) {
-		step := newCustomersStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.BillingProfile) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.AndPredicates(predicates...))

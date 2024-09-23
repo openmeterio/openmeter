@@ -60,11 +60,9 @@ type BillingProfileEdges struct {
 	BillingInvoices []*BillingInvoice `json:"billing_invoices,omitempty"`
 	// WorkflowConfig holds the value of the workflow_config edge.
 	WorkflowConfig *BillingWorkflowConfig `json:"workflow_config,omitempty"`
-	// Customers holds the value of the customers edge.
-	Customers []*Customer `json:"customers,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
@@ -85,15 +83,6 @@ func (e BillingProfileEdges) WorkflowConfigOrErr() (*BillingWorkflowConfig, erro
 		return nil, &NotFoundError{label: billingworkflowconfig.Label}
 	}
 	return nil, &NotLoadedError{edge: "workflow_config"}
-}
-
-// CustomersOrErr returns the Customers value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingProfileEdges) CustomersOrErr() ([]*Customer, error) {
-	if e.loadedTypes[2] {
-		return e.Customers, nil
-	}
-	return nil, &NotLoadedError{edge: "customers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -247,11 +236,6 @@ func (bp *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
 // QueryWorkflowConfig queries the "workflow_config" edge of the BillingProfile entity.
 func (bp *BillingProfile) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
 	return NewBillingProfileClient(bp.config).QueryWorkflowConfig(bp)
-}
-
-// QueryCustomers queries the "customers" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryCustomers() *CustomerQuery {
-	return NewBillingProfileClient(bp.config).QueryCustomers(bp)
 }
 
 // Update returns a builder for updating this BillingProfile.

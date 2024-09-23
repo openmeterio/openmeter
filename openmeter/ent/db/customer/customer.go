@@ -7,8 +7,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
 
 const (
@@ -52,18 +50,8 @@ const (
 	FieldName = "name"
 	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
 	FieldPrimaryEmail = "primary_email"
-	// FieldOverrideBillingProfileID holds the string denoting the override_billing_profile_id field in the database.
-	FieldOverrideBillingProfileID = "override_billing_profile_id"
-	// FieldOverrideTaxProviderConfig holds the string denoting the override_tax_provider_config field in the database.
-	FieldOverrideTaxProviderConfig = "override_tax_provider_config"
-	// FieldOverrideInvoicingProviderConfig holds the string denoting the override_invoicing_provider_config field in the database.
-	FieldOverrideInvoicingProviderConfig = "override_invoicing_provider_config"
-	// FieldOverridePaymentProviderConfig holds the string denoting the override_payment_provider_config field in the database.
-	FieldOverridePaymentProviderConfig = "override_payment_provider_config"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
-	// EdgeOverrideBillingProfile holds the string denoting the override_billing_profile edge name in mutations.
-	EdgeOverrideBillingProfile = "override_billing_profile"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// SubjectsTable is the table that holds the subjects relation/edge.
@@ -73,13 +61,6 @@ const (
 	SubjectsInverseTable = "customer_subjects"
 	// SubjectsColumn is the table column denoting the subjects relation/edge.
 	SubjectsColumn = "customer_id"
-	// OverrideBillingProfileTable is the table that holds the override_billing_profile relation/edge.
-	OverrideBillingProfileTable = "customers"
-	// OverrideBillingProfileInverseTable is the table name for the BillingProfile entity.
-	// It exists in this package in order to avoid circular dependency with the "billingprofile" package.
-	OverrideBillingProfileInverseTable = "billing_profiles"
-	// OverrideBillingProfileColumn is the table column denoting the override_billing_profile relation/edge.
-	OverrideBillingProfileColumn = "override_billing_profile_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -103,10 +84,6 @@ var Columns = []string{
 	FieldExternalMappingStripeCustomerID,
 	FieldName,
 	FieldPrimaryEmail,
-	FieldOverrideBillingProfileID,
-	FieldOverrideTaxProviderConfig,
-	FieldOverrideInvoicingProviderConfig,
-	FieldOverridePaymentProviderConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -136,12 +113,6 @@ var (
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all Customer fields.
-	ValueScanner struct {
-		OverrideTaxProviderConfig       field.TypeValueScanner[*provider.TaxConfiguration]
-		OverrideInvoicingProviderConfig field.TypeValueScanner[*provider.InvoicingConfiguration]
-		OverridePaymentProviderConfig   field.TypeValueScanner[*provider.PaymentConfiguration]
-	}
 )
 
 // OrderOption defines the ordering options for the Customer queries.
@@ -237,26 +208,6 @@ func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrimaryEmail, opts...).ToFunc()
 }
 
-// ByOverrideBillingProfileID orders the results by the override_billing_profile_id field.
-func ByOverrideBillingProfileID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideBillingProfileID, opts...).ToFunc()
-}
-
-// ByOverrideTaxProviderConfig orders the results by the override_tax_provider_config field.
-func ByOverrideTaxProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideTaxProviderConfig, opts...).ToFunc()
-}
-
-// ByOverrideInvoicingProviderConfig orders the results by the override_invoicing_provider_config field.
-func ByOverrideInvoicingProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideInvoicingProviderConfig, opts...).ToFunc()
-}
-
-// ByOverridePaymentProviderConfig orders the results by the override_payment_provider_config field.
-func ByOverridePaymentProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverridePaymentProviderConfig, opts...).ToFunc()
-}
-
 // BySubjectsCount orders the results by subjects count.
 func BySubjectsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -270,24 +221,10 @@ func BySubjects(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubjectsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// ByOverrideBillingProfileField orders the results by override_billing_profile field.
-func ByOverrideBillingProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOverrideBillingProfileStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newSubjectsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubjectsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubjectsTable, SubjectsColumn),
-	)
-}
-func newOverrideBillingProfileStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OverrideBillingProfileInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, OverrideBillingProfileTable, OverrideBillingProfileColumn),
 	)
 }
