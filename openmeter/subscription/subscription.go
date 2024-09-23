@@ -28,6 +28,7 @@ type SubscriptionPhase struct {
 	models.NamespacedModel
 	models.ManagedModel
 
+	ID             string `json:"id,omitempty"`
 	SubscriptionId string `json:"subscriptionId,omitempty"`
 
 	// ActiveFrom is the time when the phase becomes active.

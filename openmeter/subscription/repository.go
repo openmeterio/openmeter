@@ -18,6 +18,10 @@ type SubscriptionRepo interface {
 
 type SubscriptionPhaseRepo interface {
 	Create(ctx context.Context, phase SubscriptionPhaseCreateInput) (SubscriptionPhase, error)
+	DeleteAt(ctx context.Context, id string, at time.Time) error
+
+	GetForSub(ctx context.Context, subscriptionID string) ([]SubscriptionPhase, error)
+	GetRateCards(ctx context.Context, phaseID string) ([]RateCard, error)
 }
 
 // CustomerSubscriptionRepo is a repository for interacting with subscriptions in the context of a customer.
