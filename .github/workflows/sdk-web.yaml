@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Generate
-        uses: dagger/dagger-for-github@e49f5bfe7f9a3593f38b9d7391f110d6dff48f94 # v6.8.0
+        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
         with:
           verb: call
           args: generate web-sdk -o api/client/web
