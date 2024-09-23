@@ -9,4 +9,5 @@ ALTER TABLE "customer_subjects" DROP CONSTRAINT "customer_subjects_customers_sub
 -- atlas:nolint MF103
 CREATE INDEX "customersubjects_namespace" ON "customer_subjects" ("namespace");
 -- create index "customersubjects_namespace_subject_key" to table: "customer_subjects"
+-- atlas:nolint MF101
 CREATE UNIQUE INDEX "customersubjects_namespace_subject_key" ON "customer_subjects" ("namespace", "subject_key");

@@ -1,4 +1,4 @@
-h1:r0jw63EYM0tZAaMsqVC0FejGzeuuLRJ+3t1o/ctqwmU=
+h1:dtrSmbXueZWm466gwAIL0Cok/r19tIYkDmDJb/BpTFE=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -11,7 +11,7 @@ h1:r0jw63EYM0tZAaMsqVC0FejGzeuuLRJ+3t1o/ctqwmU=
 20240919144910_customer-timezone.up.sql h1:l/L/85zsacSORnsgUdBSOjzQvf0L91byK2wh4Dz6eCI=
 20240920070940_indexing-fixes.down.sql h1:IhKm+adPcfd7XOWYmFurnMpWCSSkWTosCs/aYstpvgc=
 20240920070940_indexing-fixes.up.sql h1:ne1XfTKACTk02BAJhxLWb/xFLLI/UWYWEyn17nDHaKQ=
-20240923170525_customer_drop_providers.down.sql h1:MLcNlvdtlgbYiVR/fQxyPbLttmBVBwdKBjih+NNRLZU=
-20240923170525_customer_drop_providers.up.sql h1:hvweC7zDaryUvMHibjpheDaw0YY7U25O18yw83d6Ry8=
-20240923180033_customer_drop_key.down.sql h1:U667tUTU2S3og0DSC5Yn0gcs+SfX2EqVjfVDlNcvI2o=
-20240923180033_customer_drop_key.up.sql h1:0cKfXAZHpT25O+VyGdWnegtfFwR7BnSMOifskP6tbsQ=
+20240923170525_customer_drop_providers.down.sql h1:UVls2mauP+Qm8RB1MQ5JCZBKvDBjuogz5i9Up0q1CsA=
+20240923170525_customer_drop_providers.up.sql h1:qFZ74H6laXaM8iF2apLe/uslUIRi0H159sMdO7tpQFI=
+20240923180033_customer_drop_key.down.sql h1:8OI4AovtfooHMs5ah3bFr+QyDSuulKOG1/fCiOvpyWU=
+20240923180033_customer_drop_key.up.sql h1:+Dh06FBBhU1LvdE7dMMNfSg+KPI6ooPxsMkRvI4mt8s=
