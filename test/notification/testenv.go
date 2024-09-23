@@ -13,8 +13,8 @@ import (
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -44,7 +44,7 @@ type TestEnv interface {
 	Notification() notification.Service
 	NotificationWebhook() notificationwebhook.Handler
 
-	Feature() productcatalog.FeatureConnector
+	Feature() feature.FeatureConnector
 	Meter() meter.Repository
 
 	Close() error
@@ -57,7 +57,7 @@ type testEnv struct {
 	notification     notification.Service
 	webhook          notificationwebhook.Handler
 
-	feature productcatalog.FeatureConnector
+	feature feature.FeatureConnector
 	meter   meter.Repository
 
 	closerFunc func() error
@@ -79,7 +79,7 @@ func (n testEnv) NotificationWebhook() notificationwebhook.Handler {
 	return n.webhook
 }
 
-func (n testEnv) Feature() productcatalog.FeatureConnector {
+func (n testEnv) Feature() feature.FeatureConnector {
 	return n.feature
 }
 
@@ -116,7 +116,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	meterRepository := NewMeterRepository()
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
-	featureConnector := productcatalog.NewFeatureConnector(featureAdapter, meterRepository)
+	featureConnector := feature.NewFeatureConnector(featureAdapter, meterRepository)
 
 	repo, err := notificationrepository.New(notificationrepository.Config{
 		Client: entClient,

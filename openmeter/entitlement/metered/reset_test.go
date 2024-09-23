@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -22,7 +22,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.CreateFeatureInputs{
+	exampleFeature := feature.CreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
@@ -30,7 +30,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
+	getEntitlement := func(t *testing.T, feature feature.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,

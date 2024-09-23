@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -30,7 +30,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	// Let's create a feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:30:21Z"))
-	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
@@ -179,7 +179,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 
 	// Let's create a feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-02T08:43:52Z"))
-	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
@@ -292,7 +292,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 
 	// Let's create a feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
-	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
@@ -403,21 +403,21 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 
 	// Let's create a feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
-	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feat, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
 		MeterSlug: convert.ToPointer("meter-1"),
 	})
 	assert.NoError(err)
-	assert.NotNil(feature)
+	assert.NotNil(feat)
 
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
 	ent, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
 		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
+		FeatureID:       &feat.ID,
+		FeatureKey:      &feat.Key,
 		SubjectKey:      "subject-1",
 		IssueAfterReset: convert.ToPointer(500.0),
 		EntitlementType: entitlement.EntitlementTypeMetered,
@@ -433,13 +433,13 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:20:28Z"))
 	err = deps.FeatureConnector.ArchiveFeature(ctx, models.NamespacedID{
 		Namespace: "namespace-1",
-		ID:        feature.ID,
+		ID:        feat.ID,
 	})
 	assert.NoError(err)
 
 	// Let's create a new feature with the same key
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:20:28Z"))
-	feature2, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature2, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:      "feature-1-2",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
@@ -475,7 +475,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 
 	// Let's create a feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
-	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",

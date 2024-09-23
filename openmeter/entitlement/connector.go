@@ -7,7 +7,7 @@ import (
 
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -73,7 +73,7 @@ type entitlementConnector struct {
 	booleanEntitlementConnector SubTypeConnector
 
 	entitlementRepo  EntitlementRepo
-	featureConnector productcatalog.FeatureConnector
+	featureConnector feature.FeatureConnector
 	meterRepo        meter.Repository
 
 	publisher eventbus.Publisher
@@ -81,7 +81,7 @@ type entitlementConnector struct {
 
 func NewEntitlementConnector(
 	entitlementRepo EntitlementRepo,
-	featureConnector productcatalog.FeatureConnector,
+	featureConnector feature.FeatureConnector,
 	meterRepo meter.Repository,
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
@@ -110,14 +110,14 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 			return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
 		}
 
-		feature, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, productcatalog.IncludeArchivedFeatureFalse)
-		if err != nil || feature == nil {
-			return nil, &productcatalog.FeatureNotFoundError{ID: *featureIdOrKey}
+		feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
+		if err != nil || feat == nil {
+			return nil, &feature.FeatureNotFoundError{ID: *featureIdOrKey}
 		}
 
 		// fill featureId and featureKey
-		input.FeatureID = &feature.ID
-		input.FeatureKey = &feature.Key
+		input.FeatureID = &feat.ID
+		input.FeatureKey = &feat.Key
 
 		currentEntitlements, err := c.entitlementRepo.WithTx(ctx, tx).GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
 		if err != nil {
@@ -125,8 +125,8 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		}
 		for _, ent := range currentEntitlements {
 			// you can only have a single entitlemnet per feature key
-			if ent.FeatureKey == feature.Key || ent.FeatureID == feature.ID {
-				return nil, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: feature.ID, SubjectKey: input.SubjectKey}
+			if ent.FeatureKey == feat.Key || ent.FeatureID == feat.ID {
+				return nil, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: feat.ID, SubjectKey: input.SubjectKey}
 			}
 		}
 
@@ -134,7 +134,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		if err != nil {
 			return nil, err
 		}
-		repoInputs, err := connector.BeforeCreate(input, *feature)
+		repoInputs, err := connector.BeforeCreate(input, *feat)
 		if err != nil {
 			return nil, err
 		}
@@ -200,12 +200,12 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 		return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
 	}
 
-	feature, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, productcatalog.IncludeArchivedFeatureFalse)
-	if err != nil || feature == nil {
-		return nil, &productcatalog.FeatureNotFoundError{ID: *featureIdOrKey}
+	feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
+	if err != nil || feat == nil {
+		return nil, &feature.FeatureNotFoundError{ID: *featureIdOrKey}
 	}
 
-	if feature.ID != oldEnt.FeatureID {
+	if feat.ID != oldEnt.FeatureID {
 		return nil, &models.GenericUserError{Message: "Feature in path and body do not match"}
 	}
 

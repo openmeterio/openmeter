@@ -2,11 +2,11 @@ package productcatalogdriver
 
 import (
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func MapFeatureToResponse(f productcatalog.Feature) api.Feature {
+func MapFeatureToResponse(f feature.Feature) api.Feature {
 	return api.Feature{
 		CreatedAt:           &f.CreatedAt,
 		DeletedAt:           nil,

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -23,7 +23,7 @@ func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.T
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) productcatalog.FeatureRepo {
+func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) feature.FeatureRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresFeatureRepo(txClient.Client(), e.logger)
 }

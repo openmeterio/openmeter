@@ -16,8 +16,8 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -45,8 +45,8 @@ type Dependencies struct {
 
 	Streaming *streamingtestutils.MockStreamingConnector
 
-	FeatureRepo      productcatalog.FeatureRepo
-	FeatureConnector productcatalog.FeatureConnector
+	FeatureRepo      feature.FeatureRepo
+	FeatureConnector feature.FeatureConnector
 
 	Log *slog.Logger
 }
@@ -81,7 +81,7 @@ func setupDependencies(t *testing.T) Dependencies {
 
 	meterRepo := meter.NewInMemoryRepository(meters)
 
-	featureConnector := productcatalog.NewFeatureConnector(featureRepo, meterRepo) // TODO: meter repo is needed
+	featureConnector := feature.NewFeatureConnector(featureRepo, meterRepo) // TODO: meter repo is needed
 
 	// Init grants/credit
 	grantRepo := grantrepo.NewPostgresGrantRepo(dbClient)

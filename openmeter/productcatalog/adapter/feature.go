@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,35 +23,35 @@ type featureDBAdapter struct {
 	db     *db.Client
 }
 
-func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) productcatalog.FeatureRepo {
+func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) feature.FeatureRepo {
 	return &featureDBAdapter{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.CreateFeatureInputs) (productcatalog.Feature, error) {
+func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.CreateFeatureInputs) (feature.Feature, error) {
 	query := c.db.Feature.Create().
-		SetName(feature.Name).
-		SetKey(feature.Key).
-		SetNamespace(feature.Namespace).
-		SetMetadata(feature.Metadata).
-		SetNillableMeterSlug(feature.MeterSlug)
+		SetName(feat.Name).
+		SetKey(feat.Key).
+		SetNamespace(feat.Namespace).
+		SetMetadata(feat.Metadata).
+		SetNillableMeterSlug(feat.MeterSlug)
 
-	if feature.MeterGroupByFilters != nil {
-		query = query.SetMeterGroupByFilters(feature.MeterGroupByFilters)
+	if feat.MeterGroupByFilters != nil {
+		query = query.SetMeterGroupByFilters(feat.MeterGroupByFilters)
 	}
 
 	entity, err := query.
 		Save(ctx)
 	if err != nil {
-		return productcatalog.Feature{}, err
+		return feature.Feature{}, err
 	}
 
 	return mapFeatureEntity(entity), nil
 }
 
-func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*productcatalog.Feature, error) {
+func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(namespace)).
 		Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
@@ -63,7 +63,7 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 	entity, err := query.Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, &productcatalog.FeatureNotFoundError{ID: idOrKey}
+			return nil, &feature.FeatureNotFoundError{ID: idOrKey}
 		}
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespa
 	return exists, nil
 }
 
-func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatalog.ListFeaturesParams) (pagination.PagedResponse[productcatalog.Feature], error) {
+func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.PagedResponse[feature.Feature], error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
@@ -129,16 +129,16 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 		}
 
 		switch params.OrderBy {
-		case productcatalog.FeatureOrderByCreatedAt:
+		case feature.FeatureOrderByCreatedAt:
 			query = query.Order(db_feature.ByCreatedAt(order...))
-		case productcatalog.FeatureOrderByUpdatedAt:
+		case feature.FeatureOrderByUpdatedAt:
 			query = query.Order(db_feature.ByUpdatedAt(order...))
 		default:
 			query = query.Order(db_feature.ByCreatedAt(order...))
 		}
 	}
 
-	response := pagination.PagedResponse[productcatalog.Feature]{
+	response := pagination.PagedResponse[feature.Feature]{
 		Page: params.Page,
 	}
 
@@ -156,7 +156,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 			return response, err
 		}
 
-		mapped := make([]productcatalog.Feature, 0, len(entities))
+		mapped := make([]feature.Feature, 0, len(entities))
 		for _, entity := range entities {
 			mapped = append(mapped, mapFeatureEntity(entity))
 		}
@@ -170,7 +170,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 		return response, err
 	}
 
-	list := make([]productcatalog.Feature, 0, len(paged.Items))
+	list := make([]feature.Feature, 0, len(paged.Items))
 	for _, entity := range paged.Items {
 		feature := mapFeatureEntity(entity)
 		list = append(list, feature)
@@ -183,8 +183,8 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 }
 
 // mapFeatureEntity maps a database feature entity to a feature model.
-func mapFeatureEntity(entity *db.Feature) productcatalog.Feature {
-	feature := productcatalog.Feature{
+func mapFeatureEntity(entity *db.Feature) feature.Feature {
+	feature := feature.Feature{
 		ID:         entity.ID,
 		Namespace:  entity.Namespace,
 		Name:       entity.Name,

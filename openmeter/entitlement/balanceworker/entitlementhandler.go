@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
@@ -81,7 +81,7 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *entitlement.Entitlement, source string, calculatedAt time.Time) (marshaler.Event, error) {
-	feature, err := w.entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
+	feature, err := w.entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
@@ -136,7 +136,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {
 	namespace := delEvent.Namespace.ID
 
-	feature, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
+	feature, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}

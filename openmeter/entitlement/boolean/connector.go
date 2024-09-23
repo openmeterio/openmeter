@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -29,7 +29,7 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	return &BooleanEntitlementValue{}, nil
 }
 
-func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feature productcatalog.Feature) (*entitlement.CreateEntitlementRepoInputs, error) {
+func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feature feature.Feature) (*entitlement.CreateEntitlementRepoInputs, error) {
 	model.EntitlementType = entitlement.EntitlementTypeBoolean
 	if model.MeasureUsageFrom != nil ||
 		model.IssueAfterReset != nil ||

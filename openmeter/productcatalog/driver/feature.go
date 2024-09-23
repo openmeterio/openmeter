@@ -9,7 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -30,11 +30,11 @@ type FeatureHandler interface {
 type featureHandlers struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	connector        productcatalog.FeatureConnector
+	connector        feature.FeatureConnector
 }
 
 func NewFeatureHandler(
-	connector productcatalog.FeatureConnector,
+	connector feature.FeatureConnector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) FeatureHandler {
@@ -47,7 +47,7 @@ func NewFeatureHandler(
 
 type (
 	GetFeatureHandlerRequest  = models.NamespacedID
-	GetFeatureHandlerResponse = *productcatalog.Feature
+	GetFeatureHandlerResponse = *feature.Feature
 	GetFeatureHandlerParams   = string
 )
 
@@ -67,7 +67,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 			}, nil
 		},
 		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
-			return h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, productcatalog.IncludeArchivedFeatureFalse)
+			return h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, feature.IncludeArchivedFeatureFalse)
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
@@ -79,17 +79,17 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 }
 
 type (
-	CreateFeatureHandlerRequest  = productcatalog.CreateFeatureInputs
-	CreateFeatureHandlerResponse = productcatalog.Feature
+	CreateFeatureHandlerRequest  = feature.CreateFeatureInputs
+	CreateFeatureHandlerResponse = feature.Feature
 )
 
 type CreateFeatureHandler httptransport.Handler[CreateFeatureHandlerRequest, CreateFeatureHandlerResponse]
 
 func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (productcatalog.CreateFeatureInputs, error) {
+		func(ctx context.Context, r *http.Request) (feature.CreateFeatureInputs, error) {
 			parsedBody := api.CreateFeatureJSONRequestBody{}
-			emptyFeature := productcatalog.CreateFeatureInputs{}
+			emptyFeature := feature.CreateFeatureInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &parsedBody); err != nil {
 				return emptyFeature, err
 			}
@@ -99,7 +99,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				return emptyFeature, err
 			}
 
-			return productcatalog.CreateFeatureInputs{
+			return feature.CreateFeatureInputs{
 				Namespace:           ns,
 				Name:                parsedBody.Name,
 				Key:                 parsedBody.Key,
@@ -108,10 +108,10 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				Metadata:            convert.DerefHeaderPtr[string](parsedBody.Metadata),
 			}, nil
 		},
-		func(ctx context.Context, feature productcatalog.CreateFeatureInputs) (productcatalog.Feature, error) {
+		func(ctx context.Context, feature feature.CreateFeatureInputs) (feature.Feature, error) {
 			return h.connector.CreateFeature(ctx, feature)
 		},
-		commonhttp.JSONResponseEncoderWithStatus[productcatalog.Feature](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[feature.Feature](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createFeature"),
@@ -121,7 +121,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 }
 
 type (
-	ListFeaturesHandlerRequest  = productcatalog.ListFeaturesParams
+	ListFeaturesHandlerRequest  = feature.ListFeaturesParams
 	ListFeaturesHandlerResponse = commonhttp.Union[[]api.Feature, pagination.PagedResponse[api.Feature]]
 	ListFeaturesHandlerParams   = api.ListFeaturesParams
 )
@@ -133,17 +133,17 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 		func(ctx context.Context, r *http.Request, apiParams ListFeaturesHandlerParams) (ListFeaturesHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return productcatalog.ListFeaturesParams{}, err
+				return feature.ListFeaturesParams{}, err
 			}
 
 			// validate OrderBy
 			if apiParams.OrderBy != nil {
-				if !slices.Contains(productcatalog.FeatureOrderBy("").StrValues(), strcase.CamelToSnake(string(*apiParams.OrderBy))) {
-					return productcatalog.ListFeaturesParams{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
+				if !slices.Contains(feature.FeatureOrderBy("").StrValues(), strcase.CamelToSnake(string(*apiParams.OrderBy))) {
+					return feature.ListFeaturesParams{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
 				}
 			}
 
-			params := productcatalog.ListFeaturesParams{
+			params := feature.ListFeaturesParams{
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
 				Page: pagination.Page{
@@ -152,8 +152,8 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				},
 				Limit:  defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
 				Offset: defaultx.WithDefault(apiParams.Offset, 0),
-				OrderBy: productcatalog.FeatureOrderBy(
-					strcase.CamelToSnake(defaultx.WithDefault((*string)(apiParams.OrderBy), string(productcatalog.FeatureOrderByUpdatedAt))),
+				OrderBy: feature.FeatureOrderBy(
+					strcase.CamelToSnake(defaultx.WithDefault((*string)(apiParams.OrderBy), string(feature.FeatureOrderByUpdatedAt))),
 				),
 				Order:      commonhttp.GetSortOrder(api.ListFeaturesParamsOrderSortOrderASC, apiParams.Order),
 				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),

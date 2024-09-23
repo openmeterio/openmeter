@@ -1,4 +1,4 @@
-package productcatalog
+package feature
 
 import (
 	"fmt"

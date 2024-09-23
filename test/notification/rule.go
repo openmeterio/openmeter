@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -48,7 +48,7 @@ type RuleTestSuite struct {
 	Env TestEnv
 
 	channel notification.Channel
-	feature productcatalog.Feature
+	feature feature.Feature
 }
 
 func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
@@ -59,14 +59,14 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, TestNamespace, TestMeterSlug)
 	require.NoError(t, err, "Getting meter must not return error")
 
-	feature, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
-	if _, ok := errorsx.ErrorAs[*productcatalog.FeatureNotFoundError](err); !ok {
+	feat, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
+	if _, ok := errorsx.ErrorAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
-	if feature != nil {
-		s.feature = *feature
+	if feat != nil {
+		s.feature = *feat
 	} else {
-		s.feature, err = s.Env.Feature().CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+		s.feature, err = s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
 			Namespace:           TestNamespace,
