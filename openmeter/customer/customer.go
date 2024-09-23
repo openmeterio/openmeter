@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timezone"
+	"github.com/samber/lo"
 )
 
 // Customer represents a customer
@@ -43,26 +44,20 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 		}
 
 		if c.BillingAddress.Country != nil {
-			country := string(*c.BillingAddress.Country)
-			address.Country = &country
+			address.Country = lo.ToPtr(string(*c.BillingAddress.Country))
 		}
 
 		customer.BillingAddress = &address
 	}
 
 	if c.External != nil {
-		external := api.CustomerExternalMapping{}
-
-		if c.External.StripeCustomerID != nil {
-			external.StripeCustomerId = c.External.StripeCustomerID
+		customer.External = &api.CustomerExternalMapping{
+			StripeCustomerId: c.External.StripeCustomerID,
 		}
-
-		customer.External = &external
 	}
 
 	if c.Currency != nil {
-		currency := string(*c.Currency)
-		customer.Currency = &currency
+		customer.Currency = lo.ToPtr(string(*c.Currency))
 	}
 
 	return customer, nil

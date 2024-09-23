@@ -31,5 +31,21 @@ func TestCustomer(t *testing.T) {
 		t.Run("TestCreate", func(t *testing.T) {
 			testSuite.TestCreate(ctx, t)
 		})
+
+		t.Run("TestList", func(t *testing.T) {
+			testSuite.TestList(ctx, t)
+		})
+
+		t.Run("TestGet", func(t *testing.T) {
+			testSuite.TestGet(ctx, t)
+		})
+
+		t.Run("TestUpdate", func(t *testing.T) {
+			testSuite.TestUpdate(ctx, t)
+		})
+
+		t.Run("TestDelete", func(t *testing.T) {
+			testSuite.TestDelete(ctx, t)
+		})
 	})
 }

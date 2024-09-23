@@ -5,6 +5,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
+	"github.com/samber/lo"
 )
 
 // newCreateCustomerInput creates a new customer.CreateCustomerInput.
@@ -47,8 +48,7 @@ func newFromAPICustomer(namespace string, apiCustomer api.Customer) customer.Cus
 		}
 
 		if apiCustomer.BillingAddress.Country != nil {
-			country := models.CountryCode(*apiCustomer.BillingAddress.Country)
-			address.Country = &country
+			address.Country = lo.ToPtr(models.CountryCode(*apiCustomer.BillingAddress.Country))
 		}
 
 		customerModel.BillingAddress = &address
@@ -65,13 +65,11 @@ func newFromAPICustomer(namespace string, apiCustomer api.Customer) customer.Cus
 	}
 
 	if apiCustomer.Currency != nil {
-		currency := models.CurrencyCode(*apiCustomer.Currency)
-		customerModel.Currency = &currency
+		customerModel.Currency = lo.ToPtr(models.CurrencyCode(*apiCustomer.Currency))
 	}
 
 	if apiCustomer.Timezone != nil {
-		timezone := timezone.Timezone(*apiCustomer.Timezone)
-		customerModel.Timezone = &timezone
+		customerModel.Timezone = lo.ToPtr(timezone.Timezone(*apiCustomer.Timezone))
 	}
 
 	return customerModel

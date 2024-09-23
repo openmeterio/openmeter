@@ -135,39 +135,22 @@ func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCu
 func (r repository) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	db := r.client()
 
-	// Get the customer to resolve the ID if it's a key
-	getCustomerInput := customer.GetCustomerInput(input)
-
-	dbCustomer, err := r.GetCustomer(ctx, getCustomerInput)
-	if err != nil {
-		return err
-	}
-
 	// Soft delete the customer
-	query := db.Customer.UpdateOneID(dbCustomer.ID).
+	query := db.Customer.Update().
+		Where(customerdb.ID(input.ID)).
 		Where(customerdb.Namespace(input.Namespace)).
+		Where(customerdb.DeletedAtIsNil()).
 		SetDeletedAt(clock.Now().UTC())
 
-	_, err = query.Save(ctx)
+	rows, err := query.Save(ctx)
 	if err != nil {
-		if entdb.IsNotFound(err) {
-			// Construct the customer ID from the database customer
-			// to ensure we return the error with ID and not key
-			customerId := customer.CustomerID{
-				Namespace: dbCustomer.Namespace,
-				ID:        dbCustomer.ID,
-			}
-
-			if vErr := customerId.Validate(); err != nil {
-				return fmt.Errorf("invalid customer ID: %w", vErr)
-			}
-
-			return customer.NotFoundError{
-				CustomerID: customerId,
-			}
-		}
-
 		return fmt.Errorf("failed to delete customer: %w", err)
+	}
+
+	if rows == 0 {
+		return customer.NotFoundError{
+			CustomerID: customer.CustomerID(input),
+		}
 	}
 
 	return nil

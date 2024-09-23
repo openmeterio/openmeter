@@ -7,10 +7,10 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/samber/lo"
 )
 
 type (
@@ -31,12 +31,12 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 
 			req := ListCustomersRequest{
 				Namespace:      ns,
-				IncludeDeleted: defaultx.WithDefault(params.IncludeDeleted, customer.IncludeDeleted),
+				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
 				// OrderBy:        defaultx.WithDefault(params.OrderBy, api.ListCustomersParamsOrderById),
 				// Order:          sortx.Order(defaultx.WithDefault(params.Order, api.ListCustomersParamsOrderSortOrderASC)),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, customer.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, customer.DefaultPageNumber),
+					PageSize:   lo.FromPtrOr(params.PageSize, customer.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, customer.DefaultPageNumber),
 				},
 			}
 

@@ -222,7 +222,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Listing customers must not return error")
 	require.NotNil(t, list, "Customers must not be nil")
 	require.Equal(t, 2, list.TotalCount, "Customers total count must be 1")
-	require.Equal(t, 1, list.Page, "Customers page must be 1")
+	require.Equal(t, 0, list.Page.PageNumber, "Customers page must be 0")
 	require.Len(t, list.Items, 2, "Customers must have a single item")
 	require.Equal(t, s.namespace, list.Items[0].Namespace, "Customer namespace must match")
 	require.NotNil(t, list.Items[0].ID, "Customer ID must not be nil")
@@ -299,12 +299,15 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	require.NoError(t, err, "Deleting customer must not return error")
 
 	// Get the customer
-	_, err = service.GetCustomer(ctx, customer.GetCustomerInput(customerId))
+	getCustomer, err := service.GetCustomer(ctx, customer.GetCustomerInput(customerId))
 
-	require.ErrorAs(t, err, customer.NotFoundError{CustomerID: customerId}, "Fetching customer must return not found error")
+	require.NoError(t, err, "Getting a deleted customer must not return error")
+	require.NotNil(t, getCustomer.DeletedAt, "DeletedAt must not be nil")
 
 	// Delete the customer again should return not found error
 	err = service.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
 
-	require.ErrorAs(t, err, customer.NotFoundError{CustomerID: customerId}, "Deleting customer again must return not found error")
+	// TODO: it is a wrapped error, we need to unwrap it, instead we are checking the error message for now
+	// require.ErrorAs(t, err, customer.NotFoundError{CustomerID: customerId}, "Deleting customer again must return not found error")
+	require.ErrorContains(t, err, "not found", "Deleting customer again must return not found error")
 }

@@ -392,11 +392,6 @@ func main() {
 			logger.Error("failed to initialize customer service", "error", err)
 			os.Exit(1)
 		}
-		defer func() {
-			if err = customerService.Close(); err != nil {
-				logger.Error("failed to close customer service", "error", err)
-			}
-		}()
 	}
 
 	// Initialize Notification
