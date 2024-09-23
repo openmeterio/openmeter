@@ -31,4 +31,4 @@ release:
 
 # update CI dependency versions
 update-versions:
-    dagger call --source .:default dev update-versions export --path ci/versions.go
+    dagger call dev update-versions --github-token env:GITHUB_TOKEN export --path .dagger/versions.go
