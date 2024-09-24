@@ -1,4 +1,4 @@
-package service
+package billingservice
 
 import (
 	"errors"

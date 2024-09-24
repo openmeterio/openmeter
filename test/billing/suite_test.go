@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	"github.com/openmeterio/openmeter/openmeter/billing/service"
+	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -66,7 +66,7 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 	s.BillingAdapter = billingAdapter
 
-	billingService, err := service.New(service.Config{
+	billingService, err := billingservice.New(billingservice.Config{
 		Adapter: billingAdapter,
 	})
 	require.NoError(t, err)
