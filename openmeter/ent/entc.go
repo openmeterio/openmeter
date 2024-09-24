@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/entc/gen"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
 )
 
 func main() {
@@ -25,7 +26,11 @@ func main() {
 			Schema:  "./schema",
 			Package: "github.com/openmeterio/openmeter/openmeter/ent/db",
 		},
-		entc.Extensions(entexpose.New(), entpaginate.New()),
+		entc.Extensions(
+			entexpose.New(),
+			entpaginate.New(),
+			entsetorclear.New(),
+		),
 	)
 	if err != nil {
 		log.Fatal("running ent codegen:", err)

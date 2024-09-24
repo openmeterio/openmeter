@@ -154,28 +154,28 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 
 	targetState := input.TargetState
 
-	updatedProfile, err := a.client().BillingProfile.UpdateOneID(targetState.ID).
+	update := a.client().BillingProfile.UpdateOneID(targetState.ID).
 		Where(billingprofile.Namespace(targetState.Namespace)).
 		SetTaxProvider(targetState.TaxConfiguration.Type).
 		SetInvoicingProvider(targetState.InvoicingConfiguration.Type).
 		SetPaymentProvider(targetState.PaymentConfiguration.Type).
 		SetSupplierName(targetState.Supplier.Name).
 		SetSupplierAddressCountry(*targetState.Supplier.Address.Country).
-		SetNillableSupplierAddressState(targetState.Supplier.Address.State).
-		SetNillableSupplierAddressCity(targetState.Supplier.Address.City).
-		SetNillableSupplierAddressPostalCode(targetState.Supplier.Address.PostalCode).
-		SetNillableSupplierAddressLine1(targetState.Supplier.Address.Line1).
-		SetNillableSupplierAddressLine2(targetState.Supplier.Address.Line2).
-		SetNillableSupplierAddressPhoneNumber(targetState.Supplier.Address.PhoneNumber).
 		SetDefault(targetState.Default).
-		Save(ctx)
+		SetOrClearSupplierAddressState(targetState.Supplier.Address.State).
+		SetOrClearSupplierAddressCity(targetState.Supplier.Address.City).
+		SetOrClearSupplierAddressPostalCode(targetState.Supplier.Address.PostalCode).
+		SetOrClearSupplierAddressLine1(targetState.Supplier.Address.Line1).
+		SetOrClearSupplierAddressLine2(targetState.Supplier.Address.Line2).
+		SetOrClearSupplierAddressPhoneNumber(targetState.Supplier.Address.PhoneNumber)
+
+	updatedProfile, err := update.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	updatedWorkflowConfig, err := a.client().BillingWorkflowConfig.UpdateOneID(input.WorkflowConfigID).
 		Where(billingworkflowconfig.Namespace(targetState.Namespace)).
-		SetNillableTimezone(targetState.WorkflowConfig.Timezone).
 		SetCollectionAlignment(targetState.WorkflowConfig.Collection.Alignment).
 		SetItemCollectionPeriodSeconds(int64(targetState.WorkflowConfig.Collection.ItemCollectionPeriod / time.Second)).
 		SetInvoiceAutoAdvance(targetState.WorkflowConfig.Invoicing.AutoAdvance).
@@ -184,7 +184,7 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 		SetInvoiceItemResolution(targetState.WorkflowConfig.Invoicing.ItemResolution).
 		SetInvoiceItemPerSubject(targetState.WorkflowConfig.Invoicing.ItemPerSubject).
 		SetInvoiceCollectionMethod(targetState.WorkflowConfig.Payment.CollectionMethod).
-		Save(ctx)
+		SetOrClearTimezone(targetState.WorkflowConfig.Timezone).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
