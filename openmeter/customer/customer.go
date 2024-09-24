@@ -64,46 +64,6 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 	return customer, nil
 }
 
-// AsAPICustomer converts a Customer to an API Customer
-func (c Customer) AsAPICustomer() (api.Customer, error) {
-	customer := api.Customer{
-		Id:               &c.ManagedResource.ID,
-		Name:             c.Name,
-		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
-		PrimaryEmail:     c.PrimaryEmail,
-	}
-
-	if c.BillingAddress != nil {
-		address := api.Address{
-			City:        c.BillingAddress.City,
-			State:       c.BillingAddress.State,
-			PostalCode:  c.BillingAddress.PostalCode,
-			Line1:       c.BillingAddress.Line1,
-			Line2:       c.BillingAddress.Line2,
-			PhoneNumber: c.BillingAddress.PhoneNumber,
-		}
-
-		if c.BillingAddress.Country != nil {
-			country := string(*c.BillingAddress.Country)
-			address.Country = &country
-		}
-
-		customer.BillingAddress = &address
-	}
-
-	if c.External != nil {
-		customer.External = &api.CustomerExternalMapping{
-			StripeCustomerId: c.External.StripeCustomerID,
-		}
-	}
-
-	if c.Currency != nil {
-		customer.Currency = lo.ToPtr(string(*c.Currency))
-	}
-
-	return customer, nil
-}
-
 type CustomerID models.NamespacedID
 
 func (i CustomerID) Validate() error {
