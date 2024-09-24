@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfigoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -50,8 +49,6 @@ type Client struct {
 	BillingProfile *BillingProfileClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
-	// BillingWorkflowConfigOverride is the client for interacting with the BillingWorkflowConfigOverride builders.
-	BillingWorkflowConfigOverride *BillingWorkflowConfigOverrideClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -88,7 +85,6 @@ func (c *Client) init() {
 	c.BillingInvoiceItem = NewBillingInvoiceItemClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
-	c.BillingWorkflowConfigOverride = NewBillingWorkflowConfigOverrideClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
 	c.CustomerSubjects = NewCustomerSubjectsClient(c.config)
 	c.Entitlement = NewEntitlementClient(c.config)
@@ -196,7 +192,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoiceItem:              NewBillingInvoiceItemClient(cfg),
 		BillingProfile:                  NewBillingProfileClient(cfg),
 		BillingWorkflowConfig:           NewBillingWorkflowConfigClient(cfg),
-		BillingWorkflowConfigOverride:   NewBillingWorkflowConfigOverrideClient(cfg),
 		Customer:                        NewCustomerClient(cfg),
 		CustomerSubjects:                NewCustomerSubjectsClient(cfg),
 		Entitlement:                     NewEntitlementClient(cfg),
@@ -231,7 +226,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoiceItem:              NewBillingInvoiceItemClient(cfg),
 		BillingProfile:                  NewBillingProfileClient(cfg),
 		BillingWorkflowConfig:           NewBillingWorkflowConfigClient(cfg),
-		BillingWorkflowConfigOverride:   NewBillingWorkflowConfigOverrideClient(cfg),
 		Customer:                        NewCustomerClient(cfg),
 		CustomerSubjects:                NewCustomerSubjectsClient(cfg),
 		Entitlement:                     NewEntitlementClient(cfg),
@@ -272,10 +266,9 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.BalanceSnapshot, c.BillingInvoice, c.BillingInvoiceItem, c.BillingProfile,
-		c.BillingWorkflowConfig, c.BillingWorkflowConfigOverride, c.Customer,
-		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.UsageReset,
+		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
+		c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -286,10 +279,9 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.BalanceSnapshot, c.BillingInvoice, c.BillingInvoiceItem, c.BillingProfile,
-		c.BillingWorkflowConfig, c.BillingWorkflowConfigOverride, c.Customer,
-		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.UsageReset,
+		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
+		c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -308,8 +300,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingProfile.mutate(ctx, m)
 	case *BillingWorkflowConfigMutation:
 		return c.BillingWorkflowConfig.mutate(ctx, m)
-	case *BillingWorkflowConfigOverrideMutation:
-		return c.BillingWorkflowConfigOverride.mutate(ctx, m)
 	case *CustomerMutation:
 		return c.Customer.mutate(ctx, m)
 	case *CustomerSubjectsMutation:
@@ -1141,139 +1131,6 @@ func (c *BillingWorkflowConfigClient) mutate(ctx context.Context, m *BillingWork
 		return (&BillingWorkflowConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingWorkflowConfig mutation op: %q", m.Op())
-	}
-}
-
-// BillingWorkflowConfigOverrideClient is a client for the BillingWorkflowConfigOverride schema.
-type BillingWorkflowConfigOverrideClient struct {
-	config
-}
-
-// NewBillingWorkflowConfigOverrideClient returns a client for the BillingWorkflowConfigOverride from the given config.
-func NewBillingWorkflowConfigOverrideClient(c config) *BillingWorkflowConfigOverrideClient {
-	return &BillingWorkflowConfigOverrideClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `billingworkflowconfigoverride.Hooks(f(g(h())))`.
-func (c *BillingWorkflowConfigOverrideClient) Use(hooks ...Hook) {
-	c.hooks.BillingWorkflowConfigOverride = append(c.hooks.BillingWorkflowConfigOverride, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `billingworkflowconfigoverride.Intercept(f(g(h())))`.
-func (c *BillingWorkflowConfigOverrideClient) Intercept(interceptors ...Interceptor) {
-	c.inters.BillingWorkflowConfigOverride = append(c.inters.BillingWorkflowConfigOverride, interceptors...)
-}
-
-// Create returns a builder for creating a BillingWorkflowConfigOverride entity.
-func (c *BillingWorkflowConfigOverrideClient) Create() *BillingWorkflowConfigOverrideCreate {
-	mutation := newBillingWorkflowConfigOverrideMutation(c.config, OpCreate)
-	return &BillingWorkflowConfigOverrideCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of BillingWorkflowConfigOverride entities.
-func (c *BillingWorkflowConfigOverrideClient) CreateBulk(builders ...*BillingWorkflowConfigOverrideCreate) *BillingWorkflowConfigOverrideCreateBulk {
-	return &BillingWorkflowConfigOverrideCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *BillingWorkflowConfigOverrideClient) MapCreateBulk(slice any, setFunc func(*BillingWorkflowConfigOverrideCreate, int)) *BillingWorkflowConfigOverrideCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &BillingWorkflowConfigOverrideCreateBulk{err: fmt.Errorf("calling to BillingWorkflowConfigOverrideClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*BillingWorkflowConfigOverrideCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &BillingWorkflowConfigOverrideCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for BillingWorkflowConfigOverride.
-func (c *BillingWorkflowConfigOverrideClient) Update() *BillingWorkflowConfigOverrideUpdate {
-	mutation := newBillingWorkflowConfigOverrideMutation(c.config, OpUpdate)
-	return &BillingWorkflowConfigOverrideUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *BillingWorkflowConfigOverrideClient) UpdateOne(bwco *BillingWorkflowConfigOverride) *BillingWorkflowConfigOverrideUpdateOne {
-	mutation := newBillingWorkflowConfigOverrideMutation(c.config, OpUpdateOne, withBillingWorkflowConfigOverride(bwco))
-	return &BillingWorkflowConfigOverrideUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *BillingWorkflowConfigOverrideClient) UpdateOneID(id string) *BillingWorkflowConfigOverrideUpdateOne {
-	mutation := newBillingWorkflowConfigOverrideMutation(c.config, OpUpdateOne, withBillingWorkflowConfigOverrideID(id))
-	return &BillingWorkflowConfigOverrideUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for BillingWorkflowConfigOverride.
-func (c *BillingWorkflowConfigOverrideClient) Delete() *BillingWorkflowConfigOverrideDelete {
-	mutation := newBillingWorkflowConfigOverrideMutation(c.config, OpDelete)
-	return &BillingWorkflowConfigOverrideDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *BillingWorkflowConfigOverrideClient) DeleteOne(bwco *BillingWorkflowConfigOverride) *BillingWorkflowConfigOverrideDeleteOne {
-	return c.DeleteOneID(bwco.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *BillingWorkflowConfigOverrideClient) DeleteOneID(id string) *BillingWorkflowConfigOverrideDeleteOne {
-	builder := c.Delete().Where(billingworkflowconfigoverride.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &BillingWorkflowConfigOverrideDeleteOne{builder}
-}
-
-// Query returns a query builder for BillingWorkflowConfigOverride.
-func (c *BillingWorkflowConfigOverrideClient) Query() *BillingWorkflowConfigOverrideQuery {
-	return &BillingWorkflowConfigOverrideQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeBillingWorkflowConfigOverride},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a BillingWorkflowConfigOverride entity by its id.
-func (c *BillingWorkflowConfigOverrideClient) Get(ctx context.Context, id string) (*BillingWorkflowConfigOverride, error) {
-	return c.Query().Where(billingworkflowconfigoverride.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *BillingWorkflowConfigOverrideClient) GetX(ctx context.Context, id string) *BillingWorkflowConfigOverride {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *BillingWorkflowConfigOverrideClient) Hooks() []Hook {
-	return c.hooks.BillingWorkflowConfigOverride
-}
-
-// Interceptors returns the client interceptors.
-func (c *BillingWorkflowConfigOverrideClient) Interceptors() []Interceptor {
-	return c.inters.BillingWorkflowConfigOverride
-}
-
-func (c *BillingWorkflowConfigOverrideClient) mutate(ctx context.Context, m *BillingWorkflowConfigOverrideMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&BillingWorkflowConfigOverrideCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&BillingWorkflowConfigOverrideUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&BillingWorkflowConfigOverrideUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&BillingWorkflowConfigOverrideDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("db: unknown BillingWorkflowConfigOverride mutation op: %q", m.Op())
 	}
 }
 
@@ -2851,17 +2708,15 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 type (
 	hooks struct {
 		BalanceSnapshot, BillingInvoice, BillingInvoiceItem, BillingProfile,
-		BillingWorkflowConfig, BillingWorkflowConfigOverride, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Hook
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, UsageReset []ent.Hook
 	}
 	inters struct {
 		BalanceSnapshot, BillingInvoice, BillingInvoiceItem, BillingProfile,
-		BillingWorkflowConfig, BillingWorkflowConfigOverride, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Interceptor
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, UsageReset []ent.Interceptor
 	}
 )
 

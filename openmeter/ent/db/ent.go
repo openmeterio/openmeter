@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfigoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -94,7 +93,6 @@ func checkColumn(table, column string) error {
 			billinginvoiceitem.Table:              billinginvoiceitem.ValidColumn,
 			billingprofile.Table:                  billingprofile.ValidColumn,
 			billingworkflowconfig.Table:           billingworkflowconfig.ValidColumn,
-			billingworkflowconfigoverride.Table:   billingworkflowconfigoverride.ValidColumn,
 			customer.Table:                        customer.ValidColumn,
 			customersubjects.Table:                customersubjects.ValidColumn,
 			entitlement.Table:                     entitlement.ValidColumn,

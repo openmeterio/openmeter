@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfigoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -216,33 +215,6 @@ func init() {
 	billingworkflowconfigDescID := billingworkflowconfigMixinFields0[0].Descriptor()
 	// billingworkflowconfig.DefaultID holds the default value on creation for the id field.
 	billingworkflowconfig.DefaultID = billingworkflowconfigDescID.Default.(func() string)
-	billingworkflowconfigoverrideMixin := schema.BillingWorkflowConfigOverride{}.Mixin()
-	billingworkflowconfigoverrideMixinFields0 := billingworkflowconfigoverrideMixin[0].Fields()
-	_ = billingworkflowconfigoverrideMixinFields0
-	billingworkflowconfigoverrideMixinFields1 := billingworkflowconfigoverrideMixin[1].Fields()
-	_ = billingworkflowconfigoverrideMixinFields1
-	billingworkflowconfigoverrideMixinFields2 := billingworkflowconfigoverrideMixin[2].Fields()
-	_ = billingworkflowconfigoverrideMixinFields2
-	billingworkflowconfigoverrideFields := schema.BillingWorkflowConfigOverride{}.Fields()
-	_ = billingworkflowconfigoverrideFields
-	// billingworkflowconfigoverrideDescNamespace is the schema descriptor for namespace field.
-	billingworkflowconfigoverrideDescNamespace := billingworkflowconfigoverrideMixinFields1[0].Descriptor()
-	// billingworkflowconfigoverride.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	billingworkflowconfigoverride.NamespaceValidator = billingworkflowconfigoverrideDescNamespace.Validators[0].(func(string) error)
-	// billingworkflowconfigoverrideDescCreatedAt is the schema descriptor for created_at field.
-	billingworkflowconfigoverrideDescCreatedAt := billingworkflowconfigoverrideMixinFields2[0].Descriptor()
-	// billingworkflowconfigoverride.DefaultCreatedAt holds the default value on creation for the created_at field.
-	billingworkflowconfigoverride.DefaultCreatedAt = billingworkflowconfigoverrideDescCreatedAt.Default.(func() time.Time)
-	// billingworkflowconfigoverrideDescUpdatedAt is the schema descriptor for updated_at field.
-	billingworkflowconfigoverrideDescUpdatedAt := billingworkflowconfigoverrideMixinFields2[1].Descriptor()
-	// billingworkflowconfigoverride.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	billingworkflowconfigoverride.DefaultUpdatedAt = billingworkflowconfigoverrideDescUpdatedAt.Default.(func() time.Time)
-	// billingworkflowconfigoverride.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	billingworkflowconfigoverride.UpdateDefaultUpdatedAt = billingworkflowconfigoverrideDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// billingworkflowconfigoverrideDescID is the schema descriptor for id field.
-	billingworkflowconfigoverrideDescID := billingworkflowconfigoverrideMixinFields0[0].Descriptor()
-	// billingworkflowconfigoverride.DefaultID holds the default value on creation for the id field.
-	billingworkflowconfigoverride.DefaultID = billingworkflowconfigoverrideDescID.Default.(func() string)
 	customerMixin := schema.Customer{}.Mixin()
 	customerMixinFields0 := customerMixin[0].Fields()
 	_ = customerMixinFields0

@@ -300,32 +300,6 @@ var (
 			},
 		},
 	}
-	// BillingWorkflowConfigOverridesColumns holds the columns for the "billing_workflow_config_overrides" table.
-	BillingWorkflowConfigOverridesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-	}
-	// BillingWorkflowConfigOverridesTable holds the schema information for the "billing_workflow_config_overrides" table.
-	BillingWorkflowConfigOverridesTable = &schema.Table{
-		Name:       "billing_workflow_config_overrides",
-		Columns:    BillingWorkflowConfigOverridesColumns,
-		PrimaryKey: []*schema.Column{BillingWorkflowConfigOverridesColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "billingworkflowconfigoverride_id",
-				Unique:  true,
-				Columns: []*schema.Column{BillingWorkflowConfigOverridesColumns[0]},
-			},
-			{
-				Name:    "billingworkflowconfigoverride_namespace",
-				Unique:  false,
-				Columns: []*schema.Column{BillingWorkflowConfigOverridesColumns[1]},
-			},
-		},
-	}
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -859,7 +833,6 @@ var (
 		BillingInvoiceItemsTable,
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
-		BillingWorkflowConfigOverridesTable,
 		CustomersTable,
 		CustomerSubjectsTable,
 		EntitlementsTable,

@@ -21,9 +21,6 @@ type BillingProfile func(*sql.Selector)
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
 
-// BillingWorkflowConfigOverride is the predicate function for billingworkflowconfigoverride builders.
-type BillingWorkflowConfigOverride func(*sql.Selector)
-
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
 

@@ -1,4 +1,4 @@
-h1:wtbrTo2O7gd2CLIyGme5O6sTo479OiCzqX5MBbF0Dik=
+h1:MA82gjLPAoHE5cgdu1jwFSu5DOyf0YM7DLEsO+sfNwk=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -15,3 +15,5 @@ h1:wtbrTo2O7gd2CLIyGme5O6sTo479OiCzqX5MBbF0Dik=
 20240923170525_customer_drop_providers.up.sql h1:qFZ74H6laXaM8iF2apLe/uslUIRi0H159sMdO7tpQFI=
 20240923180033_customer_drop_key.down.sql h1:BwZmyWpDVP3y2yZuwhvi4LXXz4XcDoDrlvsTSv599qg=
 20240923180033_customer_drop_key.up.sql h1:F4/5DmYz5jOtJtHZW/wH1bYh0keGBc8QJiXb5unbP+M=
+20240924133959_billing-profile.down.sql h1:Mb9p0FfBIRc7ovI51O9///CdLql7ZReVDv6sS4ii7qQ=
+20240924133959_billing-profile.up.sql h1:aukSOIxiidWYWo/OcgZK2LeGQl93lZZ14KEa4zgFx84=

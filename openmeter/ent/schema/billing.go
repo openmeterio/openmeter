@@ -108,18 +108,6 @@ func (BillingWorkflowConfig) Edges() []ent.Edge {
 	}
 }
 
-type BillingWorkflowConfigOverride struct {
-	ent.Schema
-}
-
-func (BillingWorkflowConfigOverride) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
-	}
-}
-
 type BillingInvoiceItem struct {
 	ent.Schema
 }

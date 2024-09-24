@@ -24,8 +24,6 @@ type Tx struct {
 	BillingProfile *BillingProfileClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
-	// BillingWorkflowConfigOverride is the client for interacting with the BillingWorkflowConfigOverride builders.
-	BillingWorkflowConfigOverride *BillingWorkflowConfigOverrideClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -182,7 +180,6 @@ func (tx *Tx) init() {
 	tx.BillingInvoiceItem = NewBillingInvoiceItemClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
-	tx.BillingWorkflowConfigOverride = NewBillingWorkflowConfigOverrideClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)

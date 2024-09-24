@@ -69,18 +69,6 @@ func (f BillingWorkflowConfigFunc) Mutate(ctx context.Context, m db.Mutation) (d
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingWorkflowConfigMutation", m)
 }
 
-// The BillingWorkflowConfigOverrideFunc type is an adapter to allow the use of ordinary
-// function as BillingWorkflowConfigOverride mutator.
-type BillingWorkflowConfigOverrideFunc func(context.Context, *db.BillingWorkflowConfigOverrideMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f BillingWorkflowConfigOverrideFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.BillingWorkflowConfigOverrideMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingWorkflowConfigOverrideMutation", m)
-}
-
 // The CustomerFunc type is an adapter to allow the use of ordinary
 // function as Customer mutator.
 type CustomerFunc func(context.Context, *db.CustomerMutation) (db.Value, error)
