@@ -20,21 +20,22 @@ type Creator interface {
 }
 
 // Runs the callback inside a transaction
-func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Context) (*R, error)) (*R, error) {
+func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Context) (R, error)) (R, error) {
+	var def R
 	// Make sure we have a transaction
 	ctx, tx, err := getTx(ctx, creator)
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
 	// Make sure transaction is set on context
 	ctx, err = SetDriverOnContext(ctx, tx)
 	if _, ok := err.(*DriverConflictError); !ok && err != nil {
-		return nil, fmt.Errorf("unknown error %w", err)
+		return def, fmt.Errorf("unknown error %w", err)
 	}
 
 	// Execute the callback and manage the transaction
-	return manage(ctx, tx, func(ctx context.Context, tx Driver) (*R, error) {
+	return manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
 		return cb(ctx)
 	})
 }
@@ -56,7 +57,8 @@ func getTx(ctx context.Context, creator Creator) (context.Context, Driver, error
 }
 
 // Manages the transaction based on the behavior of the callback
-func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, tx Driver) (*R, error)) (*R, error) {
+func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, tx Driver) (R, error)) (R, error) {
+	var def R
 	defer func() {
 		if r := recover(); r != nil {
 			pMsg := fmt.Sprintf("%v:\n%s", r, debug.Stack())
@@ -69,7 +71,7 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 
 	err := tx.SavePoint()
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
 	result, err := cb(ctx, tx)
@@ -78,13 +80,13 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 		if rerr := tx.Rollback(); rerr != nil {
 			err = fmt.Errorf("%w: %v", err, rerr)
 		}
-		return nil, err
+		return def, err
 	}
 
 	// commit the transaction
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
 	return result, nil
