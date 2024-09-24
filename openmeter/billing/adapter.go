@@ -3,10 +3,13 @@ package billing
 import (
 	"context"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 type TxAdapter interface {
 	ProfileAdapter
+	CustomerOverrideAdapter
 
 	Commit() error
 	Rollback() error
@@ -14,6 +17,7 @@ type TxAdapter interface {
 
 type Adapter interface {
 	ProfileAdapter
+	CustomerOverrideAdapter
 
 	WithTx(context.Context) (TxAdapter, error)
 }
@@ -24,6 +28,15 @@ type ProfileAdapter interface {
 	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*Profile, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*Profile, error)
+}
+
+type CustomerOverrideAdapter interface {
+	CreateCustomerOverride(ctx context.Context, input CreateCustomerOverrideInput) (*CustomerOverride, error)
+	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*CustomerOverride, error)
+	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
+	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
+
+	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
 }
 
 type UpdateProfileAdapterInput struct {
@@ -49,6 +62,45 @@ func (i UpdateProfileAdapterInput) Validate() error {
 	}
 
 	return nil
+}
+
+type GetCustomerOverrideAdapterInput struct {
+	Namespace  string
+	CustomerID string
+
+	IncludeDeleted bool
+}
+
+func (i GetCustomerOverrideAdapterInput) Validate() error {
+	if i.Namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+
+	if i.CustomerID == "" {
+		return fmt.Errorf("customer id is required")
+	}
+
+	return nil
+}
+
+type UpdateCustomerOverrideAdapterInput struct {
+	UpdateCustomerOverrideInput
+
+	ResetDeletedAt bool
+}
+
+func (i UpdateCustomerOverrideAdapterInput) Validate() error {
+	if err := i.UpdateCustomerOverrideInput.Validate(); err != nil {
+		return fmt.Errorf("error validating update customer override input: %w", err)
+	}
+
+	return nil
+}
+
+type HasCustomerOverrideReferencingProfileAdapterInput genericNamespaceID
+
+func (i HasCustomerOverrideReferencingProfileAdapterInput) Validate() error {
+	return genericNamespaceID(i).Validate()
 }
 
 func WithTxNoValue(ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) error) error {

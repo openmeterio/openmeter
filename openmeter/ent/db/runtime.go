@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -51,6 +52,33 @@ func init() {
 	balancesnapshot.DefaultUpdatedAt = balancesnapshotDescUpdatedAt.Default.(func() time.Time)
 	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
+	billingcustomeroverrideMixin := schema.BillingCustomerOverride{}.Mixin()
+	billingcustomeroverrideMixinFields0 := billingcustomeroverrideMixin[0].Fields()
+	_ = billingcustomeroverrideMixinFields0
+	billingcustomeroverrideMixinFields1 := billingcustomeroverrideMixin[1].Fields()
+	_ = billingcustomeroverrideMixinFields1
+	billingcustomeroverrideMixinFields2 := billingcustomeroverrideMixin[2].Fields()
+	_ = billingcustomeroverrideMixinFields2
+	billingcustomeroverrideFields := schema.BillingCustomerOverride{}.Fields()
+	_ = billingcustomeroverrideFields
+	// billingcustomeroverrideDescNamespace is the schema descriptor for namespace field.
+	billingcustomeroverrideDescNamespace := billingcustomeroverrideMixinFields1[0].Descriptor()
+	// billingcustomeroverride.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingcustomeroverride.NamespaceValidator = billingcustomeroverrideDescNamespace.Validators[0].(func(string) error)
+	// billingcustomeroverrideDescCreatedAt is the schema descriptor for created_at field.
+	billingcustomeroverrideDescCreatedAt := billingcustomeroverrideMixinFields2[0].Descriptor()
+	// billingcustomeroverride.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingcustomeroverride.DefaultCreatedAt = billingcustomeroverrideDescCreatedAt.Default.(func() time.Time)
+	// billingcustomeroverrideDescUpdatedAt is the schema descriptor for updated_at field.
+	billingcustomeroverrideDescUpdatedAt := billingcustomeroverrideMixinFields2[1].Descriptor()
+	// billingcustomeroverride.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingcustomeroverride.DefaultUpdatedAt = billingcustomeroverrideDescUpdatedAt.Default.(func() time.Time)
+	// billingcustomeroverride.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingcustomeroverride.UpdateDefaultUpdatedAt = billingcustomeroverrideDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingcustomeroverrideDescID is the schema descriptor for id field.
+	billingcustomeroverrideDescID := billingcustomeroverrideMixinFields0[0].Descriptor()
+	// billingcustomeroverride.DefaultID holds the default value on creation for the id field.
+	billingcustomeroverride.DefaultID = billingcustomeroverrideDescID.Default.(func() string)
 	billinginvoiceMixin := schema.BillingInvoice{}.Mixin()
 	billinginvoiceMixinFields0 := billinginvoiceMixin[0].Fields()
 	_ = billinginvoiceMixinFields0

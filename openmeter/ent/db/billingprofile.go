@@ -67,11 +67,13 @@ type BillingProfile struct {
 type BillingProfileEdges struct {
 	// BillingInvoices holds the value of the billing_invoices edge.
 	BillingInvoices []*BillingInvoice `json:"billing_invoices,omitempty"`
+	// BillingCustomerOverride holds the value of the billing_customer_override edge.
+	BillingCustomerOverride []*BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// WorkflowConfig holds the value of the workflow_config edge.
 	WorkflowConfig *BillingWorkflowConfig `json:"workflow_config,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
@@ -83,12 +85,21 @@ func (e BillingProfileEdges) BillingInvoicesOrErr() ([]*BillingInvoice, error) {
 	return nil, &NotLoadedError{edge: "billing_invoices"}
 }
 
+// BillingCustomerOverrideOrErr returns the BillingCustomerOverride value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingProfileEdges) BillingCustomerOverrideOrErr() ([]*BillingCustomerOverride, error) {
+	if e.loadedTypes[1] {
+		return e.BillingCustomerOverride, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_customer_override"}
+}
+
 // WorkflowConfigOrErr returns the WorkflowConfig value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingProfileEdges) WorkflowConfigOrErr() (*BillingWorkflowConfig, error) {
 	if e.WorkflowConfig != nil {
 		return e.WorkflowConfig, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: billingworkflowconfig.Label}
 	}
 	return nil, &NotLoadedError{edge: "workflow_config"}
@@ -262,6 +273,11 @@ func (bp *BillingProfile) Value(name string) (ent.Value, error) {
 // QueryBillingInvoices queries the "billing_invoices" edge of the BillingProfile entity.
 func (bp *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
 	return NewBillingProfileClient(bp.config).QueryBillingInvoices(bp)
+}
+
+// QueryBillingCustomerOverride queries the "billing_customer_override" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	return NewBillingProfileClient(bp.config).QueryBillingCustomerOverride(bp)
 }
 
 // QueryWorkflowConfig queries the "workflow_config" edge of the BillingProfile entity.

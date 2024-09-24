@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -318,6 +319,25 @@ func (cu *CustomerUpdate) AddSubjects(c ...*CustomerSubjects) *CustomerUpdate {
 	return cu.AddSubjectIDs(ids...)
 }
 
+// SetBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID.
+func (cu *CustomerUpdate) SetBillingCustomerOverrideID(id string) *CustomerUpdate {
+	cu.mutation.SetBillingCustomerOverrideID(id)
+	return cu
+}
+
+// SetNillableBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableBillingCustomerOverrideID(id *string) *CustomerUpdate {
+	if id != nil {
+		cu = cu.SetBillingCustomerOverrideID(*id)
+	}
+	return cu
+}
+
+// SetBillingCustomerOverride sets the "billing_customer_override" edge to the BillingCustomerOverride entity.
+func (cu *CustomerUpdate) SetBillingCustomerOverride(b *BillingCustomerOverride) *CustomerUpdate {
+	return cu.SetBillingCustomerOverrideID(b.ID)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
@@ -342,6 +362,12 @@ func (cu *CustomerUpdate) RemoveSubjects(c ...*CustomerSubjects) *CustomerUpdate
 		ids[i] = c[i].ID
 	}
 	return cu.RemoveSubjectIDs(ids...)
+}
+
+// ClearBillingCustomerOverride clears the "billing_customer_override" edge to the BillingCustomerOverride entity.
+func (cu *CustomerUpdate) ClearBillingCustomerOverride() *CustomerUpdate {
+	cu.mutation.ClearBillingCustomerOverride()
+	return cu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -529,6 +555,35 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.BillingCustomerOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   customer.BillingCustomerOverrideTable,
+			Columns: []string{customer.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   customer.BillingCustomerOverrideTable,
+			Columns: []string{customer.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -843,6 +898,25 @@ func (cuo *CustomerUpdateOne) AddSubjects(c ...*CustomerSubjects) *CustomerUpdat
 	return cuo.AddSubjectIDs(ids...)
 }
 
+// SetBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID.
+func (cuo *CustomerUpdateOne) SetBillingCustomerOverrideID(id string) *CustomerUpdateOne {
+	cuo.mutation.SetBillingCustomerOverrideID(id)
+	return cuo
+}
+
+// SetNillableBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableBillingCustomerOverrideID(id *string) *CustomerUpdateOne {
+	if id != nil {
+		cuo = cuo.SetBillingCustomerOverrideID(*id)
+	}
+	return cuo
+}
+
+// SetBillingCustomerOverride sets the "billing_customer_override" edge to the BillingCustomerOverride entity.
+func (cuo *CustomerUpdateOne) SetBillingCustomerOverride(b *BillingCustomerOverride) *CustomerUpdateOne {
+	return cuo.SetBillingCustomerOverrideID(b.ID)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
@@ -867,6 +941,12 @@ func (cuo *CustomerUpdateOne) RemoveSubjects(c ...*CustomerSubjects) *CustomerUp
 		ids[i] = c[i].ID
 	}
 	return cuo.RemoveSubjectIDs(ids...)
+}
+
+// ClearBillingCustomerOverride clears the "billing_customer_override" edge to the BillingCustomerOverride entity.
+func (cuo *CustomerUpdateOne) ClearBillingCustomerOverride() *CustomerUpdateOne {
+	cuo.mutation.ClearBillingCustomerOverride()
+	return cuo
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1084,6 +1164,35 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.BillingCustomerOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   customer.BillingCustomerOverrideTable,
+			Columns: []string{customer.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   customer.BillingCustomerOverrideTable,
+			Columns: []string{customer.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

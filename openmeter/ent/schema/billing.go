@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -44,6 +45,7 @@ func (BillingProfile) Fields() []ent.Field {
 func (BillingProfile) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("billing_invoices", BillingInvoice.Type),
+		edge.To("billing_customer_override", BillingCustomerOverride.Type),
 		edge.From("workflow_config", BillingWorkflowConfig.Type).
 			Ref("billing_profile").
 			Field("workflow_config_id").
@@ -108,6 +110,98 @@ func (BillingWorkflowConfig) Edges() []ent.Edge {
 		edge.To("billing_invoices", BillingInvoice.Type).
 			Unique(),
 		edge.To("billing_profile", BillingProfile.Type).
+			Unique(),
+	}
+}
+
+type BillingCustomerOverride struct {
+	ent.Schema
+}
+
+func (BillingCustomerOverride) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingCustomerOverride) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("customer_id").
+			Unique().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		// For now we are not allowing for provider type overrides (that should be a separate billing provider entity).
+		//
+		// When we have the provider configs ready, we will add the field overrides for those specific fields.
+		field.String("billing_profile_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		// Workflow config overrides
+		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
+		field.Enum("collection_alignment").
+			GoType(billing.AlignmentKind("")).
+			Optional().
+			Nillable(),
+
+		field.Int64("item_collection_period_seconds").
+			Optional().
+			Nillable(),
+
+		field.Bool("invoice_auto_advance").
+			Optional().
+			Nillable(),
+
+		field.Int64("invoice_draft_period_seconds").
+			Optional().
+			Nillable(),
+
+		field.Int64("invoice_due_after_seconds").
+			Optional().
+			Nillable(),
+
+		field.Enum("invoice_collection_method").
+			GoType(billing.CollectionMethod("")).
+			Optional().
+			Nillable(),
+
+		field.Enum("invoice_item_resolution").
+			GoType(billing.GranularityResolution("")).
+			Optional().
+			Nillable(),
+
+		field.Bool("invoice_item_per_subject").
+			Optional().
+			Nillable(),
+	}
+}
+
+func (BillingCustomerOverride) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id").Unique(),
+		index.Fields("namespace", "customer_id").Unique(),
+	}
+}
+
+func (BillingCustomerOverride) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("customer", Customer.Type).
+			Ref("billing_customer_override").
+			Field("customer_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("billing_profile", BillingProfile.Type).
+			Ref("billing_customer_override").
+			Field("billing_profile_id").
 			Unique(),
 	}
 }

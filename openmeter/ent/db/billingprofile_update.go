@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -309,6 +310,21 @@ func (bpu *BillingProfileUpdate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 	return bpu.AddBillingInvoiceIDs(ids...)
 }
 
+// AddBillingCustomerOverrideIDs adds the "billing_customer_override" edge to the BillingCustomerOverride entity by IDs.
+func (bpu *BillingProfileUpdate) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdate {
+	bpu.mutation.AddBillingCustomerOverrideIDs(ids...)
+	return bpu
+}
+
+// AddBillingCustomerOverride adds the "billing_customer_override" edges to the BillingCustomerOverride entity.
+func (bpu *BillingProfileUpdate) AddBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bpu.AddBillingCustomerOverrideIDs(ids...)
+}
+
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
 func (bpu *BillingProfileUpdate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileUpdate {
 	return bpu.SetWorkflowConfigID(b.ID)
@@ -338,6 +354,27 @@ func (bpu *BillingProfileUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *Bi
 		ids[i] = b[i].ID
 	}
 	return bpu.RemoveBillingInvoiceIDs(ids...)
+}
+
+// ClearBillingCustomerOverride clears all "billing_customer_override" edges to the BillingCustomerOverride entity.
+func (bpu *BillingProfileUpdate) ClearBillingCustomerOverride() *BillingProfileUpdate {
+	bpu.mutation.ClearBillingCustomerOverride()
+	return bpu
+}
+
+// RemoveBillingCustomerOverrideIDs removes the "billing_customer_override" edge to BillingCustomerOverride entities by IDs.
+func (bpu *BillingProfileUpdate) RemoveBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdate {
+	bpu.mutation.RemoveBillingCustomerOverrideIDs(ids...)
+	return bpu
+}
+
+// RemoveBillingCustomerOverride removes "billing_customer_override" edges to BillingCustomerOverride entities.
+func (bpu *BillingProfileUpdate) RemoveBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bpu.RemoveBillingCustomerOverrideIDs(ids...)
 }
 
 // ClearWorkflowConfig clears the "workflow_config" edge to the BillingWorkflowConfig entity.
@@ -542,6 +579,51 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bpu.mutation.BillingCustomerOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpu.mutation.RemovedBillingCustomerOverrideIDs(); len(nodes) > 0 && !bpu.mutation.BillingCustomerOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpu.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -875,6 +957,21 @@ func (bpuo *BillingProfileUpdateOne) AddBillingInvoices(b ...*BillingInvoice) *B
 	return bpuo.AddBillingInvoiceIDs(ids...)
 }
 
+// AddBillingCustomerOverrideIDs adds the "billing_customer_override" edge to the BillingCustomerOverride entity by IDs.
+func (bpuo *BillingProfileUpdateOne) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdateOne {
+	bpuo.mutation.AddBillingCustomerOverrideIDs(ids...)
+	return bpuo
+}
+
+// AddBillingCustomerOverride adds the "billing_customer_override" edges to the BillingCustomerOverride entity.
+func (bpuo *BillingProfileUpdateOne) AddBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bpuo.AddBillingCustomerOverrideIDs(ids...)
+}
+
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
 func (bpuo *BillingProfileUpdateOne) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileUpdateOne {
 	return bpuo.SetWorkflowConfigID(b.ID)
@@ -904,6 +1001,27 @@ func (bpuo *BillingProfileUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice)
 		ids[i] = b[i].ID
 	}
 	return bpuo.RemoveBillingInvoiceIDs(ids...)
+}
+
+// ClearBillingCustomerOverride clears all "billing_customer_override" edges to the BillingCustomerOverride entity.
+func (bpuo *BillingProfileUpdateOne) ClearBillingCustomerOverride() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearBillingCustomerOverride()
+	return bpuo
+}
+
+// RemoveBillingCustomerOverrideIDs removes the "billing_customer_override" edge to BillingCustomerOverride entities by IDs.
+func (bpuo *BillingProfileUpdateOne) RemoveBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdateOne {
+	bpuo.mutation.RemoveBillingCustomerOverrideIDs(ids...)
+	return bpuo
+}
+
+// RemoveBillingCustomerOverride removes "billing_customer_override" edges to BillingCustomerOverride entities.
+func (bpuo *BillingProfileUpdateOne) RemoveBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bpuo.RemoveBillingCustomerOverrideIDs(ids...)
 }
 
 // ClearWorkflowConfig clears the "workflow_config" edge to the BillingWorkflowConfig entity.
@@ -1138,6 +1256,51 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bpuo.mutation.BillingCustomerOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpuo.mutation.RemovedBillingCustomerOverrideIDs(); len(nodes) > 0 && !bpuo.mutation.BillingCustomerOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpuo.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingprofile.BillingCustomerOverrideTable,
+			Columns: []string{billingprofile.BillingCustomerOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

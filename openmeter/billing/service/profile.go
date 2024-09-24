@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 var _ billing.ProfileService = (*Service)(nil)
@@ -96,6 +99,23 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			}
 		}
 
+		referringCustomerIDs, err := adapter.GetCustomerOverrideReferencingProfile(ctx, billing.HasCustomerOverrideReferencingProfileAdapterInput(input))
+		if err != nil {
+			return err
+		}
+
+		if len(referringCustomerIDs) > 0 {
+			return billing.ValidationError{
+				Err: fmt.Errorf("%w [profile_id=%s, customer_ids=%v]",
+					billing.ErrProfileReferencedByOverrides,
+					input.ID,
+					lo.Map(referringCustomerIDs, func(item customer.CustomerID, _ int) string {
+						return item.ID
+					}),
+				),
+			}
+		}
+
 		return adapter.DeleteProfile(ctx, billing.DeleteProfileInput{
 			Namespace: input.Namespace,
 			ID:        profile.ID,
@@ -131,9 +151,9 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		if profile.UpdatedAt != input.UpdatedAt {
+		if !profile.UpdatedAt.Equal(input.UpdatedAt) {
 			return nil, billing.UpdateAfterDeleteError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileUpdateAfterDelete, input.ID),
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileConflict, input.ID),
 			}
 		}
 
@@ -149,6 +169,26 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 				return nil, billing.ValidationError{
 					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
 				}
+			}
+		}
+
+		// Let's force our users to create new profiles instead of updating the existing ones when a provider change is required
+		// this helps with internal consistency, but also guides them into a granual migration path
+		if profile.TaxConfiguration.Type != input.TaxConfiguration.Type {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileTaxTypeChange, input.ID),
+			}
+		}
+
+		if profile.InvoicingConfiguration.Type != input.InvoicingConfiguration.Type {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileInvoicingTypeChange, input.ID),
+			}
+		}
+
+		if profile.PaymentConfiguration.Type != input.PaymentConfiguration.Type {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfilePaymentTypeChange, input.ID),
 			}
 		}
 

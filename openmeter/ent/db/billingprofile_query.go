@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -22,13 +23,14 @@ import (
 // BillingProfileQuery is the builder for querying BillingProfile entities.
 type BillingProfileQuery struct {
 	config
-	ctx                 *QueryContext
-	order               []billingprofile.OrderOption
-	inters              []Interceptor
-	predicates          []predicate.BillingProfile
-	withBillingInvoices *BillingInvoiceQuery
-	withWorkflowConfig  *BillingWorkflowConfigQuery
-	modifiers           []func(*sql.Selector)
+	ctx                         *QueryContext
+	order                       []billingprofile.OrderOption
+	inters                      []Interceptor
+	predicates                  []predicate.BillingProfile
+	withBillingInvoices         *BillingInvoiceQuery
+	withBillingCustomerOverride *BillingCustomerOverrideQuery
+	withWorkflowConfig          *BillingWorkflowConfigQuery
+	modifiers                   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,6 +82,28 @@ func (bpq *BillingProfileQuery) QueryBillingInvoices() *BillingInvoiceQuery {
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billingprofile.BillingInvoicesTable, billingprofile.BillingInvoicesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingCustomerOverride chains the current query on the "billing_customer_override" edge.
+func (bpq *BillingProfileQuery) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	query := (&BillingCustomerOverrideClient{config: bpq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := bpq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := bpq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
+			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingprofile.BillingCustomerOverrideTable, billingprofile.BillingCustomerOverrideColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +320,14 @@ func (bpq *BillingProfileQuery) Clone() *BillingProfileQuery {
 		return nil
 	}
 	return &BillingProfileQuery{
-		config:              bpq.config,
-		ctx:                 bpq.ctx.Clone(),
-		order:               append([]billingprofile.OrderOption{}, bpq.order...),
-		inters:              append([]Interceptor{}, bpq.inters...),
-		predicates:          append([]predicate.BillingProfile{}, bpq.predicates...),
-		withBillingInvoices: bpq.withBillingInvoices.Clone(),
-		withWorkflowConfig:  bpq.withWorkflowConfig.Clone(),
+		config:                      bpq.config,
+		ctx:                         bpq.ctx.Clone(),
+		order:                       append([]billingprofile.OrderOption{}, bpq.order...),
+		inters:                      append([]Interceptor{}, bpq.inters...),
+		predicates:                  append([]predicate.BillingProfile{}, bpq.predicates...),
+		withBillingInvoices:         bpq.withBillingInvoices.Clone(),
+		withBillingCustomerOverride: bpq.withBillingCustomerOverride.Clone(),
+		withWorkflowConfig:          bpq.withWorkflowConfig.Clone(),
 		// clone intermediate query.
 		sql:  bpq.sql.Clone(),
 		path: bpq.path,
@@ -317,6 +342,17 @@ func (bpq *BillingProfileQuery) WithBillingInvoices(opts ...func(*BillingInvoice
 		opt(query)
 	}
 	bpq.withBillingInvoices = query
+	return bpq
+}
+
+// WithBillingCustomerOverride tells the query-builder to eager-load the nodes that are connected to
+// the "billing_customer_override" edge. The optional arguments are used to configure the query builder of the edge.
+func (bpq *BillingProfileQuery) WithBillingCustomerOverride(opts ...func(*BillingCustomerOverrideQuery)) *BillingProfileQuery {
+	query := (&BillingCustomerOverrideClient{config: bpq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	bpq.withBillingCustomerOverride = query
 	return bpq
 }
 
@@ -409,8 +445,9 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingProfile{}
 		_spec       = bpq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			bpq.withBillingInvoices != nil,
+			bpq.withBillingCustomerOverride != nil,
 			bpq.withWorkflowConfig != nil,
 		}
 	)
@@ -440,6 +477,15 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			func(n *BillingProfile) { n.Edges.BillingInvoices = []*BillingInvoice{} },
 			func(n *BillingProfile, e *BillingInvoice) {
 				n.Edges.BillingInvoices = append(n.Edges.BillingInvoices, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := bpq.withBillingCustomerOverride; query != nil {
+		if err := bpq.loadBillingCustomerOverride(ctx, query, nodes,
+			func(n *BillingProfile) { n.Edges.BillingCustomerOverride = []*BillingCustomerOverride{} },
+			func(n *BillingProfile, e *BillingCustomerOverride) {
+				n.Edges.BillingCustomerOverride = append(n.Edges.BillingCustomerOverride, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -478,6 +524,39 @@ func (bpq *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "billing_profile_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (bpq *BillingProfileQuery) loadBillingCustomerOverride(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingCustomerOverride)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingcustomeroverride.FieldBillingProfileID)
+	}
+	query.Where(predicate.BillingCustomerOverride(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billingprofile.BillingCustomerOverrideColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BillingProfileID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "billing_profile_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "billing_profile_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

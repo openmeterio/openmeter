@@ -58,6 +58,66 @@ var (
 			},
 		},
 	}
+	// BillingCustomerOverridesColumns holds the columns for the "billing_customer_overrides" table.
+	BillingCustomerOverridesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "collection_alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription"}},
+		{Name: "item_collection_period_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
+		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_due_after_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
+		{Name: "invoice_item_resolution", Type: field.TypeEnum, Nullable: true, Enums: []string{"day", "period"}},
+		{Name: "invoice_item_per_subject", Type: field.TypeBool, Nullable: true},
+		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingCustomerOverridesTable holds the schema information for the "billing_customer_overrides" table.
+	BillingCustomerOverridesTable = &schema.Table{
+		Name:       "billing_customer_overrides",
+		Columns:    BillingCustomerOverridesColumns,
+		PrimaryKey: []*schema.Column{BillingCustomerOverridesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_customer_overrides_billing_profiles_billing_customer_override",
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[13]},
+				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_customer_overrides_customers_billing_customer_override",
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[14]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingcustomeroverride_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[0]},
+			},
+			{
+				Name:    "billingcustomeroverride_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1]},
+			},
+			{
+				Name:    "billingcustomeroverride_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[0]},
+			},
+			{
+				Name:    "billingcustomeroverride_namespace_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[14]},
+			},
+		},
+	}
 	// BillingInvoicesColumns holds the columns for the "billing_invoices" table.
 	BillingInvoicesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -824,6 +884,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BalanceSnapshotsTable,
+		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
 		BillingInvoiceItemsTable,
 		BillingProfilesTable,
@@ -845,6 +906,8 @@ var (
 
 func init() {
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
+	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable
 	BillingInvoicesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingInvoicesTable.ForeignKeys[1].RefTable = BillingWorkflowConfigsTable
 	BillingInvoiceItemsTable.ForeignKeys[0].RefTable = BillingInvoicesTable

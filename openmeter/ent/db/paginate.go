@@ -59,6 +59,54 @@ var _ pagination.Paginator[*BalanceSnapshot] = (*BalanceSnapshotQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (bco *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerOverride], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	bco.ctx.Offset = &zero
+	bco.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := bco.Clone()
+	pagedQuery := bco
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*BillingCustomerOverride]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*BillingCustomerOverride] = (*BillingCustomerOverrideQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (bi *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoice], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

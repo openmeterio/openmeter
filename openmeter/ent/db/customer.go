@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -64,9 +65,11 @@ type Customer struct {
 type CustomerEdges struct {
 	// Subjects holds the value of the subjects edge.
 	Subjects []*CustomerSubjects `json:"subjects,omitempty"`
+	// BillingCustomerOverride holds the value of the billing_customer_override edge.
+	BillingCustomerOverride *BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // SubjectsOrErr returns the Subjects value or an error if the edge
@@ -76,6 +79,17 @@ func (e CustomerEdges) SubjectsOrErr() ([]*CustomerSubjects, error) {
 		return e.Subjects, nil
 	}
 	return nil, &NotLoadedError{edge: "subjects"}
+}
+
+// BillingCustomerOverrideOrErr returns the BillingCustomerOverride value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CustomerEdges) BillingCustomerOverrideOrErr() (*BillingCustomerOverride, error) {
+	if e.BillingCustomerOverride != nil {
+		return e.BillingCustomerOverride, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: billingcustomeroverride.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_customer_override"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -242,6 +256,11 @@ func (c *Customer) Value(name string) (ent.Value, error) {
 // QuerySubjects queries the "subjects" edge of the Customer entity.
 func (c *Customer) QuerySubjects() *CustomerSubjectsQuery {
 	return NewCustomerClient(c.config).QuerySubjects(c)
+}
+
+// QueryBillingCustomerOverride queries the "billing_customer_override" edge of the Customer entity.
+func (c *Customer) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	return NewCustomerClient(c.config).QueryBillingCustomerOverride(c)
 }
 
 // Update returns a builder for updating this Customer.
