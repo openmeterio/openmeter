@@ -39,7 +39,6 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 	minimalCreateProfileInput := billing.CreateProfileInput{
 		Namespace: ns,
-		Key:       "test",
 		Default:   true,
 
 		TaxConfiguration: provider.TaxConfiguration{
@@ -84,38 +83,16 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.Equal(t, profile, defaultProfile)
 	})
 
-	s.T().Run("creating a second profile with the same key fails", func(t *testing.T) {
-		nonDefaultInput := minimalCreateProfileInput
-		nonDefaultInput.Default = false
-
-		_, err := s.BillingService.CreateProfile(ctx, nonDefaultInput)
-		require.Error(t, err)
-		require.ErrorIs(t, err, billing.ErrProfileWithKeyAlreadyExists)
-	})
-
 	s.T().Run("creating a second default profile fails", func(t *testing.T) {
-		defaultInputWithOtherKey := minimalCreateProfileInput
-		defaultInputWithOtherKey.Key = "other_little_key"
-
-		_, err := s.BillingService.CreateProfile(ctx, defaultInputWithOtherKey)
+		_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 		require.Error(t, err)
 		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
 	})
 
-	s.T().Run("fetching the profile by key", func(t *testing.T) {
-		fetchedProfile, err := s.BillingService.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput{
-			Namespace: ns,
-			IDOrKey:   profile.Key,
-		})
-
-		require.NoError(t, err)
-		require.Equal(t, profile, fetchedProfile)
-	})
-
 	s.T().Run("fetching the profile by id", func(t *testing.T) {
-		fetchedProfile, err := s.BillingService.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput{
+		fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 			Namespace: ns,
-			IDOrKey:   profile.ID,
+			ID:        profile.ID,
 		})
 
 		require.NoError(t, err)
@@ -123,32 +100,22 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	})
 
 	s.T().Run("deleted profile handling", func(t *testing.T) {
-		require.NoError(t, s.BillingService.DeleteProfileByKeyOrID(ctx, billing.DeleteProfileByKeyOrIDInput{
+		require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
 			Namespace: ns,
-			IDOrKey:   profile.ID,
+			ID:        profile.ID,
 		}))
 
 		t.Run("deleting a profile twice yields an error", func(t *testing.T) {
-			require.ErrorIs(t, s.BillingService.DeleteProfileByKeyOrID(ctx, billing.DeleteProfileByKeyOrIDInput{
+			require.ErrorIs(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
 				Namespace: ns,
-				IDOrKey:   profile.ID,
+				ID:        profile.ID,
 			}), billing.ErrProfileAlreadyDeleted)
 		})
 
-		t.Run("fetching a deleted profile by key returns no profile", func(t *testing.T) {
-			fetchedProfile, err := s.BillingService.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput{
-				Namespace: ns,
-				IDOrKey:   profile.Key,
-			})
-
-			require.NoError(t, err)
-			require.Nil(t, fetchedProfile)
-		})
-
 		t.Run("fetching a deleted profile by id returns the profile", func(t *testing.T) {
-			fetchedProfile, err := s.BillingService.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput{
+			fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 				Namespace: ns,
-				IDOrKey:   profile.ID,
+				ID:        profile.ID,
 			})
 
 			require.NoError(t, err)
@@ -170,7 +137,6 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
-		Key:       "test",
 		Default:   true,
 
 		TaxConfiguration: provider.TaxConfiguration{
@@ -222,9 +188,9 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	require.NotNil(s.T(), profile)
 
 	// Let's fetch the profile again
-	fetchedProfile, err := s.BillingService.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput{
+	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 		Namespace: ns,
-		IDOrKey:   input.Key,
+		ID:        profile.ID,
 	})
 
 	// Sanity check db conversion & fetching
@@ -251,7 +217,6 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
-		Key:       "test",
 		Default:   true,
 
 		TaxConfiguration: provider.TaxConfiguration{
@@ -303,9 +268,9 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	require.NotNil(s.T(), profile)
 
 	// Let's fetch the profile again
-	fetchedProfile, err := s.BillingService.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput{
+	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 		Namespace: ns,
-		IDOrKey:   input.Key,
+		ID:        profile.ID,
 	})
 
 	// Sanity check db conversion & fetching
@@ -316,7 +281,6 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	updateInput := billing.UpdateProfileInput{
 		ID:        profile.ID,
 		Namespace: ns,
-		Key:       "test",
 		Default:   true,
 		CreatedAt: profile.CreatedAt,
 

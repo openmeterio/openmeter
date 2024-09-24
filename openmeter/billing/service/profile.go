@@ -30,23 +30,8 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 
 			if defaultProfile != nil {
 				return nil, billing.ValidationError{
-					Err: fmt.Errorf("%w [id=%s,key=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID, defaultProfile.Key),
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
 				}
-			}
-		}
-
-		// Let's check for key uniqueness
-		existingProfileWithKey, err := adapter.GetProfileByKey(ctx, billing.GetProfileByKeyAdapterInput{
-			Namespace: input.Namespace,
-			Key:       input.Key,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if existingProfileWithKey != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileWithKeyAlreadyExists, existingProfileWithKey.ID),
 			}
 		}
 
@@ -77,16 +62,16 @@ func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 	})
 }
 
-func (s *Service) GetProfileByKeyOrID(ctx context.Context, input billing.GetProfileByKeyOrIDInput) (*billing.Profile, error) {
+func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
-	return s.adapter.GetProfileByKeyOrID(ctx, input)
+	return s.adapter.GetProfile(ctx, input)
 }
 
-func (s *Service) DeleteProfileByKeyOrID(ctx context.Context, input billing.DeleteProfileByKeyOrIDInput) error {
+func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{
 			Err: err,
@@ -94,14 +79,14 @@ func (s *Service) DeleteProfileByKeyOrID(ctx context.Context, input billing.Dele
 	}
 
 	return billing.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter billing.TxAdapter) error {
-		profile, err := s.adapter.GetProfileByKeyOrID(ctx, billing.GetProfileByKeyOrIDInput(input))
+		profile, err := s.adapter.GetProfile(ctx, billing.GetProfileInput(input))
 		if err != nil {
 			return err
 		}
 
 		if profile == nil {
 			return billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.IDOrKey),
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
 			}
 		}
 
@@ -111,7 +96,7 @@ func (s *Service) DeleteProfileByKeyOrID(ctx context.Context, input billing.Dele
 			}
 		}
 
-		return adapter.DeleteProfile(ctx, billing.DeleteProfileAdapterInput{
+		return adapter.DeleteProfile(ctx, billing.DeleteProfileInput{
 			Namespace: input.Namespace,
 			ID:        profile.ID,
 		})
@@ -126,7 +111,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 	}
 
 	return billing.WithTx(ctx, s.adapter, func(ctx context.Context, adapter billing.TxAdapter) (*billing.Profile, error) {
-		profile, err := adapter.GetProfileByID(ctx, billing.GetProfileByIDAdapterInput{
+		profile, err := adapter.GetProfile(ctx, billing.GetProfileInput{
 			Namespace: input.Namespace,
 			ID:        input.ID,
 		})

@@ -205,7 +205,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "key", Type: field.TypeString},
 		{Name: "supplier_address_country", Type: field.TypeString, Nullable: true, Size: 2},
 		{Name: "supplier_address_postal_code", Type: field.TypeString, Nullable: true},
 		{Name: "supplier_address_state", Type: field.TypeString, Nullable: true},
@@ -228,7 +227,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_profiles_billing_workflow_configs_billing_profile",
-				Columns:    []*schema.Column{BillingProfilesColumns[19]},
+				Columns:    []*schema.Column{BillingProfilesColumns[18]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -250,14 +249,9 @@ var (
 				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[0]},
 			},
 			{
-				Name:    "billingprofile_namespace_key_deleted_at",
-				Unique:  true,
-				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[6], BillingProfilesColumns[5]},
-			},
-			{
 				Name:    "billingprofile_namespace_default_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[17], BillingProfilesColumns[5]},
+				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[16], BillingProfilesColumns[5]},
 			},
 		},
 	}

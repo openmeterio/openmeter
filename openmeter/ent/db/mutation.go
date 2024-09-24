@@ -3772,7 +3772,6 @@ type BillingProfileMutation struct {
 	created_at                    *time.Time
 	updated_at                    *time.Time
 	deleted_at                    *time.Time
-	key                           *string
 	supplier_address_country      *models.CountryCode
 	supplier_address_postal_code  *string
 	supplier_address_state        *string
@@ -4104,42 +4103,6 @@ func (m *BillingProfileMutation) DeletedAtCleared() bool {
 func (m *BillingProfileMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, billingprofile.FieldDeletedAt)
-}
-
-// SetKey sets the "key" field.
-func (m *BillingProfileMutation) SetKey(s string) {
-	m.key = &s
-}
-
-// Key returns the value of the "key" field in the mutation.
-func (m *BillingProfileMutation) Key() (r string, exists bool) {
-	v := m.key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldKey returns the old "key" field's value of the BillingProfile entity.
-// If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingProfileMutation) OldKey(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKey: %w", err)
-	}
-	return oldValue.Key, nil
-}
-
-// ResetKey resets all changes to the "key" field.
-func (m *BillingProfileMutation) ResetKey() {
-	m.key = nil
 }
 
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
@@ -4816,7 +4779,7 @@ func (m *BillingProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingProfileMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, billingprofile.FieldNamespace)
 	}
@@ -4831,9 +4794,6 @@ func (m *BillingProfileMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, billingprofile.FieldDeletedAt)
-	}
-	if m.key != nil {
-		fields = append(fields, billingprofile.FieldKey)
 	}
 	if m.supplier_address_country != nil {
 		fields = append(fields, billingprofile.FieldSupplierAddressCountry)
@@ -4892,8 +4852,6 @@ func (m *BillingProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingprofile.FieldDeletedAt:
 		return m.DeletedAt()
-	case billingprofile.FieldKey:
-		return m.Key()
 	case billingprofile.FieldSupplierAddressCountry:
 		return m.SupplierAddressCountry()
 	case billingprofile.FieldSupplierAddressPostalCode:
@@ -4939,8 +4897,6 @@ func (m *BillingProfileMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldUpdatedAt(ctx)
 	case billingprofile.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case billingprofile.FieldKey:
-		return m.OldKey(ctx)
 	case billingprofile.FieldSupplierAddressCountry:
 		return m.OldSupplierAddressCountry(ctx)
 	case billingprofile.FieldSupplierAddressPostalCode:
@@ -5010,13 +4966,6 @@ func (m *BillingProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
-		return nil
-	case billingprofile.FieldKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetKey(v)
 		return nil
 	case billingprofile.FieldSupplierAddressCountry:
 		v, ok := value.(models.CountryCode)
@@ -5229,9 +5178,6 @@ func (m *BillingProfileMutation) ResetField(name string) error {
 		return nil
 	case billingprofile.FieldDeletedAt:
 		m.ResetDeletedAt()
-		return nil
-	case billingprofile.FieldKey:
-		m.ResetKey()
 		return nil
 	case billingprofile.FieldSupplierAddressCountry:
 		m.ResetSupplierAddressCountry()

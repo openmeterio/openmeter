@@ -87,11 +87,6 @@ func DeletedAt(v time.Time) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
-func Key(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldEQ(FieldKey, v))
-}
-
 // SupplierAddressCountry applies equality check predicate on the "supplier_address_country" field. It's identical to SupplierAddressCountryEQ.
 func SupplierAddressCountry(v models.CountryCode) predicate.BillingProfile {
 	vc := string(v)
@@ -346,71 +341,6 @@ func DeletedAtIsNil() predicate.BillingProfile {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// KeyEQ applies the EQ predicate on the "key" field.
-func KeyEQ(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldEQ(FieldKey, v))
-}
-
-// KeyNEQ applies the NEQ predicate on the "key" field.
-func KeyNEQ(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldNEQ(FieldKey, v))
-}
-
-// KeyIn applies the In predicate on the "key" field.
-func KeyIn(vs ...string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldIn(FieldKey, vs...))
-}
-
-// KeyNotIn applies the NotIn predicate on the "key" field.
-func KeyNotIn(vs ...string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldNotIn(FieldKey, vs...))
-}
-
-// KeyGT applies the GT predicate on the "key" field.
-func KeyGT(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldGT(FieldKey, v))
-}
-
-// KeyGTE applies the GTE predicate on the "key" field.
-func KeyGTE(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldGTE(FieldKey, v))
-}
-
-// KeyLT applies the LT predicate on the "key" field.
-func KeyLT(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldLT(FieldKey, v))
-}
-
-// KeyLTE applies the LTE predicate on the "key" field.
-func KeyLTE(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldLTE(FieldKey, v))
-}
-
-// KeyContains applies the Contains predicate on the "key" field.
-func KeyContains(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldContains(FieldKey, v))
-}
-
-// KeyHasPrefix applies the HasPrefix predicate on the "key" field.
-func KeyHasPrefix(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldHasPrefix(FieldKey, v))
-}
-
-// KeyHasSuffix applies the HasSuffix predicate on the "key" field.
-func KeyHasSuffix(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldHasSuffix(FieldKey, v))
-}
-
-// KeyEqualFold applies the EqualFold predicate on the "key" field.
-func KeyEqualFold(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldEqualFold(FieldKey, v))
-}
-
-// KeyContainsFold applies the ContainsFold predicate on the "key" field.
-func KeyContainsFold(v string) predicate.BillingProfile {
-	return predicate.BillingProfile(sql.FieldContainsFold(FieldKey, v))
 }
 
 // SupplierAddressCountryEQ applies the EQ predicate on the "supplier_address_country" field.

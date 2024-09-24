@@ -168,7 +168,6 @@ func (c SupplierContact) Validate() error {
 type Profile struct {
 	ID        string `json:"id"`
 	Namespace string `json:"namespace"`
-	Key       string `json:"key"`
 
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
@@ -188,10 +187,6 @@ type Profile struct {
 func (p Profile) Validate() error {
 	if p.Namespace == "" {
 		return errors.New("namespace is required")
-	}
-
-	if p.Key == "" {
-		return errors.New("key is required")
 	}
 
 	if err := p.TaxConfiguration.Validate(); err != nil {
@@ -261,33 +256,33 @@ func (i GetDefaultProfileInput) Validate() error {
 	return nil
 }
 
-type KeyOrIDReference struct {
+type genericNamespaceID struct {
 	Namespace string
-	IDOrKey   string
+	ID        string
 }
 
-func (i KeyOrIDReference) Validate() error {
+func (i genericNamespaceID) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
 
-	if i.IDOrKey == "" {
-		return errors.New("id or key is required")
+	if i.ID == "" {
+		return errors.New("id is required")
 	}
 
 	return nil
 }
 
-type GetProfileByKeyOrIDInput KeyOrIDReference
+type GetProfileInput genericNamespaceID
 
-func (i GetProfileByKeyOrIDInput) Validate() error {
-	return KeyOrIDReference(i).Validate()
+func (i GetProfileInput) Validate() error {
+	return genericNamespaceID(i).Validate()
 }
 
-type DeleteProfileByKeyOrIDInput KeyOrIDReference
+type DeleteProfileInput genericNamespaceID
 
-func (i DeleteProfileByKeyOrIDInput) Validate() error {
-	return KeyOrIDReference(i).Validate()
+func (i DeleteProfileInput) Validate() error {
+	return genericNamespaceID(i).Validate()
 }
 
 type UpdateProfileInput Profile

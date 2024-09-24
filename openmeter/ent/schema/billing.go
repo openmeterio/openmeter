@@ -20,7 +20,7 @@ type BillingProfile struct {
 
 func (BillingProfile) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.UniqueResourceMixin{},
+		entutils.ResourceMixin{},
 		entutils.CustomerAddressMixin{
 			FieldPrefix: "supplier",
 		},

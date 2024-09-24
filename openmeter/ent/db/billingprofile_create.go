@@ -81,12 +81,6 @@ func (bpc *BillingProfileCreate) SetNillableDeletedAt(t *time.Time) *BillingProf
 	return bpc
 }
 
-// SetKey sets the "key" field.
-func (bpc *BillingProfileCreate) SetKey(s string) *BillingProfileCreate {
-	bpc.mutation.SetKey(s)
-	return bpc
-}
-
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
 func (bpc *BillingProfileCreate) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileCreate {
 	bpc.mutation.SetSupplierAddressCountry(mc)
@@ -332,14 +326,6 @@ func (bpc *BillingProfileCreate) check() error {
 	if _, ok := bpc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingProfile.updated_at"`)}
 	}
-	if _, ok := bpc.mutation.Key(); !ok {
-		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "BillingProfile.key"`)}
-	}
-	if v, ok := bpc.mutation.Key(); ok {
-		if err := billingprofile.KeyValidator(v); err != nil {
-			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingProfile.key": %w`, err)}
-		}
-	}
 	if v, ok := bpc.mutation.SupplierAddressCountry(); ok {
 		if err := billingprofile.SupplierAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
@@ -446,10 +432,6 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 	if value, ok := bpc.mutation.DeletedAt(); ok {
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
-	}
-	if value, ok := bpc.mutation.Key(); ok {
-		_spec.SetField(billingprofile.FieldKey, field.TypeString, value)
-		_node.Key = value
 	}
 	if value, ok := bpc.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
@@ -852,9 +834,6 @@ func (u *BillingProfileUpsertOne) UpdateNewValues() *BillingProfileUpsertOne {
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billingprofile.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(billingprofile.FieldKey)
 		}
 	}))
 	return u
@@ -1362,9 +1341,6 @@ func (u *BillingProfileUpsertBulk) UpdateNewValues() *BillingProfileUpsertBulk {
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billingprofile.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(billingprofile.FieldKey)
 			}
 		}
 	}))

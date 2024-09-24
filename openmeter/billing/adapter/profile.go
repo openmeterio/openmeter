@@ -40,7 +40,6 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 
 	dbProfile, err := c.BillingProfile.Create().
 		SetNamespace(input.Namespace).
-		SetKey(input.Key).
 		SetDefault(input.Default).
 		SetTaxProvider(input.TaxConfiguration.Type).
 		SetInvoicingProvider(input.InvoicingConfiguration.Type).
@@ -65,42 +64,7 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 	return mapProfileFromDB(dbProfile), nil
 }
 
-func (a adapter) GetProfileByKeyOrID(ctx context.Context, input billing.GetProfileByKeyOrIDInput) (*billing.Profile, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	dbProfiles, err := a.client().BillingProfile.Query().
-		Where(billingprofile.Namespace(input.Namespace)).
-		Where(billingprofile.Or(
-			billingprofile.And(billingprofile.Key(input.IDOrKey), billingprofile.DeletedAtIsNil()),
-			billingprofile.ID(input.IDOrKey),
-		)).
-		WithWorkflowConfig().All(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	for _, dbProfile := range dbProfiles {
-		if dbProfile.Key == input.IDOrKey {
-			return mapProfileFromDB(dbProfile), nil
-		}
-	}
-
-	for _, dbProfile := range dbProfiles {
-		if dbProfile.ID == input.IDOrKey {
-			return mapProfileFromDB(dbProfile), nil
-		}
-	}
-
-	return nil, nil
-}
-
-func (a adapter) GetProfileByID(ctx context.Context, input billing.GetProfileByIDAdapterInput) (*billing.Profile, error) {
+func (a adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -108,30 +72,7 @@ func (a adapter) GetProfileByID(ctx context.Context, input billing.GetProfileByI
 	dbProfile, err := a.client().BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Namespace)).
 		Where(billingprofile.ID(input.ID)).
-		WithWorkflowConfig().
-		Only(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return mapProfileFromDB(dbProfile), nil
-}
-
-func (a adapter) GetProfileByKey(ctx context.Context, input billing.GetProfileByKeyAdapterInput) (*billing.Profile, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	dbProfile, err := a.client().BillingProfile.Query().
-		Where(billingprofile.Namespace(input.Namespace)).
-		Where(billingprofile.Key(input.Key)).
-		Where(billingprofile.DeletedAtIsNil()).
-		WithWorkflowConfig().
-		Only(ctx)
+		WithWorkflowConfig().First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, nil
@@ -165,7 +106,7 @@ func (a adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefault
 	return mapProfileFromDB(dbProfile), nil
 }
 
-func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileAdapterInput) error {
+func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -174,7 +115,7 @@ func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileA
 		return fmt.Errorf("cannot delete profile: %w", ErrTransactionRequired)
 	}
 
-	profile, err := a.GetProfileByID(ctx, billing.GetProfileByIDAdapterInput(input))
+	profile, err := a.GetProfile(ctx, billing.GetProfileInput(input))
 	if err != nil {
 		return err
 	}
@@ -182,6 +123,7 @@ func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileA
 	c := a.client()
 
 	_, err = c.BillingWorkflowConfig.UpdateOneID(profile.WorkflowConfig.ID).
+		Where(billingworkflowconfig.Namespace(profile.Namespace)).
 		SetDeletedAt(time.Now()).
 		Save(ctx)
 	if err != nil {
@@ -189,6 +131,7 @@ func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileA
 	}
 
 	_, err = c.BillingProfile.UpdateOneID(input.ID).
+		Where(billingprofile.Namespace(input.Namespace)).
 		SetDeletedAt(time.Now()).
 		Save(ctx)
 	if err != nil {
@@ -254,7 +197,6 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) *billing.Profile {
 	return &billing.Profile{
 		Namespace: dbProfile.Namespace,
 		ID:        dbProfile.ID,
-		Key:       dbProfile.Key,
 		Default:   dbProfile.Default,
 
 		CreatedAt: dbProfile.CreatedAt,

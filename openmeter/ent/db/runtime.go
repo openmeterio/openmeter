@@ -150,10 +150,6 @@ func init() {
 	billingprofile.DefaultUpdatedAt = billingprofileDescUpdatedAt.Default.(func() time.Time)
 	// billingprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billingprofile.UpdateDefaultUpdatedAt = billingprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// billingprofileDescKey is the schema descriptor for key field.
-	billingprofileDescKey := billingprofileMixinFields0[6].Descriptor()
-	// billingprofile.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	billingprofile.KeyValidator = billingprofileDescKey.Validators[0].(func(string) error)
 	// billingprofileDescSupplierAddressCountry is the schema descriptor for supplier_address_country field.
 	billingprofileDescSupplierAddressCountry := billingprofileMixinFields1[0].Descriptor()
 	// billingprofile.SupplierAddressCountryValidator is a validator for the "supplier_address_country" field. It is called by the builders before save.

@@ -26,8 +26,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldKey holds the string denoting the key field in the database.
-	FieldKey = "key"
 	// FieldSupplierAddressCountry holds the string denoting the supplier_address_country field in the database.
 	FieldSupplierAddressCountry = "supplier_address_country"
 	// FieldSupplierAddressPostalCode holds the string denoting the supplier_address_postal_code field in the database.
@@ -84,7 +82,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldKey,
 	FieldSupplierAddressCountry,
 	FieldSupplierAddressPostalCode,
 	FieldSupplierAddressState,
@@ -119,8 +116,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	KeyValidator func(string) error
 	// SupplierAddressCountryValidator is a validator for the "supplier_address_country" field. It is called by the builders before save.
 	SupplierAddressCountryValidator func(string) error
 	// WorkflowConfigIDValidator is a validator for the "workflow_config_id" field. It is called by the builders before save.
@@ -189,11 +184,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
-}
-
-// ByKey orders the results by the key field.
-func ByKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
 // BySupplierAddressCountry orders the results by the supplier_address_country field.

@@ -2,7 +2,6 @@ package billing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -21,29 +20,10 @@ type Adapter interface {
 
 type ProfileAdapter interface {
 	CreateProfile(ctx context.Context, input CreateProfileInput) (*Profile, error)
-	GetProfileByKeyOrID(ctx context.Context, input GetProfileByKeyOrIDInput) (*Profile, error)
-	GetProfileByID(ctx context.Context, input GetProfileByIDAdapterInput) (*Profile, error)
-	GetProfileByKey(ctx context.Context, input GetProfileByKeyAdapterInput) (*Profile, error)
+	GetProfile(ctx context.Context, input GetProfileInput) (*Profile, error)
 	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*Profile, error)
-	DeleteProfile(ctx context.Context, input DeleteProfileAdapterInput) error
+	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*Profile, error)
-}
-
-type DeleteProfileAdapterInput struct {
-	Namespace string
-	ID        string
-}
-
-func (i DeleteProfileAdapterInput) Validate() error {
-	if i.Namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-
-	if i.ID == "" {
-		return fmt.Errorf("id is required")
-	}
-
-	return nil
 }
 
 type UpdateProfileAdapterInput struct {
@@ -66,40 +46,6 @@ func (i UpdateProfileAdapterInput) Validate() error {
 
 	if i.WorkflowConfigID == "" {
 		return fmt.Errorf("workflow config id is required")
-	}
-
-	return nil
-}
-
-type GetProfileByIDAdapterInput struct {
-	Namespace string
-	ID        string
-}
-
-func (i GetProfileByIDAdapterInput) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if i.ID == "" {
-		return errors.New("id is required")
-	}
-
-	return nil
-}
-
-type GetProfileByKeyAdapterInput struct {
-	Namespace string
-	Key       string
-}
-
-func (i GetProfileByKeyAdapterInput) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if i.Key == "" {
-		return errors.New("key is required")
 	}
 
 	return nil

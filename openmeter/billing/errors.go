@@ -9,7 +9,6 @@ import (
 
 var (
 	ErrDefaultProfileAlreadyExists = errors.New("default profile already exists")
-	ErrProfileWithKeyAlreadyExists = errors.New("a profile with the specified key already exists")
 	ErrProfileNotFound             = errors.New("profile not found")
 	ErrProfileAlreadyDeleted       = errors.New("profile already deleted")
 	ErrProfileUpdateAfterDelete    = errors.New("profile cannot be updated after deletion")

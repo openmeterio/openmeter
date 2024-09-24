@@ -23,7 +23,7 @@ DROP INDEX "billinginvoice_id";
 -- reverse: create "billing_invoices" table
 DROP TABLE "billing_invoices";
 -- reverse: create index "billingprofile_namespace_key" to table: "billing_profiles"
-DROP INDEX "billingprofile_namespace_key";
+DROP INDEX IF EXISTS "billingprofile_namespace_key";
 -- reverse: create index "billingprofile_namespace_id" to table: "billing_profiles"
 DROP INDEX "billingprofile_namespace_id";
 -- reverse: create index "billingprofile_namespace_default" to table: "billing_profiles"
