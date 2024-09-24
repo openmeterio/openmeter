@@ -1,22 +1,110 @@
+import "@typespec/http";
+import "@typespec/rest";
+import "@typespec/openapi3";
+
+import "./errors.tsp";
 import "./billing.tsp";
+import "./pagination.tsp";
 import "./types.tsp";
 
+using TypeSpec.Http;
+using TypeSpec.OpenAPI;
+
 namespace OpenMeter;
+
+/**
+ * Customer API.
+ */
+@route("/api/v1/customers")
+@tag("Customers")
+interface Customers {
+  /**
+   * Create a new customer.
+   */
+  @post
+  @operationId("createCustomer")
+  create(@body customer: Customer): Customer | CommonErrors;
+
+  /**
+   * List customers.
+   */
+  @get
+  @operationId("listCustomers")
+  list(...ListCustomersParams): Paginated<Customer>[] | CommonErrors;
+
+  /**
+   * Get a customer by ID or key.
+   */
+  @get
+  @route("/{customerIdOrKey}")
+  @operationId("getCustomer")
+  get(@path customerIdOrKey: CustomerIdentifier): Customer | NotFoundError | CommonErrors;
+
+  /**
+   * Update a customer by ID or key.
+   */
+  @put
+  @route("/{customerIdOrKey}")
+  @operationId("updateCustomer")
+  update(@path customerIdOrKey: CustomerIdentifier, @body customer: Customer): Customer | NotFoundError | CommonErrors;
+
+  /**
+   * Delete a customer by ID or key.
+   */
+  @delete
+  @route("/{customerIdOrKey}")
+  @operationId("deleteCustomer")
+  delete(@path customerIdOrKey: CustomerIdentifier): Customer | NotFoundError | CommonErrors;
+}
+
+/**
+ * Query params for listing customers.
+ */
+@friendlyName("queryCustomerList")
+model ListCustomersParams extends PaginatedQuery {
+  /**
+   * Include deleted customers.
+   */
+  @query
+  includeDeleted?: boolean = false;
+}
+
+/**
+ * A unique customer identifier.
+ */
+@extension("x-go-type", "string")
+@friendlyName("CustomerIdentifier")
+union CustomerIdentifier {
+  ULID,
+  Key,
+}
 
 /**
  * A customer object.
  */
 @friendlyName("Customer")
-model Customer extends Resource {
-  /**
-   * A unique identifier for the customer.
-   */
-  @visibility("read")
-  @example("01G65Z755AFWAKHE12NY0CQ9FH")
-  @summary("ID")
-  id: ULID;
+@example(#{
+  id: "01G65Z755AFWAKHE12NY0CQ9FH",
+  name: "ACME Inc.",
+  usageAttribution: #{ subjectKeys: #["my_subject_key"] },
+  external: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
+  createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+  updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+})
+model Customer {
+  ...Resource;
 
-  // Mapping to attribute metered usage to the customer
+  /**
+   * Timezone of the customer.
+   *
+   * @TODO: use a Timezone type to validate the value
+   */
+  @summary("Timezone")
+  timezone?: string;
+
+  /**
+   * Mapping to attribute metered usage to the customer
+   */
   @summary("Usage Attribution")
   usageAttribution: CustomerUsageAttribution;
 
@@ -41,24 +129,6 @@ model Customer extends Resource {
   billingAddress?: Address;
 
   /**
-   * The tax provider for the customer.
-   */
-  @summary("Tax Provider")
-  taxProvider?: TaxProvider;
-
-  /**
-   * The invoicing provider for the customer.
-   */
-  @summary("Invoicing Provider")
-  invoicingProvider?: InvoicingProvider;
-
-  /**
-   * The payment provider for the customer.
-   */
-  @summary("Payment Provider")
-  paymentProvider?: PaymentProvider;
-
-  /**
    * External mappings for the customer.
    */
   @summary("External Mappings")
@@ -70,22 +140,22 @@ model Customer extends Resource {
  * One customer can have multiple subjects,
  * but one subject can only belong to one customer.
  */
-@friendlyName("Usage Attribution")
+@friendlyName("CustomerUsageAttribution")
 model CustomerUsageAttribution {
   /**
    * The subjects that are attributed to the customer.
    * @TODO allow multiple subjects
    */
-  @summary("Subjects")
+  @summary("SubjectKeys")
   @minItems(1)
   @maxItems(1)
-  subjects: Key[];
+  subjectKeys: string[];
 }
 
 /**
  * External mappings for the customer.
  */
-@friendlyName("External Mapping")
+@friendlyName("CustomerExternalMapping")
 model CustomerExternalMapping {
   /**
    * The Stripe customer ID.

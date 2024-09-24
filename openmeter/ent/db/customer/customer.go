@@ -3,12 +3,10 @@
 package customer
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -16,8 +14,6 @@ const (
 	Label = "customer"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldKey holds the string denoting the key field in the database.
-	FieldKey = "key"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -42,22 +38,16 @@ const (
 	FieldBillingAddressLine2 = "billing_address_line2"
 	// FieldBillingAddressPhoneNumber holds the string denoting the billing_address_phone_number field in the database.
 	FieldBillingAddressPhoneNumber = "billing_address_phone_number"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
-	// FieldTimezone holds the string denoting the timezone field in the database.
-	FieldTimezone = "timezone"
-	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
-	FieldTaxProvider = "tax_provider"
-	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
-	FieldInvoicingProvider = "invoicing_provider"
-	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
-	FieldPaymentProvider = "payment_provider"
-	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
-	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
 	FieldPrimaryEmail = "primary_email"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
+	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
+	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
 	// Table holds the table name of the customer in the database.
@@ -74,7 +64,6 @@ const (
 // Columns holds all SQL columns for customer fields.
 var Columns = []string{
 	FieldID,
-	FieldKey,
 	FieldNamespace,
 	FieldMetadata,
 	FieldCreatedAt,
@@ -87,14 +76,11 @@ var Columns = []string{
 	FieldBillingAddressLine1,
 	FieldBillingAddressLine2,
 	FieldBillingAddressPhoneNumber,
-	FieldCurrency,
-	FieldTimezone,
-	FieldTaxProvider,
-	FieldInvoicingProvider,
-	FieldPaymentProvider,
-	FieldExternalMappingStripeCustomerID,
 	FieldName,
 	FieldPrimaryEmail,
+	FieldTimezone,
+	FieldCurrency,
+	FieldExternalMappingStripeCustomerID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -108,8 +94,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	KeyValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -126,47 +110,12 @@ var (
 	DefaultID func() string
 )
 
-// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
-func TaxProviderValidator(tp models.TaxProvider) error {
-	switch tp {
-	case "openmeter_sandbox", "stripe_tax":
-		return nil
-	default:
-		return fmt.Errorf("customer: invalid enum value for tax_provider field: %q", tp)
-	}
-}
-
-// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
-func InvoicingProviderValidator(ip models.InvoicingProvider) error {
-	switch ip {
-	case "openmeter_sandbox", "stripe_invoicing":
-		return nil
-	default:
-		return fmt.Errorf("customer: invalid enum value for invoicing_provider field: %q", ip)
-	}
-}
-
-// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
-func PaymentProviderValidator(pp models.PaymentProvider) error {
-	switch pp {
-	case "openmeter_sandbox", "stripe_payments":
-		return nil
-	default:
-		return fmt.Errorf("customer: invalid enum value for payment_provider field: %q", pp)
-	}
-}
-
 // OrderOption defines the ordering options for the Customer queries.
 type OrderOption func(*sql.Selector)
 
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
-}
-
-// ByKey orders the results by the key field.
-func ByKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.
@@ -224,36 +173,6 @@ func ByBillingAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressPhoneNumber, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByTimezone orders the results by the timezone field.
-func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
-}
-
-// ByTaxProvider orders the results by the tax_provider field.
-func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
-}
-
-// ByInvoicingProvider orders the results by the invoicing_provider field.
-func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
-}
-
-// ByPaymentProvider orders the results by the payment_provider field.
-func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
-}
-
-// ByExternalMappingStripeCustomerID orders the results by the external_mapping_stripe_customer_id field.
-func ByExternalMappingStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExternalMappingStripeCustomerID, opts...).ToFunc()
-}
-
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
@@ -262,6 +181,21 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByPrimaryEmail orders the results by the primary_email field.
 func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrimaryEmail, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByExternalMappingStripeCustomerID orders the results by the external_mapping_stripe_customer_id field.
+func ByExternalMappingStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExternalMappingStripeCustomerID, opts...).ToFunc()
 }
 
 // BySubjectsCount orders the results by subjects count.

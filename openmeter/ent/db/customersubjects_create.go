@@ -23,6 +23,12 @@ type CustomerSubjectsCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetNamespace sets the "namespace" field.
+func (csc *CustomerSubjectsCreate) SetNamespace(s string) *CustomerSubjectsCreate {
+	csc.mutation.SetNamespace(s)
+	return csc
+}
+
 // SetCustomerID sets the "customer_id" field.
 func (csc *CustomerSubjectsCreate) SetCustomerID(s string) *CustomerSubjectsCreate {
 	csc.mutation.SetCustomerID(s)
@@ -97,6 +103,14 @@ func (csc *CustomerSubjectsCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (csc *CustomerSubjectsCreate) check() error {
+	if _, ok := csc.mutation.Namespace(); !ok {
+		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "CustomerSubjects.namespace"`)}
+	}
+	if v, ok := csc.mutation.Namespace(); ok {
+		if err := customersubjects.NamespaceValidator(v); err != nil {
+			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "CustomerSubjects.namespace": %w`, err)}
+		}
+	}
 	if _, ok := csc.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "CustomerSubjects.customer_id"`)}
 	}
@@ -146,6 +160,10 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 		_spec = sqlgraph.NewCreateSpec(customersubjects.Table, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = csc.conflict
+	if value, ok := csc.mutation.Namespace(); ok {
+		_spec.SetField(customersubjects.FieldNamespace, field.TypeString, value)
+		_node.Namespace = value
+	}
 	if value, ok := csc.mutation.SubjectKey(); ok {
 		_spec.SetField(customersubjects.FieldSubjectKey, field.TypeString, value)
 		_node.SubjectKey = value
@@ -178,7 +196,7 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 // of the `INSERT` statement. For example:
 //
 //	client.CustomerSubjects.Create().
-//		SetCustomerID(v).
+//		SetNamespace(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -187,7 +205,7 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerSubjectsUpsert) {
-//			SetCustomerID(v+v).
+//			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
 func (csc *CustomerSubjectsCreate) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertOne {
@@ -234,6 +252,9 @@ type (
 func (u *CustomerSubjectsUpsertOne) UpdateNewValues() *CustomerSubjectsUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.Namespace(); exists {
+			s.SetIgnore(customersubjects.FieldNamespace)
+		}
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(customersubjects.FieldCustomerID)
 		}
@@ -409,7 +430,7 @@ func (cscb *CustomerSubjectsCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerSubjectsUpsert) {
-//			SetCustomerID(v+v).
+//			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
 func (cscb *CustomerSubjectsCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertBulk {
@@ -450,6 +471,9 @@ func (u *CustomerSubjectsUpsertBulk) UpdateNewValues() *CustomerSubjectsUpsertBu
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.Namespace(); exists {
+				s.SetIgnore(customersubjects.FieldNamespace)
+			}
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(customersubjects.FieldCustomerID)
 			}

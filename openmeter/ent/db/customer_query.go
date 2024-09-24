@@ -301,12 +301,12 @@ func (cq *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *Cus
 // Example:
 //
 //	var v []struct {
-//		Key string `json:"key,omitempty"`
+//		Namespace string `json:"namespace,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Customer.Query().
-//		GroupBy(customer.FieldKey).
+//		GroupBy(customer.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupBy {
@@ -324,11 +324,11 @@ func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupB
 // Example:
 //
 //	var v []struct {
-//		Key string `json:"key,omitempty"`
+//		Namespace string `json:"namespace,omitempty"`
 //	}
 //
 //	client.Customer.Query().
-//		Select(customer.FieldKey).
+//		Select(customer.FieldNamespace).
 //		Scan(ctx, &v)
 func (cq *CustomerQuery) Select(fields ...string) *CustomerSelect {
 	cq.ctx.Fields = append(cq.ctx.Fields, fields...)

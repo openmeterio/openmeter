@@ -45,15 +45,31 @@ scalar DateTime extends utcDateTime;
 scalar Money extends string;
 
 /**
- * Represents common fields of resources.
+ * Represents a resource with a unique key.
  */
-@friendlyName("Resource")
-model Resource {
+@friendlyName("UniqueResource")
+model UniqueResource {
+  ...Resource;
+
   /**
    * A semi-unique identifier for the resource.
    */
   @summary("Key")
   key: Key;
+}
+
+/**
+ * Represents common fields of resources.
+ */
+@friendlyName("Resource")
+model Resource {
+  /**
+   * A unique identifier for the resource.
+   */
+  @visibility("read")
+  @example("01G65Z755AFWAKHE12NY0CQ9FH")
+  @summary("ID")
+  id: ULID;
 
   /**
    * Human-readable name for the resource. Between 1 and 256 characters.
@@ -74,7 +90,7 @@ model Resource {
    * Additional metadata for the resource.
    */
   @summary("Metadata")
-  metadata?: Metadata;
+  metadata?: Metadata; // FIXME: linter error for: = #{};
 
   ...ResourceTimestamps;
 }
@@ -89,6 +105,7 @@ model ResourceTimestamps {
    */
   @summary("Creation Time")
   @visibility("read")
+  @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   createdAt: DateTime;
 
   /**
@@ -96,6 +113,7 @@ model ResourceTimestamps {
    */
   @summary("Last Update Time")
   @visibility("read")
+  @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   updatedAt: DateTime;
 
   /**
@@ -103,6 +121,7 @@ model ResourceTimestamps {
    */
   @summary("Deletion Time")
   @visibility("read")
+  @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   deletedAt?: DateTime;
 }
 
@@ -200,7 +219,7 @@ scalar CountryCode extends string;
  */
 @friendlyName("Address")
 model Address {
-  country: CountryCode;
+  country?: CountryCode;
   postalCode?: string;
   state?: string;
   city?: string;

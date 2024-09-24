@@ -2,6 +2,7 @@ package customer
 
 import (
 	"fmt"
+	"strings"
 )
 
 var _ error = (*NotFoundError)(nil)
@@ -40,4 +41,14 @@ func (e UpdateAfterDeleteError) Error() string {
 
 func (e UpdateAfterDeleteError) Unwrap() error {
 	return e.Err
+}
+
+// SubjectKeyConflictError represents an error when a subject key is already associated with a customer
+type SubjectKeyConflictError struct {
+	Namespace   string   `json:"namespace"`
+	SubjectKeys []string `json:"subjectKeys"`
+}
+
+func (e SubjectKeyConflictError) Error() string {
+	return fmt.Sprintf("one or multiple subject keys of [%s] are already associated with an different customer in the namespace %s", strings.Join(e.SubjectKeys, ", "), e.Namespace)
 }

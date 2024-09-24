@@ -14,29 +14,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ResourceMixin adds common fields
-type ResourceMixin struct {
+// UniqueResourceMixin adds common fields
+type UniqueResourceMixin struct {
 	mixin.Schema
 }
 
-func (ResourceMixin) Fields() []ent.Field {
-	var fields []ent.Field
-	fields = append(fields, IDMixin{}.Fields()...)
+func (UniqueResourceMixin) Fields() []ent.Field {
+	fields := ResourceMixin{}.Fields()
 	fields = append(fields, KeyMixin{}.Fields()...)
-	fields = append(fields, NamespaceMixin{}.Fields()...)
-	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
-	fields = append(fields, TimeMixin{}.Fields()...)
 
 	return fields
 }
 
-func (ResourceMixin) Indexes() []ent.Index {
-	var indexes []ent.Index
-	indexes = append(indexes, IDMixin{}.Indexes()...)
-	indexes = append(indexes, NamespaceMixin{}.Indexes()...)
-	indexes = append(indexes, MetadataAnnotationsMixin{}.Indexes()...)
-	indexes = append(indexes, TimeMixin{}.Indexes()...)
-	indexes = append(indexes, index.Fields("namespace", "id").Unique())
+func (UniqueResourceMixin) Indexes() []ent.Index {
+	indexes := ResourceMixin{}.Indexes()
 
 	// Key mixin indexes are not used, as now that we know we have namespaces, we can use a better index
 
@@ -51,6 +42,32 @@ func (ResourceMixin) Indexes() []ent.Index {
 	// Caveats: If two resources with the same key are deleted in the same microsecond then the
 	// deletion will fail. (e.g. by doing a create, delete, create, delete in the same microsecond)
 	indexes = append(indexes, index.Fields("namespace", "key", "deleted_at").Unique())
+
+	return indexes
+}
+
+// ResourceMixin adds common fields
+type ResourceMixin struct {
+	mixin.Schema
+}
+
+func (ResourceMixin) Fields() []ent.Field {
+	var fields []ent.Field
+	fields = append(fields, IDMixin{}.Fields()...)
+	fields = append(fields, NamespaceMixin{}.Fields()...)
+	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
+	fields = append(fields, TimeMixin{}.Fields()...)
+
+	return fields
+}
+
+func (ResourceMixin) Indexes() []ent.Index {
+	var indexes []ent.Index
+	indexes = append(indexes, IDMixin{}.Indexes()...)
+	indexes = append(indexes, NamespaceMixin{}.Indexes()...)
+	indexes = append(indexes, MetadataAnnotationsMixin{}.Indexes()...)
+	indexes = append(indexes, TimeMixin{}.Indexes()...)
+	indexes = append(indexes, index.Fields("namespace", "id").Unique())
 
 	return indexes
 }

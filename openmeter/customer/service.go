@@ -23,11 +23,11 @@ type service struct {
 	repo Repository
 }
 
-type Config struct {
+type ServiceConfig struct {
 	Repository Repository
 }
 
-func (c *Config) Validate() error {
+func (c *ServiceConfig) Validate() error {
 	if c.Repository == nil {
 		return errors.New("repository is required")
 	}
@@ -35,7 +35,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func NewService(c Config) (Service, error) {
+func NewService(c ServiceConfig) (Service, error) {
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}
@@ -51,13 +51,13 @@ func (s *service) ListCustomers(ctx context.Context, params ListCustomersInput) 
 
 func (s *service) CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error) {
 	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*Customer, error) {
-		return s.repo.CreateCustomer(ctx, params)
+		return repo.CreateCustomer(ctx, params)
 	})
 }
 
 func (s *service) DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error {
 	return WithTxNoValue(ctx, s.repo, func(ctx context.Context, repo TxRepository) error {
-		return s.repo.DeleteCustomer(ctx, customer)
+		return repo.DeleteCustomer(ctx, customer)
 	})
 }
 

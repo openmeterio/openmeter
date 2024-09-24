@@ -2,14 +2,23 @@ package models
 
 import "time"
 
+type ManagedUniqueResource struct {
+	NamespacedModel
+	ManagedModel
+
+	// ID is the unique identifier for Resource.
+	ID string `json:"id"`
+
+	// Key is the unique key for Resource.
+	Key string `json:"key"`
+}
+
 type ManagedResource struct {
 	NamespacedModel
 	ManagedModel
 
 	// ID is the unique identifier for Resource.
 	ID string `json:"id"`
-	// Key is the unique key for Resource.
-	Key string `json:"key"`
 }
 
 type ManagedModel struct {

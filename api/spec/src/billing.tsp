@@ -20,7 +20,7 @@ model TaxConfig {
 /**
  * A tax provider.
  */
-@friendlyName("Tax Provider")
+@friendlyName("TaxProvider")
 union TaxProvider {
   /**
    * OpenMeter test billing provider.
@@ -40,7 +40,7 @@ union TaxProvider {
 /**
  * A invoicing provider.
  */
-@friendlyName("Invoicing Provider")
+@friendlyName("InvoicingProvider")
 union InvoicingProvider {
   /**
    * OpenMeter test billing provider.
@@ -60,7 +60,7 @@ union InvoicingProvider {
 /**
  * A payment provider.
  */
-@friendlyName("Payment Provider")
+@friendlyName("PaymentProvider")
 union PaymentProvider {
   /**
    * OpenMeter test billing provider.

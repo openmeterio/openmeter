@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -15,9 +15,9 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
-	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 const (
@@ -88,29 +88,20 @@ func (n testEnv) Meter() meter.Repository {
 }
 
 const (
-	DefaultPostgresHost         = "127.0.0.1"
 	DefaultSvixHost             = "127.0.0.1"
 	DefaultSvixJWTSigningSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
 )
 
-func NewTestEnv(ctx context.Context) (TestEnv, error) {
+func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
+	t.Helper()
 	logger := slog.Default().WithGroup("notification")
 
-	postgresHost := defaultx.IfZero(os.Getenv("POSTGRES_HOST"), DefaultPostgresHost)
+	driver := testutils.InitPostgresDB(t)
 
-	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, fmt.Sprintf(PostgresURLTemplate, postgresHost))
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize postgres driver: %w", err)
-	}
+	entClient := driver.EntDriver.Client()
 
-	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
-	entClient := entPostgresDriver.Client()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err = entClient.Schema.Create(ctx); err != nil {
-		return nil, fmt.Errorf("failed to create database schema: %w", err)
+	if err := migrate.Up(driver.URL); err != nil {
+		t.Fatalf("failed to migrate db: %s", err.Error())
 	}
 
 	meterRepository := NewMeterRepository()
@@ -162,11 +153,15 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	closerFunc := func() error {
 		var errs error
 
-		if err = entPostgresDriver.Close(); err != nil {
+		if err = entClient.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
 		}
 
-		if err = postgresDriver.Close(); err != nil {
+		if err = driver.EntDriver.Close(); err != nil {
+			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
+		}
+
+		if err = driver.PGDriver.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close postgres driver: %w", err))
 		}
 

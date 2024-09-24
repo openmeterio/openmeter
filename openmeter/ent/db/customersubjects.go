@@ -18,6 +18,8 @@ type CustomerSubjects struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Namespace holds the value of the "namespace" field.
+	Namespace string `json:"namespace,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// SubjectKey holds the value of the "subject_key" field.
@@ -57,7 +59,7 @@ func (*CustomerSubjects) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customersubjects.FieldID:
 			values[i] = new(sql.NullInt64)
-		case customersubjects.FieldCustomerID, customersubjects.FieldSubjectKey:
+		case customersubjects.FieldNamespace, customersubjects.FieldCustomerID, customersubjects.FieldSubjectKey:
 			values[i] = new(sql.NullString)
 		case customersubjects.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -82,6 +84,12 @@ func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			cs.ID = int(value.Int64)
+		case customersubjects.FieldNamespace:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field namespace", values[i])
+			} else if value.Valid {
+				cs.Namespace = value.String
+			}
 		case customersubjects.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
@@ -141,6 +149,9 @@ func (cs *CustomerSubjects) String() string {
 	var builder strings.Builder
 	builder.WriteString("CustomerSubjects(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", cs.ID))
+	builder.WriteString("namespace=")
+	builder.WriteString(cs.Namespace)
+	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(cs.CustomerID)
 	builder.WriteString(", ")

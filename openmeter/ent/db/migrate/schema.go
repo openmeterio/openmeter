@@ -291,7 +291,6 @@ var (
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "key", Type: field.TypeString},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
@@ -304,14 +303,11 @@ var (
 		{Name: "billing_address_line1", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_line2", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_phone_number", Type: field.TypeString, Nullable: true},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
-		{Name: "timezone", Type: field.TypeString, Nullable: true},
-		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_tax"}},
-		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_invoicing"}},
-		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
-		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
+		{Name: "timezone", Type: field.TypeString, Nullable: true},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -327,23 +323,19 @@ var (
 			{
 				Name:    "customer_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[2]},
+				Columns: []*schema.Column{CustomersColumns[1]},
 			},
 			{
 				Name:    "customer_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[0]},
-			},
-			{
-				Name:    "customer_namespace_key_deleted_at",
-				Unique:  true,
-				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[1], CustomersColumns[6]},
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[0]},
 			},
 		},
 	}
 	// CustomerSubjectsColumns holds the columns for the "customer_subjects" table.
 	CustomerSubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -356,16 +348,26 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "customer_subjects_customers_subjects",
-				Columns:    []*schema.Column{CustomerSubjectsColumns[3]},
+				Columns:    []*schema.Column{CustomerSubjectsColumns[4]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
+				Name:    "customersubjects_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerSubjectsColumns[1]},
+			},
+			{
 				Name:    "customersubjects_customer_id_subject_key",
 				Unique:  true,
-				Columns: []*schema.Column{CustomerSubjectsColumns[3], CustomerSubjectsColumns[1]},
+				Columns: []*schema.Column{CustomerSubjectsColumns[4], CustomerSubjectsColumns[2]},
+			},
+			{
+				Name:    "customersubjects_namespace_subject_key",
+				Unique:  true,
+				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[2]},
 			},
 		},
 	}

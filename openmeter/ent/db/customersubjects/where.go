@@ -55,6 +55,11 @@ func IDLTE(id int) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldLTE(FieldID, id))
 }
 
+// Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
+func Namespace(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldEQ(FieldNamespace, v))
+}
+
 // CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
 func CustomerID(v string) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldEQ(FieldCustomerID, v))
@@ -68,6 +73,71 @@ func SubjectKey(v string) predicate.CustomerSubjects {
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// NamespaceEQ applies the EQ predicate on the "namespace" field.
+func NamespaceEQ(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldEQ(FieldNamespace, v))
+}
+
+// NamespaceNEQ applies the NEQ predicate on the "namespace" field.
+func NamespaceNEQ(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldNEQ(FieldNamespace, v))
+}
+
+// NamespaceIn applies the In predicate on the "namespace" field.
+func NamespaceIn(vs ...string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldIn(FieldNamespace, vs...))
+}
+
+// NamespaceNotIn applies the NotIn predicate on the "namespace" field.
+func NamespaceNotIn(vs ...string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldNotIn(FieldNamespace, vs...))
+}
+
+// NamespaceGT applies the GT predicate on the "namespace" field.
+func NamespaceGT(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldGT(FieldNamespace, v))
+}
+
+// NamespaceGTE applies the GTE predicate on the "namespace" field.
+func NamespaceGTE(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldGTE(FieldNamespace, v))
+}
+
+// NamespaceLT applies the LT predicate on the "namespace" field.
+func NamespaceLT(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldLT(FieldNamespace, v))
+}
+
+// NamespaceLTE applies the LTE predicate on the "namespace" field.
+func NamespaceLTE(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldLTE(FieldNamespace, v))
+}
+
+// NamespaceContains applies the Contains predicate on the "namespace" field.
+func NamespaceContains(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldContains(FieldNamespace, v))
+}
+
+// NamespaceHasPrefix applies the HasPrefix predicate on the "namespace" field.
+func NamespaceHasPrefix(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldHasPrefix(FieldNamespace, v))
+}
+
+// NamespaceHasSuffix applies the HasSuffix predicate on the "namespace" field.
+func NamespaceHasSuffix(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldHasSuffix(FieldNamespace, v))
+}
+
+// NamespaceEqualFold applies the EqualFold predicate on the "namespace" field.
+func NamespaceEqualFold(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldEqualFold(FieldNamespace, v))
+}
+
+// NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
+func NamespaceContainsFold(v string) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldContainsFold(FieldNamespace, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.

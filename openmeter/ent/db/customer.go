@@ -20,8 +20,6 @@ type Customer struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
-	// Key holds the value of the "key" field.
-	Key string `json:"key,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -46,22 +44,16 @@ type Customer struct {
 	BillingAddressLine2 *string `json:"billing_address_line2,omitempty"`
 	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency *models.CurrencyCode `json:"currency,omitempty"`
-	// Timezone holds the value of the "timezone" field.
-	Timezone *timezone.Timezone `json:"timezone,omitempty"`
-	// TaxProvider holds the value of the "tax_provider" field.
-	TaxProvider *models.TaxProvider `json:"tax_provider,omitempty"`
-	// InvoicingProvider holds the value of the "invoicing_provider" field.
-	InvoicingProvider *models.InvoicingProvider `json:"invoicing_provider,omitempty"`
-	// PaymentProvider holds the value of the "payment_provider" field.
-	PaymentProvider *models.PaymentProvider `json:"payment_provider,omitempty"`
-	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
-	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
 	PrimaryEmail *string `json:"primary_email,omitempty"`
+	// Timezone holds the value of the "timezone" field.
+	Timezone *timezone.Timezone `json:"timezone,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency *models.CurrencyCode `json:"currency,omitempty"`
+	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
+	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges        CustomerEdges `json:"edges"`
@@ -93,7 +85,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldCurrency, customer.FieldTimezone, customer.FieldTaxProvider, customer.FieldInvoicingProvider, customer.FieldPaymentProvider, customer.FieldExternalMappingStripeCustomerID, customer.FieldName, customer.FieldPrimaryEmail:
+		case customer.FieldID, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldName, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency, customer.FieldExternalMappingStripeCustomerID:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -117,12 +109,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				c.ID = value.String
-			}
-		case customer.FieldKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field key", values[i])
-			} else if value.Valid {
-				c.Key = value.String
 			}
 		case customer.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -206,48 +192,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.BillingAddressPhoneNumber = new(string)
 				*c.BillingAddressPhoneNumber = value.String
 			}
-		case customer.FieldCurrency:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
-			} else if value.Valid {
-				c.Currency = new(models.CurrencyCode)
-				*c.Currency = models.CurrencyCode(value.String)
-			}
-		case customer.FieldTimezone:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field timezone", values[i])
-			} else if value.Valid {
-				c.Timezone = new(timezone.Timezone)
-				*c.Timezone = timezone.Timezone(value.String)
-			}
-		case customer.FieldTaxProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
-			} else if value.Valid {
-				c.TaxProvider = new(models.TaxProvider)
-				*c.TaxProvider = models.TaxProvider(value.String)
-			}
-		case customer.FieldInvoicingProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
-			} else if value.Valid {
-				c.InvoicingProvider = new(models.InvoicingProvider)
-				*c.InvoicingProvider = models.InvoicingProvider(value.String)
-			}
-		case customer.FieldPaymentProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
-			} else if value.Valid {
-				c.PaymentProvider = new(models.PaymentProvider)
-				*c.PaymentProvider = models.PaymentProvider(value.String)
-			}
-		case customer.FieldExternalMappingStripeCustomerID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field external_mapping_stripe_customer_id", values[i])
-			} else if value.Valid {
-				c.ExternalMappingStripeCustomerID = new(string)
-				*c.ExternalMappingStripeCustomerID = value.String
-			}
 		case customer.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
@@ -260,6 +204,27 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.PrimaryEmail = new(string)
 				*c.PrimaryEmail = value.String
+			}
+		case customer.FieldTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field timezone", values[i])
+			} else if value.Valid {
+				c.Timezone = new(timezone.Timezone)
+				*c.Timezone = timezone.Timezone(value.String)
+			}
+		case customer.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				c.Currency = new(models.CurrencyCode)
+				*c.Currency = models.CurrencyCode(value.String)
+			}
+		case customer.FieldExternalMappingStripeCustomerID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field external_mapping_stripe_customer_id", values[i])
+			} else if value.Valid {
+				c.ExternalMappingStripeCustomerID = new(string)
+				*c.ExternalMappingStripeCustomerID = value.String
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -302,9 +267,6 @@ func (c *Customer) String() string {
 	var builder strings.Builder
 	builder.WriteString("Customer(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", c.ID))
-	builder.WriteString("key=")
-	builder.WriteString(c.Key)
-	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(c.Namespace)
 	builder.WriteString(", ")
@@ -357,9 +319,12 @@ func (c *Customer) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.Currency; v != nil {
-		builder.WriteString("currency=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
+	builder.WriteString("name=")
+	builder.WriteString(c.Name)
+	builder.WriteString(", ")
+	if v := c.PrimaryEmail; v != nil {
+		builder.WriteString("primary_email=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := c.Timezone; v != nil {
@@ -367,31 +332,13 @@ func (c *Customer) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := c.TaxProvider; v != nil {
-		builder.WriteString("tax_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := c.InvoicingProvider; v != nil {
-		builder.WriteString("invoicing_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := c.PaymentProvider; v != nil {
-		builder.WriteString("payment_provider=")
+	if v := c.Currency; v != nil {
+		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := c.ExternalMappingStripeCustomerID; v != nil {
 		builder.WriteString("external_mapping_stripe_customer_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(c.Name)
-	builder.WriteString(", ")
-	if v := c.PrimaryEmail; v != nil {
-		builder.WriteString("primary_email=")
 		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')

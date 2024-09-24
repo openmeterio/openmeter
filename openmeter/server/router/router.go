@@ -14,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	debug_httpdriver "github.com/openmeterio/openmeter/openmeter/debug/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -60,6 +62,7 @@ type Config struct {
 	ErrorHandler        errorsx.Handler
 
 	// deps
+	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
@@ -133,6 +136,7 @@ type Router struct {
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
+	customerHandler           customerhttpdriver.CustomerHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 	notificationHandler       notificationhttpdriver.Handler
@@ -193,6 +197,13 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}
+
+	// Customer
+	router.customerHandler = customerhttpdriver.New(
+		staticNamespaceDecoder,
+		config.Customer,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
 	return router, nil
 }
