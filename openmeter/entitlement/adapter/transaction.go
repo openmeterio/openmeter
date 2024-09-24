@@ -6,15 +6,14 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // We implement entuitls.TxUser[T] and entuitls.TxCreator here
 // There ought to be a better way....
 
-func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -24,12 +23,12 @@ func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, *entuti
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *entitlementDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.EntitlementRepo {
+func (e *entitlementDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *entitlementDBAdapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresEntitlementRepo(txClient.Client())
 }
 
-func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := u.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -39,7 +38,7 @@ func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutil
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) meteredentitlement.UsageResetRepo {
+func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *usageResetDBAdapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresUsageResetRepo(txClient.Client())
 }

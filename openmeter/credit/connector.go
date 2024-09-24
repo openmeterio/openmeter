@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type CreditConnector interface {
@@ -20,6 +21,7 @@ type connector struct {
 	grantRepo           grant.Repo
 	balanceSnapshotRepo balance.SnapshotRepo
 	// external dependencies
+	transactionManager transaction.Creator
 	publisher          eventbus.Publisher
 	ownerConnector     grant.OwnerConnector
 	streamingConnector streaming.Connector
@@ -37,6 +39,7 @@ func NewCreditConnector(
 	logger *slog.Logger,
 	granularity time.Duration,
 	publisher eventbus.Publisher,
+	transactionManager transaction.Creator,
 ) CreditConnector {
 	return &connector{
 		grantRepo:           grantRepo,
@@ -44,6 +47,8 @@ func NewCreditConnector(
 		ownerConnector:      ownerConnector,
 		streamingConnector:  streamingConnector,
 		logger:              logger,
+
+		transactionManager: transactionManager,
 
 		publisher: publisher,
 

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -41,7 +42,7 @@ func NewEntitlementGrantOwnerAdapter(
 
 func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.NamespacedOwner) (*grant.OwnerMeter, error) {
 	// get feature of entitlement
-	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", string(owner.ID), owner.Namespace, err))
 		return nil, &grant.OwnerNotFoundError{
@@ -84,7 +85,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner grant.NamespacedOwner) (time.Time, error) {
-	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return time.Time{}, &grant.OwnerNotFoundError{
 			Owner:          owner,
@@ -104,7 +105,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
 	// To know if this is the first period check if usage has been reset.
 
-	lastUsageReset, err := getRepoMaybeInTx(ctx, e.usageResetRepo, e.usageResetRepo).GetLastAt(ctx, owner.NamespacedID(), at)
+	lastUsageReset, err := e.usageResetRepo.GetLastAt(ctx, owner.NamespacedID(), at)
 	if _, ok := err.(*UsageResetNotFoundError); ok {
 		return e.GetStartOfMeasurement(ctx, owner)
 	}
@@ -116,7 +117,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 }
 
 func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner grant.NamespacedOwner) (string, error) {
-	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return "", &grant.OwnerNotFoundError{
 			Owner:          owner,
@@ -128,7 +129,7 @@ func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner gr
 
 func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, owner grant.NamespacedOwner, from, to time.Time) ([]time.Time, error) {
 	times := []time.Time{}
-	usageResets, err := getRepoMaybeInTx(ctx, e.usageResetRepo, e.usageResetRepo).GetBetween(ctx, owner.NamespacedID(), from, to)
+	usageResets, err := e.usageResetRepo.GetBetween(ctx, owner.NamespacedID(), from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -138,11 +139,16 @@ func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, 
 	return times, nil
 }
 
-// FIXME: this is a terrible hack, write generic Atomicity stuff for connectors...
-func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedOwner, params grant.EndCurrentUsagePeriodParams) error {
-	_, err := entutils.RunInTransaction(ctx, tx, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner grant.NamespacedOwner, params grant.EndCurrentUsagePeriodParams) error {
+	// If we're not in a transaction this method should fail
+	_, err := transaction.GetDriverFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("end current usage period must be called in a transaction: %w", err)
+	}
+
+	_, err = transaction.Run(ctx, e.featureRepo, func(txCtx context.Context) (*interface{}, error) {
 		// Check if time is after current start time. If so then we can end the period
-		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, params.At)
+		currentStartAt, err := e.GetUsagePeriodStartAt(txCtx, owner, params.At)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
 		}
@@ -150,12 +156,12 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 			return nil, &models.GenericUserError{Message: "can only end usage period after current period start time"}
 		}
 
-		if err := e.updateEntitlementUsagePeriod(ctx, tx, owner, params); err != nil {
+		if err := e.updateEntitlementUsagePeriod(txCtx, owner, params); err != nil {
 			return nil, fmt.Errorf("failed to update entitlement usage period: %w", err)
 		}
 
 		// Save usage reset
-		return nil, e.usageResetRepo.WithTx(ctx, tx).Save(ctx, UsageResetTime{
+		return nil, e.usageResetRepo.Save(txCtx, UsageResetTime{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: owner.Namespace,
 			},
@@ -166,10 +172,8 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 	return err
 }
 
-func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedOwner, params grant.EndCurrentUsagePeriodParams) error {
-	er := e.entitlementRepo.WithTx(ctx, tx)
-
-	entitlementEntity, err := er.GetEntitlement(ctx, owner.NamespacedID())
+func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, owner grant.NamespacedOwner, params grant.EndCurrentUsagePeriodParams) error {
+	entitlementEntity, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return err
 	}
@@ -192,7 +196,7 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 		return fmt.Errorf("failed to get next reset: %w", err)
 	}
 
-	return er.UpdateEntitlementUsagePeriod(
+	return e.entitlementRepo.UpdateEntitlementUsagePeriod(
 		ctx,
 		owner.NamespacedID(),
 		entitlement.UpdateEntitlementUsagePeriodParams{
@@ -201,14 +205,18 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 		})
 }
 
-// FIXME: this is a terrible hack using select for udpate...
-func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedOwner) error {
-	return e.entitlementRepo.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
+func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner grant.NamespacedOwner) error {
+	// If we're not in a transaction this method has to fail
+	tx, err := entutils.GetDriverFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("lock owner for tx must be called in a transaction: %w", err)
+	}
+	return e.entitlementRepo.LockEntitlementForTx(ctx, tx, owner.NamespacedID())
 }
 
 // FIXME: this is a terrible hack to conditionally catch transactions
 func getRepoMaybeInTx[T any](ctx context.Context, repo T, txUser entutils.TxUser[T]) T {
-	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
+	if ctxTx, err := entutils.GetDriverFromContext(ctx); err == nil {
 		// we're already in a tx
 		return txUser.WithTx(ctx, ctxTx)
 	} else {

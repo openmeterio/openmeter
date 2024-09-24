@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
@@ -45,6 +46,8 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		opts.MeterRepository,
 		opts.Logger,
 	)
+	transactionManager := enttx.NewCreator(opts.DatabaseClient)
+
 	creditConnector := credit.NewCreditConnector(
 		grantDBAdapter,
 		balanceSnashotDBAdapter,
@@ -53,6 +56,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		opts.Logger,
 		time.Minute,
 		opts.Publisher,
+		transactionManager,
 	)
 	creditBalanceConnector := creditConnector
 	grantConnector := creditConnector

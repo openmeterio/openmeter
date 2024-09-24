@@ -18,6 +18,7 @@ func main() {
 				gen.FeatureVersionedMigration,
 				gen.FeatureLock,
 				gen.FeatureUpsert,
+				gen.FeatureExecQuery,
 			},
 			Target:  "./db",
 			Schema:  "./schema",

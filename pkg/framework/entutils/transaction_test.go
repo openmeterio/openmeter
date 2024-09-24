@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	db1 "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db"
 	db2 "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent2/db"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // db1Adapter and db2Adapter implement the generic SomeDB interface as DB adapters
@@ -46,7 +47,7 @@ func (d *db1Adapter) Save(ctx context.Context, value *db1.Example1) (*db1.Exampl
 }
 
 // we have to implement the TxCreator and TxUser interfaces
-func (d *db1Adapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (d *db1Adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := d.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -80,7 +81,7 @@ func (d *db2Adapter) Save(ctx context.Context, value *db2.Example2) (*db2.Exampl
 }
 
 // we have to implement the TxCreator and TxUser interfaces
-func (d *db2Adapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (d *db2Adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := d.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -103,12 +104,16 @@ func TestTransaction(t *testing.T) {
 		run  func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2])
 	}{
 		{
-			name: "Should roll back everything manually",
+			name: "Should roll back everything when cb returns an error",
 			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
 				ctx := context.Background()
 				var ent1Id string
 				var ent2Id string
-				_, err := entutils.StartAndRunTx(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+				_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+					tx, err := entutils.GetDriverFromContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
 					// create entities
 					ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID:            "1",
@@ -137,14 +142,10 @@ func TestTransaction(t *testing.T) {
 					assert.NoError(t, err)
 					assert.NotNil(t, ent2)
 
-					// roll back
-					err = tx.Rollback()
 					assert.NoError(t, err)
-					return nil, nil
+					return nil, fmt.Errorf("lets roll back")
 				})
-				if err != nil {
-					t.Fatalf("failed to run transaction %s", err)
-				}
+				assert.Equal(t, "lets roll back", err.Error())
 
 				// check that it wasn't persisted
 				ent1, err := db1Adapter.Get(ctx, ent1Id)
@@ -161,7 +162,11 @@ func TestTransaction(t *testing.T) {
 				ctx := context.Background()
 				var ent1Id string
 				var ent2Id string
-				_, err := entutils.StartAndRunTx(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+				_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+					tx, err := entutils.GetDriverFromContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
 					// create entities
 					ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID:            "1",
@@ -223,7 +228,11 @@ func TestTransaction(t *testing.T) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					_, err := entutils.StartAndRunTx(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+					_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+						tx, err := entutils.GetDriverFromContext(ctx)
+						if err != nil {
+							panic(err)
+						}
 						// create entities
 						ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 							ID:            "1",
@@ -282,6 +291,137 @@ func TestTransaction(t *testing.T) {
 				ent2, err := db2Adapter.Get(context.TODO(), ent2Id)
 				assert.Error(t, err)
 				assert.Nil(t, ent2)
+			},
+		},
+		{
+			name: "Should not error if called nested",
+			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
+				ctx := context.Background()
+
+				// start outer transaction
+				_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+					tx, err := entutils.GetDriverFromContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// do something in outer transaction first
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "1",
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					// start inner transaction
+					_, err = transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+						tx, err := entutils.GetDriverFromContext(ctx)
+						if err != nil {
+							t.Fatal(err)
+						}
+						// do something else in the inner transaction
+						_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+							ID: "2",
+						})
+						if err != nil {
+							return nil, err
+						}
+
+						return nil, nil
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					// do a third thing
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "3",
+					})
+
+					return nil, err
+				})
+				if err != nil {
+					t.Fatalf("failed to run transaction %s", err)
+				}
+
+				// validate all 3 items were saved
+				ent1, err := db1Adapter.Get(ctx, "1")
+				assert.NoError(t, err)
+				assert.NotNil(t, ent1)
+
+				ent2, err := db1Adapter.Get(ctx, "2")
+				assert.NoError(t, err)
+				assert.NotNil(t, ent2)
+
+				ent3, err := db1Adapter.Get(ctx, "3")
+				assert.NoError(t, err)
+				assert.NotNil(t, ent3)
+			},
+		},
+		{
+			name: "Should allow rollback of child scope while keeping contents of parent",
+			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
+				ctx := context.Background()
+
+				// start outer transaction
+				_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+					tx, err := entutils.GetDriverFromContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// do something in outer transaction first
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "1",
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					// start inner transaction
+					_, err = transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+						tx, err := entutils.GetDriverFromContext(ctx)
+						if err != nil {
+							t.Fatal(err)
+						}
+						// do something else in the inner transaction
+						_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+							ID: "2",
+						})
+						if err != nil {
+							return nil, err
+						}
+
+						return nil, fmt.Errorf("lets roll back")
+					})
+
+					// we assert for this error but then continue execution as if nothing happened
+					assert.Equal(t, "lets roll back", err.Error())
+
+					// do a third thing
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "3",
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					return nil, err
+				})
+				if err != nil {
+					t.Fatalf("failed to run transaction %s", err)
+				}
+
+				ent1, err := db1Adapter.Get(ctx, "1")
+				assert.Nil(t, err)
+				assert.NotNil(t, ent1)
+
+				// validate that middle item was rolled back
+				ent2, err := db1Adapter.Get(ctx, "2")
+				assert.True(t, db1.IsNotFound(err))
+				assert.Nil(t, ent2)
+
+				ent3, err := db1Adapter.Get(ctx, "3")
+				assert.Nil(t, err)
+				assert.NotNil(t, ent3)
 			},
 		},
 	}

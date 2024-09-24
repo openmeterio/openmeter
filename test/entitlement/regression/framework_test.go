@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
@@ -103,6 +104,8 @@ func setupDependencies(t *testing.T) Dependencies {
 		log,
 	)
 
+	transactionManager := enttx.NewCreator(dbClient)
+
 	creditConnector := credit.NewCreditConnector(
 		grantRepo,
 		balanceSnapshotRepo,
@@ -111,6 +114,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		log,
 		time.Minute,
 		mockPublisher,
+		transactionManager,
 	)
 
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(

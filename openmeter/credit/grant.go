@@ -9,6 +9,7 @@ import (
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -32,7 +33,12 @@ type CreateGrantInput struct {
 }
 
 func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input CreateGrantInput) (*grant.Grant, error) {
-	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*grant.Grant, error) {
+	return transaction.Run(ctx, m.grantRepo, func(ctx context.Context) (*grant.Grant, error) {
+		tx, err := entutils.GetDriverFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+
 		// All metering information is stored in windowSize chunks,
 		// so we cannot do accurate calculations unless we follow that same windowing.
 		meter, err := m.ownerConnector.GetMeter(ctx, owner)
@@ -53,7 +59,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 			return nil, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
 		}
 
-		err = m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
 		if err != nil {
 			return nil, err
 		}
@@ -97,14 +103,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 		}
 
 		return g, err
-	}
-
-	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
-		// we're already in a tx
-		return doInTx(ctx, ctxTx)
-	} else {
-		return entutils.StartAndRunTx(ctx, m.grantRepo, doInTx)
-	}
+	})
 }
 
 func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
@@ -120,8 +119,13 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 
 	owner := grant.NamespacedOwner{Namespace: grantID.Namespace, ID: g.OwnerID}
 
-	_, err = entutils.StartAndRunTx(ctx, m.grantRepo, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
-		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+	_, err = transaction.Run(ctx, m.grantRepo, func(ctx context.Context) (*interface{}, error) {
+		tx, err := entutils.GetDriverFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
 		if err != nil {
 			return nil, err
 		}
