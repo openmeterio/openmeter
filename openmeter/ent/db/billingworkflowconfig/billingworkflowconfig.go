@@ -24,6 +24,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
 	// FieldCollectionAlignment holds the string denoting the collection_alignment field in the database.
 	FieldCollectionAlignment = "collection_alignment"
 	// FieldItemCollectionPeriodSeconds holds the string denoting the item_collection_period_seconds field in the database.
@@ -69,6 +71,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldTimezone,
 	FieldCollectionAlignment,
 	FieldItemCollectionPeriodSeconds,
 	FieldInvoiceAutoAdvance,
@@ -158,6 +161,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
 }
 
 // ByCollectionAlignment orders the results by the collection_alignment field.

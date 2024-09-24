@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type BillingProfile struct {
@@ -71,6 +72,9 @@ func (BillingWorkflowConfig) Mixin() []ent.Mixin {
 
 func (BillingWorkflowConfig) Fields() []ent.Field {
 	return []ent.Field{
+		// Defaults to UTC if not specified, customer TZ overrides this
+		field.String("timezone").GoType(timezone.Timezone("")).Optional().Nillable(),
+
 		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
 		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")),

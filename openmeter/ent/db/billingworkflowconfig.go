@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingWorkflowConfig is the model entity for the BillingWorkflowConfig schema.
@@ -28,6 +29,8 @@ type BillingWorkflowConfig struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Timezone holds the value of the "timezone" field.
+	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// ItemCollectionPeriodSeconds holds the value of the "item_collection_period_seconds" field.
@@ -92,7 +95,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case billingworkflowconfig.FieldItemCollectionPeriodSeconds, billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, billingworkflowconfig.FieldInvoiceDueAfterSeconds:
 			values[i] = new(sql.NullInt64)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldInvoiceItemResolution:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldTimezone, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldInvoiceItemResolution:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -141,6 +144,13 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			} else if value.Valid {
 				bwc.DeletedAt = new(time.Time)
 				*bwc.DeletedAt = value.Time
+			}
+		case billingworkflowconfig.FieldTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field timezone", values[i])
+			} else if value.Valid {
+				bwc.Timezone = new(timezone.Timezone)
+				*bwc.Timezone = timezone.Timezone(value.String)
 			}
 		case billingworkflowconfig.FieldCollectionAlignment:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -248,6 +258,11 @@ func (bwc *BillingWorkflowConfig) String() string {
 	if v := bwc.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := bwc.Timezone; v != nil {
+		builder.WriteString("timezone=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("collection_alignment=")

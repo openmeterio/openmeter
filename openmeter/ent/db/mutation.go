@@ -5388,6 +5388,7 @@ type BillingWorkflowConfigMutation struct {
 	created_at                        *time.Time
 	updated_at                        *time.Time
 	deleted_at                        *time.Time
+	timezone                          *timezone.Timezone
 	collection_alignment              *billing.AlignmentKind
 	item_collection_period_seconds    *int64
 	additem_collection_period_seconds *int64
@@ -5668,6 +5669,55 @@ func (m *BillingWorkflowConfigMutation) DeletedAtCleared() bool {
 func (m *BillingWorkflowConfigMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, billingworkflowconfig.FieldDeletedAt)
+}
+
+// SetTimezone sets the "timezone" field.
+func (m *BillingWorkflowConfigMutation) SetTimezone(t timezone.Timezone) {
+	m.timezone = &t
+}
+
+// Timezone returns the value of the "timezone" field in the mutation.
+func (m *BillingWorkflowConfigMutation) Timezone() (r timezone.Timezone, exists bool) {
+	v := m.timezone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTimezone returns the old "timezone" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldTimezone(ctx context.Context) (v *timezone.Timezone, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTimezone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTimezone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTimezone: %w", err)
+	}
+	return oldValue.Timezone, nil
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (m *BillingWorkflowConfigMutation) ClearTimezone() {
+	m.timezone = nil
+	m.clearedFields[billingworkflowconfig.FieldTimezone] = struct{}{}
+}
+
+// TimezoneCleared returns if the "timezone" field was cleared in this mutation.
+func (m *BillingWorkflowConfigMutation) TimezoneCleared() bool {
+	_, ok := m.clearedFields[billingworkflowconfig.FieldTimezone]
+	return ok
+}
+
+// ResetTimezone resets all changes to the "timezone" field.
+func (m *BillingWorkflowConfigMutation) ResetTimezone() {
+	m.timezone = nil
+	delete(m.clearedFields, billingworkflowconfig.FieldTimezone)
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
@@ -6130,7 +6180,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -6142,6 +6192,9 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
+	}
+	if m.timezone != nil {
+		fields = append(fields, billingworkflowconfig.FieldTimezone)
 	}
 	if m.collection_alignment != nil {
 		fields = append(fields, billingworkflowconfig.FieldCollectionAlignment)
@@ -6183,6 +6236,8 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingworkflowconfig.FieldDeletedAt:
 		return m.DeletedAt()
+	case billingworkflowconfig.FieldTimezone:
+		return m.Timezone()
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.CollectionAlignment()
 	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
@@ -6216,6 +6271,8 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldUpdatedAt(ctx)
 	case billingworkflowconfig.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billingworkflowconfig.FieldTimezone:
+		return m.OldTimezone(ctx)
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.OldCollectionAlignment(ctx)
 	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
@@ -6268,6 +6325,13 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case billingworkflowconfig.FieldTimezone:
+		v, ok := value.(timezone.Timezone)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTimezone(v)
 		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
 		v, ok := value.(billing.AlignmentKind)
@@ -6397,6 +6461,9 @@ func (m *BillingWorkflowConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(billingworkflowconfig.FieldDeletedAt) {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingworkflowconfig.FieldTimezone) {
+		fields = append(fields, billingworkflowconfig.FieldTimezone)
+	}
 	return fields
 }
 
@@ -6413,6 +6480,9 @@ func (m *BillingWorkflowConfigMutation) ClearField(name string) error {
 	switch name {
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case billingworkflowconfig.FieldTimezone:
+		m.ClearTimezone()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig nullable field %s", name)
@@ -6433,6 +6503,9 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 		return nil
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case billingworkflowconfig.FieldTimezone:
+		m.ResetTimezone()
 		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
 		m.ResetCollectionAlignment()

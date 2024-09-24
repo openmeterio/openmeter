@@ -24,6 +24,7 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 
 	dbWorkflowConfig, err := c.BillingWorkflowConfig.Create().
 		SetNamespace(input.Namespace).
+		SetNillableTimezone(input.WorkflowConfig.Timezone).
 		SetCollectionAlignment(input.WorkflowConfig.Collection.Alignment).
 		SetItemCollectionPeriodSeconds(int64(input.WorkflowConfig.Collection.ItemCollectionPeriod / time.Second)).
 		SetInvoiceAutoAdvance(input.WorkflowConfig.Invoicing.AutoAdvance).
@@ -231,6 +232,7 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 
 	updatedWorkflowConfig, err := a.client().BillingWorkflowConfig.UpdateOneID(input.WorkflowConfigID).
 		Where(billingworkflowconfig.Namespace(targetState.Namespace)).
+		SetNillableTimezone(targetState.WorkflowConfig.Timezone).
 		SetCollectionAlignment(targetState.WorkflowConfig.Collection.Alignment).
 		SetItemCollectionPeriodSeconds(int64(targetState.WorkflowConfig.Collection.ItemCollectionPeriod / time.Second)).
 		SetInvoiceAutoAdvance(targetState.WorkflowConfig.Invoicing.AutoAdvance).
@@ -293,6 +295,8 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) billing.WorkflowCon
 		CreatedAt: dbWC.CreatedAt,
 		UpdatedAt: dbWC.UpdatedAt,
 		DeletedAt: dbWC.DeletedAt,
+
+		Timezone: dbWC.Timezone,
 
 		Collection: billing.CollectionConfig{
 			Alignment:            dbWC.CollectionAlignment,

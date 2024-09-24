@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingWorkflowConfigCreate is the builder for creating a BillingWorkflowConfig entity.
@@ -70,6 +71,20 @@ func (bwcc *BillingWorkflowConfigCreate) SetDeletedAt(t time.Time) *BillingWorkf
 func (bwcc *BillingWorkflowConfigCreate) SetNillableDeletedAt(t *time.Time) *BillingWorkflowConfigCreate {
 	if t != nil {
 		bwcc.SetDeletedAt(*t)
+	}
+	return bwcc
+}
+
+// SetTimezone sets the "timezone" field.
+func (bwcc *BillingWorkflowConfigCreate) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetTimezone(t)
+	return bwcc
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigCreate {
+	if t != nil {
+		bwcc.SetTimezone(*t)
 	}
 	return bwcc
 }
@@ -330,6 +345,10 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 		_spec.SetField(billingworkflowconfig.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := bwcc.mutation.Timezone(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
+		_node.Timezone = &value
+	}
 	if value, ok := bwcc.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = value
@@ -473,6 +492,24 @@ func (u *BillingWorkflowConfigUpsert) UpdateDeletedAt() *BillingWorkflowConfigUp
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *BillingWorkflowConfigUpsert) ClearDeletedAt() *BillingWorkflowConfigUpsert {
 	u.SetNull(billingworkflowconfig.FieldDeletedAt)
+	return u
+}
+
+// SetTimezone sets the "timezone" field.
+func (u *BillingWorkflowConfigUpsert) SetTimezone(v timezone.Timezone) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldTimezone, v)
+	return u
+}
+
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateTimezone() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldTimezone)
+	return u
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (u *BillingWorkflowConfigUpsert) ClearTimezone() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldTimezone)
 	return u
 }
 
@@ -676,6 +713,27 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateDeletedAt() *BillingWorkflowConfi
 func (u *BillingWorkflowConfigUpsertOne) ClearDeletedAt() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetTimezone sets the "timezone" field.
+func (u *BillingWorkflowConfigUpsertOne) SetTimezone(v timezone.Timezone) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTimezone(v)
+	})
+}
+
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateTimezone() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTimezone()
+	})
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearTimezone() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearTimezone()
 	})
 }
 
@@ -1065,6 +1123,27 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateDeletedAt() *BillingWorkflowConf
 func (u *BillingWorkflowConfigUpsertBulk) ClearDeletedAt() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetTimezone sets the "timezone" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetTimezone(v timezone.Timezone) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTimezone(v)
+	})
+}
+
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateTimezone() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTimezone()
+	})
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearTimezone() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearTimezone()
 	})
 }
 

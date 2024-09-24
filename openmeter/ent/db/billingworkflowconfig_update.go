@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingWorkflowConfigUpdate is the builder for updating BillingWorkflowConfig entities.
@@ -54,6 +55,26 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableDeletedAt(t *time.Time) *Bil
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (bwcu *BillingWorkflowConfigUpdate) ClearDeletedAt() *BillingWorkflowConfigUpdate {
 	bwcu.mutation.ClearDeletedAt()
+	return bwcu
+}
+
+// SetTimezone sets the "timezone" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetTimezone(t)
+	return bwcu
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigUpdate {
+	if t != nil {
+		bwcu.SetTimezone(*t)
+	}
+	return bwcu
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearTimezone() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearTimezone()
 	return bwcu
 }
 
@@ -322,6 +343,12 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if bwcu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := bwcu.mutation.Timezone(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
+	}
+	if bwcu.mutation.TimezoneCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTimezone, field.TypeString)
+	}
 	if value, ok := bwcu.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
@@ -456,6 +483,26 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableDeletedAt(t *time.Time) 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (bwcuo *BillingWorkflowConfigUpdateOne) ClearDeletedAt() *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.ClearDeletedAt()
+	return bwcuo
+}
+
+// SetTimezone sets the "timezone" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetTimezone(t)
+	return bwcuo
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigUpdateOne {
+	if t != nil {
+		bwcuo.SetTimezone(*t)
+	}
+	return bwcuo
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearTimezone() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearTimezone()
 	return bwcuo
 }
 
@@ -753,6 +800,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if bwcuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := bwcuo.mutation.Timezone(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
+	}
+	if bwcuo.mutation.TimezoneCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTimezone, field.TypeString)
 	}
 	if value, ok := bwcuo.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)

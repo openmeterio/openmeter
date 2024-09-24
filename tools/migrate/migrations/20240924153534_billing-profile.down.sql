@@ -5,8 +5,7 @@ ALTER TABLE "billing_workflow_configs" RENAME COLUMN "item_collection_period_sec
 -- reverse: rename a column from "alignment" to "collection_alignment"
 ALTER TABLE "billing_workflow_configs" RENAME COLUMN "collection_alignment" TO "alignment";
 -- reverse: modify "billing_workflow_configs" table
-ALTER TABLE "billing_workflow_configs" RENAME "invoice_line_item_per_subject" TO "invoice_item_per_subject";
-ALTER TABLE "billing_workflow_configs" ALTER COLUMN "invoice_item_per_subject" SET DEFAULT false;
+ALTER TABLE "billing_workflow_configs" DROP COLUMN "invoice_item_per_subject", DROP COLUMN "timezone", ADD COLUMN "invoice_line_item_per_subject" boolean NOT NULL DEFAULT false;
 -- reverse: create index "billingprofile_namespace_key_deleted_at" to table: "billing_profiles"
 DROP INDEX "billingprofile_namespace_key_deleted_at";
 -- reverse: create index "billingprofile_namespace_default_deleted_at" to table: "billing_profiles"

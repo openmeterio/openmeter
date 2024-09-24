@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // AlignmentKind specifies what governs when an invoice is issued
@@ -30,6 +31,8 @@ type WorkflowConfig struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt"`
+
+	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 
 	Collection CollectionConfig `json:"collection"`
 	Invoicing  InvoicingConfig  `json:"invoicing"`

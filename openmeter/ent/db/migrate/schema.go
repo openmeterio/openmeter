@@ -268,6 +268,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "timezone", Type: field.TypeString, Nullable: true},
 		{Name: "collection_alignment", Type: field.TypeEnum, Enums: []string{"subscription"}},
 		{Name: "item_collection_period_seconds", Type: field.TypeInt64},
 		{Name: "invoice_auto_advance", Type: field.TypeBool},
