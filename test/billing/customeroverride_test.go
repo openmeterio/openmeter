@@ -332,3 +332,62 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	require.Equal(s.T(), customer.BillingAddress, customerProfile.Customer.BillingAddress)
 	require.Equal(s.T(), customer.Timezone, customerProfile.Profile.WorkflowConfig.Timezone)
 }
+
+func (s *CustomerOverrideTestSuite) TestNullSetting() {
+	// Given we have an existing customer and a default profile and an override
+	ns := "test-null-setting"
+	ctx := context.Background()
+
+	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: ns,
+
+		Customer: customer.Customer{
+			Name: "Johny the Doe",
+		},
+	})
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), customer)
+
+	profileInput := minimalCreateProfileInputTemplate
+	profileInput.Namespace = ns
+
+	defaultProfile, err := s.BillingService.CreateProfile(ctx, profileInput)
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), defaultProfile)
+
+	createdCustomerOverride, err := s.BillingService.CreateCustomerOverride(ctx, billing.CreateCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: customer.ID,
+
+		Collection: billing.CollectionOverrideConfig{
+			ItemCollectionPeriod: lo.ToPtr(time.Hour),
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), createdCustomerOverride)
+
+	// When updating the override with null values
+	updatedCustomerOverride, err := s.BillingService.UpdateCustomerOverride(ctx, billing.UpdateCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: customer.ID,
+		UpdatedAt:  createdCustomerOverride.UpdatedAt,
+
+		Collection: billing.CollectionOverrideConfig{
+			ItemCollectionPeriod: nil,
+		},
+	})
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), updatedCustomerOverride)
+
+	// Then the override is updated with the null values
+	customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: customer.ID,
+	})
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), customerProfile)
+	require.Nil(s.T(), customerProfile.Collection.ItemCollectionPeriod)
+}

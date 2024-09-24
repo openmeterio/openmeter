@@ -64,16 +64,48 @@ func (r adapter) UpdateCustomerOverride(ctx context.Context, input billing.Updat
 	}
 
 	update := r.client().BillingCustomerOverride.Update().
-		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
-		SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
-		SetNillableCollectionAlignment(input.Collection.Alignment).
-		SetNillableItemCollectionPeriodSeconds(durationPtrToSecondsPtr(input.Collection.ItemCollectionPeriod)).
-		SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-		SetNillableInvoiceDraftPeriodSeconds(durationPtrToSecondsPtr(input.Invoicing.DraftPeriod)).
-		SetNillableInvoiceDueAfterSeconds(durationPtrToSecondsPtr(input.Invoicing.DueAfter)).
-		SetNillableInvoiceItemResolution(input.Invoicing.ItemResolution).
-		SetNillableInvoiceItemPerSubject(input.Invoicing.ItemPerSubject).
-		SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod)
+		Where(billingcustomeroverride.CustomerID(input.CustomerID))
+
+	if input.ProfileID != "" {
+		update = update.SetBillingProfileID(input.ProfileID)
+	} else {
+		update = update.ClearBillingProfileID()
+	}
+
+	update = updateOrClear(input.Collection.Alignment,
+		update.SetNillableCollectionAlignment,
+		update.ClearCollectionAlignment)
+
+	update = updateOrClear(
+		durationPtrToSecondsPtr(input.Collection.ItemCollectionPeriod),
+		update.SetNillableItemCollectionPeriodSeconds,
+		update.ClearItemCollectionPeriodSeconds)
+
+	update = updateOrClear(input.Invoicing.AutoAdvance,
+		update.SetNillableInvoiceAutoAdvance,
+		update.ClearInvoiceAutoAdvance)
+
+	update = updateOrClear(
+		durationPtrToSecondsPtr(input.Invoicing.DraftPeriod),
+		update.SetNillableInvoiceDraftPeriodSeconds,
+		update.ClearInvoiceDraftPeriodSeconds)
+
+	update = updateOrClear(
+		durationPtrToSecondsPtr(input.Invoicing.DueAfter),
+		update.SetNillableInvoiceDueAfterSeconds,
+		update.ClearInvoiceDueAfterSeconds)
+
+	update = updateOrClear(input.Invoicing.ItemResolution,
+		update.SetNillableInvoiceItemResolution,
+		update.ClearInvoiceItemResolution)
+
+	update = updateOrClear(input.Invoicing.ItemPerSubject,
+		update.SetNillableInvoiceItemPerSubject,
+		update.ClearInvoiceItemPerSubject)
+
+	update = updateOrClear(input.Payment.CollectionMethod,
+		update.SetNillableInvoiceCollectionMethod,
+		update.ClearInvoiceCollectionMethod)
 
 	if input.ResetDeletedAt {
 		update = update.ClearDeletedAt()
@@ -199,6 +231,9 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) *billing.
 		ID:        dbOverride.ID,
 		Namespace: dbOverride.Namespace,
 
+		CreatedAt: dbOverride.CreatedAt,
+		UpdatedAt: dbOverride.UpdatedAt,
+
 		CustomerID: dbOverride.CustomerID,
 		Profile:    mapProfileFromDB(dbOverride.Edges.BillingProfile),
 		Collection: billing.CollectionOverrideConfig{
@@ -236,4 +271,12 @@ func secondsPtrToDurationPtr(s *int64) *time.Duration {
 
 	v := time.Duration(*s) * time.Second
 	return &v
+}
+
+func updateOrClear[T any](value *T, update func(*T) *db.BillingCustomerOverrideUpdate, clear func() *db.BillingCustomerOverrideUpdate) *db.BillingCustomerOverrideUpdate {
+	if value != nil {
+		return update(value)
+	}
+
+	return clear()
 }
