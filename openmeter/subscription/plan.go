@@ -33,20 +33,12 @@ type RateCard interface {
 	UniquelyComparable
 }
 
-type DoesntCreateNewResourceError struct {
+type DoesntHaveResourceError struct {
 	ResourceName string
 }
 
-func (e *DoesntCreateNewResourceError) Error() string {
-	return fmt.Sprintf("rate card doesn't create new resource: %s", e.ResourceName)
-}
-
-type CreatesNewResourceError struct {
-	ResourceName string
-}
-
-func (e *CreatesNewResourceError) Error() string {
-	return fmt.Sprintf("rate card creates new resource: %s", e.ResourceName)
+func (e *DoesntHaveResourceError) Error() string {
+	return fmt.Sprintf("rate card doesn't have resource: %s", e.ResourceName)
 }
 
 type PlanAdapter interface {

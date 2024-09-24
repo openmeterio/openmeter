@@ -15,7 +15,7 @@ func (c *connector) createDependentsOfRateCard(ctx context.Context, rateCard Rat
 
 	entSpec, err := rateCard.GetEntitlementSpec()
 	// If it's an unexpected error we return with the error
-	if _, ok := lo.ErrorsAs[*DoesntCreateNewResourceError](err); !ok && err != nil {
+	if _, ok := lo.ErrorsAs[*DoesntHaveResourceError](err); !ok && err != nil {
 		return fmt.Errorf("failed to get entitlement spec: %w", err)
 	} else if err == nil {
 		// If theres no error, we create the entitlements
