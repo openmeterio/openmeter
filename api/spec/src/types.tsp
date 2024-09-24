@@ -236,3 +236,11 @@ model Request<T, Keys extends string> {
   ...OmitProperties<T, Keys>
 }
 
+/**
+ * Set of key-value pairs managed by the system. Cannot be modified by user.
+ */
+@example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
+@friendlyName("Annotations")
+model Annotations {
+  ...Record<string>;
+}

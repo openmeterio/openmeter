@@ -107,9 +107,23 @@ namespace OpenMeterCloud.Portal {
 @tag("Debug")
 interface Debug extends OpenMeter.Debug {}
 
-@route("/api/v1/notification")
-@tag("Notification (Experimental)")
-interface Notification extends OpenMeter.Notification {}
+namespace OpenMeterCloud.Notification {
+  @route("/api/v1/notification/channels")
+  @tag("Notification (Experimental)")
+  interface Channels extends OpenMeter.Notification.Channels {}
+
+  @route("/api/v1/notification/rules")
+  @tag("Notification (Experimental)")
+  interface Rules extends OpenMeter.Notification.Rules {}
+
+  @route("/api/v1/notification/events")
+  @tag("Notification (Experimental)")
+  interface Events extends OpenMeter.Notification.Events {}
+
+  @route("/api/v1/notification/webhook/svix")
+  @tag("Notification (Experimental)")
+  interface SvixOperationalWebhooks extends OpenMeter.Notification.SvixOperationalWebhooks {}
+}
 
 namespace OpenMeterCloud.Entitlements {
   @route("/api/v1/entitlements")

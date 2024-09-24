@@ -14,7 +14,7 @@ import "./events.tsp";
 import "./meters.tsp";
 import "./portal.tsp";
 import "./debug.tsp";
-import "./notification.tsp";
+import "./notification";
 import "./entitlements";
 
 using TypeSpec.Http;
