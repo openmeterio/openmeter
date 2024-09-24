@@ -7,7 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/pkg/dummy"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	modelref "github.com/openmeterio/openmeter/pkg/models/ref"
 	"github.com/samber/lo"
@@ -52,6 +52,7 @@ type connector struct {
 	billingAdapter       BillingAdapter
 	entitlementConnector entitlement.Connector
 	customerService      customer.Service
+	transactionManager   transaction.Creator
 }
 
 var _ Connector = (*connector)(nil)
@@ -91,7 +92,8 @@ func (c *connector) EndAt(ctx context.Context, subscriptionID string, at time.Ti
 		return Subscription{}, &models.GenericUserError{Message: "End time is after last invoiced time."}
 	}
 
-	return dummy.Transaction(ctx, func(ctx context.Context) (Subscription, error) {
+	// FIXME: fix once https://github.com/openmeterio/openmeter/pull/1568 is merged
+	subP, err := transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (*Subscription, error) {
 		// Q: Do we invoice first or do we close the subscription first?
 		// If we close the subscripiton first, the invoice sees a closed subscription it has to invoice.
 		// If we invoice first, the subscription can still be used through invoicing which might result in data drift.
@@ -102,12 +104,18 @@ func (c *connector) EndAt(ctx context.Context, subscriptionID string, at time.Ti
 			ActiveTo:   &at,
 		})
 		if err != nil {
-			return Subscription{}, fmt.Errorf("failed to end subscription: %w", err)
+			return nil, fmt.Errorf("failed to end subscription: %w", err)
 		}
 
 		err = c.billingAdapter.TriggerInvoicing(ctx, cus.ID, sub.ID)
-		return sub, err
+		return &sub, err
 	})
+
+	if err != nil || subP == nil {
+		return Subscription{}, err
+	}
+
+	return *subP, nil
 }
 
 // StartNew attempts to start a new subscription for a customer based on the provided templating plan.
@@ -128,18 +136,19 @@ func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubs
 		return Subscription{}, err
 	}
 
-	return dummy.Transaction(ctx, func(ctx context.Context) (Subscription, error) {
+	// FIXME: fix once https://github.com/openmeterio/openmeter/pull/1568 is merged
+	subP, err := transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (*Subscription, error) {
 		// Fetch the Plan contents and apply overrides
 		phases, err := c.planAdapter.GetPhases(ctx, modelref.VersionedKeyRef{
 			Key:     templatingPlan.Key,
 			Version: templatingPlan.Version,
 		})
 		if err != nil {
-			return Subscription{}, err
+			return nil, err
 		}
 
 		if len(phases) != len(req.PhaseOverrides) {
-			return Subscription{}, &models.GenericUserError{Message: "PhaseOverrides must have the same length as the Plan's phases"}
+			return nil, &models.GenericUserError{Message: "PhaseOverrides must have the same length as the Plan's phases"}
 		}
 
 		// Lets create the subscription
@@ -149,7 +158,7 @@ func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubs
 			TemplatingPlanRef: req.TemplatingPlanRef,
 		})
 		if err != nil {
-			return Subscription{}, err
+			return nil, err
 		}
 
 		startOfPhase := req.ActiveFrom
@@ -168,7 +177,7 @@ func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubs
 				rateCards: rateCards,
 			})
 			if err != nil {
-				return Subscription{}, fmt.Errorf("failed to insert phase: %w", err)
+				return nil, fmt.Errorf("failed to insert phase: %w", err)
 			}
 
 			startOfPhase = startOfPhase.Add(phase.Duration())
@@ -177,8 +186,14 @@ func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubs
 		// We initiate invoicing for the new subscription
 		err = c.billingAdapter.StartNewInvoice(ctx, customerID, sub.ID)
 
-		return sub, err
+		return &sub, err
 	})
+
+	if err != nil || subP == nil {
+		return Subscription{}, err
+	}
+
+	return *subP, nil
 }
 
 // OverridePhase overrides (among others) the rate cards for a phase in a subscription.
@@ -216,10 +231,11 @@ func (c *connector) OverridePhase(ctx context.Context, subscriptionID models.Nam
 	}
 
 	// When overriding, 1st we have to close the old phase, close any downstream resources, and then create the new phase
-	return dummy.Transaction(ctx, func(ctx context.Context) (SubscriptionPhase, error) {
+	// FIXME: fix once https://github.com/openmeterio/openmeter/pull/1568 is merged
+	subpP, err := transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (*SubscriptionPhase, error) {
 		err := c.subscriptionPhaseRepo.DeleteAt(ctx, phase.ID, req.at)
 		if err != nil {
-			return SubscriptionPhase{}, fmt.Errorf("failed to delete phase: %w", err)
+			return nil, fmt.Errorf("failed to delete phase: %w", err)
 		}
 
 		// TODO: close and migrate entitlements with values...
@@ -227,7 +243,7 @@ func (c *connector) OverridePhase(ctx context.Context, subscriptionID models.Nam
 		// create new phase
 		rateCards := ApplyOverrides(rateCards, req.rateCardOverrides)
 
-		return c.insertPhase(ctx, insertPhaseRequest{
+		p, errr := c.insertPhase(ctx, insertPhaseRequest{
 			phaseInput: SubscriptionPhaseCreateInput{
 				NamespacedModel: models.NamespacedModel{Namespace: sub.Namespace},
 				ActiveFrom:      req.at,
@@ -235,7 +251,14 @@ func (c *connector) OverridePhase(ctx context.Context, subscriptionID models.Nam
 			},
 			rateCards: rateCards,
 		})
+		return &p, errr
 	})
+
+	if err != nil || subpP == nil {
+		return SubscriptionPhase{}, err
+	}
+
+	return *subpP, nil
 }
 
 type insertPhaseRequest struct {
