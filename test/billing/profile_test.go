@@ -494,7 +494,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		_, err := s.BillingService.UpdateProfile(ctx, updateInput)
 
-		// Then the profile is updated
+		// Then the profile update is rejected
 		require.ErrorIs(t, err, billing.ErrProfileTaxTypeChange)
 		require.ErrorAs(t, err, &billing.ValidationError{})
 	})
