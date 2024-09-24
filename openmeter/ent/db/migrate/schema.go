@@ -20,7 +20,7 @@ var (
 		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "overage", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "at", Type: field.TypeTime},
-		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// BalanceSnapshotsTable holds the schema information for the "balance_snapshots" table.
 	BalanceSnapshotsTable = &schema.Table{
@@ -60,7 +60,7 @@ var (
 	}
 	// BillingInvoicesColumns holds the columns for the "billing_invoices" table.
 	BillingInvoicesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -77,8 +77,8 @@ var (
 		{Name: "provider_reference", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
-		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
+		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// BillingInvoicesTable holds the schema information for the "billing_invoices" table.
 	BillingInvoicesTable = &schema.Table{
@@ -139,7 +139,7 @@ var (
 	}
 	// BillingInvoiceItemsColumns holds the columns for the "billing_invoice_items" table.
 	BillingInvoiceItemsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -153,7 +153,7 @@ var (
 		{Name: "unit_price", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "tax_code_override", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// BillingInvoiceItemsTable holds the schema information for the "billing_invoice_items" table.
 	BillingInvoiceItemsTable = &schema.Table{
@@ -198,7 +198,7 @@ var (
 	}
 	// BillingProfilesColumns holds the columns for the "billing_profiles" table.
 	BillingProfilesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -206,7 +206,7 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "provider_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "default", Type: field.TypeBool, Default: false},
-		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// BillingProfilesTable holds the schema information for the "billing_profiles" table.
 	BillingProfilesTable = &schema.Table{
@@ -251,7 +251,7 @@ var (
 	}
 	// BillingWorkflowConfigsColumns holds the columns for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -290,7 +290,7 @@ var (
 	}
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "key", Type: field.TypeString},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -346,7 +346,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// CustomerSubjectsTable holds the schema information for the "customer_subjects" table.
 	CustomerSubjectsTable = &schema.Table{
@@ -371,7 +371,7 @@ var (
 	}
 	// EntitlementsColumns holds the columns for the "entitlements" table.
 	EntitlementsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
@@ -390,7 +390,7 @@ var (
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
-		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
 	EntitlementsTable = &schema.Table{
@@ -450,7 +450,7 @@ var (
 	}
 	// FeaturesColumns holds the columns for the "features" table.
 	FeaturesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -482,7 +482,7 @@ var (
 	}
 	// GrantsColumns holds the columns for the "grants" table.
 	GrantsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
@@ -498,7 +498,7 @@ var (
 		{Name: "reset_min_rollover", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "recurrence_period", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
 		{Name: "recurrence_anchor", Type: field.TypeTime, Nullable: true},
-		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// GrantsTable holds the schema information for the "grants" table.
 	GrantsTable = &schema.Table{
@@ -538,7 +538,7 @@ var (
 	}
 	// NotificationChannelsColumns holds the columns for the "notification_channels" table.
 	NotificationChannelsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -578,13 +578,13 @@ var (
 	}
 	// NotificationEventsColumns holds the columns for the "notification_events" table.
 	NotificationEventsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold"}},
 		{Name: "payload", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// NotificationEventsTable holds the schema information for the "notification_events" table.
 	NotificationEventsTable = &schema.Table{
@@ -634,7 +634,7 @@ var (
 	}
 	// NotificationEventDeliveryStatusColumns holds the columns for the "notification_event_delivery_status" table.
 	NotificationEventDeliveryStatusColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -678,7 +678,7 @@ var (
 	}
 	// NotificationRulesColumns holds the columns for the "notification_rules" table.
 	NotificationRulesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -718,13 +718,13 @@ var (
 	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
 	UsageResetsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "reset_time", Type: field.TypeTime},
-		{Name: "entitlement_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "entitlement_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// UsageResetsTable holds the schema information for the "usage_resets" table.
 	UsageResetsTable = &schema.Table{
@@ -764,8 +764,8 @@ var (
 	}
 	// NotificationChannelRulesColumns holds the columns for the "notification_channel_rules" table.
 	NotificationChannelRulesColumns = []*schema.Column{
-		{Name: "notification_channel_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "notification_rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "notification_channel_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
+		{Name: "notification_rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// NotificationChannelRulesTable holds the schema information for the "notification_channel_rules" table.
 	NotificationChannelRulesTable = &schema.Table{
@@ -789,8 +789,8 @@ var (
 	}
 	// NotificationEventDeliveryStatusEventsColumns holds the columns for the "notification_event_delivery_status_events" table.
 	NotificationEventDeliveryStatusEventsColumns = []*schema.Column{
-		{Name: "notification_event_delivery_status_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "notification_event_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "notification_event_delivery_status_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
+		{Name: "notification_event_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(34)"}},
 	}
 	// NotificationEventDeliveryStatusEventsTable holds the schema information for the "notification_event_delivery_status_events" table.
 	NotificationEventDeliveryStatusEventsTable = &schema.Table{

@@ -16,7 +16,7 @@ type UsageReset struct {
 
 func (UsageReset) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixEntitlementUsageReset)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}

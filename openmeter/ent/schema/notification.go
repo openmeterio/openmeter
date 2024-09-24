@@ -24,7 +24,7 @@ type NotificationChannel struct {
 
 func (NotificationChannel) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixNotificationChannel)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}
@@ -68,7 +68,7 @@ type NotificationRule struct {
 
 func (NotificationRule) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixNotificationRule)),
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}
@@ -117,7 +117,7 @@ type NotificationEvent struct {
 
 func (NotificationEvent) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixNotificationEvent)),
 		entutils.NamespaceMixin{},
 	}
 }
@@ -182,7 +182,7 @@ type NotificationEventDeliveryStatus struct {
 
 func (NotificationEventDeliveryStatus) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
+		entutils.Must(entutils.IDMixin(IDPrefixNotificationEventDeliveryStatus)),
 		entutils.NamespaceMixin{},
 	}
 }

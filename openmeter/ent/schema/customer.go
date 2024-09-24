@@ -20,7 +20,7 @@ type Customer struct {
 
 func (Customer) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.ResourceMixin{},
+		entutils.Must(entutils.ResourceMixin(IDPrefixCustomer)),
 		entutils.CustomerAddressMixin{
 			FieldPrefix: "billing",
 		},

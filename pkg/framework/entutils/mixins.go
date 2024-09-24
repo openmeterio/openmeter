@@ -14,14 +14,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ResourceMixin adds common fields
-type ResourceMixin struct {
-	mixin.Schema
+func ResourceMixin(IDPrefix string) (ent.Mixin, error) {
+	idMixin, err := IDMixin(IDPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceMixin{
+		IDMixin: idMixin,
+	}, nil
 }
 
-func (ResourceMixin) Fields() []ent.Field {
+// ResourceMixin adds common fields
+type resourceMixin struct {
+	mixin.Schema
+
+	IDMixin ent.Mixin
+}
+
+func (r resourceMixin) Fields() []ent.Field {
 	var fields []ent.Field
-	fields = append(fields, IDMixin{}.Fields()...)
+	fields = append(fields, r.IDMixin.Fields()...)
 	fields = append(fields, KeyMixin{}.Fields()...)
 	fields = append(fields, NamespaceMixin{}.Fields()...)
 	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
@@ -30,9 +43,9 @@ func (ResourceMixin) Fields() []ent.Field {
 	return fields
 }
 
-func (ResourceMixin) Indexes() []ent.Index {
+func (r resourceMixin) Indexes() []ent.Index {
 	var indexes []ent.Index
-	indexes = append(indexes, IDMixin{}.Indexes()...)
+	indexes = append(indexes, r.IDMixin.Indexes()...)
 	indexes = append(indexes, NamespaceMixin{}.Indexes()...)
 	indexes = append(indexes, MetadataAnnotationsMixin{}.Indexes()...)
 	indexes = append(indexes, TimeMixin{}.Indexes()...)
@@ -56,26 +69,40 @@ func (ResourceMixin) Indexes() []ent.Index {
 }
 
 // IDMixin adds the ID field to the schema
-type IDMixin struct {
+func IDMixin(IDPrefix string) (ent.Mixin, error) {
+	if IDPrefix == "" {
+		return nil, fmt.Errorf("IDPrefix is required")
+	}
+
+	return idMixin{IDPrefix: IDPrefix}, nil
+}
+
+type idMixin struct {
 	mixin.Schema
+
+	IDPrefix string
+}
+
+func (i idMixin) ULIDWithPrefix() string {
+	return fmt.Sprintf("%s_%s", i.IDPrefix, ulid.Make().String())
 }
 
 // Fields of the IDMixin.
-func (IDMixin) Fields() []ent.Field {
+func (i idMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").
 			DefaultFunc(func() string {
-				return ulid.Make().String()
+				return i.ULIDWithPrefix()
 			}).
 			Unique().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
+				dialect.Postgres: "varchar(34)",
 			}),
 	}
 }
 
-func (IDMixin) Indexes() []ent.Index {
+func (idMixin) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("id").Unique(),
 	}
@@ -168,4 +195,12 @@ func (c CustomerAddressMixin) Fields() []ent.Field {
 		field.String(fmt.Sprintf("%s_address_line2", c.FieldPrefix)).Optional().Nillable(),
 		field.String(fmt.Sprintf("%s_address_phone_number", c.FieldPrefix)).Optional().Nillable(),
 	}
+}
+
+func Must(m ent.Mixin, err error) ent.Mixin {
+	if err != nil {
+		panic(err)
+	}
+
+	return m
 }
