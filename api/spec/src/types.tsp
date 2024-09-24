@@ -227,3 +227,12 @@ model Address {
   line2?: string;
   phoneNumber?: string;
 }
+
+/**
+ * Meta object to generate create/update request from type by omitting readonly properties.
+ */
+@friendlyName("{name}Request", T)
+model Request<T, Keys extends string> {
+  ...OmitProperties<T, Keys>
+}
+
