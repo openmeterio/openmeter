@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingWorkflowConfigUpdate is the builder for updating BillingWorkflowConfig entities.
@@ -57,38 +58,58 @@ func (bwcu *BillingWorkflowConfigUpdate) ClearDeletedAt() *BillingWorkflowConfig
 	return bwcu
 }
 
-// SetAlignment sets the "alignment" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetAlignment(bk)
+// SetTimezone sets the "timezone" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetTimezone(t)
 	return bwcu
 }
 
-// SetNillableAlignment sets the "alignment" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdate {
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigUpdate {
+	if t != nil {
+		bwcu.SetTimezone(*t)
+	}
+	return bwcu
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearTimezone() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearTimezone()
+	return bwcu
+}
+
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetCollectionAlignment(bk)
+	return bwcu
+}
+
+// SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdate {
 	if bk != nil {
-		bwcu.SetAlignment(*bk)
+		bwcu.SetCollectionAlignment(*bk)
 	}
 	return bwcu
 }
 
-// SetCollectionPeriodSeconds sets the "collection_period_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ResetCollectionPeriodSeconds()
-	bwcu.mutation.SetCollectionPeriodSeconds(i)
+// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ResetItemCollectionPeriodSeconds()
+	bwcu.mutation.SetItemCollectionPeriodSeconds(i)
 	return bwcu
 }
 
-// SetNillableCollectionPeriodSeconds sets the "collection_period_seconds" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigUpdate {
+// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigUpdate {
 	if i != nil {
-		bwcu.SetCollectionPeriodSeconds(*i)
+		bwcu.SetItemCollectionPeriodSeconds(*i)
 	}
 	return bwcu
 }
 
-// AddCollectionPeriodSeconds adds i to the "collection_period_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) AddCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddCollectionPeriodSeconds(i)
+// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
+func (bwcu *BillingWorkflowConfigUpdate) AddItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.AddItemCollectionPeriodSeconds(i)
 	return bwcu
 }
 
@@ -162,62 +183,70 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *
 	return bwcu
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceLineItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceLineItemResolution(br)
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceItemResolution(br billing.GranularityResolution) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceItemResolution(br)
 	return bwcu
 }
 
-// SetNillableInvoiceLineItemResolution sets the "invoice_line_item_resolution" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceLineItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigUpdate {
+// SetNillableInvoiceItemResolution sets the "invoice_item_resolution" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceItemResolution(br *billing.GranularityResolution) *BillingWorkflowConfigUpdate {
 	if br != nil {
-		bwcu.SetInvoiceLineItemResolution(*br)
+		bwcu.SetInvoiceItemResolution(*br)
 	}
 	return bwcu
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceLineItemPerSubject(b)
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceItemPerSubject(b)
 	return bwcu
 }
 
-// SetNillableInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceLineItemPerSubject(b *bool) *BillingWorkflowConfigUpdate {
+// SetNillableInvoiceItemPerSubject sets the "invoice_item_per_subject" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceItemPerSubject(b *bool) *BillingWorkflowConfigUpdate {
 	if b != nil {
-		bwcu.SetInvoiceLineItemPerSubject(*b)
+		bwcu.SetInvoiceItemPerSubject(*b)
 	}
 	return bwcu
 }
 
-// AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
-func (bwcu *BillingWorkflowConfigUpdate) AddBillingInvoiceIDs(ids ...string) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddBillingInvoiceIDs(ids...)
+// SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
+func (bwcu *BillingWorkflowConfigUpdate) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetBillingInvoicesID(id)
 	return bwcu
 }
 
-// AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
-func (bwcu *BillingWorkflowConfigUpdate) AddBillingInvoices(b ...*BillingInvoice) *BillingWorkflowConfigUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+// SetNillableBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableBillingInvoicesID(id *string) *BillingWorkflowConfigUpdate {
+	if id != nil {
+		bwcu = bwcu.SetBillingInvoicesID(*id)
 	}
-	return bwcu.AddBillingInvoiceIDs(ids...)
-}
-
-// AddBillingProfileIDs adds the "billing_profile" edge to the BillingProfile entity by IDs.
-func (bwcu *BillingWorkflowConfigUpdate) AddBillingProfileIDs(ids ...string) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddBillingProfileIDs(ids...)
 	return bwcu
 }
 
-// AddBillingProfile adds the "billing_profile" edges to the BillingProfile entity.
-func (bwcu *BillingWorkflowConfigUpdate) AddBillingProfile(b ...*BillingProfile) *BillingWorkflowConfigUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+// SetBillingInvoices sets the "billing_invoices" edge to the BillingInvoice entity.
+func (bwcu *BillingWorkflowConfigUpdate) SetBillingInvoices(b *BillingInvoice) *BillingWorkflowConfigUpdate {
+	return bwcu.SetBillingInvoicesID(b.ID)
+}
+
+// SetBillingProfileID sets the "billing_profile" edge to the BillingProfile entity by ID.
+func (bwcu *BillingWorkflowConfigUpdate) SetBillingProfileID(id string) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetBillingProfileID(id)
+	return bwcu
+}
+
+// SetNillableBillingProfileID sets the "billing_profile" edge to the BillingProfile entity by ID if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableBillingProfileID(id *string) *BillingWorkflowConfigUpdate {
+	if id != nil {
+		bwcu = bwcu.SetBillingProfileID(*id)
 	}
-	return bwcu.AddBillingProfileIDs(ids...)
+	return bwcu
+}
+
+// SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
+func (bwcu *BillingWorkflowConfigUpdate) SetBillingProfile(b *BillingProfile) *BillingWorkflowConfigUpdate {
+	return bwcu.SetBillingProfileID(b.ID)
 }
 
 // Mutation returns the BillingWorkflowConfigMutation object of the builder.
@@ -225,46 +254,16 @@ func (bwcu *BillingWorkflowConfigUpdate) Mutation() *BillingWorkflowConfigMutati
 	return bwcu.mutation
 }
 
-// ClearBillingInvoices clears all "billing_invoices" edges to the BillingInvoice entity.
+// ClearBillingInvoices clears the "billing_invoices" edge to the BillingInvoice entity.
 func (bwcu *BillingWorkflowConfigUpdate) ClearBillingInvoices() *BillingWorkflowConfigUpdate {
 	bwcu.mutation.ClearBillingInvoices()
 	return bwcu
 }
 
-// RemoveBillingInvoiceIDs removes the "billing_invoices" edge to BillingInvoice entities by IDs.
-func (bwcu *BillingWorkflowConfigUpdate) RemoveBillingInvoiceIDs(ids ...string) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.RemoveBillingInvoiceIDs(ids...)
-	return bwcu
-}
-
-// RemoveBillingInvoices removes "billing_invoices" edges to BillingInvoice entities.
-func (bwcu *BillingWorkflowConfigUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *BillingWorkflowConfigUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bwcu.RemoveBillingInvoiceIDs(ids...)
-}
-
-// ClearBillingProfile clears all "billing_profile" edges to the BillingProfile entity.
+// ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
 func (bwcu *BillingWorkflowConfigUpdate) ClearBillingProfile() *BillingWorkflowConfigUpdate {
 	bwcu.mutation.ClearBillingProfile()
 	return bwcu
-}
-
-// RemoveBillingProfileIDs removes the "billing_profile" edge to BillingProfile entities by IDs.
-func (bwcu *BillingWorkflowConfigUpdate) RemoveBillingProfileIDs(ids ...string) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.RemoveBillingProfileIDs(ids...)
-	return bwcu
-}
-
-// RemoveBillingProfile removes "billing_profile" edges to BillingProfile entities.
-func (bwcu *BillingWorkflowConfigUpdate) RemoveBillingProfile(b ...*BillingProfile) *BillingWorkflowConfigUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bwcu.RemoveBillingProfileIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -305,9 +304,9 @@ func (bwcu *BillingWorkflowConfigUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bwcu *BillingWorkflowConfigUpdate) check() error {
-	if v, ok := bwcu.mutation.Alignment(); ok {
-		if err := billingworkflowconfig.AlignmentValidator(v); err != nil {
-			return &ValidationError{Name: "alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.alignment": %w`, err)}
+	if v, ok := bwcu.mutation.CollectionAlignment(); ok {
+		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
+			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
 	if v, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
@@ -315,9 +314,9 @@ func (bwcu *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcu.mutation.InvoiceLineItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceLineItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_line_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_line_item_resolution": %w`, err)}
+	if v, ok := bwcu.mutation.InvoiceItemResolution(); ok {
+		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
 		}
 	}
 	return nil
@@ -344,14 +343,20 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if bwcu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bwcu.mutation.Alignment(); ok {
-		_spec.SetField(billingworkflowconfig.FieldAlignment, field.TypeEnum, value)
+	if value, ok := bwcu.mutation.Timezone(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
 	}
-	if value, ok := bwcu.mutation.CollectionPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
+	if bwcu.mutation.TimezoneCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTimezone, field.TypeString)
 	}
-	if value, ok := bwcu.mutation.AddedCollectionPeriodSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bwcu.mutation.CollectionAlignment(); ok {
+		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
+	}
+	if value, ok := bwcu.mutation.ItemCollectionPeriodSeconds(); ok {
+		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+	}
+	if value, ok := bwcu.mutation.AddedItemCollectionPeriodSeconds(); ok {
+		_spec.AddField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
 	}
 	if value, ok := bwcu.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -371,15 +376,15 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceLineItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
+	if value, ok := bwcu.mutation.InvoiceItemResolution(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceLineItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
+	if value, ok := bwcu.mutation.InvoiceItemPerSubject(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingInvoicesTable,
 			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
@@ -387,28 +392,12 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bwcu.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !bwcu.mutation.BillingInvoicesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billingworkflowconfig.BillingInvoicesTable,
-			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := bwcu.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingInvoicesTable,
 			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
@@ -424,7 +413,7 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	}
 	if bwcu.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingProfileTable,
 			Columns: []string{billingworkflowconfig.BillingProfileColumn},
@@ -432,28 +421,12 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bwcu.mutation.RemovedBillingProfileIDs(); len(nodes) > 0 && !bwcu.mutation.BillingProfileCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billingworkflowconfig.BillingProfileTable,
-			Columns: []string{billingworkflowconfig.BillingProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := bwcu.mutation.BillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingProfileTable,
 			Columns: []string{billingworkflowconfig.BillingProfileColumn},
@@ -513,38 +486,58 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) ClearDeletedAt() *BillingWorkflowCo
 	return bwcuo
 }
 
-// SetAlignment sets the "alignment" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetAlignment(bk)
+// SetTimezone sets the "timezone" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetTimezone(t)
 	return bwcuo
 }
 
-// SetNillableAlignment sets the "alignment" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigUpdateOne {
+	if t != nil {
+		bwcuo.SetTimezone(*t)
+	}
+	return bwcuo
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearTimezone() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearTimezone()
+	return bwcuo
+}
+
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetCollectionAlignment(bk)
+	return bwcuo
+}
+
+// SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	if bk != nil {
-		bwcuo.SetAlignment(*bk)
+		bwcuo.SetCollectionAlignment(*bk)
 	}
 	return bwcuo
 }
 
-// SetCollectionPeriodSeconds sets the "collection_period_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ResetCollectionPeriodSeconds()
-	bwcuo.mutation.SetCollectionPeriodSeconds(i)
+// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ResetItemCollectionPeriodSeconds()
+	bwcuo.mutation.SetItemCollectionPeriodSeconds(i)
 	return bwcuo
 }
 
-// SetNillableCollectionPeriodSeconds sets the "collection_period_seconds" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigUpdateOne {
+// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigUpdateOne {
 	if i != nil {
-		bwcuo.SetCollectionPeriodSeconds(*i)
+		bwcuo.SetItemCollectionPeriodSeconds(*i)
 	}
 	return bwcuo
 }
 
-// AddCollectionPeriodSeconds adds i to the "collection_period_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddCollectionPeriodSeconds(i)
+// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) AddItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.AddItemCollectionPeriodSeconds(i)
 	return bwcuo
 }
 
@@ -618,62 +611,70 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(
 	return bwcuo
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceLineItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceLineItemResolution(br)
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceItemResolution(br billing.GranularityResolution) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceItemResolution(br)
 	return bwcuo
 }
 
-// SetNillableInvoiceLineItemResolution sets the "invoice_line_item_resolution" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceLineItemResolution(br *billing.GranualityResolution) *BillingWorkflowConfigUpdateOne {
+// SetNillableInvoiceItemResolution sets the "invoice_item_resolution" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceItemResolution(br *billing.GranularityResolution) *BillingWorkflowConfigUpdateOne {
 	if br != nil {
-		bwcuo.SetInvoiceLineItemResolution(*br)
+		bwcuo.SetInvoiceItemResolution(*br)
 	}
 	return bwcuo
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceLineItemPerSubject(b)
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceItemPerSubject(b)
 	return bwcuo
 }
 
-// SetNillableInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceLineItemPerSubject(b *bool) *BillingWorkflowConfigUpdateOne {
+// SetNillableInvoiceItemPerSubject sets the "invoice_item_per_subject" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceItemPerSubject(b *bool) *BillingWorkflowConfigUpdateOne {
 	if b != nil {
-		bwcuo.SetInvoiceLineItemPerSubject(*b)
+		bwcuo.SetInvoiceItemPerSubject(*b)
 	}
 	return bwcuo
 }
 
-// AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddBillingInvoiceIDs(ids ...string) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddBillingInvoiceIDs(ids...)
+// SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetBillingInvoicesID(id)
 	return bwcuo
 }
 
-// AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddBillingInvoices(b ...*BillingInvoice) *BillingWorkflowConfigUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+// SetNillableBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableBillingInvoicesID(id *string) *BillingWorkflowConfigUpdateOne {
+	if id != nil {
+		bwcuo = bwcuo.SetBillingInvoicesID(*id)
 	}
-	return bwcuo.AddBillingInvoiceIDs(ids...)
-}
-
-// AddBillingProfileIDs adds the "billing_profile" edge to the BillingProfile entity by IDs.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddBillingProfileIDs(ids ...string) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddBillingProfileIDs(ids...)
 	return bwcuo
 }
 
-// AddBillingProfile adds the "billing_profile" edges to the BillingProfile entity.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddBillingProfile(b ...*BillingProfile) *BillingWorkflowConfigUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+// SetBillingInvoices sets the "billing_invoices" edge to the BillingInvoice entity.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetBillingInvoices(b *BillingInvoice) *BillingWorkflowConfigUpdateOne {
+	return bwcuo.SetBillingInvoicesID(b.ID)
+}
+
+// SetBillingProfileID sets the "billing_profile" edge to the BillingProfile entity by ID.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetBillingProfileID(id string) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetBillingProfileID(id)
+	return bwcuo
+}
+
+// SetNillableBillingProfileID sets the "billing_profile" edge to the BillingProfile entity by ID if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableBillingProfileID(id *string) *BillingWorkflowConfigUpdateOne {
+	if id != nil {
+		bwcuo = bwcuo.SetBillingProfileID(*id)
 	}
-	return bwcuo.AddBillingProfileIDs(ids...)
+	return bwcuo
+}
+
+// SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetBillingProfile(b *BillingProfile) *BillingWorkflowConfigUpdateOne {
+	return bwcuo.SetBillingProfileID(b.ID)
 }
 
 // Mutation returns the BillingWorkflowConfigMutation object of the builder.
@@ -681,46 +682,16 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) Mutation() *BillingWorkflowConfigMu
 	return bwcuo.mutation
 }
 
-// ClearBillingInvoices clears all "billing_invoices" edges to the BillingInvoice entity.
+// ClearBillingInvoices clears the "billing_invoices" edge to the BillingInvoice entity.
 func (bwcuo *BillingWorkflowConfigUpdateOne) ClearBillingInvoices() *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.ClearBillingInvoices()
 	return bwcuo
 }
 
-// RemoveBillingInvoiceIDs removes the "billing_invoices" edge to BillingInvoice entities by IDs.
-func (bwcuo *BillingWorkflowConfigUpdateOne) RemoveBillingInvoiceIDs(ids ...string) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.RemoveBillingInvoiceIDs(ids...)
-	return bwcuo
-}
-
-// RemoveBillingInvoices removes "billing_invoices" edges to BillingInvoice entities.
-func (bwcuo *BillingWorkflowConfigUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice) *BillingWorkflowConfigUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bwcuo.RemoveBillingInvoiceIDs(ids...)
-}
-
-// ClearBillingProfile clears all "billing_profile" edges to the BillingProfile entity.
+// ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
 func (bwcuo *BillingWorkflowConfigUpdateOne) ClearBillingProfile() *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.ClearBillingProfile()
 	return bwcuo
-}
-
-// RemoveBillingProfileIDs removes the "billing_profile" edge to BillingProfile entities by IDs.
-func (bwcuo *BillingWorkflowConfigUpdateOne) RemoveBillingProfileIDs(ids ...string) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.RemoveBillingProfileIDs(ids...)
-	return bwcuo
-}
-
-// RemoveBillingProfile removes "billing_profile" edges to BillingProfile entities.
-func (bwcuo *BillingWorkflowConfigUpdateOne) RemoveBillingProfile(b ...*BillingProfile) *BillingWorkflowConfigUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bwcuo.RemoveBillingProfileIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingWorkflowConfigUpdate builder.
@@ -774,9 +745,9 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
-	if v, ok := bwcuo.mutation.Alignment(); ok {
-		if err := billingworkflowconfig.AlignmentValidator(v); err != nil {
-			return &ValidationError{Name: "alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.alignment": %w`, err)}
+	if v, ok := bwcuo.mutation.CollectionAlignment(); ok {
+		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
+			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
 	if v, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
@@ -784,9 +755,9 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcuo.mutation.InvoiceLineItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceLineItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_line_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_line_item_resolution": %w`, err)}
+	if v, ok := bwcuo.mutation.InvoiceItemResolution(); ok {
+		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
 		}
 	}
 	return nil
@@ -830,14 +801,20 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if bwcuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bwcuo.mutation.Alignment(); ok {
-		_spec.SetField(billingworkflowconfig.FieldAlignment, field.TypeEnum, value)
+	if value, ok := bwcuo.mutation.Timezone(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
 	}
-	if value, ok := bwcuo.mutation.CollectionPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
+	if bwcuo.mutation.TimezoneCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTimezone, field.TypeString)
 	}
-	if value, ok := bwcuo.mutation.AddedCollectionPeriodSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bwcuo.mutation.CollectionAlignment(); ok {
+		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
+	}
+	if value, ok := bwcuo.mutation.ItemCollectionPeriodSeconds(); ok {
+		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+	}
+	if value, ok := bwcuo.mutation.AddedItemCollectionPeriodSeconds(); ok {
+		_spec.AddField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
 	}
 	if value, ok := bwcuo.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -857,15 +834,15 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if value, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceLineItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
+	if value, ok := bwcuo.mutation.InvoiceItemResolution(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceLineItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
+	if value, ok := bwcuo.mutation.InvoiceItemPerSubject(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingInvoicesTable,
 			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
@@ -873,28 +850,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bwcuo.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !bwcuo.mutation.BillingInvoicesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billingworkflowconfig.BillingInvoicesTable,
-			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := bwcuo.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingInvoicesTable,
 			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
@@ -910,7 +871,7 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if bwcuo.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingProfileTable,
 			Columns: []string{billingworkflowconfig.BillingProfileColumn},
@@ -918,28 +879,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bwcuo.mutation.RemovedBillingProfileIDs(); len(nodes) > 0 && !bwcuo.mutation.BillingProfileCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billingworkflowconfig.BillingProfileTable,
-			Columns: []string{billingworkflowconfig.BillingProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := bwcuo.mutation.BillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingProfileTable,
 			Columns: []string{billingworkflowconfig.BillingProfileColumn},

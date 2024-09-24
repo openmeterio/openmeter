@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingProfileCreate is the builder for creating a BillingProfile entity.
@@ -29,6 +30,12 @@ type BillingProfileCreate struct {
 // SetNamespace sets the "namespace" field.
 func (bpc *BillingProfileCreate) SetNamespace(s string) *BillingProfileCreate {
 	bpc.mutation.SetNamespace(s)
+	return bpc
+}
+
+// SetMetadata sets the "metadata" field.
+func (bpc *BillingProfileCreate) SetMetadata(m map[string]string) *BillingProfileCreate {
+	bpc.mutation.SetMetadata(m)
 	return bpc
 }
 
@@ -74,15 +81,119 @@ func (bpc *BillingProfileCreate) SetNillableDeletedAt(t *time.Time) *BillingProf
 	return bpc
 }
 
-// SetKey sets the "key" field.
-func (bpc *BillingProfileCreate) SetKey(s string) *BillingProfileCreate {
-	bpc.mutation.SetKey(s)
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressCountry(mc)
 	return bpc
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (bpc *BillingProfileCreate) SetProviderConfig(pr provider.Configuration) *BillingProfileCreate {
-	bpc.mutation.SetProviderConfig(pr)
+// SetNillableSupplierAddressCountry sets the "supplier_address_country" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressCountry(mc *models.CountryCode) *BillingProfileCreate {
+	if mc != nil {
+		bpc.SetSupplierAddressCountry(*mc)
+	}
+	return bpc
+}
+
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressPostalCode(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressPostalCode(s)
+	return bpc
+}
+
+// SetNillableSupplierAddressPostalCode sets the "supplier_address_postal_code" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressPostalCode(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierAddressPostalCode(*s)
+	}
+	return bpc
+}
+
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressState(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressState(s)
+	return bpc
+}
+
+// SetNillableSupplierAddressState sets the "supplier_address_state" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressState(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierAddressState(*s)
+	}
+	return bpc
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressCity(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressCity(s)
+	return bpc
+}
+
+// SetNillableSupplierAddressCity sets the "supplier_address_city" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressCity(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierAddressCity(*s)
+	}
+	return bpc
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressLine1(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressLine1(s)
+	return bpc
+}
+
+// SetNillableSupplierAddressLine1 sets the "supplier_address_line1" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressLine1(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierAddressLine1(*s)
+	}
+	return bpc
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressLine2(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressLine2(s)
+	return bpc
+}
+
+// SetNillableSupplierAddressLine2 sets the "supplier_address_line2" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressLine2(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierAddressLine2(*s)
+	}
+	return bpc
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (bpc *BillingProfileCreate) SetSupplierAddressPhoneNumber(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierAddressPhoneNumber(s)
+	return bpc
+}
+
+// SetNillableSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierAddressPhoneNumber(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierAddressPhoneNumber(*s)
+	}
+	return bpc
+}
+
+// SetTaxProvider sets the "tax_provider" field.
+func (bpc *BillingProfileCreate) SetTaxProvider(pp provider.TaxProvider) *BillingProfileCreate {
+	bpc.mutation.SetTaxProvider(pp)
+	return bpc
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (bpc *BillingProfileCreate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileCreate {
+	bpc.mutation.SetInvoicingProvider(pp)
+	return bpc
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (bpc *BillingProfileCreate) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileCreate {
+	bpc.mutation.SetPaymentProvider(pp)
 	return bpc
 }
 
@@ -103,6 +214,12 @@ func (bpc *BillingProfileCreate) SetNillableDefault(b *bool) *BillingProfileCrea
 	if b != nil {
 		bpc.SetDefault(*b)
 	}
+	return bpc
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (bpc *BillingProfileCreate) SetSupplierName(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierName(s)
 	return bpc
 }
 
@@ -135,15 +252,9 @@ func (bpc *BillingProfileCreate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 	return bpc.AddBillingInvoiceIDs(ids...)
 }
 
-// SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
-func (bpc *BillingProfileCreate) SetBillingWorkflowConfigID(id string) *BillingProfileCreate {
-	bpc.mutation.SetBillingWorkflowConfigID(id)
-	return bpc
-}
-
-// SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpc *BillingProfileCreate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
-	return bpc.SetBillingWorkflowConfigID(b.ID)
+// SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpc *BillingProfileCreate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
+	return bpc.SetWorkflowConfigID(b.ID)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
@@ -215,20 +326,33 @@ func (bpc *BillingProfileCreate) check() error {
 	if _, ok := bpc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingProfile.updated_at"`)}
 	}
-	if _, ok := bpc.mutation.Key(); !ok {
-		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "BillingProfile.key"`)}
-	}
-	if v, ok := bpc.mutation.Key(); ok {
-		if err := billingprofile.KeyValidator(v); err != nil {
-			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingProfile.key": %w`, err)}
+	if v, ok := bpc.mutation.SupplierAddressCountry(); ok {
+		if err := billingprofile.SupplierAddressCountryValidator(string(v)); err != nil {
+			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.ProviderConfig(); !ok {
-		return &ValidationError{Name: "provider_config", err: errors.New(`db: missing required field "BillingProfile.provider_config"`)}
+	if _, ok := bpc.mutation.TaxProvider(); !ok {
+		return &ValidationError{Name: "tax_provider", err: errors.New(`db: missing required field "BillingProfile.tax_provider"`)}
 	}
-	if v, ok := bpc.mutation.ProviderConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
+	if v, ok := bpc.mutation.TaxProvider(); ok {
+		if err := billingprofile.TaxProviderValidator(v); err != nil {
+			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
+		}
+	}
+	if _, ok := bpc.mutation.InvoicingProvider(); !ok {
+		return &ValidationError{Name: "invoicing_provider", err: errors.New(`db: missing required field "BillingProfile.invoicing_provider"`)}
+	}
+	if v, ok := bpc.mutation.InvoicingProvider(); ok {
+		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
+		}
+	}
+	if _, ok := bpc.mutation.PaymentProvider(); !ok {
+		return &ValidationError{Name: "payment_provider", err: errors.New(`db: missing required field "BillingProfile.payment_provider"`)}
+	}
+	if v, ok := bpc.mutation.PaymentProvider(); ok {
+		if err := billingprofile.PaymentProviderValidator(v); err != nil {
+			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
 		}
 	}
 	if _, ok := bpc.mutation.WorkflowConfigID(); !ok {
@@ -242,8 +366,16 @@ func (bpc *BillingProfileCreate) check() error {
 	if _, ok := bpc.mutation.Default(); !ok {
 		return &ValidationError{Name: "default", err: errors.New(`db: missing required field "BillingProfile.default"`)}
 	}
-	if len(bpc.mutation.BillingWorkflowConfigIDs()) == 0 {
-		return &ValidationError{Name: "billing_workflow_config", err: errors.New(`db: missing required edge "BillingProfile.billing_workflow_config"`)}
+	if _, ok := bpc.mutation.SupplierName(); !ok {
+		return &ValidationError{Name: "supplier_name", err: errors.New(`db: missing required field "BillingProfile.supplier_name"`)}
+	}
+	if v, ok := bpc.mutation.SupplierName(); ok {
+		if err := billingprofile.SupplierNameValidator(v); err != nil {
+			return &ValidationError{Name: "supplier_name", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_name": %w`, err)}
+		}
+	}
+	if len(bpc.mutation.WorkflowConfigIDs()) == 0 {
+		return &ValidationError{Name: "workflow_config", err: errors.New(`db: missing required edge "BillingProfile.workflow_config"`)}
 	}
 	return nil
 }
@@ -252,10 +384,7 @@ func (bpc *BillingProfileCreate) sqlSave(ctx context.Context) (*BillingProfile, 
 	if err := bpc.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := bpc.createSpec()
-	if err != nil {
-		return nil, err
-	}
+	_node, _spec := bpc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, bpc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -274,7 +403,7 @@ func (bpc *BillingProfileCreate) sqlSave(ctx context.Context) (*BillingProfile, 
 	return _node, nil
 }
 
-func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.CreateSpec, error) {
+func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.CreateSpec) {
 	var (
 		_node = &BillingProfile{config: bpc.config}
 		_spec = sqlgraph.NewCreateSpec(billingprofile.Table, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
@@ -288,6 +417,10 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_spec.SetField(billingprofile.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := bpc.mutation.Metadata(); ok {
+		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := bpc.mutation.CreatedAt(); ok {
 		_spec.SetField(billingprofile.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -300,21 +433,53 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bpc.mutation.Key(); ok {
-		_spec.SetField(billingprofile.FieldKey, field.TypeString, value)
-		_node.Key = value
+	if value, ok := bpc.mutation.SupplierAddressCountry(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
+		_node.SupplierAddressCountry = &value
 	}
-	if value, ok := bpc.mutation.ProviderConfig(); ok {
-		vv, err := billingprofile.ValueScanner.ProviderConfig.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
-		_node.ProviderConfig = value
+	if value, ok := bpc.mutation.SupplierAddressPostalCode(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressPostalCode, field.TypeString, value)
+		_node.SupplierAddressPostalCode = &value
+	}
+	if value, ok := bpc.mutation.SupplierAddressState(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressState, field.TypeString, value)
+		_node.SupplierAddressState = &value
+	}
+	if value, ok := bpc.mutation.SupplierAddressCity(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressCity, field.TypeString, value)
+		_node.SupplierAddressCity = &value
+	}
+	if value, ok := bpc.mutation.SupplierAddressLine1(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressLine1, field.TypeString, value)
+		_node.SupplierAddressLine1 = &value
+	}
+	if value, ok := bpc.mutation.SupplierAddressLine2(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressLine2, field.TypeString, value)
+		_node.SupplierAddressLine2 = &value
+	}
+	if value, ok := bpc.mutation.SupplierAddressPhoneNumber(); ok {
+		_spec.SetField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString, value)
+		_node.SupplierAddressPhoneNumber = &value
+	}
+	if value, ok := bpc.mutation.TaxProvider(); ok {
+		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
+		_node.TaxProvider = value
+	}
+	if value, ok := bpc.mutation.InvoicingProvider(); ok {
+		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
+		_node.InvoicingProvider = value
+	}
+	if value, ok := bpc.mutation.PaymentProvider(); ok {
+		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
+		_node.PaymentProvider = value
 	}
 	if value, ok := bpc.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 		_node.Default = value
+	}
+	if value, ok := bpc.mutation.SupplierName(); ok {
+		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
+		_node.SupplierName = value
 	}
 	if nodes := bpc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -332,12 +497,12 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+	if nodes := bpc.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   billingprofile.BillingWorkflowConfigTable,
-			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Table:   billingprofile.WorkflowConfigTable,
+			Columns: []string{billingprofile.WorkflowConfigColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
@@ -349,7 +514,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_node.WorkflowConfigID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec, nil
+	return _node, _spec
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -401,6 +566,24 @@ type (
 	}
 )
 
+// SetMetadata sets the "metadata" field.
+func (u *BillingProfileUpsert) SetMetadata(v map[string]string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateMetadata() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingProfileUpsert) ClearMetadata() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldMetadata)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BillingProfileUpsert) SetUpdatedAt(v time.Time) *BillingProfileUpsert {
 	u.Set(billingprofile.FieldUpdatedAt, v)
@@ -431,15 +614,165 @@ func (u *BillingProfileUpsert) ClearDeletedAt() *BillingProfileUpsert {
 	return u
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (u *BillingProfileUpsert) SetProviderConfig(v provider.Configuration) *BillingProfileUpsert {
-	u.Set(billingprofile.FieldProviderConfig, v)
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (u *BillingProfileUpsert) SetSupplierAddressCountry(v models.CountryCode) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressCountry, v)
 	return u
 }
 
-// UpdateProviderConfig sets the "provider_config" field to the value that was provided on create.
-func (u *BillingProfileUpsert) UpdateProviderConfig() *BillingProfileUpsert {
-	u.SetExcluded(billingprofile.FieldProviderConfig)
+// UpdateSupplierAddressCountry sets the "supplier_address_country" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressCountry() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressCountry)
+	return u
+}
+
+// ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressCountry() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressCountry)
+	return u
+}
+
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (u *BillingProfileUpsert) SetSupplierAddressPostalCode(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressPostalCode, v)
+	return u
+}
+
+// UpdateSupplierAddressPostalCode sets the "supplier_address_postal_code" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressPostalCode() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressPostalCode)
+	return u
+}
+
+// ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressPostalCode() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressPostalCode)
+	return u
+}
+
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (u *BillingProfileUpsert) SetSupplierAddressState(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressState, v)
+	return u
+}
+
+// UpdateSupplierAddressState sets the "supplier_address_state" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressState() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressState)
+	return u
+}
+
+// ClearSupplierAddressState clears the value of the "supplier_address_state" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressState() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressState)
+	return u
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (u *BillingProfileUpsert) SetSupplierAddressCity(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressCity, v)
+	return u
+}
+
+// UpdateSupplierAddressCity sets the "supplier_address_city" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressCity() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressCity)
+	return u
+}
+
+// ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressCity() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressCity)
+	return u
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (u *BillingProfileUpsert) SetSupplierAddressLine1(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressLine1, v)
+	return u
+}
+
+// UpdateSupplierAddressLine1 sets the "supplier_address_line1" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressLine1() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressLine1)
+	return u
+}
+
+// ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressLine1() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressLine1)
+	return u
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (u *BillingProfileUpsert) SetSupplierAddressLine2(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressLine2, v)
+	return u
+}
+
+// UpdateSupplierAddressLine2 sets the "supplier_address_line2" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressLine2() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressLine2)
+	return u
+}
+
+// ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressLine2() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressLine2)
+	return u
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (u *BillingProfileUpsert) SetSupplierAddressPhoneNumber(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierAddressPhoneNumber, v)
+	return u
+}
+
+// UpdateSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierAddressPhoneNumber() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierAddressPhoneNumber)
+	return u
+}
+
+// ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
+func (u *BillingProfileUpsert) ClearSupplierAddressPhoneNumber() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierAddressPhoneNumber)
+	return u
+}
+
+// SetTaxProvider sets the "tax_provider" field.
+func (u *BillingProfileUpsert) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldTaxProvider, v)
+	return u
+}
+
+// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateTaxProvider() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldTaxProvider)
+	return u
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (u *BillingProfileUpsert) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldInvoicingProvider, v)
+	return u
+}
+
+// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateInvoicingProvider() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldInvoicingProvider)
+	return u
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (u *BillingProfileUpsert) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldPaymentProvider, v)
+	return u
+}
+
+// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdatePaymentProvider() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldPaymentProvider)
 	return u
 }
 
@@ -467,6 +800,18 @@ func (u *BillingProfileUpsert) UpdateDefault() *BillingProfileUpsert {
 	return u
 }
 
+// SetSupplierName sets the "supplier_name" field.
+func (u *BillingProfileUpsert) SetSupplierName(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierName, v)
+	return u
+}
+
+// UpdateSupplierName sets the "supplier_name" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierName() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierName)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -489,9 +834,6 @@ func (u *BillingProfileUpsertOne) UpdateNewValues() *BillingProfileUpsertOne {
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billingprofile.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(billingprofile.FieldKey)
 		}
 	}))
 	return u
@@ -522,6 +864,27 @@ func (u *BillingProfileUpsertOne) Update(set func(*BillingProfileUpsert)) *Billi
 		set(&BillingProfileUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingProfileUpsertOne) SetMetadata(v map[string]string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateMetadata() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingProfileUpsertOne) ClearMetadata() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -559,17 +922,192 @@ func (u *BillingProfileUpsertOne) ClearDeletedAt() *BillingProfileUpsertOne {
 	})
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (u *BillingProfileUpsertOne) SetProviderConfig(v provider.Configuration) *BillingProfileUpsertOne {
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressCountry(v models.CountryCode) *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetProviderConfig(v)
+		s.SetSupplierAddressCountry(v)
 	})
 }
 
-// UpdateProviderConfig sets the "provider_config" field to the value that was provided on create.
-func (u *BillingProfileUpsertOne) UpdateProviderConfig() *BillingProfileUpsertOne {
+// UpdateSupplierAddressCountry sets the "supplier_address_country" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressCountry() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateProviderConfig()
+		s.UpdateSupplierAddressCountry()
+	})
+}
+
+// ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressCountry() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressCountry()
+	})
+}
+
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressPostalCode(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressPostalCode(v)
+	})
+}
+
+// UpdateSupplierAddressPostalCode sets the "supplier_address_postal_code" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressPostalCode() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressPostalCode()
+	})
+}
+
+// ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressPostalCode() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressPostalCode()
+	})
+}
+
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressState(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressState(v)
+	})
+}
+
+// UpdateSupplierAddressState sets the "supplier_address_state" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressState() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressState()
+	})
+}
+
+// ClearSupplierAddressState clears the value of the "supplier_address_state" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressState() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressState()
+	})
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressCity(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressCity(v)
+	})
+}
+
+// UpdateSupplierAddressCity sets the "supplier_address_city" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressCity() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressCity()
+	})
+}
+
+// ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressCity() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressCity()
+	})
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressLine1(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressLine1(v)
+	})
+}
+
+// UpdateSupplierAddressLine1 sets the "supplier_address_line1" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressLine1() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressLine1()
+	})
+}
+
+// ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressLine1() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressLine1()
+	})
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressLine2(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressLine2(v)
+	})
+}
+
+// UpdateSupplierAddressLine2 sets the "supplier_address_line2" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressLine2() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressLine2()
+	})
+}
+
+// ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressLine2() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressLine2()
+	})
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (u *BillingProfileUpsertOne) SetSupplierAddressPhoneNumber(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressPhoneNumber(v)
+	})
+}
+
+// UpdateSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierAddressPhoneNumber() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressPhoneNumber()
+	})
+}
+
+// ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
+func (u *BillingProfileUpsertOne) ClearSupplierAddressPhoneNumber() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressPhoneNumber()
+	})
+}
+
+// SetTaxProvider sets the "tax_provider" field.
+func (u *BillingProfileUpsertOne) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetTaxProvider(v)
+	})
+}
+
+// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateTaxProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateTaxProvider()
+	})
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (u *BillingProfileUpsertOne) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetInvoicingProvider(v)
+	})
+}
+
+// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateInvoicingProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateInvoicingProvider()
+	})
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (u *BillingProfileUpsertOne) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetPaymentProvider(v)
+	})
+}
+
+// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdatePaymentProvider() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdatePaymentProvider()
 	})
 }
 
@@ -598,6 +1136,20 @@ func (u *BillingProfileUpsertOne) SetDefault(v bool) *BillingProfileUpsertOne {
 func (u *BillingProfileUpsertOne) UpdateDefault() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.UpdateDefault()
+	})
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (u *BillingProfileUpsertOne) SetSupplierName(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierName(v)
+	})
+}
+
+// UpdateSupplierName sets the "supplier_name" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierName() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierName()
 	})
 }
 
@@ -669,10 +1221,7 @@ func (bpcb *BillingProfileCreateBulk) Save(ctx context.Context) ([]*BillingProfi
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i], err = builder.createSpec()
-				if err != nil {
-					return nil, err
-				}
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, bpcb.builders[i+1].mutation)
 				} else {
@@ -793,9 +1342,6 @@ func (u *BillingProfileUpsertBulk) UpdateNewValues() *BillingProfileUpsertBulk {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billingprofile.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(billingprofile.FieldKey)
-			}
 		}
 	}))
 	return u
@@ -826,6 +1372,27 @@ func (u *BillingProfileUpsertBulk) Update(set func(*BillingProfileUpsert)) *Bill
 		set(&BillingProfileUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingProfileUpsertBulk) SetMetadata(v map[string]string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateMetadata() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingProfileUpsertBulk) ClearMetadata() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -863,17 +1430,192 @@ func (u *BillingProfileUpsertBulk) ClearDeletedAt() *BillingProfileUpsertBulk {
 	})
 }
 
-// SetProviderConfig sets the "provider_config" field.
-func (u *BillingProfileUpsertBulk) SetProviderConfig(v provider.Configuration) *BillingProfileUpsertBulk {
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressCountry(v models.CountryCode) *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetProviderConfig(v)
+		s.SetSupplierAddressCountry(v)
 	})
 }
 
-// UpdateProviderConfig sets the "provider_config" field to the value that was provided on create.
-func (u *BillingProfileUpsertBulk) UpdateProviderConfig() *BillingProfileUpsertBulk {
+// UpdateSupplierAddressCountry sets the "supplier_address_country" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressCountry() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateProviderConfig()
+		s.UpdateSupplierAddressCountry()
+	})
+}
+
+// ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressCountry() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressCountry()
+	})
+}
+
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressPostalCode(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressPostalCode(v)
+	})
+}
+
+// UpdateSupplierAddressPostalCode sets the "supplier_address_postal_code" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressPostalCode() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressPostalCode()
+	})
+}
+
+// ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressPostalCode() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressPostalCode()
+	})
+}
+
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressState(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressState(v)
+	})
+}
+
+// UpdateSupplierAddressState sets the "supplier_address_state" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressState() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressState()
+	})
+}
+
+// ClearSupplierAddressState clears the value of the "supplier_address_state" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressState() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressState()
+	})
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressCity(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressCity(v)
+	})
+}
+
+// UpdateSupplierAddressCity sets the "supplier_address_city" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressCity() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressCity()
+	})
+}
+
+// ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressCity() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressCity()
+	})
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressLine1(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressLine1(v)
+	})
+}
+
+// UpdateSupplierAddressLine1 sets the "supplier_address_line1" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressLine1() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressLine1()
+	})
+}
+
+// ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressLine1() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressLine1()
+	})
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressLine2(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressLine2(v)
+	})
+}
+
+// UpdateSupplierAddressLine2 sets the "supplier_address_line2" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressLine2() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressLine2()
+	})
+}
+
+// ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressLine2() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressLine2()
+	})
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (u *BillingProfileUpsertBulk) SetSupplierAddressPhoneNumber(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierAddressPhoneNumber(v)
+	})
+}
+
+// UpdateSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierAddressPhoneNumber() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierAddressPhoneNumber()
+	})
+}
+
+// ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierAddressPhoneNumber() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierAddressPhoneNumber()
+	})
+}
+
+// SetTaxProvider sets the "tax_provider" field.
+func (u *BillingProfileUpsertBulk) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetTaxProvider(v)
+	})
+}
+
+// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateTaxProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateTaxProvider()
+	})
+}
+
+// SetInvoicingProvider sets the "invoicing_provider" field.
+func (u *BillingProfileUpsertBulk) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetInvoicingProvider(v)
+	})
+}
+
+// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateInvoicingProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateInvoicingProvider()
+	})
+}
+
+// SetPaymentProvider sets the "payment_provider" field.
+func (u *BillingProfileUpsertBulk) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetPaymentProvider(v)
+	})
+}
+
+// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdatePaymentProvider() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdatePaymentProvider()
 	})
 }
 
@@ -902,6 +1644,20 @@ func (u *BillingProfileUpsertBulk) SetDefault(v bool) *BillingProfileUpsertBulk 
 func (u *BillingProfileUpsertBulk) UpdateDefault() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.UpdateDefault()
+	})
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (u *BillingProfileUpsertBulk) SetSupplierName(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierName(v)
+	})
+}
+
+// UpdateSupplierName sets the "supplier_name" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierName() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierName()
 	})
 }
 

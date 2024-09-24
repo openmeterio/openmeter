@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingWorkflowConfigCreate is the builder for creating a BillingWorkflowConfig entity.
@@ -74,15 +75,29 @@ func (bwcc *BillingWorkflowConfigCreate) SetNillableDeletedAt(t *time.Time) *Bil
 	return bwcc
 }
 
-// SetAlignment sets the "alignment" field.
-func (bwcc *BillingWorkflowConfigCreate) SetAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetAlignment(bk)
+// SetTimezone sets the "timezone" field.
+func (bwcc *BillingWorkflowConfigCreate) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetTimezone(t)
 	return bwcc
 }
 
-// SetCollectionPeriodSeconds sets the "collection_period_seconds" field.
-func (bwcc *BillingWorkflowConfigCreate) SetCollectionPeriodSeconds(i int64) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetCollectionPeriodSeconds(i)
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigCreate {
+	if t != nil {
+		bwcc.SetTimezone(*t)
+	}
+	return bwcc
+}
+
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (bwcc *BillingWorkflowConfigCreate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetCollectionAlignment(bk)
+	return bwcc
+}
+
+// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
+func (bwcc *BillingWorkflowConfigCreate) SetItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetItemCollectionPeriodSeconds(i)
 	return bwcc
 }
 
@@ -110,23 +125,15 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceCollectionMethod(bm billing.C
 	return bwcc
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (bwcc *BillingWorkflowConfigCreate) SetInvoiceLineItemResolution(br billing.GranualityResolution) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetInvoiceLineItemResolution(br)
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceItemResolution(br billing.GranularityResolution) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceItemResolution(br)
 	return bwcc
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (bwcc *BillingWorkflowConfigCreate) SetInvoiceLineItemPerSubject(b bool) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetInvoiceLineItemPerSubject(b)
-	return bwcc
-}
-
-// SetNillableInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field if the given value is not nil.
-func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceLineItemPerSubject(b *bool) *BillingWorkflowConfigCreate {
-	if b != nil {
-		bwcc.SetInvoiceLineItemPerSubject(*b)
-	}
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceItemPerSubject(b)
 	return bwcc
 }
 
@@ -144,34 +151,42 @@ func (bwcc *BillingWorkflowConfigCreate) SetNillableID(s *string) *BillingWorkfl
 	return bwcc
 }
 
-// AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
-func (bwcc *BillingWorkflowConfigCreate) AddBillingInvoiceIDs(ids ...string) *BillingWorkflowConfigCreate {
-	bwcc.mutation.AddBillingInvoiceIDs(ids...)
+// SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
+func (bwcc *BillingWorkflowConfigCreate) SetBillingInvoicesID(id string) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetBillingInvoicesID(id)
 	return bwcc
 }
 
-// AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
-func (bwcc *BillingWorkflowConfigCreate) AddBillingInvoices(b ...*BillingInvoice) *BillingWorkflowConfigCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+// SetNillableBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableBillingInvoicesID(id *string) *BillingWorkflowConfigCreate {
+	if id != nil {
+		bwcc = bwcc.SetBillingInvoicesID(*id)
 	}
-	return bwcc.AddBillingInvoiceIDs(ids...)
-}
-
-// AddBillingProfileIDs adds the "billing_profile" edge to the BillingProfile entity by IDs.
-func (bwcc *BillingWorkflowConfigCreate) AddBillingProfileIDs(ids ...string) *BillingWorkflowConfigCreate {
-	bwcc.mutation.AddBillingProfileIDs(ids...)
 	return bwcc
 }
 
-// AddBillingProfile adds the "billing_profile" edges to the BillingProfile entity.
-func (bwcc *BillingWorkflowConfigCreate) AddBillingProfile(b ...*BillingProfile) *BillingWorkflowConfigCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+// SetBillingInvoices sets the "billing_invoices" edge to the BillingInvoice entity.
+func (bwcc *BillingWorkflowConfigCreate) SetBillingInvoices(b *BillingInvoice) *BillingWorkflowConfigCreate {
+	return bwcc.SetBillingInvoicesID(b.ID)
+}
+
+// SetBillingProfileID sets the "billing_profile" edge to the BillingProfile entity by ID.
+func (bwcc *BillingWorkflowConfigCreate) SetBillingProfileID(id string) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetBillingProfileID(id)
+	return bwcc
+}
+
+// SetNillableBillingProfileID sets the "billing_profile" edge to the BillingProfile entity by ID if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableBillingProfileID(id *string) *BillingWorkflowConfigCreate {
+	if id != nil {
+		bwcc = bwcc.SetBillingProfileID(*id)
 	}
-	return bwcc.AddBillingProfileIDs(ids...)
+	return bwcc
+}
+
+// SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
+func (bwcc *BillingWorkflowConfigCreate) SetBillingProfile(b *BillingProfile) *BillingWorkflowConfigCreate {
+	return bwcc.SetBillingProfileID(b.ID)
 }
 
 // Mutation returns the BillingWorkflowConfigMutation object of the builder.
@@ -217,10 +232,6 @@ func (bwcc *BillingWorkflowConfigCreate) defaults() {
 		v := billingworkflowconfig.DefaultUpdatedAt()
 		bwcc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bwcc.mutation.InvoiceLineItemPerSubject(); !ok {
-		v := billingworkflowconfig.DefaultInvoiceLineItemPerSubject
-		bwcc.mutation.SetInvoiceLineItemPerSubject(v)
-	}
 	if _, ok := bwcc.mutation.ID(); !ok {
 		v := billingworkflowconfig.DefaultID()
 		bwcc.mutation.SetID(v)
@@ -243,16 +254,16 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 	if _, ok := bwcc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingWorkflowConfig.updated_at"`)}
 	}
-	if _, ok := bwcc.mutation.Alignment(); !ok {
-		return &ValidationError{Name: "alignment", err: errors.New(`db: missing required field "BillingWorkflowConfig.alignment"`)}
+	if _, ok := bwcc.mutation.CollectionAlignment(); !ok {
+		return &ValidationError{Name: "collection_alignment", err: errors.New(`db: missing required field "BillingWorkflowConfig.collection_alignment"`)}
 	}
-	if v, ok := bwcc.mutation.Alignment(); ok {
-		if err := billingworkflowconfig.AlignmentValidator(v); err != nil {
-			return &ValidationError{Name: "alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.alignment": %w`, err)}
+	if v, ok := bwcc.mutation.CollectionAlignment(); ok {
+		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
+			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.CollectionPeriodSeconds(); !ok {
-		return &ValidationError{Name: "collection_period_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.collection_period_seconds"`)}
+	if _, ok := bwcc.mutation.ItemCollectionPeriodSeconds(); !ok {
+		return &ValidationError{Name: "item_collection_period_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.item_collection_period_seconds"`)}
 	}
 	if _, ok := bwcc.mutation.InvoiceAutoAdvance(); !ok {
 		return &ValidationError{Name: "invoice_auto_advance", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_auto_advance"`)}
@@ -271,16 +282,16 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.InvoiceLineItemResolution(); !ok {
-		return &ValidationError{Name: "invoice_line_item_resolution", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_line_item_resolution"`)}
+	if _, ok := bwcc.mutation.InvoiceItemResolution(); !ok {
+		return &ValidationError{Name: "invoice_item_resolution", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_item_resolution"`)}
 	}
-	if v, ok := bwcc.mutation.InvoiceLineItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceLineItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_line_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_line_item_resolution": %w`, err)}
+	if v, ok := bwcc.mutation.InvoiceItemResolution(); ok {
+		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.InvoiceLineItemPerSubject(); !ok {
-		return &ValidationError{Name: "invoice_line_item_per_subject", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_line_item_per_subject"`)}
+	if _, ok := bwcc.mutation.InvoiceItemPerSubject(); !ok {
+		return &ValidationError{Name: "invoice_item_per_subject", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_item_per_subject"`)}
 	}
 	return nil
 }
@@ -334,17 +345,21 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 		_spec.SetField(billingworkflowconfig.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bwcc.mutation.Alignment(); ok {
-		_spec.SetField(billingworkflowconfig.FieldAlignment, field.TypeEnum, value)
-		_node.Alignment = value
+	if value, ok := bwcc.mutation.Timezone(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
+		_node.Timezone = &value
 	}
-	if value, ok := bwcc.mutation.CollectionPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldCollectionPeriodSeconds, field.TypeInt64, value)
-		_node.CollectionPeriodSeconds = value
+	if value, ok := bwcc.mutation.CollectionAlignment(); ok {
+		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
+		_node.CollectionAlignment = value
+	}
+	if value, ok := bwcc.mutation.ItemCollectionPeriodSeconds(); ok {
+		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+		_node.ItemCollectionPeriodSeconds = value
 	}
 	if value, ok := bwcc.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
-		_node.InvoiceAutoAdvance = &value
+		_node.InvoiceAutoAdvance = value
 	}
 	if value, ok := bwcc.mutation.InvoiceDraftPeriodSeconds(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
@@ -358,17 +373,17 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 		_node.InvoiceCollectionMethod = value
 	}
-	if value, ok := bwcc.mutation.InvoiceLineItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemResolution, field.TypeEnum, value)
-		_node.InvoiceLineItemResolution = value
+	if value, ok := bwcc.mutation.InvoiceItemResolution(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
+		_node.InvoiceItemResolution = value
 	}
-	if value, ok := bwcc.mutation.InvoiceLineItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceLineItemPerSubject, field.TypeBool, value)
-		_node.InvoiceLineItemPerSubject = value
+	if value, ok := bwcc.mutation.InvoiceItemPerSubject(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
+		_node.InvoiceItemPerSubject = value
 	}
 	if nodes := bwcc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingInvoicesTable,
 			Columns: []string{billingworkflowconfig.BillingInvoicesColumn},
@@ -384,7 +399,7 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 	}
 	if nodes := bwcc.mutation.BillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   billingworkflowconfig.BillingProfileTable,
 			Columns: []string{billingworkflowconfig.BillingProfileColumn},
@@ -480,33 +495,51 @@ func (u *BillingWorkflowConfigUpsert) ClearDeletedAt() *BillingWorkflowConfigUps
 	return u
 }
 
-// SetAlignment sets the "alignment" field.
-func (u *BillingWorkflowConfigUpsert) SetAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldAlignment, v)
+// SetTimezone sets the "timezone" field.
+func (u *BillingWorkflowConfigUpsert) SetTimezone(v timezone.Timezone) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldTimezone, v)
 	return u
 }
 
-// UpdateAlignment sets the "alignment" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateAlignment() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldAlignment)
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateTimezone() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldTimezone)
 	return u
 }
 
-// SetCollectionPeriodSeconds sets the "collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsert) SetCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldCollectionPeriodSeconds, v)
+// ClearTimezone clears the value of the "timezone" field.
+func (u *BillingWorkflowConfigUpsert) ClearTimezone() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldTimezone)
 	return u
 }
 
-// UpdateCollectionPeriodSeconds sets the "collection_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateCollectionPeriodSeconds() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldCollectionPeriodSeconds)
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (u *BillingWorkflowConfigUpsert) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldCollectionAlignment, v)
 	return u
 }
 
-// AddCollectionPeriodSeconds adds v to the "collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsert) AddCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Add(billingworkflowconfig.FieldCollectionPeriodSeconds, v)
+// UpdateCollectionAlignment sets the "collection_alignment" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateCollectionAlignment() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldCollectionAlignment)
+	return u
+}
+
+// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsert) SetItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldItemCollectionPeriodSeconds, v)
+	return u
+}
+
+// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateItemCollectionPeriodSeconds() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldItemCollectionPeriodSeconds)
+	return u
+}
+
+// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsert) AddItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
+	u.Add(billingworkflowconfig.FieldItemCollectionPeriodSeconds, v)
 	return u
 }
 
@@ -570,27 +603,27 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceCollectionMethod() *BillingWo
 	return u
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceLineItemResolution(v billing.GranualityResolution) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldInvoiceLineItemResolution, v)
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceItemResolution(v billing.GranularityResolution) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceItemResolution, v)
 	return u
 }
 
-// UpdateInvoiceLineItemResolution sets the "invoice_line_item_resolution" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateInvoiceLineItemResolution() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldInvoiceLineItemResolution)
+// UpdateInvoiceItemResolution sets the "invoice_item_resolution" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceItemResolution() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceItemResolution)
 	return u
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceLineItemPerSubject(v bool) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldInvoiceLineItemPerSubject, v)
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceItemPerSubject(v bool) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceItemPerSubject, v)
 	return u
 }
 
-// UpdateInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldInvoiceLineItemPerSubject)
+// UpdateInvoiceItemPerSubject sets the "invoice_item_per_subject" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceItemPerSubject() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceItemPerSubject)
 	return u
 }
 
@@ -683,38 +716,59 @@ func (u *BillingWorkflowConfigUpsertOne) ClearDeletedAt() *BillingWorkflowConfig
 	})
 }
 
-// SetAlignment sets the "alignment" field.
-func (u *BillingWorkflowConfigUpsertOne) SetAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsertOne {
+// SetTimezone sets the "timezone" field.
+func (u *BillingWorkflowConfigUpsertOne) SetTimezone(v timezone.Timezone) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetAlignment(v)
+		s.SetTimezone(v)
 	})
 }
 
-// UpdateAlignment sets the "alignment" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateAlignment() *BillingWorkflowConfigUpsertOne {
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateTimezone() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateAlignment()
+		s.UpdateTimezone()
 	})
 }
 
-// SetCollectionPeriodSeconds sets the "collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) SetCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// ClearTimezone clears the value of the "timezone" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearTimezone() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetCollectionPeriodSeconds(v)
+		s.ClearTimezone()
 	})
 }
 
-// AddCollectionPeriodSeconds adds v to the "collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) AddCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (u *BillingWorkflowConfigUpsertOne) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddCollectionPeriodSeconds(v)
+		s.SetCollectionAlignment(v)
 	})
 }
 
-// UpdateCollectionPeriodSeconds sets the "collection_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionPeriodSeconds() *BillingWorkflowConfigUpsertOne {
+// UpdateCollectionAlignment sets the "collection_alignment" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionAlignment() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateCollectionPeriodSeconds()
+		s.UpdateCollectionAlignment()
+	})
+}
+
+// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertOne) SetItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetItemCollectionPeriodSeconds(v)
+	})
+}
+
+// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertOne) AddItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.AddItemCollectionPeriodSeconds(v)
+	})
+}
+
+// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateItemCollectionPeriodSeconds() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateItemCollectionPeriodSeconds()
 	})
 }
 
@@ -788,31 +842,31 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceCollectionMethod() *Billin
 	})
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceLineItemResolution(v billing.GranualityResolution) *BillingWorkflowConfigUpsertOne {
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceItemResolution(v billing.GranularityResolution) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceLineItemResolution(v)
+		s.SetInvoiceItemResolution(v)
 	})
 }
 
-// UpdateInvoiceLineItemResolution sets the "invoice_line_item_resolution" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceLineItemResolution() *BillingWorkflowConfigUpsertOne {
+// UpdateInvoiceItemResolution sets the "invoice_item_resolution" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceItemResolution() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceLineItemResolution()
+		s.UpdateInvoiceItemResolution()
 	})
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceLineItemPerSubject(v bool) *BillingWorkflowConfigUpsertOne {
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceItemPerSubject(v bool) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceLineItemPerSubject(v)
+		s.SetInvoiceItemPerSubject(v)
 	})
 }
 
-// UpdateInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsertOne {
+// UpdateInvoiceItemPerSubject sets the "invoice_item_per_subject" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceItemPerSubject() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceLineItemPerSubject()
+		s.UpdateInvoiceItemPerSubject()
 	})
 }
 
@@ -1072,38 +1126,59 @@ func (u *BillingWorkflowConfigUpsertBulk) ClearDeletedAt() *BillingWorkflowConfi
 	})
 }
 
-// SetAlignment sets the "alignment" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsertBulk {
+// SetTimezone sets the "timezone" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetTimezone(v timezone.Timezone) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetAlignment(v)
+		s.SetTimezone(v)
 	})
 }
 
-// UpdateAlignment sets the "alignment" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateAlignment() *BillingWorkflowConfigUpsertBulk {
+// UpdateTimezone sets the "timezone" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateTimezone() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateAlignment()
+		s.UpdateTimezone()
 	})
 }
 
-// SetCollectionPeriodSeconds sets the "collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// ClearTimezone clears the value of the "timezone" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearTimezone() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetCollectionPeriodSeconds(v)
+		s.ClearTimezone()
 	})
 }
 
-// AddCollectionPeriodSeconds adds v to the "collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) AddCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// SetCollectionAlignment sets the "collection_alignment" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddCollectionPeriodSeconds(v)
+		s.SetCollectionAlignment(v)
 	})
 }
 
-// UpdateCollectionPeriodSeconds sets the "collection_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionPeriodSeconds() *BillingWorkflowConfigUpsertBulk {
+// UpdateCollectionAlignment sets the "collection_alignment" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionAlignment() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateCollectionPeriodSeconds()
+		s.UpdateCollectionAlignment()
+	})
+}
+
+// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetItemCollectionPeriodSeconds(v)
+	})
+}
+
+// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
+func (u *BillingWorkflowConfigUpsertBulk) AddItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.AddItemCollectionPeriodSeconds(v)
+	})
+}
+
+// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateItemCollectionPeriodSeconds() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateItemCollectionPeriodSeconds()
 	})
 }
 
@@ -1177,31 +1252,31 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceCollectionMethod() *Billi
 	})
 }
 
-// SetInvoiceLineItemResolution sets the "invoice_line_item_resolution" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceLineItemResolution(v billing.GranualityResolution) *BillingWorkflowConfigUpsertBulk {
+// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceItemResolution(v billing.GranularityResolution) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceLineItemResolution(v)
+		s.SetInvoiceItemResolution(v)
 	})
 }
 
-// UpdateInvoiceLineItemResolution sets the "invoice_line_item_resolution" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceLineItemResolution() *BillingWorkflowConfigUpsertBulk {
+// UpdateInvoiceItemResolution sets the "invoice_item_resolution" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceItemResolution() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceLineItemResolution()
+		s.UpdateInvoiceItemResolution()
 	})
 }
 
-// SetInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceLineItemPerSubject(v bool) *BillingWorkflowConfigUpsertBulk {
+// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceItemPerSubject(v bool) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceLineItemPerSubject(v)
+		s.SetInvoiceItemPerSubject(v)
 	})
 }
 
-// UpdateInvoiceLineItemPerSubject sets the "invoice_line_item_per_subject" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceLineItemPerSubject() *BillingWorkflowConfigUpsertBulk {
+// UpdateInvoiceItemPerSubject sets the "invoice_item_per_subject" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceItemPerSubject() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceLineItemPerSubject()
+		s.UpdateInvoiceItemPerSubject()
 	})
 }
 

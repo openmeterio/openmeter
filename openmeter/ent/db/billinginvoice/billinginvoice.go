@@ -8,7 +8,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
@@ -44,12 +43,14 @@ const (
 	FieldDueDate = "due_date"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldProviderConfig holds the string denoting the provider_config field in the database.
-	FieldProviderConfig = "provider_config"
+	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
+	FieldTaxProvider = "tax_provider"
+	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
+	FieldInvoicingProvider = "invoicing_provider"
+	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
+	FieldPaymentProvider = "payment_provider"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
-	// FieldProviderReference holds the string denoting the provider_reference field in the database.
-	FieldProviderReference = "provider_reference"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
@@ -101,9 +102,10 @@ var Columns = []string{
 	FieldTotalAmount,
 	FieldDueDate,
 	FieldStatus,
-	FieldProviderConfig,
+	FieldTaxProvider,
+	FieldInvoicingProvider,
+	FieldPaymentProvider,
 	FieldWorkflowConfigID,
-	FieldProviderReference,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 }
@@ -137,11 +139,6 @@ var (
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all BillingInvoice fields.
-	ValueScanner struct {
-		ProviderConfig    field.TypeValueScanner[provider.Configuration]
-		ProviderReference field.TypeValueScanner[provider.Reference]
-	}
 )
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
@@ -151,6 +148,36 @@ func StatusValidator(s invoice.InvoiceStatus) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for status field: %q", s)
+	}
+}
+
+// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
+func TaxProviderValidator(tp provider.TaxProvider) error {
+	switch tp {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for tax_provider field: %q", tp)
+	}
+}
+
+// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
+func InvoicingProviderValidator(ip provider.InvoicingProvider) error {
+	switch ip {
+	case "openmeter_sandbox", "stripe":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for invoicing_provider field: %q", ip)
+	}
+}
+
+// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
+func PaymentProviderValidator(pp provider.PaymentProvider) error {
+	switch pp {
+	case "openmeter_sandbox", "stripe_payments":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for payment_provider field: %q", pp)
 	}
 }
 
@@ -222,19 +249,24 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByProviderConfig orders the results by the provider_config field.
-func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderConfig, opts...).ToFunc()
+// ByTaxProvider orders the results by the tax_provider field.
+func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
+}
+
+// ByInvoicingProvider orders the results by the invoicing_provider field.
+func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
+}
+
+// ByPaymentProvider orders the results by the payment_provider field.
+func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
 }
 
 // ByWorkflowConfigID orders the results by the workflow_config_id field.
 func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWorkflowConfigID, opts...).ToFunc()
-}
-
-// ByProviderReference orders the results by the provider_reference field.
-func ByProviderReference(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderReference, opts...).ToFunc()
 }
 
 // ByPeriodStart orders the results by the period_start field.
@@ -285,7 +317,7 @@ func newBillingWorkflowConfigStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+		sqlgraph.Edge(sqlgraph.O2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
 	)
 }
 func newBillingInvoiceItemsStep() *sqlgraph.Step {

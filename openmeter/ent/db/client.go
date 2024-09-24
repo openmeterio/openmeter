@@ -606,7 +606,7 @@ func (c *BillingInvoiceClient) QueryBillingWorkflowConfig(bi *BillingInvoice) *B
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.BillingWorkflowConfigTable, billinginvoice.BillingWorkflowConfigColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, billinginvoice.BillingWorkflowConfigTable, billinginvoice.BillingWorkflowConfigColumn),
 		)
 		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
 		return fromV, nil
@@ -928,15 +928,15 @@ func (c *BillingProfileClient) QueryBillingInvoices(bp *BillingProfile) *Billing
 	return query
 }
 
-// QueryBillingWorkflowConfig queries the billing_workflow_config edge of a BillingProfile.
-func (c *BillingProfileClient) QueryBillingWorkflowConfig(bp *BillingProfile) *BillingWorkflowConfigQuery {
+// QueryWorkflowConfig queries the workflow_config edge of a BillingProfile.
+func (c *BillingProfileClient) QueryWorkflowConfig(bp *BillingProfile) *BillingWorkflowConfigQuery {
 	query := (&BillingWorkflowConfigClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := bp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.BillingWorkflowConfigTable, billingprofile.BillingWorkflowConfigColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, billingprofile.WorkflowConfigTable, billingprofile.WorkflowConfigColumn),
 		)
 		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
 		return fromV, nil
@@ -1085,7 +1085,7 @@ func (c *BillingWorkflowConfigClient) QueryBillingInvoices(bwc *BillingWorkflowC
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, id),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billingworkflowconfig.BillingInvoicesTable, billingworkflowconfig.BillingInvoicesColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingInvoicesTable, billingworkflowconfig.BillingInvoicesColumn),
 		)
 		fromV = sqlgraph.Neighbors(bwc.driver.Dialect(), step)
 		return fromV, nil
@@ -1101,7 +1101,7 @@ func (c *BillingWorkflowConfigClient) QueryBillingProfile(bwc *BillingWorkflowCo
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, id),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
 		)
 		fromV = sqlgraph.Neighbors(bwc.driver.Dialect(), step)
 		return fromV, nil

@@ -103,7 +103,7 @@ func (biq *BillingInvoiceQuery) QueryBillingWorkflowConfig() *BillingWorkflowCon
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.BillingWorkflowConfigTable, billinginvoice.BillingWorkflowConfigColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, billinginvoice.BillingWorkflowConfigTable, billinginvoice.BillingWorkflowConfigColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
 		return fromU, nil
