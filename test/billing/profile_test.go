@@ -74,6 +74,11 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.NotNil(t, profile)
 	})
 
+	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
+	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
+	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
+	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
+
 	s.T().Run("fetching the default profile is possible", func(t *testing.T) {
 		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 			Namespace: ns,
@@ -187,6 +192,11 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), profile)
 
+	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
+	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
+	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
+	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
+
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 		Namespace: ns,
@@ -266,6 +276,11 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	profile, err := s.BillingService.CreateProfile(ctx, input)
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), profile)
+
+	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
+	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
+	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
+	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
