@@ -22,7 +22,7 @@ func (r adapter) CreateCustomerOverride(ctx context.Context, input billing.Creat
 		return nil, fmt.Errorf("create customer override: %w", ErrTransactionRequired)
 	}
 
-	dbCustomerOverride, err := r.client().BillingCustomerOverride.Create().
+	_, err := r.client().BillingCustomerOverride.Create().
 		SetNamespace(input.Namespace).
 		SetCustomerID(input.CustomerID).
 		SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
@@ -40,22 +40,10 @@ func (r adapter) CreateCustomerOverride(ctx context.Context, input billing.Creat
 	}
 
 	// Let's fetch the override with edges
-	dbCustomerOverride, err = r.client().BillingCustomerOverride.Query().
-		Where(billingcustomeroverride.Namespace(input.Namespace)).
-		Where(billingcustomeroverride.ID(dbCustomerOverride.ID)).
-		WithBillingProfile(func(bpq *db.BillingProfileQuery) {
-			bpq.WithWorkflowConfig()
-		}).
-		First(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return mapCustomerOverrideFromDB(dbCustomerOverride), nil
+	return r.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+		Namespace:  input.Namespace,
+		CustomerID: input.CustomerID,
+	})
 }
 
 func (r adapter) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
@@ -127,22 +115,10 @@ func (r adapter) UpdateCustomerOverride(ctx context.Context, input billing.Updat
 		}
 	}
 
-	// Let's fetch the override with edges
-	dbCustomerOverride, err := r.client().BillingCustomerOverride.Query().
-		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
-		WithBillingProfile(func(bpq *db.BillingProfileQuery) {
-			bpq.WithWorkflowConfig()
-		}).
-		First(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return mapCustomerOverrideFromDB(dbCustomerOverride), nil
+	return r.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+		Namespace:  input.Namespace,
+		CustomerID: input.CustomerID,
+	})
 }
 
 func (r adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
@@ -182,12 +158,12 @@ func (r adapter) GetCustomerOverride(ctx context.Context, input billing.GetCusto
 }
 
 func (r adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
-	err := r.client().BillingCustomerOverride.Update().
+	rowsAffected, err := r.client().BillingCustomerOverride.Update().
 		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
 		Where(billingcustomeroverride.Namespace(input.Namespace)).
 		Where(billingcustomeroverride.DeletedAtIsNil()).
 		SetDeletedAt(clock.Now()).
-		Exec(ctx)
+		Save(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return billing.NotFoundError{
@@ -198,6 +174,19 @@ func (r adapter) DeleteCustomerOverride(ctx context.Context, input billing.Delet
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideNotFound,
 			}
+		}
+
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return billing.NotFoundError{
+			NamespacedID: models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+			Entity: billing.EntityCustomerOverride,
+			Err:    billing.ErrCustomerOverrideNotFound,
 		}
 	}
 
