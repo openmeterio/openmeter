@@ -125,19 +125,25 @@ enum AppType {
  */
 @friendlyName("AppCapability")
 @example(#{
-  type: AppCapabilityType.CollectPayments,
+  id: "01G65Z755AFWAKHE12NY0CQ9FH",
+  name: "Collect Payments",
   description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
+  createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+  updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+  type: AppCapabilityType.CollectPayments,
 })
 model AppCapability {
+  ...Resource;
+
   /**
    * The capability type.
    */
   type: AppCapabilityType;
 
   /**
-   * The capability description.
+   * The capability requirements.
    */
-  description: string;
+  requirements?: AppRequirements[];
 }
 
 /**
@@ -195,6 +201,10 @@ enum AppRequirements {
   iconUrl: "/images/stripe.png",
   capabilities: #[
     #{
+      id: "01G65Z755AFWAKHE12NY0CQ9FH",
+      name: "Collect Payments",
+      createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
       type: AppCapabilityType.CollectPayments,
       description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
     }
@@ -223,9 +233,17 @@ model AppGalleryItem {
  * App connected status.
  */
 enum AppConnectedStatus {
+  /**
+   * The app is ready to be used.
+   */
   Ready: "ready",
 
-  // TODO
+  /**
+   * The app is unauthorized.
+   * This usually happens when the app's credentials are revoked or expired.
+   * To resolve this, the user must re-authorize the app.
+   */
+  Unauthorized: "unauthorized",
 }
 
 /**
@@ -241,8 +259,17 @@ enum AppConnectedStatus {
   createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   status: AppConnectedStatus.Ready,
-  capabilities: #[AppCapabilityType.CollectPayments],
-  requirements: #[AppRequirements.CustomerCountryCode],
+  capabilities: #[
+    #{
+      id: "01G65Z755AFWAKHE12NY0CQ9FH",
+      name: "Collect Payments",
+      createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      type: AppCapabilityType.CollectPayments,
+      description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+    }
+  ],
 })
 model AppConnected {
   ...Resource;
@@ -250,23 +277,21 @@ model AppConnected {
   /**
    * The app's type
    */
+  @visibility("read")
   type: AppType;
 
   /**
    * Status of the app connection.
    */
+  @visibility("read")
   status: AppConnectedStatus;
 
   /**
    * The app's installed capabilities.
    * This is a subset of the app gallery's capabilities.
    */
-  capabilities: AppCapabilityType[];
-
-  /**
-   * Requirements
-   */
-  requirements: AppRequirements[];
+  @visibility("read")
+  capabilities: AppCapability[];
 }
 
 /**
@@ -281,12 +306,34 @@ model AppConnected {
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   status: AppConnectedStatus.Ready,
   capabilities: #[
-    AppCapabilityType.CalculateTax,
-    AppCapabilityType.InvoiceCustomers,
-    AppCapabilityType.CollectPayments,
-    AppCapabilityType.ReportUsage
+    #{
+      id: "01G65Z755AFWAKHE12NY0CQ9FH",
+      name: "Calculate Tax",
+      createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      type: AppCapabilityType.CollectPayments,
+      description: "Stripe Tax calculates tax portion of the invoices.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+    },
+    #{
+      id: "01G65Z755AFWAKHE12NY0CQ9FH",
+      name: "Invoice Customers",
+      createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      type: AppCapabilityType.CollectPayments,
+      description: "Stripe invoices customers with due amount.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+    },
+    #{
+      id: "01G65Z755AFWAKHE12NY0CQ9FH",
+      name: "Collect Payments",
+      createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+      type: AppCapabilityType.CollectPayments,
+      description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+    }
   ],
-  requirements: #[AppRequirements.CustomerCountryCode, AppRequirements.CustomerExternalStripeCustomerId],
 
   // Stripe specific fields
   accountId: "acct_123456789",
