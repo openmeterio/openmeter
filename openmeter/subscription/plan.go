@@ -27,11 +27,19 @@ type PlanPhase interface {
 }
 
 type RateCard interface {
-	GetFeatureIdOrKey() (string, error)
-	GetEntitlementSpec() (entitlement.CreateEntitlementInputs, error)
+	// TODO: Arguments have to be defined
+	GetEntitlementSpec(args ...[]any) (entitlement.CreateEntitlementInputs, error)
 
 	UniquelyComparable
 }
+
+type SubscriptionRateCard struct {
+	ID string `json:"id,omitempty"`
+
+	RateCard `json:"-"`
+}
+
+var _ RateCard = SubscriptionRateCard{}
 
 type DoesntHaveResourceError struct {
 	ResourceName string

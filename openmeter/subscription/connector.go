@@ -42,9 +42,10 @@ type Connector interface {
 }
 
 type connector struct {
-	customerSubscriptionRepo CustomerSubscriptionRepo
-	subscriptionRepo         SubscriptionRepo
-	subscriptionPhaseRepo    SubscriptionPhaseRepo
+	customerSubscriptionRepo    CustomerSubscriptionRepo
+	subscriptionRepo            SubscriptionRepo
+	subscriptionPhaseRepo       SubscriptionPhaseRepo
+	subscriptionEntitlementRepo SubscriptionEntitlementRepo
 
 	lifecycleManager LifecycleManager
 
@@ -218,15 +219,36 @@ func (c *connector) OverridePhase(ctx context.Context, subscriptionID models.Nam
 
 	// When overriding, 1st we have to close the old phase, close any downstream resources, and then create the new phase
 	return transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (SubscriptionPhase, error) {
+		ents := []Entitlement{}
+		for _, rateCard := range rateCards {
+			ent, err := c.closeRateCardEntitlement(ctx, rateCard, req.at)
+			if err != nil {
+				return SubscriptionPhase{}, fmt.Errorf("failed to close rate card entitlements: %w", err)
+			}
+			ents = append(ents, ent)
+		}
+
 		err := c.subscriptionPhaseRepo.DeleteAt(ctx, phase.ID, req.at)
 		if err != nil {
 			return SubscriptionPhase{}, fmt.Errorf("failed to delete phase: %w", err)
 		}
 
-		// TODO: close and migrate entitlements with values...
-
 		// create new phase
-		rateCards := ApplyOverrides(rateCards, req.rateCardOverrides)
+		// FIXME: having to map like this is a pain, maybe wrapping is not the right direction
+		rateCards := ApplyOverrides[RateCard](
+			lo.Map(rateCards, func(rateCard SubscriptionRateCard, _ int) RateCard {
+				// If an entitlement was deleted due to the override, we have to migrate it's usage
+				if ent, ok := lo.Find(ents, func(ent Entitlement) bool { return ent.RateCardID == rateCard.ID }); ok {
+					return entitlementUsageMigratingRateCard{
+						RateCard:         rateCard,
+						measureUsageFrom: ent.Entitlement.MeasureUsageFrom,
+					}
+				} else {
+					return rateCard
+				}
+			}),
+			req.rateCardOverrides,
+		)
 
 		return c.insertPhase(ctx, insertPhaseRequest{
 			phaseInput: SubscriptionPhaseCreateInput{
@@ -253,7 +275,7 @@ func (c *connector) insertPhase(ctx context.Context, req insertPhaseRequest) (Su
 
 	for _, rateCard := range req.rateCards {
 		// Lets create dependent resources
-		err := c.createDependentsOfRateCard(ctx, rateCard)
+		err := c.createRateCardEntitlement(ctx, rateCard)
 		if err != nil {
 			return SubscriptionPhase{}, fmt.Errorf("failed to create dependent resources for rate card: %w", err)
 		}
