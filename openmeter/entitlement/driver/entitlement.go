@@ -464,7 +464,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteEntitlementHandlerRequest) (DeleteEntitlementHandlerResponse, error) {
-			err := h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId)
+			err := h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId, clock.Now())
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[DeleteEntitlementHandlerResponse](http.StatusNoContent),

@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -59,7 +60,7 @@ type Connector interface {
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
-	DeleteEntitlement(ctx context.Context, namespace string, id string) error
+	DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error
 
 	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
@@ -206,7 +207,7 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
 		// Delete previous entitlement
 		// FIXME: we publish an event during this even if we fail later
-		err := c.DeleteEntitlement(ctx, input.Namespace, oldEnt.ID)
+		err := c.DeleteEntitlement(ctx, input.Namespace, oldEnt.ID, clock.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -220,14 +221,14 @@ func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace str
 	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 }
 
-func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string) error {
+func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	doInTx := func(ctx context.Context) (*Entitlement, error) {
 		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 		if err != nil {
 			return nil, err
 		}
 
-		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id}, at)
 		if err != nil {
 			return nil, err
 		}

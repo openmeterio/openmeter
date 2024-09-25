@@ -21,7 +21,7 @@ type EntitlementRepo interface {
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 	GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*Entitlement, error)
-	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
+	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 	ListNamespacesWithActiveEntitlements(ctx context.Context, includeDeletedAfter time.Time) ([]string, error)
