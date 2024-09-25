@@ -227,3 +227,20 @@ model Address {
   line2?: string;
   phoneNumber?: string;
 }
+
+/**
+ * Meta object to generate create/update request from type by omitting readonly properties.
+ */
+@friendlyName("{name}Request", T)
+model Request<T, Keys extends string> {
+  ...OmitProperties<T, Keys>
+}
+
+/**
+ * Set of key-value pairs managed by the system. Cannot be modified by user.
+ */
+@example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
+@friendlyName("Annotations")
+model Annotations {
+  ...Record<string>;
+}
