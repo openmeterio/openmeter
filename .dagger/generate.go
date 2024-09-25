@@ -21,12 +21,7 @@ type Generate struct {
 
 // Generate OpenAPI from TypeSpec.
 func (m *Generate) Openapi() *dagger.File {
-	file := dag.Container().
-		From("node:22.8.0-alpine3.20").
-		WithExec([]string{"npm", "install", "-g", "pnpm"}).
-		WithDirectory("/work", m.Source.Directory("api/spec")).
-		WithWorkdir("/work").
-		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
+	file := typespecBase(m.Source.Directory("api/spec")).
 		WithExec([]string{"pnpm", "compile"}).
 		File("/work/output/openapi.OpenMeterCloud.yaml").
 		WithName("openapi.yaml")
@@ -42,6 +37,15 @@ func (m *Generate) Openapi() *dagger.File {
 		File("/work/openapi.yaml")
 
 	return file
+}
+
+func typespecBase(source *dagger.Directory) *dagger.Container {
+	return dag.Container().
+		From("node:22.8.0-alpine3.20").
+		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithDirectory("/work", source).
+		WithWorkdir("/work").
+		WithExec([]string{"pnpm", "install", "--frozen-lockfile"})
 }
 
 // Generate the Python SDK.

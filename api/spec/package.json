@@ -5,7 +5,8 @@
   "scripts": {
     "compile": "tsp compile ./src/cloud",
     "watch": "tsp compile --watch ./src/cloud",
-    "format": "prettier --list-different --find-config-path --write ."
+    "format": "prettier --list-different --find-config-path --write .",
+    "lint": "prettier --check ."
   },
   "main": "./lib/index.js",
   "tspMain": "./src/cloud/main.tsp",
