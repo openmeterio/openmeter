@@ -12,11 +12,11 @@ namespace OpenMeter.Notification;
  * Metadata only fields of a notification channel.
  */
 @friendlyName("NotificationRuleMeta")
-model NotificationRuleMeta {
+model RuleMeta {
   /**
    * Identifies the notification rule.
    */
-  // @visibility("read")
+  @visibility("read")
   @summary("Rule Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -24,7 +24,7 @@ model NotificationRuleMeta {
   /**
    * Notification rule type.
    */
-  // @visibility("read")
+  @visibility("read")
   @summary("Rule Type")
   type: EventType;
 }
@@ -35,19 +35,12 @@ model NotificationRuleMeta {
 @friendlyName("NotificationRuleCommon")
 model RuleCommon<T extends EventType> {
   ...ResourceTimestamps;
-
-  /**
-   * Identifies the notification rule.
-   */
-  // @visibility("read")
-  @summary("Rule Unique Identifier")
-  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  id: ULID;
+  ...OmitProperties<RuleMeta, "type">;
 
   /**
    * Notification rule type.
    */
-  // @visibility("read", "create", "query")
+  @visibility("read", "create", "query")
   @summary("Rule Type")
   type: T;
 
@@ -56,23 +49,23 @@ model RuleCommon<T extends EventType> {
    */
   @summary("Rule Name")
   @example("Balance threshold reached")
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "query", "update")
   name: string;
 
   /**
    * Whether the rule is disabled or not.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "query", "update")
   @summary("Rule Disabled")
   @example(true)
   disabled?: boolean = false;
 
   /**
    * List of notification channels the rule applies to.
-  */
-  // @visibility("read")
+   */
+  @visibility("read", "create", "query", "update")
   @summary("Channels assigned to Rule")
-  channels: Array<ChannelMeta>
+  channels: Array<ChannelMeta>;
 }
 
 /**
@@ -83,14 +76,15 @@ model RuleBalanceThresholdValue {
   /**
    * Value of the threshold.
    */
-  // @visibility("read", "create", "update")
+  @visibility("read", "create", "update")
   @summary("Threshold Value")
   @example(100)
   value: float64;
+
   /**
    * Type of the threshold.
    */
-  // @visibility("read", "create", "update")
+  @visibility("read", "create", "update")
   @summary("Threshold Type")
   @example("NUMBER")
   type: "PERCENT" | "NUMBER";
@@ -104,7 +98,7 @@ model FeatureMeta {
   /**
    * Unique identifier of a feature.
    */
-  // @visibility("read", "query")
+  @visibility("read", "query")
   @summary("Feature Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -113,7 +107,7 @@ model FeatureMeta {
    * The key is an immutable unique identifier of the feature used throughout the API,
    * for example when interacting with a subject's entitlements.
    */
-  // @visibility("read", "query")
+  @visibility("read", "query")
   @summary("Feature Key")
   @example("gpt4_tokens")
   key: string;
@@ -129,7 +123,7 @@ model RuleBalanceThreshold {
   /**
    * List of thresholds the rule suppose to be triggered.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "query", "update")
   @summary("Entitlement Balance Thresholds")
   @minItems(1)
   @maxItems(10)
@@ -137,8 +131,8 @@ model RuleBalanceThreshold {
 
   /**
    * Optional field containing list of features the rule applies to.
-  */
-  // @visibility("read", "query")
+   */
+  @visibility("read", "query")
   @summary("Features")
   @minItems(1)
   features?: Array<FeatureMeta>;
@@ -167,15 +161,15 @@ union RuleCreateRequest {
 /**
  * Request with input parameters for creating new notification channel with webhook type.
  */
-// @withVisibility("create", "update")
+@withVisibility("create", "update")
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
-model RuleBalanceThresholdCreateRequest{
-  ...OmitProperties<RuleBalanceThreshold, "id" | "createdAt" | "updatedAt" | "deletedAt" | "features">;
+model RuleBalanceThresholdCreateRequest {
+  ...OmitProperties<RuleBalanceThreshold, "features">;
 
   /**
    * Optional field for defining the scope of notification by feature. It may contain features by id or key.
    */
-  // @visibility("create", "update")
+  @visibility("create", "update")
   @summary("Features")
   @minItems(1)
   features?: Array<ULID | string>;

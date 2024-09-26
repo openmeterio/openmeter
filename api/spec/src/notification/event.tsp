@@ -25,6 +25,7 @@ model DeliveryStatus {
   /**
    * Delivery state of the notification event to the channel.
    */
+  @visibility("read")
   @summary("Delivery State")
   @example("SUCCESS")
   state: "SUCCESS" | "FAILED" | "SENDING" | "PENDING";
@@ -32,6 +33,7 @@ model DeliveryStatus {
   /**
    * The reason of the last deliverry state update.
    */
+  @visibility("read")
   @summary("State Reason")
   @example("Failed to dispatch event due to provider error.")
   reason: string;
@@ -39,6 +41,7 @@ model DeliveryStatus {
   /**
    * Timestamp of when the status was last updated in RFC 3339 format.
    */
+  @visibility("read")
   @summary("Last Update Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   updatedAt: DateTime;
@@ -62,6 +65,7 @@ model EventBalanceThresholdPayload {
   /**
    * A unique identifier for the notification event the payload belongs to.
    */
+  @visibility("read")
   @summary("Notification Event Identifier")
   @example("01J2KNP1YTXQRXHTDJ4KPR7PZ0")
   id: ULID;
@@ -69,12 +73,14 @@ model EventBalanceThresholdPayload {
   /**
    * Type of the notification event.
    */
+  @visibility("read")
   @summary("Notification Event Type")
   type: EventType.entitlementsBalanceThreshold;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
    */
+  @visibility("read")
   @summary("Creation Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   timestamp: DateTime;
@@ -82,6 +88,7 @@ model EventBalanceThresholdPayload {
   /**
    * The data of the payload.
    */
+  @visibility("read")
   @summary("Payload Data")
   data: EventBalanceThresholdPayloadData;
 }
@@ -91,18 +98,23 @@ model EventBalanceThresholdPayload {
  */
 @friendlyName("NotificationEventBalanceThresholdPayloadData")
 model EventBalanceThresholdPayloadData {
+  @visibility("read")
   @summary("Entitlement")
   entitlement: OpenMeter.Entitlements.EntitlementMetered;
 
+  @visibility("read")
   @summary("Feature")
   feature: OpenMeter.Entitlements.Feature;
 
+  @visibility("read")
   @summary("Subject")
   subject: Subject;
 
+  @visibility("read")
   @summary("Entitlement Value")
   value: OpenMeter.Entitlements.EntitlementValue;
 
+  @visibility("read")
   @summary("Threshold")
   threshold: RuleBalanceThresholdValue;
 }
@@ -121,6 +133,7 @@ model Event {
   /**
    * A unique identifier of the notification event.
    */
+  @visibility("read")
   @summary("Event Identifier")
   @example("01J2KNP1YTXQRXHTDJ4KPR7PZ0")
   id: ULID;
@@ -128,12 +141,14 @@ model Event {
   /**
    * Type of the notification event.
    */
+  @visibility("read")
   @summary("Event Type")
   type: EventType;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
    */
+  @visibility("read")
   @summary("Creation Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   createdAt: DateTime;
@@ -141,24 +156,28 @@ model Event {
   /**
    * The nnotification rule which generated this event.
    */
+  @visibility("read")
   @summary("Owner Rule")
   rule: Rule;
 
   /**
    * The delivery status of the notification event.
    */
+  @visibility("read")
   @summary("Delivery Status")
   deliveryStatus: Array<DeliveryStatus>;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
    */
+  @visibility("read")
   @summary("Event Payload")
   payload: EventPayload;
 
   /**
    * Set of key-value pairs managed by the system. Cannot be modified by user.
    */
+  @visibility("read")
   @summary("Annotations")
   annotations: Annotations;
 }
