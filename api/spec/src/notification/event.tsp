@@ -228,21 +228,28 @@ interface Events {
     @example(DateTime.fromISO("2023-02-01T01:01:01.001Z"))
     to?: DateTime,
 
+    // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
+    // where the code generation results a less complicated/more idiomatic code.
+    //
+    //  alias IdOrKey = ULID | Key;
+    //  const features = Array<IdOrKey>;
+    //
+
     /**
-     * Filtering by multiple feature ids/keys.
+     * Filtering by multiple feature ids or keys.
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
     @query
-    feature?: Array<ULID | string>,
+    feature?: Array<string>,
 
     /**
-     * Filtering by multiple subject ids/keys.
+     * Filtering by multiple subject ids or keys.
      *
      * Usage: `?subject=subject-1&subject=subject-2`
      */
     @query
-    subject?: Array<ULID | string>,
+    subject?: Array<string>,
 
     /**
      * Filtering by multiple rule ids.

@@ -166,13 +166,20 @@ union RuleCreateRequest {
 model RuleBalanceThresholdCreateRequest {
   ...OmitProperties<RuleBalanceThreshold, "features">;
 
+  // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
+  // where the code generation results a less complicated/more idiomatic code.
+  //
+  //  alias IdOrKey = ULID | Key;
+  //  const features = Array<IdOrKey>;
+  //
+
   /**
    * Optional field for defining the scope of notification by feature. It may contain features by id or key.
    */
   @visibility("create", "update")
   @summary("Features")
   @minItems(1)
-  features?: Array<ULID | string>;
+  features?: Array<string>;
 }
 
 /**
@@ -227,19 +234,26 @@ interface Rules {
     @example(false)
     includeDisabled?: boolean,
 
+    // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
+    // where the code generation results a less complicated/more idiomatic code.
+    //
+    //  alias IdOrKey = ULID | Key;
+    //  const features = Array<IdOrKey>;
+    //
+
     /**
      * Filtering by multiple feature ids/keys.
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query feature?: Array<ULID | string>,
+    @query feature?: Array<string>,
 
     /**
      * Filtering by multiple notifiaction channel ids.
      *
      * Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
      */
-    @query channel?: Array<ULID | string>,
+    @query channel?: Array<string>,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<RuleOrderBy>,
