@@ -17,7 +17,14 @@ model SvixOperationalWebhookRequest {
    * The type of the Svix operational webhook request.
    */
   @summary("Operational Webhook Type")
-  type: "endpoint.created" |  "endpoint.deleted" | "endpoint.disabled" | "endpoint.updated" | "message.attempt.exhausted" | "message.attempt.failing" | "message.attempt.recovered";
+  type:
+    | "endpoint.created"
+    | "endpoint.deleted"
+    | "endpoint.disabled"
+    | "endpoint.updated"
+    | "message.attempt.exhausted"
+    | "message.attempt.failing"
+    | "message.attempt.recovered";
 
   /**
    * The payload of the Svix operational webhook request.

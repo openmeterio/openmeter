@@ -218,7 +218,7 @@ interface Events {
      */
     @query
     @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
-    from?: DateTime;
+    from?: DateTime,
 
     /**
      * End date-time in RFC 3339 format.
@@ -226,7 +226,7 @@ interface Events {
      */
     @query
     @example(DateTime.fromISO("2023-02-01T01:01:01.001Z"))
-    to?: DateTime;
+    to?: DateTime,
 
     /**
      * Filtering by multiple feature ids/keys.
