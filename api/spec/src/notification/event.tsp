@@ -240,7 +240,7 @@ interface Events {
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query
+    @query(#{explode: true})
     feature?: Array<string>,
 
     /**
@@ -248,7 +248,7 @@ interface Events {
      *
      * Usage: `?subject=subject-1&subject=subject-2`
      */
-    @query
+    @query(#{explode: true})
     subject?: Array<string>,
 
     /**
@@ -256,7 +256,7 @@ interface Events {
      *
      * Usage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5`
      */
-    @query
+    @query(#{explode: true})
     rule?: Array<ULID>,
 
     /**
@@ -264,7 +264,7 @@ interface Events {
      *
      * Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J`
      */
-    @query
+    @query(#{explode: true})
     channel?: Array<ULID>,
 
     ...OpenMeter.QueryPagination,

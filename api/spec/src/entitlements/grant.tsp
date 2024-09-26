@@ -38,14 +38,16 @@ interface Grants {
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query feature?: string[],
+    @query(#{explode: true})
+    feature?: string[],
 
     /**
      * Filtering by multiple subjects.
      *
      * Usage: `?subject=customer-1&subject=customer-2`
      */
-    @query subject?: string[],
+    @query(#{explode: true})
+    subject?: string[],
 
     /**
      * Include deleted

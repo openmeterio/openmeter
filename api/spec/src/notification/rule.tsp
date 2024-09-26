@@ -246,14 +246,16 @@ interface Rules {
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query feature?: Array<string>,
+    @query(#{explode: true})
+    feature?: Array<string>,
 
     /**
      * Filtering by multiple notifiaction channel ids.
      *
      * Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
      */
-    @query channel?: Array<string>,
+    @query(#{explode: true})
+    channel?: Array<string>,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<RuleOrderBy>,
