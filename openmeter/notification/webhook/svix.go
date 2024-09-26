@@ -249,8 +249,8 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 		Disabled:    &params.Disabled,
 		RateLimit:   *svix.NullableInt32(params.RateLimit),
 		Secret:      *svix.NullableString(params.Secret),
-		FilterTypes: params.EventTypes,
-		Channels:    params.Channels,
+		FilterTypes: &params.EventTypes,
+		Channels:    &params.Channels,
 		Metadata: func() *map[string]string {
 			if len(params.Metadata) > 0 {
 				return &params.Metadata
