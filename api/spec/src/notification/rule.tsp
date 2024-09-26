@@ -246,7 +246,7 @@ interface Rules {
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     feature?: Array<string>,
 
     /**
@@ -254,7 +254,7 @@ interface Rules {
      *
      * Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     channel?: Array<string>,
 
     ...OpenMeter.QueryPagination,

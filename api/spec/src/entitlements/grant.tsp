@@ -38,7 +38,7 @@ interface Grants {
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     feature?: string[],
 
     /**
@@ -46,7 +46,7 @@ interface Grants {
      *
      * Usage: `?subject=customer-1&subject=customer-2`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     subject?: string[],
 
     /**

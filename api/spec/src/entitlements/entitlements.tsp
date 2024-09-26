@@ -37,7 +37,7 @@ interface Entitlements {
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     feature?: string[],
 
     /**
@@ -45,7 +45,7 @@ interface Entitlements {
      *
      * Usage: `?subject=customer-1&subject=customer-2`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     subject?: string[],
 
     /**
@@ -53,7 +53,7 @@ interface Entitlements {
      *
      * Usage: `?entitlementType=metered&entitlementType=boolean`
      */
-    @query(#{explode: true})
+    @query(#{ explode: true })
     entitlementType?: EntitlementType[],
 
     ...OpenMeter.QueryPagination,
