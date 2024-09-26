@@ -210,8 +210,8 @@ interface Channels {
    * Update notification channel.
    */
   @put
-  @operationId("createNotificationChannel")
-  @summary("Create a notification channel")
+  @operationId("updateNotificationChannel")
+  @summary("Update a notification channel")
   update(@body request: ChannelCreateRequest): {
     @statusCode _: 200;
     @body body: Channel;

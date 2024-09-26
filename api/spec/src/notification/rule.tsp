@@ -266,8 +266,8 @@ interface Rules {
    * Update notification rule.
    */
   @put
-  @operationId("createNotificationChannel")
-  @summary("Create a notification channel")
+  @operationId("updateNotificationRule")
+  @summary("Update a notification rule")
   update(@body request: RuleCreateRequest): {
     @statusCode _: 200;
     @body body: Rule;
