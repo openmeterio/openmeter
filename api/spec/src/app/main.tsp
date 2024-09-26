@@ -6,7 +6,8 @@ import "@typespec/openapi3";
 import "..";
 
 // Package Contents
-import "./connected.tsp";
+import "./app.tsp";
+import "./capability.tsp";
 import "./marketplace.tsp";
 
 using TypeSpec.Http;

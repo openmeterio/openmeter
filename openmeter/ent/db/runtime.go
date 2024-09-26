@@ -5,6 +5,7 @@ package db
 import (
 	"time"
 
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -31,6 +32,29 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	dbappMixin := schema.App{}.Mixin()
+	dbappMixinFields0 := dbappMixin[0].Fields()
+	_ = dbappMixinFields0
+	dbappFields := schema.App{}.Fields()
+	_ = dbappFields
+	// dbappDescNamespace is the schema descriptor for namespace field.
+	dbappDescNamespace := dbappMixinFields0[1].Descriptor()
+	// dbapp.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	dbapp.NamespaceValidator = dbappDescNamespace.Validators[0].(func(string) error)
+	// dbappDescCreatedAt is the schema descriptor for created_at field.
+	dbappDescCreatedAt := dbappMixinFields0[3].Descriptor()
+	// dbapp.DefaultCreatedAt holds the default value on creation for the created_at field.
+	dbapp.DefaultCreatedAt = dbappDescCreatedAt.Default.(func() time.Time)
+	// dbappDescUpdatedAt is the schema descriptor for updated_at field.
+	dbappDescUpdatedAt := dbappMixinFields0[4].Descriptor()
+	// dbapp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	dbapp.DefaultUpdatedAt = dbappDescUpdatedAt.Default.(func() time.Time)
+	// dbapp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	dbapp.UpdateDefaultUpdatedAt = dbappDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// dbappDescID is the schema descriptor for id field.
+	dbappDescID := dbappMixinFields0[0].Descriptor()
+	// dbapp.DefaultID holds the default value on creation for the id field.
+	dbapp.DefaultID = dbappDescID.Default.(func() string)
 	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
 	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
 	_ = balancesnapshotMixinFields0

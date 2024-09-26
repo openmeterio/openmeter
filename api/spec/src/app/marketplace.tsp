@@ -22,9 +22,9 @@ interface MarketplaceAPI {
    * List available apps of the app marketplace.
    */
   @get
-  @route("/apps")
-  @operationId("marketplaceListApps")
-  marketplaceList(...MarketplaceListAppsListRequest): Paginated<MarketplaceApp>[] | CommonErrors;
+  @route("/listings")
+  @operationId("marketplaceListListings")
+  marketplaceListings(...MarketplaceListListingsRequest): Paginated<Listing>[] | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
 
@@ -34,8 +34,8 @@ interface MarketplaceAPI {
    */
   @get
   @route("/install/oauth2")
-  @operationId("appOAuth2Install")
-  oAuth2Install(@query appKey: Key): OAuth2.ClientAppStartResponse | CommonErrors;
+  @operationId("marketplaceOAuth2InstallGetURL")
+  marketplaceOAuth2InstallGetURL(@query appKey: Key): OAuth2.ClientAppStartResponse | CommonErrors;
 
   /**
    * Authorize OAuth2 code.
@@ -43,31 +43,33 @@ interface MarketplaceAPI {
    */
   @get
   @route("/install/oauth2/authorize")
-  @operationId("appOAuth2Authorize")
-  oAuth2Authorize(...MarketplaceOAuth2InstallRequest): MarketplaceOAuth2InstallResponse | CommonErrors;
+  @operationId("marketplaceOAuth2InstallAuthorize")
+  marketplaceOAuth2InstallAuthorize(
+    ...MarketplaceOAuth2InstallAuthorizeRequest,
+  ): MarketplaceOAuth2InstallAuthorizeResponse | CommonErrors;
 
   /* **************** Install App via API Key **************** */
 
   /**
-   * Install an app via API Key.
+   * Install an marketplace via API Key.
    */
   @post
   @route("/install/apikey")
-  @operationId("appApiKeyInstall")
-  apiKeyInstall(...MarketplaceApiKeyInstallRequest): ConnectedApp | CommonErrors;
+  @operationId("marketplaceAPIKeyInstall")
+  appAPIKeyInstall(...MarketplaceApiKeyInstallRequest): App | CommonErrors;
 }
 
 /**
- * Query params for listing app marketplace.
+ * Query params for listing marketplace listings.
  */
-@friendlyName("MarketplaceListAppsListRequest")
-model MarketplaceListAppsListRequest extends PaginatedQuery {}
+@friendlyName("MarketplaceListListingsRequest")
+model MarketplaceListListingsRequest extends PaginatedQuery {}
 
 /**
  * Marketplace OAuth2 install request.
  */
-@friendlyName("MarketplaceOAuth2InstallRequest")
-model MarketplaceOAuth2InstallRequest {
+@friendlyName("MarketplaceOAuth2InstallAuthorizeRequest")
+model MarketplaceOAuth2InstallAuthorizeRequest {
   ...OAuth2.AuthorizationCodeGrantParams;
 
   /**
@@ -79,8 +81,8 @@ model MarketplaceOAuth2InstallRequest {
 /**
  * Marketplace OAuth2 install response.
  */
-@friendlyName("MarketplaceOauth2AuthorizationCodeGrantResponse")
-model MarketplaceOAuth2InstallResponse {
+@friendlyName("MarketplaceOAuth2InstallAuthorizeResponse")
+model MarketplaceOAuth2InstallAuthorizeResponse {
   @statusCode _: 303;
 }
 
@@ -103,12 +105,12 @@ model MarketplaceApiKeyInstallRequest {
 }
 
 /**
- * A marketplace app object.
+ * A marketplace listing.
  * Represent an available app in the app marketplace that can be installed to the organization.
  *
  * Marketplace apps only exist in config so they don't extend the Resource model.
  */
-@friendlyName("MarketplaceApp")
+@friendlyName("MarketplaceListing")
 @example(#{
   key: "stripe",
   type: AppType.Stripe,
@@ -117,29 +119,29 @@ model MarketplaceApiKeyInstallRequest {
   iconUrl: "/images/stripe.png",
   capabilities: #[
     #{
-      type: AppCapabilityType.CalculateTax,
+      type: CapabilityType.CalculateTax,
       key: "stripe_calculate_tax",
       name: "Calculate Tax",
       description: "Stripe Tax calculates tax portion of the invoices.",
-      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+      requirements: #[Requirements.CustomerExternalStripeCustomerId],
     },
     #{
-      type: AppCapabilityType.InvoiceCustomers,
+      type: CapabilityType.InvoiceCustomers,
       key: "stripe_invoice_customers",
       name: "Invoice Customers",
       description: "Stripe invoices customers with due amount.",
-      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+      requirements: #[Requirements.CustomerExternalStripeCustomerId],
     },
     #{
-      type: AppCapabilityType.CollectPayments,
+      type: CapabilityType.CollectPayments,
       key: "stripe_collect_payments",
       name: "Collect Payments",
       description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
-      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+      requirements: #[Requirements.CustomerExternalStripeCustomerId],
     }
   ],
 })
-model MarketplaceApp {
+model Listing {
   /**
    * The app's key.
    */
@@ -168,5 +170,5 @@ model MarketplaceApp {
   /**
    * The app's capabilities.
    */
-  capabilities: AppCapability[];
+  capabilities: Capability[];
 }

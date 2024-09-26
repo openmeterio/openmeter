@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -40,6 +41,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// App is the client for interacting with the App builders.
+	App *AppClient
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
 	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
@@ -83,6 +86,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.App = NewAppClient(c.config)
 	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
@@ -191,6 +195,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                             ctx,
 		config:                          cfg,
+		App:                             NewAppClient(cfg),
 		BalanceSnapshot:                 NewBalanceSnapshotClient(cfg),
 		BillingCustomerOverride:         NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                  NewBillingInvoiceClient(cfg),
@@ -226,6 +231,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                             ctx,
 		config:                          cfg,
+		App:                             NewAppClient(cfg),
 		BalanceSnapshot:                 NewBalanceSnapshotClient(cfg),
 		BillingCustomerOverride:         NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                  NewBillingInvoiceClient(cfg),
@@ -248,7 +254,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		BalanceSnapshot.
+//		App.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -271,7 +277,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
+		c.App, c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
 		c.BillingInvoiceItem, c.BillingProfile, c.BillingWorkflowConfig, c.Customer,
 		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
 		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
@@ -285,7 +291,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
+		c.App, c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
 		c.BillingInvoiceItem, c.BillingProfile, c.BillingWorkflowConfig, c.Customer,
 		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
 		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
@@ -298,6 +304,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AppMutation:
+		return c.App.mutate(ctx, m)
 	case *BalanceSnapshotMutation:
 		return c.BalanceSnapshot.mutate(ctx, m)
 	case *BillingCustomerOverrideMutation:
@@ -332,6 +340,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.UsageReset.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("db: unknown mutation type %T", m)
+	}
+}
+
+// AppClient is a client for the App schema.
+type AppClient struct {
+	config
+}
+
+// NewAppClient returns a client for the App from the given config.
+func NewAppClient(c config) *AppClient {
+	return &AppClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `dbapp.Hooks(f(g(h())))`.
+func (c *AppClient) Use(hooks ...Hook) {
+	c.hooks.App = append(c.hooks.App, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `dbapp.Intercept(f(g(h())))`.
+func (c *AppClient) Intercept(interceptors ...Interceptor) {
+	c.inters.App = append(c.inters.App, interceptors...)
+}
+
+// Create returns a builder for creating a App entity.
+func (c *AppClient) Create() *AppCreate {
+	mutation := newAppMutation(c.config, OpCreate)
+	return &AppCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of App entities.
+func (c *AppClient) CreateBulk(builders ...*AppCreate) *AppCreateBulk {
+	return &AppCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppClient) MapCreateBulk(slice any, setFunc func(*AppCreate, int)) *AppCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppCreateBulk{err: fmt.Errorf("calling to AppClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for App.
+func (c *AppClient) Update() *AppUpdate {
+	mutation := newAppMutation(c.config, OpUpdate)
+	return &AppUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppClient) UpdateOne(a *App) *AppUpdateOne {
+	mutation := newAppMutation(c.config, OpUpdateOne, withApp(a))
+	return &AppUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppClient) UpdateOneID(id string) *AppUpdateOne {
+	mutation := newAppMutation(c.config, OpUpdateOne, withAppID(id))
+	return &AppUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for App.
+func (c *AppClient) Delete() *AppDelete {
+	mutation := newAppMutation(c.config, OpDelete)
+	return &AppDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppClient) DeleteOne(a *App) *AppDeleteOne {
+	return c.DeleteOneID(a.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppClient) DeleteOneID(id string) *AppDeleteOne {
+	builder := c.Delete().Where(dbapp.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppDeleteOne{builder}
+}
+
+// Query returns a query builder for App.
+func (c *AppClient) Query() *AppQuery {
+	return &AppQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeApp},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a App entity by its id.
+func (c *AppClient) Get(ctx context.Context, id string) (*App, error) {
+	return c.Query().Where(dbapp.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppClient) GetX(ctx context.Context, id string) *App {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AppClient) Hooks() []Hook {
+	return c.hooks.App
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppClient) Interceptors() []Interceptor {
+	return c.inters.App
+}
+
+func (c *AppClient) mutate(ctx context.Context, m *AppMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown App mutation op: %q", m.Op())
 	}
 }
 
@@ -2914,16 +3055,18 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		BalanceSnapshot, BillingCustomerOverride, BillingInvoice, BillingInvoiceItem,
-		BillingProfile, BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement,
-		Feature, Grant, NotificationChannel, NotificationEvent,
-		NotificationEventDeliveryStatus, NotificationRule, UsageReset []ent.Hook
+		App, BalanceSnapshot, BillingCustomerOverride, BillingInvoice,
+		BillingInvoiceItem, BillingProfile, BillingWorkflowConfig, Customer,
+		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
+		UsageReset []ent.Hook
 	}
 	inters struct {
-		BalanceSnapshot, BillingCustomerOverride, BillingInvoice, BillingInvoiceItem,
-		BillingProfile, BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement,
-		Feature, Grant, NotificationChannel, NotificationEvent,
-		NotificationEventDeliveryStatus, NotificationRule, UsageReset []ent.Interceptor
+		App, BalanceSnapshot, BillingCustomerOverride, BillingInvoice,
+		BillingInvoiceItem, BillingProfile, BillingWorkflowConfig, Customer,
+		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
+		UsageReset []ent.Interceptor
 	}
 )
 

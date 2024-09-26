@@ -9,6 +9,43 @@ import (
 )
 
 var (
+	// AppsColumns holds the columns for the "apps" table.
+	AppsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString},
+		{Name: "listing_key", Type: field.TypeString},
+	}
+	// AppsTable holds the schema information for the "apps" table.
+	AppsTable = &schema.Table{
+		Name:       "apps",
+		Columns:    AppsColumns,
+		PrimaryKey: []*schema.Column{AppsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "app_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppsColumns[0]},
+			},
+			{
+				Name:    "app_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppsColumns[1]},
+			},
+			{
+				Name:    "app_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppsColumns[1], AppsColumns[0]},
+			},
+		},
+	}
 	// BalanceSnapshotsColumns holds the columns for the "balance_snapshots" table.
 	BalanceSnapshotsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -885,6 +922,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AppsTable,
 		BalanceSnapshotsTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
