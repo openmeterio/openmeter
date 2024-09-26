@@ -173,6 +173,9 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 		})
 
 		for _, pendingInvoice := range pendingInvoices {
+			pendingInvoice.Invoice.Customer.CreatedAt = customerEntity.CreatedAt
+			pendingInvoice.Invoice.Customer.UpdatedAt = customerEntity.UpdatedAt
+
 			require.EqualValues(t, billing.InvoiceCustomer(*customerEntity), pendingInvoice.Invoice.Customer)
 		}
 
