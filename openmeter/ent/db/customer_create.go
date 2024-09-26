@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -214,15 +215,15 @@ func (cc *CustomerCreate) SetNillableTimezone(t *timezone.Timezone) *CustomerCre
 }
 
 // SetCurrency sets the "currency" field.
-func (cc *CustomerCreate) SetCurrency(mc models.CurrencyCode) *CustomerCreate {
-	cc.mutation.SetCurrency(mc)
+func (cc *CustomerCreate) SetCurrency(c currencyx.Code) *CustomerCreate {
+	cc.mutation.SetCurrency(c)
 	return cc
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableCurrency(mc *models.CurrencyCode) *CustomerCreate {
-	if mc != nil {
-		cc.SetCurrency(*mc)
+func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate {
+	if c != nil {
+		cc.SetCurrency(*c)
 	}
 	return cc
 }
@@ -778,7 +779,7 @@ func (u *CustomerUpsert) ClearTimezone() *CustomerUpsert {
 }
 
 // SetCurrency sets the "currency" field.
-func (u *CustomerUpsert) SetCurrency(v models.CurrencyCode) *CustomerUpsert {
+func (u *CustomerUpsert) SetCurrency(v currencyx.Code) *CustomerUpsert {
 	u.Set(customer.FieldCurrency, v)
 	return u
 }
@@ -1127,7 +1128,7 @@ func (u *CustomerUpsertOne) ClearTimezone() *CustomerUpsertOne {
 }
 
 // SetCurrency sets the "currency" field.
-func (u *CustomerUpsertOne) SetCurrency(v models.CurrencyCode) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetCurrency(v currencyx.Code) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetCurrency(v)
 	})
@@ -1649,7 +1650,7 @@ func (u *CustomerUpsertBulk) ClearTimezone() *CustomerUpsertBulk {
 }
 
 // SetCurrency sets the "currency" field.
-func (u *CustomerUpsertBulk) SetCurrency(v models.CurrencyCode) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetCurrency(v currencyx.Code) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetCurrency(v)
 	})

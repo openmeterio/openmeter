@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -52,7 +53,7 @@ type Customer struct {
 	// Timezone holds the value of the "timezone" field.
 	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency *models.CurrencyCode `json:"currency,omitempty"`
+	Currency *currencyx.Code `json:"currency,omitempty"`
 	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
 	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -230,8 +231,8 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				c.Currency = new(models.CurrencyCode)
-				*c.Currency = models.CurrencyCode(value.String)
+				c.Currency = new(currencyx.Code)
+				*c.Currency = currencyx.Code(value.String)
 			}
 		case customer.FieldExternalMappingStripeCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {

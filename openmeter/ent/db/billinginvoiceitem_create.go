@@ -13,9 +13,10 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // BillingInvoiceItemCreate is the builder for creating a BillingInvoiceItem entity.
@@ -118,9 +119,29 @@ func (biic *BillingInvoiceItemCreate) SetInvoiceAt(t time.Time) *BillingInvoiceI
 	return biic
 }
 
+// SetType sets the "type" field.
+func (biic *BillingInvoiceItemCreate) SetType(bit billing.InvoiceItemType) *BillingInvoiceItemCreate {
+	biic.mutation.SetType(bit)
+	return biic
+}
+
+// SetName sets the "name" field.
+func (biic *BillingInvoiceItemCreate) SetName(s string) *BillingInvoiceItemCreate {
+	biic.mutation.SetName(s)
+	return biic
+}
+
 // SetQuantity sets the "quantity" field.
 func (biic *BillingInvoiceItemCreate) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceItemCreate {
 	biic.mutation.SetQuantity(a)
+	return biic
+}
+
+// SetNillableQuantity sets the "quantity" field if the given value is not nil.
+func (biic *BillingInvoiceItemCreate) SetNillableQuantity(a *alpacadecimal.Decimal) *BillingInvoiceItemCreate {
+	if a != nil {
+		biic.SetQuantity(*a)
+	}
 	return biic
 }
 
@@ -131,14 +152,14 @@ func (biic *BillingInvoiceItemCreate) SetUnitPrice(a alpacadecimal.Decimal) *Bil
 }
 
 // SetCurrency sets the "currency" field.
-func (biic *BillingInvoiceItemCreate) SetCurrency(s string) *BillingInvoiceItemCreate {
-	biic.mutation.SetCurrency(s)
+func (biic *BillingInvoiceItemCreate) SetCurrency(c currencyx.Code) *BillingInvoiceItemCreate {
+	biic.mutation.SetCurrency(c)
 	return biic
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (biic *BillingInvoiceItemCreate) SetTaxCodeOverride(io invoice.TaxOverrides) *BillingInvoiceItemCreate {
-	biic.mutation.SetTaxCodeOverride(io)
+func (biic *BillingInvoiceItemCreate) SetTaxCodeOverride(bo billing.TaxOverrides) *BillingInvoiceItemCreate {
+	biic.mutation.SetTaxCodeOverride(bo)
 	return biic
 }
 
@@ -257,8 +278,21 @@ func (biic *BillingInvoiceItemCreate) check() error {
 	if _, ok := biic.mutation.InvoiceAt(); !ok {
 		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "BillingInvoiceItem.invoice_at"`)}
 	}
-	if _, ok := biic.mutation.Quantity(); !ok {
-		return &ValidationError{Name: "quantity", err: errors.New(`db: missing required field "BillingInvoiceItem.quantity"`)}
+	if _, ok := biic.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoiceItem.type"`)}
+	}
+	if v, ok := biic.mutation.GetType(); ok {
+		if err := billinginvoiceitem.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.type": %w`, err)}
+		}
+	}
+	if _, ok := biic.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingInvoiceItem.name"`)}
+	}
+	if v, ok := biic.mutation.Name(); ok {
+		if err := billinginvoiceitem.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.name": %w`, err)}
+		}
 	}
 	if _, ok := biic.mutation.UnitPrice(); !ok {
 		return &ValidationError{Name: "unit_price", err: errors.New(`db: missing required field "BillingInvoiceItem.unit_price"`)}
@@ -267,7 +301,7 @@ func (biic *BillingInvoiceItemCreate) check() error {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoiceItem.currency"`)}
 	}
 	if v, ok := biic.mutation.Currency(); ok {
-		if err := billinginvoiceitem.CurrencyValidator(v); err != nil {
+		if err := billinginvoiceitem.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.currency": %w`, err)}
 		}
 	}
@@ -346,9 +380,17 @@ func (biic *BillingInvoiceItemCreate) createSpec() (*BillingInvoiceItem, *sqlgra
 		_spec.SetField(billinginvoiceitem.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
 	}
+	if value, ok := biic.mutation.GetType(); ok {
+		_spec.SetField(billinginvoiceitem.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
+	if value, ok := biic.mutation.Name(); ok {
+		_spec.SetField(billinginvoiceitem.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
 	if value, ok := biic.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceitem.FieldQuantity, field.TypeOther, value)
-		_node.Quantity = value
+		_node.Quantity = &value
 	}
 	if value, ok := biic.mutation.UnitPrice(); ok {
 		_spec.SetField(billinginvoiceitem.FieldUnitPrice, field.TypeOther, value)
@@ -376,7 +418,7 @@ func (biic *BillingInvoiceItemCreate) createSpec() (*BillingInvoiceItem, *sqlgra
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.InvoiceID = nodes[0]
+		_node.InvoiceID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -533,6 +575,30 @@ func (u *BillingInvoiceItemUpsert) UpdateInvoiceAt() *BillingInvoiceItemUpsert {
 	return u
 }
 
+// SetType sets the "type" field.
+func (u *BillingInvoiceItemUpsert) SetType(v billing.InvoiceItemType) *BillingInvoiceItemUpsert {
+	u.Set(billinginvoiceitem.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceItemUpsert) UpdateType() *BillingInvoiceItemUpsert {
+	u.SetExcluded(billinginvoiceitem.FieldType)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *BillingInvoiceItemUpsert) SetName(v string) *BillingInvoiceItemUpsert {
+	u.Set(billinginvoiceitem.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingInvoiceItemUpsert) UpdateName() *BillingInvoiceItemUpsert {
+	u.SetExcluded(billinginvoiceitem.FieldName)
+	return u
+}
+
 // SetQuantity sets the "quantity" field.
 func (u *BillingInvoiceItemUpsert) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceItemUpsert {
 	u.Set(billinginvoiceitem.FieldQuantity, v)
@@ -542,6 +608,12 @@ func (u *BillingInvoiceItemUpsert) SetQuantity(v alpacadecimal.Decimal) *Billing
 // UpdateQuantity sets the "quantity" field to the value that was provided on create.
 func (u *BillingInvoiceItemUpsert) UpdateQuantity() *BillingInvoiceItemUpsert {
 	u.SetExcluded(billinginvoiceitem.FieldQuantity)
+	return u
+}
+
+// ClearQuantity clears the value of the "quantity" field.
+func (u *BillingInvoiceItemUpsert) ClearQuantity() *BillingInvoiceItemUpsert {
+	u.SetNull(billinginvoiceitem.FieldQuantity)
 	return u
 }
 
@@ -558,7 +630,7 @@ func (u *BillingInvoiceItemUpsert) UpdateUnitPrice() *BillingInvoiceItemUpsert {
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (u *BillingInvoiceItemUpsert) SetTaxCodeOverride(v invoice.TaxOverrides) *BillingInvoiceItemUpsert {
+func (u *BillingInvoiceItemUpsert) SetTaxCodeOverride(v billing.TaxOverrides) *BillingInvoiceItemUpsert {
 	u.Set(billinginvoiceitem.FieldTaxCodeOverride, v)
 	return u
 }
@@ -748,6 +820,34 @@ func (u *BillingInvoiceItemUpsertOne) UpdateInvoiceAt() *BillingInvoiceItemUpser
 	})
 }
 
+// SetType sets the "type" field.
+func (u *BillingInvoiceItemUpsertOne) SetType(v billing.InvoiceItemType) *BillingInvoiceItemUpsertOne {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceItemUpsertOne) UpdateType() *BillingInvoiceItemUpsertOne {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.UpdateType()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *BillingInvoiceItemUpsertOne) SetName(v string) *BillingInvoiceItemUpsertOne {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingInvoiceItemUpsertOne) UpdateName() *BillingInvoiceItemUpsertOne {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.UpdateName()
+	})
+}
+
 // SetQuantity sets the "quantity" field.
 func (u *BillingInvoiceItemUpsertOne) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceItemUpsertOne {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
@@ -759,6 +859,13 @@ func (u *BillingInvoiceItemUpsertOne) SetQuantity(v alpacadecimal.Decimal) *Bill
 func (u *BillingInvoiceItemUpsertOne) UpdateQuantity() *BillingInvoiceItemUpsertOne {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.UpdateQuantity()
+	})
+}
+
+// ClearQuantity clears the value of the "quantity" field.
+func (u *BillingInvoiceItemUpsertOne) ClearQuantity() *BillingInvoiceItemUpsertOne {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.ClearQuantity()
 	})
 }
 
@@ -777,7 +884,7 @@ func (u *BillingInvoiceItemUpsertOne) UpdateUnitPrice() *BillingInvoiceItemUpser
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (u *BillingInvoiceItemUpsertOne) SetTaxCodeOverride(v invoice.TaxOverrides) *BillingInvoiceItemUpsertOne {
+func (u *BillingInvoiceItemUpsertOne) SetTaxCodeOverride(v billing.TaxOverrides) *BillingInvoiceItemUpsertOne {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.SetTaxCodeOverride(v)
 	})
@@ -1136,6 +1243,34 @@ func (u *BillingInvoiceItemUpsertBulk) UpdateInvoiceAt() *BillingInvoiceItemUpse
 	})
 }
 
+// SetType sets the "type" field.
+func (u *BillingInvoiceItemUpsertBulk) SetType(v billing.InvoiceItemType) *BillingInvoiceItemUpsertBulk {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceItemUpsertBulk) UpdateType() *BillingInvoiceItemUpsertBulk {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.UpdateType()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *BillingInvoiceItemUpsertBulk) SetName(v string) *BillingInvoiceItemUpsertBulk {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingInvoiceItemUpsertBulk) UpdateName() *BillingInvoiceItemUpsertBulk {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.UpdateName()
+	})
+}
+
 // SetQuantity sets the "quantity" field.
 func (u *BillingInvoiceItemUpsertBulk) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceItemUpsertBulk {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
@@ -1147,6 +1282,13 @@ func (u *BillingInvoiceItemUpsertBulk) SetQuantity(v alpacadecimal.Decimal) *Bil
 func (u *BillingInvoiceItemUpsertBulk) UpdateQuantity() *BillingInvoiceItemUpsertBulk {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.UpdateQuantity()
+	})
+}
+
+// ClearQuantity clears the value of the "quantity" field.
+func (u *BillingInvoiceItemUpsertBulk) ClearQuantity() *BillingInvoiceItemUpsertBulk {
+	return u.Update(func(s *BillingInvoiceItemUpsert) {
+		s.ClearQuantity()
 	})
 }
 
@@ -1165,7 +1307,7 @@ func (u *BillingInvoiceItemUpsertBulk) UpdateUnitPrice() *BillingInvoiceItemUpse
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (u *BillingInvoiceItemUpsertBulk) SetTaxCodeOverride(v invoice.TaxOverrides) *BillingInvoiceItemUpsertBulk {
+func (u *BillingInvoiceItemUpsertBulk) SetTaxCodeOverride(v billing.TaxOverrides) *BillingInvoiceItemUpsertBulk {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.SetTaxCodeOverride(v)
 	})

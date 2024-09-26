@@ -10,6 +10,7 @@ import (
 type TxAdapter interface {
 	ProfileAdapter
 	CustomerOverrideAdapter
+	InvoiceItemAdapter
 
 	Commit() error
 	Rollback() error
@@ -18,6 +19,7 @@ type TxAdapter interface {
 type Adapter interface {
 	ProfileAdapter
 	CustomerOverrideAdapter
+	InvoiceItemAdapter
 
 	WithTx(context.Context) (TxAdapter, error)
 }
@@ -37,6 +39,11 @@ type CustomerOverrideAdapter interface {
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
 	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
+}
+
+type InvoiceItemAdapter interface {
+	CreateInvoiceItems(ctx context.Context, input CreateInvoiceItemsInput) ([]InvoiceItem, error)
+	GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]InvoiceItem, error)
 }
 
 type UpdateProfileAdapterInput struct {

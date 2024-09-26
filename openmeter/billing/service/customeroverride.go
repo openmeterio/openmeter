@@ -5,7 +5,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ billing.CustomerOverrideService = (*Service)(nil)
@@ -68,10 +67,7 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 
 		if existingOverride == nil {
 			return nil, billing.NotFoundError{
-				NamespacedID: models.NamespacedID{
-					Namespace: input.Namespace,
-					ID:        input.CustomerID,
-				},
+				ID:     input.CustomerID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideNotFound,
 			}
@@ -108,10 +104,7 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 
 	if override == nil {
 		return nil, billing.NotFoundError{
-			NamespacedID: models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
+			ID:     input.CustomerID,
 			Entity: billing.EntityCustomerOverride,
 			Err:    billing.ErrCustomerOverrideNotFound,
 		}
@@ -140,10 +133,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 		if existingOverride == nil {
 			return billing.NotFoundError{
-				NamespacedID: models.NamespacedID{
-					Namespace: input.Namespace,
-					ID:        input.CustomerID,
-				},
+				ID:     input.CustomerID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideNotFound,
 			}
@@ -151,10 +141,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 		if existingOverride.DeletedAt != nil {
 			return billing.NotFoundError{
-				NamespacedID: models.NamespacedID{
-					Namespace: input.Namespace,
-					ID:        input.CustomerID,
-				},
+				ID:     input.CustomerID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideAlreadyDeleted,
 			}
@@ -165,6 +152,12 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 }
 
 func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input billing.GetProfileWithCustomerOverrideInput) (*billing.ProfileWithCustomerDetails, error) {
+	return billing.WithTx(ctx, s.adapter, func(ctx context.Context, adapter billing.TxAdapter) (*billing.ProfileWithCustomerDetails, error) {
+		return s.getProfileWithCustomerOverride(ctx, adapter, input)
+	})
+}
+
+func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter billing.TxAdapter, input billing.GetProfileWithCustomerOverrideInput) (*billing.ProfileWithCustomerDetails, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -181,70 +174,7 @@ func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input bill
 		return nil, err
 	}
 
-	billingProfileWithOverrides, err := billing.WithTx(ctx, s.adapter, func(ctx context.Context, adapter billing.TxAdapter) (*billing.Profile, error) {
-		override, err := adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Namespace:  input.Namespace,
-			CustomerID: input.CustomerID,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if override == nil || override.DeletedAt != nil {
-			// Let's fetch the default billing profile
-			defaultProfile, err := adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			if defaultProfile == nil {
-				return nil, billing.NotFoundError{
-					NamespacedID: models.NamespacedID{
-						Namespace: input.Namespace,
-					},
-					Entity: billing.EntityDefaultProfile,
-					Err:    billing.ErrDefaultProfileNotFound,
-				}
-			}
-
-			return defaultProfile, nil
-		}
-
-		// We have an active override, let's see what's the baseline profile
-		baselineProfile := override.Profile
-		if baselineProfile == nil {
-			// Let's fetch the default billing profile
-			baselineProfile, err = adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			if baselineProfile == nil {
-				return nil, billing.NotFoundError{
-					NamespacedID: models.NamespacedID{
-						Namespace: input.Namespace,
-					},
-					Entity: billing.EntityDefaultProfile,
-					Err:    billing.ErrDefaultProfileNotFound,
-				}
-			}
-		}
-
-		// We have the patches and the profile, let's merge them
-		profile := baselineProfile.Merge(override)
-
-		if err := profile.Validate(); err != nil {
-			return nil, billing.ValidationError{
-				Err: err,
-			}
-		}
-
-		return &profile, nil
-	})
+	billingProfileWithOverrides, err := s.getProfileWithCustomerOverrideMerges(ctx, adapter, input)
 	if err != nil {
 		return nil, err
 	}
@@ -258,4 +188,67 @@ func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input bill
 		Profile:  *billingProfileWithOverrides,
 		Customer: *customer,
 	}, nil
+}
+
+// getProfileWithCustomerOverrideMerges fetches the billing profile with the customer specific overrides applied,
+// if any. If there are no overrides, it returns the default billing profile.
+//
+// This function does not perform validations or customer entity overrides.
+func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adapter billing.TxAdapter, input billing.GetProfileWithCustomerOverrideInput) (*billing.Profile, error) {
+	override, err := adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+		Namespace:  input.Namespace,
+		CustomerID: input.CustomerID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if override == nil || override.DeletedAt != nil {
+		// Let's fetch the default billing profile
+		defaultProfile, err := adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			Namespace: input.Namespace,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if defaultProfile == nil {
+			return nil, billing.NotFoundError{
+				Entity: billing.EntityDefaultProfile,
+				Err:    billing.ErrDefaultProfileNotFound,
+			}
+		}
+
+		return defaultProfile, nil
+	}
+
+	// We have an active override, let's see what's the baseline profile
+	baselineProfile := override.Profile
+	if baselineProfile == nil {
+		// Let's fetch the default billing profile
+		baselineProfile, err = adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			Namespace: input.Namespace,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if baselineProfile == nil {
+			return nil, billing.NotFoundError{
+				Entity: billing.EntityDefaultProfile,
+				Err:    billing.ErrDefaultProfileNotFound,
+			}
+		}
+	}
+
+	// We have the patches and the profile, let's merge them
+	profile := baselineProfile.Merge(override)
+
+	if err := profile.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return &profile, nil
 }

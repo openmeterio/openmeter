@@ -43,8 +43,5 @@ type Address struct {
 	PhoneNumber *string      `json:"phoneNumber,omitempty"`
 }
 
-// Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-type CurrencyCode string
-
 // [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
 type CountryCode string

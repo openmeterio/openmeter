@@ -7,5 +7,8 @@ import "time"
 type Timezone string
 
 func (t Timezone) LoadLocation() (*time.Location, error) {
+	if t == "" {
+		return time.UTC, nil
+	}
 	return time.LoadLocation(string(t))
 }

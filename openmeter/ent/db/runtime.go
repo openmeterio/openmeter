@@ -102,20 +102,16 @@ func init() {
 	billinginvoice.DefaultUpdatedAt = billinginvoiceDescUpdatedAt.Default.(func() time.Time)
 	// billinginvoice.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billinginvoice.UpdateDefaultUpdatedAt = billinginvoiceDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// billinginvoiceDescKey is the schema descriptor for key field.
-	billinginvoiceDescKey := billinginvoiceFields[0].Descriptor()
-	// billinginvoice.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	billinginvoice.KeyValidator = billinginvoiceDescKey.Validators[0].(func(string) error)
 	// billinginvoiceDescCustomerID is the schema descriptor for customer_id field.
-	billinginvoiceDescCustomerID := billinginvoiceFields[1].Descriptor()
+	billinginvoiceDescCustomerID := billinginvoiceFields[2].Descriptor()
 	// billinginvoice.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	billinginvoice.CustomerIDValidator = billinginvoiceDescCustomerID.Validators[0].(func(string) error)
 	// billinginvoiceDescBillingProfileID is the schema descriptor for billing_profile_id field.
-	billinginvoiceDescBillingProfileID := billinginvoiceFields[2].Descriptor()
+	billinginvoiceDescBillingProfileID := billinginvoiceFields[3].Descriptor()
 	// billinginvoice.BillingProfileIDValidator is a validator for the "billing_profile_id" field. It is called by the builders before save.
 	billinginvoice.BillingProfileIDValidator = billinginvoiceDescBillingProfileID.Validators[0].(func(string) error)
 	// billinginvoiceDescCurrency is the schema descriptor for currency field.
-	billinginvoiceDescCurrency := billinginvoiceFields[4].Descriptor()
+	billinginvoiceDescCurrency := billinginvoiceFields[5].Descriptor()
 	// billinginvoice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoice.CurrencyValidator = billinginvoiceDescCurrency.Validators[0].(func(string) error)
 	// billinginvoiceDescID is the schema descriptor for id field.
@@ -149,8 +145,12 @@ func init() {
 	billinginvoiceitemDescCustomerID := billinginvoiceitemFields[1].Descriptor()
 	// billinginvoiceitem.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	billinginvoiceitem.CustomerIDValidator = billinginvoiceitemDescCustomerID.Validators[0].(func(string) error)
+	// billinginvoiceitemDescName is the schema descriptor for name field.
+	billinginvoiceitemDescName := billinginvoiceitemFields[6].Descriptor()
+	// billinginvoiceitem.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	billinginvoiceitem.NameValidator = billinginvoiceitemDescName.Validators[0].(func(string) error)
 	// billinginvoiceitemDescCurrency is the schema descriptor for currency field.
-	billinginvoiceitemDescCurrency := billinginvoiceitemFields[7].Descriptor()
+	billinginvoiceitemDescCurrency := billinginvoiceitemFields[9].Descriptor()
 	// billinginvoiceitem.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoiceitem.CurrencyValidator = billinginvoiceitemDescCurrency.Validators[0].(func(string) error)
 	// billinginvoiceitemDescID is the schema descriptor for id field.

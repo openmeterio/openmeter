@@ -1,45 +1,64 @@
 package billing
 
 import (
-	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	goblvalidation "github.com/openmeterio/openmeter/pkg/gobl/validation"
 )
 
 var (
-	ErrDefaultProfileAlreadyExists  = errors.New("default profile already exists")
-	ErrDefaultProfileNotFound       = errors.New("default profile not found")
-	ErrProfileNotFound              = errors.New("profile not found")
-	ErrProfileAlreadyDeleted        = errors.New("profile already deleted")
-	ErrProfileConflict              = errors.New("profile has been already updated")
-	ErrProfileReferencedByOverrides = errors.New("profile is referenced by customer overrides")
-	ErrProfileTaxTypeChange         = errors.New("profile tax type change is not allowed")
-	ErrProfileInvoicingTypeChange   = errors.New("profile invoicing type change is not allowed")
-	ErrProfilePaymentTypeChange     = errors.New("profile payment type change is not allowed")
+	// Billing uses invopop's validation package to provide error codes and messages. This is required
+	// as invoices can have:
+	// - validation errors (coming from gobl)
+	// - errors that are not validation errors (coming from the billing service, e.g. missing default profile)
+	// - errors that are provider specific (coming from the provider)
+	//
+	// We want to return the invoice regardless of the validation errors, as invoices can have issues at numerous
+	// levels (e.g. missing default profile, missing customer override, missing billing profile, provider issues, etc.).
+	//
+	// We also return the validation errors. By adding codes to the validation errors, it will be easier for the clients (e.g. frontend) to handle the specific errors
+	// without having to resort to string matching.
+	//
+	// Given that invoicing depends on the billing and customer override service, we need to have these error types in place for
+	// all.
 
-	ErrCustomerOverrideNotFound       = errors.New("customer override not found")
-	ErrCustomerOverrideConflict       = errors.New("customer override has been already updated conflict")
-	ErrCustomerOverrideAlreadyDeleted = errors.New("customer override already deleted")
-	ErrCustomerNotFound               = errors.New("customer not found")
+	ErrDefaultProfileAlreadyExists  = goblvalidation.NewError("default_profile_exists", "default profile already exists")
+	ErrDefaultProfileNotFound       = goblvalidation.NewError("default_profile_not_found", "default profile not found")
+	ErrProfileNotFound              = goblvalidation.NewError("profile_not_found", "profile not found")
+	ErrProfileAlreadyDeleted        = goblvalidation.NewError("profile_already_deleted", "profile already deleted")
+	ErrProfileConflict              = goblvalidation.NewError("profile_update_conflict", "profile has been already updated")
+	ErrProfileReferencedByOverrides = goblvalidation.NewError("profile_referenced", "profile is referenced by customer overrides")
+	ErrProfileTaxTypeChange         = goblvalidation.NewError("profile_tax_provider_change_forbidden", "profile tax type change is not allowed")
+	ErrProfileInvoicingTypeChange   = goblvalidation.NewError("profile_invoicing_provider_change_forbidden", "profile invoicing type change is not allowed")
+	ErrProfilePaymentTypeChange     = goblvalidation.NewError("profile_payment_provider_change_forbidden", "profile payment type change is not allowed")
+
+	ErrCustomerOverrideNotFound       = goblvalidation.NewError("customer_override_not_found", "customer override not found")
+	ErrCustomerOverrideConflict       = goblvalidation.NewError("customer_override_conflict", "customer override has been already updated conflict")
+	ErrCustomerOverrideAlreadyDeleted = goblvalidation.NewError("customer_override_deleted", "customer override already deleted")
+	ErrCustomerNotFound               = goblvalidation.NewError("customer_not_found", "customer not found")
 )
 
 var _ error = (*NotFoundError)(nil)
 
 const (
-	EntityCustomerOverride = "billingCustomerOverride"
-	EntityCustomer         = "customer"
-	EntityDefaultProfile   = "defaultBillingProfile"
+	EntityCustomerOverride = "BillingCustomerOverride"
+	EntityCustomer         = "Customer"
+	EntityDefaultProfile   = "DefaultBillingProfile"
 )
 
 type NotFoundError struct {
-	models.NamespacedID
+	ID     string
 	Entity string
 	Err    error
 }
 
 func (e NotFoundError) Error() string {
-	return fmt.Sprintf("%s with id %s not found: %s", e.Entity, e.ID, e.Err)
+	// ID can be empty for default profiles
+	if e.ID == "" {
+		return e.Err.Error()
+	}
+
+	return fmt.Sprintf("%s [%s/%s]", e.Err, e.Entity, e.ID)
 }
 
 func (e NotFoundError) Unwrap() error {

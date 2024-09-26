@@ -1,4 +1,4 @@
-package invoice
+package billing
 
 type StripeTaxCode string
 

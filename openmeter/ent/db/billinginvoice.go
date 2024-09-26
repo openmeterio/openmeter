@@ -10,8 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -33,8 +32,10 @@ type BillingInvoice struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
-	// Key holds the value of the "key" field.
-	Key string `json:"key,omitempty"`
+	// Series holds the value of the "series" field.
+	Series *string `json:"series,omitempty"`
+	// Code holds the value of the "code" field.
+	Code *string `json:"code,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// BillingProfileID holds the value of the "billing_profile_id" field.
@@ -43,12 +44,10 @@ type BillingInvoice struct {
 	VoidedAt time.Time `json:"voided_at,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
-	// TotalAmount holds the value of the "total_amount" field.
-	TotalAmount alpacadecimal.Decimal `json:"total_amount,omitempty"`
 	// DueDate holds the value of the "due_date" field.
 	DueDate time.Time `json:"due_date,omitempty"`
 	// Status holds the value of the "status" field.
-	Status invoice.InvoiceStatus `json:"status,omitempty"`
+	Status billing.InvoiceStatus `json:"status,omitempty"`
 	// TaxProvider holds the value of the "tax_provider" field.
 	TaxProvider *provider.TaxProvider `json:"tax_provider,omitempty"`
 	// InvoicingProvider holds the value of the "invoicing_provider" field.
@@ -118,9 +117,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoice.FieldMetadata:
 			values[i] = new([]byte)
-		case billinginvoice.FieldTotalAmount:
-			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldTaxProvider, billinginvoice.FieldInvoicingProvider, billinginvoice.FieldPaymentProvider, billinginvoice.FieldWorkflowConfigID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSeries, billinginvoice.FieldCode, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldTaxProvider, billinginvoice.FieldInvoicingProvider, billinginvoice.FieldPaymentProvider, billinginvoice.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldDueDate, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -178,11 +175,19 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case billinginvoice.FieldKey:
+		case billinginvoice.FieldSeries:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field key", values[i])
+				return fmt.Errorf("unexpected type %T for field series", values[i])
 			} else if value.Valid {
-				bi.Key = value.String
+				bi.Series = new(string)
+				*bi.Series = value.String
+			}
+		case billinginvoice.FieldCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field code", values[i])
+			} else if value.Valid {
+				bi.Code = new(string)
+				*bi.Code = value.String
 			}
 		case billinginvoice.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -208,12 +213,6 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.Currency = value.String
 			}
-		case billinginvoice.FieldTotalAmount:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field total_amount", values[i])
-			} else if value != nil {
-				bi.TotalAmount = *value
-			}
 		case billinginvoice.FieldDueDate:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field due_date", values[i])
@@ -224,7 +223,7 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				bi.Status = invoice.InvoiceStatus(value.String)
+				bi.Status = billing.InvoiceStatus(value.String)
 			}
 		case billinginvoice.FieldTaxProvider:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -333,8 +332,15 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", bi.Metadata))
 	builder.WriteString(", ")
-	builder.WriteString("key=")
-	builder.WriteString(bi.Key)
+	if v := bi.Series; v != nil {
+		builder.WriteString("series=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.Code; v != nil {
+		builder.WriteString("code=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(bi.CustomerID)
@@ -347,9 +353,6 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(bi.Currency)
-	builder.WriteString(", ")
-	builder.WriteString("total_amount=")
-	builder.WriteString(fmt.Sprintf("%v", bi.TotalAmount))
 	builder.WriteString(", ")
 	builder.WriteString("due_date=")
 	builder.WriteString(bi.DueDate.Format(time.ANSIC))

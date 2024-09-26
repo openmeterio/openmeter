@@ -410,7 +410,10 @@ func (biiq *BillingInvoiceItemQuery) loadBillingInvoice(ctx context.Context, que
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoiceItem)
 	for i := range nodes {
-		fk := nodes[i].InvoiceID
+		if nodes[i].InvoiceID == nil {
+			continue
+		}
+		fk := *nodes[i].InvoiceID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

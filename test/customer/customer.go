@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -16,7 +17,7 @@ import (
 var (
 	TestName               = "Test Customer"
 	TestPrimaryEmail       = "test@openmeter.io"
-	TestCurrency           = models.CurrencyCode("USD")
+	TestCurrency           = currencyx.Code("USD")
 	TestTimezone           = timezone.Timezone("America/Los_Angeles")
 	TestAddressCountry     = models.CountryCode("US")
 	TestAddressCity        = "San Francisco"

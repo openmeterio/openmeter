@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
@@ -74,10 +73,7 @@ func (r adapter) UpdateCustomerOverride(ctx context.Context, input billing.Updat
 
 	if linesAffected == 0 {
 		return nil, billing.NotFoundError{
-			NamespacedID: models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
+			ID:     input.CustomerID,
 			Entity: billing.EntityCustomerOverride,
 			Err:    billing.ErrCustomerOverrideNotFound,
 		}
@@ -113,10 +109,7 @@ func (r adapter) GetCustomerOverride(ctx context.Context, input billing.GetCusto
 
 	if dbCustomerOverride.Edges.Customer == nil {
 		return nil, billing.NotFoundError{
-			NamespacedID: models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
+			ID:     input.CustomerID,
 			Entity: billing.EntityCustomer,
 			Err:    billing.ErrCustomerNotFound,
 		}
@@ -135,10 +128,7 @@ func (r adapter) DeleteCustomerOverride(ctx context.Context, input billing.Delet
 	if err != nil {
 		if db.IsNotFound(err) {
 			return billing.NotFoundError{
-				NamespacedID: models.NamespacedID{
-					Namespace: input.Namespace,
-					ID:        input.CustomerID,
-				},
+				ID:     input.CustomerID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideNotFound,
 			}
@@ -149,10 +139,7 @@ func (r adapter) DeleteCustomerOverride(ctx context.Context, input billing.Delet
 
 	if rowsAffected == 0 {
 		return billing.NotFoundError{
-			NamespacedID: models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
+			ID:     input.CustomerID,
 			Entity: billing.EntityCustomerOverride,
 			Err:    billing.ErrCustomerOverrideNotFound,
 		}

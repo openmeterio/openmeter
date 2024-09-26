@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -140,7 +141,7 @@ func Timezone(v timezone.Timezone) predicate.Customer {
 }
 
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v models.CurrencyCode) predicate.Customer {
+func Currency(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
 }
@@ -1134,19 +1135,19 @@ func TimezoneContainsFold(v timezone.Timezone) predicate.Customer {
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v models.CurrencyCode) predicate.Customer {
+func CurrencyEQ(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v models.CurrencyCode) predicate.Customer {
+func CurrencyNEQ(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldNEQ(FieldCurrency, vc))
 }
 
 // CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...models.CurrencyCode) predicate.Customer {
+func CurrencyIn(vs ...currencyx.Code) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -1155,7 +1156,7 @@ func CurrencyIn(vs ...models.CurrencyCode) predicate.Customer {
 }
 
 // CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...models.CurrencyCode) predicate.Customer {
+func CurrencyNotIn(vs ...currencyx.Code) predicate.Customer {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -1164,43 +1165,43 @@ func CurrencyNotIn(vs ...models.CurrencyCode) predicate.Customer {
 }
 
 // CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v models.CurrencyCode) predicate.Customer {
+func CurrencyGT(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldGT(FieldCurrency, vc))
 }
 
 // CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v models.CurrencyCode) predicate.Customer {
+func CurrencyGTE(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldGTE(FieldCurrency, vc))
 }
 
 // CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v models.CurrencyCode) predicate.Customer {
+func CurrencyLT(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldLT(FieldCurrency, vc))
 }
 
 // CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v models.CurrencyCode) predicate.Customer {
+func CurrencyLTE(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldLTE(FieldCurrency, vc))
 }
 
 // CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v models.CurrencyCode) predicate.Customer {
+func CurrencyContains(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContains(FieldCurrency, vc))
 }
 
 // CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v models.CurrencyCode) predicate.Customer {
+func CurrencyHasPrefix(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldHasPrefix(FieldCurrency, vc))
 }
 
 // CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v models.CurrencyCode) predicate.Customer {
+func CurrencyHasSuffix(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldHasSuffix(FieldCurrency, vc))
 }
@@ -1216,13 +1217,13 @@ func CurrencyNotNil() predicate.Customer {
 }
 
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v models.CurrencyCode) predicate.Customer {
+func CurrencyEqualFold(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEqualFold(FieldCurrency, vc))
 }
 
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v models.CurrencyCode) predicate.Customer {
+func CurrencyContainsFold(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
 }
