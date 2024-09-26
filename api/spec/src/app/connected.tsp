@@ -54,49 +54,37 @@ interface ConnectedAppAPI {
 model ConnectedAppListRequest extends PaginatedQuery {}
 
 /**
- * A connected app object.
+ * ConnectedApp.
+ * One of: stripe
+ */
+@friendlyName("ConnectedApp")
+@discriminator("type")
+union ConnectedApp {
+  @summary("Stripe")
+  stripe: StripeConnectedApp,
+}
+
+/**
+ * Abstract base model for connected apps.
+ *
  * Represent an app connected to the organization.
  * This is an actual instance, with its own configuration and credentials.
  */
-@friendlyName("ConnectedApp")
-@example(#{
-  id: "01G65Z755AFWAKHE12NY0CQ9FH",
-  type: AppType.Stripe,
-  name: "Stripe",
-  createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
-  updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
-  status: ConnectedAppStatus.Ready,
-  capabilities: #[
-    #{
-      type: AppCapabilityType.CollectPayments,
-      key: "stripe_collect_payments",
-      name: "Collect Payments",
-      description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
-      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
-    }
-  ],
-})
-model ConnectedApp {
+@friendlyName("ConnectedAppBase")
+model ConnectedAppBase {
   ...Resource;
 
   /**
-   * The app's type
+   * The marketplace app that this connected app is based on.
    */
   @visibility("read")
-  type: AppType;
+  marketplaceApp: MarketplaceApp;
 
   /**
    * Status of the app connection.
    */
   @visibility("read")
   status: ConnectedAppStatus;
-
-  /**
-   * The app's installed capabilities.
-   * This is a subset of the app gallery's capabilities.
-   */
-  @visibility("read")
-  capabilities: AppCapability[];
 }
 
 /**
@@ -114,4 +102,70 @@ enum ConnectedAppStatus {
    * To resolve this, the user must re-authorize the app.
    */
   Unauthorized: "unauthorized",
+}
+
+/**
+ * A connected Stripe app object.
+ */
+@friendlyName("StripeConnectedApp")
+@example(#{
+  id: "01G65Z755AFWAKHE12NY0CQ9FH",
+  type: AppType.Stripe,
+  name: "Stripe",
+  status: ConnectedAppStatus.Ready,
+  marketplaceApp: #{
+    key: "stripe",
+    type: AppType.Stripe,
+    name: "Stripe",
+    description: "Stripe interation allows you to collect payments with Stripe.",
+    iconUrl: "/images/stripe.png",
+    capabilities: #[
+      #{
+        type: AppCapabilityType.CalculateTax,
+        key: "stripe_calculate_tax",
+        name: "Calculate Tax",
+        description: "Stripe Tax calculates tax portion of the invoices.",
+        requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+      },
+      #{
+        type: AppCapabilityType.InvoiceCustomers,
+        key: "stripe_invoice_customers",
+        name: "Invoice Customers",
+        description: "Stripe invoices customers with due amount.",
+        requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+      },
+      #{
+        type: AppCapabilityType.CollectPayments,
+        key: "stripe_collect_payments",
+        name: "Collect Payments",
+        description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
+        requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+      }
+    ],
+  },
+  createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+  updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+
+  // Stripe specific fields
+  accountId: "acct_123456789",
+
+  livemode: true,
+})
+model StripeConnectedApp {
+  ...ConnectedAppBase;
+
+  /**
+   * The app's type is Stripe.
+   */
+  type: AppType.Stripe;
+
+  /**
+   * The Stripe account ID.
+   */
+  accountId: string;
+
+  /**
+   * Livemode, true if the app is in production mode.
+   */
+  livemode: boolean;
 }
