@@ -154,6 +154,15 @@ enum ChannelOrderBy {
   updatedAt: "updatedAt",
 }
 
+// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
+// results a firendlyName RulePaginatedResponse instead of NotificationRulePaginatedResponse which
+// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
+/**
+ * Paginated response for listing notification channels.
+ */
+@friendlyName("NotificationChannelsPaginatedResponse")
+model ChannelsPaginatedResponse is OpenMeter.PaginatedResponse<Channel>;
+
 @route("/api/v1/notification/channels")
 @tag("Notification (Experimental)")
 interface Channels {
@@ -184,7 +193,7 @@ interface Channels {
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<ChannelOrderBy>,
-  ): OpenMeter.PaginatedResponse<Channel> | OpenMeter.CommonErrors;
+  ): ChannelsPaginatedResponse | OpenMeter.CommonErrors;
 
   /**
    * Create a new notification channel.

@@ -174,6 +174,15 @@ enum EventOrderBy {
   createdAt: "createdAt",
 }
 
+// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
+// results a firendlyName RulePaginatedResponse instead of NotificationRulePaginatedResponse which
+// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
+/**
+ * Paginated response for listing notification events.
+ */
+@friendlyName("NotificationEventsPaginatedResponse")
+model EventsPaginatedResponse is OpenMeter.PaginatedResponse<Event>;
+
 @route("/api/v1/notification/events")
 @tag("Notification (Experimental)")
 interface Events {
@@ -234,7 +243,7 @@ interface Events {
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<EventOrderBy>,
-  ): OpenMeter.PaginatedResponse<Event> | OpenMeter.CommonErrors;
+  ): EventsPaginatedResponse | OpenMeter.CommonErrors;
 
   /**
    * Get a notification event by id.

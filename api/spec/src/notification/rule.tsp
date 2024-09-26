@@ -196,6 +196,15 @@ enum RuleOrderBy {
   updatedAt: "updatedAt",
 }
 
+// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
+// results a model with friendlyName set to `RulePaginatedResponse` instead of `NotificationRulePaginatedResponse` which
+// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
+/**
+ * Paginated response for listing notification rules.
+ */
+@friendlyName("NotificationRulePaginatedResponse")
+model RulesPaginatedResponse is OpenMeter.PaginatedResponse<Rule>;
+
 @route("/api/v1/notification/rules")
 @tag("Notification (Experimental)")
 interface Rules {
@@ -240,7 +249,7 @@ interface Rules {
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<RuleOrderBy>,
-  ): OpenMeter.PaginatedResponse<Rule> | OpenMeter.CommonErrors;
+  ): RulesPaginatedResponse | OpenMeter.CommonErrors;
 
   /**
    * Create a new notification rule.
