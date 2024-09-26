@@ -1,0 +1,69 @@
+package app
+
+import (
+	"context"
+	"testing"
+
+	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+)
+
+var TestKey = "stripe"
+
+type AppHandlerTestSuite struct {
+	Env TestEnv
+
+	namespace string
+}
+
+// setupNamespace can be used to set up an independent namespace for testing, it contains a single
+// feature and rule with a channel. For more complex scenarios, additional setup might be required.
+func (s *AppHandlerTestSuite) setupNamespace(t *testing.T) {
+	t.Helper()
+
+	s.namespace = ulid.Make().String()
+}
+
+// TestGet tests the getting of a app by ID
+func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	service := s.Env.App()
+
+	// Listing
+	expectedListing := appadapter.MarketplaceListings[TestKey]
+
+	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
+
+	// Get the listing
+	listing, err := service.GetListing(ctx, app.GetMarketplaceListingInput{
+		Key: TestKey,
+	})
+
+	require.NoError(t, err, "Fetching listing must not return error")
+	require.NotNil(t, listing, "Listing must not be nil")
+	require.Equal(t, TestKey, listing.Key, "Listing key must match")
+	require.Equal(t, expectedListing.Name, listing.Name, "Listing name must match")
+	require.Equal(t, expectedListing.Description, listing.Description, "Listing description must match")
+	require.Equal(t, expectedListing.IconURL, listing.IconURL, "Listing icon url must match")
+	require.ElementsMatch(t, expectedListing.Capabilities, listing.Capabilities, "Listing capabilities must match")
+}
+
+// TestList tests the listing of apps
+func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	service := s.Env.App()
+
+	// Get the listing
+	listings, err := service.ListListings(ctx, app.ListMarketplaceListingInput{})
+
+	require.NoError(t, err, "Fetching listings must not return error")
+	require.NotNil(t, listings, "Listings must not be nil")
+	require.NotEmpty(t, listings, "Listings must not be empty")
+
+	require.ElementsMatch(t, appadapter.MarketplaceListings, listings, "Listings must match")
+}

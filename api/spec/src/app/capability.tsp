@@ -9,16 +9,16 @@ namespace OpenMeter.App;
  */
 @friendlyName("AppCapability")
 @example(#{
-  type: AppCapabilityType.CollectPayments,
+  type: CapabilityType.CollectPayments,
   key: "stripe_collect_payment",
   name: "Collect Payments",
   description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
 })
-model AppCapability {
+model Capability {
   /**
    * The capability type.
    */
-  type: AppCapabilityType;
+  type: CapabilityType;
 
   /**
    * Key
@@ -38,14 +38,14 @@ model AppCapability {
   /**
    * The capability requirements.
    */
-  requirements?: AppRequirements[];
+  requirements?: Requirements[];
 }
 
 /**
  * App capability type.
  */
 @friendlyName("AppCapabilityType")
-enum AppCapabilityType {
+enum CapabilityType {
   /**
    * The app can report aggregated usage.
    */
@@ -76,7 +76,7 @@ enum AppCapabilityType {
  * App requirements.
  */
 @friendlyName("AppRequirements")
-enum AppRequirements {
+enum Requirements {
   CustomerCountryCode: "customer.countryCode",
   CustomerExternalStripeCustomerId: "customer.external.stripeCustomerId",
 }
