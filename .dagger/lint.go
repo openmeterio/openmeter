@@ -23,6 +23,7 @@ func (m *Lint) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(syncFunc(m.Go()))
+	p.Go(syncFunc(m.Typespec()))
 	p.Go(syncFunc(m.Openapi()))
 	p.Go(m.Helm)
 
@@ -38,6 +39,11 @@ func (m *Lint) Go() *dagger.Container {
 		Run(m.Source, dagger.GolangciLintRunOpts{
 			Verbose: true,
 		})
+}
+
+func (m *Lint) Typespec() *dagger.Container {
+	return typespecBase(m.Source.Directory("api/spec")).
+		WithExec([]string{"pnpm", "lint"})
 }
 
 func (m *Lint) Openapi() *dagger.Container {
