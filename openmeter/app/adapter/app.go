@@ -59,7 +59,7 @@ func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (*app.App, e
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, app.AppNotFoundError{
-				AppID: app.AppID(input),
+				AppID: input,
 			}
 		}
 
@@ -96,9 +96,9 @@ func mapAppFromDB(dbApp *db.App) *app.App {
 				DeletedAt: dbApp.DeletedAt,
 			},
 		},
-		Type:       app.AppType(dbApp.Type),
+		Type:       dbApp.Type,
 		Name:       dbApp.Name,
-		Status:     app.AppStatus(dbApp.Status),
+		Status:     dbApp.Status,
 		ListingKey: dbApp.ListingKey,
 	}
 }
