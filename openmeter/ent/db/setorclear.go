@@ -13,6 +13,34 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
+func (u *AppUpdate) SetOrClearMetadata(value *map[string]string) *AppUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AppUpdateOne) SetOrClearMetadata(value *map[string]string) *AppUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AppUpdate) SetOrClearDeletedAt(value *time.Time) *AppUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *BalanceSnapshotUpdate) SetOrClearDeletedAt(value *time.Time) *BalanceSnapshotUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

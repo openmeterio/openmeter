@@ -9,6 +9,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
+// The AppFunc type is an adapter to allow the use of ordinary
+// function as App mutator.
+type AppFunc func(context.Context, *db.AppMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AppMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppMutation", m)
+}
+
 // The BalanceSnapshotFunc type is an adapter to allow the use of ordinary
 // function as BalanceSnapshot mutator.
 type BalanceSnapshotFunc func(context.Context, *db.BalanceSnapshotMutation) (db.Value, error)

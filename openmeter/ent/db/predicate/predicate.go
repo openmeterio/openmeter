@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// App is the predicate function for dbapp builders.
+type App func(*sql.Selector)
+
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
