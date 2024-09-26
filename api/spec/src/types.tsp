@@ -233,7 +233,7 @@ model Address {
  */
 @friendlyName("{name}Request", T)
 model Request<T, Keys extends string> {
-  ...OmitProperties<T, Keys>
+  ...OmitProperties<T, Keys>;
 }
 
 /**

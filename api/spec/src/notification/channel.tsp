@@ -25,7 +25,7 @@ model ChannelMeta {
   /**
    * Identifies the notification channel.
    */
-  // @visibility("read")
+  @visibility("read")
   @summary("Channel Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -33,7 +33,7 @@ model ChannelMeta {
   /**
    * Notification channel type.
    */
-  // @visibility("read")
+  @visibility("read")
   @summary("Channel Type")
   type: ChannelType;
 }
@@ -44,26 +44,19 @@ model ChannelMeta {
 @friendlyName("NotificationChannelCommon")
 model ChannelCommon<T extends ChannelType> {
   ...ResourceTimestamps;
-
-  /**
-   * Identifies the notification channel.
-   */
-  // @visibility("read")
-  @summary("Channel Unique Identifier")
-  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  id: ULID;
+  ...OmitProperties<ChannelMeta, "type">;
 
   /**
    * Notification channel type.
    */
-  // @visibility("read", "create", "query")
+  @visibility("read", "create")
   @summary("Channel Type")
   type: T;
 
   /**
    * User friendly name of the channel.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "update")
   @summary("Channel Name")
   @example("customer-webhook")
   name: string;
@@ -71,7 +64,7 @@ model ChannelCommon<T extends ChannelType> {
   /**
    * Whether the channel is disabled or not.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "update")
   @summary("Channel Disabled")
   @example(true)
   disabled?: boolean = false;
@@ -87,7 +80,7 @@ model ChannelWebhook {
   /**
    * Webhook URL where the notification is sent.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "update")
   @summary("Webhook URL")
   @example("https://example.com/webhook")
   url: string;
@@ -95,7 +88,7 @@ model ChannelWebhook {
   /**
    * Custom HTTP headers sent as part of the webhook request.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "update")
   @summary("Custom HTTP Headers")
   customHeaders?: Record<string>;
 
@@ -104,7 +97,7 @@ model ChannelWebhook {
    *
    * Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "update")
   @summary("Signing Secret")
   @pattern("^(whsec_)?[a-zA-Z0-9+/=]{32,100}$")
   @example("whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8")
@@ -128,15 +121,7 @@ union Channel {
 @discriminator("type")
 @oneOf
 union ChannelCreateRequest {
-  webhook: ChannelWebhookCreateRequest,
-}
-
-/**
- * Request with input parameters for creating new notification channel with webhook type.
- */
-@friendlyName("NotificationChannelWebhookCreateRequest")
-model ChannelWebhookCreateRequest{
-  ...OmitProperties<ChannelWebhook, "id" | "createdAt" | "updatedAt" | "deletedAt">;
+  webhook: ChannelWebhook,
 }
 
 /**
@@ -153,6 +138,15 @@ enum ChannelOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   updatedAt: "updatedAt",
 }
+
+// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
+// results a firendlyName RulePaginatedResponse instead of NotificationRulePaginatedResponse which
+// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
+/**
+ * Paginated response for listing notification channels.
+ */
+@friendlyName("NotificationChannelsPaginatedResponse")
+model ChannelsPaginatedResponse is OpenMeter.PaginatedResponse<Channel>;
 
 @route("/api/v1/notification/channels")
 @tag("Notification (Experimental)")
@@ -184,7 +178,7 @@ interface Channels {
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<ChannelOrderBy>,
-  ): OpenMeter.PaginatedResponse<Channel> | OpenMeter.CommonErrors;
+  ): ChannelsPaginatedResponse | OpenMeter.CommonErrors;
 
   /**
    * Create a new notification channel.
@@ -201,8 +195,8 @@ interface Channels {
    * Update notification channel.
    */
   @put
-  @operationId("createNotificationChannel")
-  @summary("Create a notification channel")
+  @operationId("updateNotificationChannel")
+  @summary("Update a notification channel")
   update(@body request: ChannelCreateRequest): {
     @statusCode _: 200;
     @body body: Channel;

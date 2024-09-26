@@ -12,11 +12,11 @@ namespace OpenMeter.Notification;
  * Metadata only fields of a notification channel.
  */
 @friendlyName("NotificationRuleMeta")
-model NotificationRuleMeta {
+model RuleMeta {
   /**
    * Identifies the notification rule.
    */
-  // @visibility("read")
+  @visibility("read")
   @summary("Rule Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -24,7 +24,7 @@ model NotificationRuleMeta {
   /**
    * Notification rule type.
    */
-  // @visibility("read")
+  @visibility("read")
   @summary("Rule Type")
   type: EventType;
 }
@@ -35,19 +35,12 @@ model NotificationRuleMeta {
 @friendlyName("NotificationRuleCommon")
 model RuleCommon<T extends EventType> {
   ...ResourceTimestamps;
-
-  /**
-   * Identifies the notification rule.
-   */
-  // @visibility("read")
-  @summary("Rule Unique Identifier")
-  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  id: ULID;
+  ...OmitProperties<RuleMeta, "type">;
 
   /**
    * Notification rule type.
    */
-  // @visibility("read", "create", "query")
+  @visibility("read", "create", "query")
   @summary("Rule Type")
   type: T;
 
@@ -56,23 +49,23 @@ model RuleCommon<T extends EventType> {
    */
   @summary("Rule Name")
   @example("Balance threshold reached")
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "query", "update")
   name: string;
 
   /**
    * Whether the rule is disabled or not.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "query", "update")
   @summary("Rule Disabled")
   @example(true)
   disabled?: boolean = false;
 
   /**
    * List of notification channels the rule applies to.
-  */
-  // @visibility("read")
+   */
+  @visibility("read", "create", "query", "update")
   @summary("Channels assigned to Rule")
-  channels: Array<ChannelMeta>
+  channels: Array<ChannelMeta>;
 }
 
 /**
@@ -83,14 +76,15 @@ model RuleBalanceThresholdValue {
   /**
    * Value of the threshold.
    */
-  // @visibility("read", "create", "update")
+  @visibility("read", "create", "update")
   @summary("Threshold Value")
   @example(100)
   value: float64;
+
   /**
    * Type of the threshold.
    */
-  // @visibility("read", "create", "update")
+  @visibility("read", "create", "update")
   @summary("Threshold Type")
   @example("NUMBER")
   type: "PERCENT" | "NUMBER";
@@ -104,7 +98,7 @@ model FeatureMeta {
   /**
    * Unique identifier of a feature.
    */
-  // @visibility("read", "query")
+  @visibility("read", "query")
   @summary("Feature Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -113,7 +107,7 @@ model FeatureMeta {
    * The key is an immutable unique identifier of the feature used throughout the API,
    * for example when interacting with a subject's entitlements.
    */
-  // @visibility("read", "query")
+  @visibility("read", "query")
   @summary("Feature Key")
   @example("gpt4_tokens")
   key: string;
@@ -129,7 +123,7 @@ model RuleBalanceThreshold {
   /**
    * List of thresholds the rule suppose to be triggered.
    */
-  // @visibility("read", "create", "query", "update")
+  @visibility("read", "create", "query", "update")
   @summary("Entitlement Balance Thresholds")
   @minItems(1)
   @maxItems(10)
@@ -137,8 +131,8 @@ model RuleBalanceThreshold {
 
   /**
    * Optional field containing list of features the rule applies to.
-  */
-  // @visibility("read", "query")
+   */
+  @visibility("read", "query")
   @summary("Features")
   @minItems(1)
   features?: Array<FeatureMeta>;
@@ -167,18 +161,25 @@ union RuleCreateRequest {
 /**
  * Request with input parameters for creating new notification channel with webhook type.
  */
-// @withVisibility("create", "update")
+@withVisibility("create", "update")
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
-model RuleBalanceThresholdCreateRequest{
-  ...OmitProperties<RuleBalanceThreshold, "id" | "createdAt" | "updatedAt" | "deletedAt" | "features">;
+model RuleBalanceThresholdCreateRequest {
+  ...OmitProperties<RuleBalanceThreshold, "features">;
+
+  // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
+  // where the code generation results a less complicated/more idiomatic code.
+  //
+  //  alias IdOrKey = ULID | Key;
+  //  const features = Array<IdOrKey>;
+  //
 
   /**
    * Optional field for defining the scope of notification by feature. It may contain features by id or key.
    */
-  // @visibility("create", "update")
+  @visibility("create", "update")
   @summary("Features")
   @minItems(1)
-  features?: Array<ULID | string>;
+  features?: Array<string>;
 }
 
 /**
@@ -195,6 +196,15 @@ enum RuleOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   updatedAt: "updatedAt",
 }
+
+// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
+// results a model with friendlyName set to `RulePaginatedResponse` instead of `NotificationRulePaginatedResponse` which
+// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
+/**
+ * Paginated response for listing notification rules.
+ */
+@friendlyName("NotificationRulePaginatedResponse")
+model RulesPaginatedResponse is OpenMeter.PaginatedResponse<Rule>;
 
 @route("/api/v1/notification/rules")
 @tag("Notification (Experimental)")
@@ -224,23 +234,30 @@ interface Rules {
     @example(false)
     includeDisabled?: boolean,
 
+    // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
+    // where the code generation results a less complicated/more idiomatic code.
+    //
+    //  alias IdOrKey = ULID | Key;
+    //  const features = Array<IdOrKey>;
+    //
+
     /**
      * Filtering by multiple feature ids/keys.
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
-    @query feature?: Array<ULID | string>,
+    @query feature?: Array<string>,
 
     /**
      * Filtering by multiple notifiaction channel ids.
      *
      * Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
      */
-    @query channel?: Array<ULID | string>,
+    @query channel?: Array<string>,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<RuleOrderBy>,
-  ): OpenMeter.PaginatedResponse<Rule> | OpenMeter.CommonErrors;
+  ): RulesPaginatedResponse | OpenMeter.CommonErrors;
 
   /**
    * Create a new notification rule.
@@ -257,8 +274,8 @@ interface Rules {
    * Update notification rule.
    */
   @put
-  @operationId("createNotificationChannel")
-  @summary("Create a notification channel")
+  @operationId("updateNotificationRule")
+  @summary("Update a notification rule")
   update(@body request: RuleCreateRequest): {
     @statusCode _: 200;
     @body body: Rule;
