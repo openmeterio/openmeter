@@ -117,10 +117,25 @@ model MarketplaceApiKeyInstallRequest {
   iconUrl: "/images/stripe.png",
   capabilities: #[
     #{
+      type: AppCapabilityType.CalculateTax,
+      key: "stripe_calculate_tax",
+      name: "Calculate Tax",
+      description: "Stripe Tax calculates tax portion of the invoices.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+    },
+    #{
+      type: AppCapabilityType.InvoiceCustomers,
+      key: "stripe_invoice_customers",
+      name: "Invoice Customers",
+      description: "Stripe invoices customers with due amount.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
+    },
+    #{
       type: AppCapabilityType.CollectPayments,
-      key: "collect_payment",
+      key: "stripe_collect_payments",
       name: "Collect Payments",
       description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
+      requirements: #[AppRequirements.CustomerExternalStripeCustomerId],
     }
   ],
 })
