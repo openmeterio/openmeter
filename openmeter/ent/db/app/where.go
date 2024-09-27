@@ -112,6 +112,16 @@ func ListingKey(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldListingKey, v))
 }
 
+// StripeAccountID applies equality check predicate on the "stripe_account_id" field. It's identical to StripeAccountIDEQ.
+func StripeAccountID(v string) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldStripeAccountID, v))
+}
+
+// StripeLivemode applies equality check predicate on the "stripe_livemode" field. It's identical to StripeLivemodeEQ.
+func StripeLivemode(v bool) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldStripeLivemode, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldNamespace, v))
@@ -678,6 +688,101 @@ func ListingKeyEqualFold(v string) predicate.App {
 // ListingKeyContainsFold applies the ContainsFold predicate on the "listing_key" field.
 func ListingKeyContainsFold(v string) predicate.App {
 	return predicate.App(sql.FieldContainsFold(FieldListingKey, v))
+}
+
+// StripeAccountIDEQ applies the EQ predicate on the "stripe_account_id" field.
+func StripeAccountIDEQ(v string) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDNEQ applies the NEQ predicate on the "stripe_account_id" field.
+func StripeAccountIDNEQ(v string) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDIn applies the In predicate on the "stripe_account_id" field.
+func StripeAccountIDIn(vs ...string) predicate.App {
+	return predicate.App(sql.FieldIn(FieldStripeAccountID, vs...))
+}
+
+// StripeAccountIDNotIn applies the NotIn predicate on the "stripe_account_id" field.
+func StripeAccountIDNotIn(vs ...string) predicate.App {
+	return predicate.App(sql.FieldNotIn(FieldStripeAccountID, vs...))
+}
+
+// StripeAccountIDGT applies the GT predicate on the "stripe_account_id" field.
+func StripeAccountIDGT(v string) predicate.App {
+	return predicate.App(sql.FieldGT(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDGTE applies the GTE predicate on the "stripe_account_id" field.
+func StripeAccountIDGTE(v string) predicate.App {
+	return predicate.App(sql.FieldGTE(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDLT applies the LT predicate on the "stripe_account_id" field.
+func StripeAccountIDLT(v string) predicate.App {
+	return predicate.App(sql.FieldLT(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDLTE applies the LTE predicate on the "stripe_account_id" field.
+func StripeAccountIDLTE(v string) predicate.App {
+	return predicate.App(sql.FieldLTE(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDContains applies the Contains predicate on the "stripe_account_id" field.
+func StripeAccountIDContains(v string) predicate.App {
+	return predicate.App(sql.FieldContains(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDHasPrefix applies the HasPrefix predicate on the "stripe_account_id" field.
+func StripeAccountIDHasPrefix(v string) predicate.App {
+	return predicate.App(sql.FieldHasPrefix(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDHasSuffix applies the HasSuffix predicate on the "stripe_account_id" field.
+func StripeAccountIDHasSuffix(v string) predicate.App {
+	return predicate.App(sql.FieldHasSuffix(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDIsNil applies the IsNil predicate on the "stripe_account_id" field.
+func StripeAccountIDIsNil() predicate.App {
+	return predicate.App(sql.FieldIsNull(FieldStripeAccountID))
+}
+
+// StripeAccountIDNotNil applies the NotNil predicate on the "stripe_account_id" field.
+func StripeAccountIDNotNil() predicate.App {
+	return predicate.App(sql.FieldNotNull(FieldStripeAccountID))
+}
+
+// StripeAccountIDEqualFold applies the EqualFold predicate on the "stripe_account_id" field.
+func StripeAccountIDEqualFold(v string) predicate.App {
+	return predicate.App(sql.FieldEqualFold(FieldStripeAccountID, v))
+}
+
+// StripeAccountIDContainsFold applies the ContainsFold predicate on the "stripe_account_id" field.
+func StripeAccountIDContainsFold(v string) predicate.App {
+	return predicate.App(sql.FieldContainsFold(FieldStripeAccountID, v))
+}
+
+// StripeLivemodeEQ applies the EQ predicate on the "stripe_livemode" field.
+func StripeLivemodeEQ(v bool) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldStripeLivemode, v))
+}
+
+// StripeLivemodeNEQ applies the NEQ predicate on the "stripe_livemode" field.
+func StripeLivemodeNEQ(v bool) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldStripeLivemode, v))
+}
+
+// StripeLivemodeIsNil applies the IsNil predicate on the "stripe_livemode" field.
+func StripeLivemodeIsNil() predicate.App {
+	return predicate.App(sql.FieldIsNull(FieldStripeLivemode))
+}
+
+// StripeLivemodeNotNil applies the NotNil predicate on the "stripe_livemode" field.
+func StripeLivemodeNotNil() predicate.App {
+	return predicate.App(sql.FieldNotNull(FieldStripeLivemode))
 }
 
 // And groups predicates with the AND operator between them.

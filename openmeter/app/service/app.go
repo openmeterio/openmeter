@@ -9,7 +9,7 @@ import (
 
 var _ app.AppService = (*Service)(nil)
 
-func (s *Service) GetApp(ctx context.Context, input app.GetAppInput) (*app.App, error) {
+func (s *Service) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
 			Err: err,

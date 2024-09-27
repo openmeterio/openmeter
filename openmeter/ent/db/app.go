@@ -38,8 +38,12 @@ type App struct {
 	// Status holds the value of the "status" field.
 	Status app.AppStatus `json:"status,omitempty"`
 	// ListingKey holds the value of the "listing_key" field.
-	ListingKey   string `json:"listing_key,omitempty"`
-	selectValues sql.SelectValues
+	ListingKey string `json:"listing_key,omitempty"`
+	// StripeAccountID holds the value of the "stripe_account_id" field.
+	StripeAccountID *string `json:"stripe_account_id,omitempty"`
+	// StripeLivemode holds the value of the "stripe_livemode" field.
+	StripeLivemode *bool `json:"stripe_livemode,omitempty"`
+	selectValues   sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -49,7 +53,9 @@ func (*App) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case dbapp.FieldMetadata:
 			values[i] = new([]byte)
-		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus, dbapp.FieldListingKey:
+		case dbapp.FieldStripeLivemode:
+			values[i] = new(sql.NullBool)
+		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus, dbapp.FieldListingKey, dbapp.FieldStripeAccountID:
 			values[i] = new(sql.NullString)
 		case dbapp.FieldCreatedAt, dbapp.FieldUpdatedAt, dbapp.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -137,6 +143,20 @@ func (a *App) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				a.ListingKey = value.String
 			}
+		case dbapp.FieldStripeAccountID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field stripe_account_id", values[i])
+			} else if value.Valid {
+				a.StripeAccountID = new(string)
+				*a.StripeAccountID = value.String
+			}
+		case dbapp.FieldStripeLivemode:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field stripe_livemode", values[i])
+			} else if value.Valid {
+				a.StripeLivemode = new(bool)
+				*a.StripeLivemode = value.Bool
+			}
 		default:
 			a.selectValues.Set(columns[i], values[i])
 		}
@@ -204,6 +224,16 @@ func (a *App) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("listing_key=")
 	builder.WriteString(a.ListingKey)
+	builder.WriteString(", ")
+	if v := a.StripeAccountID; v != nil {
+		builder.WriteString("stripe_account_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := a.StripeLivemode; v != nil {
+		builder.WriteString("stripe_livemode=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

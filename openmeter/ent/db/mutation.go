@@ -73,23 +73,25 @@ const (
 // AppMutation represents an operation that mutates the App nodes in the graph.
 type AppMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	namespace     *string
-	metadata      *map[string]string
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
-	name          *string
-	description   *string
-	_type         *app.AppType
-	status        *app.AppStatus
-	listing_key   *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*App, error)
-	predicates    []predicate.App
+	op                Op
+	typ               string
+	id                *string
+	namespace         *string
+	metadata          *map[string]string
+	created_at        *time.Time
+	updated_at        *time.Time
+	deleted_at        *time.Time
+	name              *string
+	description       *string
+	_type             *app.AppType
+	status            *app.AppStatus
+	listing_key       *string
+	stripe_account_id *string
+	stripe_livemode   *bool
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*App, error)
+	predicates        []predicate.App
 }
 
 var _ ent.Mutation = (*AppMutation)(nil)
@@ -582,6 +584,104 @@ func (m *AppMutation) ResetListingKey() {
 	m.listing_key = nil
 }
 
+// SetStripeAccountID sets the "stripe_account_id" field.
+func (m *AppMutation) SetStripeAccountID(s string) {
+	m.stripe_account_id = &s
+}
+
+// StripeAccountID returns the value of the "stripe_account_id" field in the mutation.
+func (m *AppMutation) StripeAccountID() (r string, exists bool) {
+	v := m.stripe_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeAccountID returns the old "stripe_account_id" field's value of the App entity.
+// If the App object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppMutation) OldStripeAccountID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeAccountID: %w", err)
+	}
+	return oldValue.StripeAccountID, nil
+}
+
+// ClearStripeAccountID clears the value of the "stripe_account_id" field.
+func (m *AppMutation) ClearStripeAccountID() {
+	m.stripe_account_id = nil
+	m.clearedFields[dbapp.FieldStripeAccountID] = struct{}{}
+}
+
+// StripeAccountIDCleared returns if the "stripe_account_id" field was cleared in this mutation.
+func (m *AppMutation) StripeAccountIDCleared() bool {
+	_, ok := m.clearedFields[dbapp.FieldStripeAccountID]
+	return ok
+}
+
+// ResetStripeAccountID resets all changes to the "stripe_account_id" field.
+func (m *AppMutation) ResetStripeAccountID() {
+	m.stripe_account_id = nil
+	delete(m.clearedFields, dbapp.FieldStripeAccountID)
+}
+
+// SetStripeLivemode sets the "stripe_livemode" field.
+func (m *AppMutation) SetStripeLivemode(b bool) {
+	m.stripe_livemode = &b
+}
+
+// StripeLivemode returns the value of the "stripe_livemode" field in the mutation.
+func (m *AppMutation) StripeLivemode() (r bool, exists bool) {
+	v := m.stripe_livemode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeLivemode returns the old "stripe_livemode" field's value of the App entity.
+// If the App object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppMutation) OldStripeLivemode(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeLivemode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeLivemode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeLivemode: %w", err)
+	}
+	return oldValue.StripeLivemode, nil
+}
+
+// ClearStripeLivemode clears the value of the "stripe_livemode" field.
+func (m *AppMutation) ClearStripeLivemode() {
+	m.stripe_livemode = nil
+	m.clearedFields[dbapp.FieldStripeLivemode] = struct{}{}
+}
+
+// StripeLivemodeCleared returns if the "stripe_livemode" field was cleared in this mutation.
+func (m *AppMutation) StripeLivemodeCleared() bool {
+	_, ok := m.clearedFields[dbapp.FieldStripeLivemode]
+	return ok
+}
+
+// ResetStripeLivemode resets all changes to the "stripe_livemode" field.
+func (m *AppMutation) ResetStripeLivemode() {
+	m.stripe_livemode = nil
+	delete(m.clearedFields, dbapp.FieldStripeLivemode)
+}
+
 // Where appends a list predicates to the AppMutation builder.
 func (m *AppMutation) Where(ps ...predicate.App) {
 	m.predicates = append(m.predicates, ps...)
@@ -616,7 +716,7 @@ func (m *AppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, dbapp.FieldNamespace)
 	}
@@ -647,6 +747,12 @@ func (m *AppMutation) Fields() []string {
 	if m.listing_key != nil {
 		fields = append(fields, dbapp.FieldListingKey)
 	}
+	if m.stripe_account_id != nil {
+		fields = append(fields, dbapp.FieldStripeAccountID)
+	}
+	if m.stripe_livemode != nil {
+		fields = append(fields, dbapp.FieldStripeLivemode)
+	}
 	return fields
 }
 
@@ -675,6 +781,10 @@ func (m *AppMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case dbapp.FieldListingKey:
 		return m.ListingKey()
+	case dbapp.FieldStripeAccountID:
+		return m.StripeAccountID()
+	case dbapp.FieldStripeLivemode:
+		return m.StripeLivemode()
 	}
 	return nil, false
 }
@@ -704,6 +814,10 @@ func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldStatus(ctx)
 	case dbapp.FieldListingKey:
 		return m.OldListingKey(ctx)
+	case dbapp.FieldStripeAccountID:
+		return m.OldStripeAccountID(ctx)
+	case dbapp.FieldStripeLivemode:
+		return m.OldStripeLivemode(ctx)
 	}
 	return nil, fmt.Errorf("unknown App field %s", name)
 }
@@ -783,6 +897,20 @@ func (m *AppMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetListingKey(v)
 		return nil
+	case dbapp.FieldStripeAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeAccountID(v)
+		return nil
+	case dbapp.FieldStripeLivemode:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeLivemode(v)
+		return nil
 	}
 	return fmt.Errorf("unknown App field %s", name)
 }
@@ -819,6 +947,12 @@ func (m *AppMutation) ClearedFields() []string {
 	if m.FieldCleared(dbapp.FieldDeletedAt) {
 		fields = append(fields, dbapp.FieldDeletedAt)
 	}
+	if m.FieldCleared(dbapp.FieldStripeAccountID) {
+		fields = append(fields, dbapp.FieldStripeAccountID)
+	}
+	if m.FieldCleared(dbapp.FieldStripeLivemode) {
+		fields = append(fields, dbapp.FieldStripeLivemode)
+	}
 	return fields
 }
 
@@ -838,6 +972,12 @@ func (m *AppMutation) ClearField(name string) error {
 		return nil
 	case dbapp.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case dbapp.FieldStripeAccountID:
+		m.ClearStripeAccountID()
+		return nil
+	case dbapp.FieldStripeLivemode:
+		m.ClearStripeLivemode()
 		return nil
 	}
 	return fmt.Errorf("unknown App nullable field %s", name)
@@ -876,6 +1016,12 @@ func (m *AppMutation) ResetField(name string) error {
 		return nil
 	case dbapp.FieldListingKey:
 		m.ResetListingKey()
+		return nil
+	case dbapp.FieldStripeAccountID:
+		m.ResetStripeAccountID()
+		return nil
+	case dbapp.FieldStripeLivemode:
+		m.ResetStripeLivemode()
 		return nil
 	}
 	return fmt.Errorf("unknown App field %s", name)
