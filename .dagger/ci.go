@@ -10,8 +10,9 @@ func (m *Openmeter) Ci(ctx context.Context) (*dagger.Directory, error) {
 	p := newPipeline(ctx)
 
 	trivy := dag.Trivy(dagger.TrivyOpts{
-		Cache:             cacheVolume("trivy"),
-		WarmDatabaseCache: true,
+		Cache:              cacheVolume("trivy"),
+		DatabaseRepository: "ghcr.io/openmeterio/trivy-db:2",
+		WarmDatabaseCache:  true,
 	})
 
 	containerImages := m.Build().containerImages("ci")
