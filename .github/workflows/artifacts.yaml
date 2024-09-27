@@ -109,6 +109,7 @@ jobs:
         env:
           TRIVY_USERNAME: x-token
           TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
+          TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
 
       - name: Upload Trivy scan results as artifact
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
@@ -206,6 +207,7 @@ jobs:
         env:
           TRIVY_USERNAME: x-token
           TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
+          TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
 
       - name: Upload Trivy scan results as artifact
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
