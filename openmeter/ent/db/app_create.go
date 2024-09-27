@@ -108,6 +108,34 @@ func (ac *AppCreate) SetListingKey(s string) *AppCreate {
 	return ac
 }
 
+// SetStripeAccountID sets the "stripe_account_id" field.
+func (ac *AppCreate) SetStripeAccountID(s string) *AppCreate {
+	ac.mutation.SetStripeAccountID(s)
+	return ac
+}
+
+// SetNillableStripeAccountID sets the "stripe_account_id" field if the given value is not nil.
+func (ac *AppCreate) SetNillableStripeAccountID(s *string) *AppCreate {
+	if s != nil {
+		ac.SetStripeAccountID(*s)
+	}
+	return ac
+}
+
+// SetStripeLivemode sets the "stripe_livemode" field.
+func (ac *AppCreate) SetStripeLivemode(b bool) *AppCreate {
+	ac.mutation.SetStripeLivemode(b)
+	return ac
+}
+
+// SetNillableStripeLivemode sets the "stripe_livemode" field if the given value is not nil.
+func (ac *AppCreate) SetNillableStripeLivemode(b *bool) *AppCreate {
+	if b != nil {
+		ac.SetStripeLivemode(*b)
+	}
+	return ac
+}
+
 // SetID sets the "id" field.
 func (ac *AppCreate) SetID(s string) *AppCreate {
 	ac.mutation.SetID(s)
@@ -278,6 +306,14 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		_spec.SetField(dbapp.FieldListingKey, field.TypeString, value)
 		_node.ListingKey = value
 	}
+	if value, ok := ac.mutation.StripeAccountID(); ok {
+		_spec.SetField(dbapp.FieldStripeAccountID, field.TypeString, value)
+		_node.StripeAccountID = &value
+	}
+	if value, ok := ac.mutation.StripeLivemode(); ok {
+		_spec.SetField(dbapp.FieldStripeLivemode, field.TypeBool, value)
+		_node.StripeLivemode = &value
+	}
 	return _node, _spec
 }
 
@@ -442,6 +478,12 @@ func (u *AppUpsertOne) UpdateNewValues() *AppUpsertOne {
 		}
 		if _, exists := u.create.mutation.ListingKey(); exists {
 			s.SetIgnore(dbapp.FieldListingKey)
+		}
+		if _, exists := u.create.mutation.StripeAccountID(); exists {
+			s.SetIgnore(dbapp.FieldStripeAccountID)
+		}
+		if _, exists := u.create.mutation.StripeLivemode(); exists {
+			s.SetIgnore(dbapp.FieldStripeLivemode)
 		}
 	}))
 	return u
@@ -766,6 +808,12 @@ func (u *AppUpsertBulk) UpdateNewValues() *AppUpsertBulk {
 			}
 			if _, exists := b.mutation.ListingKey(); exists {
 				s.SetIgnore(dbapp.FieldListingKey)
+			}
+			if _, exists := b.mutation.StripeAccountID(); exists {
+				s.SetIgnore(dbapp.FieldStripeAccountID)
+			}
+			if _, exists := b.mutation.StripeLivemode(); exists {
+				s.SetIgnore(dbapp.FieldStripeLivemode)
 			}
 		}
 	}))
