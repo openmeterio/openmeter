@@ -57,10 +57,11 @@ const (
 )
 
 type Capability struct {
-	Key          string        `json:"key"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	Requirements []Requirement `json:"requirements"`
+	Type         CapabilityType `json:"type"`
+	Key          string         `json:"key"`
+	Name         string         `json:"name"`
+	Description  string         `json:"description"`
+	Requirements []Requirement  `json:"requirements"`
 }
 
 func (c Capability) Validate() error {
