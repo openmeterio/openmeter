@@ -2,7 +2,6 @@ package subscription
 
 import (
 	"context"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -15,14 +14,6 @@ type SubscriptionRepo interface {
 	GetByID(ctx context.Context, subscriptionID string) (Subscription, error)
 
 	UpdateCadence(ctx context.Context, subscriptionID string, cadence models.CadencedModel) (Subscription, error)
-}
-
-type SubscriptionPhaseRepo interface {
-	Create(ctx context.Context, phase SubscriptionPhaseCreateInput) (SubscriptionPhase, error)
-	DeleteAt(ctx context.Context, id string, at time.Time) error
-
-	GetForSub(ctx context.Context, subscriptionID string) ([]SubscriptionPhase, error)
-	GetRateCards(ctx context.Context, phaseID string) ([]SubscriptionRateCard, error)
 }
 
 type SubscriptionEntitlementRepo interface {
@@ -51,10 +42,4 @@ type SubscriptionCreateInput struct {
 	models.CadencedModel
 
 	TemplatingPlanRef modelref.VersionedKeyRef
-}
-
-type SubscriptionPhaseCreateInput struct {
-	models.NamespacedModel
-	ActiveFrom     time.Time
-	SubscriptionId string
 }

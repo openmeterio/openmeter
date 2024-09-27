@@ -7,24 +7,31 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/subscription/override"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	modelref "github.com/openmeterio/openmeter/pkg/models/ref"
-	"github.com/samber/lo"
 )
 
 type NewSubscriptionRequest struct {
-	Namespace         string
-	ActiveFrom        time.Time
-	CustomerID        string
+	Namespace  string
+	ActiveFrom time.Time
+	CustomerID string
+
+	// Reference to the Plan that the subscription is based on.
 	TemplatingPlanRef modelref.VersionedKeyRef // TODO: maybe just use IDs instead of versioned keys?
 
-	// Phase overrides are applied to the Plan's phases in order
-	PhaseOverrides [][]Override[RateCard]
+	// Phase overrides are applied to the Plan's phases in order.
+	// These overrides are divergences from what's defined in the Plan that the user can make
+	// when starting a subscription. There are two main use csases for this:
+	//
+	// 1. To edit the contents of the plan, i.e. manually override some aspects (like price)
+	// 2. To fill in missing information that the plan doesn't have (like mandated custom pricing for enterprise customers)
+	PhaseOverrides [][]override.Override[RateCard]
 }
 
 type OverrideSubscriptionPhaseRequest struct {
-	rateCardOverrides []Override[RateCard]
+	rateCardOverrides []override.Override[RateCard]
 	at                time.Time
 	// PhaseId is required instead of index as the number of phases in the current subscription changes with each edit
 	phaseId string
@@ -36,15 +43,11 @@ type Connector interface {
 
 	// StartNew attempts to start a new subscription for a customer effective at the provided time.
 	StartNew(ctx context.Context, customerID string, req NewSubscriptionRequest) (Subscription, error)
-
-	// OverridePhase overrides the rate cards for a phase in a subscription.
-	OverridePhase(ctx context.Context, subscriptionID models.NamespacedID, req OverrideSubscriptionPhaseRequest) (SubscriptionPhase, error)
 }
 
 type connector struct {
 	customerSubscriptionRepo    CustomerSubscriptionRepo
 	subscriptionRepo            SubscriptionRepo
-	subscriptionPhaseRepo       SubscriptionPhaseRepo
 	subscriptionEntitlementRepo SubscriptionEntitlementRepo
 
 	lifecycleManager LifecycleManager
@@ -160,17 +163,13 @@ func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubs
 			// Lets find any overrides for ratecards in this phase
 			overrides := req.PhaseOverrides[phaseIdx]
 
-			rateCards := ApplyOverrides(phase.RateCards(), overrides)
-			_, err := c.insertPhase(ctx, insertPhaseRequest{
-				phaseInput: SubscriptionPhaseCreateInput{
-					NamespacedModel: models.NamespacedModel{Namespace: req.Namespace},
-					ActiveFrom:      startOfPhase,
-					SubscriptionId:  sub.ID,
-				},
-				rateCards: rateCards,
-			})
-			if err != nil {
-				return Subscription{}, fmt.Errorf("failed to insert phase: %w", err)
+			rateCards := override.ApplyOverrides(phase.RateCards(), overrides)
+			// TODO: persist stuff
+			for _, rateCard := range rateCards {
+				err := c.createRateCardEntitlement(ctx, rateCard)
+				if err != nil {
+					return Subscription{}, fmt.Errorf("failed to insert phase: %w", err)
+				}
 			}
 
 			startOfPhase = startOfPhase.Add(phase.Duration())
@@ -181,105 +180,4 @@ func (c *connector) StartNew(ctx context.Context, customerID string, req NewSubs
 
 		return sub, err
 	})
-}
-
-// OverridePhase overrides (among others) the rate cards for a phase in a subscription.
-// This in turn creates a new phase lasting until the last scheduled phase after that with the new configuration.
-func (c *connector) OverridePhase(ctx context.Context, subscriptionID models.NamespacedID, req OverrideSubscriptionPhaseRequest) (SubscriptionPhase, error) {
-	sub, err := c.subscriptionRepo.GetByID(ctx, subscriptionID.ID)
-	if err != nil {
-		return SubscriptionPhase{}, err
-	}
-
-	phases, err := c.subscriptionPhaseRepo.GetForSub(ctx, subscriptionID.ID)
-	if err != nil {
-		return SubscriptionPhase{}, err
-	}
-
-	phase, phaseIdx, ok := lo.FindIndexOf(phases, func(phase SubscriptionPhase) bool {
-		return phase.ID == req.phaseId
-	})
-
-	if !ok {
-		return SubscriptionPhase{}, &models.GenericUserError{Message: fmt.Sprintf("Phase with id %s not found", req.phaseId)}
-	}
-
-	if !phase.ActiveFrom.Before(req.at) {
-		return SubscriptionPhase{}, &models.GenericUserError{Message: "Override time must be after the phase start time"}
-	}
-
-	if phaseIdx < len(phases)-1 && !req.at.Before(phases[phaseIdx+1].ActiveFrom) {
-		return SubscriptionPhase{}, &models.GenericUserError{Message: "Override time must be before the next phase start time"}
-	}
-
-	rateCards, err := c.subscriptionPhaseRepo.GetRateCards(ctx, phase.ID)
-	if err != nil {
-		return SubscriptionPhase{}, fmt.Errorf("failed to get rate cards for phase: %w", err)
-	}
-
-	// When overriding, 1st we have to close the old phase, close any downstream resources, and then create the new phase
-	return transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (SubscriptionPhase, error) {
-		ents := []Entitlement{}
-		for _, rateCard := range rateCards {
-			ent, err := c.closeRateCardEntitlement(ctx, rateCard, req.at)
-			if err != nil {
-				return SubscriptionPhase{}, fmt.Errorf("failed to close rate card entitlements: %w", err)
-			}
-			ents = append(ents, ent)
-		}
-
-		err := c.subscriptionPhaseRepo.DeleteAt(ctx, phase.ID, req.at)
-		if err != nil {
-			return SubscriptionPhase{}, fmt.Errorf("failed to delete phase: %w", err)
-		}
-
-		// create new phase
-		// FIXME: having to map like this is a pain, maybe wrapping is not the right direction
-		rateCards := ApplyOverrides[RateCard](
-			lo.Map(rateCards, func(rateCard SubscriptionRateCard, _ int) RateCard {
-				// If an entitlement was deleted due to the override, we have to migrate it's usage
-				if ent, ok := lo.Find(ents, func(ent Entitlement) bool { return ent.RateCardID == rateCard.ID }); ok {
-					return entitlementUsageMigratingRateCard{
-						RateCard:         rateCard,
-						measureUsageFrom: ent.Entitlement.MeasureUsageFrom,
-					}
-				} else {
-					return rateCard
-				}
-			}),
-			req.rateCardOverrides,
-		)
-
-		return c.insertPhase(ctx, insertPhaseRequest{
-			phaseInput: SubscriptionPhaseCreateInput{
-				NamespacedModel: models.NamespacedModel{Namespace: sub.Namespace},
-				ActiveFrom:      req.at,
-				SubscriptionId:  sub.ID,
-			},
-			rateCards: rateCards,
-		})
-	})
-}
-
-type insertPhaseRequest struct {
-	phaseInput SubscriptionPhaseCreateInput
-	rateCards  []RateCard
-}
-
-// insertPhase inserts a new phase into the subscription if it can.
-func (c *connector) insertPhase(ctx context.Context, req insertPhaseRequest) (SubscriptionPhase, error) {
-	subPhase, err := c.subscriptionPhaseRepo.Create(ctx, req.phaseInput)
-	if err != nil {
-		return SubscriptionPhase{}, err
-	}
-
-	for _, rateCard := range req.rateCards {
-		// Lets create dependent resources
-		err := c.createRateCardEntitlement(ctx, rateCard)
-		if err != nil {
-			return SubscriptionPhase{}, fmt.Errorf("failed to create dependent resources for rate card: %w", err)
-		}
-	}
-
-	return subPhase, nil
 }

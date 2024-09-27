@@ -1,4 +1,4 @@
-package subscription
+package override
 
 // UniquelyComparable means the interface can be compared, diffed, etc... by a unique self-referential identifier
 // returned by UniqBy.

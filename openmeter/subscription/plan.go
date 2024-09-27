@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/subscription/override"
+	"github.com/openmeterio/openmeter/openmeter/subscription/subscriptionitem"
 	"github.com/openmeterio/openmeter/pkg/models"
 	modelref "github.com/openmeterio/openmeter/pkg/models/ref"
 )
@@ -23,14 +24,16 @@ type PlanPhase interface {
 	RateCards() []RateCard
 	Duration() time.Duration
 
-	UniquelyComparable
+	override.UniquelyComparable
 }
 
 type RateCard interface {
-	// TODO: Arguments have to be defined
-	GetEntitlementSpec(args ...[]any) (entitlement.CreateEntitlementInputs, error)
+	// You can create an entitlement based on a RateCard
+	subscriptionitem.EntitlementCreator
 
-	UniquelyComparable
+	// RateCards can be compared with each other and SubscriptionContent
+	// to determine what they affect.
+	override.UniquelyComparable
 }
 
 type SubscriptionRateCard struct {

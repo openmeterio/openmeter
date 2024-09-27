@@ -1,9 +1,9 @@
-package subscription_test
+package override_test
 
 import (
 	"testing"
 
-	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/override"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +13,7 @@ type data struct {
 	otherProp *int
 }
 
-var _ subscription.UniquelyComparable = data{}
+var _ override.UniquelyComparable = data{}
 
 func (d data) UniqBy() string {
 	return d.name
@@ -23,13 +23,13 @@ func TestOverrides(t *testing.T) {
 	tt := []struct {
 		name      string
 		base      []data
-		overrides []subscription.Override[data]
+		overrides []override.Override[data]
 		expected  []data
 	}{
 		{
 			name:      "Should output nothing if both inputs are nothing",
 			base:      []data{},
-			overrides: []subscription.Override[data]{},
+			overrides: []override.Override[data]{},
 			expected:  []data{},
 		},
 		{
@@ -41,9 +41,9 @@ func TestOverrides(t *testing.T) {
 		{
 			name: "Should output nothing if only remove overrides are present",
 			base: []data{},
-			overrides: []subscription.Override[data]{
+			overrides: []override.Override[data]{
 				{
-					Action: subscription.OverrideActionRemove,
+					Action: override.OverrideActionRemove,
 					Value:  data{name: "a"},
 				},
 			},
@@ -54,9 +54,9 @@ func TestOverrides(t *testing.T) {
 			base: []data{
 				{name: "a"},
 			},
-			overrides: []subscription.Override[data]{
+			overrides: []override.Override[data]{
 				{
-					Action: subscription.OverrideActionRemove,
+					Action: override.OverrideActionRemove,
 					Value:  data{name: "a"},
 				},
 			},
@@ -65,9 +65,9 @@ func TestOverrides(t *testing.T) {
 		{
 			name: "Should output add override",
 			base: []data{},
-			overrides: []subscription.Override[data]{
+			overrides: []override.Override[data]{
 				{
-					Action: subscription.OverrideActionAdd,
+					Action: override.OverrideActionAdd,
 					Value:  data{name: "a"},
 				},
 			},
@@ -80,9 +80,9 @@ func TestOverrides(t *testing.T) {
 			base: []data{
 				{name: "b"},
 			},
-			overrides: []subscription.Override[data]{
+			overrides: []override.Override[data]{
 				{
-					Action: subscription.OverrideActionAdd,
+					Action: override.OverrideActionAdd,
 					Value:  data{name: "a"},
 				},
 			},
@@ -98,9 +98,9 @@ func TestOverrides(t *testing.T) {
 				{name: "a", otherProp: lo.ToPtr(2)},
 				{name: "b"},
 			},
-			overrides: []subscription.Override[data]{
+			overrides: []override.Override[data]{
 				{
-					Action: subscription.OverrideActionAdd,
+					Action: override.OverrideActionAdd,
 					Value:  data{name: "a", otherProp: lo.ToPtr(3)},
 				},
 			},
@@ -113,7 +113,7 @@ func TestOverrides(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			res := subscription.ApplyOverrides(tc.base, tc.overrides)
+			res := override.ApplyOverrides(tc.base, tc.overrides)
 			assert.Equal(t, tc.expected, res)
 		})
 	}
