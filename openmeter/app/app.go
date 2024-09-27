@@ -17,8 +17,11 @@ type App interface {
 	GetStatus() AppStatus
 	GetListing() MarketplaceListing
 
+	// ValidateCapabilities validates if the app can run for the given capabilities
+	ValidateCapabilities(capabilities []CapabilityType) error
+
 	// ValidateCustomer validates if the app can run for the given customer
-	ValidateCustomer(customer customer.Customer) error
+	ValidateCustomer(customer customer.Customer, capabilities []CapabilityType) error
 }
 
 // AppType represents the type of an app
@@ -67,6 +70,26 @@ func (a StripeApp) GetStatus() AppStatus {
 
 func (a StripeApp) GetListing() MarketplaceListing {
 	return a.Listing
+}
+
+// ValidateCapabilities validates if the app can run for the given capabilities
+func (a AppBase) ValidateCapabilities(capabilities []CapabilityType) error {
+	for _, capability := range capabilities {
+		found := false
+
+		for _, c := range a.Listing.Capabilities {
+			if c.Type == capability {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("capability %s is not supported by %s app type", capability, a.Type)
+		}
+	}
+
+	return nil
 }
 
 // Validate validates the app base
