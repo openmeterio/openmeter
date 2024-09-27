@@ -21,7 +21,6 @@ var (
 		{Name: "description", Type: field.TypeString},
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString},
-		{Name: "listing_key", Type: field.TypeString},
 		{Name: "stripe_account_id", Type: field.TypeString, Nullable: true},
 		{Name: "stripe_livemode", Type: field.TypeBool, Nullable: true},
 	}

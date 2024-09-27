@@ -107,11 +107,6 @@ func Status(v app.AppStatus) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldStatus, vc))
 }
 
-// ListingKey applies equality check predicate on the "listing_key" field. It's identical to ListingKeyEQ.
-func ListingKey(v string) predicate.App {
-	return predicate.App(sql.FieldEQ(FieldListingKey, v))
-}
-
 // StripeAccountID applies equality check predicate on the "stripe_account_id" field. It's identical to StripeAccountIDEQ.
 func StripeAccountID(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldStripeAccountID, v))
@@ -623,71 +618,6 @@ func StatusEqualFold(v app.AppStatus) predicate.App {
 func StatusContainsFold(v app.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContainsFold(FieldStatus, vc))
-}
-
-// ListingKeyEQ applies the EQ predicate on the "listing_key" field.
-func ListingKeyEQ(v string) predicate.App {
-	return predicate.App(sql.FieldEQ(FieldListingKey, v))
-}
-
-// ListingKeyNEQ applies the NEQ predicate on the "listing_key" field.
-func ListingKeyNEQ(v string) predicate.App {
-	return predicate.App(sql.FieldNEQ(FieldListingKey, v))
-}
-
-// ListingKeyIn applies the In predicate on the "listing_key" field.
-func ListingKeyIn(vs ...string) predicate.App {
-	return predicate.App(sql.FieldIn(FieldListingKey, vs...))
-}
-
-// ListingKeyNotIn applies the NotIn predicate on the "listing_key" field.
-func ListingKeyNotIn(vs ...string) predicate.App {
-	return predicate.App(sql.FieldNotIn(FieldListingKey, vs...))
-}
-
-// ListingKeyGT applies the GT predicate on the "listing_key" field.
-func ListingKeyGT(v string) predicate.App {
-	return predicate.App(sql.FieldGT(FieldListingKey, v))
-}
-
-// ListingKeyGTE applies the GTE predicate on the "listing_key" field.
-func ListingKeyGTE(v string) predicate.App {
-	return predicate.App(sql.FieldGTE(FieldListingKey, v))
-}
-
-// ListingKeyLT applies the LT predicate on the "listing_key" field.
-func ListingKeyLT(v string) predicate.App {
-	return predicate.App(sql.FieldLT(FieldListingKey, v))
-}
-
-// ListingKeyLTE applies the LTE predicate on the "listing_key" field.
-func ListingKeyLTE(v string) predicate.App {
-	return predicate.App(sql.FieldLTE(FieldListingKey, v))
-}
-
-// ListingKeyContains applies the Contains predicate on the "listing_key" field.
-func ListingKeyContains(v string) predicate.App {
-	return predicate.App(sql.FieldContains(FieldListingKey, v))
-}
-
-// ListingKeyHasPrefix applies the HasPrefix predicate on the "listing_key" field.
-func ListingKeyHasPrefix(v string) predicate.App {
-	return predicate.App(sql.FieldHasPrefix(FieldListingKey, v))
-}
-
-// ListingKeyHasSuffix applies the HasSuffix predicate on the "listing_key" field.
-func ListingKeyHasSuffix(v string) predicate.App {
-	return predicate.App(sql.FieldHasSuffix(FieldListingKey, v))
-}
-
-// ListingKeyEqualFold applies the EqualFold predicate on the "listing_key" field.
-func ListingKeyEqualFold(v string) predicate.App {
-	return predicate.App(sql.FieldEqualFold(FieldListingKey, v))
-}
-
-// ListingKeyContainsFold applies the ContainsFold predicate on the "listing_key" field.
-func ListingKeyContainsFold(v string) predicate.App {
-	return predicate.App(sql.FieldContainsFold(FieldListingKey, v))
 }
 
 // StripeAccountIDEQ applies the EQ predicate on the "stripe_account_id" field.

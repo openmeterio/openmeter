@@ -31,8 +31,6 @@ const (
 	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldListingKey holds the string denoting the listing_key field in the database.
-	FieldListingKey = "listing_key"
 	// FieldStripeAccountID holds the string denoting the stripe_account_id field in the database.
 	FieldStripeAccountID = "stripe_account_id"
 	// FieldStripeLivemode holds the string denoting the stripe_livemode field in the database.
@@ -53,7 +51,6 @@ var Columns = []string{
 	FieldDescription,
 	FieldType,
 	FieldStatus,
-	FieldListingKey,
 	FieldStripeAccountID,
 	FieldStripeLivemode,
 }
@@ -127,11 +124,6 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByListingKey orders the results by the listing_key field.
-func ByListingKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldListingKey, opts...).ToFunc()
 }
 
 // ByStripeAccountID orders the results by the stripe_account_id field.

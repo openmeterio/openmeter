@@ -11,7 +11,6 @@ import (
 var (
 	StripeMarketplaceListing = MarketplaceListing{
 		Type:        AppTypeStripe,
-		Key:         "stripe",
 		Name:        "Stripe",
 		Description: "Stripe is a payment processing platform.",
 		IconURL:     "https://stripe.com/favicon.ico",
