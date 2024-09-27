@@ -37,7 +37,19 @@ func (a adapter) ListApps(ctx context.Context, params app.ListAppInput) (paginat
 
 	result := make([]app.App, 0, len(paged.Items))
 	for _, item := range paged.Items {
-		result = append(result, *mapAppFromDB(item))
+		listing, err := a.GetListing(ctx, app.GetMarketplaceListingInput{
+			Key: item.ListingKey,
+		})
+		if err != nil {
+			return response, fmt.Errorf("failed to get listing for app %s: %w", item.ID, err)
+		}
+
+		app, err := mapAppFromDB(item, listing)
+		if err != nil {
+			return response, fmt.Errorf("failed to map app %s: %w", item.ID, err)
+		}
+
+		result = append(result, app)
 	}
 
 	response.TotalCount = paged.TotalCount
@@ -47,7 +59,7 @@ func (a adapter) ListApps(ctx context.Context, params app.ListAppInput) (paginat
 }
 
 // GetApp gets an app
-func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (*app.App, error) {
+func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -66,7 +78,19 @@ func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (*app.App, e
 		return nil, err
 	}
 
-	return mapAppFromDB(dbApp), nil
+	listing, err := a.GetListing(ctx, app.GetMarketplaceListingInput{
+		Key: dbApp.ListingKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+	}
+
+	app, err := mapAppFromDB(dbApp, listing)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map app %s: %w", dbApp.ID, err)
+	}
+
+	return app, nil
 }
 
 // UninstallApp uninstalls an app
@@ -79,12 +103,26 @@ func (a adapter) UninstallApp(ctx context.Context, input app.DeleteAppInput) err
 	return fmt.Errorf("uninstall not implemented")
 }
 
-func mapAppFromDB(dbApp *db.App) *app.App {
+func mapAppFromDB(dbApp *db.App, listing app.MarketplaceListing) (app.App, error) {
 	if dbApp == nil {
-		return nil
+		return nil, fmt.Errorf("app is nil")
 	}
 
-	return &app.App{
+	switch dbApp.Type {
+	case app.AppTypeStripe:
+		stripeApp, err := mapStripeAppFromDB(dbApp, listing)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map stripe app: %w", err)
+		}
+
+		return stripeApp, nil
+	default:
+		return nil, fmt.Errorf("unsupported app type %s", dbApp.Type)
+	}
+}
+
+func mapAppBaseFromDB(dbApp *db.App, listing app.MarketplaceListing) app.AppBase {
+	return app.AppBase{
 		ManagedResource: models.ManagedResource{
 			ID: dbApp.ID,
 			NamespacedModel: models.NamespacedModel{
@@ -96,9 +134,27 @@ func mapAppFromDB(dbApp *db.App) *app.App {
 				DeletedAt: dbApp.DeletedAt,
 			},
 		},
-		Type:       dbApp.Type,
-		Name:       dbApp.Name,
-		Status:     dbApp.Status,
-		ListingKey: dbApp.ListingKey,
+		Type:    dbApp.Type,
+		Name:    dbApp.Name,
+		Status:  dbApp.Status,
+		Listing: listing,
 	}
+}
+
+func mapStripeAppFromDB(dbApp *db.App, listing app.MarketplaceListing) (app.StripeApp, error) {
+	appBase := mapAppBaseFromDB(dbApp, listing)
+
+	if dbApp.StripeAccountID == nil {
+		return app.StripeApp{}, fmt.Errorf("stripe account id is nil")
+	}
+
+	if dbApp.StripeLivemode == nil {
+		return app.StripeApp{}, fmt.Errorf("stripe livemode is nil")
+	}
+
+	return app.StripeApp{
+		AppBase:         appBase,
+		StripeAccountId: *dbApp.StripeAccountID,
+		Livemode:        *dbApp.StripeLivemode,
+	}, nil
 }

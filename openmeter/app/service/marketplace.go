@@ -31,7 +31,7 @@ func (s *Service) ListListings(ctx context.Context, input app.ListMarketplaceLis
 
 func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
-		return app.App{}, app.ValidationError{
+		return nil, app.ValidationError{
 			Err: err,
 		}
 	}

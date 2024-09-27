@@ -33,6 +33,10 @@ const (
 	FieldStatus = "status"
 	// FieldListingKey holds the string denoting the listing_key field in the database.
 	FieldListingKey = "listing_key"
+	// FieldStripeAccountID holds the string denoting the stripe_account_id field in the database.
+	FieldStripeAccountID = "stripe_account_id"
+	// FieldStripeLivemode holds the string denoting the stripe_livemode field in the database.
+	FieldStripeLivemode = "stripe_livemode"
 	// Table holds the table name of the app in the database.
 	Table = "apps"
 )
@@ -50,6 +54,8 @@ var Columns = []string{
 	FieldType,
 	FieldStatus,
 	FieldListingKey,
+	FieldStripeAccountID,
+	FieldStripeLivemode,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -126,4 +132,14 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByListingKey orders the results by the listing_key field.
 func ByListingKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldListingKey, opts...).ToFunc()
+}
+
+// ByStripeAccountID orders the results by the stripe_account_id field.
+func ByStripeAccountID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStripeAccountID, opts...).ToFunc()
+}
+
+// ByStripeLivemode orders the results by the stripe_livemode field.
+func ByStripeLivemode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStripeLivemode, opts...).ToFunc()
 }
