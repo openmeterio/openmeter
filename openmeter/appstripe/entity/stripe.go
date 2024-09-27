@@ -4,11 +4,27 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
+
+var marketplace = appadapter.DefaultMarketplace()
+
+var createDefaultMarketplaceOnce sync.Once
+
+func RegisterApp() error {
+	var err error
+
+	createDefaultMarketplaceOnce.Do(func() {
+		err = marketplace.RegisterListing(StripeMarketplaceListing)
+	})
+
+	return err
+}
 
 var (
 	StripeMarketplaceListing = appentity.MarketplaceListing{
@@ -45,15 +61,24 @@ var (
 	}
 )
 
-// StripeApp represents an installed Stripe app
-type StripeApp struct {
+// if err != nil {
+// 	return nil, fmt.Errorf("failed to register marketplace listing: %w", err)
+// }
+
+// App represents an installed Stripe app
+type App struct {
 	appentity.AppBase
+
+	// TODO: cycle dependencies
+	// AppService       app.Service
+	// AppStripeService appstripe.Service
+	// BillingService   billing.Service
 
 	StripeAccountId string `json:"stripeAccountId"`
 	Livemode        bool   `json:"livemode"`
 }
 
-func (a StripeApp) Validate() error {
+func (a App) Validate() error {
 	if err := a.AppBase.Validate(); err != nil {
 		return fmt.Errorf("error validating app: %w", err)
 	}
@@ -70,7 +95,7 @@ func (a StripeApp) Validate() error {
 }
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a StripeApp) ValidateCustomer(customer customer.Customer, capabilities []appentity.CapabilityType) error {
+func (a App) ValidateCustomer(customer customer.Customer, capabilities []appentity.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
@@ -97,4 +122,4 @@ func (a StripeApp) ValidateCustomer(customer customer.Customer, capabilities []a
 	return nil
 }
 
-type CreateAppStripeInput = StripeApp
+type CreateAppStripeInput = App

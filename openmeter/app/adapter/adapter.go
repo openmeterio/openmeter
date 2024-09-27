@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
@@ -37,18 +36,11 @@ func New(config Config) (app.Adapter, error) {
 		marketplace: config.Marketplace,
 	}
 
-	// Register marketplace listings
-	// TODO: register from stripe app
-	err := adapter.marketplace.RegisterListing(appstripeentity.StripeMarketplaceListing)
-	if err != nil {
-		return nil, fmt.Errorf("failed to register marketplace listing: %w", err)
-	}
-
 	return adapter, nil
 }
 
 func NewMarketplaceAdapter() app.MarketplaceAdapter {
-	return NewMarketplace()
+	return DefaultMarketplace()
 }
 
 var _ app.Adapter = (*adapter)(nil)

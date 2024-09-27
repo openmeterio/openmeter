@@ -21,7 +21,7 @@ type Adapter interface {
 }
 
 type AppStripeAdapter interface {
-	CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.StripeApp, error)
+	CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error)
 }
 
 func WithTxNoValue(ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) error) error {

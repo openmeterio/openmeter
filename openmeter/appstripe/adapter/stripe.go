@@ -14,7 +14,7 @@ import (
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 
 // CreateApp creates a new app
-func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.StripeApp, error) {
+func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error) {
 	// Create the app in the database
 	appCreateQuery := a.tx.App.Create().
 		SetNamespace(input.GetID().Namespace).
@@ -24,7 +24,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 	dbApp, err := appCreateQuery.Save(ctx)
 	if err != nil {
-		return appstripeentity.StripeApp{}, fmt.Errorf("failed to create app: %w", err)
+		return appstripeentity.App{}, fmt.Errorf("failed to create app: %w", err)
 	}
 
 	// Create the stripe app in the database
@@ -36,7 +36,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 	dbAppStripe, err := appStripeCreateQuery.Save(ctx)
 	if err != nil {
-		return appstripeentity.StripeApp{}, fmt.Errorf("failed to create stripe app: %w", err)
+		return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: %w", err)
 	}
 
 	// Set the stripe app edge
@@ -46,8 +46,8 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity
-func mapAppStripeFromDB(dbAppStripe *db.AppStripe) appstripeentity.StripeApp {
-	return appstripeentity.StripeApp{
+func mapAppStripeFromDB(dbAppStripe *db.AppStripe) appstripeentity.App {
+	return appstripeentity.App{
 		AppBase:         appadapter.MapAppBaseFromDB(dbAppStripe.Edges.App, appstripeentity.StripeMarketplaceListing),
 		StripeAccountId: dbAppStripe.StripeAccountID,
 		Livemode:        dbAppStripe.StripeLivemode,
