@@ -153,3 +153,37 @@ namespace OpenMeterCloud.Entitlements {
 @route("/api/v1/customers")
 @tag("Customers")
 interface Customers extends OpenMeter.Customers {}
+
+namespace OpenMeterCloud.ProductCatalog {
+  @route("/api/v1/plans")
+  @tag("Plan (Experimental)")
+  interface PlansById extends OpenMeter.ProductCatalog.PlansById {}
+
+  @route("/api/v1/plans/{planId}/publish")
+  @tag("Plan (Experimental)")
+  interface PlanPublishById extends OpenMeter.ProductCatalog.PlanPublishById {}
+
+  @route("/api/v1/plans/{planId}/unpublish")
+  @tag("Plan (Experimental)")
+  interface PlanUnpublishById extends OpenMeter.ProductCatalog.PlanUnpublishById {}
+
+  @route("/api/v1/plans/{planKey}/versions")
+  @tag("Plan (Experimental)")
+  interface PlansByKeyVersion extends OpenMeter.ProductCatalog.PlansByKeyVersion {}
+
+  @route("/api/v1/plans/{planKey}/versions/{planVersion}/publish")
+  @tag("Plan (Experimental)")
+  interface PlanPublishByKeyVersion extends OpenMeter.ProductCatalog.PlanPublishByKeyVersion {}
+
+  @route("/api/v1/plans/{planKey}/versions/{planVersion}/unpublish")
+  @tag("Plan (Experimental)")
+  interface PlanUnpublishByKeyVersion extends OpenMeter.ProductCatalog.PlanUnpublishByKeyVersion {}
+
+  @route("/api/v1/plans/{planId}/phases")
+  @tag("Plan (Experimental)")
+  interface PlanByIdPhases extends OpenMeter.ProductCatalog.PlanByIdPhases {}
+
+  @route("/api/v1/plans/{planKey}/versions/{planVersion}/phases")
+  @tag("Plan (Experimental)")
+  interface PlanByKeyVersionPhases extends OpenMeter.ProductCatalog.PlanByKeyVersionPhases {}
+}

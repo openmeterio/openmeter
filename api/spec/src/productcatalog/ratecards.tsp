@@ -1,11 +1,6 @@
-import "./types.tsp";
-import "./billing.tsp";
-import "./discounts.tsp";
-import "./prices.tsp";
-import "./entitlements/main.tsp";
+namespace OpenMeter.ProductCatalog;
 
-namespace OpenMeter;
-
+using TypeSpec.OpenAPI;
 using OpenMeter.Entitlements;
 
 /**
@@ -21,7 +16,16 @@ enum RateCardType {
  * Common fields of the rate card.
  */
 @friendlyName("RateCardBase")
-model RateCardBase extends Resource {
+model RateCardBase<T extends RateCardType> {
+  ...OmitProperties<UniqueResource, "id">;
+
+  /**
+  * The type of the RateCard.
+  */
+  @visibility("read", "create")
+  @summary("Channel Type")
+  type: T;
+
   /**
    * The feature the customer is entitled to use.
    */
@@ -48,6 +52,7 @@ model RateCardBase extends Resource {
  */
 @friendlyName("RateCard")
 @discriminator("type")
+@oneOf
 union RateCard {
   flatFee: RateCardFlatFee,
   usageBased: RateCardUsageBased,
@@ -57,8 +62,8 @@ union RateCard {
  * A flat fee rate card defines a one-time purchase or a recurring fee.
  */
 @friendlyName("RateCardFlatFee")
-model RateCardFlatFee extends RateCardBase {
-  type: RateCardType.flatFee;
+model RateCardFlatFee {
+  ...RateCardBase<RateCardType.flatFee>;
 
   /**
    * The billing cadence of the rate card.
@@ -88,8 +93,8 @@ model RateCardFlatFee extends RateCardBase {
  * A usage-based rate card defines a price based on usage.
  */
 @friendlyName("RateCardUsageBased")
-model RateCardUsageBased extends RateCardBase {
-  type: RateCardType.usageBased;
+model RateCardUsageBased {
+  ...RateCardBase<RateCardType.usageBased>;
 
   /**
    * The billing cadence of the rate card.
@@ -157,7 +162,7 @@ union RateCardEntitlement {
 @friendlyName("RateCardMeteredEntitlement")
 model RateCardMeteredEntitlement {
   ...OmitProperties<
-    EntitlementMeteredCreateInputs,
+  OpenMeter.Entitlements.EntitlementMeteredCreateInputs,
     "featureKey" | "featureId" | "usagePeriod" | "measureUsageFrom" | "isUnlimited"
   >;
 
