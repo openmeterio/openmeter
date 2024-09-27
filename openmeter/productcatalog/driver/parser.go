@@ -8,10 +8,10 @@ import (
 
 func MapFeatureToResponse(f feature.Feature) api.Feature {
 	return api.Feature{
-		CreatedAt:           &f.CreatedAt,
+		CreatedAt:           f.CreatedAt,
 		DeletedAt:           nil,
-		UpdatedAt:           &f.UpdatedAt,
-		Id:                  &f.ID,
+		UpdatedAt:           f.UpdatedAt,
+		Id:                  f.ID,
 		Key:                 f.Key,
 		Metadata:            convert.MapToPointer(f.Metadata),
 		Name:                f.Name,

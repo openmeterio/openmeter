@@ -5,4 +5,6 @@ generate:
   embedded-spec: true
 compatibility:
   apply-chi-middleware-first-to-last: true
+  # See: https://github.com/oapi-codegen/oapi-codegen/issues/778
+  disable-required-readonly-as-pointer: true
 output: ./api.gen.go

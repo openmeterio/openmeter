@@ -27,7 +27,7 @@ type EntitlementValue struct {
 	Config *string `json:"config,omitempty"`
 
 	// HasAccess Whether the subject has access to the feature. Shared across all entitlement types.
-	HasAccess *bool `json:"hasAccess,omitempty"`
+	HasAccess bool `json:"hasAccess,omitempty"`
 
 	// Overage Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
 	Overage *float64 `json:"overage,omitempty"`
