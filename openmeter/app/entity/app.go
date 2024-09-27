@@ -1,4 +1,4 @@
-package app
+package appentity
 
 import (
 	"errors"
@@ -49,26 +49,26 @@ type AppBase struct {
 	Listing MarketplaceListing `json:"listing"`
 }
 
-func (a StripeApp) GetID() AppID {
+func (a AppBase) GetID() AppID {
 	return AppID{
 		Namespace: a.Namespace,
 		ID:        a.ID,
 	}
 }
 
-func (a StripeApp) GetType() AppType {
+func (a AppBase) GetType() AppType {
 	return a.Type
 }
 
-func (a StripeApp) GetName() string {
+func (a AppBase) GetName() string {
 	return a.Name
 }
 
-func (a StripeApp) GetStatus() AppStatus {
+func (a AppBase) GetStatus() AppStatus {
 	return a.Status
 }
 
-func (a StripeApp) GetListing() MarketplaceListing {
+func (a AppBase) GetListing() MarketplaceListing {
 	return a.Listing
 }
 

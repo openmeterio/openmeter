@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 var _ error = (*AppNotFoundError)(nil)
 
 type AppNotFoundError struct {
-	AppID
+	appentity.AppID
 }
 
 func (e AppNotFoundError) Error() string {
@@ -20,10 +21,10 @@ func (e AppNotFoundError) Error() string {
 var _ error = (*CustomerPreConditionError)(nil)
 
 type CustomerPreConditionError struct {
-	AppID
-	AppType        AppType
-	AppRequirement Requirement
-	CustomerID     customer.CustomerID
+	appentity.AppID
+	AppType    appentity.AppType
+	CustomerID customer.CustomerID
+	Condition  string
 }
 
 func (e CustomerPreConditionError) Validate() error {
@@ -39,25 +40,25 @@ func (e CustomerPreConditionError) Validate() error {
 		return errors.New("app type is required")
 	}
 
-	if e.AppRequirement == "" {
-		return errors.New("app requirement is required")
-	}
-
 	if e.CustomerID.ID == "" {
 		return errors.New("customer id is required")
+	}
+
+	if e.Condition == "" {
+		return errors.New("condition is required")
 	}
 
 	return nil
 }
 
 func (e CustomerPreConditionError) Error() string {
-	return fmt.Sprintf("customer with id %s does not meet condition for %s app type with id %s in %s namespace: %s", e.CustomerID.ID, e.AppType, e.AppID.ID, e.AppID.Namespace, e.AppRequirement)
+	return fmt.Sprintf("customer with id %s does not meet condition %s for %s app type with id %s in namespace %s", e.CustomerID.ID, e.Condition, e.AppType, e.AppID.ID, e.AppID.Namespace)
 }
 
 var _ error = (*MarketplaceListingNotFoundError)(nil)
 
 type MarketplaceListingNotFoundError struct {
-	MarketplaceListingID
+	appentity.MarketplaceListingID
 }
 
 func (e MarketplaceListingNotFoundError) Error() string {

@@ -1,4 +1,4 @@
-package app
+package appentity
 
 import (
 	"errors"
@@ -52,11 +52,10 @@ const (
 )
 
 type Capability struct {
-	Type         CapabilityType `json:"type"`
-	Key          string         `json:"key"`
-	Name         string         `json:"name"`
-	Description  string         `json:"description"`
-	Requirements []Requirement  `json:"requirements"`
+	Type        CapabilityType `json:"type"`
+	Key         string         `json:"key"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
 }
 
 func (c Capability) Validate() error {
@@ -74,13 +73,6 @@ func (c Capability) Validate() error {
 
 	return nil
 }
-
-type Requirement string
-
-const (
-	RequirementCustomerCountryCode              Requirement = "customer.countryCode"
-	RequirementCustomerExternalStripeCustomerId Requirement = "external.stripeCustomerId"
-)
 
 type MarketplaceListingID struct {
 	Type AppType

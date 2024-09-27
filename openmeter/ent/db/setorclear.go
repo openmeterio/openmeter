@@ -41,6 +41,48 @@ func (u *AppUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppUpdateOne {
 	return u.SetDeletedAt(*value)
 }
 
+func (u *AppStripeUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeCustomerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeCustomerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeCustomerUpdate) SetOrClearStripeCustomerID(value *string) *AppStripeCustomerUpdate {
+	if value == nil {
+		return u.ClearStripeCustomerID()
+	}
+	return u.SetStripeCustomerID(*value)
+}
+
+func (u *AppStripeCustomerUpdateOne) SetOrClearStripeCustomerID(value *string) *AppStripeCustomerUpdateOne {
+	if value == nil {
+		return u.ClearStripeCustomerID()
+	}
+	return u.SetStripeCustomerID(*value)
+}
+
 func (u *BalanceSnapshotUpdate) SetOrClearDeletedAt(value *time.Time) *BalanceSnapshotUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

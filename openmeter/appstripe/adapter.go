@@ -1,39 +1,27 @@
-package app
+package appstripe
 
 import (
 	"context"
 	"fmt"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	"github.com/openmeterio/openmeter/pkg/pagination"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 )
 
 type TxAdapter interface {
-	AppAdapter
+	AppStripeAdapter
 
 	Commit() error
 	Rollback() error
 }
 
 type Adapter interface {
-	AppAdapter
+	AppStripeAdapter
 
 	WithTx(context.Context) (TxAdapter, error)
 }
 
-type MarketplaceAdapter interface {
-	RegisterListing(input appentity.RegisterMarketplaceListingInput) error
-	GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error)
-	ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error)
-	InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
-	GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
-	AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
-}
-
-type AppAdapter interface {
-	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
-	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
-	UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error
+type AppStripeAdapter interface {
+	CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.StripeApp, error)
 }
 
 func WithTxNoValue(ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) error) error {
