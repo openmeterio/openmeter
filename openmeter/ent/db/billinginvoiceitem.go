@@ -11,9 +11,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // BillingInvoiceItem is the model entity for the BillingInvoiceItem schema.
@@ -32,7 +33,7 @@ type BillingInvoiceItem struct {
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
-	InvoiceID string `json:"invoice_id,omitempty"`
+	InvoiceID *string `json:"invoice_id,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
@@ -41,14 +42,18 @@ type BillingInvoiceItem struct {
 	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
+	// Type holds the value of the "type" field.
+	Type billing.InvoiceItemType `json:"type,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Quantity holds the value of the "quantity" field.
-	Quantity alpacadecimal.Decimal `json:"quantity,omitempty"`
+	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// UnitPrice holds the value of the "unit_price" field.
 	UnitPrice alpacadecimal.Decimal `json:"unit_price,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency string `json:"currency,omitempty"`
+	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxCodeOverride holds the value of the "tax_code_override" field.
-	TaxCodeOverride invoice.TaxOverrides `json:"tax_code_override,omitempty"`
+	TaxCodeOverride billing.TaxOverrides `json:"tax_code_override,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceItemQuery when eager-loading is set.
 	Edges        BillingInvoiceItemEdges `json:"edges"`
@@ -80,11 +85,13 @@ func (*BillingInvoiceItem) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case billinginvoiceitem.FieldQuantity:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceitem.FieldMetadata, billinginvoiceitem.FieldTaxCodeOverride:
 			values[i] = new([]byte)
-		case billinginvoiceitem.FieldQuantity, billinginvoiceitem.FieldUnitPrice:
+		case billinginvoiceitem.FieldUnitPrice:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceitem.FieldID, billinginvoiceitem.FieldNamespace, billinginvoiceitem.FieldInvoiceID, billinginvoiceitem.FieldCustomerID, billinginvoiceitem.FieldCurrency:
+		case billinginvoiceitem.FieldID, billinginvoiceitem.FieldNamespace, billinginvoiceitem.FieldInvoiceID, billinginvoiceitem.FieldCustomerID, billinginvoiceitem.FieldType, billinginvoiceitem.FieldName, billinginvoiceitem.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case billinginvoiceitem.FieldCreatedAt, billinginvoiceitem.FieldUpdatedAt, billinginvoiceitem.FieldDeletedAt, billinginvoiceitem.FieldPeriodStart, billinginvoiceitem.FieldPeriodEnd, billinginvoiceitem.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -146,7 +153,8 @@ func (bii *BillingInvoiceItem) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
-				bii.InvoiceID = value.String
+				bii.InvoiceID = new(string)
+				*bii.InvoiceID = value.String
 			}
 		case billinginvoiceitem.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -172,11 +180,24 @@ func (bii *BillingInvoiceItem) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				bii.InvoiceAt = value.Time
 			}
+		case billinginvoiceitem.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				bii.Type = billing.InvoiceItemType(value.String)
+			}
+		case billinginvoiceitem.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				bii.Name = value.String
+			}
 		case billinginvoiceitem.FieldQuantity:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field quantity", values[i])
-			} else if value != nil {
-				bii.Quantity = *value
+			} else if value.Valid {
+				bii.Quantity = new(alpacadecimal.Decimal)
+				*bii.Quantity = *value.S.(*alpacadecimal.Decimal)
 			}
 		case billinginvoiceitem.FieldUnitPrice:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -188,7 +209,7 @@ func (bii *BillingInvoiceItem) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				bii.Currency = value.String
+				bii.Currency = currencyx.Code(value.String)
 			}
 		case billinginvoiceitem.FieldTaxCodeOverride:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -256,8 +277,10 @@ func (bii *BillingInvoiceItem) String() string {
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", bii.Metadata))
 	builder.WriteString(", ")
-	builder.WriteString("invoice_id=")
-	builder.WriteString(bii.InvoiceID)
+	if v := bii.InvoiceID; v != nil {
+		builder.WriteString("invoice_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(bii.CustomerID)
@@ -271,14 +294,22 @@ func (bii *BillingInvoiceItem) String() string {
 	builder.WriteString("invoice_at=")
 	builder.WriteString(bii.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("quantity=")
-	builder.WriteString(fmt.Sprintf("%v", bii.Quantity))
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", bii.Type))
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(bii.Name)
+	builder.WriteString(", ")
+	if v := bii.Quantity; v != nil {
+		builder.WriteString("quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("unit_price=")
 	builder.WriteString(fmt.Sprintf("%v", bii.UnitPrice))
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
-	builder.WriteString(bii.Currency)
+	builder.WriteString(fmt.Sprintf("%v", bii.Currency))
 	builder.WriteString(", ")
 	builder.WriteString("tax_code_override=")
 	builder.WriteString(fmt.Sprintf("%v", bii.TaxCodeOverride))

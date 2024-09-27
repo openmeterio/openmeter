@@ -7,8 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -88,9 +87,14 @@ func DeletedAt(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
-func Key(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldEQ(FieldKey, v))
+// Series applies equality check predicate on the "series" field. It's identical to SeriesEQ.
+func Series(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldSeries, v))
+}
+
+// Code applies equality check predicate on the "code" field. It's identical to CodeEQ.
+func Code(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldCode, v))
 }
 
 // CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
@@ -111,11 +115,6 @@ func VoidedAt(v time.Time) predicate.BillingInvoice {
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCurrency, v))
-}
-
-// TotalAmount applies equality check predicate on the "total_amount" field. It's identical to TotalAmountEQ.
-func TotalAmount(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldEQ(FieldTotalAmount, v))
 }
 
 // DueDate applies equality check predicate on the "due_date" field. It's identical to DueDateEQ.
@@ -343,69 +342,154 @@ func MetadataNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldMetadata))
 }
 
-// KeyEQ applies the EQ predicate on the "key" field.
-func KeyEQ(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldEQ(FieldKey, v))
+// SeriesEQ applies the EQ predicate on the "series" field.
+func SeriesEQ(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldSeries, v))
 }
 
-// KeyNEQ applies the NEQ predicate on the "key" field.
-func KeyNEQ(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldNEQ(FieldKey, v))
+// SeriesNEQ applies the NEQ predicate on the "series" field.
+func SeriesNEQ(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldSeries, v))
 }
 
-// KeyIn applies the In predicate on the "key" field.
-func KeyIn(vs ...string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldIn(FieldKey, vs...))
+// SeriesIn applies the In predicate on the "series" field.
+func SeriesIn(vs ...string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldSeries, vs...))
 }
 
-// KeyNotIn applies the NotIn predicate on the "key" field.
-func KeyNotIn(vs ...string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldNotIn(FieldKey, vs...))
+// SeriesNotIn applies the NotIn predicate on the "series" field.
+func SeriesNotIn(vs ...string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldSeries, vs...))
 }
 
-// KeyGT applies the GT predicate on the "key" field.
-func KeyGT(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldGT(FieldKey, v))
+// SeriesGT applies the GT predicate on the "series" field.
+func SeriesGT(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldSeries, v))
 }
 
-// KeyGTE applies the GTE predicate on the "key" field.
-func KeyGTE(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldGTE(FieldKey, v))
+// SeriesGTE applies the GTE predicate on the "series" field.
+func SeriesGTE(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldSeries, v))
 }
 
-// KeyLT applies the LT predicate on the "key" field.
-func KeyLT(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldLT(FieldKey, v))
+// SeriesLT applies the LT predicate on the "series" field.
+func SeriesLT(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldSeries, v))
 }
 
-// KeyLTE applies the LTE predicate on the "key" field.
-func KeyLTE(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldLTE(FieldKey, v))
+// SeriesLTE applies the LTE predicate on the "series" field.
+func SeriesLTE(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldSeries, v))
 }
 
-// KeyContains applies the Contains predicate on the "key" field.
-func KeyContains(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldContains(FieldKey, v))
+// SeriesContains applies the Contains predicate on the "series" field.
+func SeriesContains(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldContains(FieldSeries, v))
 }
 
-// KeyHasPrefix applies the HasPrefix predicate on the "key" field.
-func KeyHasPrefix(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldHasPrefix(FieldKey, v))
+// SeriesHasPrefix applies the HasPrefix predicate on the "series" field.
+func SeriesHasPrefix(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldHasPrefix(FieldSeries, v))
 }
 
-// KeyHasSuffix applies the HasSuffix predicate on the "key" field.
-func KeyHasSuffix(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldKey, v))
+// SeriesHasSuffix applies the HasSuffix predicate on the "series" field.
+func SeriesHasSuffix(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldSeries, v))
 }
 
-// KeyEqualFold applies the EqualFold predicate on the "key" field.
-func KeyEqualFold(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldEqualFold(FieldKey, v))
+// SeriesIsNil applies the IsNil predicate on the "series" field.
+func SeriesIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldSeries))
 }
 
-// KeyContainsFold applies the ContainsFold predicate on the "key" field.
-func KeyContainsFold(v string) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldContainsFold(FieldKey, v))
+// SeriesNotNil applies the NotNil predicate on the "series" field.
+func SeriesNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldSeries))
+}
+
+// SeriesEqualFold applies the EqualFold predicate on the "series" field.
+func SeriesEqualFold(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEqualFold(FieldSeries, v))
+}
+
+// SeriesContainsFold applies the ContainsFold predicate on the "series" field.
+func SeriesContainsFold(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldContainsFold(FieldSeries, v))
+}
+
+// CodeEQ applies the EQ predicate on the "code" field.
+func CodeEQ(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldCode, v))
+}
+
+// CodeNEQ applies the NEQ predicate on the "code" field.
+func CodeNEQ(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldCode, v))
+}
+
+// CodeIn applies the In predicate on the "code" field.
+func CodeIn(vs ...string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldCode, vs...))
+}
+
+// CodeNotIn applies the NotIn predicate on the "code" field.
+func CodeNotIn(vs ...string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldCode, vs...))
+}
+
+// CodeGT applies the GT predicate on the "code" field.
+func CodeGT(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldCode, v))
+}
+
+// CodeGTE applies the GTE predicate on the "code" field.
+func CodeGTE(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldCode, v))
+}
+
+// CodeLT applies the LT predicate on the "code" field.
+func CodeLT(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldCode, v))
+}
+
+// CodeLTE applies the LTE predicate on the "code" field.
+func CodeLTE(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldCode, v))
+}
+
+// CodeContains applies the Contains predicate on the "code" field.
+func CodeContains(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldContains(FieldCode, v))
+}
+
+// CodeHasPrefix applies the HasPrefix predicate on the "code" field.
+func CodeHasPrefix(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldHasPrefix(FieldCode, v))
+}
+
+// CodeHasSuffix applies the HasSuffix predicate on the "code" field.
+func CodeHasSuffix(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldCode, v))
+}
+
+// CodeIsNil applies the IsNil predicate on the "code" field.
+func CodeIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldCode))
+}
+
+// CodeNotNil applies the NotNil predicate on the "code" field.
+func CodeNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldCode))
+}
+
+// CodeEqualFold applies the EqualFold predicate on the "code" field.
+func CodeEqualFold(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEqualFold(FieldCode, v))
+}
+
+// CodeContainsFold applies the ContainsFold predicate on the "code" field.
+func CodeContainsFold(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCode, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
@@ -653,46 +737,6 @@ func CurrencyContainsFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCurrency, v))
 }
 
-// TotalAmountEQ applies the EQ predicate on the "total_amount" field.
-func TotalAmountEQ(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldEQ(FieldTotalAmount, v))
-}
-
-// TotalAmountNEQ applies the NEQ predicate on the "total_amount" field.
-func TotalAmountNEQ(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldNEQ(FieldTotalAmount, v))
-}
-
-// TotalAmountIn applies the In predicate on the "total_amount" field.
-func TotalAmountIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldIn(FieldTotalAmount, vs...))
-}
-
-// TotalAmountNotIn applies the NotIn predicate on the "total_amount" field.
-func TotalAmountNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldNotIn(FieldTotalAmount, vs...))
-}
-
-// TotalAmountGT applies the GT predicate on the "total_amount" field.
-func TotalAmountGT(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldGT(FieldTotalAmount, v))
-}
-
-// TotalAmountGTE applies the GTE predicate on the "total_amount" field.
-func TotalAmountGTE(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldGTE(FieldTotalAmount, v))
-}
-
-// TotalAmountLT applies the LT predicate on the "total_amount" field.
-func TotalAmountLT(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldLT(FieldTotalAmount, v))
-}
-
-// TotalAmountLTE applies the LTE predicate on the "total_amount" field.
-func TotalAmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldLTE(FieldTotalAmount, v))
-}
-
 // DueDateEQ applies the EQ predicate on the "due_date" field.
 func DueDateEQ(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldDueDate, v))
@@ -734,19 +778,19 @@ func DueDateLTE(v time.Time) predicate.BillingInvoice {
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v invoice.InvoiceStatus) predicate.BillingInvoice {
+func StatusEQ(v billing.InvoiceStatus) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v invoice.InvoiceStatus) predicate.BillingInvoice {
+func StatusNEQ(v billing.InvoiceStatus) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...invoice.InvoiceStatus) predicate.BillingInvoice {
+func StatusIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -755,7 +799,7 @@ func StatusIn(vs ...invoice.InvoiceStatus) predicate.BillingInvoice {
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...invoice.InvoiceStatus) predicate.BillingInvoice {
+func StatusNotIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

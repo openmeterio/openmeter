@@ -9,8 +9,8 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -33,7 +33,7 @@ func (Customer) Fields() []ent.Field {
 		field.String("name"),
 		field.String("primary_email").Optional().Nillable(),
 		field.String("timezone").GoType(timezone.Timezone("")).Optional().Nillable(),
-		field.String("currency").GoType(models.CurrencyCode("")).MinLen(3).MaxLen(3).Optional().Nillable(),
+		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).Optional().Nillable(),
 		field.String("external_mapping_stripe_customer_id").Optional().Nillable(),
 	}
 }

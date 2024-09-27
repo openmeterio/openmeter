@@ -11,8 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
@@ -71,6 +70,46 @@ func (biu *BillingInvoiceUpdate) ClearMetadata() *BillingInvoiceUpdate {
 	return biu
 }
 
+// SetSeries sets the "series" field.
+func (biu *BillingInvoiceUpdate) SetSeries(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetSeries(s)
+	return biu
+}
+
+// SetNillableSeries sets the "series" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableSeries(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetSeries(*s)
+	}
+	return biu
+}
+
+// ClearSeries clears the value of the "series" field.
+func (biu *BillingInvoiceUpdate) ClearSeries() *BillingInvoiceUpdate {
+	biu.mutation.ClearSeries()
+	return biu
+}
+
+// SetCode sets the "code" field.
+func (biu *BillingInvoiceUpdate) SetCode(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetCode(s)
+	return biu
+}
+
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableCode(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetCode(*s)
+	}
+	return biu
+}
+
+// ClearCode clears the value of the "code" field.
+func (biu *BillingInvoiceUpdate) ClearCode() *BillingInvoiceUpdate {
+	biu.mutation.ClearCode()
+	return biu
+}
+
 // SetVoidedAt sets the "voided_at" field.
 func (biu *BillingInvoiceUpdate) SetVoidedAt(t time.Time) *BillingInvoiceUpdate {
 	biu.mutation.SetVoidedAt(t)
@@ -91,20 +130,6 @@ func (biu *BillingInvoiceUpdate) ClearVoidedAt() *BillingInvoiceUpdate {
 	return biu
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (biu *BillingInvoiceUpdate) SetTotalAmount(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
-	biu.mutation.SetTotalAmount(a)
-	return biu
-}
-
-// SetNillableTotalAmount sets the "total_amount" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableTotalAmount(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
-	if a != nil {
-		biu.SetTotalAmount(*a)
-	}
-	return biu
-}
-
 // SetDueDate sets the "due_date" field.
 func (biu *BillingInvoiceUpdate) SetDueDate(t time.Time) *BillingInvoiceUpdate {
 	biu.mutation.SetDueDate(t)
@@ -120,15 +145,15 @@ func (biu *BillingInvoiceUpdate) SetNillableDueDate(t *time.Time) *BillingInvoic
 }
 
 // SetStatus sets the "status" field.
-func (biu *BillingInvoiceUpdate) SetStatus(is invoice.InvoiceStatus) *BillingInvoiceUpdate {
-	biu.mutation.SetStatus(is)
+func (biu *BillingInvoiceUpdate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceUpdate {
+	biu.mutation.SetStatus(bs)
 	return biu
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableStatus(is *invoice.InvoiceStatus) *BillingInvoiceUpdate {
-	if is != nil {
-		biu.SetStatus(*is)
+func (biu *BillingInvoiceUpdate) SetNillableStatus(bs *billing.InvoiceStatus) *BillingInvoiceUpdate {
+	if bs != nil {
+		biu.SetStatus(*bs)
 	}
 	return biu
 }
@@ -387,14 +412,23 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if biu.mutation.MetadataCleared() {
 		_spec.ClearField(billinginvoice.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := biu.mutation.Series(); ok {
+		_spec.SetField(billinginvoice.FieldSeries, field.TypeString, value)
+	}
+	if biu.mutation.SeriesCleared() {
+		_spec.ClearField(billinginvoice.FieldSeries, field.TypeString)
+	}
+	if value, ok := biu.mutation.Code(); ok {
+		_spec.SetField(billinginvoice.FieldCode, field.TypeString, value)
+	}
+	if biu.mutation.CodeCleared() {
+		_spec.ClearField(billinginvoice.FieldCode, field.TypeString)
+	}
 	if value, ok := biu.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
 	}
 	if biu.mutation.VoidedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldVoidedAt, field.TypeTime)
-	}
-	if value, ok := biu.mutation.TotalAmount(); ok {
-		_spec.SetField(billinginvoice.FieldTotalAmount, field.TypeOther, value)
 	}
 	if value, ok := biu.mutation.DueDate(); ok {
 		_spec.SetField(billinginvoice.FieldDueDate, field.TypeTime, value)
@@ -558,6 +592,46 @@ func (biuo *BillingInvoiceUpdateOne) ClearMetadata() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
+// SetSeries sets the "series" field.
+func (biuo *BillingInvoiceUpdateOne) SetSeries(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetSeries(s)
+	return biuo
+}
+
+// SetNillableSeries sets the "series" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableSeries(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetSeries(*s)
+	}
+	return biuo
+}
+
+// ClearSeries clears the value of the "series" field.
+func (biuo *BillingInvoiceUpdateOne) ClearSeries() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearSeries()
+	return biuo
+}
+
+// SetCode sets the "code" field.
+func (biuo *BillingInvoiceUpdateOne) SetCode(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCode(s)
+	return biuo
+}
+
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableCode(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetCode(*s)
+	}
+	return biuo
+}
+
+// ClearCode clears the value of the "code" field.
+func (biuo *BillingInvoiceUpdateOne) ClearCode() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearCode()
+	return biuo
+}
+
 // SetVoidedAt sets the "voided_at" field.
 func (biuo *BillingInvoiceUpdateOne) SetVoidedAt(t time.Time) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetVoidedAt(t)
@@ -578,20 +652,6 @@ func (biuo *BillingInvoiceUpdateOne) ClearVoidedAt() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (biuo *BillingInvoiceUpdateOne) SetTotalAmount(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetTotalAmount(a)
-	return biuo
-}
-
-// SetNillableTotalAmount sets the "total_amount" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableTotalAmount(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
-	if a != nil {
-		biuo.SetTotalAmount(*a)
-	}
-	return biuo
-}
-
 // SetDueDate sets the "due_date" field.
 func (biuo *BillingInvoiceUpdateOne) SetDueDate(t time.Time) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetDueDate(t)
@@ -607,15 +667,15 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableDueDate(t *time.Time) *BillingIn
 }
 
 // SetStatus sets the "status" field.
-func (biuo *BillingInvoiceUpdateOne) SetStatus(is invoice.InvoiceStatus) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetStatus(is)
+func (biuo *BillingInvoiceUpdateOne) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetStatus(bs)
 	return biuo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(is *invoice.InvoiceStatus) *BillingInvoiceUpdateOne {
-	if is != nil {
-		biuo.SetStatus(*is)
+func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(bs *billing.InvoiceStatus) *BillingInvoiceUpdateOne {
+	if bs != nil {
+		biuo.SetStatus(*bs)
 	}
 	return biuo
 }
@@ -904,14 +964,23 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	if biuo.mutation.MetadataCleared() {
 		_spec.ClearField(billinginvoice.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := biuo.mutation.Series(); ok {
+		_spec.SetField(billinginvoice.FieldSeries, field.TypeString, value)
+	}
+	if biuo.mutation.SeriesCleared() {
+		_spec.ClearField(billinginvoice.FieldSeries, field.TypeString)
+	}
+	if value, ok := biuo.mutation.Code(); ok {
+		_spec.SetField(billinginvoice.FieldCode, field.TypeString, value)
+	}
+	if biuo.mutation.CodeCleared() {
+		_spec.ClearField(billinginvoice.FieldCode, field.TypeString)
+	}
 	if value, ok := biuo.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
 	}
 	if biuo.mutation.VoidedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldVoidedAt, field.TypeTime)
-	}
-	if value, ok := biuo.mutation.TotalAmount(); ok {
-		_spec.SetField(billinginvoice.FieldTotalAmount, field.TypeOther, value)
 	}
 	if value, ok := biuo.mutation.DueDate(); ok {
 		_spec.SetField(billinginvoice.FieldDueDate, field.TypeTime, value)

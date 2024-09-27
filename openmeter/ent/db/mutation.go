@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -35,6 +34,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -2426,13 +2426,13 @@ type BillingInvoiceMutation struct {
 	updated_at                     *time.Time
 	deleted_at                     *time.Time
 	metadata                       *map[string]string
-	key                            *string
+	series                         *string
+	code                           *string
 	customer_id                    *string
 	voided_at                      *time.Time
 	currency                       *string
-	total_amount                   *alpacadecimal.Decimal
 	due_date                       *time.Time
-	status                         *invoice.InvoiceStatus
+	status                         *billing.InvoiceStatus
 	tax_provider                   *provider.TaxProvider
 	invoicing_provider             *provider.InvoicingProvider
 	payment_provider               *provider.PaymentProvider
@@ -2761,40 +2761,102 @@ func (m *BillingInvoiceMutation) ResetMetadata() {
 	delete(m.clearedFields, billinginvoice.FieldMetadata)
 }
 
-// SetKey sets the "key" field.
-func (m *BillingInvoiceMutation) SetKey(s string) {
-	m.key = &s
+// SetSeries sets the "series" field.
+func (m *BillingInvoiceMutation) SetSeries(s string) {
+	m.series = &s
 }
 
-// Key returns the value of the "key" field in the mutation.
-func (m *BillingInvoiceMutation) Key() (r string, exists bool) {
-	v := m.key
+// Series returns the value of the "series" field in the mutation.
+func (m *BillingInvoiceMutation) Series() (r string, exists bool) {
+	v := m.series
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldKey returns the old "key" field's value of the BillingInvoice entity.
+// OldSeries returns the old "series" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldKey(ctx context.Context) (v string, err error) {
+func (m *BillingInvoiceMutation) OldSeries(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+		return v, errors.New("OldSeries is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKey requires an ID field in the mutation")
+		return v, errors.New("OldSeries requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+		return v, fmt.Errorf("querying old value for OldSeries: %w", err)
 	}
-	return oldValue.Key, nil
+	return oldValue.Series, nil
 }
 
-// ResetKey resets all changes to the "key" field.
-func (m *BillingInvoiceMutation) ResetKey() {
-	m.key = nil
+// ClearSeries clears the value of the "series" field.
+func (m *BillingInvoiceMutation) ClearSeries() {
+	m.series = nil
+	m.clearedFields[billinginvoice.FieldSeries] = struct{}{}
+}
+
+// SeriesCleared returns if the "series" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) SeriesCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldSeries]
+	return ok
+}
+
+// ResetSeries resets all changes to the "series" field.
+func (m *BillingInvoiceMutation) ResetSeries() {
+	m.series = nil
+	delete(m.clearedFields, billinginvoice.FieldSeries)
+}
+
+// SetCode sets the "code" field.
+func (m *BillingInvoiceMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *BillingInvoiceMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ClearCode clears the value of the "code" field.
+func (m *BillingInvoiceMutation) ClearCode() {
+	m.code = nil
+	m.clearedFields[billinginvoice.FieldCode] = struct{}{}
+}
+
+// CodeCleared returns if the "code" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) CodeCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldCode]
+	return ok
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *BillingInvoiceMutation) ResetCode() {
+	m.code = nil
+	delete(m.clearedFields, billinginvoice.FieldCode)
 }
 
 // SetCustomerID sets the "customer_id" field.
@@ -2954,42 +3016,6 @@ func (m *BillingInvoiceMutation) ResetCurrency() {
 	m.currency = nil
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (m *BillingInvoiceMutation) SetTotalAmount(a alpacadecimal.Decimal) {
-	m.total_amount = &a
-}
-
-// TotalAmount returns the value of the "total_amount" field in the mutation.
-func (m *BillingInvoiceMutation) TotalAmount() (r alpacadecimal.Decimal, exists bool) {
-	v := m.total_amount
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTotalAmount returns the old "total_amount" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldTotalAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTotalAmount is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTotalAmount requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTotalAmount: %w", err)
-	}
-	return oldValue.TotalAmount, nil
-}
-
-// ResetTotalAmount resets all changes to the "total_amount" field.
-func (m *BillingInvoiceMutation) ResetTotalAmount() {
-	m.total_amount = nil
-}
-
 // SetDueDate sets the "due_date" field.
 func (m *BillingInvoiceMutation) SetDueDate(t time.Time) {
 	m.due_date = &t
@@ -3027,12 +3053,12 @@ func (m *BillingInvoiceMutation) ResetDueDate() {
 }
 
 // SetStatus sets the "status" field.
-func (m *BillingInvoiceMutation) SetStatus(is invoice.InvoiceStatus) {
-	m.status = &is
+func (m *BillingInvoiceMutation) SetStatus(bs billing.InvoiceStatus) {
+	m.status = &bs
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *BillingInvoiceMutation) Status() (r invoice.InvoiceStatus, exists bool) {
+func (m *BillingInvoiceMutation) Status() (r billing.InvoiceStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -3043,7 +3069,7 @@ func (m *BillingInvoiceMutation) Status() (r invoice.InvoiceStatus, exists bool)
 // OldStatus returns the old "status" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v invoice.InvoiceStatus, err error) {
+func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billing.InvoiceStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -3488,8 +3514,11 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	if m.metadata != nil {
 		fields = append(fields, billinginvoice.FieldMetadata)
 	}
-	if m.key != nil {
-		fields = append(fields, billinginvoice.FieldKey)
+	if m.series != nil {
+		fields = append(fields, billinginvoice.FieldSeries)
+	}
+	if m.code != nil {
+		fields = append(fields, billinginvoice.FieldCode)
 	}
 	if m.customer_id != nil {
 		fields = append(fields, billinginvoice.FieldCustomerID)
@@ -3502,9 +3531,6 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoice.FieldCurrency)
-	}
-	if m.total_amount != nil {
-		fields = append(fields, billinginvoice.FieldTotalAmount)
 	}
 	if m.due_date != nil {
 		fields = append(fields, billinginvoice.FieldDueDate)
@@ -3548,8 +3574,10 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case billinginvoice.FieldMetadata:
 		return m.Metadata()
-	case billinginvoice.FieldKey:
-		return m.Key()
+	case billinginvoice.FieldSeries:
+		return m.Series()
+	case billinginvoice.FieldCode:
+		return m.Code()
 	case billinginvoice.FieldCustomerID:
 		return m.CustomerID()
 	case billinginvoice.FieldBillingProfileID:
@@ -3558,8 +3586,6 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.VoidedAt()
 	case billinginvoice.FieldCurrency:
 		return m.Currency()
-	case billinginvoice.FieldTotalAmount:
-		return m.TotalAmount()
 	case billinginvoice.FieldDueDate:
 		return m.DueDate()
 	case billinginvoice.FieldStatus:
@@ -3595,8 +3621,10 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldDeletedAt(ctx)
 	case billinginvoice.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case billinginvoice.FieldKey:
-		return m.OldKey(ctx)
+	case billinginvoice.FieldSeries:
+		return m.OldSeries(ctx)
+	case billinginvoice.FieldCode:
+		return m.OldCode(ctx)
 	case billinginvoice.FieldCustomerID:
 		return m.OldCustomerID(ctx)
 	case billinginvoice.FieldBillingProfileID:
@@ -3605,8 +3633,6 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldVoidedAt(ctx)
 	case billinginvoice.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case billinginvoice.FieldTotalAmount:
-		return m.OldTotalAmount(ctx)
 	case billinginvoice.FieldDueDate:
 		return m.OldDueDate(ctx)
 	case billinginvoice.FieldStatus:
@@ -3667,12 +3693,19 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetMetadata(v)
 		return nil
-	case billinginvoice.FieldKey:
+	case billinginvoice.FieldSeries:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetKey(v)
+		m.SetSeries(v)
+		return nil
+	case billinginvoice.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
 		return nil
 	case billinginvoice.FieldCustomerID:
 		v, ok := value.(string)
@@ -3702,13 +3735,6 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCurrency(v)
 		return nil
-	case billinginvoice.FieldTotalAmount:
-		v, ok := value.(alpacadecimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTotalAmount(v)
-		return nil
 	case billinginvoice.FieldDueDate:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -3717,7 +3743,7 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		m.SetDueDate(v)
 		return nil
 	case billinginvoice.FieldStatus:
-		v, ok := value.(invoice.InvoiceStatus)
+		v, ok := value.(billing.InvoiceStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -3801,6 +3827,12 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldMetadata) {
 		fields = append(fields, billinginvoice.FieldMetadata)
 	}
+	if m.FieldCleared(billinginvoice.FieldSeries) {
+		fields = append(fields, billinginvoice.FieldSeries)
+	}
+	if m.FieldCleared(billinginvoice.FieldCode) {
+		fields = append(fields, billinginvoice.FieldCode)
+	}
 	if m.FieldCleared(billinginvoice.FieldVoidedAt) {
 		fields = append(fields, billinginvoice.FieldVoidedAt)
 	}
@@ -3832,6 +3864,12 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldMetadata:
 		m.ClearMetadata()
+		return nil
+	case billinginvoice.FieldSeries:
+		m.ClearSeries()
+		return nil
+	case billinginvoice.FieldCode:
+		m.ClearCode()
 		return nil
 	case billinginvoice.FieldVoidedAt:
 		m.ClearVoidedAt()
@@ -3868,8 +3906,11 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 	case billinginvoice.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case billinginvoice.FieldKey:
-		m.ResetKey()
+	case billinginvoice.FieldSeries:
+		m.ResetSeries()
+		return nil
+	case billinginvoice.FieldCode:
+		m.ResetCode()
 		return nil
 	case billinginvoice.FieldCustomerID:
 		m.ResetCustomerID()
@@ -3882,9 +3923,6 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldCurrency:
 		m.ResetCurrency()
-		return nil
-	case billinginvoice.FieldTotalAmount:
-		m.ResetTotalAmount()
 		return nil
 	case billinginvoice.FieldDueDate:
 		m.ResetDueDate()
@@ -4049,10 +4087,12 @@ type BillingInvoiceItemMutation struct {
 	period_start           *time.Time
 	period_end             *time.Time
 	invoice_at             *time.Time
+	_type                  *billing.InvoiceItemType
+	name                   *string
 	quantity               *alpacadecimal.Decimal
 	unit_price             *alpacadecimal.Decimal
-	currency               *string
-	tax_code_override      *invoice.TaxOverrides
+	currency               *currencyx.Code
+	tax_code_override      *billing.TaxOverrides
 	clearedFields          map[string]struct{}
 	billing_invoice        *string
 	clearedbilling_invoice bool
@@ -4388,7 +4428,7 @@ func (m *BillingInvoiceItemMutation) InvoiceID() (r string, exists bool) {
 // OldInvoiceID returns the old "invoice_id" field's value of the BillingInvoiceItem entity.
 // If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceItemMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
+func (m *BillingInvoiceItemMutation) OldInvoiceID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
 	}
@@ -4564,6 +4604,78 @@ func (m *BillingInvoiceItemMutation) ResetInvoiceAt() {
 	m.invoice_at = nil
 }
 
+// SetType sets the "type" field.
+func (m *BillingInvoiceItemMutation) SetType(bit billing.InvoiceItemType) {
+	m._type = &bit
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *BillingInvoiceItemMutation) GetType() (r billing.InvoiceItemType, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the BillingInvoiceItem entity.
+// If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceItemMutation) OldType(ctx context.Context) (v billing.InvoiceItemType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *BillingInvoiceItemMutation) ResetType() {
+	m._type = nil
+}
+
+// SetName sets the "name" field.
+func (m *BillingInvoiceItemMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BillingInvoiceItemMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the BillingInvoiceItem entity.
+// If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceItemMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BillingInvoiceItemMutation) ResetName() {
+	m.name = nil
+}
+
 // SetQuantity sets the "quantity" field.
 func (m *BillingInvoiceItemMutation) SetQuantity(a alpacadecimal.Decimal) {
 	m.quantity = &a
@@ -4581,7 +4693,7 @@ func (m *BillingInvoiceItemMutation) Quantity() (r alpacadecimal.Decimal, exists
 // OldQuantity returns the old "quantity" field's value of the BillingInvoiceItem entity.
 // If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceItemMutation) OldQuantity(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+func (m *BillingInvoiceItemMutation) OldQuantity(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
 	}
@@ -4595,9 +4707,22 @@ func (m *BillingInvoiceItemMutation) OldQuantity(ctx context.Context) (v alpacad
 	return oldValue.Quantity, nil
 }
 
+// ClearQuantity clears the value of the "quantity" field.
+func (m *BillingInvoiceItemMutation) ClearQuantity() {
+	m.quantity = nil
+	m.clearedFields[billinginvoiceitem.FieldQuantity] = struct{}{}
+}
+
+// QuantityCleared returns if the "quantity" field was cleared in this mutation.
+func (m *BillingInvoiceItemMutation) QuantityCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceitem.FieldQuantity]
+	return ok
+}
+
 // ResetQuantity resets all changes to the "quantity" field.
 func (m *BillingInvoiceItemMutation) ResetQuantity() {
 	m.quantity = nil
+	delete(m.clearedFields, billinginvoiceitem.FieldQuantity)
 }
 
 // SetUnitPrice sets the "unit_price" field.
@@ -4637,12 +4762,12 @@ func (m *BillingInvoiceItemMutation) ResetUnitPrice() {
 }
 
 // SetCurrency sets the "currency" field.
-func (m *BillingInvoiceItemMutation) SetCurrency(s string) {
-	m.currency = &s
+func (m *BillingInvoiceItemMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
 }
 
 // Currency returns the value of the "currency" field in the mutation.
-func (m *BillingInvoiceItemMutation) Currency() (r string, exists bool) {
+func (m *BillingInvoiceItemMutation) Currency() (r currencyx.Code, exists bool) {
 	v := m.currency
 	if v == nil {
 		return
@@ -4653,7 +4778,7 @@ func (m *BillingInvoiceItemMutation) Currency() (r string, exists bool) {
 // OldCurrency returns the old "currency" field's value of the BillingInvoiceItem entity.
 // If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceItemMutation) OldCurrency(ctx context.Context) (v string, err error) {
+func (m *BillingInvoiceItemMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
 	}
@@ -4673,12 +4798,12 @@ func (m *BillingInvoiceItemMutation) ResetCurrency() {
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (m *BillingInvoiceItemMutation) SetTaxCodeOverride(io invoice.TaxOverrides) {
-	m.tax_code_override = &io
+func (m *BillingInvoiceItemMutation) SetTaxCodeOverride(bo billing.TaxOverrides) {
+	m.tax_code_override = &bo
 }
 
 // TaxCodeOverride returns the value of the "tax_code_override" field in the mutation.
-func (m *BillingInvoiceItemMutation) TaxCodeOverride() (r invoice.TaxOverrides, exists bool) {
+func (m *BillingInvoiceItemMutation) TaxCodeOverride() (r billing.TaxOverrides, exists bool) {
 	v := m.tax_code_override
 	if v == nil {
 		return
@@ -4689,7 +4814,7 @@ func (m *BillingInvoiceItemMutation) TaxCodeOverride() (r invoice.TaxOverrides, 
 // OldTaxCodeOverride returns the old "tax_code_override" field's value of the BillingInvoiceItem entity.
 // If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceItemMutation) OldTaxCodeOverride(ctx context.Context) (v invoice.TaxOverrides, err error) {
+func (m *BillingInvoiceItemMutation) OldTaxCodeOverride(ctx context.Context) (v billing.TaxOverrides, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxCodeOverride is only allowed on UpdateOne operations")
 	}
@@ -4782,7 +4907,7 @@ func (m *BillingInvoiceItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceItemMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceitem.FieldNamespace)
 	}
@@ -4812,6 +4937,12 @@ func (m *BillingInvoiceItemMutation) Fields() []string {
 	}
 	if m.invoice_at != nil {
 		fields = append(fields, billinginvoiceitem.FieldInvoiceAt)
+	}
+	if m._type != nil {
+		fields = append(fields, billinginvoiceitem.FieldType)
+	}
+	if m.name != nil {
+		fields = append(fields, billinginvoiceitem.FieldName)
 	}
 	if m.quantity != nil {
 		fields = append(fields, billinginvoiceitem.FieldQuantity)
@@ -4853,6 +4984,10 @@ func (m *BillingInvoiceItemMutation) Field(name string) (ent.Value, bool) {
 		return m.PeriodEnd()
 	case billinginvoiceitem.FieldInvoiceAt:
 		return m.InvoiceAt()
+	case billinginvoiceitem.FieldType:
+		return m.GetType()
+	case billinginvoiceitem.FieldName:
+		return m.Name()
 	case billinginvoiceitem.FieldQuantity:
 		return m.Quantity()
 	case billinginvoiceitem.FieldUnitPrice:
@@ -4890,6 +5025,10 @@ func (m *BillingInvoiceItemMutation) OldField(ctx context.Context, name string) 
 		return m.OldPeriodEnd(ctx)
 	case billinginvoiceitem.FieldInvoiceAt:
 		return m.OldInvoiceAt(ctx)
+	case billinginvoiceitem.FieldType:
+		return m.OldType(ctx)
+	case billinginvoiceitem.FieldName:
+		return m.OldName(ctx)
 	case billinginvoiceitem.FieldQuantity:
 		return m.OldQuantity(ctx)
 	case billinginvoiceitem.FieldUnitPrice:
@@ -4977,6 +5116,20 @@ func (m *BillingInvoiceItemMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetInvoiceAt(v)
 		return nil
+	case billinginvoiceitem.FieldType:
+		v, ok := value.(billing.InvoiceItemType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case billinginvoiceitem.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
 	case billinginvoiceitem.FieldQuantity:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
@@ -4992,14 +5145,14 @@ func (m *BillingInvoiceItemMutation) SetField(name string, value ent.Value) erro
 		m.SetUnitPrice(v)
 		return nil
 	case billinginvoiceitem.FieldCurrency:
-		v, ok := value.(string)
+		v, ok := value.(currencyx.Code)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
 		return nil
 	case billinginvoiceitem.FieldTaxCodeOverride:
-		v, ok := value.(invoice.TaxOverrides)
+		v, ok := value.(billing.TaxOverrides)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -5044,6 +5197,9 @@ func (m *BillingInvoiceItemMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceitem.FieldInvoiceID) {
 		fields = append(fields, billinginvoiceitem.FieldInvoiceID)
 	}
+	if m.FieldCleared(billinginvoiceitem.FieldQuantity) {
+		fields = append(fields, billinginvoiceitem.FieldQuantity)
+	}
 	return fields
 }
 
@@ -5066,6 +5222,9 @@ func (m *BillingInvoiceItemMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceitem.FieldInvoiceID:
 		m.ClearInvoiceID()
+		return nil
+	case billinginvoiceitem.FieldQuantity:
+		m.ClearQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceItem nullable field %s", name)
@@ -5104,6 +5263,12 @@ func (m *BillingInvoiceItemMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceitem.FieldInvoiceAt:
 		m.ResetInvoiceAt()
+		return nil
+	case billinginvoiceitem.FieldType:
+		m.ResetType()
+		return nil
+	case billinginvoiceitem.FieldName:
+		m.ResetName()
 		return nil
 	case billinginvoiceitem.FieldQuantity:
 		m.ResetQuantity()
@@ -8111,7 +8276,7 @@ type CustomerMutation struct {
 	name                                *string
 	primary_email                       *string
 	timezone                            *timezone.Timezone
-	currency                            *models.CurrencyCode
+	currency                            *currencyx.Code
 	external_mapping_stripe_customer_id *string
 	clearedFields                       map[string]struct{}
 	subjects                            map[int]struct{}
@@ -8912,12 +9077,12 @@ func (m *CustomerMutation) ResetTimezone() {
 }
 
 // SetCurrency sets the "currency" field.
-func (m *CustomerMutation) SetCurrency(mc models.CurrencyCode) {
-	m.currency = &mc
+func (m *CustomerMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
 }
 
 // Currency returns the value of the "currency" field in the mutation.
-func (m *CustomerMutation) Currency() (r models.CurrencyCode, exists bool) {
+func (m *CustomerMutation) Currency() (r currencyx.Code, exists bool) {
 	v := m.currency
 	if v == nil {
 		return
@@ -8928,7 +9093,7 @@ func (m *CustomerMutation) Currency() (r models.CurrencyCode, exists bool) {
 // OldCurrency returns the old "currency" field's value of the Customer entity.
 // If the Customer object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldCurrency(ctx context.Context) (v *models.CurrencyCode, err error) {
+func (m *CustomerMutation) OldCurrency(ctx context.Context) (v *currencyx.Code, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
 	}
@@ -9388,7 +9553,7 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		m.SetTimezone(v)
 		return nil
 	case customer.FieldCurrency:
-		v, ok := value.(models.CurrencyCode)
+		v, ok := value.(currencyx.Code)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

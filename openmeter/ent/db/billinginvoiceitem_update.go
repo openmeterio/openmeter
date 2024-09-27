@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -131,6 +131,34 @@ func (biiu *BillingInvoiceItemUpdate) SetNillableInvoiceAt(t *time.Time) *Billin
 	return biiu
 }
 
+// SetType sets the "type" field.
+func (biiu *BillingInvoiceItemUpdate) SetType(bit billing.InvoiceItemType) *BillingInvoiceItemUpdate {
+	biiu.mutation.SetType(bit)
+	return biiu
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (biiu *BillingInvoiceItemUpdate) SetNillableType(bit *billing.InvoiceItemType) *BillingInvoiceItemUpdate {
+	if bit != nil {
+		biiu.SetType(*bit)
+	}
+	return biiu
+}
+
+// SetName sets the "name" field.
+func (biiu *BillingInvoiceItemUpdate) SetName(s string) *BillingInvoiceItemUpdate {
+	biiu.mutation.SetName(s)
+	return biiu
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (biiu *BillingInvoiceItemUpdate) SetNillableName(s *string) *BillingInvoiceItemUpdate {
+	if s != nil {
+		biiu.SetName(*s)
+	}
+	return biiu
+}
+
 // SetQuantity sets the "quantity" field.
 func (biiu *BillingInvoiceItemUpdate) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceItemUpdate {
 	biiu.mutation.SetQuantity(a)
@@ -142,6 +170,12 @@ func (biiu *BillingInvoiceItemUpdate) SetNillableQuantity(a *alpacadecimal.Decim
 	if a != nil {
 		biiu.SetQuantity(*a)
 	}
+	return biiu
+}
+
+// ClearQuantity clears the value of the "quantity" field.
+func (biiu *BillingInvoiceItemUpdate) ClearQuantity() *BillingInvoiceItemUpdate {
+	biiu.mutation.ClearQuantity()
 	return biiu
 }
 
@@ -160,15 +194,15 @@ func (biiu *BillingInvoiceItemUpdate) SetNillableUnitPrice(a *alpacadecimal.Deci
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (biiu *BillingInvoiceItemUpdate) SetTaxCodeOverride(io invoice.TaxOverrides) *BillingInvoiceItemUpdate {
-	biiu.mutation.SetTaxCodeOverride(io)
+func (biiu *BillingInvoiceItemUpdate) SetTaxCodeOverride(bo billing.TaxOverrides) *BillingInvoiceItemUpdate {
+	biiu.mutation.SetTaxCodeOverride(bo)
 	return biiu
 }
 
 // SetNillableTaxCodeOverride sets the "tax_code_override" field if the given value is not nil.
-func (biiu *BillingInvoiceItemUpdate) SetNillableTaxCodeOverride(io *invoice.TaxOverrides) *BillingInvoiceItemUpdate {
-	if io != nil {
-		biiu.SetTaxCodeOverride(*io)
+func (biiu *BillingInvoiceItemUpdate) SetNillableTaxCodeOverride(bo *billing.TaxOverrides) *BillingInvoiceItemUpdate {
+	if bo != nil {
+		biiu.SetTaxCodeOverride(*bo)
 	}
 	return biiu
 }
@@ -239,7 +273,25 @@ func (biiu *BillingInvoiceItemUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (biiu *BillingInvoiceItemUpdate) check() error {
+	if v, ok := biiu.mutation.GetType(); ok {
+		if err := billinginvoiceitem.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.type": %w`, err)}
+		}
+	}
+	if v, ok := biiu.mutation.Name(); ok {
+		if err := billinginvoiceitem.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (biiu *BillingInvoiceItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := biiu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoiceitem.Table, billinginvoiceitem.Columns, sqlgraph.NewFieldSpec(billinginvoiceitem.FieldID, field.TypeString))
 	if ps := biiu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -272,8 +324,17 @@ func (biiu *BillingInvoiceItemUpdate) sqlSave(ctx context.Context) (n int, err e
 	if value, ok := biiu.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceitem.FieldInvoiceAt, field.TypeTime, value)
 	}
+	if value, ok := biiu.mutation.GetType(); ok {
+		_spec.SetField(billinginvoiceitem.FieldType, field.TypeEnum, value)
+	}
+	if value, ok := biiu.mutation.Name(); ok {
+		_spec.SetField(billinginvoiceitem.FieldName, field.TypeString, value)
+	}
 	if value, ok := biiu.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceitem.FieldQuantity, field.TypeOther, value)
+	}
+	if biiu.mutation.QuantityCleared() {
+		_spec.ClearField(billinginvoiceitem.FieldQuantity, field.TypeOther)
 	}
 	if value, ok := biiu.mutation.UnitPrice(); ok {
 		_spec.SetField(billinginvoiceitem.FieldUnitPrice, field.TypeOther, value)
@@ -430,6 +491,34 @@ func (biiuo *BillingInvoiceItemUpdateOne) SetNillableInvoiceAt(t *time.Time) *Bi
 	return biiuo
 }
 
+// SetType sets the "type" field.
+func (biiuo *BillingInvoiceItemUpdateOne) SetType(bit billing.InvoiceItemType) *BillingInvoiceItemUpdateOne {
+	biiuo.mutation.SetType(bit)
+	return biiuo
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (biiuo *BillingInvoiceItemUpdateOne) SetNillableType(bit *billing.InvoiceItemType) *BillingInvoiceItemUpdateOne {
+	if bit != nil {
+		biiuo.SetType(*bit)
+	}
+	return biiuo
+}
+
+// SetName sets the "name" field.
+func (biiuo *BillingInvoiceItemUpdateOne) SetName(s string) *BillingInvoiceItemUpdateOne {
+	biiuo.mutation.SetName(s)
+	return biiuo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (biiuo *BillingInvoiceItemUpdateOne) SetNillableName(s *string) *BillingInvoiceItemUpdateOne {
+	if s != nil {
+		biiuo.SetName(*s)
+	}
+	return biiuo
+}
+
 // SetQuantity sets the "quantity" field.
 func (biiuo *BillingInvoiceItemUpdateOne) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceItemUpdateOne {
 	biiuo.mutation.SetQuantity(a)
@@ -441,6 +530,12 @@ func (biiuo *BillingInvoiceItemUpdateOne) SetNillableQuantity(a *alpacadecimal.D
 	if a != nil {
 		biiuo.SetQuantity(*a)
 	}
+	return biiuo
+}
+
+// ClearQuantity clears the value of the "quantity" field.
+func (biiuo *BillingInvoiceItemUpdateOne) ClearQuantity() *BillingInvoiceItemUpdateOne {
+	biiuo.mutation.ClearQuantity()
 	return biiuo
 }
 
@@ -459,15 +554,15 @@ func (biiuo *BillingInvoiceItemUpdateOne) SetNillableUnitPrice(a *alpacadecimal.
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (biiuo *BillingInvoiceItemUpdateOne) SetTaxCodeOverride(io invoice.TaxOverrides) *BillingInvoiceItemUpdateOne {
-	biiuo.mutation.SetTaxCodeOverride(io)
+func (biiuo *BillingInvoiceItemUpdateOne) SetTaxCodeOverride(bo billing.TaxOverrides) *BillingInvoiceItemUpdateOne {
+	biiuo.mutation.SetTaxCodeOverride(bo)
 	return biiuo
 }
 
 // SetNillableTaxCodeOverride sets the "tax_code_override" field if the given value is not nil.
-func (biiuo *BillingInvoiceItemUpdateOne) SetNillableTaxCodeOverride(io *invoice.TaxOverrides) *BillingInvoiceItemUpdateOne {
-	if io != nil {
-		biiuo.SetTaxCodeOverride(*io)
+func (biiuo *BillingInvoiceItemUpdateOne) SetNillableTaxCodeOverride(bo *billing.TaxOverrides) *BillingInvoiceItemUpdateOne {
+	if bo != nil {
+		biiuo.SetTaxCodeOverride(*bo)
 	}
 	return biiuo
 }
@@ -551,7 +646,25 @@ func (biiuo *BillingInvoiceItemUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (biiuo *BillingInvoiceItemUpdateOne) check() error {
+	if v, ok := biiuo.mutation.GetType(); ok {
+		if err := billinginvoiceitem.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.type": %w`, err)}
+		}
+	}
+	if v, ok := biiuo.mutation.Name(); ok {
+		if err := billinginvoiceitem.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceItem.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (biiuo *BillingInvoiceItemUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceItem, err error) {
+	if err := biiuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoiceitem.Table, billinginvoiceitem.Columns, sqlgraph.NewFieldSpec(billinginvoiceitem.FieldID, field.TypeString))
 	id, ok := biiuo.mutation.ID()
 	if !ok {
@@ -601,8 +714,17 @@ func (biiuo *BillingInvoiceItemUpdateOne) sqlSave(ctx context.Context) (_node *B
 	if value, ok := biiuo.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceitem.FieldInvoiceAt, field.TypeTime, value)
 	}
+	if value, ok := biiuo.mutation.GetType(); ok {
+		_spec.SetField(billinginvoiceitem.FieldType, field.TypeEnum, value)
+	}
+	if value, ok := biiuo.mutation.Name(); ok {
+		_spec.SetField(billinginvoiceitem.FieldName, field.TypeString, value)
+	}
 	if value, ok := biiuo.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceitem.FieldQuantity, field.TypeOther, value)
+	}
+	if biiuo.mutation.QuantityCleared() {
+		_spec.ClearField(billinginvoiceitem.FieldQuantity, field.TypeOther)
 	}
 	if value, ok := biiuo.mutation.UnitPrice(); ok {
 		_spec.SetField(billinginvoiceitem.FieldUnitPrice, field.TypeOther, value)

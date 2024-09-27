@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
 
@@ -27,8 +27,10 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
-	// FieldKey holds the string denoting the key field in the database.
-	FieldKey = "key"
+	// FieldSeries holds the string denoting the series field in the database.
+	FieldSeries = "series"
+	// FieldCode holds the string denoting the code field in the database.
+	FieldCode = "code"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldBillingProfileID holds the string denoting the billing_profile_id field in the database.
@@ -37,8 +39,6 @@ const (
 	FieldVoidedAt = "voided_at"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldTotalAmount holds the string denoting the total_amount field in the database.
-	FieldTotalAmount = "total_amount"
 	// FieldDueDate holds the string denoting the due_date field in the database.
 	FieldDueDate = "due_date"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -94,12 +94,12 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldMetadata,
-	FieldKey,
+	FieldSeries,
+	FieldCode,
 	FieldCustomerID,
 	FieldBillingProfileID,
 	FieldVoidedAt,
 	FieldCurrency,
-	FieldTotalAmount,
 	FieldDueDate,
 	FieldStatus,
 	FieldTaxProvider,
@@ -129,8 +129,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	KeyValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
 	// BillingProfileIDValidator is a validator for the "billing_profile_id" field. It is called by the builders before save.
@@ -142,7 +140,7 @@ var (
 )
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
-func StatusValidator(s invoice.InvoiceStatus) error {
+func StatusValidator(s billing.InvoiceStatus) error {
 	switch s {
 	case "created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed":
 		return nil
@@ -209,9 +207,14 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByKey orders the results by the key field.
-func ByKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKey, opts...).ToFunc()
+// BySeries orders the results by the series field.
+func BySeries(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSeries, opts...).ToFunc()
+}
+
+// ByCode orders the results by the code field.
+func ByCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCode, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.
@@ -232,11 +235,6 @@ func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByTotalAmount orders the results by the total_amount field.
-func ByTotalAmount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTotalAmount, opts...).ToFunc()
 }
 
 // ByDueDate orders the results by the due_date field.

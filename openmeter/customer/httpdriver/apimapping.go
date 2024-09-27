@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -66,7 +67,7 @@ func newFromAPICustomer(namespace string, apiCustomer api.Customer) customer.Cus
 	}
 
 	if apiCustomer.Currency != nil {
-		customerModel.Currency = lo.ToPtr(models.CurrencyCode(*apiCustomer.Currency))
+		customerModel.Currency = lo.ToPtr(currencyx.Code(*apiCustomer.Currency))
 	}
 
 	if apiCustomer.Timezone != nil {

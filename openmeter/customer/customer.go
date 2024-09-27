@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -20,7 +21,7 @@ type Customer struct {
 	Timezone         *timezone.Timezone       `json:"timezone"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 	PrimaryEmail     *string                  `json:"primaryEmail"`
-	Currency         *models.CurrencyCode     `json:"currency"`
+	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
 	External         *CustomerExternalMapping `json:"external"`
 }

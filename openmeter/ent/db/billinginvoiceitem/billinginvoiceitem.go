@@ -3,10 +3,12 @@
 package billinginvoiceitem
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -34,6 +36,10 @@ const (
 	FieldPeriodEnd = "period_end"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
 	// FieldUnitPrice holds the string denoting the unit_price field in the database.
@@ -68,6 +74,8 @@ var Columns = []string{
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldInvoiceAt,
+	FieldType,
+	FieldName,
 	FieldQuantity,
 	FieldUnitPrice,
 	FieldCurrency,
@@ -95,11 +103,23 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type billing.InvoiceItemType) error {
+	switch _type {
+	case "static", "usage":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceitem: invalid enum value for type field: %q", _type)
+	}
+}
 
 // OrderOption defines the ordering options for the BillingInvoiceItem queries.
 type OrderOption func(*sql.Selector)
@@ -152,6 +172,16 @@ func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceAt orders the results by the invoice_at field.
 func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByQuantity orders the results by the quantity field.

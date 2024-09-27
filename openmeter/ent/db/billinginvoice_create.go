@@ -12,8 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
@@ -83,9 +82,31 @@ func (bic *BillingInvoiceCreate) SetMetadata(m map[string]string) *BillingInvoic
 	return bic
 }
 
-// SetKey sets the "key" field.
-func (bic *BillingInvoiceCreate) SetKey(s string) *BillingInvoiceCreate {
-	bic.mutation.SetKey(s)
+// SetSeries sets the "series" field.
+func (bic *BillingInvoiceCreate) SetSeries(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSeries(s)
+	return bic
+}
+
+// SetNillableSeries sets the "series" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSeries(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSeries(*s)
+	}
+	return bic
+}
+
+// SetCode sets the "code" field.
+func (bic *BillingInvoiceCreate) SetCode(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCode(s)
+	return bic
+}
+
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCode(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCode(*s)
+	}
 	return bic
 }
 
@@ -121,12 +142,6 @@ func (bic *BillingInvoiceCreate) SetCurrency(s string) *BillingInvoiceCreate {
 	return bic
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (bic *BillingInvoiceCreate) SetTotalAmount(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetTotalAmount(a)
-	return bic
-}
-
 // SetDueDate sets the "due_date" field.
 func (bic *BillingInvoiceCreate) SetDueDate(t time.Time) *BillingInvoiceCreate {
 	bic.mutation.SetDueDate(t)
@@ -134,8 +149,8 @@ func (bic *BillingInvoiceCreate) SetDueDate(t time.Time) *BillingInvoiceCreate {
 }
 
 // SetStatus sets the "status" field.
-func (bic *BillingInvoiceCreate) SetStatus(is invoice.InvoiceStatus) *BillingInvoiceCreate {
-	bic.mutation.SetStatus(is)
+func (bic *BillingInvoiceCreate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceCreate {
+	bic.mutation.SetStatus(bs)
 	return bic
 }
 
@@ -309,14 +324,6 @@ func (bic *BillingInvoiceCreate) check() error {
 	if _, ok := bic.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoice.updated_at"`)}
 	}
-	if _, ok := bic.mutation.Key(); !ok {
-		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "BillingInvoice.key"`)}
-	}
-	if v, ok := bic.mutation.Key(); ok {
-		if err := billinginvoice.KeyValidator(v); err != nil {
-			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.key": %w`, err)}
-		}
-	}
 	if _, ok := bic.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingInvoice.customer_id"`)}
 	}
@@ -340,9 +347,6 @@ func (bic *BillingInvoiceCreate) check() error {
 		if err := billinginvoice.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.currency": %w`, err)}
 		}
-	}
-	if _, ok := bic.mutation.TotalAmount(); !ok {
-		return &ValidationError{Name: "total_amount", err: errors.New(`db: missing required field "BillingInvoice.total_amount"`)}
 	}
 	if _, ok := bic.mutation.DueDate(); !ok {
 		return &ValidationError{Name: "due_date", err: errors.New(`db: missing required field "BillingInvoice.due_date"`)}
@@ -441,9 +445,13 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_spec.SetField(billinginvoice.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := bic.mutation.Key(); ok {
-		_spec.SetField(billinginvoice.FieldKey, field.TypeString, value)
-		_node.Key = value
+	if value, ok := bic.mutation.Series(); ok {
+		_spec.SetField(billinginvoice.FieldSeries, field.TypeString, value)
+		_node.Series = &value
+	}
+	if value, ok := bic.mutation.Code(); ok {
+		_spec.SetField(billinginvoice.FieldCode, field.TypeString, value)
+		_node.Code = &value
 	}
 	if value, ok := bic.mutation.CustomerID(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerID, field.TypeString, value)
@@ -456,10 +464,6 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
-	}
-	if value, ok := bic.mutation.TotalAmount(); ok {
-		_spec.SetField(billinginvoice.FieldTotalAmount, field.TypeOther, value)
-		_node.TotalAmount = value
 	}
 	if value, ok := bic.mutation.DueDate(); ok {
 		_spec.SetField(billinginvoice.FieldDueDate, field.TypeTime, value)
@@ -639,6 +643,42 @@ func (u *BillingInvoiceUpsert) ClearMetadata() *BillingInvoiceUpsert {
 	return u
 }
 
+// SetSeries sets the "series" field.
+func (u *BillingInvoiceUpsert) SetSeries(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSeries, v)
+	return u
+}
+
+// UpdateSeries sets the "series" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSeries() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSeries)
+	return u
+}
+
+// ClearSeries clears the value of the "series" field.
+func (u *BillingInvoiceUpsert) ClearSeries() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSeries)
+	return u
+}
+
+// SetCode sets the "code" field.
+func (u *BillingInvoiceUpsert) SetCode(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCode, v)
+	return u
+}
+
+// UpdateCode sets the "code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCode() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCode)
+	return u
+}
+
+// ClearCode clears the value of the "code" field.
+func (u *BillingInvoiceUpsert) ClearCode() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCode)
+	return u
+}
+
 // SetVoidedAt sets the "voided_at" field.
 func (u *BillingInvoiceUpsert) SetVoidedAt(v time.Time) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldVoidedAt, v)
@@ -657,18 +697,6 @@ func (u *BillingInvoiceUpsert) ClearVoidedAt() *BillingInvoiceUpsert {
 	return u
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (u *BillingInvoiceUpsert) SetTotalAmount(v alpacadecimal.Decimal) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldTotalAmount, v)
-	return u
-}
-
-// UpdateTotalAmount sets the "total_amount" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateTotalAmount() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldTotalAmount)
-	return u
-}
-
 // SetDueDate sets the "due_date" field.
 func (u *BillingInvoiceUpsert) SetDueDate(v time.Time) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldDueDate, v)
@@ -682,7 +710,7 @@ func (u *BillingInvoiceUpsert) UpdateDueDate() *BillingInvoiceUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsert) SetStatus(v invoice.InvoiceStatus) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldStatus, v)
 	return u
 }
@@ -806,9 +834,6 @@ func (u *BillingInvoiceUpsertOne) UpdateNewValues() *BillingInvoiceUpsertOne {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billinginvoice.FieldCreatedAt)
 		}
-		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(billinginvoice.FieldKey)
-		}
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(billinginvoice.FieldCustomerID)
 		}
@@ -905,6 +930,48 @@ func (u *BillingInvoiceUpsertOne) ClearMetadata() *BillingInvoiceUpsertOne {
 	})
 }
 
+// SetSeries sets the "series" field.
+func (u *BillingInvoiceUpsertOne) SetSeries(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSeries(v)
+	})
+}
+
+// UpdateSeries sets the "series" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSeries() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSeries()
+	})
+}
+
+// ClearSeries clears the value of the "series" field.
+func (u *BillingInvoiceUpsertOne) ClearSeries() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSeries()
+	})
+}
+
+// SetCode sets the "code" field.
+func (u *BillingInvoiceUpsertOne) SetCode(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCode(v)
+	})
+}
+
+// UpdateCode sets the "code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCode() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCode()
+	})
+}
+
+// ClearCode clears the value of the "code" field.
+func (u *BillingInvoiceUpsertOne) ClearCode() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCode()
+	})
+}
+
 // SetVoidedAt sets the "voided_at" field.
 func (u *BillingInvoiceUpsertOne) SetVoidedAt(v time.Time) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -926,20 +993,6 @@ func (u *BillingInvoiceUpsertOne) ClearVoidedAt() *BillingInvoiceUpsertOne {
 	})
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (u *BillingInvoiceUpsertOne) SetTotalAmount(v alpacadecimal.Decimal) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetTotalAmount(v)
-	})
-}
-
-// UpdateTotalAmount sets the "total_amount" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateTotalAmount() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateTotalAmount()
-	})
-}
-
 // SetDueDate sets the "due_date" field.
 func (u *BillingInvoiceUpsertOne) SetDueDate(v time.Time) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -955,7 +1008,7 @@ func (u *BillingInvoiceUpsertOne) UpdateDueDate() *BillingInvoiceUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertOne) SetStatus(v invoice.InvoiceStatus) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})
@@ -1262,9 +1315,6 @@ func (u *BillingInvoiceUpsertBulk) UpdateNewValues() *BillingInvoiceUpsertBulk {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billinginvoice.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(billinginvoice.FieldKey)
-			}
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(billinginvoice.FieldCustomerID)
 			}
@@ -1362,6 +1412,48 @@ func (u *BillingInvoiceUpsertBulk) ClearMetadata() *BillingInvoiceUpsertBulk {
 	})
 }
 
+// SetSeries sets the "series" field.
+func (u *BillingInvoiceUpsertBulk) SetSeries(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSeries(v)
+	})
+}
+
+// UpdateSeries sets the "series" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSeries() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSeries()
+	})
+}
+
+// ClearSeries clears the value of the "series" field.
+func (u *BillingInvoiceUpsertBulk) ClearSeries() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSeries()
+	})
+}
+
+// SetCode sets the "code" field.
+func (u *BillingInvoiceUpsertBulk) SetCode(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCode(v)
+	})
+}
+
+// UpdateCode sets the "code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCode() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCode()
+	})
+}
+
+// ClearCode clears the value of the "code" field.
+func (u *BillingInvoiceUpsertBulk) ClearCode() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCode()
+	})
+}
+
 // SetVoidedAt sets the "voided_at" field.
 func (u *BillingInvoiceUpsertBulk) SetVoidedAt(v time.Time) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -1383,20 +1475,6 @@ func (u *BillingInvoiceUpsertBulk) ClearVoidedAt() *BillingInvoiceUpsertBulk {
 	})
 }
 
-// SetTotalAmount sets the "total_amount" field.
-func (u *BillingInvoiceUpsertBulk) SetTotalAmount(v alpacadecimal.Decimal) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetTotalAmount(v)
-	})
-}
-
-// UpdateTotalAmount sets the "total_amount" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateTotalAmount() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateTotalAmount()
-	})
-}
-
 // SetDueDate sets the "due_date" field.
 func (u *BillingInvoiceUpsertBulk) SetDueDate(v time.Time) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -1412,7 +1490,7 @@ func (u *BillingInvoiceUpsertBulk) UpdateDueDate() *BillingInvoiceUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertBulk) SetStatus(v invoice.InvoiceStatus) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})

@@ -5,8 +5,10 @@ package db
 import (
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -193,6 +195,34 @@ func (u *BillingInvoiceUpdateOne) SetOrClearMetadata(value *map[string]string) *
 	return u.SetMetadata(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearSeries(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSeries()
+	}
+	return u.SetSeries(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSeries(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSeries()
+	}
+	return u.SetSeries(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCode(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCode()
+	}
+	return u.SetCode(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCode(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCode()
+	}
+	return u.SetCode(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearVoidedAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearVoidedAt()
@@ -289,6 +319,20 @@ func (u *BillingInvoiceItemUpdateOne) SetOrClearInvoiceID(value *string) *Billin
 		return u.ClearInvoiceID()
 	}
 	return u.SetInvoiceID(*value)
+}
+
+func (u *BillingInvoiceItemUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceItemUpdate {
+	if value == nil {
+		return u.ClearQuantity()
+	}
+	return u.SetQuantity(*value)
+}
+
+func (u *BillingInvoiceItemUpdateOne) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceItemUpdateOne {
+	if value == nil {
+		return u.ClearQuantity()
+	}
+	return u.SetQuantity(*value)
 }
 
 func (u *BillingProfileUpdate) SetOrClearMetadata(value *map[string]string) *BillingProfileUpdate {
@@ -599,14 +643,14 @@ func (u *CustomerUpdateOne) SetOrClearTimezone(value *timezone.Timezone) *Custom
 	return u.SetTimezone(*value)
 }
 
-func (u *CustomerUpdate) SetOrClearCurrency(value *models.CurrencyCode) *CustomerUpdate {
+func (u *CustomerUpdate) SetOrClearCurrency(value *currencyx.Code) *CustomerUpdate {
 	if value == nil {
 		return u.ClearCurrency()
 	}
 	return u.SetCurrency(*value)
 }
 
-func (u *CustomerUpdateOne) SetOrClearCurrency(value *models.CurrencyCode) *CustomerUpdateOne {
+func (u *CustomerUpdateOne) SetOrClearCurrency(value *currencyx.Code) *CustomerUpdateOne {
 	if value == nil {
 		return u.ClearCurrency()
 	}

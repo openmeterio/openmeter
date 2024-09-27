@@ -126,11 +126,11 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "key", Type: field.TypeString},
+		{Name: "series", Type: field.TypeString, Nullable: true},
+		{Name: "code", Type: field.TypeString, Nullable: true},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "total_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "due_date", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed"}},
 		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe"}},
@@ -177,14 +177,9 @@ var (
 				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[0]},
 			},
 			{
-				Name:    "billinginvoice_namespace_key",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[6]},
-			},
-			{
 				Name:    "billinginvoice_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[7]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[8]},
 			},
 			{
 				Name:    "billinginvoice_namespace_due_date",
@@ -195,6 +190,11 @@ var (
 				Name:    "billinginvoice_namespace_status",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[12]},
+			},
+			{
+				Name:    "billinginvoice_namespace_customer_id_series_code",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[8], BillingInvoicesColumns[6], BillingInvoicesColumns[7]},
 			},
 		},
 	}
@@ -210,7 +210,9 @@ var (
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"static", "usage"}},
+		{Name: "name", Type: field.TypeString},
+		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "unit_price", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "tax_code_override", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -224,7 +226,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_items_billing_invoices_billing_invoice_items",
-				Columns:    []*schema.Column{BillingInvoiceItemsColumns[14]},
+				Columns:    []*schema.Column{BillingInvoiceItemsColumns[16]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -248,7 +250,7 @@ var (
 			{
 				Name:    "billinginvoiceitem_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceItemsColumns[1], BillingInvoiceItemsColumns[14]},
+				Columns: []*schema.Column{BillingInvoiceItemsColumns[1], BillingInvoiceItemsColumns[16]},
 			},
 			{
 				Name:    "billinginvoiceitem_namespace_customer_id",

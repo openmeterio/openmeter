@@ -576,9 +576,12 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceItems(ctx context.Context, que
 	}
 	for _, n := range neighbors {
 		fk := n.InvoiceID
-		node, ok := nodeids[fk]
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "invoice_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

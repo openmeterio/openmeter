@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -265,15 +266,15 @@ func (cu *CustomerUpdate) ClearTimezone() *CustomerUpdate {
 }
 
 // SetCurrency sets the "currency" field.
-func (cu *CustomerUpdate) SetCurrency(mc models.CurrencyCode) *CustomerUpdate {
-	cu.mutation.SetCurrency(mc)
+func (cu *CustomerUpdate) SetCurrency(c currencyx.Code) *CustomerUpdate {
+	cu.mutation.SetCurrency(c)
 	return cu
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableCurrency(mc *models.CurrencyCode) *CustomerUpdate {
-	if mc != nil {
-		cu.SetCurrency(*mc)
+func (cu *CustomerUpdate) SetNillableCurrency(c *currencyx.Code) *CustomerUpdate {
+	if c != nil {
+		cu.SetCurrency(*c)
 	}
 	return cu
 }
@@ -844,15 +845,15 @@ func (cuo *CustomerUpdateOne) ClearTimezone() *CustomerUpdateOne {
 }
 
 // SetCurrency sets the "currency" field.
-func (cuo *CustomerUpdateOne) SetCurrency(mc models.CurrencyCode) *CustomerUpdateOne {
-	cuo.mutation.SetCurrency(mc)
+func (cuo *CustomerUpdateOne) SetCurrency(c currencyx.Code) *CustomerUpdateOne {
+	cuo.mutation.SetCurrency(c)
 	return cuo
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableCurrency(mc *models.CurrencyCode) *CustomerUpdateOne {
-	if mc != nil {
-		cuo.SetCurrency(*mc)
+func (cuo *CustomerUpdateOne) SetNillableCurrency(c *currencyx.Code) *CustomerUpdateOne {
+	if c != nil {
+		cuo.SetCurrency(*c)
 	}
 	return cuo
 }

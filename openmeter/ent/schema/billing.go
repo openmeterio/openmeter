@@ -9,8 +9,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -223,6 +223,7 @@ func (BillingInvoiceItem) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("invoice_id").
 			Optional().
+			Nillable().
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
@@ -239,7 +240,16 @@ func (BillingInvoiceItem) Fields() []ent.Field {
 
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
+		field.Enum("type").
+			GoType(billing.InvoiceItemType("")),
+
+		field.String("name").
+			NotEmpty(),
+
+		// Quantity is only required for static items
 		field.Other("quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
@@ -248,12 +258,13 @@ func (BillingInvoiceItem) Fields() []ent.Field {
 				"postgres": "numeric",
 			}),
 		field.String("currency").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
 				"postgres": "varchar(3)",
 			}),
-		field.JSON("tax_code_override", invoice.TaxOverrides{}).
+		field.JSON("tax_code_override", billing.TaxOverrides{}).
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
 			}),
@@ -294,9 +305,14 @@ func (BillingInvoice) Mixin() []ent.Mixin {
 
 func (BillingInvoice) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("key").
-			NotEmpty().
-			Immutable(),
+		// Invoice number
+		field.String("series").
+			Optional().
+			Nillable(),
+		field.String("code").
+			Optional().
+			Nillable(),
+
 		field.String("customer_id").
 			NotEmpty().
 			SchemaType(map[string]string{
@@ -317,13 +333,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "varchar(3)",
 			}),
-		field.Other("total_amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}),
+
 		field.Time("due_date"),
 		field.Enum("status").
-			GoType(invoice.InvoiceStatus("")),
+			GoType(billing.InvoiceStatus("")),
 
 		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
 		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
@@ -344,10 +357,11 @@ func (BillingInvoice) Fields() []ent.Field {
 func (BillingInvoice) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
-		index.Fields("namespace", "key"),
 		index.Fields("namespace", "customer_id"),
 		index.Fields("namespace", "due_date"),
 		index.Fields("namespace", "status"),
+		// Some countries require per seller uniqueness, but that's something we can't enforce here
+		index.Fields("namespace", "customer_id", "series", "code").Unique(),
 	}
 }
 
