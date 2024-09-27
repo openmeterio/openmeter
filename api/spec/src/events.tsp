@@ -27,7 +27,7 @@ interface Events {
      */
     @query
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
-    ingestedAtFrom: utcDateTime,
+    ingestedAtFrom?: utcDateTime,
 
     /**
      * End date-time in RFC 3339 format.
@@ -36,7 +36,7 @@ interface Events {
      */
     @query
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
-    ingestedAtTo: utcDateTime,
+    ingestedAtTo?: utcDateTime,
 
     /**
      * If not provided lists all events.
@@ -47,7 +47,7 @@ interface Events {
      */
     @query
     @example(false)
-    hasError: boolean,
+    hasError?: boolean,
 
     /**
      * The event ID.
@@ -56,7 +56,7 @@ interface Events {
      */
     @query
     @example("my-event-id")
-    id: string,
+    id?: string,
 
     /**
      * The event subject.
@@ -65,7 +65,7 @@ interface Events {
      */
     @query
     @example("customer-1")
-    subject: string,
+    subject?: string,
 
     /**
      * Start date-time in RFC 3339 format.
@@ -74,7 +74,7 @@ interface Events {
      */
     @query
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
-    from: utcDateTime,
+    from?: utcDateTime,
 
     /**
      * End date-time in RFC 3339 format.
@@ -83,7 +83,7 @@ interface Events {
      */
     @query
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
-    to: utcDateTime,
+    to?: utcDateTime,
 
     /**
      * Number of events to return.
@@ -92,7 +92,7 @@ interface Events {
     @minValue(1)
     @maxValue(100)
     @example(100)
-    limit: integer = 100,
+    limit?: integer = 100,
   ): IngestedEvent[] | CommonErrors;
 
   @post
