@@ -92,6 +92,11 @@ func (a AppBase) ValidateCapabilities(capabilities []CapabilityType) error {
 	return nil
 }
 
+// ValidateCustomer validates if the app can run for the given customer
+func (a AppBase) ValidateCustomer(c customer.Customer, capabilities []CapabilityType) error {
+	return fmt.Errorf("each app must implement its own ValidateCustomer method")
+}
+
 // Validate validates the app base
 func (a AppBase) Validate() error {
 	if err := a.ManagedResource.Validate(); err != nil {
