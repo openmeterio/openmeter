@@ -45,12 +45,7 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 			return response, fmt.Errorf("failed to get listing for app %s: %w", item.ID, err)
 		}
 
-		app, err := mapAppFromDB(item, listing)
-		if err != nil {
-			return response, fmt.Errorf("failed to map app %s: %w", item.ID, err)
-		}
-
-		result = append(result, app)
+		result = append(result, MapAppBaseFromDB(item, listing))
 	}
 
 	response.TotalCount = paged.TotalCount
@@ -86,12 +81,7 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 	}
 
-	app, err := mapAppFromDB(dbApp, listing)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map app %s: %w", dbApp.ID, err)
-	}
-
-	return app, nil
+	return MapAppBaseFromDB(dbApp, listing), nil
 }
 
 // UninstallApp uninstalls an app
@@ -102,24 +92,6 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInpu
 
 	// TODO: Implement uninstall logic
 	return fmt.Errorf("uninstall not implemented")
-}
-
-func mapAppFromDB(dbApp *db.App, listing appentity.MarketplaceListing) (appentity.App, error) {
-	if dbApp == nil {
-		return nil, fmt.Errorf("app is nil")
-	}
-
-	switch dbApp.Type {
-	// case appentity.AppTypeStripe:
-	// 	stripeApp, err := mapStripeAppFromDB(dbApp, listing)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to map stripe app: %w", err)
-	// 	}
-
-	// 	return stripeApp, nil
-	default:
-		return nil, fmt.Errorf("unsupported app type %s", dbApp.Type)
-	}
 }
 
 func MapAppBaseFromDB(dbApp *db.App, listing appentity.MarketplaceListing) appentity.AppBase {
