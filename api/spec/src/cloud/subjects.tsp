@@ -32,8 +32,15 @@ interface Subjects {
    * If the subject exists, it will be partially updated with the provided fields.
    */
   @post
-  @operationId("listSubjects")
+  @operationId("upsertSubject")
   upsert(@body subject: Subject[]): Subject[] | OpenMeter.CommonErrors;
+
+  /**
+   * Delete subject by ID or key.
+   */
+  @delete
+  @operationId("deleteSubject")
+  delete(@path subjectIdOrKey: string): void | OpenMeter.CommonErrors;
 }
 
 /**
