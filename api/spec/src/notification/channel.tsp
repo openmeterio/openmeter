@@ -197,7 +197,7 @@ interface Channels {
   @put
   @operationId("updateNotificationChannel")
   @summary("Update a notification channel")
-  update(@body request: ChannelCreateRequest): {
+  update(@path channelId: ULID, @body request: ChannelCreateRequest): {
     @statusCode _: 200;
     @body body: Channel;
   } | OpenMeter.CommonErrors;
