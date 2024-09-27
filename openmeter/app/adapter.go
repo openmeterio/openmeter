@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -22,18 +23,21 @@ type Adapter interface {
 	WithTx(context.Context) (TxAdapter, error)
 }
 
+type IntegrationRegistryAdapter interface {
+	GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error)
+	ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error)
+}
+
 type MarketplaceAdapter interface {
-	GetListing(ctx context.Context, input GetMarketplaceListingInput) (MarketplaceListing, error)
-	ListListings(ctx context.Context, input ListMarketplaceListingInput) (pagination.PagedResponse[MarketplaceListing], error)
-	InstallAppWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)
-	GetOauth2InstallURL(ctx context.Context, input GetOauth2InstallURLInput) (GetOauth2InstallURLOutput, error)
-	AuthorizeOauth2Install(ctx context.Context, input AuthorizeOauth2InstallInput) error
+	InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
+	GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
+	AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
 }
 
 type AppAdapter interface {
-	GetApp(ctx context.Context, input GetAppInput) (App, error)
-	ListApps(ctx context.Context, input ListAppInput) (pagination.PagedResponse[App], error)
-	UninstallApp(ctx context.Context, input DeleteAppInput) error
+	GetApp(ctx context.Context, input appentity.GetAppInput) (*appentity.AppBase, error)
+	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
+	UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error
 }
 
 func WithTxNoValue(ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) error) error {

@@ -1,10 +1,9 @@
-package app
+package appentity
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -15,21 +14,18 @@ type App interface {
 	GetType() AppType
 	GetName() string
 	GetStatus() AppStatus
-	GetListing() MarketplaceListing
+	// GetListing() MarketplaceListing
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
-	ValidateCapabilities(capabilities []CapabilityType) error
+	// TODO: add back if needed but the capability is just a filtering UI stuff
+	// ValidateCapabilities(capabilities []CapabilityType) error
 
-	// ValidateCustomer validates if the app can run for the given customer
-	ValidateCustomer(customer customer.Customer, capabilities []CapabilityType) error
+	// Returns true if the app is capable of the given capabilities
+	IsCapableOf(CapabilityType) bool
 }
 
 // AppType represents the type of an app
 type AppType string
-
-const (
-	AppTypeStripe AppType = "stripe"
-)
 
 // AppStatus represents the status of an app
 type AppStatus string
@@ -43,54 +39,36 @@ const (
 type AppBase struct {
 	models.ManagedResource
 
-	Type    AppType            `json:"type"`
-	Name    string             `json:"name"`
-	Status  AppStatus          `json:"status"`
-	Listing MarketplaceListing `json:"listing"`
+	Type   AppType   `json:"type"`
+	Name   string    `json:"name"`
+	Status AppStatus `json:"status"`
 }
 
-func (a StripeApp) GetID() AppID {
+func (a AppBase) GetID() AppID {
 	return AppID{
 		Namespace: a.Namespace,
 		ID:        a.ID,
 	}
 }
 
-func (a StripeApp) GetType() AppType {
+func (a AppBase) GetType() AppType {
 	return a.Type
 }
 
-func (a StripeApp) GetName() string {
+func (a AppBase) GetName() string {
 	return a.Name
 }
 
-func (a StripeApp) GetStatus() AppStatus {
+func (a AppBase) GetStatus() AppStatus {
 	return a.Status
 }
 
-func (a StripeApp) GetListing() MarketplaceListing {
-	return a.Listing
+func (a AppBase) IsCapableOf(CapabilityType) bool {
+	panic("implement me")
+	return false
 }
 
-// ValidateCapabilities validates if the app can run for the given capabilities
-func (a AppBase) ValidateCapabilities(capabilities []CapabilityType) error {
-	for _, capability := range capabilities {
-		found := false
-
-		for _, c := range a.Listing.Capabilities {
-			if c.Type == capability {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return fmt.Errorf("capability %s is not supported by %s app type", capability, a.Type)
-		}
-	}
-
-	return nil
-}
+// App represents an installed app
 
 // Validate validates the app base
 func (a AppBase) Validate() error {
@@ -112,10 +90,6 @@ func (a AppBase) Validate() error {
 
 	if a.Status == "" {
 		return errors.New("status is required")
-	}
-
-	if err := a.Listing.Validate(); err != nil {
-		return fmt.Errorf("error validating listing: %w", err)
 	}
 
 	return nil

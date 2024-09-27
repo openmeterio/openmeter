@@ -1228,6 +1228,16 @@ func CurrencyContainsFold(v currencyx.Code) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
 }
 
+// AppIdsIsNil applies the IsNil predicate on the "app_ids" field.
+func AppIdsIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldAppIds))
+}
+
+// AppIdsNotNil applies the NotNil predicate on the "app_ids" field.
+func AppIdsNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldAppIds))
+}
+
 // ExternalMappingStripeCustomerIDEQ applies the EQ predicate on the "external_mapping_stripe_customer_id" field.
 func ExternalMappingStripeCustomerIDEQ(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))

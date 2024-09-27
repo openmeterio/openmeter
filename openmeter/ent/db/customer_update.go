@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -285,6 +286,24 @@ func (cu *CustomerUpdate) ClearCurrency() *CustomerUpdate {
 	return cu
 }
 
+// SetAppIds sets the "app_ids" field.
+func (cu *CustomerUpdate) SetAppIds(s []string) *CustomerUpdate {
+	cu.mutation.SetAppIds(s)
+	return cu
+}
+
+// AppendAppIds appends s to the "app_ids" field.
+func (cu *CustomerUpdate) AppendAppIds(s []string) *CustomerUpdate {
+	cu.mutation.AppendAppIds(s)
+	return cu
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (cu *CustomerUpdate) ClearAppIds() *CustomerUpdate {
+	cu.mutation.ClearAppIds()
+	return cu
+}
+
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (cu *CustomerUpdate) SetExternalMappingStripeCustomerID(s string) *CustomerUpdate {
 	cu.mutation.SetExternalMappingStripeCustomerID(s)
@@ -511,6 +530,17 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
+	}
+	if value, ok := cu.mutation.AppIds(); ok {
+		_spec.SetField(customer.FieldAppIds, field.TypeJSON, value)
+	}
+	if value, ok := cu.mutation.AppendedAppIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, customer.FieldAppIds, value)
+		})
+	}
+	if cu.mutation.AppIdsCleared() {
+		_spec.ClearField(customer.FieldAppIds, field.TypeJSON)
 	}
 	if value, ok := cu.mutation.ExternalMappingStripeCustomerID(); ok {
 		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
@@ -864,6 +894,24 @@ func (cuo *CustomerUpdateOne) ClearCurrency() *CustomerUpdateOne {
 	return cuo
 }
 
+// SetAppIds sets the "app_ids" field.
+func (cuo *CustomerUpdateOne) SetAppIds(s []string) *CustomerUpdateOne {
+	cuo.mutation.SetAppIds(s)
+	return cuo
+}
+
+// AppendAppIds appends s to the "app_ids" field.
+func (cuo *CustomerUpdateOne) AppendAppIds(s []string) *CustomerUpdateOne {
+	cuo.mutation.AppendAppIds(s)
+	return cuo
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (cuo *CustomerUpdateOne) ClearAppIds() *CustomerUpdateOne {
+	cuo.mutation.ClearAppIds()
+	return cuo
+}
+
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (cuo *CustomerUpdateOne) SetExternalMappingStripeCustomerID(s string) *CustomerUpdateOne {
 	cuo.mutation.SetExternalMappingStripeCustomerID(s)
@@ -1120,6 +1168,17 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
+	}
+	if value, ok := cuo.mutation.AppIds(); ok {
+		_spec.SetField(customer.FieldAppIds, field.TypeJSON, value)
+	}
+	if value, ok := cuo.mutation.AppendedAppIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, customer.FieldAppIds, value)
+		})
+	}
+	if cuo.mutation.AppIdsCleared() {
+		_spec.ClearField(customer.FieldAppIds, field.TypeJSON)
 	}
 	if value, ok := cuo.mutation.ExternalMappingStripeCustomerID(); ok {
 		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)

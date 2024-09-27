@@ -685,6 +685,20 @@ func (u *CustomerUpdateOne) SetOrClearCurrency(value *currencyx.Code) *CustomerU
 	return u.SetCurrency(*value)
 }
 
+func (u *CustomerUpdate) SetOrClearAppIds(value *[]string) *CustomerUpdate {
+	if value == nil {
+		return u.ClearAppIds()
+	}
+	return u.SetAppIds(*value)
+}
+
+func (u *CustomerUpdateOne) SetOrClearAppIds(value *[]string) *CustomerUpdateOne {
+	if value == nil {
+		return u.ClearAppIds()
+	}
+	return u.SetAppIds(*value)
+}
+
 func (u *CustomerUpdate) SetOrClearExternalMappingStripeCustomerID(value *string) *CustomerUpdate {
 	if value == nil {
 		return u.ClearExternalMappingStripeCustomerID()
@@ -879,6 +893,34 @@ func (u *GrantUpdateOne) SetOrClearVoidedAt(value *time.Time) *GrantUpdateOne {
 		return u.ClearVoidedAt()
 	}
 	return u.SetVoidedAt(*value)
+}
+
+func (u *IntegrationStripeUpdate) SetOrClearDeletedAt(value *time.Time) *IntegrationStripeUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *IntegrationStripeUpdateOne) SetOrClearDeletedAt(value *time.Time) *IntegrationStripeUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *IntegrationStripeCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *IntegrationStripeCustomerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *IntegrationStripeCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *IntegrationStripeCustomerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *NotificationChannelUpdate) SetOrClearDeletedAt(value *time.Time) *NotificationChannelUpdate {

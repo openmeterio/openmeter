@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 )
 
 // AppCreate is the builder for creating a App entity.
@@ -91,48 +91,14 @@ func (ac *AppCreate) SetDescription(s string) *AppCreate {
 }
 
 // SetType sets the "type" field.
-func (ac *AppCreate) SetType(at app.AppType) *AppCreate {
+func (ac *AppCreate) SetType(at appentity.AppType) *AppCreate {
 	ac.mutation.SetType(at)
 	return ac
 }
 
 // SetStatus sets the "status" field.
-func (ac *AppCreate) SetStatus(as app.AppStatus) *AppCreate {
+func (ac *AppCreate) SetStatus(as appentity.AppStatus) *AppCreate {
 	ac.mutation.SetStatus(as)
-	return ac
-}
-
-// SetListingKey sets the "listing_key" field.
-func (ac *AppCreate) SetListingKey(s string) *AppCreate {
-	ac.mutation.SetListingKey(s)
-	return ac
-}
-
-// SetStripeAccountID sets the "stripe_account_id" field.
-func (ac *AppCreate) SetStripeAccountID(s string) *AppCreate {
-	ac.mutation.SetStripeAccountID(s)
-	return ac
-}
-
-// SetNillableStripeAccountID sets the "stripe_account_id" field if the given value is not nil.
-func (ac *AppCreate) SetNillableStripeAccountID(s *string) *AppCreate {
-	if s != nil {
-		ac.SetStripeAccountID(*s)
-	}
-	return ac
-}
-
-// SetStripeLivemode sets the "stripe_livemode" field.
-func (ac *AppCreate) SetStripeLivemode(b bool) *AppCreate {
-	ac.mutation.SetStripeLivemode(b)
-	return ac
-}
-
-// SetNillableStripeLivemode sets the "stripe_livemode" field if the given value is not nil.
-func (ac *AppCreate) SetNillableStripeLivemode(b *bool) *AppCreate {
-	if b != nil {
-		ac.SetStripeLivemode(*b)
-	}
 	return ac
 }
 
@@ -186,15 +152,15 @@ func (ac *AppCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (ac *AppCreate) defaults() {
 	if _, ok := ac.mutation.CreatedAt(); !ok {
-		v := dbapp.DefaultCreatedAt()
+		v := app.DefaultCreatedAt()
 		ac.mutation.SetCreatedAt(v)
 	}
 	if _, ok := ac.mutation.UpdatedAt(); !ok {
-		v := dbapp.DefaultUpdatedAt()
+		v := app.DefaultUpdatedAt()
 		ac.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := ac.mutation.ID(); !ok {
-		v := dbapp.DefaultID()
+		v := app.DefaultID()
 		ac.mutation.SetID(v)
 	}
 }
@@ -205,7 +171,7 @@ func (ac *AppCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "App.namespace"`)}
 	}
 	if v, ok := ac.mutation.Namespace(); ok {
-		if err := dbapp.NamespaceValidator(v); err != nil {
+		if err := app.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "App.namespace": %w`, err)}
 		}
 	}
@@ -226,9 +192,6 @@ func (ac *AppCreate) check() error {
 	}
 	if _, ok := ac.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "App.status"`)}
-	}
-	if _, ok := ac.mutation.ListingKey(); !ok {
-		return &ValidationError{Name: "listing_key", err: errors.New(`db: missing required field "App.listing_key"`)}
 	}
 	return nil
 }
@@ -259,7 +222,7 @@ func (ac *AppCreate) sqlSave(ctx context.Context) (*App, error) {
 func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	var (
 		_node = &App{config: ac.config}
-		_spec = sqlgraph.NewCreateSpec(dbapp.Table, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(app.Table, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = ac.conflict
 	if id, ok := ac.mutation.ID(); ok {
@@ -267,52 +230,40 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = id
 	}
 	if value, ok := ac.mutation.Namespace(); ok {
-		_spec.SetField(dbapp.FieldNamespace, field.TypeString, value)
+		_spec.SetField(app.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := ac.mutation.Metadata(); ok {
-		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(app.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
 	if value, ok := ac.mutation.CreatedAt(); ok {
-		_spec.SetField(dbapp.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := ac.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := ac.mutation.DeletedAt(); ok {
-		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := ac.mutation.Name(); ok {
-		_spec.SetField(dbapp.FieldName, field.TypeString, value)
+		_spec.SetField(app.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if value, ok := ac.mutation.Description(); ok {
-		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
+		_spec.SetField(app.FieldDescription, field.TypeString, value)
 		_node.Description = value
 	}
 	if value, ok := ac.mutation.GetType(); ok {
-		_spec.SetField(dbapp.FieldType, field.TypeString, value)
+		_spec.SetField(app.FieldType, field.TypeString, value)
 		_node.Type = value
 	}
 	if value, ok := ac.mutation.Status(); ok {
-		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
+		_spec.SetField(app.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if value, ok := ac.mutation.ListingKey(); ok {
-		_spec.SetField(dbapp.FieldListingKey, field.TypeString, value)
-		_node.ListingKey = value
-	}
-	if value, ok := ac.mutation.StripeAccountID(); ok {
-		_spec.SetField(dbapp.FieldStripeAccountID, field.TypeString, value)
-		_node.StripeAccountID = &value
-	}
-	if value, ok := ac.mutation.StripeLivemode(); ok {
-		_spec.SetField(dbapp.FieldStripeLivemode, field.TypeBool, value)
-		_node.StripeLivemode = &value
 	}
 	return _node, _spec
 }
@@ -368,85 +319,85 @@ type (
 
 // SetMetadata sets the "metadata" field.
 func (u *AppUpsert) SetMetadata(v map[string]string) *AppUpsert {
-	u.Set(dbapp.FieldMetadata, v)
+	u.Set(app.FieldMetadata, v)
 	return u
 }
 
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *AppUpsert) UpdateMetadata() *AppUpsert {
-	u.SetExcluded(dbapp.FieldMetadata)
+	u.SetExcluded(app.FieldMetadata)
 	return u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
 func (u *AppUpsert) ClearMetadata() *AppUpsert {
-	u.SetNull(dbapp.FieldMetadata)
+	u.SetNull(app.FieldMetadata)
 	return u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *AppUpsert) SetUpdatedAt(v time.Time) *AppUpsert {
-	u.Set(dbapp.FieldUpdatedAt, v)
+	u.Set(app.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *AppUpsert) UpdateUpdatedAt() *AppUpsert {
-	u.SetExcluded(dbapp.FieldUpdatedAt)
+	u.SetExcluded(app.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *AppUpsert) SetDeletedAt(v time.Time) *AppUpsert {
-	u.Set(dbapp.FieldDeletedAt, v)
+	u.Set(app.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *AppUpsert) UpdateDeletedAt() *AppUpsert {
-	u.SetExcluded(dbapp.FieldDeletedAt)
+	u.SetExcluded(app.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *AppUpsert) ClearDeletedAt() *AppUpsert {
-	u.SetNull(dbapp.FieldDeletedAt)
+	u.SetNull(app.FieldDeletedAt)
 	return u
 }
 
 // SetName sets the "name" field.
 func (u *AppUpsert) SetName(v string) *AppUpsert {
-	u.Set(dbapp.FieldName, v)
+	u.Set(app.FieldName, v)
 	return u
 }
 
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *AppUpsert) UpdateName() *AppUpsert {
-	u.SetExcluded(dbapp.FieldName)
+	u.SetExcluded(app.FieldName)
 	return u
 }
 
 // SetDescription sets the "description" field.
 func (u *AppUpsert) SetDescription(v string) *AppUpsert {
-	u.Set(dbapp.FieldDescription, v)
+	u.Set(app.FieldDescription, v)
 	return u
 }
 
 // UpdateDescription sets the "description" field to the value that was provided on create.
 func (u *AppUpsert) UpdateDescription() *AppUpsert {
-	u.SetExcluded(dbapp.FieldDescription)
+	u.SetExcluded(app.FieldDescription)
 	return u
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsert) SetStatus(v app.AppStatus) *AppUpsert {
-	u.Set(dbapp.FieldStatus, v)
+func (u *AppUpsert) SetStatus(v appentity.AppStatus) *AppUpsert {
+	u.Set(app.FieldStatus, v)
 	return u
 }
 
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *AppUpsert) UpdateStatus() *AppUpsert {
-	u.SetExcluded(dbapp.FieldStatus)
+	u.SetExcluded(app.FieldStatus)
 	return u
 }
 
@@ -457,7 +408,7 @@ func (u *AppUpsert) UpdateStatus() *AppUpsert {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(dbapp.FieldID)
+//				u.SetIgnore(app.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -465,25 +416,16 @@ func (u *AppUpsertOne) UpdateNewValues() *AppUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
-			s.SetIgnore(dbapp.FieldID)
+			s.SetIgnore(app.FieldID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(dbapp.FieldNamespace)
+			s.SetIgnore(app.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(dbapp.FieldCreatedAt)
+			s.SetIgnore(app.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(dbapp.FieldType)
-		}
-		if _, exists := u.create.mutation.ListingKey(); exists {
-			s.SetIgnore(dbapp.FieldListingKey)
-		}
-		if _, exists := u.create.mutation.StripeAccountID(); exists {
-			s.SetIgnore(dbapp.FieldStripeAccountID)
-		}
-		if _, exists := u.create.mutation.StripeLivemode(); exists {
-			s.SetIgnore(dbapp.FieldStripeLivemode)
+			s.SetIgnore(app.FieldType)
 		}
 	}))
 	return u
@@ -601,7 +543,7 @@ func (u *AppUpsertOne) UpdateDescription() *AppUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsertOne) SetStatus(v app.AppStatus) *AppUpsertOne {
+func (u *AppUpsertOne) SetStatus(v appentity.AppStatus) *AppUpsertOne {
 	return u.Update(func(s *AppUpsert) {
 		s.SetStatus(v)
 	})
@@ -786,7 +728,7 @@ type AppUpsertBulk struct {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(dbapp.FieldID)
+//				u.SetIgnore(app.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -795,25 +737,16 @@ func (u *AppUpsertBulk) UpdateNewValues() *AppUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
-				s.SetIgnore(dbapp.FieldID)
+				s.SetIgnore(app.FieldID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(dbapp.FieldNamespace)
+				s.SetIgnore(app.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(dbapp.FieldCreatedAt)
+				s.SetIgnore(app.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(dbapp.FieldType)
-			}
-			if _, exists := b.mutation.ListingKey(); exists {
-				s.SetIgnore(dbapp.FieldListingKey)
-			}
-			if _, exists := b.mutation.StripeAccountID(); exists {
-				s.SetIgnore(dbapp.FieldStripeAccountID)
-			}
-			if _, exists := b.mutation.StripeLivemode(); exists {
-				s.SetIgnore(dbapp.FieldStripeLivemode)
+				s.SetIgnore(app.FieldType)
 			}
 		}
 	}))
@@ -932,7 +865,7 @@ func (u *AppUpsertBulk) UpdateDescription() *AppUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsertBulk) SetStatus(v app.AppStatus) *AppUpsertBulk {
+func (u *AppUpsertBulk) SetStatus(v appentity.AppStatus) *AppUpsertBulk {
 	return u.Update(func(s *AppUpsert) {
 		s.SetStatus(v)
 	})

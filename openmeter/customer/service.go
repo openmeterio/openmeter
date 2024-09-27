@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	apputils "github.com/openmeterio/openmeter/openmeter/app/utils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -20,16 +22,22 @@ type CustomerService interface {
 }
 
 type service struct {
-	repo Repository
+	repo        Repository
+	integration apputils.IntegrationGetter[Integration]
 }
 
 type ServiceConfig struct {
 	Repository Repository
+	AppGetter  apputils.AppGetter
 }
 
 func (c *ServiceConfig) Validate() error {
 	if c.Repository == nil {
 		return errors.New("repository is required")
+	}
+
+	if c.AppGetter == nil {
+		return errors.New("app getter is required")
 	}
 
 	return nil
@@ -42,6 +50,9 @@ func NewService(c ServiceConfig) (Service, error) {
 
 	return &service{
 		repo: c.Repository,
+		integration: apputils.IntegrationGetter[Integration]{
+			Getter: c.AppGetter,
+		},
 	}, nil
 }
 
@@ -67,6 +78,25 @@ func (s *service) GetCustomer(ctx context.Context, customer GetCustomerInput) (*
 
 func (s *service) UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error) {
 	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*Customer, error) {
-		return repo.UpdateCustomer(ctx, params)
+		updatedCustomer, err := repo.UpdateCustomer(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, appID := range updatedCustomer.AppIDs {
+			integration, err := s.integration.Get(ctx, appentity.AppID{
+				Namespace: updatedCustomer.Namespace,
+				ID:        appID,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			if err := integration.ValidateCustomer(ctx, *updatedCustomer); err != nil {
+				return nil, err
+			}
+		}
+
+		return updatedCustomer, nil
 	})
 }

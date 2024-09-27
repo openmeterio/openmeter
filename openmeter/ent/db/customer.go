@@ -54,6 +54,8 @@ type Customer struct {
 	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency *currencyx.Code `json:"currency,omitempty"`
+	// AppIds holds the value of the "app_ids" field.
+	AppIds []string `json:"app_ids,omitempty"`
 	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
 	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -98,7 +100,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case customer.FieldMetadata:
+		case customer.FieldMetadata, customer.FieldAppIds:
 			values[i] = new([]byte)
 		case customer.FieldID, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldName, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency, customer.FieldExternalMappingStripeCustomerID:
 			values[i] = new(sql.NullString)
@@ -234,6 +236,14 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.Currency = new(currencyx.Code)
 				*c.Currency = currencyx.Code(value.String)
 			}
+		case customer.FieldAppIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field app_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &c.AppIds); err != nil {
+					return fmt.Errorf("unmarshal field app_ids: %w", err)
+				}
+			}
 		case customer.FieldExternalMappingStripeCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field external_mapping_stripe_customer_id", values[i])
@@ -356,6 +366,9 @@ func (c *Customer) String() string {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("app_ids=")
+	builder.WriteString(fmt.Sprintf("%v", c.AppIds))
 	builder.WriteString(", ")
 	if v := c.ExternalMappingStripeCustomerID; v != nil {
 		builder.WriteString("external_mapping_stripe_customer_id=")

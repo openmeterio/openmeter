@@ -5,7 +5,7 @@ package db
 import (
 	"time"
 
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -17,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripe"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -32,29 +34,29 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	dbappMixin := schema.App{}.Mixin()
-	dbappMixinFields0 := dbappMixin[0].Fields()
-	_ = dbappMixinFields0
-	dbappFields := schema.App{}.Fields()
-	_ = dbappFields
-	// dbappDescNamespace is the schema descriptor for namespace field.
-	dbappDescNamespace := dbappMixinFields0[1].Descriptor()
-	// dbapp.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	dbapp.NamespaceValidator = dbappDescNamespace.Validators[0].(func(string) error)
-	// dbappDescCreatedAt is the schema descriptor for created_at field.
-	dbappDescCreatedAt := dbappMixinFields0[3].Descriptor()
-	// dbapp.DefaultCreatedAt holds the default value on creation for the created_at field.
-	dbapp.DefaultCreatedAt = dbappDescCreatedAt.Default.(func() time.Time)
-	// dbappDescUpdatedAt is the schema descriptor for updated_at field.
-	dbappDescUpdatedAt := dbappMixinFields0[4].Descriptor()
-	// dbapp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	dbapp.DefaultUpdatedAt = dbappDescUpdatedAt.Default.(func() time.Time)
-	// dbapp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	dbapp.UpdateDefaultUpdatedAt = dbappDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// dbappDescID is the schema descriptor for id field.
-	dbappDescID := dbappMixinFields0[0].Descriptor()
-	// dbapp.DefaultID holds the default value on creation for the id field.
-	dbapp.DefaultID = dbappDescID.Default.(func() string)
+	appMixin := schema.App{}.Mixin()
+	appMixinFields0 := appMixin[0].Fields()
+	_ = appMixinFields0
+	appFields := schema.App{}.Fields()
+	_ = appFields
+	// appDescNamespace is the schema descriptor for namespace field.
+	appDescNamespace := appMixinFields0[1].Descriptor()
+	// app.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	app.NamespaceValidator = appDescNamespace.Validators[0].(func(string) error)
+	// appDescCreatedAt is the schema descriptor for created_at field.
+	appDescCreatedAt := appMixinFields0[3].Descriptor()
+	// app.DefaultCreatedAt holds the default value on creation for the created_at field.
+	app.DefaultCreatedAt = appDescCreatedAt.Default.(func() time.Time)
+	// appDescUpdatedAt is the schema descriptor for updated_at field.
+	appDescUpdatedAt := appMixinFields0[4].Descriptor()
+	// app.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	app.DefaultUpdatedAt = appDescUpdatedAt.Default.(func() time.Time)
+	// app.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	app.UpdateDefaultUpdatedAt = appDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appDescID is the schema descriptor for id field.
+	appDescID := appMixinFields0[0].Descriptor()
+	// app.DefaultID holds the default value on creation for the id field.
+	app.DefaultID = appDescID.Default.(func() string)
 	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
 	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
 	_ = balancesnapshotMixinFields0
@@ -444,6 +446,48 @@ func init() {
 	dbgrantDescID := dbgrantMixinFields0[0].Descriptor()
 	// dbgrant.DefaultID holds the default value on creation for the id field.
 	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
+	integrationstripeMixin := schema.IntegrationStripe{}.Mixin()
+	integrationstripeMixinFields0 := integrationstripeMixin[0].Fields()
+	_ = integrationstripeMixinFields0
+	integrationstripeMixinFields1 := integrationstripeMixin[1].Fields()
+	_ = integrationstripeMixinFields1
+	integrationstripeFields := schema.IntegrationStripe{}.Fields()
+	_ = integrationstripeFields
+	// integrationstripeDescNamespace is the schema descriptor for namespace field.
+	integrationstripeDescNamespace := integrationstripeMixinFields0[0].Descriptor()
+	// integrationstripe.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	integrationstripe.NamespaceValidator = integrationstripeDescNamespace.Validators[0].(func(string) error)
+	// integrationstripeDescCreatedAt is the schema descriptor for created_at field.
+	integrationstripeDescCreatedAt := integrationstripeMixinFields1[0].Descriptor()
+	// integrationstripe.DefaultCreatedAt holds the default value on creation for the created_at field.
+	integrationstripe.DefaultCreatedAt = integrationstripeDescCreatedAt.Default.(func() time.Time)
+	// integrationstripeDescUpdatedAt is the schema descriptor for updated_at field.
+	integrationstripeDescUpdatedAt := integrationstripeMixinFields1[1].Descriptor()
+	// integrationstripe.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	integrationstripe.DefaultUpdatedAt = integrationstripeDescUpdatedAt.Default.(func() time.Time)
+	// integrationstripe.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	integrationstripe.UpdateDefaultUpdatedAt = integrationstripeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	integrationstripecustomerMixin := schema.IntegrationStripeCustomer{}.Mixin()
+	integrationstripecustomerMixinFields0 := integrationstripecustomerMixin[0].Fields()
+	_ = integrationstripecustomerMixinFields0
+	integrationstripecustomerMixinFields1 := integrationstripecustomerMixin[1].Fields()
+	_ = integrationstripecustomerMixinFields1
+	integrationstripecustomerFields := schema.IntegrationStripeCustomer{}.Fields()
+	_ = integrationstripecustomerFields
+	// integrationstripecustomerDescNamespace is the schema descriptor for namespace field.
+	integrationstripecustomerDescNamespace := integrationstripecustomerMixinFields0[0].Descriptor()
+	// integrationstripecustomer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	integrationstripecustomer.NamespaceValidator = integrationstripecustomerDescNamespace.Validators[0].(func(string) error)
+	// integrationstripecustomerDescCreatedAt is the schema descriptor for created_at field.
+	integrationstripecustomerDescCreatedAt := integrationstripecustomerMixinFields1[0].Descriptor()
+	// integrationstripecustomer.DefaultCreatedAt holds the default value on creation for the created_at field.
+	integrationstripecustomer.DefaultCreatedAt = integrationstripecustomerDescCreatedAt.Default.(func() time.Time)
+	// integrationstripecustomerDescUpdatedAt is the schema descriptor for updated_at field.
+	integrationstripecustomerDescUpdatedAt := integrationstripecustomerMixinFields1[1].Descriptor()
+	// integrationstripecustomer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	integrationstripecustomer.DefaultUpdatedAt = integrationstripecustomerDescUpdatedAt.Default.(func() time.Time)
+	// integrationstripecustomer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	integrationstripecustomer.UpdateDefaultUpdatedAt = integrationstripecustomerDescUpdatedAt.UpdateDefault.(func() time.Time)
 	notificationchannelMixin := schema.NotificationChannel{}.Mixin()
 	notificationchannelMixinFields0 := notificationchannelMixin[0].Fields()
 	_ = notificationchannelMixinFields0

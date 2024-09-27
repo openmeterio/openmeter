@@ -9,7 +9,8 @@ import (
 var _ app.Service = (*Service)(nil)
 
 type Service struct {
-	adapter app.Adapter
+	adapter  app.Adapter
+	registry app.IntegrationRegistryAdapter
 }
 
 type Config struct {

@@ -24,6 +24,8 @@ type Customer struct {
 	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
 	External         *CustomerExternalMapping `json:"external"`
+	// TODO: add support in adapter and service for registering more apps (e.g. from billing)
+	AppIDs []string `json:"appIDs"`
 }
 
 func (c Customer) GetID() CustomerID {

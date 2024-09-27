@@ -30,9 +30,24 @@ func (BillingProfile) Mixin() []ent.Mixin {
 
 func (BillingProfile) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("tax_provider").GoType(provider.TaxProvider("")),
-		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")),
-		field.Enum("payment_provider").GoType(provider.PaymentProvider("")),
+		field.String("tax_app_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("invoicing_app_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("payment_app_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 		field.String("workflow_config_id").
 			NotEmpty(),
 		field.Bool("default").

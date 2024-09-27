@@ -1,4 +1,4 @@
-package app
+package appentity
 
 import (
 	"errors"
@@ -8,11 +8,12 @@ import (
 )
 
 type MarketplaceListing struct {
-	Type         AppType      `json:"type"`
-	Key          string       `json:"key"`
-	Name         string       `json:"name"`
-	Description  string       `json:"description"`
-	IconURL      string       `json:"iconUrl"`
+	Type        AppType `json:"type"`
+	Key         string  `json:"key"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	IconURL     string  `json:"iconUrl"`
+	// Calculated (TODO: make private)
 	Capabilities []Capability `json:"capabilities"`
 }
 
@@ -54,25 +55,25 @@ const (
 	CapabilityTypeCalculateTax     CapabilityType = "calculateTax"
 	CapabilityTypeInvoiceCustomers CapabilityType = "invoiceCustomers"
 	CapabilityTypeCollectPayments  CapabilityType = "collectPayments"
+	CapabilityTypeManageCustomers  CapabilityType = "manageCustomers"
 )
 
+var CapabilityManageCustomers = Capability{
+	Type:        CapabilityTypeManageCustomers,
+	Description: "Manage customers in a remote system",
+}
+
+var CapabilityManageTaxes = Capability{
+	Type:        CapabilityTypeCalculateTax,
+	Description: "Calculate taxes in a remote system",
+}
+
 type Capability struct {
-	Type         CapabilityType `json:"type"`
-	Key          string         `json:"key"`
-	Name         string         `json:"name"`
-	Description  string         `json:"description"`
-	Requirements []Requirement  `json:"requirements"`
+	Type        CapabilityType `json:"type"`
+	Description string         `json:"description"`
 }
 
 func (c Capability) Validate() error {
-	if c.Key == "" {
-		return errors.New("key is required")
-	}
-
-	if c.Name == "" {
-		return errors.New("name is required")
-	}
-
 	if c.Description == "" {
 		return errors.New("description is required")
 	}
@@ -80,20 +81,13 @@ func (c Capability) Validate() error {
 	return nil
 }
 
-type Requirement string
-
-const (
-	RequirementCustomerCountryCode              Requirement = "customer.countryCode"
-	RequirementCustomerExternalStripeCustomerId Requirement = "external.stripeCustomerId"
-)
-
 type MarketplaceListingID struct {
-	Key string
+	Type AppType
 }
 
 func (i MarketplaceListingID) Validate() error {
-	if i.Key == "" {
-		return errors.New("key is required")
+	if i.Type == "" {
+		return errors.New("type is required")
 	}
 
 	return nil

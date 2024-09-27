@@ -38,6 +38,10 @@ type Tx struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// IntegrationStripe is the client for interacting with the IntegrationStripe builders.
+	IntegrationStripe *IntegrationStripeClient
+	// IntegrationStripeCustomer is the client for interacting with the IntegrationStripeCustomer builders.
+	IntegrationStripeCustomer *IntegrationStripeCustomerClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
 	NotificationChannel *NotificationChannelClient
 	// NotificationEvent is the client for interacting with the NotificationEvent builders.
@@ -191,6 +195,8 @@ func (tx *Tx) init() {
 	tx.Entitlement = NewEntitlementClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
+	tx.IntegrationStripe = NewIntegrationStripeClient(tx.config)
+	tx.IntegrationStripeCustomer = NewIntegrationStripeCustomerClient(tx.config)
 	tx.NotificationChannel = NewNotificationChannelClient(tx.config)
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)
 	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)

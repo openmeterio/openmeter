@@ -7,7 +7,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -176,9 +175,9 @@ type Profile struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt"`
 
-	TaxConfiguration       provider.TaxConfiguration       `json:"tax"`
-	InvoicingConfiguration provider.InvoicingConfiguration `json:"invoicing"`
-	PaymentConfiguration   provider.PaymentConfiguration   `json:"payment"`
+	TaxAppID       *string  `json:"tax_app_id"`
+	InvoicingAppID *string `json:"invoicing_app_id"`
+	PaymentAppID  *string `json:"payment_app_id"`
 
 	WorkflowConfig WorkflowConfig `json:"workflow"`
 

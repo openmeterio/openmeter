@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -96,13 +96,13 @@ func (au *AppUpdate) SetNillableDescription(s *string) *AppUpdate {
 }
 
 // SetStatus sets the "status" field.
-func (au *AppUpdate) SetStatus(as app.AppStatus) *AppUpdate {
+func (au *AppUpdate) SetStatus(as appentity.AppStatus) *AppUpdate {
 	au.mutation.SetStatus(as)
 	return au
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (au *AppUpdate) SetNillableStatus(as *app.AppStatus) *AppUpdate {
+func (au *AppUpdate) SetNillableStatus(as *appentity.AppStatus) *AppUpdate {
 	if as != nil {
 		au.SetStatus(*as)
 	}
@@ -145,13 +145,13 @@ func (au *AppUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (au *AppUpdate) defaults() {
 	if _, ok := au.mutation.UpdatedAt(); !ok {
-		v := dbapp.UpdateDefaultUpdatedAt()
+		v := app.UpdateDefaultUpdatedAt()
 		au.mutation.SetUpdatedAt(v)
 	}
 }
 
 func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
 	if ps := au.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -160,38 +160,32 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := au.mutation.Metadata(); ok {
-		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(app.FieldMetadata, field.TypeJSON, value)
 	}
 	if au.mutation.MetadataCleared() {
-		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(app.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := au.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := au.mutation.DeletedAt(); ok {
-		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldDeletedAt, field.TypeTime, value)
 	}
 	if au.mutation.DeletedAtCleared() {
-		_spec.ClearField(dbapp.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(app.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := au.mutation.Name(); ok {
-		_spec.SetField(dbapp.FieldName, field.TypeString, value)
+		_spec.SetField(app.FieldName, field.TypeString, value)
 	}
 	if value, ok := au.mutation.Description(); ok {
-		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
+		_spec.SetField(app.FieldDescription, field.TypeString, value)
 	}
 	if value, ok := au.mutation.Status(); ok {
-		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
-	}
-	if au.mutation.StripeAccountIDCleared() {
-		_spec.ClearField(dbapp.FieldStripeAccountID, field.TypeString)
-	}
-	if au.mutation.StripeLivemodeCleared() {
-		_spec.ClearField(dbapp.FieldStripeLivemode, field.TypeBool)
+		_spec.SetField(app.FieldStatus, field.TypeString, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, au.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{dbapp.Label}
+			err = &NotFoundError{app.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -276,13 +270,13 @@ func (auo *AppUpdateOne) SetNillableDescription(s *string) *AppUpdateOne {
 }
 
 // SetStatus sets the "status" field.
-func (auo *AppUpdateOne) SetStatus(as app.AppStatus) *AppUpdateOne {
+func (auo *AppUpdateOne) SetStatus(as appentity.AppStatus) *AppUpdateOne {
 	auo.mutation.SetStatus(as)
 	return auo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableStatus(as *app.AppStatus) *AppUpdateOne {
+func (auo *AppUpdateOne) SetNillableStatus(as *appentity.AppStatus) *AppUpdateOne {
 	if as != nil {
 		auo.SetStatus(*as)
 	}
@@ -338,13 +332,13 @@ func (auo *AppUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (auo *AppUpdateOne) defaults() {
 	if _, ok := auo.mutation.UpdatedAt(); !ok {
-		v := dbapp.UpdateDefaultUpdatedAt()
+		v := app.UpdateDefaultUpdatedAt()
 		auo.mutation.SetUpdatedAt(v)
 	}
 }
 
 func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
-	_spec := sqlgraph.NewUpdateSpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
 	id, ok := auo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "App.id" for update`)}
@@ -352,12 +346,12 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	_spec.Node.ID.Value = id
 	if fields := auo.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbapp.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, app.FieldID)
 		for _, f := range fields {
-			if !dbapp.ValidColumn(f) {
+			if !app.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != dbapp.FieldID {
+			if f != app.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -370,41 +364,35 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 	}
 	if value, ok := auo.mutation.Metadata(); ok {
-		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(app.FieldMetadata, field.TypeJSON, value)
 	}
 	if auo.mutation.MetadataCleared() {
-		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(app.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := auo.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := auo.mutation.DeletedAt(); ok {
-		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(app.FieldDeletedAt, field.TypeTime, value)
 	}
 	if auo.mutation.DeletedAtCleared() {
-		_spec.ClearField(dbapp.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(app.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := auo.mutation.Name(); ok {
-		_spec.SetField(dbapp.FieldName, field.TypeString, value)
+		_spec.SetField(app.FieldName, field.TypeString, value)
 	}
 	if value, ok := auo.mutation.Description(); ok {
-		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
+		_spec.SetField(app.FieldDescription, field.TypeString, value)
 	}
 	if value, ok := auo.mutation.Status(); ok {
-		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
-	}
-	if auo.mutation.StripeAccountIDCleared() {
-		_spec.ClearField(dbapp.FieldStripeAccountID, field.TypeString)
-	}
-	if auo.mutation.StripeLivemodeCleared() {
-		_spec.ClearField(dbapp.FieldStripeLivemode, field.TypeBool)
+		_spec.SetField(app.FieldStatus, field.TypeString, value)
 	}
 	_node = &App{config: auo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, auo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{dbapp.Label}
+			err = &NotFoundError{app.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
