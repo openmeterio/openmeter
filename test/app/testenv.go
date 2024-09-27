@@ -71,15 +71,19 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create database schema: %w", err)
 	}
 
+	marketplaceAdapter := appadapter.NewMarketplaceAdapter()
+
 	adapter, err := appadapter.New(appadapter.Config{
-		Client: entClient,
+		Client:      entClient,
+		Marketplace: marketplaceAdapter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
 	}
 
 	service, err := appservice.New(appservice.Config{
-		Adapter: adapter,
+		Adapter:     adapter,
+		Marketplace: marketplaceAdapter,
 	})
 	if err != nil {
 		return nil, err

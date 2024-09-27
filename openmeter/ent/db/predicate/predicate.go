@@ -6,8 +6,14 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// App is the predicate function for dbapp builders.
+// App is the predicate function for app builders.
 type App func(*sql.Selector)
+
+// AppStripe is the predicate function for appstripe builders.
+type AppStripe func(*sql.Selector)
+
+// AppStripeCustomer is the predicate function for appstripecustomer builders.
+type AppStripeCustomer func(*sql.Selector)
 
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)

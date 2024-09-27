@@ -14,12 +14,17 @@ type Service struct {
 }
 
 type Config struct {
-	Adapter app.Adapter
+	Adapter     app.Adapter
+	Marketplace app.MarketplaceAdapter
 }
 
 func (c Config) Validate() error {
 	if c.Adapter == nil {
 		return errors.New("adapter cannot be null")
+	}
+
+	if c.Marketplace == nil {
+		return errors.New("marketplace cannot be null")
 	}
 
 	return nil
@@ -31,6 +36,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter: config.Adapter,
+		adapter:     config.Adapter,
+		marketplace: config.Marketplace,
 	}, nil
 }

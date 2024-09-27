@@ -12,8 +12,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -91,7 +92,9 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			dbapp.Table:                           dbapp.ValidColumn,
+			app.Table:                             app.ValidColumn,
+			appstripe.Table:                       appstripe.ValidColumn,
+			appstripecustomer.Table:               appstripecustomer.ValidColumn,
 			balancesnapshot.Table:                 balancesnapshot.ValidColumn,
 			billingcustomeroverride.Table:         billingcustomeroverride.ValidColumn,
 			billinginvoice.Table:                  billinginvoice.ValidColumn,
