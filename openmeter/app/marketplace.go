@@ -8,6 +8,7 @@ import (
 )
 
 type MarketplaceListing struct {
+	Type         AppType      `json:"type"`
 	Key          string       `json:"key"`
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
@@ -16,6 +17,10 @@ type MarketplaceListing struct {
 }
 
 func (p MarketplaceListing) Validate() error {
+	if p.Type == "" {
+		return errors.New("type is required")
+	}
+
 	if p.Key == "" {
 		return errors.New("key is required")
 	}

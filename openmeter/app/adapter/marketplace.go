@@ -39,7 +39,7 @@ func (a adapter) GetListing(ctx context.Context, input app.GetMarketplaceListing
 
 // InstallAppWithAPIKey installs an app with an API key
 func (a adapter) InstallAppWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
-	return app.App{}, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
 // GetOauth2InstallURL gets an OAuth2 install URL

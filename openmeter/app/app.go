@@ -4,16 +4,31 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+// App represents an installed app
+type App interface {
+	GetID() AppID
+	GetType() AppType
+	GetName() string
+	GetStatus() AppStatus
+	GetListing() MarketplaceListing
+
+	// ValidateCustomer validates if the app can run for the given customer
+	ValidateCustomer(customer customer.Customer) error
+}
+
+// AppType represents the type of an app
 type AppType string
 
 const (
 	AppTypeStripe AppType = "stripe"
 )
 
+// AppStatus represents the status of an app
 type AppStatus string
 
 const (
@@ -21,62 +36,69 @@ const (
 	AppStatusUnauthorized AppStatus = "unauthorized"
 )
 
-type App struct {
+// AppBase represents an abstract with the base fields of an app
+type AppBase struct {
 	models.ManagedResource
 
-	Type       AppType   `json:"type"`
-	Name       string    `json:"name"`
-	Status     AppStatus `json:"status"`
-	ListingKey string    `json:"listingKey"`
+	Type    AppType            `json:"type"`
+	Name    string             `json:"name"`
+	Status  AppStatus          `json:"status"`
+	Listing MarketplaceListing `json:"listing"`
 }
 
-func (p App) Validate() error {
-	if err := p.ManagedResource.Validate(); err != nil {
+func (a StripeApp) GetID() AppID {
+	return AppID{
+		Namespace: a.Namespace,
+		ID:        a.ID,
+	}
+}
+
+func (a StripeApp) GetType() AppType {
+	return a.Type
+}
+
+func (a StripeApp) GetName() string {
+	return a.Name
+}
+
+func (a StripeApp) GetStatus() AppStatus {
+	return a.Status
+}
+
+func (a StripeApp) GetListing() MarketplaceListing {
+	return a.Listing
+}
+
+// Validate validates the app base
+func (a AppBase) Validate() error {
+	if err := a.ManagedResource.Validate(); err != nil {
 		return fmt.Errorf("error validating managed resource: %w", err)
 	}
 
-	if p.ID == "" {
+	if a.ID == "" {
 		return errors.New("id is required")
 	}
 
-	if p.Namespace == "" {
+	if a.Namespace == "" {
 		return errors.New("namespace is required")
 	}
 
-	if p.Name == "" {
+	if a.Name == "" {
 		return errors.New("name is required")
 	}
 
-	if p.Status == "" {
+	if a.Status == "" {
 		return errors.New("status is required")
 	}
 
-	if p.ListingKey == "" {
-		return errors.New("listing key is required")
+	if err := a.Listing.Validate(); err != nil {
+		return fmt.Errorf("error validating listing: %w", err)
 	}
 
 	return nil
 }
 
-type StripeApp struct {
-	App
-
-	StripeAccountId string `json:"stripeAccountId"`
-	Livemode        bool   `json:"livemode"`
-}
-
-func (p StripeApp) Validate() error {
-	if p.Type != AppTypeStripe {
-		return errors.New("app type must be stripe")
-	}
-
-	if p.StripeAccountId == "" {
-		return errors.New("stripe account id is required")
-	}
-
-	return p.App.Validate()
-}
-
+// AppID represents the unique identifier for an installed app
 type AppID struct {
 	Namespace string
 	ID        string
@@ -94,8 +116,10 @@ func (i AppID) Validate() error {
 	return nil
 }
 
+// GetAppInput is the input for getting an installed app
 type GetAppInput = AppID
 
+// ListAppInput is the input for listing installed apps
 type ListAppInput struct {
 	AppID
 	pagination.Page

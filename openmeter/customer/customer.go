@@ -26,6 +26,10 @@ type Customer struct {
 	External         *CustomerExternalMapping `json:"external"`
 }
 
+func (c Customer) GetID() CustomerID {
+	return CustomerID{c.Namespace, c.ID}
+}
+
 // AsAPICustomer converts a Customer to an API Customer
 func (c Customer) AsAPICustomer() (api.Customer, error) {
 	customer := api.Customer{

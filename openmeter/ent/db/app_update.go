@@ -183,6 +183,12 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := au.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 	}
+	if au.mutation.StripeAccountIDCleared() {
+		_spec.ClearField(dbapp.FieldStripeAccountID, field.TypeString)
+	}
+	if au.mutation.StripeLivemodeCleared() {
+		_spec.ClearField(dbapp.FieldStripeLivemode, field.TypeBool)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, au.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbapp.Label}
@@ -386,6 +392,12 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	}
 	if value, ok := auo.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
+	}
+	if auo.mutation.StripeAccountIDCleared() {
+		_spec.ClearField(dbapp.FieldStripeAccountID, field.TypeString)
+	}
+	if auo.mutation.StripeLivemodeCleared() {
+		_spec.ClearField(dbapp.FieldStripeLivemode, field.TypeBool)
 	}
 	_node = &App{config: auo.config}
 	_spec.Assign = _node.assignValues
