@@ -10,7 +10,8 @@ import (
 )
 
 type Config struct {
-	Client *entdb.Client
+	Client      *entdb.Client
+	Marketplace app.MarketplaceAdapter
 }
 
 func (c Config) Validate() error {
@@ -27,12 +28,11 @@ func New(config Config) (app.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db:                  config.Client,
-		marketplaceListings: map[string]app.MarketplaceListing{},
+		db: config.Client,
 	}
 
 	// Register marketplace listings
-	err := adapter.registerMarketplaceListing(app.StripeMarketplaceListing)
+	err := adapter.marketplace.RegisterListing(app.StripeMarketplaceListing)
 	if err != nil {
 		return nil, fmt.Errorf("failed to register marketplace listing: %w", err)
 	}
@@ -43,9 +43,9 @@ func New(config Config) (app.Adapter, error) {
 var _ app.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db                  *entdb.Client
-	tx                  *entdb.Tx
-	marketplaceListings map[string]app.MarketplaceListing
+	db          *entdb.Client
+	tx          *entdb.Tx
+	marketplace app.MarketplaceAdapter
 }
 
 func (r adapter) Commit() error {
@@ -83,7 +83,8 @@ func (r adapter) WithTx(ctx context.Context) (app.TxAdapter, error) {
 	}
 
 	return &adapter{
-		db: r.db,
-		tx: tx,
+		db:          r.db,
+		tx:          tx,
+		marketplace: r.marketplace,
 	}, nil
 }

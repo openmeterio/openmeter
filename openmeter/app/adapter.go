@@ -9,7 +9,6 @@ import (
 
 type TxAdapter interface {
 	AppAdapter
-	MarketplaceAdapter
 
 	Commit() error
 	Rollback() error
@@ -17,12 +16,12 @@ type TxAdapter interface {
 
 type Adapter interface {
 	AppAdapter
-	MarketplaceAdapter
 
 	WithTx(context.Context) (TxAdapter, error)
 }
 
 type MarketplaceAdapter interface {
+	RegisterListing(input RegisterMarketplaceListingInput) error
 	GetListing(ctx context.Context, input GetMarketplaceListingInput) (MarketplaceListing, error)
 	ListListings(ctx context.Context, input ListMarketplaceListingInput) (pagination.PagedResponse[MarketplaceListing], error)
 	InstallAppWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)

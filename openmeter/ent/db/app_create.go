@@ -102,12 +102,6 @@ func (ac *AppCreate) SetStatus(as app.AppStatus) *AppCreate {
 	return ac
 }
 
-// SetListingKey sets the "listing_key" field.
-func (ac *AppCreate) SetListingKey(s string) *AppCreate {
-	ac.mutation.SetListingKey(s)
-	return ac
-}
-
 // SetStripeAccountID sets the "stripe_account_id" field.
 func (ac *AppCreate) SetStripeAccountID(s string) *AppCreate {
 	ac.mutation.SetStripeAccountID(s)
@@ -227,9 +221,6 @@ func (ac *AppCreate) check() error {
 	if _, ok := ac.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "App.status"`)}
 	}
-	if _, ok := ac.mutation.ListingKey(); !ok {
-		return &ValidationError{Name: "listing_key", err: errors.New(`db: missing required field "App.listing_key"`)}
-	}
 	return nil
 }
 
@@ -301,10 +292,6 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	if value, ok := ac.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if value, ok := ac.mutation.ListingKey(); ok {
-		_spec.SetField(dbapp.FieldListingKey, field.TypeString, value)
-		_node.ListingKey = value
 	}
 	if value, ok := ac.mutation.StripeAccountID(); ok {
 		_spec.SetField(dbapp.FieldStripeAccountID, field.TypeString, value)
@@ -475,9 +462,6 @@ func (u *AppUpsertOne) UpdateNewValues() *AppUpsertOne {
 		}
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(dbapp.FieldType)
-		}
-		if _, exists := u.create.mutation.ListingKey(); exists {
-			s.SetIgnore(dbapp.FieldListingKey)
 		}
 		if _, exists := u.create.mutation.StripeAccountID(); exists {
 			s.SetIgnore(dbapp.FieldStripeAccountID)
@@ -805,9 +789,6 @@ func (u *AppUpsertBulk) UpdateNewValues() *AppUpsertBulk {
 			}
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(dbapp.FieldType)
-			}
-			if _, exists := b.mutation.ListingKey(); exists {
-				s.SetIgnore(dbapp.FieldListingKey)
 			}
 			if _, exists := b.mutation.StripeAccountID(); exists {
 				s.SetIgnore(dbapp.FieldStripeAccountID)

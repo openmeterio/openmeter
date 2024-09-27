@@ -24,7 +24,7 @@ interface MarketplaceAPI {
   @get
   @route("/listings")
   @operationId("marketplaceListListings")
-  marketplaceListings(...MarketplaceListListingsRequest): Paginated<Listing>[] | CommonErrors;
+  marketplaceListings(...MarketplaceListListingsRequest): MarketplaceListListingsResponse | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
 
@@ -64,6 +64,14 @@ interface MarketplaceAPI {
  */
 @friendlyName("MarketplaceListListingsRequest")
 model MarketplaceListListingsRequest extends PaginatedQuery {}
+
+/**
+ * Marketplace list listings response.
+ */
+@friendlyName("MarketplaceListListingsResponse")
+model MarketplaceListListingsResponse {
+  ...Paginated<Listing>;
+}
 
 /**
  * Marketplace OAuth2 install request.

@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
-var TestKey = "stripe"
+var TestType = app.AppTypeStripe
 
 type AppHandlerTestSuite struct {
 	Env TestEnv
@@ -39,12 +39,12 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 
 	// Get the listing
 	listing, err := service.GetListing(ctx, app.GetMarketplaceListingInput{
-		Key: TestKey,
+		Type: TestType,
 	})
 
 	require.NoError(t, err, "Fetching listing must not return error")
 	require.NotNil(t, listing, "Listing must not be nil")
-	require.Equal(t, TestKey, listing.Key, "Listing key must match")
+	require.Equal(t, TestType, listing.Type, "Listing type must match")
 	require.Equal(t, expectedListing.Name, listing.Name, "Listing name must match")
 	require.Equal(t, expectedListing.Description, listing.Description, "Listing description must match")
 	require.Equal(t, expectedListing.IconURL, listing.IconURL, "Listing icon url must match")

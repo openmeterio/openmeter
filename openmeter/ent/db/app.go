@@ -37,8 +37,6 @@ type App struct {
 	Type app.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status app.AppStatus `json:"status,omitempty"`
-	// ListingKey holds the value of the "listing_key" field.
-	ListingKey string `json:"listing_key,omitempty"`
 	// StripeAccountID holds the value of the "stripe_account_id" field.
 	StripeAccountID *string `json:"stripe_account_id,omitempty"`
 	// StripeLivemode holds the value of the "stripe_livemode" field.
@@ -55,7 +53,7 @@ func (*App) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case dbapp.FieldStripeLivemode:
 			values[i] = new(sql.NullBool)
-		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus, dbapp.FieldListingKey, dbapp.FieldStripeAccountID:
+		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus, dbapp.FieldStripeAccountID:
 			values[i] = new(sql.NullString)
 		case dbapp.FieldCreatedAt, dbapp.FieldUpdatedAt, dbapp.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -137,12 +135,6 @@ func (a *App) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				a.Status = app.AppStatus(value.String)
 			}
-		case dbapp.FieldListingKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field listing_key", values[i])
-			} else if value.Valid {
-				a.ListingKey = value.String
-			}
 		case dbapp.FieldStripeAccountID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_account_id", values[i])
@@ -221,9 +213,6 @@ func (a *App) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", a.Status))
-	builder.WriteString(", ")
-	builder.WriteString("listing_key=")
-	builder.WriteString(a.ListingKey)
 	builder.WriteString(", ")
 	if v := a.StripeAccountID; v != nil {
 		builder.WriteString("stripe_account_id=")

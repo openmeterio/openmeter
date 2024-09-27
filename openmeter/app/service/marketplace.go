@@ -16,7 +16,7 @@ func (s *Service) GetListing(ctx context.Context, input app.GetMarketplaceListin
 		}
 	}
 
-	return s.adapter.GetListing(ctx, input)
+	return s.marketplace.GetListing(ctx, input)
 }
 
 func (s *Service) ListListings(ctx context.Context, input app.ListMarketplaceListingInput) (pagination.PagedResponse[app.MarketplaceListing], error) {
@@ -26,7 +26,7 @@ func (s *Service) ListListings(ctx context.Context, input app.ListMarketplaceLis
 		}
 	}
 
-	return s.adapter.ListListings(ctx, input)
+	return s.marketplace.ListListings(ctx, input)
 }
 
 func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
@@ -36,7 +36,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.InstallApp
 		}
 	}
 
-	return s.adapter.InstallAppWithAPIKey(ctx, input)
+	return s.marketplace.InstallAppWithAPIKey(ctx, input)
 }
 
 func (s *Service) GetOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
@@ -46,7 +46,7 @@ func (s *Service) GetOauth2InstallURL(ctx context.Context, input app.GetOauth2In
 		}
 	}
 
-	return s.adapter.GetOauth2InstallURL(ctx, input)
+	return s.marketplace.GetOauth2InstallURL(ctx, input)
 }
 
 func (s *Service) AuthorizeOauth2Install(ctx context.Context, input app.AuthorizeOauth2InstallInput) error {
@@ -56,5 +56,5 @@ func (s *Service) AuthorizeOauth2Install(ctx context.Context, input app.Authoriz
 		}
 	}
 
-	return s.adapter.AuthorizeOauth2Install(ctx, input)
+	return s.marketplace.AuthorizeOauth2Install(ctx, input)
 }
