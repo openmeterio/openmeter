@@ -44,6 +44,22 @@ func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID custome
 			validationErrors = append(validationErrors, err)
 		}
 
+		if billingProfile.Profile.TaxAppID != nil {
+			app, err := s.appService.GetApp(ctx, appentity.GetAppInput{
+				ID:        *billingProfile.Profile.TaxAppID,
+				Namespace: customerEntity.Namespace,
+			})
+			if err != nil {
+				// If we cannot get the tax app, we can bail here, as the caller can't do anything
+				return nil, err
+			}
+
+			if app.IsCapableOf(customer.CapabilityCustomerManagement) {
+				s.customerService.RegisterManagementApp(ctx, app)
+			}
+
+		}
+
 		pendingItems, err := s.adapter.GetPendingInvoiceItems(ctx, customerID)
 		if err != nil {
 			// If we cannot get the pending items, we can bail here, as the caller can't do anything

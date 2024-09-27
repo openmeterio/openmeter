@@ -7,7 +7,8 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/openmeterio/openmeter/openmeter/app/integration/stripe"
 )
 
 var TestKey = "stripe"
@@ -33,13 +34,13 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	service := s.Env.App()
 
 	// Listing
-	expectedListing := app.StripeMarketplaceListing
+	expectedListing := stripe.StripeMarketplaceListing
 
 	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
 
 	// Get the listing
-	listing, err := service.GetListing(ctx, app.GetMarketplaceListingInput{
-		Key: TestKey,
+	listing, err := service.GetListing(ctx, appentity.GetMarketplaceListingInput{
+		Type: stripe.AppTypeStripe,
 	})
 
 	require.NoError(t, err, "Fetching listing must not return error")
@@ -58,12 +59,12 @@ func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t
 	service := s.Env.App()
 
 	// Get the listing
-	list, err := service.ListListings(ctx, app.ListMarketplaceListingInput{})
+	list, err := service.ListListings(ctx, appentity.ListMarketplaceListingInput{})
 
 	require.NoError(t, err, "Fetching listings must not return error")
 	require.NotNil(t, list, "Listings must not be nil")
 	require.Equal(t, 1, list.TotalCount, "Listings total count must be 1")
 	require.Equal(t, 0, list.Page.PageNumber, "Listings page must be 0")
 	require.Len(t, list.Items, 1, "Listings must have a single item")
-	require.ElementsMatch(t, list.Items, []app.MarketplaceListing{app.StripeMarketplaceListing}, "Listings must match")
+	require.ElementsMatch(t, list.Items, []appentity.MarketplaceListing{stripe.StripeMarketplaceListing}, "Listings must match")
 }

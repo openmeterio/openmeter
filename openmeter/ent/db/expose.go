@@ -113,6 +113,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Grant: NewGrantClient(config),
 
+		IntegrationStripe: NewIntegrationStripeClient(config),
+
+		IntegrationStripeCustomer: NewIntegrationStripeCustomerClient(config),
+
 		NotificationChannel: NewNotificationChannelClient(config),
 
 		NotificationEvent: NewNotificationEventClient(config),

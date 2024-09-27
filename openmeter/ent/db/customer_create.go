@@ -228,6 +228,12 @@ func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate
 	return cc
 }
 
+// SetAppIds sets the "app_ids" field.
+func (cc *CustomerCreate) SetAppIds(s []string) *CustomerCreate {
+	cc.mutation.SetAppIds(s)
+	return cc
+}
+
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (cc *CustomerCreate) SetExternalMappingStripeCustomerID(s string) *CustomerCreate {
 	cc.mutation.SetExternalMappingStripeCustomerID(s)
@@ -467,6 +473,10 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
 		_node.Currency = &value
+	}
+	if value, ok := cc.mutation.AppIds(); ok {
+		_spec.SetField(customer.FieldAppIds, field.TypeJSON, value)
+		_node.AppIds = value
 	}
 	if value, ok := cc.mutation.ExternalMappingStripeCustomerID(); ok {
 		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
@@ -793,6 +803,24 @@ func (u *CustomerUpsert) UpdateCurrency() *CustomerUpsert {
 // ClearCurrency clears the value of the "currency" field.
 func (u *CustomerUpsert) ClearCurrency() *CustomerUpsert {
 	u.SetNull(customer.FieldCurrency)
+	return u
+}
+
+// SetAppIds sets the "app_ids" field.
+func (u *CustomerUpsert) SetAppIds(v []string) *CustomerUpsert {
+	u.Set(customer.FieldAppIds, v)
+	return u
+}
+
+// UpdateAppIds sets the "app_ids" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateAppIds() *CustomerUpsert {
+	u.SetExcluded(customer.FieldAppIds)
+	return u
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (u *CustomerUpsert) ClearAppIds() *CustomerUpsert {
+	u.SetNull(customer.FieldAppIds)
 	return u
 }
 
@@ -1145,6 +1173,27 @@ func (u *CustomerUpsertOne) UpdateCurrency() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearCurrency() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
+	})
+}
+
+// SetAppIds sets the "app_ids" field.
+func (u *CustomerUpsertOne) SetAppIds(v []string) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetAppIds(v)
+	})
+}
+
+// UpdateAppIds sets the "app_ids" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateAppIds() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateAppIds()
+	})
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (u *CustomerUpsertOne) ClearAppIds() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearAppIds()
 	})
 }
 
@@ -1667,6 +1716,27 @@ func (u *CustomerUpsertBulk) UpdateCurrency() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearCurrency() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
+	})
+}
+
+// SetAppIds sets the "app_ids" field.
+func (u *CustomerUpsertBulk) SetAppIds(v []string) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetAppIds(v)
+	})
+}
+
+// UpdateAppIds sets the "app_ids" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateAppIds() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateAppIds()
+	})
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (u *CustomerUpsertBulk) ClearAppIds() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearAppIds()
 	})
 }
 

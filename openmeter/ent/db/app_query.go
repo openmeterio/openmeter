@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -20,7 +20,7 @@ import (
 type AppQuery struct {
 	config
 	ctx        *QueryContext
-	order      []dbapp.OrderOption
+	order      []app.OrderOption
 	inters     []Interceptor
 	predicates []predicate.App
 	modifiers  []func(*sql.Selector)
@@ -55,7 +55,7 @@ func (aq *AppQuery) Unique(unique bool) *AppQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (aq *AppQuery) Order(o ...dbapp.OrderOption) *AppQuery {
+func (aq *AppQuery) Order(o ...app.OrderOption) *AppQuery {
 	aq.order = append(aq.order, o...)
 	return aq
 }
@@ -68,7 +68,7 @@ func (aq *AppQuery) First(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{dbapp.Label}
+		return nil, &NotFoundError{app.Label}
 	}
 	return nodes[0], nil
 }
@@ -90,7 +90,7 @@ func (aq *AppQuery) FirstID(ctx context.Context) (id string, err error) {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{dbapp.Label}
+		err = &NotFoundError{app.Label}
 		return
 	}
 	return ids[0], nil
@@ -117,9 +117,9 @@ func (aq *AppQuery) Only(ctx context.Context) (*App, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{dbapp.Label}
+		return nil, &NotFoundError{app.Label}
 	default:
-		return nil, &NotSingularError{dbapp.Label}
+		return nil, &NotSingularError{app.Label}
 	}
 }
 
@@ -144,9 +144,9 @@ func (aq *AppQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{dbapp.Label}
+		err = &NotFoundError{app.Label}
 	default:
-		err = &NotSingularError{dbapp.Label}
+		err = &NotSingularError{app.Label}
 	}
 	return
 }
@@ -185,7 +185,7 @@ func (aq *AppQuery) IDs(ctx context.Context) (ids []string, err error) {
 		aq.Unique(true)
 	}
 	ctx = setContextOp(ctx, aq.ctx, ent.OpQueryIDs)
-	if err = aq.Select(dbapp.FieldID).Scan(ctx, &ids); err != nil {
+	if err = aq.Select(app.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -249,7 +249,7 @@ func (aq *AppQuery) Clone() *AppQuery {
 	return &AppQuery{
 		config:     aq.config,
 		ctx:        aq.ctx.Clone(),
-		order:      append([]dbapp.OrderOption{}, aq.order...),
+		order:      append([]app.OrderOption{}, aq.order...),
 		inters:     append([]Interceptor{}, aq.inters...),
 		predicates: append([]predicate.App{}, aq.predicates...),
 		// clone intermediate query.
@@ -269,14 +269,14 @@ func (aq *AppQuery) Clone() *AppQuery {
 //	}
 //
 //	client.App.Query().
-//		GroupBy(dbapp.FieldNamespace).
+//		GroupBy(app.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (aq *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
 	aq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &AppGroupBy{build: aq}
 	grbuild.flds = &aq.ctx.Fields
-	grbuild.label = dbapp.Label
+	grbuild.label = app.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -291,12 +291,12 @@ func (aq *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
 //	}
 //
 //	client.App.Query().
-//		Select(dbapp.FieldNamespace).
+//		Select(app.FieldNamespace).
 //		Scan(ctx, &v)
 func (aq *AppQuery) Select(fields ...string) *AppSelect {
 	aq.ctx.Fields = append(aq.ctx.Fields, fields...)
 	sbuild := &AppSelect{AppQuery: aq}
-	sbuild.label = dbapp.Label
+	sbuild.label = app.Label
 	sbuild.flds, sbuild.scan = &aq.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -318,7 +318,7 @@ func (aq *AppQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range aq.ctx.Fields {
-		if !dbapp.ValidColumn(f) {
+		if !app.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -373,7 +373,7 @@ func (aq *AppQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
 	_spec.From = aq.sql
 	if unique := aq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -382,9 +382,9 @@ func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := aq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbapp.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, app.FieldID)
 		for i := range fields {
-			if fields[i] != dbapp.FieldID {
+			if fields[i] != app.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -414,10 +414,10 @@ func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (aq *AppQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(aq.driver.Dialect())
-	t1 := builder.Table(dbapp.Table)
+	t1 := builder.Table(app.Table)
 	columns := aq.ctx.Fields
 	if len(columns) == 0 {
-		columns = dbapp.Columns
+		columns = app.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if aq.sql != nil {

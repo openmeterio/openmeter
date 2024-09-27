@@ -12,8 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -26,6 +25,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripe"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -91,7 +92,7 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			dbapp.Table:                           dbapp.ValidColumn,
+			app.Table:                             app.ValidColumn,
 			balancesnapshot.Table:                 balancesnapshot.ValidColumn,
 			billingcustomeroverride.Table:         billingcustomeroverride.ValidColumn,
 			billinginvoice.Table:                  billinginvoice.ValidColumn,
@@ -103,6 +104,8 @@ func checkColumn(table, column string) error {
 			entitlement.Table:                     entitlement.ValidColumn,
 			feature.Table:                         feature.ValidColumn,
 			dbgrant.Table:                         dbgrant.ValidColumn,
+			integrationstripe.Table:               integrationstripe.ValidColumn,
+			integrationstripecustomer.Table:       integrationstripecustomer.ValidColumn,
 			notificationchannel.Table:             notificationchannel.ValidColumn,
 			notificationevent.Table:               notificationevent.ValidColumn,
 			notificationeventdeliverystatus.Table: notificationeventdeliverystatus.ValidColumn,

@@ -153,6 +153,30 @@ func (f GrantFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.GrantMutation", m)
 }
 
+// The IntegrationStripeFunc type is an adapter to allow the use of ordinary
+// function as IntegrationStripe mutator.
+type IntegrationStripeFunc func(context.Context, *db.IntegrationStripeMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IntegrationStripeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.IntegrationStripeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.IntegrationStripeMutation", m)
+}
+
+// The IntegrationStripeCustomerFunc type is an adapter to allow the use of ordinary
+// function as IntegrationStripeCustomer mutator.
+type IntegrationStripeCustomerFunc func(context.Context, *db.IntegrationStripeCustomerMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IntegrationStripeCustomerFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.IntegrationStripeCustomerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.IntegrationStripeCustomerMutation", m)
+}
+
 // The NotificationChannelFunc type is an adapter to allow the use of ordinary
 // function as NotificationChannel mutator.
 type NotificationChannelFunc func(context.Context, *db.NotificationChannelMutation) (db.Value, error)

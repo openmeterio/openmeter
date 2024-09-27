@@ -78,6 +78,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
 	}
 
+	// TODO: we need to register the integration into a registry!
 	service, err := appservice.New(appservice.Config{
 		Adapter: adapter,
 	})

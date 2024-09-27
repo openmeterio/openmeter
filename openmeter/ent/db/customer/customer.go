@@ -46,6 +46,8 @@ const (
 	FieldTimezone = "timezone"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldAppIds holds the string denoting the app_ids field in the database.
+	FieldAppIds = "app_ids"
 	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
 	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
@@ -89,6 +91,7 @@ var Columns = []string{
 	FieldPrimaryEmail,
 	FieldTimezone,
 	FieldCurrency,
+	FieldAppIds,
 	FieldExternalMappingStripeCustomerID,
 }
 

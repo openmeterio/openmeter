@@ -21,9 +21,6 @@ var (
 		{Name: "description", Type: field.TypeString},
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString},
-		{Name: "listing_key", Type: field.TypeString},
-		{Name: "stripe_account_id", Type: field.TypeString, Nullable: true},
-		{Name: "stripe_livemode", Type: field.TypeBool, Nullable: true},
 	}
 	// AppsTable holds the schema information for the "apps" table.
 	AppsTable = &schema.Table{
@@ -415,6 +412,7 @@ var (
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "timezone", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "app_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
@@ -643,6 +641,54 @@ var (
 				Name:    "grant_effective_at_expires_at",
 				Unique:  false,
 				Columns: []*schema.Column{GrantsColumns[8], GrantsColumns[10]},
+			},
+		},
+	}
+	// IntegrationStripesColumns holds the columns for the "integration_stripes" table.
+	IntegrationStripesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "stripe_account_id", Type: field.TypeString, Nullable: true},
+		{Name: "stripe_livemode", Type: field.TypeBool, Nullable: true},
+	}
+	// IntegrationStripesTable holds the schema information for the "integration_stripes" table.
+	IntegrationStripesTable = &schema.Table{
+		Name:       "integration_stripes",
+		Columns:    IntegrationStripesColumns,
+		PrimaryKey: []*schema.Column{IntegrationStripesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "integrationstripe_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{IntegrationStripesColumns[1]},
+			},
+		},
+	}
+	// IntegrationStripeCustomersColumns holds the columns for the "integration_stripe_customers" table.
+	IntegrationStripeCustomersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "customer_id", Type: field.TypeString},
+		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
+	}
+	// IntegrationStripeCustomersTable holds the schema information for the "integration_stripe_customers" table.
+	IntegrationStripeCustomersTable = &schema.Table{
+		Name:       "integration_stripe_customers",
+		Columns:    IntegrationStripeCustomersColumns,
+		PrimaryKey: []*schema.Column{IntegrationStripeCustomersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "integrationstripecustomer_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{IntegrationStripeCustomersColumns[1]},
 			},
 		},
 	}
@@ -936,6 +982,8 @@ var (
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
+		IntegrationStripesTable,
+		IntegrationStripeCustomersTable,
 		NotificationChannelsTable,
 		NotificationEventsTable,
 		NotificationEventDeliveryStatusTable,

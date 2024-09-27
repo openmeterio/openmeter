@@ -15,7 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -27,6 +27,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripe"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -65,6 +67,10 @@ type Client struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// IntegrationStripe is the client for interacting with the IntegrationStripe builders.
+	IntegrationStripe *IntegrationStripeClient
+	// IntegrationStripeCustomer is the client for interacting with the IntegrationStripeCustomer builders.
+	IntegrationStripeCustomer *IntegrationStripeCustomerClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
 	NotificationChannel *NotificationChannelClient
 	// NotificationEvent is the client for interacting with the NotificationEvent builders.
@@ -98,6 +104,8 @@ func (c *Client) init() {
 	c.Entitlement = NewEntitlementClient(c.config)
 	c.Feature = NewFeatureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
+	c.IntegrationStripe = NewIntegrationStripeClient(c.config)
+	c.IntegrationStripeCustomer = NewIntegrationStripeCustomerClient(c.config)
 	c.NotificationChannel = NewNotificationChannelClient(c.config)
 	c.NotificationEvent = NewNotificationEventClient(c.config)
 	c.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(c.config)
@@ -207,6 +215,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Entitlement:                     NewEntitlementClient(cfg),
 		Feature:                         NewFeatureClient(cfg),
 		Grant:                           NewGrantClient(cfg),
+		IntegrationStripe:               NewIntegrationStripeClient(cfg),
+		IntegrationStripeCustomer:       NewIntegrationStripeCustomerClient(cfg),
 		NotificationChannel:             NewNotificationChannelClient(cfg),
 		NotificationEvent:               NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus: NewNotificationEventDeliveryStatusClient(cfg),
@@ -243,6 +253,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Entitlement:                     NewEntitlementClient(cfg),
 		Feature:                         NewFeatureClient(cfg),
 		Grant:                           NewGrantClient(cfg),
+		IntegrationStripe:               NewIntegrationStripeClient(cfg),
+		IntegrationStripeCustomer:       NewIntegrationStripeCustomerClient(cfg),
 		NotificationChannel:             NewNotificationChannelClient(cfg),
 		NotificationEvent:               NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus: NewNotificationEventDeliveryStatusClient(cfg),
@@ -279,9 +291,9 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
 		c.BillingInvoiceItem, c.BillingProfile, c.BillingWorkflowConfig, c.Customer,
-		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.UsageReset,
+		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.IntegrationStripe,
+		c.IntegrationStripeCustomer, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -293,9 +305,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
 		c.BillingInvoiceItem, c.BillingProfile, c.BillingWorkflowConfig, c.Customer,
-		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.UsageReset,
+		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.IntegrationStripe,
+		c.IntegrationStripeCustomer, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -328,6 +340,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Feature.mutate(ctx, m)
 	case *GrantMutation:
 		return c.Grant.mutate(ctx, m)
+	case *IntegrationStripeMutation:
+		return c.IntegrationStripe.mutate(ctx, m)
+	case *IntegrationStripeCustomerMutation:
+		return c.IntegrationStripeCustomer.mutate(ctx, m)
 	case *NotificationChannelMutation:
 		return c.NotificationChannel.mutate(ctx, m)
 	case *NotificationEventMutation:
@@ -354,13 +370,13 @@ func NewAppClient(c config) *AppClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `dbapp.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `app.Hooks(f(g(h())))`.
 func (c *AppClient) Use(hooks ...Hook) {
 	c.hooks.App = append(c.hooks.App, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `dbapp.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `app.Intercept(f(g(h())))`.
 func (c *AppClient) Intercept(interceptors ...Interceptor) {
 	c.inters.App = append(c.inters.App, interceptors...)
 }
@@ -422,7 +438,7 @@ func (c *AppClient) DeleteOne(a *App) *AppDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *AppClient) DeleteOneID(id string) *AppDeleteOne {
-	builder := c.Delete().Where(dbapp.ID(id))
+	builder := c.Delete().Where(app.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &AppDeleteOne{builder}
@@ -439,7 +455,7 @@ func (c *AppClient) Query() *AppQuery {
 
 // Get returns a App entity by its id.
 func (c *AppClient) Get(ctx context.Context, id string) (*App, error) {
-	return c.Query().Where(dbapp.ID(id)).Only(ctx)
+	return c.Query().Where(app.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -2275,6 +2291,272 @@ func (c *GrantClient) mutate(ctx context.Context, m *GrantMutation) (Value, erro
 	}
 }
 
+// IntegrationStripeClient is a client for the IntegrationStripe schema.
+type IntegrationStripeClient struct {
+	config
+}
+
+// NewIntegrationStripeClient returns a client for the IntegrationStripe from the given config.
+func NewIntegrationStripeClient(c config) *IntegrationStripeClient {
+	return &IntegrationStripeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `integrationstripe.Hooks(f(g(h())))`.
+func (c *IntegrationStripeClient) Use(hooks ...Hook) {
+	c.hooks.IntegrationStripe = append(c.hooks.IntegrationStripe, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `integrationstripe.Intercept(f(g(h())))`.
+func (c *IntegrationStripeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IntegrationStripe = append(c.inters.IntegrationStripe, interceptors...)
+}
+
+// Create returns a builder for creating a IntegrationStripe entity.
+func (c *IntegrationStripeClient) Create() *IntegrationStripeCreate {
+	mutation := newIntegrationStripeMutation(c.config, OpCreate)
+	return &IntegrationStripeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IntegrationStripe entities.
+func (c *IntegrationStripeClient) CreateBulk(builders ...*IntegrationStripeCreate) *IntegrationStripeCreateBulk {
+	return &IntegrationStripeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IntegrationStripeClient) MapCreateBulk(slice any, setFunc func(*IntegrationStripeCreate, int)) *IntegrationStripeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IntegrationStripeCreateBulk{err: fmt.Errorf("calling to IntegrationStripeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IntegrationStripeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IntegrationStripeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IntegrationStripe.
+func (c *IntegrationStripeClient) Update() *IntegrationStripeUpdate {
+	mutation := newIntegrationStripeMutation(c.config, OpUpdate)
+	return &IntegrationStripeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IntegrationStripeClient) UpdateOne(is *IntegrationStripe) *IntegrationStripeUpdateOne {
+	mutation := newIntegrationStripeMutation(c.config, OpUpdateOne, withIntegrationStripe(is))
+	return &IntegrationStripeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IntegrationStripeClient) UpdateOneID(id int) *IntegrationStripeUpdateOne {
+	mutation := newIntegrationStripeMutation(c.config, OpUpdateOne, withIntegrationStripeID(id))
+	return &IntegrationStripeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IntegrationStripe.
+func (c *IntegrationStripeClient) Delete() *IntegrationStripeDelete {
+	mutation := newIntegrationStripeMutation(c.config, OpDelete)
+	return &IntegrationStripeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IntegrationStripeClient) DeleteOne(is *IntegrationStripe) *IntegrationStripeDeleteOne {
+	return c.DeleteOneID(is.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IntegrationStripeClient) DeleteOneID(id int) *IntegrationStripeDeleteOne {
+	builder := c.Delete().Where(integrationstripe.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IntegrationStripeDeleteOne{builder}
+}
+
+// Query returns a query builder for IntegrationStripe.
+func (c *IntegrationStripeClient) Query() *IntegrationStripeQuery {
+	return &IntegrationStripeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIntegrationStripe},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IntegrationStripe entity by its id.
+func (c *IntegrationStripeClient) Get(ctx context.Context, id int) (*IntegrationStripe, error) {
+	return c.Query().Where(integrationstripe.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IntegrationStripeClient) GetX(ctx context.Context, id int) *IntegrationStripe {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IntegrationStripeClient) Hooks() []Hook {
+	return c.hooks.IntegrationStripe
+}
+
+// Interceptors returns the client interceptors.
+func (c *IntegrationStripeClient) Interceptors() []Interceptor {
+	return c.inters.IntegrationStripe
+}
+
+func (c *IntegrationStripeClient) mutate(ctx context.Context, m *IntegrationStripeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IntegrationStripeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IntegrationStripeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IntegrationStripeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IntegrationStripeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown IntegrationStripe mutation op: %q", m.Op())
+	}
+}
+
+// IntegrationStripeCustomerClient is a client for the IntegrationStripeCustomer schema.
+type IntegrationStripeCustomerClient struct {
+	config
+}
+
+// NewIntegrationStripeCustomerClient returns a client for the IntegrationStripeCustomer from the given config.
+func NewIntegrationStripeCustomerClient(c config) *IntegrationStripeCustomerClient {
+	return &IntegrationStripeCustomerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `integrationstripecustomer.Hooks(f(g(h())))`.
+func (c *IntegrationStripeCustomerClient) Use(hooks ...Hook) {
+	c.hooks.IntegrationStripeCustomer = append(c.hooks.IntegrationStripeCustomer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `integrationstripecustomer.Intercept(f(g(h())))`.
+func (c *IntegrationStripeCustomerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IntegrationStripeCustomer = append(c.inters.IntegrationStripeCustomer, interceptors...)
+}
+
+// Create returns a builder for creating a IntegrationStripeCustomer entity.
+func (c *IntegrationStripeCustomerClient) Create() *IntegrationStripeCustomerCreate {
+	mutation := newIntegrationStripeCustomerMutation(c.config, OpCreate)
+	return &IntegrationStripeCustomerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IntegrationStripeCustomer entities.
+func (c *IntegrationStripeCustomerClient) CreateBulk(builders ...*IntegrationStripeCustomerCreate) *IntegrationStripeCustomerCreateBulk {
+	return &IntegrationStripeCustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IntegrationStripeCustomerClient) MapCreateBulk(slice any, setFunc func(*IntegrationStripeCustomerCreate, int)) *IntegrationStripeCustomerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IntegrationStripeCustomerCreateBulk{err: fmt.Errorf("calling to IntegrationStripeCustomerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IntegrationStripeCustomerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IntegrationStripeCustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IntegrationStripeCustomer.
+func (c *IntegrationStripeCustomerClient) Update() *IntegrationStripeCustomerUpdate {
+	mutation := newIntegrationStripeCustomerMutation(c.config, OpUpdate)
+	return &IntegrationStripeCustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IntegrationStripeCustomerClient) UpdateOne(isc *IntegrationStripeCustomer) *IntegrationStripeCustomerUpdateOne {
+	mutation := newIntegrationStripeCustomerMutation(c.config, OpUpdateOne, withIntegrationStripeCustomer(isc))
+	return &IntegrationStripeCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IntegrationStripeCustomerClient) UpdateOneID(id int) *IntegrationStripeCustomerUpdateOne {
+	mutation := newIntegrationStripeCustomerMutation(c.config, OpUpdateOne, withIntegrationStripeCustomerID(id))
+	return &IntegrationStripeCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IntegrationStripeCustomer.
+func (c *IntegrationStripeCustomerClient) Delete() *IntegrationStripeCustomerDelete {
+	mutation := newIntegrationStripeCustomerMutation(c.config, OpDelete)
+	return &IntegrationStripeCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IntegrationStripeCustomerClient) DeleteOne(isc *IntegrationStripeCustomer) *IntegrationStripeCustomerDeleteOne {
+	return c.DeleteOneID(isc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IntegrationStripeCustomerClient) DeleteOneID(id int) *IntegrationStripeCustomerDeleteOne {
+	builder := c.Delete().Where(integrationstripecustomer.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IntegrationStripeCustomerDeleteOne{builder}
+}
+
+// Query returns a query builder for IntegrationStripeCustomer.
+func (c *IntegrationStripeCustomerClient) Query() *IntegrationStripeCustomerQuery {
+	return &IntegrationStripeCustomerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIntegrationStripeCustomer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IntegrationStripeCustomer entity by its id.
+func (c *IntegrationStripeCustomerClient) Get(ctx context.Context, id int) (*IntegrationStripeCustomer, error) {
+	return c.Query().Where(integrationstripecustomer.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IntegrationStripeCustomerClient) GetX(ctx context.Context, id int) *IntegrationStripeCustomer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IntegrationStripeCustomerClient) Hooks() []Hook {
+	return c.hooks.IntegrationStripeCustomer
+}
+
+// Interceptors returns the client interceptors.
+func (c *IntegrationStripeCustomerClient) Interceptors() []Interceptor {
+	return c.inters.IntegrationStripeCustomer
+}
+
+func (c *IntegrationStripeCustomerClient) mutate(ctx context.Context, m *IntegrationStripeCustomerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IntegrationStripeCustomerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IntegrationStripeCustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IntegrationStripeCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IntegrationStripeCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown IntegrationStripeCustomer mutation op: %q", m.Op())
+	}
+}
+
 // NotificationChannelClient is a client for the NotificationChannel schema.
 type NotificationChannelClient struct {
 	config
@@ -3057,16 +3339,16 @@ type (
 	hooks struct {
 		App, BalanceSnapshot, BillingCustomerOverride, BillingInvoice,
 		BillingInvoiceItem, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Hook
+		CustomerSubjects, Entitlement, Feature, Grant, IntegrationStripe,
+		IntegrationStripeCustomer, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, UsageReset []ent.Hook
 	}
 	inters struct {
 		App, BalanceSnapshot, BillingCustomerOverride, BillingInvoice,
 		BillingInvoiceItem, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Interceptor
+		CustomerSubjects, Entitlement, Feature, Grant, IntegrationStripe,
+		IntegrationStripeCustomer, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, UsageReset []ent.Interceptor
 	}
 )
 

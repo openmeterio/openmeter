@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -12,15 +13,28 @@ type Service interface {
 }
 
 type MarketplaceService interface {
-	GetListing(ctx context.Context, input GetMarketplaceListingInput) (MarketplaceListing, error)
-	ListListings(ctx context.Context, input ListMarketplaceListingInput) (pagination.PagedResponse[MarketplaceListing], error)
-	InstallAppWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)
-	GetOauth2InstallURL(ctx context.Context, input GetOauth2InstallURLInput) (GetOauth2InstallURLOutput, error)
-	AuthorizeOauth2Install(ctx context.Context, input AuthorizeOauth2InstallInput) error
+	GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error)
+	ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error)
+	InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
+	GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
+	AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
 }
 
 type AppService interface {
-	GetApp(ctx context.Context, input GetAppInput) (App, error)
-	ListApps(ctx context.Context, input ListAppInput) (pagination.PagedResponse[App], error)
-	UninstallApp(ctx context.Context, input DeleteAppInput) error
+	GetApp(ctx context.Context, input appentity.AppID) (appentity.App, error)
+	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
+	UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error
+}
+
+type RegisterCapabilityUsageInput struct {
+	AppID      appentity.AppID
+	Capability appentity.CapabilityType
+	EntityType string
+	EntityID   string
+}
+
+type UnregisterCapabilityUsageInput RegisterCapabilityUsageInput
+
+type GetUsedCapabilitiesInput struct {
+	AppID appentity.AppID
 }

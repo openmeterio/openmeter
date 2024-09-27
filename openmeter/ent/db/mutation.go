@@ -12,12 +12,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -29,6 +29,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripe"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/integrationstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -63,6 +65,8 @@ const (
 	TypeEntitlement                     = "Entitlement"
 	TypeFeature                         = "Feature"
 	TypeGrant                           = "Grant"
+	TypeIntegrationStripe               = "IntegrationStripe"
+	TypeIntegrationStripeCustomer       = "IntegrationStripeCustomer"
 	TypeNotificationChannel             = "NotificationChannel"
 	TypeNotificationEvent               = "NotificationEvent"
 	TypeNotificationEventDeliveryStatus = "NotificationEventDeliveryStatus"
@@ -73,25 +77,22 @@ const (
 // AppMutation represents an operation that mutates the App nodes in the graph.
 type AppMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *string
-	namespace         *string
-	metadata          *map[string]string
-	created_at        *time.Time
-	updated_at        *time.Time
-	deleted_at        *time.Time
-	name              *string
-	description       *string
-	_type             *app.AppType
-	status            *app.AppStatus
-	listing_key       *string
-	stripe_account_id *string
-	stripe_livemode   *bool
-	clearedFields     map[string]struct{}
-	done              bool
-	oldValue          func(context.Context) (*App, error)
-	predicates        []predicate.App
+	op            Op
+	typ           string
+	id            *string
+	namespace     *string
+	metadata      *map[string]string
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	name          *string
+	description   *string
+	_type         *appentity.AppType
+	status        *appentity.AppStatus
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*App, error)
+	predicates    []predicate.App
 }
 
 var _ ent.Mutation = (*AppMutation)(nil)
@@ -268,19 +269,19 @@ func (m *AppMutation) OldMetadata(ctx context.Context) (v map[string]string, err
 // ClearMetadata clears the value of the "metadata" field.
 func (m *AppMutation) ClearMetadata() {
 	m.metadata = nil
-	m.clearedFields[dbapp.FieldMetadata] = struct{}{}
+	m.clearedFields[app.FieldMetadata] = struct{}{}
 }
 
 // MetadataCleared returns if the "metadata" field was cleared in this mutation.
 func (m *AppMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[dbapp.FieldMetadata]
+	_, ok := m.clearedFields[app.FieldMetadata]
 	return ok
 }
 
 // ResetMetadata resets all changes to the "metadata" field.
 func (m *AppMutation) ResetMetadata() {
 	m.metadata = nil
-	delete(m.clearedFields, dbapp.FieldMetadata)
+	delete(m.clearedFields, app.FieldMetadata)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -389,19 +390,19 @@ func (m *AppMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *AppMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[dbapp.FieldDeletedAt] = struct{}{}
+	m.clearedFields[app.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *AppMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[dbapp.FieldDeletedAt]
+	_, ok := m.clearedFields[app.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *AppMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, dbapp.FieldDeletedAt)
+	delete(m.clearedFields, app.FieldDeletedAt)
 }
 
 // SetName sets the "name" field.
@@ -477,12 +478,12 @@ func (m *AppMutation) ResetDescription() {
 }
 
 // SetType sets the "type" field.
-func (m *AppMutation) SetType(at app.AppType) {
+func (m *AppMutation) SetType(at appentity.AppType) {
 	m._type = &at
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *AppMutation) GetType() (r app.AppType, exists bool) {
+func (m *AppMutation) GetType() (r appentity.AppType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -493,7 +494,7 @@ func (m *AppMutation) GetType() (r app.AppType, exists bool) {
 // OldType returns the old "type" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldType(ctx context.Context) (v app.AppType, err error) {
+func (m *AppMutation) OldType(ctx context.Context) (v appentity.AppType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -513,12 +514,12 @@ func (m *AppMutation) ResetType() {
 }
 
 // SetStatus sets the "status" field.
-func (m *AppMutation) SetStatus(as app.AppStatus) {
+func (m *AppMutation) SetStatus(as appentity.AppStatus) {
 	m.status = &as
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *AppMutation) Status() (r app.AppStatus, exists bool) {
+func (m *AppMutation) Status() (r appentity.AppStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -529,7 +530,7 @@ func (m *AppMutation) Status() (r app.AppStatus, exists bool) {
 // OldStatus returns the old "status" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldStatus(ctx context.Context) (v app.AppStatus, err error) {
+func (m *AppMutation) OldStatus(ctx context.Context) (v appentity.AppStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -546,140 +547,6 @@ func (m *AppMutation) OldStatus(ctx context.Context) (v app.AppStatus, err error
 // ResetStatus resets all changes to the "status" field.
 func (m *AppMutation) ResetStatus() {
 	m.status = nil
-}
-
-// SetListingKey sets the "listing_key" field.
-func (m *AppMutation) SetListingKey(s string) {
-	m.listing_key = &s
-}
-
-// ListingKey returns the value of the "listing_key" field in the mutation.
-func (m *AppMutation) ListingKey() (r string, exists bool) {
-	v := m.listing_key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldListingKey returns the old "listing_key" field's value of the App entity.
-// If the App object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldListingKey(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldListingKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldListingKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldListingKey: %w", err)
-	}
-	return oldValue.ListingKey, nil
-}
-
-// ResetListingKey resets all changes to the "listing_key" field.
-func (m *AppMutation) ResetListingKey() {
-	m.listing_key = nil
-}
-
-// SetStripeAccountID sets the "stripe_account_id" field.
-func (m *AppMutation) SetStripeAccountID(s string) {
-	m.stripe_account_id = &s
-}
-
-// StripeAccountID returns the value of the "stripe_account_id" field in the mutation.
-func (m *AppMutation) StripeAccountID() (r string, exists bool) {
-	v := m.stripe_account_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldStripeAccountID returns the old "stripe_account_id" field's value of the App entity.
-// If the App object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldStripeAccountID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStripeAccountID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStripeAccountID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStripeAccountID: %w", err)
-	}
-	return oldValue.StripeAccountID, nil
-}
-
-// ClearStripeAccountID clears the value of the "stripe_account_id" field.
-func (m *AppMutation) ClearStripeAccountID() {
-	m.stripe_account_id = nil
-	m.clearedFields[dbapp.FieldStripeAccountID] = struct{}{}
-}
-
-// StripeAccountIDCleared returns if the "stripe_account_id" field was cleared in this mutation.
-func (m *AppMutation) StripeAccountIDCleared() bool {
-	_, ok := m.clearedFields[dbapp.FieldStripeAccountID]
-	return ok
-}
-
-// ResetStripeAccountID resets all changes to the "stripe_account_id" field.
-func (m *AppMutation) ResetStripeAccountID() {
-	m.stripe_account_id = nil
-	delete(m.clearedFields, dbapp.FieldStripeAccountID)
-}
-
-// SetStripeLivemode sets the "stripe_livemode" field.
-func (m *AppMutation) SetStripeLivemode(b bool) {
-	m.stripe_livemode = &b
-}
-
-// StripeLivemode returns the value of the "stripe_livemode" field in the mutation.
-func (m *AppMutation) StripeLivemode() (r bool, exists bool) {
-	v := m.stripe_livemode
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldStripeLivemode returns the old "stripe_livemode" field's value of the App entity.
-// If the App object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldStripeLivemode(ctx context.Context) (v *bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStripeLivemode is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStripeLivemode requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStripeLivemode: %w", err)
-	}
-	return oldValue.StripeLivemode, nil
-}
-
-// ClearStripeLivemode clears the value of the "stripe_livemode" field.
-func (m *AppMutation) ClearStripeLivemode() {
-	m.stripe_livemode = nil
-	m.clearedFields[dbapp.FieldStripeLivemode] = struct{}{}
-}
-
-// StripeLivemodeCleared returns if the "stripe_livemode" field was cleared in this mutation.
-func (m *AppMutation) StripeLivemodeCleared() bool {
-	_, ok := m.clearedFields[dbapp.FieldStripeLivemode]
-	return ok
-}
-
-// ResetStripeLivemode resets all changes to the "stripe_livemode" field.
-func (m *AppMutation) ResetStripeLivemode() {
-	m.stripe_livemode = nil
-	delete(m.clearedFields, dbapp.FieldStripeLivemode)
 }
 
 // Where appends a list predicates to the AppMutation builder.
@@ -716,42 +583,33 @@ func (m *AppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
-		fields = append(fields, dbapp.FieldNamespace)
+		fields = append(fields, app.FieldNamespace)
 	}
 	if m.metadata != nil {
-		fields = append(fields, dbapp.FieldMetadata)
+		fields = append(fields, app.FieldMetadata)
 	}
 	if m.created_at != nil {
-		fields = append(fields, dbapp.FieldCreatedAt)
+		fields = append(fields, app.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, dbapp.FieldUpdatedAt)
+		fields = append(fields, app.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, dbapp.FieldDeletedAt)
+		fields = append(fields, app.FieldDeletedAt)
 	}
 	if m.name != nil {
-		fields = append(fields, dbapp.FieldName)
+		fields = append(fields, app.FieldName)
 	}
 	if m.description != nil {
-		fields = append(fields, dbapp.FieldDescription)
+		fields = append(fields, app.FieldDescription)
 	}
 	if m._type != nil {
-		fields = append(fields, dbapp.FieldType)
+		fields = append(fields, app.FieldType)
 	}
 	if m.status != nil {
-		fields = append(fields, dbapp.FieldStatus)
-	}
-	if m.listing_key != nil {
-		fields = append(fields, dbapp.FieldListingKey)
-	}
-	if m.stripe_account_id != nil {
-		fields = append(fields, dbapp.FieldStripeAccountID)
-	}
-	if m.stripe_livemode != nil {
-		fields = append(fields, dbapp.FieldStripeLivemode)
+		fields = append(fields, app.FieldStatus)
 	}
 	return fields
 }
@@ -761,30 +619,24 @@ func (m *AppMutation) Fields() []string {
 // schema.
 func (m *AppMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case dbapp.FieldNamespace:
+	case app.FieldNamespace:
 		return m.Namespace()
-	case dbapp.FieldMetadata:
+	case app.FieldMetadata:
 		return m.Metadata()
-	case dbapp.FieldCreatedAt:
+	case app.FieldCreatedAt:
 		return m.CreatedAt()
-	case dbapp.FieldUpdatedAt:
+	case app.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case dbapp.FieldDeletedAt:
+	case app.FieldDeletedAt:
 		return m.DeletedAt()
-	case dbapp.FieldName:
+	case app.FieldName:
 		return m.Name()
-	case dbapp.FieldDescription:
+	case app.FieldDescription:
 		return m.Description()
-	case dbapp.FieldType:
+	case app.FieldType:
 		return m.GetType()
-	case dbapp.FieldStatus:
+	case app.FieldStatus:
 		return m.Status()
-	case dbapp.FieldListingKey:
-		return m.ListingKey()
-	case dbapp.FieldStripeAccountID:
-		return m.StripeAccountID()
-	case dbapp.FieldStripeLivemode:
-		return m.StripeLivemode()
 	}
 	return nil, false
 }
@@ -794,30 +646,24 @@ func (m *AppMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case dbapp.FieldNamespace:
+	case app.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case dbapp.FieldMetadata:
+	case app.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case dbapp.FieldCreatedAt:
+	case app.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case dbapp.FieldUpdatedAt:
+	case app.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case dbapp.FieldDeletedAt:
+	case app.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case dbapp.FieldName:
+	case app.FieldName:
 		return m.OldName(ctx)
-	case dbapp.FieldDescription:
+	case app.FieldDescription:
 		return m.OldDescription(ctx)
-	case dbapp.FieldType:
+	case app.FieldType:
 		return m.OldType(ctx)
-	case dbapp.FieldStatus:
+	case app.FieldStatus:
 		return m.OldStatus(ctx)
-	case dbapp.FieldListingKey:
-		return m.OldListingKey(ctx)
-	case dbapp.FieldStripeAccountID:
-		return m.OldStripeAccountID(ctx)
-	case dbapp.FieldStripeLivemode:
-		return m.OldStripeLivemode(ctx)
 	}
 	return nil, fmt.Errorf("unknown App field %s", name)
 }
@@ -827,89 +673,68 @@ func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, err
 // type.
 func (m *AppMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case dbapp.FieldNamespace:
+	case app.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case dbapp.FieldMetadata:
+	case app.FieldMetadata:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
 		return nil
-	case dbapp.FieldCreatedAt:
+	case app.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case dbapp.FieldUpdatedAt:
+	case app.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case dbapp.FieldDeletedAt:
+	case app.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case dbapp.FieldName:
+	case app.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
 		return nil
-	case dbapp.FieldDescription:
+	case app.FieldDescription:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
 		return nil
-	case dbapp.FieldType:
-		v, ok := value.(app.AppType)
+	case app.FieldType:
+		v, ok := value.(appentity.AppType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
 		return nil
-	case dbapp.FieldStatus:
-		v, ok := value.(app.AppStatus)
+	case app.FieldStatus:
+		v, ok := value.(appentity.AppStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
-		return nil
-	case dbapp.FieldListingKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetListingKey(v)
-		return nil
-	case dbapp.FieldStripeAccountID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetStripeAccountID(v)
-		return nil
-	case dbapp.FieldStripeLivemode:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetStripeLivemode(v)
 		return nil
 	}
 	return fmt.Errorf("unknown App field %s", name)
@@ -941,17 +766,11 @@ func (m *AppMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *AppMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(dbapp.FieldMetadata) {
-		fields = append(fields, dbapp.FieldMetadata)
+	if m.FieldCleared(app.FieldMetadata) {
+		fields = append(fields, app.FieldMetadata)
 	}
-	if m.FieldCleared(dbapp.FieldDeletedAt) {
-		fields = append(fields, dbapp.FieldDeletedAt)
-	}
-	if m.FieldCleared(dbapp.FieldStripeAccountID) {
-		fields = append(fields, dbapp.FieldStripeAccountID)
-	}
-	if m.FieldCleared(dbapp.FieldStripeLivemode) {
-		fields = append(fields, dbapp.FieldStripeLivemode)
+	if m.FieldCleared(app.FieldDeletedAt) {
+		fields = append(fields, app.FieldDeletedAt)
 	}
 	return fields
 }
@@ -967,17 +786,11 @@ func (m *AppMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *AppMutation) ClearField(name string) error {
 	switch name {
-	case dbapp.FieldMetadata:
+	case app.FieldMetadata:
 		m.ClearMetadata()
 		return nil
-	case dbapp.FieldDeletedAt:
+	case app.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case dbapp.FieldStripeAccountID:
-		m.ClearStripeAccountID()
-		return nil
-	case dbapp.FieldStripeLivemode:
-		m.ClearStripeLivemode()
 		return nil
 	}
 	return fmt.Errorf("unknown App nullable field %s", name)
@@ -987,41 +800,32 @@ func (m *AppMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *AppMutation) ResetField(name string) error {
 	switch name {
-	case dbapp.FieldNamespace:
+	case app.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case dbapp.FieldMetadata:
+	case app.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case dbapp.FieldCreatedAt:
+	case app.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case dbapp.FieldUpdatedAt:
+	case app.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case dbapp.FieldDeletedAt:
+	case app.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case dbapp.FieldName:
+	case app.FieldName:
 		m.ResetName()
 		return nil
-	case dbapp.FieldDescription:
+	case app.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case dbapp.FieldType:
+	case app.FieldType:
 		m.ResetType()
 		return nil
-	case dbapp.FieldStatus:
+	case app.FieldStatus:
 		m.ResetStatus()
-		return nil
-	case dbapp.FieldListingKey:
-		m.ResetListingKey()
-		return nil
-	case dbapp.FieldStripeAccountID:
-		m.ResetStripeAccountID()
-		return nil
-	case dbapp.FieldStripeLivemode:
-		m.ResetStripeLivemode()
 		return nil
 	}
 	return fmt.Errorf("unknown App field %s", name)
@@ -9285,6 +9089,8 @@ type CustomerMutation struct {
 	primary_email                       *string
 	timezone                            *timezone.Timezone
 	currency                            *currencyx.Code
+	app_ids                             *[]string
+	appendapp_ids                       []string
 	external_mapping_stripe_customer_id *string
 	clearedFields                       map[string]struct{}
 	subjects                            map[int]struct{}
@@ -10133,6 +9939,71 @@ func (m *CustomerMutation) ResetCurrency() {
 	delete(m.clearedFields, customer.FieldCurrency)
 }
 
+// SetAppIds sets the "app_ids" field.
+func (m *CustomerMutation) SetAppIds(s []string) {
+	m.app_ids = &s
+	m.appendapp_ids = nil
+}
+
+// AppIds returns the value of the "app_ids" field in the mutation.
+func (m *CustomerMutation) AppIds() (r []string, exists bool) {
+	v := m.app_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppIds returns the old "app_ids" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldAppIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppIds: %w", err)
+	}
+	return oldValue.AppIds, nil
+}
+
+// AppendAppIds adds s to the "app_ids" field.
+func (m *CustomerMutation) AppendAppIds(s []string) {
+	m.appendapp_ids = append(m.appendapp_ids, s...)
+}
+
+// AppendedAppIds returns the list of values that were appended to the "app_ids" field in this mutation.
+func (m *CustomerMutation) AppendedAppIds() ([]string, bool) {
+	if len(m.appendapp_ids) == 0 {
+		return nil, false
+	}
+	return m.appendapp_ids, true
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (m *CustomerMutation) ClearAppIds() {
+	m.app_ids = nil
+	m.appendapp_ids = nil
+	m.clearedFields[customer.FieldAppIds] = struct{}{}
+}
+
+// AppIdsCleared returns if the "app_ids" field was cleared in this mutation.
+func (m *CustomerMutation) AppIdsCleared() bool {
+	_, ok := m.clearedFields[customer.FieldAppIds]
+	return ok
+}
+
+// ResetAppIds resets all changes to the "app_ids" field.
+func (m *CustomerMutation) ResetAppIds() {
+	m.app_ids = nil
+	m.appendapp_ids = nil
+	delete(m.clearedFields, customer.FieldAppIds)
+}
+
 // SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
 func (m *CustomerMutation) SetExternalMappingStripeCustomerID(s string) {
 	m.external_mapping_stripe_customer_id = &s
@@ -10309,7 +10180,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, customer.FieldNamespace)
 	}
@@ -10358,6 +10229,9 @@ func (m *CustomerMutation) Fields() []string {
 	if m.currency != nil {
 		fields = append(fields, customer.FieldCurrency)
 	}
+	if m.app_ids != nil {
+		fields = append(fields, customer.FieldAppIds)
+	}
 	if m.external_mapping_stripe_customer_id != nil {
 		fields = append(fields, customer.FieldExternalMappingStripeCustomerID)
 	}
@@ -10401,6 +10275,8 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.Timezone()
 	case customer.FieldCurrency:
 		return m.Currency()
+	case customer.FieldAppIds:
+		return m.AppIds()
 	case customer.FieldExternalMappingStripeCustomerID:
 		return m.ExternalMappingStripeCustomerID()
 	}
@@ -10444,6 +10320,8 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldTimezone(ctx)
 	case customer.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case customer.FieldAppIds:
+		return m.OldAppIds(ctx)
 	case customer.FieldExternalMappingStripeCustomerID:
 		return m.OldExternalMappingStripeCustomerID(ctx)
 	}
@@ -10567,6 +10445,13 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCurrency(v)
 		return nil
+	case customer.FieldAppIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppIds(v)
+		return nil
 	case customer.FieldExternalMappingStripeCustomerID:
 		v, ok := value.(string)
 		if !ok {
@@ -10640,6 +10525,9 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldCurrency) {
 		fields = append(fields, customer.FieldCurrency)
 	}
+	if m.FieldCleared(customer.FieldAppIds) {
+		fields = append(fields, customer.FieldAppIds)
+	}
 	if m.FieldCleared(customer.FieldExternalMappingStripeCustomerID) {
 		fields = append(fields, customer.FieldExternalMappingStripeCustomerID)
 	}
@@ -10692,6 +10580,9 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldCurrency:
 		m.ClearCurrency()
+		return nil
+	case customer.FieldAppIds:
+		m.ClearAppIds()
 		return nil
 	case customer.FieldExternalMappingStripeCustomerID:
 		m.ClearExternalMappingStripeCustomerID()
@@ -10751,6 +10642,9 @@ func (m *CustomerMutation) ResetField(name string) error {
 		return nil
 	case customer.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case customer.FieldAppIds:
+		m.ResetAppIds()
 		return nil
 	case customer.FieldExternalMappingStripeCustomerID:
 		m.ResetExternalMappingStripeCustomerID()
@@ -15780,6 +15674,1407 @@ func (m *GrantMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Grant edge %s", name)
+}
+
+// IntegrationStripeMutation represents an operation that mutates the IntegrationStripe nodes in the graph.
+type IntegrationStripeMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int
+	namespace         *string
+	created_at        *time.Time
+	updated_at        *time.Time
+	deleted_at        *time.Time
+	app_id            *string
+	stripe_account_id *string
+	stripe_livemode   *bool
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*IntegrationStripe, error)
+	predicates        []predicate.IntegrationStripe
+}
+
+var _ ent.Mutation = (*IntegrationStripeMutation)(nil)
+
+// integrationstripeOption allows management of the mutation configuration using functional options.
+type integrationstripeOption func(*IntegrationStripeMutation)
+
+// newIntegrationStripeMutation creates new mutation for the IntegrationStripe entity.
+func newIntegrationStripeMutation(c config, op Op, opts ...integrationstripeOption) *IntegrationStripeMutation {
+	m := &IntegrationStripeMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIntegrationStripe,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIntegrationStripeID sets the ID field of the mutation.
+func withIntegrationStripeID(id int) integrationstripeOption {
+	return func(m *IntegrationStripeMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IntegrationStripe
+		)
+		m.oldValue = func(ctx context.Context) (*IntegrationStripe, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IntegrationStripe.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIntegrationStripe sets the old IntegrationStripe of the mutation.
+func withIntegrationStripe(node *IntegrationStripe) integrationstripeOption {
+	return func(m *IntegrationStripeMutation) {
+		m.oldValue = func(context.Context) (*IntegrationStripe, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IntegrationStripeMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IntegrationStripeMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IntegrationStripeMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IntegrationStripeMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IntegrationStripe.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *IntegrationStripeMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *IntegrationStripeMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *IntegrationStripeMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *IntegrationStripeMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *IntegrationStripeMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *IntegrationStripeMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IntegrationStripeMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IntegrationStripeMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IntegrationStripeMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *IntegrationStripeMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *IntegrationStripeMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *IntegrationStripeMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[integrationstripe.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *IntegrationStripeMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[integrationstripe.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *IntegrationStripeMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, integrationstripe.FieldDeletedAt)
+}
+
+// SetAppID sets the "app_id" field.
+func (m *IntegrationStripeMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *IntegrationStripeMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *IntegrationStripeMutation) ResetAppID() {
+	m.app_id = nil
+}
+
+// SetStripeAccountID sets the "stripe_account_id" field.
+func (m *IntegrationStripeMutation) SetStripeAccountID(s string) {
+	m.stripe_account_id = &s
+}
+
+// StripeAccountID returns the value of the "stripe_account_id" field in the mutation.
+func (m *IntegrationStripeMutation) StripeAccountID() (r string, exists bool) {
+	v := m.stripe_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeAccountID returns the old "stripe_account_id" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldStripeAccountID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeAccountID: %w", err)
+	}
+	return oldValue.StripeAccountID, nil
+}
+
+// ClearStripeAccountID clears the value of the "stripe_account_id" field.
+func (m *IntegrationStripeMutation) ClearStripeAccountID() {
+	m.stripe_account_id = nil
+	m.clearedFields[integrationstripe.FieldStripeAccountID] = struct{}{}
+}
+
+// StripeAccountIDCleared returns if the "stripe_account_id" field was cleared in this mutation.
+func (m *IntegrationStripeMutation) StripeAccountIDCleared() bool {
+	_, ok := m.clearedFields[integrationstripe.FieldStripeAccountID]
+	return ok
+}
+
+// ResetStripeAccountID resets all changes to the "stripe_account_id" field.
+func (m *IntegrationStripeMutation) ResetStripeAccountID() {
+	m.stripe_account_id = nil
+	delete(m.clearedFields, integrationstripe.FieldStripeAccountID)
+}
+
+// SetStripeLivemode sets the "stripe_livemode" field.
+func (m *IntegrationStripeMutation) SetStripeLivemode(b bool) {
+	m.stripe_livemode = &b
+}
+
+// StripeLivemode returns the value of the "stripe_livemode" field in the mutation.
+func (m *IntegrationStripeMutation) StripeLivemode() (r bool, exists bool) {
+	v := m.stripe_livemode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeLivemode returns the old "stripe_livemode" field's value of the IntegrationStripe entity.
+// If the IntegrationStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeMutation) OldStripeLivemode(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeLivemode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeLivemode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeLivemode: %w", err)
+	}
+	return oldValue.StripeLivemode, nil
+}
+
+// ClearStripeLivemode clears the value of the "stripe_livemode" field.
+func (m *IntegrationStripeMutation) ClearStripeLivemode() {
+	m.stripe_livemode = nil
+	m.clearedFields[integrationstripe.FieldStripeLivemode] = struct{}{}
+}
+
+// StripeLivemodeCleared returns if the "stripe_livemode" field was cleared in this mutation.
+func (m *IntegrationStripeMutation) StripeLivemodeCleared() bool {
+	_, ok := m.clearedFields[integrationstripe.FieldStripeLivemode]
+	return ok
+}
+
+// ResetStripeLivemode resets all changes to the "stripe_livemode" field.
+func (m *IntegrationStripeMutation) ResetStripeLivemode() {
+	m.stripe_livemode = nil
+	delete(m.clearedFields, integrationstripe.FieldStripeLivemode)
+}
+
+// Where appends a list predicates to the IntegrationStripeMutation builder.
+func (m *IntegrationStripeMutation) Where(ps ...predicate.IntegrationStripe) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IntegrationStripeMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IntegrationStripeMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IntegrationStripe, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IntegrationStripeMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IntegrationStripeMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IntegrationStripe).
+func (m *IntegrationStripeMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IntegrationStripeMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, integrationstripe.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, integrationstripe.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, integrationstripe.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, integrationstripe.FieldDeletedAt)
+	}
+	if m.app_id != nil {
+		fields = append(fields, integrationstripe.FieldAppID)
+	}
+	if m.stripe_account_id != nil {
+		fields = append(fields, integrationstripe.FieldStripeAccountID)
+	}
+	if m.stripe_livemode != nil {
+		fields = append(fields, integrationstripe.FieldStripeLivemode)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IntegrationStripeMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case integrationstripe.FieldNamespace:
+		return m.Namespace()
+	case integrationstripe.FieldCreatedAt:
+		return m.CreatedAt()
+	case integrationstripe.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case integrationstripe.FieldDeletedAt:
+		return m.DeletedAt()
+	case integrationstripe.FieldAppID:
+		return m.AppID()
+	case integrationstripe.FieldStripeAccountID:
+		return m.StripeAccountID()
+	case integrationstripe.FieldStripeLivemode:
+		return m.StripeLivemode()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IntegrationStripeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case integrationstripe.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case integrationstripe.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case integrationstripe.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case integrationstripe.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case integrationstripe.FieldAppID:
+		return m.OldAppID(ctx)
+	case integrationstripe.FieldStripeAccountID:
+		return m.OldStripeAccountID(ctx)
+	case integrationstripe.FieldStripeLivemode:
+		return m.OldStripeLivemode(ctx)
+	}
+	return nil, fmt.Errorf("unknown IntegrationStripe field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IntegrationStripeMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case integrationstripe.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case integrationstripe.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case integrationstripe.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case integrationstripe.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case integrationstripe.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case integrationstripe.FieldStripeAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeAccountID(v)
+		return nil
+	case integrationstripe.FieldStripeLivemode:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeLivemode(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IntegrationStripe field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IntegrationStripeMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IntegrationStripeMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IntegrationStripeMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown IntegrationStripe numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IntegrationStripeMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(integrationstripe.FieldDeletedAt) {
+		fields = append(fields, integrationstripe.FieldDeletedAt)
+	}
+	if m.FieldCleared(integrationstripe.FieldStripeAccountID) {
+		fields = append(fields, integrationstripe.FieldStripeAccountID)
+	}
+	if m.FieldCleared(integrationstripe.FieldStripeLivemode) {
+		fields = append(fields, integrationstripe.FieldStripeLivemode)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IntegrationStripeMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IntegrationStripeMutation) ClearField(name string) error {
+	switch name {
+	case integrationstripe.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case integrationstripe.FieldStripeAccountID:
+		m.ClearStripeAccountID()
+		return nil
+	case integrationstripe.FieldStripeLivemode:
+		m.ClearStripeLivemode()
+		return nil
+	}
+	return fmt.Errorf("unknown IntegrationStripe nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IntegrationStripeMutation) ResetField(name string) error {
+	switch name {
+	case integrationstripe.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case integrationstripe.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case integrationstripe.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case integrationstripe.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case integrationstripe.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case integrationstripe.FieldStripeAccountID:
+		m.ResetStripeAccountID()
+		return nil
+	case integrationstripe.FieldStripeLivemode:
+		m.ResetStripeLivemode()
+		return nil
+	}
+	return fmt.Errorf("unknown IntegrationStripe field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IntegrationStripeMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IntegrationStripeMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IntegrationStripeMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IntegrationStripeMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IntegrationStripeMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IntegrationStripeMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IntegrationStripeMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IntegrationStripe unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IntegrationStripeMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IntegrationStripe edge %s", name)
+}
+
+// IntegrationStripeCustomerMutation represents an operation that mutates the IntegrationStripeCustomer nodes in the graph.
+type IntegrationStripeCustomerMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *int
+	namespace          *string
+	created_at         *time.Time
+	updated_at         *time.Time
+	deleted_at         *time.Time
+	app_id             *string
+	customer_id        *string
+	stripe_customer_id *string
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*IntegrationStripeCustomer, error)
+	predicates         []predicate.IntegrationStripeCustomer
+}
+
+var _ ent.Mutation = (*IntegrationStripeCustomerMutation)(nil)
+
+// integrationstripecustomerOption allows management of the mutation configuration using functional options.
+type integrationstripecustomerOption func(*IntegrationStripeCustomerMutation)
+
+// newIntegrationStripeCustomerMutation creates new mutation for the IntegrationStripeCustomer entity.
+func newIntegrationStripeCustomerMutation(c config, op Op, opts ...integrationstripecustomerOption) *IntegrationStripeCustomerMutation {
+	m := &IntegrationStripeCustomerMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIntegrationStripeCustomer,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIntegrationStripeCustomerID sets the ID field of the mutation.
+func withIntegrationStripeCustomerID(id int) integrationstripecustomerOption {
+	return func(m *IntegrationStripeCustomerMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IntegrationStripeCustomer
+		)
+		m.oldValue = func(ctx context.Context) (*IntegrationStripeCustomer, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IntegrationStripeCustomer.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIntegrationStripeCustomer sets the old IntegrationStripeCustomer of the mutation.
+func withIntegrationStripeCustomer(node *IntegrationStripeCustomer) integrationstripecustomerOption {
+	return func(m *IntegrationStripeCustomerMutation) {
+		m.oldValue = func(context.Context) (*IntegrationStripeCustomer, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IntegrationStripeCustomerMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IntegrationStripeCustomerMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IntegrationStripeCustomerMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IntegrationStripeCustomerMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IntegrationStripeCustomer.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *IntegrationStripeCustomerMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *IntegrationStripeCustomerMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *IntegrationStripeCustomerMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *IntegrationStripeCustomerMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IntegrationStripeCustomerMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IntegrationStripeCustomerMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *IntegrationStripeCustomerMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *IntegrationStripeCustomerMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[integrationstripecustomer.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *IntegrationStripeCustomerMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[integrationstripecustomer.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *IntegrationStripeCustomerMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, integrationstripecustomer.FieldDeletedAt)
+}
+
+// SetAppID sets the "app_id" field.
+func (m *IntegrationStripeCustomerMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *IntegrationStripeCustomerMutation) ResetAppID() {
+	m.app_id = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *IntegrationStripeCustomerMutation) SetCustomerID(s string) {
+	m.customer_id = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) CustomerID() (r string, exists bool) {
+	v := m.customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *IntegrationStripeCustomerMutation) ResetCustomerID() {
+	m.customer_id = nil
+}
+
+// SetStripeCustomerID sets the "stripe_customer_id" field.
+func (m *IntegrationStripeCustomerMutation) SetStripeCustomerID(s string) {
+	m.stripe_customer_id = &s
+}
+
+// StripeCustomerID returns the value of the "stripe_customer_id" field in the mutation.
+func (m *IntegrationStripeCustomerMutation) StripeCustomerID() (r string, exists bool) {
+	v := m.stripe_customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeCustomerID returns the old "stripe_customer_id" field's value of the IntegrationStripeCustomer entity.
+// If the IntegrationStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationStripeCustomerMutation) OldStripeCustomerID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeCustomerID: %w", err)
+	}
+	return oldValue.StripeCustomerID, nil
+}
+
+// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
+func (m *IntegrationStripeCustomerMutation) ClearStripeCustomerID() {
+	m.stripe_customer_id = nil
+	m.clearedFields[integrationstripecustomer.FieldStripeCustomerID] = struct{}{}
+}
+
+// StripeCustomerIDCleared returns if the "stripe_customer_id" field was cleared in this mutation.
+func (m *IntegrationStripeCustomerMutation) StripeCustomerIDCleared() bool {
+	_, ok := m.clearedFields[integrationstripecustomer.FieldStripeCustomerID]
+	return ok
+}
+
+// ResetStripeCustomerID resets all changes to the "stripe_customer_id" field.
+func (m *IntegrationStripeCustomerMutation) ResetStripeCustomerID() {
+	m.stripe_customer_id = nil
+	delete(m.clearedFields, integrationstripecustomer.FieldStripeCustomerID)
+}
+
+// Where appends a list predicates to the IntegrationStripeCustomerMutation builder.
+func (m *IntegrationStripeCustomerMutation) Where(ps ...predicate.IntegrationStripeCustomer) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IntegrationStripeCustomerMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IntegrationStripeCustomerMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IntegrationStripeCustomer, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IntegrationStripeCustomerMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IntegrationStripeCustomerMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IntegrationStripeCustomer).
+func (m *IntegrationStripeCustomerMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IntegrationStripeCustomerMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, integrationstripecustomer.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, integrationstripecustomer.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, integrationstripecustomer.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, integrationstripecustomer.FieldDeletedAt)
+	}
+	if m.app_id != nil {
+		fields = append(fields, integrationstripecustomer.FieldAppID)
+	}
+	if m.customer_id != nil {
+		fields = append(fields, integrationstripecustomer.FieldCustomerID)
+	}
+	if m.stripe_customer_id != nil {
+		fields = append(fields, integrationstripecustomer.FieldStripeCustomerID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IntegrationStripeCustomerMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case integrationstripecustomer.FieldNamespace:
+		return m.Namespace()
+	case integrationstripecustomer.FieldCreatedAt:
+		return m.CreatedAt()
+	case integrationstripecustomer.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case integrationstripecustomer.FieldDeletedAt:
+		return m.DeletedAt()
+	case integrationstripecustomer.FieldAppID:
+		return m.AppID()
+	case integrationstripecustomer.FieldCustomerID:
+		return m.CustomerID()
+	case integrationstripecustomer.FieldStripeCustomerID:
+		return m.StripeCustomerID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IntegrationStripeCustomerMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case integrationstripecustomer.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case integrationstripecustomer.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case integrationstripecustomer.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case integrationstripecustomer.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case integrationstripecustomer.FieldAppID:
+		return m.OldAppID(ctx)
+	case integrationstripecustomer.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case integrationstripecustomer.FieldStripeCustomerID:
+		return m.OldStripeCustomerID(ctx)
+	}
+	return nil, fmt.Errorf("unknown IntegrationStripeCustomer field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IntegrationStripeCustomerMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case integrationstripecustomer.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case integrationstripecustomer.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case integrationstripecustomer.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case integrationstripecustomer.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case integrationstripecustomer.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case integrationstripecustomer.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case integrationstripecustomer.FieldStripeCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeCustomerID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IntegrationStripeCustomer field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IntegrationStripeCustomerMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IntegrationStripeCustomerMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IntegrationStripeCustomerMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown IntegrationStripeCustomer numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IntegrationStripeCustomerMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(integrationstripecustomer.FieldDeletedAt) {
+		fields = append(fields, integrationstripecustomer.FieldDeletedAt)
+	}
+	if m.FieldCleared(integrationstripecustomer.FieldStripeCustomerID) {
+		fields = append(fields, integrationstripecustomer.FieldStripeCustomerID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IntegrationStripeCustomerMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IntegrationStripeCustomerMutation) ClearField(name string) error {
+	switch name {
+	case integrationstripecustomer.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case integrationstripecustomer.FieldStripeCustomerID:
+		m.ClearStripeCustomerID()
+		return nil
+	}
+	return fmt.Errorf("unknown IntegrationStripeCustomer nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IntegrationStripeCustomerMutation) ResetField(name string) error {
+	switch name {
+	case integrationstripecustomer.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case integrationstripecustomer.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case integrationstripecustomer.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case integrationstripecustomer.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case integrationstripecustomer.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case integrationstripecustomer.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case integrationstripecustomer.FieldStripeCustomerID:
+		m.ResetStripeCustomerID()
+		return nil
+	}
+	return fmt.Errorf("unknown IntegrationStripeCustomer field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IntegrationStripeCustomerMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IntegrationStripeCustomerMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IntegrationStripeCustomerMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IntegrationStripeCustomerMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IntegrationStripeCustomerMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IntegrationStripeCustomerMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IntegrationStripeCustomerMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IntegrationStripeCustomer unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IntegrationStripeCustomerMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IntegrationStripeCustomer edge %s", name)
 }
 
 // NotificationChannelMutation represents an operation that mutates the NotificationChannel nodes in the graph.

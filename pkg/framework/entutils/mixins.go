@@ -186,3 +186,14 @@ func (c CustomerAddressMixin) Fields() []ent.Field {
 		field.String(fmt.Sprintf("%s_address_phone_number", c.FieldPrefix)).Optional().Nillable(),
 	}
 }
+
+// TODO: this should be inheriting the namespace mixin too probably
+type AppID struct {
+	ent.Schema
+}
+
+func (AppID) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("app_id").Immutable(),
+	}
+}
