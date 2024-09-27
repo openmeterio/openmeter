@@ -142,3 +142,7 @@ namespace OpenMeterCloud.Entitlements {
   @tag("Entitlements (Experimental)")
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
 }
+
+@route("/api/v1/customers")
+@tag("Customers")
+interface Customers extends OpenMeter.Customers {}
