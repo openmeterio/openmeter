@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
+	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -69,6 +70,14 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 
 	if err = entClient.Schema.Create(ctx); err != nil {
 		return nil, fmt.Errorf("failed to create database schema: %w", err)
+	}
+
+	// We also need to create the stripe adapter to add it to the marketplace registry
+	_, err = appstripeadapter.New(appstripeadapter.Config{
+		Client: entClient,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stripe adapter: %w", err)
 	}
 
 	marketplaceAdapter := appadapter.NewMarketplaceAdapter()

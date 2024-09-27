@@ -3,6 +3,7 @@ package appadapter
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/samber/lo"
 
@@ -10,6 +11,19 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+var (
+	createDefaultMarketplaceOnce sync.Once
+	defaultMarketplace           *Marketplace
+)
+
+func DefaultMarketplace() *Marketplace {
+	createDefaultMarketplaceOnce.Do(func() {
+		defaultMarketplace = NewMarketplace()
+	})
+
+	return defaultMarketplace
+}
 
 var _ app.MarketplaceAdapter = (*Marketplace)(nil)
 
