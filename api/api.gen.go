@@ -300,7 +300,7 @@ type Customer struct {
 	External *CustomerExternalMapping `json:"external,omitempty"`
 
 	// Id A unique identifier for the customer.
-	Id *ULID `json:"id,omitempty"`
+	Id ULID `json:"id"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata,omitempty"`
@@ -366,7 +366,7 @@ type Entitlement struct {
 // EntitlementBoolean defines model for EntitlementBoolean.
 type EntitlementBoolean struct {
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod A time period
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
@@ -383,7 +383,7 @@ type EntitlementBoolean struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *map[string]string `json:"metadata,omitempty"`
@@ -393,7 +393,7 @@ type EntitlementBoolean struct {
 	Type       EntitlementBooleanType `json:"type"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
@@ -451,7 +451,7 @@ type EntitlementGrant struct {
 	Amount float64 `json:"amount"`
 
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -460,14 +460,14 @@ type EntitlementGrant struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 
 	// EntitlementId The unique entitlement ULID that the grant is associated with.
-	EntitlementId *string          `json:"entitlementId,omitempty"`
+	EntitlementId string           `json:"entitlementId"`
 	Expiration    ExpirationPeriod `json:"expiration"`
 
 	// ExpiresAt The expiration date of the grant.
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// MaxRolloverAmount Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
 	//
@@ -497,7 +497,7 @@ type EntitlementGrant struct {
 	Recurrence *RecurringPeriod `json:"recurrence,omitempty"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// VoidedAt The date and time the grant was voided (cannot be used after that).
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
@@ -540,7 +540,7 @@ type EntitlementGrantCreateInput struct {
 // EntitlementMetered defines model for EntitlementMetered.
 type EntitlementMetered struct {
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod A time period
 	CurrentUsagePeriod Period `json:"currentUsagePeriod"`
@@ -557,7 +557,7 @@ type EntitlementMetered struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// IsSoftLimit If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
 	IsSoftLimit *bool `json:"isSoftLimit,omitempty"`
@@ -591,7 +591,7 @@ type EntitlementMetered struct {
 	Type       EntitlementMeteredType `json:"type"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod RecurringPeriod `json:"usagePeriod"`
@@ -658,7 +658,7 @@ type EntitlementMeteredCreateInputsType string
 // EntitlementSharedFields defines model for EntitlementSharedFields.
 type EntitlementSharedFields struct {
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod A time period
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
@@ -675,7 +675,7 @@ type EntitlementSharedFields struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *map[string]string `json:"metadata,omitempty"`
@@ -684,7 +684,7 @@ type EntitlementSharedFields struct {
 	SubjectKey string `json:"subjectKey"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
@@ -696,7 +696,7 @@ type EntitlementStatic struct {
 	Config string `json:"config"`
 
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod A time period
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
@@ -713,7 +713,7 @@ type EntitlementStatic struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *map[string]string `json:"metadata,omitempty"`
@@ -723,7 +723,7 @@ type EntitlementStatic struct {
 	Type       EntitlementStaticType `json:"type"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
@@ -765,7 +765,7 @@ type EntitlementValue struct {
 	Config *string `json:"config,omitempty"`
 
 	// HasAccess Whether the subject has access to the feature. Shared accross all entitlement types.
-	HasAccess *bool `json:"hasAccess,omitempty"`
+	HasAccess bool `json:"hasAccess"`
 
 	// Overage Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
 	Overage *float64 `json:"overage,omitempty"`
@@ -795,13 +795,13 @@ type Feature struct {
 	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
 
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Key The key is an immutable unique identifier of the feature used throughout the API, for example when interacting with a subject's entitlements. The key has to be unique across all active features, but archived features can share the same key. The key should consist of lowercase alphanumeric characters and dashes.
 	Key string `json:"key"`
@@ -820,7 +820,7 @@ type Feature struct {
 	Name string `json:"name"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // FeatureCreateInputs A feature is a feature or service offered to a customer.
@@ -1473,16 +1473,16 @@ type RecurringPeriodEnum string
 // These fields are automatically populated by the system for managed entities. Their use and meaning is uniform across all resources.
 type SharedMetaFields struct {
 	// CreatedAt The date and time the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // Subject A subject is a unique identifier for a user or entity.

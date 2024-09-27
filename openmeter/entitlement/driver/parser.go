@@ -26,11 +26,11 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}
 
 	return &api.EntitlementMetered{
-		CreatedAt:   &metered.CreatedAt,
+		CreatedAt:   metered.CreatedAt,
 		DeletedAt:   metered.DeletedAt,
 		FeatureId:   metered.FeatureID,
 		FeatureKey:  metered.FeatureKey,
-		Id:          &metered.ID,
+		Id:          metered.ID,
 		IsSoftLimit: convert.ToPointer(metered.IsSoftLimit),
 		IsUnlimited: convert.ToPointer(false), // implement
 		IssueAfterReset: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *float64 {
@@ -45,7 +45,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		Metadata:               convert.MapToPointer(metered.Metadata),
 		SubjectKey:             metered.SubjectKey,
 		Type:                   api.EntitlementMeteredType(metered.EntitlementType),
-		UpdatedAt:              &metered.UpdatedAt,
+		UpdatedAt:              metered.UpdatedAt,
 		UsagePeriod:            *mapUsagePeriod(e.UsagePeriod),
 		CurrentUsagePeriod:     *mapPeriod(e.CurrentUsagePeriod),
 		LastReset:              metered.LastReset,
@@ -60,15 +60,15 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	}
 
 	apiRes := &api.EntitlementStatic{
-		CreatedAt:          &static.CreatedAt,
+		CreatedAt:          static.CreatedAt,
 		DeletedAt:          static.DeletedAt,
 		FeatureId:          static.FeatureID,
 		FeatureKey:         static.FeatureKey,
-		Id:                 &static.ID,
+		Id:                 static.ID,
 		Metadata:           convert.MapToPointer(static.Metadata),
 		SubjectKey:         static.SubjectKey,
 		Type:               api.EntitlementStaticType(static.EntitlementType),
-		UpdatedAt:          &static.UpdatedAt,
+		UpdatedAt:          static.UpdatedAt,
 		Config:             string(static.Config),
 		CurrentUsagePeriod: mapPeriod(static.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
@@ -84,15 +84,15 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	}
 
 	apiRes := &api.EntitlementBoolean{
-		CreatedAt:          &boolean.CreatedAt,
+		CreatedAt:          boolean.CreatedAt,
 		DeletedAt:          boolean.DeletedAt,
 		FeatureId:          boolean.FeatureID,
 		FeatureKey:         boolean.FeatureKey,
-		Id:                 &boolean.ID,
+		Id:                 boolean.ID,
 		Metadata:           convert.MapToPointer(boolean.Metadata),
 		SubjectKey:         boolean.SubjectKey,
 		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
-		UpdatedAt:          &boolean.UpdatedAt,
+		UpdatedAt:          boolean.UpdatedAt,
 		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
@@ -142,7 +142,7 @@ func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (ap
 	switch ent := entitlementValue.(type) {
 	case *meteredentitlement.MeteredEntitlementValue:
 		return api.EntitlementValue{
-			HasAccess: convert.ToPointer(ent.HasAccess()),
+			HasAccess: ent.HasAccess(),
 			Balance:   &ent.Balance,
 			Usage:     &ent.UsageInPeriod,
 			Overage:   &ent.Overage,
@@ -154,12 +154,12 @@ func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (ap
 		}
 
 		return api.EntitlementValue{
-			HasAccess: convert.ToPointer(ent.HasAccess()),
+			HasAccess: ent.HasAccess(),
 			Config:    config,
 		}, nil
 	case *booleanentitlement.BooleanEntitlementValue:
 		return api.EntitlementValue{
-			HasAccess: convert.ToPointer(ent.HasAccess()),
+			HasAccess: ent.HasAccess(),
 		}, nil
 	default:
 		return api.EntitlementValue{}, errors.New("unknown entitlement type")

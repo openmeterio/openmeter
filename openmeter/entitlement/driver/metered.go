@@ -355,18 +355,18 @@ func (h *meteredEntitlementHandler) resolveNamespace(ctx context.Context) (strin
 func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.EntitlementGrant) api.EntitlementGrant {
 	apiGrant := api.EntitlementGrant{
 		Amount:      grant.Amount,
-		CreatedAt:   &grant.CreatedAt,
+		CreatedAt:   grant.CreatedAt,
 		EffectiveAt: grant.EffectiveAt,
 		Expiration: api.ExpirationPeriod{
 			Count:    int(grant.Expiration.Count),
 			Duration: api.ExpirationPeriodDuration(grant.Expiration.Duration),
 		},
-		Id:                &grant.ID,
+		Id:                grant.ID,
 		Metadata:          &grant.Metadata,
 		Priority:          convert.ToPointer(int(grant.Priority)),
-		UpdatedAt:         &grant.UpdatedAt,
+		UpdatedAt:         grant.UpdatedAt,
 		DeletedAt:         grant.DeletedAt,
-		EntitlementId:     &grant.EntitlementID,
+		EntitlementId:     grant.EntitlementID,
 		ExpiresAt:         &grant.ExpiresAt,
 		MaxRolloverAmount: &grant.MaxRolloverAmount,
 		MinRolloverAmount: &grant.MinRolloverAmount,

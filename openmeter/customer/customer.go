@@ -29,7 +29,7 @@ type Customer struct {
 // AsAPICustomer converts a Customer to an API Customer
 func (c Customer) AsAPICustomer() (api.Customer, error) {
 	customer := api.Customer{
-		Id:               &c.ManagedResource.ID,
+		Id:               c.ManagedResource.ID,
 		Name:             c.Name,
 		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
 		PrimaryEmail:     c.PrimaryEmail,

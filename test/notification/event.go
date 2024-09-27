@@ -24,7 +24,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 		},
 		BalanceThreshold: notification.BalanceThresholdPayload{
 			Entitlement: api.EntitlementMetered{
-				CreatedAt: convert.ToPointer(time.Now().Add(-10 * 24 * time.Hour).UTC()),
+				CreatedAt: time.Now().Add(-10 * 24 * time.Hour).UTC(),
 				CurrentUsagePeriod: api.Period{
 					From: time.Now().Add(-24 * time.Hour).UTC(),
 					To:   time.Now().UTC(),
@@ -32,7 +32,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 				DeletedAt:               nil,
 				FeatureId:               "01J4VCZKH5QAF85GE501M8637W",
 				FeatureKey:              "feature-1",
-				Id:                      convert.ToPointer("01J4VCTKG06VJ0H78GD0MZBE49"),
+				Id:                      "01J4VCTKG06VJ0H78GD0MZBE49",
 				IsSoftLimit:             nil,
 				IsUnlimited:             nil,
 				IssueAfterReset:         nil,
@@ -42,7 +42,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 				Metadata:                nil,
 				SubjectKey:              "customer-1",
 				Type:                    "",
-				UpdatedAt:               convert.ToPointer(time.Now().Add(-2 * time.Hour).UTC()),
+				UpdatedAt:               time.Now().Add(-2 * time.Hour).UTC(),
 				UsagePeriod: api.RecurringPeriod{
 					Anchor:   time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
 					Interval: "MONTH",
@@ -50,15 +50,15 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 			},
 			Feature: api.Feature{
 				ArchivedAt:          nil,
-				CreatedAt:           convert.ToPointer(time.Now().Add(-10 * 24 * time.Hour).UTC()),
+				CreatedAt:           time.Now().Add(-10 * 24 * time.Hour).UTC(),
 				DeletedAt:           nil,
-				Id:                  convert.ToPointer("01J4VCZKH5QAF85GE501M8637W"),
+				Id:                  "01J4VCZKH5QAF85GE501M8637W",
 				Key:                 "feature-1",
 				Metadata:            nil,
 				MeterGroupByFilters: nil,
 				MeterSlug:           nil,
 				Name:                "feature-1",
-				UpdatedAt:           convert.ToPointer(time.Now().Add(-24 * time.Hour).UTC()),
+				UpdatedAt:           time.Now().Add(-24 * time.Hour).UTC(),
 			},
 			Subject: api.Subject{
 				CurrentPeriodEnd:   &time.Time{},
@@ -72,7 +72,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 			Value: api.EntitlementValue{
 				Balance:   convert.ToPointer(10000.0),
 				Config:    nil,
-				HasAccess: convert.ToPointer(true),
+				HasAccess: true,
 				Overage:   convert.ToPointer(500.0),
 				Usage:     convert.ToPointer(50000.0),
 			},

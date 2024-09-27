@@ -182,7 +182,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	event := events.Items[0]
 	require.Equal(t, s.rule.ID, event.Rule.ID, "Event must be associated with the rule")
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
-	require.Equal(t, TestEntitlementID, *event.Payload.BalanceThreshold.Entitlement.Id, "Event must be associated with the entitlement")
+	require.Equal(t, TestEntitlementID, event.Payload.BalanceThreshold.Entitlement.Id, "Event must be associated with the entitlement")
 	require.NotEmpty(t, event.Annotations[notification.AnnotationEventDedupeHash], "Event must have a deduplication hash")
 	require.NoError(t, event.Payload.BalanceThreshold.Validate(), "Event must be valid")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{

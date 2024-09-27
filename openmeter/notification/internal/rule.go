@@ -23,7 +23,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 		},
 		BalanceThreshold: notification.BalanceThresholdPayload{
 			Entitlement: api.EntitlementMetered{
-				CreatedAt: convert.ToPointer(createdAt),
+				CreatedAt: createdAt,
 				CurrentUsagePeriod: api.Period{
 					From: from,
 					To:   to,
@@ -31,7 +31,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				DeletedAt:               nil,
 				FeatureId:               "01J5AVN2T6S0RDGJHVNN0BW3F5",
 				FeatureKey:              "test-feature-1",
-				Id:                      convert.ToPointer("01J5AVNM7H1PT65RDFWGXXPT47"),
+				Id:                      "01J5AVNM7H1PT65RDFWGXXPT47",
 				IsSoftLimit:             convert.ToPointer(false),
 				IsUnlimited:             convert.ToPointer(true),
 				IssueAfterReset:         convert.ToPointer(10.0),
@@ -44,7 +44,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				PreserveOverageAtReset: convert.ToPointer(true),
 				SubjectKey:             "test-subject-1",
 				Type:                   api.EntitlementMeteredTypeMetered,
-				UpdatedAt:              convert.ToPointer(updatedAt),
+				UpdatedAt:              updatedAt,
 				UsagePeriod: api.RecurringPeriod{
 					Anchor:   from,
 					Interval: api.RecurringPeriodEnumDAY,
@@ -52,9 +52,9 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 			},
 			Feature: api.Feature{
 				ArchivedAt: nil,
-				CreatedAt:  convert.ToPointer(createdAt),
+				CreatedAt:  createdAt,
 				DeletedAt:  nil,
-				Id:         convert.ToPointer("01J5AVN2T6S0RDGJHVNN0BW3F5"),
+				Id:         "01J5AVN2T6S0RDGJHVNN0BW3F5",
 				Key:        "test-feature-1",
 				Metadata: &map[string]string{
 					"test-metadata-key": "test-metadata-value",
@@ -62,7 +62,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				MeterGroupByFilters: nil,
 				MeterSlug:           convert.ToPointer("test-meter-1"),
 				Name:                "test-meter-1",
-				UpdatedAt:           convert.ToPointer(updatedAt),
+				UpdatedAt:           updatedAt,
 			},
 			Subject: api.Subject{
 				CurrentPeriodEnd:   convert.ToPointer(from),
@@ -81,7 +81,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 			},
 			Value: api.EntitlementValue{
 				Balance:   convert.ToPointer(10_000.0),
-				HasAccess: convert.ToPointer(true),
+				HasAccess: true,
 				Overage:   convert.ToPointer(99.0),
 				Usage:     convert.ToPointer(5_001.0),
 			},
