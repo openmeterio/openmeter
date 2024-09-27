@@ -21,8 +21,6 @@ var (
 		{Name: "description", Type: field.TypeString},
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString},
-		{Name: "stripe_account_id", Type: field.TypeString, Nullable: true},
-		{Name: "stripe_livemode", Type: field.TypeBool, Nullable: true},
 	}
 	// AppsTable holds the schema information for the "apps" table.
 	AppsTable = &schema.Table{
@@ -44,6 +42,94 @@ var (
 				Name:    "app_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{AppsColumns[1], AppsColumns[0]},
+			},
+		},
+	}
+	// AppStripesColumns holds the columns for the "app_stripes" table.
+	AppStripesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "stripe_account_id", Type: field.TypeString},
+		{Name: "stripe_livemode", Type: field.TypeBool},
+		{Name: "app_stripe_app", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppStripesTable holds the schema information for the "app_stripes" table.
+	AppStripesTable = &schema.Table{
+		Name:       "app_stripes",
+		Columns:    AppStripesColumns,
+		PrimaryKey: []*schema.Column{AppStripesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripes_apps_app",
+				Columns:    []*schema.Column{AppStripesColumns[7]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripe_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripesColumns[1]},
+			},
+		},
+	}
+	// AppStripeCustomersColumns holds the columns for the "app_stripe_customers" table.
+	AppStripeCustomersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "app_stripe_app_customers", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppStripeCustomersTable holds the schema information for the "app_stripe_customers" table.
+	AppStripeCustomersTable = &schema.Table{
+		Name:       "app_stripe_customers",
+		Columns:    AppStripeCustomersColumns,
+		PrimaryKey: []*schema.Column{AppStripeCustomersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripe_customers_app_stripes_app_customers",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[6]},
+				RefColumns: []*schema.Column{AppStripesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "app_stripe_customers_apps_app",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "app_stripe_customers_app_stripes_app_stripe",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
+				RefColumns: []*schema.Column{AppStripesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "app_stripe_customers_customers_customer",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[8]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripecustomer_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripeCustomersColumns[1]},
+			},
+			{
+				Name:    "appstripecustomer_namespace_app_id_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[7], AppStripeCustomersColumns[8]},
 			},
 		},
 	}
@@ -924,6 +1010,8 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AppsTable,
+		AppStripesTable,
+		AppStripeCustomersTable,
 		BalanceSnapshotsTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
@@ -946,6 +1034,11 @@ var (
 )
 
 func init() {
+	AppStripesTable.ForeignKeys[0].RefTable = AppsTable
+	AppStripeCustomersTable.ForeignKeys[0].RefTable = AppStripesTable
+	AppStripeCustomersTable.ForeignKeys[1].RefTable = AppsTable
+	AppStripeCustomersTable.ForeignKeys[2].RefTable = AppStripesTable
+	AppStripeCustomersTable.ForeignKeys[3].RefTable = CustomersTable
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable

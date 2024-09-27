@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 )
 
 // App is the model entity for the App schema.
@@ -34,14 +34,10 @@ type App struct {
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// Type holds the value of the "type" field.
-	Type app.AppType `json:"type,omitempty"`
+	Type appentity.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
-	Status app.AppStatus `json:"status,omitempty"`
-	// StripeAccountID holds the value of the "stripe_account_id" field.
-	StripeAccountID *string `json:"stripe_account_id,omitempty"`
-	// StripeLivemode holds the value of the "stripe_livemode" field.
-	StripeLivemode *bool `json:"stripe_livemode,omitempty"`
-	selectValues   sql.SelectValues
+	Status       appentity.AppStatus `json:"status,omitempty"`
+	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -49,13 +45,11 @@ func (*App) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbapp.FieldMetadata:
+		case app.FieldMetadata:
 			values[i] = new([]byte)
-		case dbapp.FieldStripeLivemode:
-			values[i] = new(sql.NullBool)
-		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus, dbapp.FieldStripeAccountID:
+		case app.FieldID, app.FieldNamespace, app.FieldName, app.FieldDescription, app.FieldType, app.FieldStatus:
 			values[i] = new(sql.NullString)
-		case dbapp.FieldCreatedAt, dbapp.FieldUpdatedAt, dbapp.FieldDeletedAt:
+		case app.FieldCreatedAt, app.FieldUpdatedAt, app.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -72,19 +66,19 @@ func (a *App) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case dbapp.FieldID:
+		case app.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				a.ID = value.String
 			}
-		case dbapp.FieldNamespace:
+		case app.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				a.Namespace = value.String
 			}
-		case dbapp.FieldMetadata:
+		case app.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -92,62 +86,48 @@ func (a *App) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case dbapp.FieldCreatedAt:
+		case app.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				a.CreatedAt = value.Time
 			}
-		case dbapp.FieldUpdatedAt:
+		case app.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				a.UpdatedAt = value.Time
 			}
-		case dbapp.FieldDeletedAt:
+		case app.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				a.DeletedAt = new(time.Time)
 				*a.DeletedAt = value.Time
 			}
-		case dbapp.FieldName:
+		case app.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				a.Name = value.String
 			}
-		case dbapp.FieldDescription:
+		case app.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				a.Description = value.String
 			}
-		case dbapp.FieldType:
+		case app.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				a.Type = app.AppType(value.String)
+				a.Type = appentity.AppType(value.String)
 			}
-		case dbapp.FieldStatus:
+		case app.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				a.Status = app.AppStatus(value.String)
-			}
-		case dbapp.FieldStripeAccountID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field stripe_account_id", values[i])
-			} else if value.Valid {
-				a.StripeAccountID = new(string)
-				*a.StripeAccountID = value.String
-			}
-		case dbapp.FieldStripeLivemode:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field stripe_livemode", values[i])
-			} else if value.Valid {
-				a.StripeLivemode = new(bool)
-				*a.StripeLivemode = value.Bool
+				a.Status = appentity.AppStatus(value.String)
 			}
 		default:
 			a.selectValues.Set(columns[i], values[i])
@@ -213,16 +193,6 @@ func (a *App) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", a.Status))
-	builder.WriteString(", ")
-	if v := a.StripeAccountID; v != nil {
-		builder.WriteString("stripe_account_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := a.StripeLivemode; v != nil {
-		builder.WriteString("stripe_livemode=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteByte(')')
 	return builder.String()
 }

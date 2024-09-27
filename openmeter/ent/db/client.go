@@ -15,7 +15,9 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -43,6 +45,10 @@ type Client struct {
 	Schema *migrate.Schema
 	// App is the client for interacting with the App builders.
 	App *AppClient
+	// AppStripe is the client for interacting with the AppStripe builders.
+	AppStripe *AppStripeClient
+	// AppStripeCustomer is the client for interacting with the AppStripeCustomer builders.
+	AppStripeCustomer *AppStripeCustomerClient
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
 	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
@@ -87,6 +93,8 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.App = NewAppClient(c.config)
+	c.AppStripe = NewAppStripeClient(c.config)
+	c.AppStripeCustomer = NewAppStripeCustomerClient(c.config)
 	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
@@ -196,6 +204,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                             ctx,
 		config:                          cfg,
 		App:                             NewAppClient(cfg),
+		AppStripe:                       NewAppStripeClient(cfg),
+		AppStripeCustomer:               NewAppStripeCustomerClient(cfg),
 		BalanceSnapshot:                 NewBalanceSnapshotClient(cfg),
 		BillingCustomerOverride:         NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                  NewBillingInvoiceClient(cfg),
@@ -232,6 +242,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                             ctx,
 		config:                          cfg,
 		App:                             NewAppClient(cfg),
+		AppStripe:                       NewAppStripeClient(cfg),
+		AppStripeCustomer:               NewAppStripeCustomerClient(cfg),
 		BalanceSnapshot:                 NewBalanceSnapshotClient(cfg),
 		BillingCustomerOverride:         NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                  NewBillingInvoiceClient(cfg),
@@ -277,11 +289,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.App, c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
-		c.BillingInvoiceItem, c.BillingProfile, c.BillingWorkflowConfig, c.Customer,
-		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.UsageReset,
+		c.App, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
+		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceItem,
+		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -291,11 +303,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.App, c.BalanceSnapshot, c.BillingCustomerOverride, c.BillingInvoice,
-		c.BillingInvoiceItem, c.BillingProfile, c.BillingWorkflowConfig, c.Customer,
-		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.UsageReset,
+		c.App, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
+		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceItem,
+		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -306,6 +318,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *AppMutation:
 		return c.App.mutate(ctx, m)
+	case *AppStripeMutation:
+		return c.AppStripe.mutate(ctx, m)
+	case *AppStripeCustomerMutation:
+		return c.AppStripeCustomer.mutate(ctx, m)
 	case *BalanceSnapshotMutation:
 		return c.BalanceSnapshot.mutate(ctx, m)
 	case *BillingCustomerOverrideMutation:
@@ -354,13 +370,13 @@ func NewAppClient(c config) *AppClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `dbapp.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `app.Hooks(f(g(h())))`.
 func (c *AppClient) Use(hooks ...Hook) {
 	c.hooks.App = append(c.hooks.App, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `dbapp.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `app.Intercept(f(g(h())))`.
 func (c *AppClient) Intercept(interceptors ...Interceptor) {
 	c.inters.App = append(c.inters.App, interceptors...)
 }
@@ -422,7 +438,7 @@ func (c *AppClient) DeleteOne(a *App) *AppDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *AppClient) DeleteOneID(id string) *AppDeleteOne {
-	builder := c.Delete().Where(dbapp.ID(id))
+	builder := c.Delete().Where(app.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &AppDeleteOne{builder}
@@ -439,7 +455,7 @@ func (c *AppClient) Query() *AppQuery {
 
 // Get returns a App entity by its id.
 func (c *AppClient) Get(ctx context.Context, id string) (*App, error) {
-	return c.Query().Where(dbapp.ID(id)).Only(ctx)
+	return c.Query().Where(app.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -473,6 +489,352 @@ func (c *AppClient) mutate(ctx context.Context, m *AppMutation) (Value, error) {
 		return (&AppDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown App mutation op: %q", m.Op())
+	}
+}
+
+// AppStripeClient is a client for the AppStripe schema.
+type AppStripeClient struct {
+	config
+}
+
+// NewAppStripeClient returns a client for the AppStripe from the given config.
+func NewAppStripeClient(c config) *AppStripeClient {
+	return &AppStripeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appstripe.Hooks(f(g(h())))`.
+func (c *AppStripeClient) Use(hooks ...Hook) {
+	c.hooks.AppStripe = append(c.hooks.AppStripe, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appstripe.Intercept(f(g(h())))`.
+func (c *AppStripeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppStripe = append(c.inters.AppStripe, interceptors...)
+}
+
+// Create returns a builder for creating a AppStripe entity.
+func (c *AppStripeClient) Create() *AppStripeCreate {
+	mutation := newAppStripeMutation(c.config, OpCreate)
+	return &AppStripeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppStripe entities.
+func (c *AppStripeClient) CreateBulk(builders ...*AppStripeCreate) *AppStripeCreateBulk {
+	return &AppStripeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppStripeClient) MapCreateBulk(slice any, setFunc func(*AppStripeCreate, int)) *AppStripeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppStripeCreateBulk{err: fmt.Errorf("calling to AppStripeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppStripeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppStripeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppStripe.
+func (c *AppStripeClient) Update() *AppStripeUpdate {
+	mutation := newAppStripeMutation(c.config, OpUpdate)
+	return &AppStripeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppStripeClient) UpdateOne(as *AppStripe) *AppStripeUpdateOne {
+	mutation := newAppStripeMutation(c.config, OpUpdateOne, withAppStripe(as))
+	return &AppStripeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppStripeClient) UpdateOneID(id string) *AppStripeUpdateOne {
+	mutation := newAppStripeMutation(c.config, OpUpdateOne, withAppStripeID(id))
+	return &AppStripeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppStripe.
+func (c *AppStripeClient) Delete() *AppStripeDelete {
+	mutation := newAppStripeMutation(c.config, OpDelete)
+	return &AppStripeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppStripeClient) DeleteOne(as *AppStripe) *AppStripeDeleteOne {
+	return c.DeleteOneID(as.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppStripeClient) DeleteOneID(id string) *AppStripeDeleteOne {
+	builder := c.Delete().Where(appstripe.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppStripeDeleteOne{builder}
+}
+
+// Query returns a query builder for AppStripe.
+func (c *AppStripeClient) Query() *AppStripeQuery {
+	return &AppStripeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppStripe},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppStripe entity by its id.
+func (c *AppStripeClient) Get(ctx context.Context, id string) (*AppStripe, error) {
+	return c.Query().Where(appstripe.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppStripeClient) GetX(ctx context.Context, id string) *AppStripe {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryApp queries the app edge of a AppStripe.
+func (c *AppStripeClient) QueryApp(as *AppStripe) *AppQuery {
+	query := (&AppClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := as.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripe.Table, appstripe.FieldID, id),
+			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appstripe.AppTable, appstripe.AppColumn),
+		)
+		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAppCustomers queries the app_customers edge of a AppStripe.
+func (c *AppStripeClient) QueryAppCustomers(as *AppStripe) *AppStripeCustomerQuery {
+	query := (&AppStripeCustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := as.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripe.Table, appstripe.FieldID, id),
+			sqlgraph.To(appstripecustomer.Table, appstripecustomer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, appstripe.AppCustomersTable, appstripe.AppCustomersColumn),
+		)
+		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AppStripeClient) Hooks() []Hook {
+	return c.hooks.AppStripe
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppStripeClient) Interceptors() []Interceptor {
+	return c.inters.AppStripe
+}
+
+func (c *AppStripeClient) mutate(ctx context.Context, m *AppStripeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppStripeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppStripeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppStripeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppStripeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppStripe mutation op: %q", m.Op())
+	}
+}
+
+// AppStripeCustomerClient is a client for the AppStripeCustomer schema.
+type AppStripeCustomerClient struct {
+	config
+}
+
+// NewAppStripeCustomerClient returns a client for the AppStripeCustomer from the given config.
+func NewAppStripeCustomerClient(c config) *AppStripeCustomerClient {
+	return &AppStripeCustomerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appstripecustomer.Hooks(f(g(h())))`.
+func (c *AppStripeCustomerClient) Use(hooks ...Hook) {
+	c.hooks.AppStripeCustomer = append(c.hooks.AppStripeCustomer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appstripecustomer.Intercept(f(g(h())))`.
+func (c *AppStripeCustomerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppStripeCustomer = append(c.inters.AppStripeCustomer, interceptors...)
+}
+
+// Create returns a builder for creating a AppStripeCustomer entity.
+func (c *AppStripeCustomerClient) Create() *AppStripeCustomerCreate {
+	mutation := newAppStripeCustomerMutation(c.config, OpCreate)
+	return &AppStripeCustomerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppStripeCustomer entities.
+func (c *AppStripeCustomerClient) CreateBulk(builders ...*AppStripeCustomerCreate) *AppStripeCustomerCreateBulk {
+	return &AppStripeCustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppStripeCustomerClient) MapCreateBulk(slice any, setFunc func(*AppStripeCustomerCreate, int)) *AppStripeCustomerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppStripeCustomerCreateBulk{err: fmt.Errorf("calling to AppStripeCustomerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppStripeCustomerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppStripeCustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppStripeCustomer.
+func (c *AppStripeCustomerClient) Update() *AppStripeCustomerUpdate {
+	mutation := newAppStripeCustomerMutation(c.config, OpUpdate)
+	return &AppStripeCustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppStripeCustomerClient) UpdateOne(asc *AppStripeCustomer) *AppStripeCustomerUpdateOne {
+	mutation := newAppStripeCustomerMutation(c.config, OpUpdateOne, withAppStripeCustomer(asc))
+	return &AppStripeCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppStripeCustomerClient) UpdateOneID(id int) *AppStripeCustomerUpdateOne {
+	mutation := newAppStripeCustomerMutation(c.config, OpUpdateOne, withAppStripeCustomerID(id))
+	return &AppStripeCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppStripeCustomer.
+func (c *AppStripeCustomerClient) Delete() *AppStripeCustomerDelete {
+	mutation := newAppStripeCustomerMutation(c.config, OpDelete)
+	return &AppStripeCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppStripeCustomerClient) DeleteOne(asc *AppStripeCustomer) *AppStripeCustomerDeleteOne {
+	return c.DeleteOneID(asc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppStripeCustomerClient) DeleteOneID(id int) *AppStripeCustomerDeleteOne {
+	builder := c.Delete().Where(appstripecustomer.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppStripeCustomerDeleteOne{builder}
+}
+
+// Query returns a query builder for AppStripeCustomer.
+func (c *AppStripeCustomerClient) Query() *AppStripeCustomerQuery {
+	return &AppStripeCustomerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppStripeCustomer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppStripeCustomer entity by its id.
+func (c *AppStripeCustomerClient) Get(ctx context.Context, id int) (*AppStripeCustomer, error) {
+	return c.Query().Where(appstripecustomer.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppStripeCustomerClient) GetX(ctx context.Context, id int) *AppStripeCustomer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryApp queries the app edge of a AppStripeCustomer.
+func (c *AppStripeCustomerClient) QueryApp(asc *AppStripeCustomer) *AppQuery {
+	query := (&AppClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := asc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripecustomer.Table, appstripecustomer.FieldID, id),
+			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.AppTable, appstripecustomer.AppColumn),
+		)
+		fromV = sqlgraph.Neighbors(asc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAppStripe queries the app_stripe edge of a AppStripeCustomer.
+func (c *AppStripeCustomerClient) QueryAppStripe(asc *AppStripeCustomer) *AppStripeQuery {
+	query := (&AppStripeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := asc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripecustomer.Table, appstripecustomer.FieldID, id),
+			sqlgraph.To(appstripe.Table, appstripe.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.AppStripeTable, appstripecustomer.AppStripeColumn),
+		)
+		fromV = sqlgraph.Neighbors(asc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a AppStripeCustomer.
+func (c *AppStripeCustomerClient) QueryCustomer(asc *AppStripeCustomer) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := asc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripecustomer.Table, appstripecustomer.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.CustomerTable, appstripecustomer.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(asc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AppStripeCustomerClient) Hooks() []Hook {
+	return c.hooks.AppStripeCustomer
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppStripeCustomerClient) Interceptors() []Interceptor {
+	return c.inters.AppStripeCustomer
+}
+
+func (c *AppStripeCustomerClient) mutate(ctx context.Context, m *AppStripeCustomerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppStripeCustomerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppStripeCustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppStripeCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppStripeCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppStripeCustomer mutation op: %q", m.Op())
 	}
 }
 
@@ -3055,16 +3417,16 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		App, BalanceSnapshot, BillingCustomerOverride, BillingInvoice,
-		BillingInvoiceItem, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
+		App, AppStripe, AppStripeCustomer, BalanceSnapshot, BillingCustomerOverride,
+		BillingInvoice, BillingInvoiceItem, BillingProfile, BillingWorkflowConfig,
+		Customer, CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
 		UsageReset []ent.Hook
 	}
 	inters struct {
-		App, BalanceSnapshot, BillingCustomerOverride, BillingInvoice,
-		BillingInvoiceItem, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
+		App, AppStripe, AppStripeCustomer, BalanceSnapshot, BillingCustomerOverride,
+		BillingInvoice, BillingInvoiceItem, BillingProfile, BillingWorkflowConfig,
+		Customer, CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
 		UsageReset []ent.Interceptor
 	}

@@ -91,6 +91,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		App: NewAppClient(config),
 
+		AppStripe: NewAppStripeClient(config),
+
+		AppStripeCustomer: NewAppStripeCustomerClient(config),
+
 		BalanceSnapshot: NewBalanceSnapshotClient(config),
 
 		BillingCustomerOverride: NewBillingCustomerOverrideClient(config),
