@@ -278,7 +278,7 @@ interface Rules {
   @put
   @operationId("updateNotificationRule")
   @summary("Update a notification rule")
-  update(@body request: RuleCreateRequest): {
+  update(@path ruleId: ULID, @body request: RuleCreateRequest): {
     @statusCode _: 200;
     @body body: Rule;
   } | OpenMeter.CommonErrors;
@@ -311,5 +311,6 @@ interface Rules {
   @operationId("testNotificationRule")
   test(@path ruleId: ULID): {
     @statusCode _: 201;
+    @body body: Event;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
