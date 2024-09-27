@@ -37,8 +37,8 @@ func (a adapter) ListApps(ctx context.Context, params app.ListAppInput) (paginat
 
 	result := make([]app.App, 0, len(paged.Items))
 	for _, item := range paged.Items {
-		listing, err := a.GetListing(ctx, app.GetMarketplaceListingInput{
-			Key: item.ListingKey,
+		listing, err := a.marketplace.GetListing(ctx, app.GetMarketplaceListingInput{
+			Type: item.Type,
 		})
 		if err != nil {
 			return response, fmt.Errorf("failed to get listing for app %s: %w", item.ID, err)
@@ -78,8 +78,8 @@ func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, er
 		return nil, err
 	}
 
-	listing, err := a.GetListing(ctx, app.GetMarketplaceListingInput{
-		Key: dbApp.ListingKey,
+	listing, err := a.marketplace.GetListing(ctx, app.GetMarketplaceListingInput{
+		Type: dbApp.Type,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)

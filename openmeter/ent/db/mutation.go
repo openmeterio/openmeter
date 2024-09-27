@@ -85,7 +85,6 @@ type AppMutation struct {
 	description       *string
 	_type             *app.AppType
 	status            *app.AppStatus
-	listing_key       *string
 	stripe_account_id *string
 	stripe_livemode   *bool
 	clearedFields     map[string]struct{}
@@ -548,42 +547,6 @@ func (m *AppMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetListingKey sets the "listing_key" field.
-func (m *AppMutation) SetListingKey(s string) {
-	m.listing_key = &s
-}
-
-// ListingKey returns the value of the "listing_key" field in the mutation.
-func (m *AppMutation) ListingKey() (r string, exists bool) {
-	v := m.listing_key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldListingKey returns the old "listing_key" field's value of the App entity.
-// If the App object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldListingKey(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldListingKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldListingKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldListingKey: %w", err)
-	}
-	return oldValue.ListingKey, nil
-}
-
-// ResetListingKey resets all changes to the "listing_key" field.
-func (m *AppMutation) ResetListingKey() {
-	m.listing_key = nil
-}
-
 // SetStripeAccountID sets the "stripe_account_id" field.
 func (m *AppMutation) SetStripeAccountID(s string) {
 	m.stripe_account_id = &s
@@ -716,7 +679,7 @@ func (m *AppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, dbapp.FieldNamespace)
 	}
@@ -743,9 +706,6 @@ func (m *AppMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, dbapp.FieldStatus)
-	}
-	if m.listing_key != nil {
-		fields = append(fields, dbapp.FieldListingKey)
 	}
 	if m.stripe_account_id != nil {
 		fields = append(fields, dbapp.FieldStripeAccountID)
@@ -779,8 +739,6 @@ func (m *AppMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case dbapp.FieldStatus:
 		return m.Status()
-	case dbapp.FieldListingKey:
-		return m.ListingKey()
 	case dbapp.FieldStripeAccountID:
 		return m.StripeAccountID()
 	case dbapp.FieldStripeLivemode:
@@ -812,8 +770,6 @@ func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldType(ctx)
 	case dbapp.FieldStatus:
 		return m.OldStatus(ctx)
-	case dbapp.FieldListingKey:
-		return m.OldListingKey(ctx)
 	case dbapp.FieldStripeAccountID:
 		return m.OldStripeAccountID(ctx)
 	case dbapp.FieldStripeLivemode:
@@ -889,13 +845,6 @@ func (m *AppMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
-		return nil
-	case dbapp.FieldListingKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetListingKey(v)
 		return nil
 	case dbapp.FieldStripeAccountID:
 		v, ok := value.(string)
@@ -1013,9 +962,6 @@ func (m *AppMutation) ResetField(name string) error {
 		return nil
 	case dbapp.FieldStatus:
 		m.ResetStatus()
-		return nil
-	case dbapp.FieldListingKey:
-		m.ResetListingKey()
 		return nil
 	case dbapp.FieldStripeAccountID:
 		m.ResetStripeAccountID()

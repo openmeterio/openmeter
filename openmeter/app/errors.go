@@ -61,7 +61,7 @@ type MarketplaceListingNotFoundError struct {
 }
 
 func (e MarketplaceListingNotFoundError) Error() string {
-	return fmt.Sprintf("listing with key %s not found", e.Key)
+	return fmt.Sprintf("listing with type %s not found", e.Type)
 }
 
 type genericError struct {

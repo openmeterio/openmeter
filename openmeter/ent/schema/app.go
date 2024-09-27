@@ -25,7 +25,6 @@ func (App) Fields() []ent.Field {
 		field.String("description"),
 		field.String("type").GoType(app.AppType("")).Immutable(),
 		field.String("status").GoType(app.AppStatus("")),
-		field.String("listing_key").Immutable(),
 
 		// Stripe specific fields
 		field.String("stripe_account_id").Optional().Nillable().Immutable(),
