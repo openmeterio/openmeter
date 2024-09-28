@@ -223,7 +223,7 @@ interface Rules {
      */
     @query
     @example(true)
-    includeDeleted?: boolean,
+    includeDeleted?: boolean = false,
 
     /**
      * Include disabled notification rules in response.
@@ -232,7 +232,7 @@ interface Rules {
      */
     @query
     @example(false)
-    includeDisabled?: boolean,
+    includeDisabled?: boolean = false,
 
     // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
     // where the code generation results a less complicated/more idiomatic code.

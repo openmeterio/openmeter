@@ -155,7 +155,7 @@ interface Subjects {
     /**
      * Windowsize
      */
-    @query windowSize?: OpenMeter.WindowSize,
+    @query windowSize: OpenMeter.WindowSize,
 
     /**
      * The timezone used when calculating the windows.
