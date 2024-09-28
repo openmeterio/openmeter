@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -37,8 +38,10 @@ func (AppStripe) Edges() []ent.Edge {
 		edge.To("app", App.Type).
 			Immutable().
 			Required().
-			Unique(),
-		edge.To("app_customers", AppStripeCustomer.Type),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("app_customers", AppStripeCustomer.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

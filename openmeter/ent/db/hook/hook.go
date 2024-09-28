@@ -21,6 +21,18 @@ func (f AppFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppMutation", m)
 }
 
+// The AppCustomerFunc type is an adapter to allow the use of ordinary
+// function as AppCustomer mutator.
+type AppCustomerFunc func(context.Context, *db.AppCustomerMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppCustomerFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AppCustomerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppCustomerMutation", m)
+}
+
 // The AppStripeFunc type is an adapter to allow the use of ordinary
 // function as AppStripe mutator.
 type AppStripeFunc func(context.Context, *db.AppStripeMutation) (db.Value, error)
