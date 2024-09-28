@@ -36,8 +36,29 @@ type App struct {
 	// Type holds the value of the "type" field.
 	Type appentity.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       appentity.AppStatus `json:"status,omitempty"`
+	Status appentity.AppStatus `json:"status,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the AppQuery when eager-loading is set.
+	Edges        AppEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// AppEdges holds the relations/edges for other nodes in the graph.
+type AppEdges struct {
+	// AppCustomers holds the value of the app_customers edge.
+	AppCustomers []*AppStripeCustomer `json:"app_customers,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// AppCustomersOrErr returns the AppCustomers value or an error if the edge
+// was not loaded in eager-loading.
+func (e AppEdges) AppCustomersOrErr() ([]*AppStripeCustomer, error) {
+	if e.loadedTypes[0] {
+		return e.AppCustomers, nil
+	}
+	return nil, &NotLoadedError{edge: "app_customers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -140,6 +161,11 @@ func (a *App) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (a *App) Value(name string) (ent.Value, error) {
 	return a.selectValues.Get(name)
+}
+
+// QueryAppCustomers queries the "app_customers" edge of the App entity.
+func (a *App) QueryAppCustomers() *AppStripeCustomerQuery {
+	return NewAppClient(a.config).QueryAppCustomers(a)
 }
 
 // Update returns a builder for updating this App.

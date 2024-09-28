@@ -37,6 +37,7 @@ type AppStripeCustomer struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppStripeCustomerQuery when eager-loading is set.
 	Edges                    AppStripeCustomerEdges `json:"edges"`
+	app_app_customers        *string
 	app_stripe_app_customers *string
 	selectValues             sql.SelectValues
 }
@@ -98,7 +99,9 @@ func (*AppStripeCustomer) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case appstripecustomer.FieldCreatedAt, appstripecustomer.FieldUpdatedAt, appstripecustomer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case appstripecustomer.ForeignKeys[0]: // app_stripe_app_customers
+		case appstripecustomer.ForeignKeys[0]: // app_app_customers
+			values[i] = new(sql.NullString)
+		case appstripecustomer.ForeignKeys[1]: // app_stripe_app_customers
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -166,6 +169,13 @@ func (asc *AppStripeCustomer) assignValues(columns []string, values []any) error
 				*asc.StripeCustomerID = value.String
 			}
 		case appstripecustomer.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field app_app_customers", values[i])
+			} else if value.Valid {
+				asc.app_app_customers = new(string)
+				*asc.app_app_customers = value.String
+			}
+		case appstripecustomer.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field app_stripe_app_customers", values[i])
 			} else if value.Valid {

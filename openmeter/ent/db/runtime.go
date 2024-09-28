@@ -5,7 +5,9 @@ package db
 import (
 	"time"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -57,6 +59,39 @@ func init() {
 	appDescID := appMixinFields0[0].Descriptor()
 	// app.DefaultID holds the default value on creation for the id field.
 	app.DefaultID = appDescID.Default.(func() string)
+	appcustomerMixin := schema.AppCustomer{}.Mixin()
+	appcustomerMixinFields0 := appcustomerMixin[0].Fields()
+	_ = appcustomerMixinFields0
+	appcustomerMixinFields1 := appcustomerMixin[1].Fields()
+	_ = appcustomerMixinFields1
+	appcustomerFields := schema.AppCustomer{}.Fields()
+	_ = appcustomerFields
+	// appcustomerDescNamespace is the schema descriptor for namespace field.
+	appcustomerDescNamespace := appcustomerMixinFields0[0].Descriptor()
+	// appcustomer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	appcustomer.NamespaceValidator = appcustomerDescNamespace.Validators[0].(func(string) error)
+	// appcustomerDescCreatedAt is the schema descriptor for created_at field.
+	appcustomerDescCreatedAt := appcustomerMixinFields1[0].Descriptor()
+	// appcustomer.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appcustomer.DefaultCreatedAt = appcustomerDescCreatedAt.Default.(func() time.Time)
+	// appcustomerDescUpdatedAt is the schema descriptor for updated_at field.
+	appcustomerDescUpdatedAt := appcustomerMixinFields1[1].Descriptor()
+	// appcustomer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appcustomer.DefaultUpdatedAt = appcustomerDescUpdatedAt.Default.(func() time.Time)
+	// appcustomer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appcustomer.UpdateDefaultUpdatedAt = appcustomerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appcustomerDescAppID is the schema descriptor for app_id field.
+	appcustomerDescAppID := appcustomerFields[0].Descriptor()
+	// appcustomer.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
+	appcustomer.AppIDValidator = appcustomerDescAppID.Validators[0].(func(string) error)
+	// appcustomerDescCustomerID is the schema descriptor for customer_id field.
+	appcustomerDescCustomerID := appcustomerFields[1].Descriptor()
+	// appcustomer.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	appcustomer.CustomerIDValidator = appcustomerDescCustomerID.Validators[0].(func(string) error)
+	// appcustomerDescActions is the schema descriptor for actions field.
+	appcustomerDescActions := appcustomerFields[2].Descriptor()
+	// appcustomer.DefaultActions holds the default value on creation for the actions field.
+	appcustomer.DefaultActions = appcustomerDescActions.Default.([]appentity.AppListenerAction)
 	appstripeMixin := schema.AppStripe{}.Mixin()
 	appstripeMixinFields0 := appstripeMixin[0].Fields()
 	_ = appstripeMixinFields0

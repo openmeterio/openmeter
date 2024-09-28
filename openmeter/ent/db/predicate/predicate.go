@@ -9,6 +9,9 @@ import (
 // App is the predicate function for app builders.
 type App func(*sql.Selector)
 
+// AppCustomer is the predicate function for appcustomer builders.
+type AppCustomer func(*sql.Selector)
+
 // AppStripe is the predicate function for appstripe builders.
 type AppStripe func(*sql.Selector)
 

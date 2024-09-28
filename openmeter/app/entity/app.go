@@ -49,6 +49,15 @@ type AppBase struct {
 	Listing MarketplaceListing `json:"listing"`
 }
 
+// AppListenerAction represents actions that the app wants to listen to
+type AppListenerAction string
+
+const (
+	AppListenerActionCreate AppListenerAction = "create"
+	AppListenerActionUpdate AppListenerAction = "update"
+	AppListenerActionDelete AppListenerAction = "delete"
+)
+
 func (a AppBase) GetID() AppID {
 	return AppID{
 		Namespace: a.Namespace,
