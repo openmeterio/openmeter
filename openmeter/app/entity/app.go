@@ -158,15 +158,20 @@ type GetAppInput = AppID
 
 // ListAppInput is the input for listing installed apps
 type ListAppInput struct {
-	AppID
+	Namespace string
 	pagination.Page
 
+	Type           *AppType
 	IncludeDeleted bool
 }
 
 func (i ListAppInput) Validate() error {
-	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if err := i.Page.Validate(); err != nil {
+		return fmt.Errorf("error validating page: %w", err)
 	}
 
 	return nil

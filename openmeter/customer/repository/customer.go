@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -13,6 +14,24 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+// Register registers a new observer
+func (r repository) Register(observer appobserver.Observer[customer.Customer]) error {
+	r.observers = append(r.observers, observer)
+	return nil
+}
+
+// Deregister deregisters an observer
+func (r repository) Deregister(observer appobserver.Observer[customer.Customer]) error {
+	for i, o := range r.observers {
+		if o == observer {
+			r.observers = append(r.observers[:i], r.observers[i+1:]...)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("observer not found")
+}
 
 // ListCustomers lists customers
 func (r repository) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
@@ -127,8 +146,16 @@ func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCu
 	}
 
 	customerEntity.Edges.Subjects = customerSubjects
+	customer := CustomerFromDBEntity(*customerEntity)
 
-	return CustomerFromDBEntity(*customerEntity), nil
+	// Post-create hook
+	for _, observer := range r.observers {
+		if err := observer.PostCreate(customer); err != nil {
+			return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
+		}
+	}
+
+	return customer, nil
 }
 
 // DeleteCustomer deletes a customer
@@ -150,6 +177,19 @@ func (r repository) DeleteCustomer(ctx context.Context, input customer.DeleteCus
 	if rows == 0 {
 		return customer.NotFoundError{
 			CustomerID: customer.CustomerID(input),
+		}
+	}
+
+	// Deleted customer
+	customer, err := r.GetCustomer(ctx, customer.GetCustomerInput(input))
+	if err != nil {
+		return fmt.Errorf("failed to get deleted customer: %w", err)
+	}
+
+	// Post-delete hook
+	for _, observer := range r.observers {
+		if err := observer.PostDelete(customer); err != nil {
+			return fmt.Errorf("failed to delete customer: post-delete hook failed: %w", err)
 		}
 	}
 
@@ -356,5 +396,14 @@ func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCus
 		})
 	}
 
-	return CustomerFromDBEntity(*entity), nil
+	customer := CustomerFromDBEntity(*entity)
+
+	// Post-update hook
+	for _, observer := range r.observers {
+		if err := observer.PostUpdate(customer); err != nil {
+			return nil, fmt.Errorf("failed to update customer: post-update hook failed: %w", err)
+		}
+	}
+
+	return customer, nil
 }

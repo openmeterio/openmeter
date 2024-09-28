@@ -123,3 +123,66 @@ func (a App) ValidateCustomer(customer customer.Customer, capabilities []appenti
 }
 
 type CreateAppStripeInput = App
+
+type UpsertStripeCustomerDataInput struct {
+	AppID            appentity.AppID
+	CustomerID       customer.CustomerID
+	StripeCustomerID string
+}
+
+func (i UpsertStripeCustomerDataInput) Validate() error {
+	if i.AppID.ID == "" {
+		return errors.New("app id is required")
+	}
+
+	if i.AppID.Namespace == "" {
+		return errors.New("app namespace is required")
+	}
+
+	if i.CustomerID.ID == "" {
+		return errors.New("customer id is required")
+	}
+
+	if i.CustomerID.Namespace == "" {
+		return errors.New("customer namespace is required")
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
+	}
+
+	if i.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
+	}
+
+	return nil
+}
+
+type DeleteStripeCustomerDataInput struct {
+	AppID      appentity.AppID
+	CustomerID customer.CustomerID
+}
+
+func (i DeleteStripeCustomerDataInput) Validate() error {
+	if i.AppID.ID == "" {
+		return errors.New("app id is required")
+	}
+
+	if i.AppID.Namespace == "" {
+		return errors.New("app namespace is required")
+	}
+
+	if i.CustomerID.ID == "" {
+		return errors.New("customer id is required")
+	}
+
+	if i.CustomerID.Namespace == "" {
+		return errors.New("customer namespace is required")
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
+	}
+
+	return nil
+}

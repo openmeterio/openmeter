@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
@@ -38,11 +39,15 @@ func New(config Config) (customer.Repository, error) {
 	}, nil
 }
 
-var _ customer.Repository = (*repository)(nil)
+var (
+	_ customer.Repository                      = (*repository)(nil)
+	_ appobserver.Publisher[customer.Customer] = (*repository)(nil)
+)
 
 type repository struct {
-	db *entdb.Client
-	tx *entdb.Tx
+	db        *entdb.Client
+	tx        *entdb.Tx
+	observers []appobserver.Observer[customer.Customer]
 
 	logger *slog.Logger
 }
