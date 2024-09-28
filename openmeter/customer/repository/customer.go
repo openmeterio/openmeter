@@ -16,13 +16,13 @@ import (
 )
 
 // Register registers a new observer
-func (r repository) Register(observer appobserver.Observer[customer.Customer]) error {
+func (r *repository) Register(observer appobserver.Observer[customer.Customer]) error {
 	r.observers = append(r.observers, observer)
 	return nil
 }
 
 // Deregister deregisters an observer
-func (r repository) Deregister(observer appobserver.Observer[customer.Customer]) error {
+func (r *repository) Deregister(observer appobserver.Observer[customer.Customer]) error {
 	for i, o := range r.observers {
 		if o == observer {
 			r.observers = append(r.observers[:i], r.observers[i+1:]...)

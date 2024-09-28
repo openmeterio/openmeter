@@ -92,6 +92,9 @@ func (c CustomerObserver) upsertDefault(customer *customer.Customer) error {
 		CustomerID:       customer.GetID(),
 		StripeCustomerID: *customer.External.StripeCustomerID,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert stripe customer data: %w", err)
+	}
 
 	return nil
 }
