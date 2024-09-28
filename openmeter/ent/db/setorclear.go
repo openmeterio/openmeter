@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -39,6 +40,34 @@ func (u *AppUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppUpdateOne {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppCustomerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppCustomerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomerUpdate) SetOrClearActions(value *[]appentity.AppListenerAction) *AppCustomerUpdate {
+	if value == nil {
+		return u.ClearActions()
+	}
+	return u.SetActions(*value)
+}
+
+func (u *AppCustomerUpdateOne) SetOrClearActions(value *[]appentity.AppListenerAction) *AppCustomerUpdateOne {
+	if value == nil {
+		return u.ClearActions()
+	}
+	return u.SetActions(*value)
 }
 
 func (u *AppStripeUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeUpdate {

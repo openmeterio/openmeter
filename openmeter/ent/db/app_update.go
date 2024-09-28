@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -109,9 +110,45 @@ func (au *AppUpdate) SetNillableStatus(as *appentity.AppStatus) *AppUpdate {
 	return au
 }
 
+// AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
+func (au *AppUpdate) AddAppCustomerIDs(ids ...int) *AppUpdate {
+	au.mutation.AddAppCustomerIDs(ids...)
+	return au
+}
+
+// AddAppCustomers adds the "app_customers" edges to the AppStripeCustomer entity.
+func (au *AppUpdate) AddAppCustomers(a ...*AppStripeCustomer) *AppUpdate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return au.AddAppCustomerIDs(ids...)
+}
+
 // Mutation returns the AppMutation object of the builder.
 func (au *AppUpdate) Mutation() *AppMutation {
 	return au.mutation
+}
+
+// ClearAppCustomers clears all "app_customers" edges to the AppStripeCustomer entity.
+func (au *AppUpdate) ClearAppCustomers() *AppUpdate {
+	au.mutation.ClearAppCustomers()
+	return au
+}
+
+// RemoveAppCustomerIDs removes the "app_customers" edge to AppStripeCustomer entities by IDs.
+func (au *AppUpdate) RemoveAppCustomerIDs(ids ...int) *AppUpdate {
+	au.mutation.RemoveAppCustomerIDs(ids...)
+	return au
+}
+
+// RemoveAppCustomers removes "app_customers" edges to AppStripeCustomer entities.
+func (au *AppUpdate) RemoveAppCustomers(a ...*AppStripeCustomer) *AppUpdate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return au.RemoveAppCustomerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -182,6 +219,51 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := au.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
+	}
+	if au.mutation.AppCustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.AppCustomersTable,
+			Columns: []string{app.AppCustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.RemovedAppCustomersIDs(); len(nodes) > 0 && !au.mutation.AppCustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.AppCustomersTable,
+			Columns: []string{app.AppCustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.AppCustomersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.AppCustomersTable,
+			Columns: []string{app.AppCustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, au.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -283,9 +365,45 @@ func (auo *AppUpdateOne) SetNillableStatus(as *appentity.AppStatus) *AppUpdateOn
 	return auo
 }
 
+// AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
+func (auo *AppUpdateOne) AddAppCustomerIDs(ids ...int) *AppUpdateOne {
+	auo.mutation.AddAppCustomerIDs(ids...)
+	return auo
+}
+
+// AddAppCustomers adds the "app_customers" edges to the AppStripeCustomer entity.
+func (auo *AppUpdateOne) AddAppCustomers(a ...*AppStripeCustomer) *AppUpdateOne {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return auo.AddAppCustomerIDs(ids...)
+}
+
 // Mutation returns the AppMutation object of the builder.
 func (auo *AppUpdateOne) Mutation() *AppMutation {
 	return auo.mutation
+}
+
+// ClearAppCustomers clears all "app_customers" edges to the AppStripeCustomer entity.
+func (auo *AppUpdateOne) ClearAppCustomers() *AppUpdateOne {
+	auo.mutation.ClearAppCustomers()
+	return auo
+}
+
+// RemoveAppCustomerIDs removes the "app_customers" edge to AppStripeCustomer entities by IDs.
+func (auo *AppUpdateOne) RemoveAppCustomerIDs(ids ...int) *AppUpdateOne {
+	auo.mutation.RemoveAppCustomerIDs(ids...)
+	return auo
+}
+
+// RemoveAppCustomers removes "app_customers" edges to AppStripeCustomer entities.
+func (auo *AppUpdateOne) RemoveAppCustomers(a ...*AppStripeCustomer) *AppUpdateOne {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return auo.RemoveAppCustomerIDs(ids...)
 }
 
 // Where appends a list predicates to the AppUpdate builder.
@@ -386,6 +504,51 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	}
 	if value, ok := auo.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
+	}
+	if auo.mutation.AppCustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.AppCustomersTable,
+			Columns: []string{app.AppCustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.RemovedAppCustomersIDs(); len(nodes) > 0 && !auo.mutation.AppCustomersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.AppCustomersTable,
+			Columns: []string{app.AppCustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.AppCustomersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.AppCustomersTable,
+			Columns: []string{app.AppCustomersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &App{config: auo.config}
 	_spec.Assign = _node.assignValues

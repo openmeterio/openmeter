@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -31,8 +32,17 @@ const (
 	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// EdgeAppCustomers holds the string denoting the app_customers edge name in mutations.
+	EdgeAppCustomers = "app_customers"
 	// Table holds the table name of the app in the database.
 	Table = "apps"
+	// AppCustomersTable is the table that holds the app_customers relation/edge.
+	AppCustomersTable = "app_stripe_customers"
+	// AppCustomersInverseTable is the table name for the AppStripeCustomer entity.
+	// It exists in this package in order to avoid circular dependency with the "appstripecustomer" package.
+	AppCustomersInverseTable = "app_stripe_customers"
+	// AppCustomersColumn is the table column denoting the app_customers relation/edge.
+	AppCustomersColumn = "app_app_customers"
 )
 
 // Columns holds all SQL columns for app fields.
@@ -118,4 +128,25 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByAppCustomersCount orders the results by app_customers count.
+func ByAppCustomersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAppCustomersStep(), opts...)
+	}
+}
+
+// ByAppCustomers orders the results by app_customers terms.
+func ByAppCustomers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAppCustomersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newAppCustomersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AppCustomersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AppCustomersTable, AppCustomersColumn),
+	)
 }

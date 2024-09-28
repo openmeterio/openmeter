@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -608,6 +609,29 @@ func StatusEqualFold(v appentity.AppStatus) predicate.App {
 func StatusContainsFold(v appentity.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContainsFold(FieldStatus, vc))
+}
+
+// HasAppCustomers applies the HasEdge predicate on the "app_customers" edge.
+func HasAppCustomers() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AppCustomersTable, AppCustomersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAppCustomersWith applies the HasEdge predicate on the "app_customers" edge with a given conditions (other predicates).
+func HasAppCustomersWith(preds ...predicate.AppStripeCustomer) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newAppCustomersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

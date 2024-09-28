@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,17 +14,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // AppQuery is the builder for querying App entities.
 type AppQuery struct {
 	config
-	ctx        *QueryContext
-	order      []app.OrderOption
-	inters     []Interceptor
-	predicates []predicate.App
-	modifiers  []func(*sql.Selector)
+	ctx              *QueryContext
+	order            []app.OrderOption
+	inters           []Interceptor
+	predicates       []predicate.App
+	withAppCustomers *AppStripeCustomerQuery
+	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +61,28 @@ func (aq *AppQuery) Unique(unique bool) *AppQuery {
 func (aq *AppQuery) Order(o ...app.OrderOption) *AppQuery {
 	aq.order = append(aq.order, o...)
 	return aq
+}
+
+// QueryAppCustomers chains the current query on the "app_customers" edge.
+func (aq *AppQuery) QueryAppCustomers() *AppStripeCustomerQuery {
+	query := (&AppStripeCustomerClient{config: aq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.To(appstripecustomer.Table, appstripecustomer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.AppCustomersTable, app.AppCustomersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first App entity from the query.
@@ -247,15 +272,27 @@ func (aq *AppQuery) Clone() *AppQuery {
 		return nil
 	}
 	return &AppQuery{
-		config:     aq.config,
-		ctx:        aq.ctx.Clone(),
-		order:      append([]app.OrderOption{}, aq.order...),
-		inters:     append([]Interceptor{}, aq.inters...),
-		predicates: append([]predicate.App{}, aq.predicates...),
+		config:           aq.config,
+		ctx:              aq.ctx.Clone(),
+		order:            append([]app.OrderOption{}, aq.order...),
+		inters:           append([]Interceptor{}, aq.inters...),
+		predicates:       append([]predicate.App{}, aq.predicates...),
+		withAppCustomers: aq.withAppCustomers.Clone(),
 		// clone intermediate query.
 		sql:  aq.sql.Clone(),
 		path: aq.path,
 	}
+}
+
+// WithAppCustomers tells the query-builder to eager-load the nodes that are connected to
+// the "app_customers" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithAppCustomers(opts ...func(*AppStripeCustomerQuery)) *AppQuery {
+	query := (&AppStripeCustomerClient{config: aq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withAppCustomers = query
+	return aq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -334,8 +371,11 @@ func (aq *AppQuery) prepareQuery(ctx context.Context) error {
 
 func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, error) {
 	var (
-		nodes = []*App{}
-		_spec = aq.querySpec()
+		nodes       = []*App{}
+		_spec       = aq.querySpec()
+		loadedTypes = [1]bool{
+			aq.withAppCustomers != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*App).scanValues(nil, columns)
@@ -343,6 +383,7 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &App{config: aq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(aq.modifiers) > 0 {
@@ -357,7 +398,46 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := aq.withAppCustomers; query != nil {
+		if err := aq.loadAppCustomers(ctx, query, nodes,
+			func(n *App) { n.Edges.AppCustomers = []*AppStripeCustomer{} },
+			func(n *App, e *AppStripeCustomer) { n.Edges.AppCustomers = append(n.Edges.AppCustomers, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (aq *AppQuery) loadAppCustomers(ctx context.Context, query *AppStripeCustomerQuery, nodes []*App, init func(*App), assign func(*App, *AppStripeCustomer)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*App)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.AppStripeCustomer(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(app.AppCustomersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.app_app_customers
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "app_app_customers" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "app_app_customers" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (aq *AppQuery) sqlCount(ctx context.Context) (int, error) {

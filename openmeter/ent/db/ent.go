@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -93,6 +94,7 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			app.Table:                             app.ValidColumn,
+			appcustomer.Table:                     appcustomer.ValidColumn,
 			appstripe.Table:                       appstripe.ValidColumn,
 			appstripecustomer.Table:               appstripecustomer.ValidColumn,
 			balancesnapshot.Table:                 balancesnapshot.ValidColumn,

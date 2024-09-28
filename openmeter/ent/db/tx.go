@@ -16,6 +16,8 @@ type Tx struct {
 	config
 	// App is the client for interacting with the App builders.
 	App *AppClient
+	// AppCustomer is the client for interacting with the AppCustomer builders.
+	AppCustomer *AppCustomerClient
 	// AppStripe is the client for interacting with the AppStripe builders.
 	AppStripe *AppStripeClient
 	// AppStripeCustomer is the client for interacting with the AppStripeCustomer builders.
@@ -184,6 +186,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.App = NewAppClient(tx.config)
+	tx.AppCustomer = NewAppCustomerClient(tx.config)
 	tx.AppStripe = NewAppStripeClient(tx.config)
 	tx.AppStripeCustomer = NewAppStripeCustomerClient(tx.config)
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
