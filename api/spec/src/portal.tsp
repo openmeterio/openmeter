@@ -77,7 +77,11 @@ interface Meters {
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
   @sharedRoute
-  queryJson(@path meterSlug: Key, ...OmitProperties<OpenMeter.MeterQuery, "subject">, @header accept?: "application/json" = "application/json"): {
+  queryJson(
+    @path meterSlug: Key,
+    ...OmitProperties<OpenMeter.MeterQuery, "subject">,
+    @header accept?: "application/json" = "application/json",
+  ): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
