@@ -18,3 +18,23 @@ func (s *Service) CreateStripeApp(ctx context.Context, input appstripeentity.Cre
 
 	return s.adapter.CreateStripeApp(ctx, input)
 }
+
+func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+	if err := input.Validate(); err != nil {
+		return appstripe.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.adapter.UpsertStripeCustomerData(ctx, input)
+}
+
+func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+	if err := input.Validate(); err != nil {
+		return appstripe.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.adapter.DeleteStripeCustomerData(ctx, input)
+}

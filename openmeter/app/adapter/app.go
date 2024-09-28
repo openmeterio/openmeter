@@ -22,6 +22,10 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 		Query().
 		Where(appdb.Namespace(params.Namespace))
 
+	if params.Type != nil {
+		query = query.Where(appdb.Type(*params.Type))
+	}
+
 	// Do not return deleted apps by default
 	if !params.IncludeDeleted {
 		query = query.Where(appdb.DeletedAtIsNil())

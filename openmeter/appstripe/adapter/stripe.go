@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -43,6 +44,42 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 	dbAppStripe.Edges.App = dbApp
 
 	return mapAppStripeFromDB(dbAppStripe), nil
+}
+
+// UpsertStripeCustomerData upserts stripe customer data
+func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+	err := a.tx.AppStripeCustomer.
+		Create().
+		SetNamespace(input.CustomerID.Namespace).
+		SetAppID(input.AppID.ID).
+		SetCustomerID(input.StripeCustomerID).
+		SetStripeCustomerID(input.StripeCustomerID).
+		// Upsert
+		OnConflict().
+		UpdateNewValues().
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to upsert app stripe customer data: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteStripeCustomerData deletes stripe customer data
+func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+	_, err := a.tx.AppStripeCustomer.
+		Delete().
+		Where(
+			appstripecustomerdb.Namespace(input.CustomerID.Namespace),
+			appstripecustomerdb.AppID(input.AppID.ID),
+			appstripecustomerdb.CustomerID(input.CustomerID.ID),
+		).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete app stripe customer data: %w", err)
+	}
+
+	return nil
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity
