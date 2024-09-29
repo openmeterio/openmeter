@@ -3,7 +3,7 @@ package billing
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 type Service interface {
@@ -39,5 +39,5 @@ type InvoiceService interface {
 	// The call can return any number of invoices based on multiple factors:
 	// - The customer has multiple currencies (e.g. USD and EUR)
 	// - [later] The provider can also mandate separate invoices if needed
-	GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]InvoiceWithValidation, error)
+	GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]InvoiceWithValidation, error)
 }

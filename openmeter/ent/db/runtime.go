@@ -55,6 +55,10 @@ func init() {
 	app.DefaultUpdatedAt = appDescUpdatedAt.Default.(func() time.Time)
 	// app.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	app.UpdateDefaultUpdatedAt = appDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appDescIsDefault is the schema descriptor for is_default field.
+	appDescIsDefault := appFields[4].Descriptor()
+	// app.DefaultIsDefault holds the default value on creation for the is_default field.
+	app.DefaultIsDefault = appDescIsDefault.Default.(bool)
 	// appDescID is the schema descriptor for id field.
 	appDescID := appMixinFields0[0].Descriptor()
 	// app.DefaultID holds the default value on creation for the id field.

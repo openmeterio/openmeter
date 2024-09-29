@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -35,7 +35,7 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	})
 
 	// Then we get a customer not found error
-	require.ErrorAs(s.T(), err, &customer.NotFoundError{})
+	require.ErrorAs(s.T(), err, &customerentity.NotFoundError{})
 	require.Nil(s.T(), customerEntity)
 }
 
@@ -44,7 +44,7 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	ctx := context.Background()
 
 	// Given we have an existing customer
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 	})
 	require.NoError(s.T(), err)
@@ -143,7 +143,7 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	ctx := context.Background()
 
 	// Given we have an existing customer
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 	})
 	require.NoError(s.T(), err)
@@ -212,7 +212,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 	ns := "test-sanity-override-operations"
 	ctx := context.Background()
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 	})
 	require.NoError(s.T(), err)
@@ -294,10 +294,10 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	ns := "test-customer-integration"
 	ctx := context.Background()
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 
-		Customer: customer.Customer{
+		Customer: customerentity.Customer{
 			Name:     "Johny the Doe",
 			Timezone: lo.ToPtr(timezone.Timezone("Europe/Berlin")),
 			BillingAddress: &models.Address{
@@ -338,10 +338,10 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	ns := "test-null-setting"
 	ctx := context.Background()
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 
-		Customer: customer.Customer{
+		Customer: customerentity.Customer{
 			Name: "Johny the Doe",
 		},
 	})

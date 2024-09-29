@@ -103,6 +103,20 @@ func (ac *AppCreate) SetStatus(as appentity.AppStatus) *AppCreate {
 	return ac
 }
 
+// SetIsDefault sets the "is_default" field.
+func (ac *AppCreate) SetIsDefault(b bool) *AppCreate {
+	ac.mutation.SetIsDefault(b)
+	return ac
+}
+
+// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
+func (ac *AppCreate) SetNillableIsDefault(b *bool) *AppCreate {
+	if b != nil {
+		ac.SetIsDefault(*b)
+	}
+	return ac
+}
+
 // SetID sets the "id" field.
 func (ac *AppCreate) SetID(s string) *AppCreate {
 	ac.mutation.SetID(s)
@@ -175,6 +189,10 @@ func (ac *AppCreate) defaults() {
 		v := app.DefaultUpdatedAt()
 		ac.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := ac.mutation.IsDefault(); !ok {
+		v := app.DefaultIsDefault
+		ac.mutation.SetIsDefault(v)
+	}
 	if _, ok := ac.mutation.ID(); !ok {
 		v := app.DefaultID()
 		ac.mutation.SetID(v)
@@ -208,6 +226,9 @@ func (ac *AppCreate) check() error {
 	}
 	if _, ok := ac.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "App.status"`)}
+	}
+	if _, ok := ac.mutation.IsDefault(); !ok {
+		return &ValidationError{Name: "is_default", err: errors.New(`db: missing required field "App.is_default"`)}
 	}
 	return nil
 }
@@ -280,6 +301,10 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	if value, ok := ac.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := ac.mutation.IsDefault(); ok {
+		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
+		_node.IsDefault = value
 	}
 	if nodes := ac.mutation.AppCustomersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -430,6 +455,18 @@ func (u *AppUpsert) SetStatus(v appentity.AppStatus) *AppUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *AppUpsert) UpdateStatus() *AppUpsert {
 	u.SetExcluded(app.FieldStatus)
+	return u
+}
+
+// SetIsDefault sets the "is_default" field.
+func (u *AppUpsert) SetIsDefault(v bool) *AppUpsert {
+	u.Set(app.FieldIsDefault, v)
+	return u
+}
+
+// UpdateIsDefault sets the "is_default" field to the value that was provided on create.
+func (u *AppUpsert) UpdateIsDefault() *AppUpsert {
+	u.SetExcluded(app.FieldIsDefault)
 	return u
 }
 
@@ -585,6 +622,20 @@ func (u *AppUpsertOne) SetStatus(v appentity.AppStatus) *AppUpsertOne {
 func (u *AppUpsertOne) UpdateStatus() *AppUpsertOne {
 	return u.Update(func(s *AppUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetIsDefault sets the "is_default" field.
+func (u *AppUpsertOne) SetIsDefault(v bool) *AppUpsertOne {
+	return u.Update(func(s *AppUpsert) {
+		s.SetIsDefault(v)
+	})
+}
+
+// UpdateIsDefault sets the "is_default" field to the value that was provided on create.
+func (u *AppUpsertOne) UpdateIsDefault() *AppUpsertOne {
+	return u.Update(func(s *AppUpsert) {
+		s.UpdateIsDefault()
 	})
 }
 
@@ -907,6 +958,20 @@ func (u *AppUpsertBulk) SetStatus(v appentity.AppStatus) *AppUpsertBulk {
 func (u *AppUpsertBulk) UpdateStatus() *AppUpsertBulk {
 	return u.Update(func(s *AppUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetIsDefault sets the "is_default" field.
+func (u *AppUpsertBulk) SetIsDefault(v bool) *AppUpsertBulk {
+	return u.Update(func(s *AppUpsert) {
+		s.SetIsDefault(v)
+	})
+}
+
+// UpdateIsDefault sets the "is_default" field to the value that was provided on create.
+func (u *AppUpsertBulk) UpdateIsDefault() *AppUpsertBulk {
+	return u.Update(func(s *AppUpsert) {
+		s.UpdateIsDefault()
 	})
 }
 

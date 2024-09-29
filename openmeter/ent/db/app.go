@@ -37,6 +37,8 @@ type App struct {
 	Type appentity.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status appentity.AppStatus `json:"status,omitempty"`
+	// IsDefault holds the value of the "is_default" field.
+	IsDefault bool `json:"is_default,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppQuery when eager-loading is set.
 	Edges        AppEdges `json:"edges"`
@@ -68,6 +70,8 @@ func (*App) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case app.FieldMetadata:
 			values[i] = new([]byte)
+		case app.FieldIsDefault:
+			values[i] = new(sql.NullBool)
 		case app.FieldID, app.FieldNamespace, app.FieldName, app.FieldDescription, app.FieldType, app.FieldStatus:
 			values[i] = new(sql.NullString)
 		case app.FieldCreatedAt, app.FieldUpdatedAt, app.FieldDeletedAt:
@@ -150,6 +154,12 @@ func (a *App) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				a.Status = appentity.AppStatus(value.String)
 			}
+		case app.FieldIsDefault:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_default", values[i])
+			} else if value.Valid {
+				a.IsDefault = value.Bool
+			}
 		default:
 			a.selectValues.Set(columns[i], values[i])
 		}
@@ -219,6 +229,9 @@ func (a *App) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", a.Status))
+	builder.WriteString(", ")
+	builder.WriteString("is_default=")
+	builder.WriteString(fmt.Sprintf("%v", a.IsDefault))
 	builder.WriteByte(')')
 	return builder.String()
 }

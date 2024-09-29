@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 var _ error = (*AppNotFoundError)(nil)
@@ -18,12 +18,23 @@ func (e AppNotFoundError) Error() string {
 	return fmt.Sprintf("app with id %s not found in %s namespace", e.ID, e.Namespace)
 }
 
+var _ error = (*AppDefaultNotFoundError)(nil)
+
+type AppDefaultNotFoundError struct {
+	Namespace string
+	Type      appentity.AppType
+}
+
+func (e AppDefaultNotFoundError) Error() string {
+	return fmt.Sprintf("there is no default app for %s type in %s namespace", e.Type, e.Namespace)
+}
+
 var _ error = (*CustomerPreConditionError)(nil)
 
 type CustomerPreConditionError struct {
 	appentity.AppID
 	AppType    appentity.AppType
-	CustomerID customer.CustomerID
+	CustomerID customerentity.CustomerID
 	Condition  string
 }
 

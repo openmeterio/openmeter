@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 )
@@ -48,7 +48,7 @@ func (r adapter) CreateInvoiceItems(ctx context.Context, input billing.CreateInv
 	return result, nil
 }
 
-func (r adapter) GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]billing.InvoiceItem, error) {
+func (r adapter) GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billing.InvoiceItem, error) {
 	items, err := r.db.BillingInvoiceItem.Query().
 		Where(billinginvoiceitem.CustomerID(customerID.ID)).
 		Where(billinginvoiceitem.Namespace(customerID.Namespace)).
