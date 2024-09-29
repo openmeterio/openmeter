@@ -108,6 +108,11 @@ func Status(v appentity.AppStatus) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldStatus, vc))
 }
 
+// IsDefault applies equality check predicate on the "is_default" field. It's identical to IsDefaultEQ.
+func IsDefault(v bool) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldIsDefault, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldNamespace, v))
@@ -609,6 +614,16 @@ func StatusEqualFold(v appentity.AppStatus) predicate.App {
 func StatusContainsFold(v appentity.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContainsFold(FieldStatus, vc))
+}
+
+// IsDefaultEQ applies the EQ predicate on the "is_default" field.
+func IsDefaultEQ(v bool) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldIsDefault, v))
+}
+
+// IsDefaultNEQ applies the NEQ predicate on the "is_default" field.
+func IsDefaultNEQ(v bool) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldIsDefault, v))
 }
 
 // HasAppCustomers applies the HasEdge predicate on the "app_customers" edge.

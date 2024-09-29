@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -12,11 +13,11 @@ type Service interface {
 }
 
 type CustomerService interface {
-	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.PagedResponse[Customer], error)
-	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
-	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
-	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
-	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
+	ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error)
+	CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error)
+	DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error
+	GetCustomer(ctx context.Context, customer customerentity.GetCustomerInput) (*customerentity.Customer, error)
+	UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error)
 }
 
 type service struct {
@@ -45,28 +46,28 @@ func NewService(c ServiceConfig) (Service, error) {
 	}, nil
 }
 
-func (s *service) ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.PagedResponse[Customer], error) {
+func (s *service) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
 	return s.repo.ListCustomers(ctx, params)
 }
 
-func (s *service) CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error) {
-	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*Customer, error) {
+func (s *service) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*customerentity.Customer, error) {
 		return repo.CreateCustomer(ctx, params)
 	})
 }
 
-func (s *service) DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error {
+func (s *service) DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error {
 	return WithTxNoValue(ctx, s.repo, func(ctx context.Context, repo TxRepository) error {
 		return repo.DeleteCustomer(ctx, customer)
 	})
 }
 
-func (s *service) GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error) {
+func (s *service) GetCustomer(ctx context.Context, customer customerentity.GetCustomerInput) (*customerentity.Customer, error) {
 	return s.repo.GetCustomer(ctx, customer)
 }
 
-func (s *service) UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error) {
-	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*Customer, error) {
+func (s *service) UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+	return WithTx(ctx, s.repo, func(ctx context.Context, repo TxRepository) (*customerentity.Customer, error) {
 		return repo.UpdateCustomer(ctx, params)
 	})
 }

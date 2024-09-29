@@ -91,6 +91,7 @@ type AppMutation struct {
 	description          *string
 	_type                *appentity.AppType
 	status               *appentity.AppStatus
+	is_default           *bool
 	clearedFields        map[string]struct{}
 	app_customers        map[int]struct{}
 	removedapp_customers map[int]struct{}
@@ -554,6 +555,42 @@ func (m *AppMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetIsDefault sets the "is_default" field.
+func (m *AppMutation) SetIsDefault(b bool) {
+	m.is_default = &b
+}
+
+// IsDefault returns the value of the "is_default" field in the mutation.
+func (m *AppMutation) IsDefault() (r bool, exists bool) {
+	v := m.is_default
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsDefault returns the old "is_default" field's value of the App entity.
+// If the App object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppMutation) OldIsDefault(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsDefault is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsDefault requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsDefault: %w", err)
+	}
+	return oldValue.IsDefault, nil
+}
+
+// ResetIsDefault resets all changes to the "is_default" field.
+func (m *AppMutation) ResetIsDefault() {
+	m.is_default = nil
+}
+
 // AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by ids.
 func (m *AppMutation) AddAppCustomerIDs(ids ...int) {
 	if m.app_customers == nil {
@@ -642,7 +679,7 @@ func (m *AppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, app.FieldNamespace)
 	}
@@ -670,6 +707,9 @@ func (m *AppMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, app.FieldStatus)
 	}
+	if m.is_default != nil {
+		fields = append(fields, app.FieldIsDefault)
+	}
 	return fields
 }
 
@@ -696,6 +736,8 @@ func (m *AppMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case app.FieldStatus:
 		return m.Status()
+	case app.FieldIsDefault:
+		return m.IsDefault()
 	}
 	return nil, false
 }
@@ -723,6 +765,8 @@ func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldType(ctx)
 	case app.FieldStatus:
 		return m.OldStatus(ctx)
+	case app.FieldIsDefault:
+		return m.OldIsDefault(ctx)
 	}
 	return nil, fmt.Errorf("unknown App field %s", name)
 }
@@ -794,6 +838,13 @@ func (m *AppMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case app.FieldIsDefault:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsDefault(v)
 		return nil
 	}
 	return fmt.Errorf("unknown App field %s", name)
@@ -885,6 +936,9 @@ func (m *AppMutation) ResetField(name string) error {
 		return nil
 	case app.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case app.FieldIsDefault:
+		m.ResetIsDefault()
 		return nil
 	}
 	return fmt.Errorf("unknown App field %s", name)

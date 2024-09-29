@@ -20,6 +20,16 @@ func (s *Service) GetApp(ctx context.Context, input appentity.GetAppInput) (appe
 	return s.adapter.GetApp(ctx, input)
 }
 
+func (s *Service) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
+	if err := input.Validate(); err != nil {
+		return nil, app.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.adapter.GetDefaultApp(ctx, input)
+}
+
 func (s *Service) ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
 	if err := input.Validate(); err != nil {
 		return pagination.PagedResponse[appentity.App]{}, app.ValidationError{

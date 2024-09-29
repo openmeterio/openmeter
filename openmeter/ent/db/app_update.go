@@ -110,6 +110,20 @@ func (au *AppUpdate) SetNillableStatus(as *appentity.AppStatus) *AppUpdate {
 	return au
 }
 
+// SetIsDefault sets the "is_default" field.
+func (au *AppUpdate) SetIsDefault(b bool) *AppUpdate {
+	au.mutation.SetIsDefault(b)
+	return au
+}
+
+// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
+func (au *AppUpdate) SetNillableIsDefault(b *bool) *AppUpdate {
+	if b != nil {
+		au.SetIsDefault(*b)
+	}
+	return au
+}
+
 // AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
 func (au *AppUpdate) AddAppCustomerIDs(ids ...int) *AppUpdate {
 	au.mutation.AddAppCustomerIDs(ids...)
@@ -219,6 +233,9 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := au.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := au.mutation.IsDefault(); ok {
+		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
 	}
 	if au.mutation.AppCustomersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -365,6 +382,20 @@ func (auo *AppUpdateOne) SetNillableStatus(as *appentity.AppStatus) *AppUpdateOn
 	return auo
 }
 
+// SetIsDefault sets the "is_default" field.
+func (auo *AppUpdateOne) SetIsDefault(b bool) *AppUpdateOne {
+	auo.mutation.SetIsDefault(b)
+	return auo
+}
+
+// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
+func (auo *AppUpdateOne) SetNillableIsDefault(b *bool) *AppUpdateOne {
+	if b != nil {
+		auo.SetIsDefault(*b)
+	}
+	return auo
+}
+
 // AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
 func (auo *AppUpdateOne) AddAppCustomerIDs(ids ...int) *AppUpdateOne {
 	auo.mutation.AddAppCustomerIDs(ids...)
@@ -504,6 +535,9 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	}
 	if value, ok := auo.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := auo.mutation.IsDefault(); ok {
+		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
 	}
 	if auo.mutation.AppCustomersCleared() {
 		edge := &sqlgraph.EdgeSpec{

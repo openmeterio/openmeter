@@ -60,10 +60,6 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 
 // GetApp gets an app
 func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
 	dbApp, err := a.client().App.Query().
 		Where(appdb.Namespace(input.Namespace)).
 		Where(appdb.ID(input.ID)).
@@ -72,6 +68,34 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 		if db.IsNotFound(err) {
 			return nil, app.AppNotFoundError{
 				AppID: input,
+			}
+		}
+
+		return nil, err
+	}
+
+	listing, err := a.marketplace.GetListing(ctx, appentity.GetMarketplaceListingInput{
+		Type: dbApp.Type,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+	}
+
+	return MapAppBaseFromDB(dbApp, listing), nil
+}
+
+// GetDefaultApp gets the default app for the app type
+func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
+	dbApp, err := a.client().App.Query().
+		Where(appdb.Namespace(input.Namespace)).
+		Where(appdb.Type(input.Type)).
+		Where(appdb.DeletedAtIsNil()).
+		First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, app.AppDefaultNotFoundError{
+				Namespace: input.Namespace,
+				Type:      input.Type,
 			}
 		}
 
