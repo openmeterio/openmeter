@@ -39,6 +39,8 @@ func (Customer) Fields() []ent.Field {
 
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("apps", AppCustomer.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("subjects", CustomerSubjects.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_customer_override", BillingCustomerOverride.Type).

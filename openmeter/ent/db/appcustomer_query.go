@@ -78,7 +78,7 @@ func (acq *AppCustomerQuery) QueryApp() *AppQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appcustomer.Table, appcustomer.FieldID, selector),
 			sqlgraph.To(app.Table, app.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appcustomer.AppTable, appcustomer.AppColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.AppTable, appcustomer.AppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(acq.driver.Dialect(), step)
 		return fromU, nil
@@ -100,7 +100,7 @@ func (acq *AppCustomerQuery) QueryCustomer() *CustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appcustomer.Table, appcustomer.FieldID, selector),
 			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appcustomer.CustomerTable, appcustomer.CustomerColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.CustomerTable, appcustomer.CustomerColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(acq.driver.Dialect(), step)
 		return fromU, nil

@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -26,9 +25,7 @@ type AppStripeQuery struct {
 	order            []appstripe.OrderOption
 	inters           []Interceptor
 	predicates       []predicate.AppStripe
-	withApp          *AppQuery
-	withAppCustomers *AppStripeCustomerQuery
-	withFKs          bool
+	withCustomerApps *AppStripeCustomerQuery
 	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -66,30 +63,8 @@ func (asq *AppStripeQuery) Order(o ...appstripe.OrderOption) *AppStripeQuery {
 	return asq
 }
 
-// QueryApp chains the current query on the "app" edge.
-func (asq *AppStripeQuery) QueryApp() *AppQuery {
-	query := (&AppClient{config: asq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := asq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := asq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(appstripe.Table, appstripe.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appstripe.AppTable, appstripe.AppColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryAppCustomers chains the current query on the "app_customers" edge.
-func (asq *AppStripeQuery) QueryAppCustomers() *AppStripeCustomerQuery {
+// QueryCustomerApps chains the current query on the "customer_apps" edge.
+func (asq *AppStripeQuery) QueryCustomerApps() *AppStripeCustomerQuery {
 	query := (&AppStripeCustomerClient{config: asq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := asq.prepareQuery(ctx); err != nil {
@@ -102,7 +77,7 @@ func (asq *AppStripeQuery) QueryAppCustomers() *AppStripeCustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appstripe.Table, appstripe.FieldID, selector),
 			sqlgraph.To(appstripecustomer.Table, appstripecustomer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, appstripe.AppCustomersTable, appstripe.AppCustomersColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, appstripe.CustomerAppsTable, appstripe.CustomerAppsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
 		return fromU, nil
@@ -302,33 +277,21 @@ func (asq *AppStripeQuery) Clone() *AppStripeQuery {
 		order:            append([]appstripe.OrderOption{}, asq.order...),
 		inters:           append([]Interceptor{}, asq.inters...),
 		predicates:       append([]predicate.AppStripe{}, asq.predicates...),
-		withApp:          asq.withApp.Clone(),
-		withAppCustomers: asq.withAppCustomers.Clone(),
+		withCustomerApps: asq.withCustomerApps.Clone(),
 		// clone intermediate query.
 		sql:  asq.sql.Clone(),
 		path: asq.path,
 	}
 }
 
-// WithApp tells the query-builder to eager-load the nodes that are connected to
-// the "app" edge. The optional arguments are used to configure the query builder of the edge.
-func (asq *AppStripeQuery) WithApp(opts ...func(*AppQuery)) *AppStripeQuery {
-	query := (&AppClient{config: asq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	asq.withApp = query
-	return asq
-}
-
-// WithAppCustomers tells the query-builder to eager-load the nodes that are connected to
-// the "app_customers" edge. The optional arguments are used to configure the query builder of the edge.
-func (asq *AppStripeQuery) WithAppCustomers(opts ...func(*AppStripeCustomerQuery)) *AppStripeQuery {
+// WithCustomerApps tells the query-builder to eager-load the nodes that are connected to
+// the "customer_apps" edge. The optional arguments are used to configure the query builder of the edge.
+func (asq *AppStripeQuery) WithCustomerApps(opts ...func(*AppStripeCustomerQuery)) *AppStripeQuery {
 	query := (&AppStripeCustomerClient{config: asq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	asq.withAppCustomers = query
+	asq.withCustomerApps = query
 	return asq
 }
 
@@ -409,19 +372,11 @@ func (asq *AppStripeQuery) prepareQuery(ctx context.Context) error {
 func (asq *AppStripeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppStripe, error) {
 	var (
 		nodes       = []*AppStripe{}
-		withFKs     = asq.withFKs
 		_spec       = asq.querySpec()
-		loadedTypes = [2]bool{
-			asq.withApp != nil,
-			asq.withAppCustomers != nil,
+		loadedTypes = [1]bool{
+			asq.withCustomerApps != nil,
 		}
 	)
-	if asq.withApp != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, appstripe.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*AppStripe).scanValues(nil, columns)
 	}
@@ -443,55 +398,17 @@ func (asq *AppStripeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*A
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := asq.withApp; query != nil {
-		if err := asq.loadApp(ctx, query, nodes, nil,
-			func(n *AppStripe, e *App) { n.Edges.App = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := asq.withAppCustomers; query != nil {
-		if err := asq.loadAppCustomers(ctx, query, nodes,
-			func(n *AppStripe) { n.Edges.AppCustomers = []*AppStripeCustomer{} },
-			func(n *AppStripe, e *AppStripeCustomer) { n.Edges.AppCustomers = append(n.Edges.AppCustomers, e) }); err != nil {
+	if query := asq.withCustomerApps; query != nil {
+		if err := asq.loadCustomerApps(ctx, query, nodes,
+			func(n *AppStripe) { n.Edges.CustomerApps = []*AppStripeCustomer{} },
+			func(n *AppStripe, e *AppStripeCustomer) { n.Edges.CustomerApps = append(n.Edges.CustomerApps, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (asq *AppStripeQuery) loadApp(ctx context.Context, query *AppQuery, nodes []*AppStripe, init func(*AppStripe), assign func(*AppStripe, *App)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*AppStripe)
-	for i := range nodes {
-		if nodes[i].app_stripe_app == nil {
-			continue
-		}
-		fk := *nodes[i].app_stripe_app
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(app.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "app_stripe_app" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (asq *AppStripeQuery) loadAppCustomers(ctx context.Context, query *AppStripeCustomerQuery, nodes []*AppStripe, init func(*AppStripe), assign func(*AppStripe, *AppStripeCustomer)) error {
+func (asq *AppStripeQuery) loadCustomerApps(ctx context.Context, query *AppStripeCustomerQuery, nodes []*AppStripe, init func(*AppStripe), assign func(*AppStripe, *AppStripeCustomer)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*AppStripe)
 	for i := range nodes {
@@ -501,22 +418,21 @@ func (asq *AppStripeQuery) loadAppCustomers(ctx context.Context, query *AppStrip
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(appstripecustomer.FieldAppID)
+	}
 	query.Where(predicate.AppStripeCustomer(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(appstripe.AppCustomersColumn), fks...))
+		s.Where(sql.InValues(s.C(appstripe.CustomerAppsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.app_stripe_app_customers
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "app_stripe_app_customers" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		fk := n.AppID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "app_stripe_app_customers" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "app_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

@@ -626,21 +626,21 @@ func IsDefaultNEQ(v bool) predicate.App {
 	return predicate.App(sql.FieldNEQ(FieldIsDefault, v))
 }
 
-// HasAppCustomers applies the HasEdge predicate on the "app_customers" edge.
-func HasAppCustomers() predicate.App {
+// HasCustomerApps applies the HasEdge predicate on the "customer_apps" edge.
+func HasCustomerApps() predicate.App {
 	return predicate.App(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AppCustomersTable, AppCustomersColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, CustomerAppsTable, CustomerAppsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAppCustomersWith applies the HasEdge predicate on the "app_customers" edge with a given conditions (other predicates).
-func HasAppCustomersWith(preds ...predicate.AppStripeCustomer) predicate.App {
+// HasCustomerAppsWith applies the HasEdge predicate on the "customer_apps" edge with a given conditions (other predicates).
+func HasCustomerAppsWith(preds ...predicate.AppCustomer) predicate.App {
 	return predicate.App(func(s *sql.Selector) {
-		step := newAppCustomersStep()
+		step := newCustomerAppsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -46,7 +46,7 @@ func (App) Indexes() []ent.Index {
 
 func (App) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("app_customers", AppStripeCustomer.Type).
+		edge.To("customer_apps", AppCustomer.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
@@ -71,7 +71,6 @@ func (AppCustomer) Fields() []ent.Field {
 		field.String("customer_id").NotEmpty().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.JSON("actions", []appentity.AppListenerAction{}).Optional().Default([]appentity.AppListenerAction{}),
 	}
 }
 
@@ -84,12 +83,14 @@ func (AppCustomer) Indexes() []ent.Index {
 
 func (AppCustomer) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("app", App.Type).
+		edge.From("app", App.Type).
+			Ref("customer_apps").
 			Field("app_id").
 			Immutable().
 			Required().
 			Unique(),
-		edge.To("customer", Customer.Type).
+		edge.From("customer", Customer.Type).
+			Ref("apps").
 			Field("customer_id").
 			Immutable().
 			Required().

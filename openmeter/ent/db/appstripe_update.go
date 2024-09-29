@@ -55,19 +55,19 @@ func (asu *AppStripeUpdate) ClearDeletedAt() *AppStripeUpdate {
 	return asu
 }
 
-// AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
-func (asu *AppStripeUpdate) AddAppCustomerIDs(ids ...int) *AppStripeUpdate {
-	asu.mutation.AddAppCustomerIDs(ids...)
+// AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
+func (asu *AppStripeUpdate) AddCustomerAppIDs(ids ...int) *AppStripeUpdate {
+	asu.mutation.AddCustomerAppIDs(ids...)
 	return asu
 }
 
-// AddAppCustomers adds the "app_customers" edges to the AppStripeCustomer entity.
-func (asu *AppStripeUpdate) AddAppCustomers(a ...*AppStripeCustomer) *AppStripeUpdate {
+// AddCustomerApps adds the "customer_apps" edges to the AppStripeCustomer entity.
+func (asu *AppStripeUpdate) AddCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdate {
 	ids := make([]int, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
-	return asu.AddAppCustomerIDs(ids...)
+	return asu.AddCustomerAppIDs(ids...)
 }
 
 // Mutation returns the AppStripeMutation object of the builder.
@@ -75,25 +75,25 @@ func (asu *AppStripeUpdate) Mutation() *AppStripeMutation {
 	return asu.mutation
 }
 
-// ClearAppCustomers clears all "app_customers" edges to the AppStripeCustomer entity.
-func (asu *AppStripeUpdate) ClearAppCustomers() *AppStripeUpdate {
-	asu.mutation.ClearAppCustomers()
+// ClearCustomerApps clears all "customer_apps" edges to the AppStripeCustomer entity.
+func (asu *AppStripeUpdate) ClearCustomerApps() *AppStripeUpdate {
+	asu.mutation.ClearCustomerApps()
 	return asu
 }
 
-// RemoveAppCustomerIDs removes the "app_customers" edge to AppStripeCustomer entities by IDs.
-func (asu *AppStripeUpdate) RemoveAppCustomerIDs(ids ...int) *AppStripeUpdate {
-	asu.mutation.RemoveAppCustomerIDs(ids...)
+// RemoveCustomerAppIDs removes the "customer_apps" edge to AppStripeCustomer entities by IDs.
+func (asu *AppStripeUpdate) RemoveCustomerAppIDs(ids ...int) *AppStripeUpdate {
+	asu.mutation.RemoveCustomerAppIDs(ids...)
 	return asu
 }
 
-// RemoveAppCustomers removes "app_customers" edges to AppStripeCustomer entities.
-func (asu *AppStripeUpdate) RemoveAppCustomers(a ...*AppStripeCustomer) *AppStripeUpdate {
+// RemoveCustomerApps removes "customer_apps" edges to AppStripeCustomer entities.
+func (asu *AppStripeUpdate) RemoveCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdate {
 	ids := make([]int, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
-	return asu.RemoveAppCustomerIDs(ids...)
+	return asu.RemoveCustomerAppIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -132,18 +132,7 @@ func (asu *AppStripeUpdate) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (asu *AppStripeUpdate) check() error {
-	if asu.mutation.AppCleared() && len(asu.mutation.AppIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "AppStripe.app"`)
-	}
-	return nil
-}
-
 func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := asu.check(); err != nil {
-		return n, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(appstripe.Table, appstripe.Columns, sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString))
 	if ps := asu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -161,12 +150,12 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if asu.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripe.FieldDeletedAt, field.TypeTime)
 	}
-	if asu.mutation.AppCustomersCleared() {
+	if asu.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   appstripe.AppCustomersTable,
-			Columns: []string{appstripe.AppCustomersColumn},
+			Table:   appstripe.CustomerAppsTable,
+			Columns: []string{appstripe.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
@@ -174,12 +163,12 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asu.mutation.RemovedAppCustomersIDs(); len(nodes) > 0 && !asu.mutation.AppCustomersCleared() {
+	if nodes := asu.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !asu.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   appstripe.AppCustomersTable,
-			Columns: []string{appstripe.AppCustomersColumn},
+			Table:   appstripe.CustomerAppsTable,
+			Columns: []string{appstripe.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
@@ -190,12 +179,12 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asu.mutation.AppCustomersIDs(); len(nodes) > 0 {
+	if nodes := asu.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   appstripe.AppCustomersTable,
-			Columns: []string{appstripe.AppCustomersColumn},
+			Table:   appstripe.CustomerAppsTable,
+			Columns: []string{appstripe.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
@@ -252,19 +241,19 @@ func (asuo *AppStripeUpdateOne) ClearDeletedAt() *AppStripeUpdateOne {
 	return asuo
 }
 
-// AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
-func (asuo *AppStripeUpdateOne) AddAppCustomerIDs(ids ...int) *AppStripeUpdateOne {
-	asuo.mutation.AddAppCustomerIDs(ids...)
+// AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
+func (asuo *AppStripeUpdateOne) AddCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
+	asuo.mutation.AddCustomerAppIDs(ids...)
 	return asuo
 }
 
-// AddAppCustomers adds the "app_customers" edges to the AppStripeCustomer entity.
-func (asuo *AppStripeUpdateOne) AddAppCustomers(a ...*AppStripeCustomer) *AppStripeUpdateOne {
+// AddCustomerApps adds the "customer_apps" edges to the AppStripeCustomer entity.
+func (asuo *AppStripeUpdateOne) AddCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdateOne {
 	ids := make([]int, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
-	return asuo.AddAppCustomerIDs(ids...)
+	return asuo.AddCustomerAppIDs(ids...)
 }
 
 // Mutation returns the AppStripeMutation object of the builder.
@@ -272,25 +261,25 @@ func (asuo *AppStripeUpdateOne) Mutation() *AppStripeMutation {
 	return asuo.mutation
 }
 
-// ClearAppCustomers clears all "app_customers" edges to the AppStripeCustomer entity.
-func (asuo *AppStripeUpdateOne) ClearAppCustomers() *AppStripeUpdateOne {
-	asuo.mutation.ClearAppCustomers()
+// ClearCustomerApps clears all "customer_apps" edges to the AppStripeCustomer entity.
+func (asuo *AppStripeUpdateOne) ClearCustomerApps() *AppStripeUpdateOne {
+	asuo.mutation.ClearCustomerApps()
 	return asuo
 }
 
-// RemoveAppCustomerIDs removes the "app_customers" edge to AppStripeCustomer entities by IDs.
-func (asuo *AppStripeUpdateOne) RemoveAppCustomerIDs(ids ...int) *AppStripeUpdateOne {
-	asuo.mutation.RemoveAppCustomerIDs(ids...)
+// RemoveCustomerAppIDs removes the "customer_apps" edge to AppStripeCustomer entities by IDs.
+func (asuo *AppStripeUpdateOne) RemoveCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
+	asuo.mutation.RemoveCustomerAppIDs(ids...)
 	return asuo
 }
 
-// RemoveAppCustomers removes "app_customers" edges to AppStripeCustomer entities.
-func (asuo *AppStripeUpdateOne) RemoveAppCustomers(a ...*AppStripeCustomer) *AppStripeUpdateOne {
+// RemoveCustomerApps removes "customer_apps" edges to AppStripeCustomer entities.
+func (asuo *AppStripeUpdateOne) RemoveCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdateOne {
 	ids := make([]int, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
-	return asuo.RemoveAppCustomerIDs(ids...)
+	return asuo.RemoveCustomerAppIDs(ids...)
 }
 
 // Where appends a list predicates to the AppStripeUpdate builder.
@@ -342,18 +331,7 @@ func (asuo *AppStripeUpdateOne) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (asuo *AppStripeUpdateOne) check() error {
-	if asuo.mutation.AppCleared() && len(asuo.mutation.AppIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "AppStripe.app"`)
-	}
-	return nil
-}
-
 func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, err error) {
-	if err := asuo.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(appstripe.Table, appstripe.Columns, sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString))
 	id, ok := asuo.mutation.ID()
 	if !ok {
@@ -388,12 +366,12 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 	if asuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripe.FieldDeletedAt, field.TypeTime)
 	}
-	if asuo.mutation.AppCustomersCleared() {
+	if asuo.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   appstripe.AppCustomersTable,
-			Columns: []string{appstripe.AppCustomersColumn},
+			Table:   appstripe.CustomerAppsTable,
+			Columns: []string{appstripe.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
@@ -401,12 +379,12 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asuo.mutation.RemovedAppCustomersIDs(); len(nodes) > 0 && !asuo.mutation.AppCustomersCleared() {
+	if nodes := asuo.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !asuo.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   appstripe.AppCustomersTable,
-			Columns: []string{appstripe.AppCustomersColumn},
+			Table:   appstripe.CustomerAppsTable,
+			Columns: []string{appstripe.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
@@ -417,12 +395,12 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asuo.mutation.AppCustomersIDs(); len(nodes) > 0 {
+	if nodes := asuo.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   appstripe.AppCustomersTable,
-			Columns: []string{appstripe.AppCustomersColumn},
+			Table:   appstripe.CustomerAppsTable,
+			Columns: []string{appstripe.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),

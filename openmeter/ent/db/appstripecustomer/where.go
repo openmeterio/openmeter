@@ -495,62 +495,16 @@ func HasApp() predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, AppTable, AppColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
 // HasAppWith applies the HasEdge predicate on the "app" edge with a given conditions (other predicates).
-func HasAppWith(preds ...predicate.App) predicate.AppStripeCustomer {
+func HasAppWith(preds ...predicate.AppStripe) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(func(s *sql.Selector) {
 		step := newAppStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasAppStripe applies the HasEdge predicate on the "app_stripe" edge.
-func HasAppStripe() predicate.AppStripeCustomer {
-	return predicate.AppStripeCustomer(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, AppStripeTable, AppStripeColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasAppStripeWith applies the HasEdge predicate on the "app_stripe" edge with a given conditions (other predicates).
-func HasAppStripeWith(preds ...predicate.AppStripe) predicate.AppStripeCustomer {
-	return predicate.AppStripeCustomer(func(s *sql.Selector) {
-		step := newAppStripeStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasCustomer applies the HasEdge predicate on the "customer" edge.
-func HasCustomer() predicate.AppStripeCustomer {
-	return predicate.AppStripeCustomer(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, CustomerTable, CustomerColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
-func HasCustomerWith(preds ...predicate.Customer) predicate.AppStripeCustomer {
-	return predicate.AppStripeCustomer(func(s *sql.Selector) {
-		step := newCustomerStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

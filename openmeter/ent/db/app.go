@@ -47,20 +47,20 @@ type App struct {
 
 // AppEdges holds the relations/edges for other nodes in the graph.
 type AppEdges struct {
-	// AppCustomers holds the value of the app_customers edge.
-	AppCustomers []*AppStripeCustomer `json:"app_customers,omitempty"`
+	// CustomerApps holds the value of the customer_apps edge.
+	CustomerApps []*AppCustomer `json:"customer_apps,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [1]bool
 }
 
-// AppCustomersOrErr returns the AppCustomers value or an error if the edge
+// CustomerAppsOrErr returns the CustomerApps value or an error if the edge
 // was not loaded in eager-loading.
-func (e AppEdges) AppCustomersOrErr() ([]*AppStripeCustomer, error) {
+func (e AppEdges) CustomerAppsOrErr() ([]*AppCustomer, error) {
 	if e.loadedTypes[0] {
-		return e.AppCustomers, nil
+		return e.CustomerApps, nil
 	}
-	return nil, &NotLoadedError{edge: "app_customers"}
+	return nil, &NotLoadedError{edge: "customer_apps"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -173,9 +173,9 @@ func (a *App) Value(name string) (ent.Value, error) {
 	return a.selectValues.Get(name)
 }
 
-// QueryAppCustomers queries the "app_customers" edge of the App entity.
-func (a *App) QueryAppCustomers() *AppStripeCustomerQuery {
-	return NewAppClient(a.config).QueryAppCustomers(a)
+// QueryCustomerApps queries the "customer_apps" edge of the App entity.
+func (a *App) QueryCustomerApps() *AppCustomerQuery {
+	return NewAppClient(a.config).QueryCustomerApps(a)
 }
 
 // Update returns a builder for updating this App.

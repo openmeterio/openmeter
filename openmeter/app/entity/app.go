@@ -10,6 +10,7 @@ import (
 
 // App represents an installed app
 type App interface {
+	GetAppBase() AppBase
 	GetID() AppID
 	GetType() AppType
 	GetName() string
@@ -48,14 +49,9 @@ type AppBase struct {
 	Listing MarketplaceListing `json:"listing"`
 }
 
-// AppListenerAction represents actions that the app wants to listen to
-type AppListenerAction string
-
-const (
-	AppListenerActionCreate AppListenerAction = "create"
-	AppListenerActionUpdate AppListenerAction = "update"
-	AppListenerActionDelete AppListenerAction = "delete"
-)
+func (a AppBase) GetAppBase() AppBase {
+	return a
+}
 
 func (a AppBase) GetID() AppID {
 	return AppID{
@@ -167,6 +163,30 @@ func (i GetDefaultAppInput) Validate() error {
 
 	if i.Type == "" {
 		return errors.New("type is required")
+	}
+
+	return nil
+}
+
+// CreateAppInput is the input for creating an app
+type CreateAppInput struct {
+	Namespace   string
+	Name        string
+	Description string
+	Type        AppType
+}
+
+func (i CreateAppInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if i.Description == "" {
+		return errors.New("description is required")
 	}
 
 	return nil

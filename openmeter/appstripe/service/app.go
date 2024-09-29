@@ -16,7 +16,9 @@ func (s *Service) CreateStripeApp(ctx context.Context, input appstripeentity.Cre
 		}
 	}
 
-	return s.adapter.CreateStripeApp(ctx, input)
+	return appstripe.WithTx(ctx, s.adapter, func(ctx context.Context, adapter appstripe.TxAdapter) (appstripeentity.App, error) {
+		return adapter.CreateStripeApp(ctx, input)
+	})
 }
 
 func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
@@ -26,7 +28,9 @@ func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripee
 		}
 	}
 
-	return s.adapter.UpsertStripeCustomerData(ctx, input)
+	return appstripe.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter appstripe.TxAdapter) error {
+		return adapter.UpsertStripeCustomerData(ctx, input)
+	})
 }
 
 func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
@@ -36,5 +40,7 @@ func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripee
 		}
 	}
 
-	return s.adapter.DeleteStripeCustomerData(ctx, input)
+	return appstripe.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter appstripe.TxAdapter) error {
+		return adapter.DeleteStripeCustomerData(ctx, input)
+	})
 }

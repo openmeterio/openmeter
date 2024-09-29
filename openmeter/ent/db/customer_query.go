@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -26,6 +27,7 @@ type CustomerQuery struct {
 	order                       []customer.OrderOption
 	inters                      []Interceptor
 	predicates                  []predicate.Customer
+	withApps                    *AppCustomerQuery
 	withSubjects                *CustomerSubjectsQuery
 	withBillingCustomerOverride *BillingCustomerOverrideQuery
 	modifiers                   []func(*sql.Selector)
@@ -63,6 +65,28 @@ func (cq *CustomerQuery) Unique(unique bool) *CustomerQuery {
 func (cq *CustomerQuery) Order(o ...customer.OrderOption) *CustomerQuery {
 	cq.order = append(cq.order, o...)
 	return cq
+}
+
+// QueryApps chains the current query on the "apps" edge.
+func (cq *CustomerQuery) QueryApps() *AppCustomerQuery {
+	query := (&AppCustomerClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.AppsTable, customer.AppsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QuerySubjects chains the current query on the "subjects" edge.
@@ -301,12 +325,24 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 		order:                       append([]customer.OrderOption{}, cq.order...),
 		inters:                      append([]Interceptor{}, cq.inters...),
 		predicates:                  append([]predicate.Customer{}, cq.predicates...),
+		withApps:                    cq.withApps.Clone(),
 		withSubjects:                cq.withSubjects.Clone(),
 		withBillingCustomerOverride: cq.withBillingCustomerOverride.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
 	}
+}
+
+// WithApps tells the query-builder to eager-load the nodes that are connected to
+// the "apps" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CustomerQuery) WithApps(opts ...func(*AppCustomerQuery)) *CustomerQuery {
+	query := (&AppCustomerClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withApps = query
+	return cq
 }
 
 // WithSubjects tells the query-builder to eager-load the nodes that are connected to
@@ -409,7 +445,8 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = cq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
+			cq.withApps != nil,
 			cq.withSubjects != nil,
 			cq.withBillingCustomerOverride != nil,
 		}
@@ -435,6 +472,13 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := cq.withApps; query != nil {
+		if err := cq.loadApps(ctx, query, nodes,
+			func(n *Customer) { n.Edges.Apps = []*AppCustomer{} },
+			func(n *Customer, e *AppCustomer) { n.Edges.Apps = append(n.Edges.Apps, e) }); err != nil {
+			return nil, err
+		}
+	}
 	if query := cq.withSubjects; query != nil {
 		if err := cq.loadSubjects(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Subjects = []*CustomerSubjects{} },
@@ -451,6 +495,36 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	return nodes, nil
 }
 
+func (cq *CustomerQuery) loadApps(ctx context.Context, query *AppCustomerQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *AppCustomer)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(appcustomer.FieldCustomerID)
+	}
+	query.Where(predicate.AppCustomer(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.AppsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjectsQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *CustomerSubjects)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Customer)

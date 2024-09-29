@@ -34,17 +34,17 @@ const (
 	FieldStatus = "status"
 	// FieldIsDefault holds the string denoting the is_default field in the database.
 	FieldIsDefault = "is_default"
-	// EdgeAppCustomers holds the string denoting the app_customers edge name in mutations.
-	EdgeAppCustomers = "app_customers"
+	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
+	EdgeCustomerApps = "customer_apps"
 	// Table holds the table name of the app in the database.
 	Table = "apps"
-	// AppCustomersTable is the table that holds the app_customers relation/edge.
-	AppCustomersTable = "app_stripe_customers"
-	// AppCustomersInverseTable is the table name for the AppStripeCustomer entity.
-	// It exists in this package in order to avoid circular dependency with the "appstripecustomer" package.
-	AppCustomersInverseTable = "app_stripe_customers"
-	// AppCustomersColumn is the table column denoting the app_customers relation/edge.
-	AppCustomersColumn = "app_app_customers"
+	// CustomerAppsTable is the table that holds the customer_apps relation/edge.
+	CustomerAppsTable = "app_customers"
+	// CustomerAppsInverseTable is the table name for the AppCustomer entity.
+	// It exists in this package in order to avoid circular dependency with the "appcustomer" package.
+	CustomerAppsInverseTable = "app_customers"
+	// CustomerAppsColumn is the table column denoting the customer_apps relation/edge.
+	CustomerAppsColumn = "app_id"
 )
 
 // Columns holds all SQL columns for app fields.
@@ -140,23 +140,23 @@ func ByIsDefault(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsDefault, opts...).ToFunc()
 }
 
-// ByAppCustomersCount orders the results by app_customers count.
-func ByAppCustomersCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCustomerAppsCount orders the results by customer_apps count.
+func ByCustomerAppsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAppCustomersStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newCustomerAppsStep(), opts...)
 	}
 }
 
-// ByAppCustomers orders the results by app_customers terms.
-func ByAppCustomers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByCustomerApps orders the results by customer_apps terms.
+func ByCustomerApps(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAppCustomersStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newCustomerAppsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newAppCustomersStep() *sqlgraph.Step {
+func newCustomerAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AppCustomersInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, AppCustomersTable, AppCustomersColumn),
+		sqlgraph.To(CustomerAppsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CustomerAppsTable, CustomerAppsColumn),
 	)
 }

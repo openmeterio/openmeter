@@ -5,13 +5,17 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
 type Config struct {
-	Client *entdb.Client
+	Client             *entdb.Client
+	AppService         app.Service
+	AppCustomerService appcustomer.Service
 }
 
 func (c Config) Validate() error {
@@ -19,12 +23,20 @@ func (c Config) Validate() error {
 		return errors.New("ent client is required")
 	}
 
+	if c.AppService == nil {
+		return errors.New("app service is required")
+	}
+
+	if c.AppCustomerService == nil {
+		return errors.New("app customer service is required")
+	}
+
 	return nil
 }
 
 func New(config Config) (appstripe.Adapter, error) {
 	if err := config.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
 
 	err := appstripeentity.RegisterApp()
@@ -33,7 +45,9 @@ func New(config Config) (appstripe.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db: config.Client,
+		db:                 config.Client,
+		appService:         config.AppService,
+		appCustomerService: config.AppCustomerService,
 	}
 
 	return adapter, nil
@@ -44,6 +58,9 @@ var _ appstripe.Adapter = (*adapter)(nil)
 type adapter struct {
 	db *entdb.Client
 	tx *entdb.Tx
+
+	appService         app.Service
+	appCustomerService appcustomer.Service
 }
 
 func (r adapter) Commit() error {
@@ -81,7 +98,9 @@ func (r adapter) WithTx(ctx context.Context) (appstripe.TxAdapter, error) {
 	}
 
 	return &adapter{
-		db: r.db,
-		tx: tx,
+		db:                 r.db,
+		tx:                 tx,
+		appService:         r.appService,
+		appCustomerService: r.appCustomerService,
 	}, nil
 }

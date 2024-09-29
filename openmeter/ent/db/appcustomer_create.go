@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -85,12 +84,6 @@ func (acc *AppCustomerCreate) SetCustomerID(s string) *AppCustomerCreate {
 	return acc
 }
 
-// SetActions sets the "actions" field.
-func (acc *AppCustomerCreate) SetActions(ala []appentity.AppListenerAction) *AppCustomerCreate {
-	acc.mutation.SetActions(ala)
-	return acc
-}
-
 // SetApp sets the "app" edge to the App entity.
 func (acc *AppCustomerCreate) SetApp(a *App) *AppCustomerCreate {
 	return acc.SetAppID(a.ID)
@@ -143,10 +136,6 @@ func (acc *AppCustomerCreate) defaults() {
 	if _, ok := acc.mutation.UpdatedAt(); !ok {
 		v := appcustomer.DefaultUpdatedAt()
 		acc.mutation.SetUpdatedAt(v)
-	}
-	if _, ok := acc.mutation.Actions(); !ok {
-		v := appcustomer.DefaultActions
-		acc.mutation.SetActions(v)
 	}
 }
 
@@ -231,14 +220,10 @@ func (acc *AppCustomerCreate) createSpec() (*AppCustomer, *sqlgraph.CreateSpec) 
 		_spec.SetField(appcustomer.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := acc.mutation.Actions(); ok {
-		_spec.SetField(appcustomer.FieldActions, field.TypeJSON, value)
-		_node.Actions = value
-	}
 	if nodes := acc.mutation.AppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   appcustomer.AppTable,
 			Columns: []string{appcustomer.AppColumn},
 			Bidi:    false,
@@ -255,7 +240,7 @@ func (acc *AppCustomerCreate) createSpec() (*AppCustomer, *sqlgraph.CreateSpec) 
 	if nodes := acc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   appcustomer.CustomerTable,
 			Columns: []string{appcustomer.CustomerColumn},
 			Bidi:    false,
@@ -351,24 +336,6 @@ func (u *AppCustomerUpsert) ClearDeletedAt() *AppCustomerUpsert {
 	return u
 }
 
-// SetActions sets the "actions" field.
-func (u *AppCustomerUpsert) SetActions(v []appentity.AppListenerAction) *AppCustomerUpsert {
-	u.Set(appcustomer.FieldActions, v)
-	return u
-}
-
-// UpdateActions sets the "actions" field to the value that was provided on create.
-func (u *AppCustomerUpsert) UpdateActions() *AppCustomerUpsert {
-	u.SetExcluded(appcustomer.FieldActions)
-	return u
-}
-
-// ClearActions clears the value of the "actions" field.
-func (u *AppCustomerUpsert) ClearActions() *AppCustomerUpsert {
-	u.SetNull(appcustomer.FieldActions)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -455,27 +422,6 @@ func (u *AppCustomerUpsertOne) UpdateDeletedAt() *AppCustomerUpsertOne {
 func (u *AppCustomerUpsertOne) ClearDeletedAt() *AppCustomerUpsertOne {
 	return u.Update(func(s *AppCustomerUpsert) {
 		s.ClearDeletedAt()
-	})
-}
-
-// SetActions sets the "actions" field.
-func (u *AppCustomerUpsertOne) SetActions(v []appentity.AppListenerAction) *AppCustomerUpsertOne {
-	return u.Update(func(s *AppCustomerUpsert) {
-		s.SetActions(v)
-	})
-}
-
-// UpdateActions sets the "actions" field to the value that was provided on create.
-func (u *AppCustomerUpsertOne) UpdateActions() *AppCustomerUpsertOne {
-	return u.Update(func(s *AppCustomerUpsert) {
-		s.UpdateActions()
-	})
-}
-
-// ClearActions clears the value of the "actions" field.
-func (u *AppCustomerUpsertOne) ClearActions() *AppCustomerUpsertOne {
-	return u.Update(func(s *AppCustomerUpsert) {
-		s.ClearActions()
 	})
 }
 
@@ -731,27 +677,6 @@ func (u *AppCustomerUpsertBulk) UpdateDeletedAt() *AppCustomerUpsertBulk {
 func (u *AppCustomerUpsertBulk) ClearDeletedAt() *AppCustomerUpsertBulk {
 	return u.Update(func(s *AppCustomerUpsert) {
 		s.ClearDeletedAt()
-	})
-}
-
-// SetActions sets the "actions" field.
-func (u *AppCustomerUpsertBulk) SetActions(v []appentity.AppListenerAction) *AppCustomerUpsertBulk {
-	return u.Update(func(s *AppCustomerUpsert) {
-		s.SetActions(v)
-	})
-}
-
-// UpdateActions sets the "actions" field to the value that was provided on create.
-func (u *AppCustomerUpsertBulk) UpdateActions() *AppCustomerUpsertBulk {
-	return u.Update(func(s *AppCustomerUpsert) {
-		s.UpdateActions()
-	})
-}
-
-// ClearActions clears the value of the "actions" field.
-func (u *AppCustomerUpsertBulk) ClearActions() *AppCustomerUpsertBulk {
-	return u.Update(func(s *AppCustomerUpsert) {
-		s.ClearActions()
 	})
 }
 

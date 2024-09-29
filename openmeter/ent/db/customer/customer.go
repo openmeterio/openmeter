@@ -46,14 +46,21 @@ const (
 	FieldTimezone = "timezone"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
-	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
+	// EdgeApps holds the string denoting the apps edge name in mutations.
+	EdgeApps = "apps"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
 	// EdgeBillingCustomerOverride holds the string denoting the billing_customer_override edge name in mutations.
 	EdgeBillingCustomerOverride = "billing_customer_override"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
+	// AppsTable is the table that holds the apps relation/edge.
+	AppsTable = "app_customers"
+	// AppsInverseTable is the table name for the AppCustomer entity.
+	// It exists in this package in order to avoid circular dependency with the "appcustomer" package.
+	AppsInverseTable = "app_customers"
+	// AppsColumn is the table column denoting the apps relation/edge.
+	AppsColumn = "customer_id"
 	// SubjectsTable is the table that holds the subjects relation/edge.
 	SubjectsTable = "customer_subjects"
 	// SubjectsInverseTable is the table name for the CustomerSubjects entity.
@@ -89,7 +96,6 @@ var Columns = []string{
 	FieldPrimaryEmail,
 	FieldTimezone,
 	FieldCurrency,
-	FieldExternalMappingStripeCustomerID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -202,9 +208,18 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
-// ByExternalMappingStripeCustomerID orders the results by the external_mapping_stripe_customer_id field.
-func ByExternalMappingStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExternalMappingStripeCustomerID, opts...).ToFunc()
+// ByAppsCount orders the results by apps count.
+func ByAppsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAppsStep(), opts...)
+	}
+}
+
+// ByApps orders the results by apps terms.
+func ByApps(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAppsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
 }
 
 // BySubjectsCount orders the results by subjects count.
@@ -226,6 +241,13 @@ func ByBillingCustomerOverrideField(field string, opts ...sql.OrderTermOption) O
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newBillingCustomerOverrideStep(), sql.OrderByField(field, opts...))
 	}
+}
+func newAppsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AppsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AppsTable, AppsColumn),
+	)
 }
 func newSubjectsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

@@ -10,6 +10,18 @@ import (
 
 var _ app.AppService = (*Service)(nil)
 
+func (s *Service) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error) {
+	if err := input.Validate(); err != nil {
+		return nil, app.ValidationError{
+			Err: err,
+		}
+	}
+
+	return app.WithTx(ctx, s.adapter, func(ctx context.Context, adapter app.TxAdapter) (appentity.App, error) {
+		return adapter.CreateApp(ctx, input)
+	})
+}
+
 func (s *Service) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
@@ -47,5 +59,7 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.DeleteAppInp
 		}
 	}
 
-	return s.adapter.UninstallApp(ctx, input)
+	return app.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter app.TxAdapter) error {
+		return adapter.UninstallApp(ctx, input)
+	})
 }

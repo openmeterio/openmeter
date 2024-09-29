@@ -14,6 +14,31 @@ import (
 
 var _ app.AppAdapter = (*adapter)(nil)
 
+// CreateApp creates an app
+func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error) {
+	appCreateQuery := a.tx.App.Create().
+		SetNamespace(input.Namespace).
+		SetName(input.Name).
+		SetDescription(input.Description).
+		SetType(input.Type).
+		SetStatus(appentity.AppStatusReady)
+
+	dbApp, err := appCreateQuery.Save(ctx)
+	if err != nil {
+		return appentity.AppBase{}, fmt.Errorf("failed to create app: %w", err)
+	}
+
+	// Get marketplace listing
+	listing, err := a.marketplace.GetListing(ctx, appentity.GetMarketplaceListingInput{
+		Type: dbApp.Type,
+	})
+	if err != nil {
+		return appentity.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+	}
+
+	return MapAppBaseFromDB(dbApp, listing), nil
+}
+
 // ListApps lists apps
 func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
 	db := a.client()
