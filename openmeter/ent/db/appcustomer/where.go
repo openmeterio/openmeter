@@ -410,22 +410,12 @@ func CustomerIDContainsFold(v string) predicate.AppCustomer {
 	return predicate.AppCustomer(sql.FieldContainsFold(FieldCustomerID, v))
 }
 
-// ActionsIsNil applies the IsNil predicate on the "actions" field.
-func ActionsIsNil() predicate.AppCustomer {
-	return predicate.AppCustomer(sql.FieldIsNull(FieldActions))
-}
-
-// ActionsNotNil applies the NotNil predicate on the "actions" field.
-func ActionsNotNil() predicate.AppCustomer {
-	return predicate.AppCustomer(sql.FieldNotNull(FieldActions))
-}
-
 // HasApp applies the HasEdge predicate on the "app" edge.
 func HasApp() predicate.AppCustomer {
 	return predicate.AppCustomer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, AppTable, AppColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -448,7 +438,7 @@ func HasCustomer() predicate.AppCustomer {
 	return predicate.AppCustomer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, CustomerTable, CustomerColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

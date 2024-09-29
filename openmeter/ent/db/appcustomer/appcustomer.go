@@ -7,7 +7,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 )
 
 const (
@@ -27,8 +26,6 @@ const (
 	FieldAppID = "app_id"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
-	// FieldActions holds the string denoting the actions field in the database.
-	FieldActions = "actions"
 	// EdgeApp holds the string denoting the app edge name in mutations.
 	EdgeApp = "app"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -60,7 +57,6 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldAppID,
 	FieldCustomerID,
-	FieldActions,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -86,8 +82,6 @@ var (
 	AppIDValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
-	// DefaultActions holds the default value on creation for the "actions" field.
-	DefaultActions []appentity.AppListenerAction
 )
 
 // OrderOption defines the ordering options for the AppCustomer queries.
@@ -145,13 +139,13 @@ func newAppStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, AppTable, AppColumn),
 	)
 }
 func newCustomerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, CustomerTable, CustomerColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 	)
 }

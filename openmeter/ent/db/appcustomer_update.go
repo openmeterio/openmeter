@@ -10,9 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -53,24 +51,6 @@ func (acu *AppCustomerUpdate) SetNillableDeletedAt(t *time.Time) *AppCustomerUpd
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (acu *AppCustomerUpdate) ClearDeletedAt() *AppCustomerUpdate {
 	acu.mutation.ClearDeletedAt()
-	return acu
-}
-
-// SetActions sets the "actions" field.
-func (acu *AppCustomerUpdate) SetActions(ala []appentity.AppListenerAction) *AppCustomerUpdate {
-	acu.mutation.SetActions(ala)
-	return acu
-}
-
-// AppendActions appends ala to the "actions" field.
-func (acu *AppCustomerUpdate) AppendActions(ala []appentity.AppListenerAction) *AppCustomerUpdate {
-	acu.mutation.AppendActions(ala)
-	return acu
-}
-
-// ClearActions clears the value of the "actions" field.
-func (acu *AppCustomerUpdate) ClearActions() *AppCustomerUpdate {
-	acu.mutation.ClearActions()
 	return acu
 }
 
@@ -147,17 +127,6 @@ func (acu *AppCustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if acu.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustomer.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := acu.mutation.Actions(); ok {
-		_spec.SetField(appcustomer.FieldActions, field.TypeJSON, value)
-	}
-	if value, ok := acu.mutation.AppendedActions(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, appcustomer.FieldActions, value)
-		})
-	}
-	if acu.mutation.ActionsCleared() {
-		_spec.ClearField(appcustomer.FieldActions, field.TypeJSON)
-	}
 	if n, err = sqlgraph.UpdateNodes(ctx, acu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appcustomer.Label}
@@ -201,24 +170,6 @@ func (acuo *AppCustomerUpdateOne) SetNillableDeletedAt(t *time.Time) *AppCustome
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (acuo *AppCustomerUpdateOne) ClearDeletedAt() *AppCustomerUpdateOne {
 	acuo.mutation.ClearDeletedAt()
-	return acuo
-}
-
-// SetActions sets the "actions" field.
-func (acuo *AppCustomerUpdateOne) SetActions(ala []appentity.AppListenerAction) *AppCustomerUpdateOne {
-	acuo.mutation.SetActions(ala)
-	return acuo
-}
-
-// AppendActions appends ala to the "actions" field.
-func (acuo *AppCustomerUpdateOne) AppendActions(ala []appentity.AppListenerAction) *AppCustomerUpdateOne {
-	acuo.mutation.AppendActions(ala)
-	return acuo
-}
-
-// ClearActions clears the value of the "actions" field.
-func (acuo *AppCustomerUpdateOne) ClearActions() *AppCustomerUpdateOne {
-	acuo.mutation.ClearActions()
 	return acuo
 }
 
@@ -324,17 +275,6 @@ func (acuo *AppCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustom
 	}
 	if acuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustomer.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := acuo.mutation.Actions(); ok {
-		_spec.SetField(appcustomer.FieldActions, field.TypeJSON, value)
-	}
-	if value, ok := acuo.mutation.AppendedActions(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, appcustomer.FieldActions, value)
-		})
-	}
-	if acuo.mutation.ActionsCleared() {
-		_spec.ClearField(appcustomer.FieldActions, field.TypeJSON)
 	}
 	_node = &AppCustomer{config: acuo.config}
 	_spec.Assign = _node.assignValues

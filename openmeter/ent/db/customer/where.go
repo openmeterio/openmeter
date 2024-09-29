@@ -146,11 +146,6 @@ func Currency(v currencyx.Code) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
 }
 
-// ExternalMappingStripeCustomerID applies equality check predicate on the "external_mapping_stripe_customer_id" field. It's identical to ExternalMappingStripeCustomerIDEQ.
-func ExternalMappingStripeCustomerID(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldNamespace, v))
@@ -1228,79 +1223,27 @@ func CurrencyContainsFold(v currencyx.Code) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
 }
 
-// ExternalMappingStripeCustomerIDEQ applies the EQ predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))
+// HasApps applies the HasEdge predicate on the "apps" edge.
+func HasApps() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AppsTable, AppsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
 }
 
-// ExternalMappingStripeCustomerIDNEQ applies the NEQ predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDNEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldNEQ(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDIn applies the In predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldIn(FieldExternalMappingStripeCustomerID, vs...))
-}
-
-// ExternalMappingStripeCustomerIDNotIn applies the NotIn predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDNotIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldNotIn(FieldExternalMappingStripeCustomerID, vs...))
-}
-
-// ExternalMappingStripeCustomerIDGT applies the GT predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDGT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGT(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDGTE applies the GTE predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDGTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGTE(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDLT applies the LT predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDLT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLT(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDLTE applies the LTE predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDLTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLTE(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDContains applies the Contains predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDContains(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContains(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDHasPrefix applies the HasPrefix predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDHasPrefix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasPrefix(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDHasSuffix applies the HasSuffix predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDHasSuffix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasSuffix(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDIsNil applies the IsNil predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldExternalMappingStripeCustomerID))
-}
-
-// ExternalMappingStripeCustomerIDNotNil applies the NotNil predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldExternalMappingStripeCustomerID))
-}
-
-// ExternalMappingStripeCustomerIDEqualFold applies the EqualFold predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDEqualFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEqualFold(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDContainsFold applies the ContainsFold predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDContainsFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContainsFold(FieldExternalMappingStripeCustomerID, v))
+// HasAppsWith applies the HasEdge predicate on the "apps" edge with a given conditions (other predicates).
+func HasAppsWith(preds ...predicate.AppCustomer) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newAppsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasSubjects applies the HasEdge predicate on the "subjects" edge.

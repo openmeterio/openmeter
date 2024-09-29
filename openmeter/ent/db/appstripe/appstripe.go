@@ -26,26 +26,17 @@ const (
 	FieldStripeAccountID = "stripe_account_id"
 	// FieldStripeLivemode holds the string denoting the stripe_livemode field in the database.
 	FieldStripeLivemode = "stripe_livemode"
-	// EdgeApp holds the string denoting the app edge name in mutations.
-	EdgeApp = "app"
-	// EdgeAppCustomers holds the string denoting the app_customers edge name in mutations.
-	EdgeAppCustomers = "app_customers"
+	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
+	EdgeCustomerApps = "customer_apps"
 	// Table holds the table name of the appstripe in the database.
 	Table = "app_stripes"
-	// AppTable is the table that holds the app relation/edge.
-	AppTable = "app_stripes"
-	// AppInverseTable is the table name for the App entity.
-	// It exists in this package in order to avoid circular dependency with the "app" package.
-	AppInverseTable = "apps"
-	// AppColumn is the table column denoting the app relation/edge.
-	AppColumn = "app_stripe_app"
-	// AppCustomersTable is the table that holds the app_customers relation/edge.
-	AppCustomersTable = "app_stripe_customers"
-	// AppCustomersInverseTable is the table name for the AppStripeCustomer entity.
+	// CustomerAppsTable is the table that holds the customer_apps relation/edge.
+	CustomerAppsTable = "app_stripe_customers"
+	// CustomerAppsInverseTable is the table name for the AppStripeCustomer entity.
 	// It exists in this package in order to avoid circular dependency with the "appstripecustomer" package.
-	AppCustomersInverseTable = "app_stripe_customers"
-	// AppCustomersColumn is the table column denoting the app_customers relation/edge.
-	AppCustomersColumn = "app_stripe_app_customers"
+	CustomerAppsInverseTable = "app_stripe_customers"
+	// CustomerAppsColumn is the table column denoting the customer_apps relation/edge.
+	CustomerAppsColumn = "app_id"
 )
 
 // Columns holds all SQL columns for appstripe fields.
@@ -59,21 +50,10 @@ var Columns = []string{
 	FieldStripeLivemode,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "app_stripes"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"app_stripe_app",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -89,8 +69,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// IDValidator is a validator for the "id" field. It is called by the builders before save.
-	IDValidator func(string) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() string
 )
 
 // OrderOption defines the ordering options for the AppStripe queries.
@@ -131,37 +111,23 @@ func ByStripeLivemode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeLivemode, opts...).ToFunc()
 }
 
-// ByAppField orders the results by app field.
-func ByAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByCustomerAppsCount orders the results by customer_apps count.
+func ByCustomerAppsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAppStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newCustomerAppsStep(), opts...)
 	}
 }
 
-// ByAppCustomersCount orders the results by app_customers count.
-func ByAppCustomersCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCustomerApps orders the results by customer_apps terms.
+func ByCustomerApps(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAppCustomersStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newCustomerAppsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// ByAppCustomers orders the results by app_customers terms.
-func ByAppCustomers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAppCustomersStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newAppStep() *sqlgraph.Step {
+func newCustomerAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
-	)
-}
-func newAppCustomersStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AppCustomersInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, AppCustomersTable, AppCustomersColumn),
+		sqlgraph.To(CustomerAppsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CustomerAppsTable, CustomerAppsColumn),
 	)
 }

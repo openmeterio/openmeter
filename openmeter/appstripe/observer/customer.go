@@ -6,8 +6,10 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	appstripecustomer "github.com/openmeterio/openmeter/openmeter/appstripe/customer"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
@@ -47,11 +49,11 @@ func New(config Config) (*CustomerObserver, error) {
 }
 
 func (c CustomerObserver) PostCreate(customer *customerentity.Customer) error {
-	return c.upsertDefault(customer)
+	return c.upsert(customer)
 }
 
 func (c CustomerObserver) PostUpdate(customer *customerentity.Customer) error {
-	return c.upsertDefault(customer)
+	return c.upsert(customer)
 }
 
 func (c CustomerObserver) PostDelete(customer *customerentity.Customer) error {
@@ -66,31 +68,57 @@ func (c CustomerObserver) PostDelete(customer *customerentity.Customer) error {
 	return nil
 }
 
-// upsertDefault upserts default stripe customer data
-func (c CustomerObserver) upsertDefault(customer *customerentity.Customer) error {
-	// if customer.External == nil || customer.External.StripeCustomerID == nil {
-	// 	return nil
-	// }
+// upsert upserts default stripe customer data
+func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
+	var defaultAppID *appentity.AppID
 
-	// // Get default app
-	// // TODO: we need more information to decide to which app this stripe customer belongs to the default app
-	// app, err := c.appService.GetDefaultApp(context.Background(), appentity.GetDefaultAppInput{
-	// 	Namespace: customer.GetID().Namespace,
-	// 	Type:      appentity.AppTypeStripe,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get default app: %w", err)
-	// }
+	for _, customerApp := range customer.Apps {
+		// Skip non stripe apps
+		if customerApp.Type != appentity.AppTypeStripe {
+			continue
+		}
 
-	// // Upsert stripe customer data
-	// err = c.appstripeService.UpsertStripeCustomerData(context.Background(), appstripeentity.UpsertStripeCustomerDataInput{
-	// 	AppID:            app.GetID(),
-	// 	CustomerID:       customer.GetID(),
-	// 	StripeCustomerID: *customer.External.StripeCustomerID,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("failed to upsert stripe customer data: %w", err)
-	// }
+		// Cast app data to stripe customer data
+		appStripeCustomer, ok := customerApp.Data.(appstripecustomer.CustomerData)
+		if !ok {
+			return errors.New("failed to cast app data to stripe customer data")
+		}
+
+		var appID appentity.AppID
+
+		// If there is no app id, it's the default app
+		if customerApp.AppID != nil {
+			appID = *customerApp.AppID
+		} else {
+			if defaultAppID != nil {
+				return fmt.Errorf("multiple default stripe apps found: %s, %s in namespace %s", defaultAppID.ID, customer.GetID(), defaultAppID.Namespace)
+			}
+
+			// Get default app
+			app, err := c.appService.GetDefaultApp(context.Background(), appentity.GetDefaultAppInput{
+				Namespace: customer.GetID().Namespace,
+				Type:      appentity.AppTypeStripe,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to get default app: %w", err)
+			}
+
+			id := app.GetID()
+
+			appID = id
+			defaultAppID = &id
+		}
+
+		// Upsert stripe customer data
+		err := c.appstripeService.UpsertStripeCustomerData(context.Background(), appstripeentity.UpsertStripeCustomerDataInput{
+			AppID:            appID,
+			CustomerID:       customer.GetID(),
+			StripeCustomerID: appStripeCustomer.StripeCustomerID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upsert stripe customer data: %w", err)
+		}
+	}
 
 	return nil
 }

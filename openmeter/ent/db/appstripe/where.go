@@ -365,44 +365,21 @@ func StripeLivemodeNEQ(v bool) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldNEQ(FieldStripeLivemode, v))
 }
 
-// HasApp applies the HasEdge predicate on the "app" edge.
-func HasApp() predicate.AppStripe {
+// HasCustomerApps applies the HasEdge predicate on the "customer_apps" edge.
+func HasCustomerApps() predicate.AppStripe {
 	return predicate.AppStripe(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, CustomerAppsTable, CustomerAppsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAppWith applies the HasEdge predicate on the "app" edge with a given conditions (other predicates).
-func HasAppWith(preds ...predicate.App) predicate.AppStripe {
+// HasCustomerAppsWith applies the HasEdge predicate on the "customer_apps" edge with a given conditions (other predicates).
+func HasCustomerAppsWith(preds ...predicate.AppStripeCustomer) predicate.AppStripe {
 	return predicate.AppStripe(func(s *sql.Selector) {
-		step := newAppStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasAppCustomers applies the HasEdge predicate on the "app_customers" edge.
-func HasAppCustomers() predicate.AppStripe {
-	return predicate.AppStripe(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AppCustomersTable, AppCustomersColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasAppCustomersWith applies the HasEdge predicate on the "app_customers" edge with a given conditions (other predicates).
-func HasAppCustomersWith(preds ...predicate.AppStripeCustomer) predicate.AppStripe {
-	return predicate.AppStripe(func(s *sql.Selector) {
-		step := newAppCustomersStep()
+		step := newCustomerAppsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

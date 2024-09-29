@@ -1,41 +1,27 @@
-package app
+package appcustomer
 
 import (
 	"context"
 	"fmt"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	"github.com/openmeterio/openmeter/pkg/pagination"
+	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
 )
 
 type TxAdapter interface {
-	AppAdapter
+	AppCustomerAdapter
 
 	Commit() error
 	Rollback() error
 }
 
 type Adapter interface {
-	AppAdapter
+	AppCustomerAdapter
 
 	WithTx(context.Context) (TxAdapter, error)
 }
 
-type MarketplaceAdapter interface {
-	RegisterListing(input appentity.RegisterMarketplaceListingInput) error
-	GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error)
-	ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error)
-	InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
-	GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
-	AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
-}
-
-type AppAdapter interface {
-	CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error)
-	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
-	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)
-	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
-	UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error
+type AppCustomerAdapter interface {
+	UpsertAppCustomer(ctx context.Context, input appcustomerentity.UpsertAppCustomerInput) error
 }
 
 func WithTxNoValue(ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) error) error {

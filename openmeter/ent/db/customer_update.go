@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -285,24 +286,19 @@ func (cu *CustomerUpdate) ClearCurrency() *CustomerUpdate {
 	return cu
 }
 
-// SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
-func (cu *CustomerUpdate) SetExternalMappingStripeCustomerID(s string) *CustomerUpdate {
-	cu.mutation.SetExternalMappingStripeCustomerID(s)
+// AddAppIDs adds the "apps" edge to the AppCustomer entity by IDs.
+func (cu *CustomerUpdate) AddAppIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.AddAppIDs(ids...)
 	return cu
 }
 
-// SetNillableExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableExternalMappingStripeCustomerID(s *string) *CustomerUpdate {
-	if s != nil {
-		cu.SetExternalMappingStripeCustomerID(*s)
+// AddApps adds the "apps" edges to the AppCustomer entity.
+func (cu *CustomerUpdate) AddApps(a ...*AppCustomer) *CustomerUpdate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
 	}
-	return cu
-}
-
-// ClearExternalMappingStripeCustomerID clears the value of the "external_mapping_stripe_customer_id" field.
-func (cu *CustomerUpdate) ClearExternalMappingStripeCustomerID() *CustomerUpdate {
-	cu.mutation.ClearExternalMappingStripeCustomerID()
-	return cu
+	return cu.AddAppIDs(ids...)
 }
 
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by IDs.
@@ -342,6 +338,27 @@ func (cu *CustomerUpdate) SetBillingCustomerOverride(b *BillingCustomerOverride)
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
+}
+
+// ClearApps clears all "apps" edges to the AppCustomer entity.
+func (cu *CustomerUpdate) ClearApps() *CustomerUpdate {
+	cu.mutation.ClearApps()
+	return cu
+}
+
+// RemoveAppIDs removes the "apps" edge to AppCustomer entities by IDs.
+func (cu *CustomerUpdate) RemoveAppIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.RemoveAppIDs(ids...)
+	return cu
+}
+
+// RemoveApps removes "apps" edges to AppCustomer entities.
+func (cu *CustomerUpdate) RemoveApps(a ...*AppCustomer) *CustomerUpdate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return cu.RemoveAppIDs(ids...)
 }
 
 // ClearSubjects clears all "subjects" edges to the CustomerSubjects entity.
@@ -512,11 +529,50 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if cu.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
 	}
-	if value, ok := cu.mutation.ExternalMappingStripeCustomerID(); ok {
-		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
+	if cu.mutation.AppsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if cu.mutation.ExternalMappingStripeCustomerIDCleared() {
-		_spec.ClearField(customer.FieldExternalMappingStripeCustomerID, field.TypeString)
+	if nodes := cu.mutation.RemovedAppsIDs(); len(nodes) > 0 && !cu.mutation.AppsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.AppsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if cu.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -864,24 +920,19 @@ func (cuo *CustomerUpdateOne) ClearCurrency() *CustomerUpdateOne {
 	return cuo
 }
 
-// SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
-func (cuo *CustomerUpdateOne) SetExternalMappingStripeCustomerID(s string) *CustomerUpdateOne {
-	cuo.mutation.SetExternalMappingStripeCustomerID(s)
+// AddAppIDs adds the "apps" edge to the AppCustomer entity by IDs.
+func (cuo *CustomerUpdateOne) AddAppIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.AddAppIDs(ids...)
 	return cuo
 }
 
-// SetNillableExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableExternalMappingStripeCustomerID(s *string) *CustomerUpdateOne {
-	if s != nil {
-		cuo.SetExternalMappingStripeCustomerID(*s)
+// AddApps adds the "apps" edges to the AppCustomer entity.
+func (cuo *CustomerUpdateOne) AddApps(a ...*AppCustomer) *CustomerUpdateOne {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
 	}
-	return cuo
-}
-
-// ClearExternalMappingStripeCustomerID clears the value of the "external_mapping_stripe_customer_id" field.
-func (cuo *CustomerUpdateOne) ClearExternalMappingStripeCustomerID() *CustomerUpdateOne {
-	cuo.mutation.ClearExternalMappingStripeCustomerID()
-	return cuo
+	return cuo.AddAppIDs(ids...)
 }
 
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by IDs.
@@ -921,6 +972,27 @@ func (cuo *CustomerUpdateOne) SetBillingCustomerOverride(b *BillingCustomerOverr
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
+}
+
+// ClearApps clears all "apps" edges to the AppCustomer entity.
+func (cuo *CustomerUpdateOne) ClearApps() *CustomerUpdateOne {
+	cuo.mutation.ClearApps()
+	return cuo
+}
+
+// RemoveAppIDs removes the "apps" edge to AppCustomer entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveAppIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.RemoveAppIDs(ids...)
+	return cuo
+}
+
+// RemoveApps removes "apps" edges to AppCustomer entities.
+func (cuo *CustomerUpdateOne) RemoveApps(a ...*AppCustomer) *CustomerUpdateOne {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return cuo.RemoveAppIDs(ids...)
 }
 
 // ClearSubjects clears all "subjects" edges to the CustomerSubjects entity.
@@ -1121,11 +1193,50 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	if cuo.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
 	}
-	if value, ok := cuo.mutation.ExternalMappingStripeCustomerID(); ok {
-		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
+	if cuo.mutation.AppsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if cuo.mutation.ExternalMappingStripeCustomerIDCleared() {
-		_spec.ClearField(customer.FieldExternalMappingStripeCustomerID, field.TypeString)
+	if nodes := cuo.mutation.RemovedAppsIDs(); len(nodes) > 0 && !cuo.mutation.AppsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.AppsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if cuo.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
