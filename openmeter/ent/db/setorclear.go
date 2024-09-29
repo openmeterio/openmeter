@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -54,20 +53,6 @@ func (u *AppCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppCustome
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
-}
-
-func (u *AppCustomerUpdate) SetOrClearActions(value *[]appentity.AppListenerAction) *AppCustomerUpdate {
-	if value == nil {
-		return u.ClearActions()
-	}
-	return u.SetActions(*value)
-}
-
-func (u *AppCustomerUpdateOne) SetOrClearActions(value *[]appentity.AppListenerAction) *AppCustomerUpdateOne {
-	if value == nil {
-		return u.ClearActions()
-	}
-	return u.SetActions(*value)
 }
 
 func (u *AppStripeUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeUpdate {
@@ -754,20 +739,6 @@ func (u *CustomerUpdateOne) SetOrClearCurrency(value *currencyx.Code) *CustomerU
 		return u.ClearCurrency()
 	}
 	return u.SetCurrency(*value)
-}
-
-func (u *CustomerUpdate) SetOrClearExternalMappingStripeCustomerID(value *string) *CustomerUpdate {
-	if value == nil {
-		return u.ClearExternalMappingStripeCustomerID()
-	}
-	return u.SetExternalMappingStripeCustomerID(*value)
-}
-
-func (u *CustomerUpdateOne) SetOrClearExternalMappingStripeCustomerID(value *string) *CustomerUpdateOne {
-	if value == nil {
-		return u.ClearExternalMappingStripeCustomerID()
-	}
-	return u.SetExternalMappingStripeCustomerID(*value)
 }
 
 func (u *EntitlementUpdate) SetOrClearMetadata(value *map[string]string) *EntitlementUpdate {

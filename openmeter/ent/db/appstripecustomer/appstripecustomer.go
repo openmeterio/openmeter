@@ -30,33 +30,15 @@ const (
 	FieldStripeCustomerID = "stripe_customer_id"
 	// EdgeApp holds the string denoting the app edge name in mutations.
 	EdgeApp = "app"
-	// EdgeAppStripe holds the string denoting the app_stripe edge name in mutations.
-	EdgeAppStripe = "app_stripe"
-	// EdgeCustomer holds the string denoting the customer edge name in mutations.
-	EdgeCustomer = "customer"
 	// Table holds the table name of the appstripecustomer in the database.
 	Table = "app_stripe_customers"
 	// AppTable is the table that holds the app relation/edge.
 	AppTable = "app_stripe_customers"
-	// AppInverseTable is the table name for the App entity.
-	// It exists in this package in order to avoid circular dependency with the "app" package.
-	AppInverseTable = "apps"
+	// AppInverseTable is the table name for the AppStripe entity.
+	// It exists in this package in order to avoid circular dependency with the "appstripe" package.
+	AppInverseTable = "app_stripes"
 	// AppColumn is the table column denoting the app relation/edge.
 	AppColumn = "app_id"
-	// AppStripeTable is the table that holds the app_stripe relation/edge.
-	AppStripeTable = "app_stripe_customers"
-	// AppStripeInverseTable is the table name for the AppStripe entity.
-	// It exists in this package in order to avoid circular dependency with the "appstripe" package.
-	AppStripeInverseTable = "app_stripes"
-	// AppStripeColumn is the table column denoting the app_stripe relation/edge.
-	AppStripeColumn = "app_id"
-	// CustomerTable is the table that holds the customer relation/edge.
-	CustomerTable = "app_stripe_customers"
-	// CustomerInverseTable is the table name for the Customer entity.
-	// It exists in this package in order to avoid circular dependency with the "customer" package.
-	CustomerInverseTable = "customers"
-	// CustomerColumn is the table column denoting the customer relation/edge.
-	CustomerColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for appstripecustomer fields.
@@ -71,22 +53,10 @@ var Columns = []string{
 	FieldStripeCustomerID,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "app_stripe_customers"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"app_app_customers",
-	"app_stripe_app_customers",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -157,38 +127,10 @@ func ByAppField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAppStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByAppStripeField orders the results by app_stripe field.
-func ByAppStripeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAppStripeStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByCustomerField orders the results by customer field.
-func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newAppStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
-	)
-}
-func newAppStripeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AppStripeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, AppStripeTable, AppStripeColumn),
-	)
-}
-func newCustomerStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CustomerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, CustomerTable, CustomerColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, AppTable, AppColumn),
 	)
 }

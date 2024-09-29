@@ -14,7 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 )
 
 // AppCreate is the builder for creating a App entity.
@@ -131,19 +131,19 @@ func (ac *AppCreate) SetNillableID(s *string) *AppCreate {
 	return ac
 }
 
-// AddAppCustomerIDs adds the "app_customers" edge to the AppStripeCustomer entity by IDs.
-func (ac *AppCreate) AddAppCustomerIDs(ids ...int) *AppCreate {
-	ac.mutation.AddAppCustomerIDs(ids...)
+// AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomer entity by IDs.
+func (ac *AppCreate) AddCustomerAppIDs(ids ...int) *AppCreate {
+	ac.mutation.AddCustomerAppIDs(ids...)
 	return ac
 }
 
-// AddAppCustomers adds the "app_customers" edges to the AppStripeCustomer entity.
-func (ac *AppCreate) AddAppCustomers(a ...*AppStripeCustomer) *AppCreate {
+// AddCustomerApps adds the "customer_apps" edges to the AppCustomer entity.
+func (ac *AppCreate) AddCustomerApps(a ...*AppCustomer) *AppCreate {
 	ids := make([]int, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
-	return ac.AddAppCustomerIDs(ids...)
+	return ac.AddCustomerAppIDs(ids...)
 }
 
 // Mutation returns the AppMutation object of the builder.
@@ -306,15 +306,15 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
 		_node.IsDefault = value
 	}
-	if nodes := ac.mutation.AppCustomersIDs(); len(nodes) > 0 {
+	if nodes := ac.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.AppCustomersTable,
-			Columns: []string{app.AppCustomersColumn},
+			Table:   app.CustomerAppsTable,
+			Columns: []string{app.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

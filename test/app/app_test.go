@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCustomer(t *testing.T) {
+func TestApp(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -30,6 +30,10 @@ func TestCustomer(t *testing.T) {
 
 		t.Run("TestGet", func(t *testing.T) {
 			testSuite.TestGetMarketplaceListing(ctx, t)
+		})
+
+		t.Run("TestListListings", func(t *testing.T) {
+			testSuite.TestListMarketplaceListings(ctx, t)
 		})
 	})
 }

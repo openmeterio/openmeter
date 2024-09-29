@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -13,6 +14,9 @@ type Service interface {
 }
 
 type CustomerService interface {
+	Register(observer appobserver.Observer[customerentity.Customer]) error
+	Deregister(observer appobserver.Observer[customerentity.Customer]) error
+
 	ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error)
 	CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error)
 	DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error
@@ -44,6 +48,14 @@ func NewService(c ServiceConfig) (Service, error) {
 	return &service{
 		repo: c.Repository,
 	}, nil
+}
+
+func (s *service) Register(observer appobserver.Observer[customerentity.Customer]) error {
+	return s.repo.Register(observer)
+}
+
+func (s *service) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
+	return s.repo.Deregister(observer)
 }
 
 func (s *service) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {

@@ -18,6 +18,7 @@ type AppStripe struct {
 
 func (AppStripe) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}
@@ -25,9 +26,6 @@ func (AppStripe) Mixin() []ent.Mixin {
 
 func (AppStripe) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("id").Immutable().SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}).NotEmpty().Immutable(),
 		field.String("stripe_account_id").Immutable(),
 		field.Bool("stripe_livemode").Immutable(),
 	}
@@ -35,13 +33,10 @@ func (AppStripe) Fields() []ent.Field {
 
 func (AppStripe) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("app", App.Type).
-			Immutable().
-			Required().
-			Unique().
+		edge.To("customer_apps", AppStripeCustomer.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("app_customers", AppStripeCustomer.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+		// TODO:
+		// from edge: App.Type
 	}
 }
 
@@ -78,20 +73,14 @@ func (AppStripeCustomer) Indexes() []ent.Index {
 
 func (AppStripeCustomer) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("app", App.Type).
+		edge.From("app", AppStripe.Type).
+			Ref("customer_apps").
 			Field("app_id").
 			Immutable().
 			Required().
 			Unique(),
-		edge.To("app_stripe", AppStripe.Type).
-			Field("app_id").
-			Immutable().
-			Required().
-			Unique(),
-		edge.To("customer", Customer.Type).
-			Field("customer_id").
-			Immutable().
-			Required().
-			Unique(),
+		// TODO:
+		// from edge: App.Type
+		// from edge: Customer.Type
 	}
 }

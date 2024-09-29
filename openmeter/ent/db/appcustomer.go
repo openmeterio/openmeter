@@ -3,14 +3,12 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -33,8 +31,6 @@ type AppCustomer struct {
 	AppID string `json:"app_id,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
-	// Actions holds the value of the "actions" field.
-	Actions []appentity.AppListenerAction `json:"actions,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppCustomerQuery when eager-loading is set.
 	Edges        AppCustomerEdges `json:"edges"`
@@ -79,8 +75,6 @@ func (*AppCustomer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case appcustomer.FieldActions:
-			values[i] = new([]byte)
 		case appcustomer.FieldID:
 			values[i] = new(sql.NullInt64)
 		case appcustomer.FieldNamespace, appcustomer.FieldAppID, appcustomer.FieldCustomerID:
@@ -144,14 +138,6 @@ func (ac *AppCustomer) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
 				ac.CustomerID = value.String
-			}
-		case appcustomer.FieldActions:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field actions", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &ac.Actions); err != nil {
-					return fmt.Errorf("unmarshal field actions: %w", err)
-				}
 			}
 		default:
 			ac.selectValues.Set(columns[i], values[i])
@@ -218,9 +204,6 @@ func (ac *AppCustomer) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(ac.CustomerID)
-	builder.WriteString(", ")
-	builder.WriteString("actions=")
-	builder.WriteString(fmt.Sprintf("%v", ac.Actions))
 	builder.WriteByte(')')
 	return builder.String()
 }

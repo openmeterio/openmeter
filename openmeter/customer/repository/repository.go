@@ -35,8 +35,9 @@ func New(config Config) (customer.Repository, error) {
 	}
 
 	return &repository{
-		db:     config.Client,
-		logger: config.Logger,
+		db:        config.Client,
+		logger:    config.Logger,
+		observers: &[]appobserver.Observer[customerentity.Customer]{},
 	}, nil
 }
 
@@ -46,14 +47,15 @@ var (
 )
 
 type repository struct {
-	db        *entdb.Client
-	tx        *entdb.Tx
-	observers []appobserver.Observer[customerentity.Customer]
+	db *entdb.Client
+	tx *entdb.Tx
+	// It is a reference so we can pass it down in WithTx
+	observers *[]appobserver.Observer[customerentity.Customer]
 
 	logger *slog.Logger
 }
 
-func (r repository) Commit() error {
+func (r *repository) Commit() error {
 	if r.tx != nil {
 		return r.tx.Commit()
 	}
@@ -61,7 +63,7 @@ func (r repository) Commit() error {
 	return nil
 }
 
-func (r repository) Rollback() error {
+func (r *repository) Rollback() error {
 	if r.tx != nil {
 		return r.tx.Rollback()
 	}
@@ -69,7 +71,7 @@ func (r repository) Rollback() error {
 	return nil
 }
 
-func (r repository) client() *entdb.Client {
+func (r *repository) client() *entdb.Client {
 	if r.tx != nil {
 		return r.tx.Client()
 	}
@@ -77,7 +79,7 @@ func (r repository) client() *entdb.Client {
 	return r.db
 }
 
-func (r repository) WithTx(ctx context.Context) (customer.TxRepository, error) {
+func (r *repository) WithTx(ctx context.Context) (customer.TxRepository, error) {
 	if r.tx != nil {
 		return r, nil
 	}
@@ -88,8 +90,9 @@ func (r repository) WithTx(ctx context.Context) (customer.TxRepository, error) {
 	}
 
 	return &repository{
-		db:     r.db,
-		tx:     tx,
-		logger: r.logger,
+		db:        r.db,
+		tx:        tx,
+		logger:    r.logger,
+		observers: r.observers,
 	}, nil
 }

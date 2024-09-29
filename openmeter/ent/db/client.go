@@ -475,15 +475,15 @@ func (c *AppClient) GetX(ctx context.Context, id string) *App {
 	return obj
 }
 
-// QueryAppCustomers queries the app_customers edge of a App.
-func (c *AppClient) QueryAppCustomers(a *App) *AppStripeCustomerQuery {
-	query := (&AppStripeCustomerClient{config: c.config}).Query()
+// QueryCustomerApps queries the customer_apps edge of a App.
+func (c *AppClient) QueryCustomerApps(a *App) *AppCustomerQuery {
+	query := (&AppCustomerClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(app.Table, app.FieldID, id),
-			sqlgraph.To(appstripecustomer.Table, appstripecustomer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.AppCustomersTable, app.AppCustomersColumn),
+			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.CustomerAppsTable, app.CustomerAppsColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -632,7 +632,7 @@ func (c *AppCustomerClient) QueryApp(ac *AppCustomer) *AppQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appcustomer.Table, appcustomer.FieldID, id),
 			sqlgraph.To(app.Table, app.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appcustomer.AppTable, appcustomer.AppColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.AppTable, appcustomer.AppColumn),
 		)
 		fromV = sqlgraph.Neighbors(ac.driver.Dialect(), step)
 		return fromV, nil
@@ -648,7 +648,7 @@ func (c *AppCustomerClient) QueryCustomer(ac *AppCustomer) *CustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appcustomer.Table, appcustomer.FieldID, id),
 			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appcustomer.CustomerTable, appcustomer.CustomerColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.CustomerTable, appcustomer.CustomerColumn),
 		)
 		fromV = sqlgraph.Neighbors(ac.driver.Dialect(), step)
 		return fromV, nil
@@ -789,31 +789,15 @@ func (c *AppStripeClient) GetX(ctx context.Context, id string) *AppStripe {
 	return obj
 }
 
-// QueryApp queries the app edge of a AppStripe.
-func (c *AppStripeClient) QueryApp(as *AppStripe) *AppQuery {
-	query := (&AppClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := as.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(appstripe.Table, appstripe.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appstripe.AppTable, appstripe.AppColumn),
-		)
-		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryAppCustomers queries the app_customers edge of a AppStripe.
-func (c *AppStripeClient) QueryAppCustomers(as *AppStripe) *AppStripeCustomerQuery {
+// QueryCustomerApps queries the customer_apps edge of a AppStripe.
+func (c *AppStripeClient) QueryCustomerApps(as *AppStripe) *AppStripeCustomerQuery {
 	query := (&AppStripeCustomerClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := as.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appstripe.Table, appstripe.FieldID, id),
 			sqlgraph.To(appstripecustomer.Table, appstripecustomer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, appstripe.AppCustomersTable, appstripe.AppCustomersColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, appstripe.CustomerAppsTable, appstripe.CustomerAppsColumn),
 		)
 		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
 		return fromV, nil
@@ -955,46 +939,14 @@ func (c *AppStripeCustomerClient) GetX(ctx context.Context, id int) *AppStripeCu
 }
 
 // QueryApp queries the app edge of a AppStripeCustomer.
-func (c *AppStripeCustomerClient) QueryApp(asc *AppStripeCustomer) *AppQuery {
-	query := (&AppClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := asc.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(appstripecustomer.Table, appstripecustomer.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.AppTable, appstripecustomer.AppColumn),
-		)
-		fromV = sqlgraph.Neighbors(asc.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryAppStripe queries the app_stripe edge of a AppStripeCustomer.
-func (c *AppStripeCustomerClient) QueryAppStripe(asc *AppStripeCustomer) *AppStripeQuery {
+func (c *AppStripeCustomerClient) QueryApp(asc *AppStripeCustomer) *AppStripeQuery {
 	query := (&AppStripeClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := asc.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appstripecustomer.Table, appstripecustomer.FieldID, id),
 			sqlgraph.To(appstripe.Table, appstripe.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.AppStripeTable, appstripecustomer.AppStripeColumn),
-		)
-		fromV = sqlgraph.Neighbors(asc.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryCustomer queries the customer edge of a AppStripeCustomer.
-func (c *AppStripeCustomerClient) QueryCustomer(asc *AppStripeCustomer) *CustomerQuery {
-	query := (&CustomerClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := asc.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(appstripecustomer.Table, appstripecustomer.FieldID, id),
-			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.CustomerTable, appstripecustomer.CustomerColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, appstripecustomer.AppTable, appstripecustomer.AppColumn),
 		)
 		fromV = sqlgraph.Neighbors(asc.driver.Dialect(), step)
 		return fromV, nil
@@ -2123,6 +2075,22 @@ func (c *CustomerClient) GetX(ctx context.Context, id string) *Customer {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryApps queries the apps edge of a Customer.
+func (c *CustomerClient) QueryApps(cu *Customer) *AppCustomerQuery {
+	query := (&AppCustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := cu.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.AppsTable, customer.AppsColumn),
+		)
+		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // QuerySubjects queries the subjects edge of a Customer.
