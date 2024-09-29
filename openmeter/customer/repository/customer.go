@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -16,13 +16,13 @@ import (
 )
 
 // Register registers a new observer
-func (r *repository) Register(observer appobserver.Observer[customer.Customer]) error {
+func (r *repository) Register(observer appobserver.Observer[customerentity.Customer]) error {
 	r.observers = append(r.observers, observer)
 	return nil
 }
 
 // Deregister deregisters an observer
-func (r *repository) Deregister(observer appobserver.Observer[customer.Customer]) error {
+func (r *repository) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
 	for i, o := range r.observers {
 		if o == observer {
 			r.observers = append(r.observers[:i], r.observers[i+1:]...)
@@ -34,7 +34,7 @@ func (r *repository) Deregister(observer appobserver.Observer[customer.Customer]
 }
 
 // ListCustomers lists customers
-func (r repository) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
+func (r repository) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
 	db := r.client()
 
 	query := db.Customer.
@@ -63,7 +63,7 @@ func (r repository) ListCustomers(ctx context.Context, params customer.ListCusto
 	// 	query = query.Order(customerdb.ByID(order...))
 	// }
 
-	response := pagination.PagedResponse[customer.Customer]{
+	response := pagination.PagedResponse[customerentity.Customer]{
 		Page: params.Page,
 	}
 
@@ -72,7 +72,7 @@ func (r repository) ListCustomers(ctx context.Context, params customer.ListCusto
 		return response, err
 	}
 
-	result := make([]customer.Customer, 0, len(paged.Items))
+	result := make([]customerentity.Customer, 0, len(paged.Items))
 	for _, item := range paged.Items {
 		if item == nil {
 			r.logger.Warn("invalid query result: nil customer received")
@@ -89,7 +89,7 @@ func (r repository) ListCustomers(ctx context.Context, params customer.ListCusto
 }
 
 // CreateCustomer creates a new customer
-func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCustomerInput) (*customer.Customer, error) {
+func (r repository) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
 	// Create the customer in the database
 	query := r.tx.Customer.Create().
 		SetNamespace(params.Namespace).
@@ -132,7 +132,7 @@ func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCu
 		Save(ctx)
 	if err != nil {
 		if entdb.IsConstraintError(err) {
-			return nil, customer.SubjectKeyConflictError{
+			return nil, customerentity.SubjectKeyConflictError{
 				Namespace:   params.Namespace,
 				SubjectKeys: params.UsageAttribution.SubjectKeys,
 			}
@@ -159,7 +159,7 @@ func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCu
 }
 
 // DeleteCustomer deletes a customer
-func (r repository) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
+func (r repository) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
 	db := r.client()
 
 	// Soft delete the customer
@@ -175,13 +175,13 @@ func (r repository) DeleteCustomer(ctx context.Context, input customer.DeleteCus
 	}
 
 	if rows == 0 {
-		return customer.NotFoundError{
-			CustomerID: customer.CustomerID(input),
+		return customerentity.NotFoundError{
+			CustomerID: customerentity.CustomerID(input),
 		}
 	}
 
 	// Deleted customer
-	customer, err := r.GetCustomer(ctx, customer.GetCustomerInput(input))
+	customer, err := r.GetCustomer(ctx, customerentity.GetCustomerInput(input))
 	if err != nil {
 		return fmt.Errorf("failed to get deleted customer: %w", err)
 	}
@@ -197,7 +197,7 @@ func (r repository) DeleteCustomer(ctx context.Context, input customer.DeleteCus
 }
 
 // GetCustomer gets a customer
-func (r repository) GetCustomer(ctx context.Context, input customer.GetCustomerInput) (*customer.Customer, error) {
+func (r repository) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
 	db := r.client()
 
 	query := db.Customer.Query().
@@ -208,8 +208,8 @@ func (r repository) GetCustomer(ctx context.Context, input customer.GetCustomerI
 	entity, err := query.First(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return nil, customer.NotFoundError{
-				CustomerID: customer.CustomerID(input),
+			return nil, customerentity.NotFoundError{
+				CustomerID: customerentity.CustomerID(input),
 			}
 		}
 
@@ -224,8 +224,8 @@ func (r repository) GetCustomer(ctx context.Context, input customer.GetCustomerI
 }
 
 // UpdateCustomer updates a customer
-func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
-	getCustomerInput := customer.GetCustomerInput{
+func (r repository) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+	getCustomerInput := customerentity.GetCustomerInput{
 		Namespace: input.Namespace,
 		ID:        input.ID,
 	}
@@ -272,8 +272,8 @@ func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCus
 	entity, err := query.Save(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return nil, customer.NotFoundError{
-				CustomerID: customer.CustomerID{
+			return nil, customerentity.NotFoundError{
+				CustomerID: customerentity.CustomerID{
 					Namespace: input.Namespace,
 					ID:        input.ID,
 				},
@@ -281,7 +281,7 @@ func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCus
 		}
 
 		if entdb.IsConstraintError(err) {
-			return nil, customer.SubjectKeyConflictError{
+			return nil, customerentity.SubjectKeyConflictError{
 				Namespace:   input.Namespace,
 				SubjectKeys: input.UsageAttribution.SubjectKeys,
 			}
@@ -323,7 +323,7 @@ func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCus
 		Save(ctx)
 	if err != nil {
 		if entdb.IsConstraintError(err) {
-			return nil, customer.SubjectKeyConflictError{
+			return nil, customerentity.SubjectKeyConflictError{
 				Namespace:   input.Namespace,
 				SubjectKeys: subjectsKeysToAdd,
 			}
@@ -358,7 +358,7 @@ func (r repository) UpdateCustomer(ctx context.Context, input customer.UpdateCus
 		Exec(ctx)
 	if err != nil {
 		if entdb.IsConstraintError(err) {
-			return nil, customer.SubjectKeyConflictError{
+			return nil, customerentity.SubjectKeyConflictError{
 				Namespace:   input.Namespace,
 				SubjectKeys: subjectKeysToRemove,
 			}

@@ -9,13 +9,14 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type (
-	ListCustomersRequest  = customer.ListCustomersInput
+	ListCustomersRequest  = customerentity.ListCustomersInput
 	ListCustomersResponse = api.CustomerList
 	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
@@ -79,7 +80,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 }
 
 type (
-	CreateCustomerRequest  = customer.CreateCustomerInput
+	CreateCustomerRequest  = customerentity.CreateCustomerInput
 	CreateCustomerResponse = api.Customer
 	CreateCustomerHandler  httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse]
 )
@@ -120,7 +121,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 }
 
 type (
-	UpdateCustomerRequest  = customer.UpdateCustomerInput
+	UpdateCustomerRequest  = customerentity.UpdateCustomerInput
 	UpdateCustomerResponse = api.Customer
 	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, string]
 )
@@ -162,7 +163,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 }
 
 type (
-	DeleteCustomerRequest  = customer.DeleteCustomerInput
+	DeleteCustomerRequest  = customerentity.DeleteCustomerInput
 	DeleteCustomerResponse = interface{}
 	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, api.CustomerIdentifier]
 )
@@ -199,7 +200,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 }
 
 type (
-	GetCustomerRequest  = customer.GetCustomerInput
+	GetCustomerRequest  = customerentity.GetCustomerInput
 	GetCustomerResponse = api.Customer
 	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, api.CustomerIdentifier]
 )

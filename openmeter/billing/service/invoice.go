@@ -8,16 +8,16 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 var _ billing.InvoiceService = (*Service)(nil)
 
-func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]billing.InvoiceWithValidation, error) {
-	customerEntity, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput(customerID))
+func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billing.InvoiceWithValidation, error) {
+	customerEntity, err := s.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(customerID))
 	if err != nil {
-		if err, ok := lo.ErrorsAs[customer.NotFoundError](err); ok {
+		if err, ok := lo.ErrorsAs[customerentity.NotFoundError](err); ok {
 			return nil, billing.ValidationError{
 				Err: err,
 			}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 type TxAdapter interface {
@@ -38,12 +38,12 @@ type CustomerOverrideAdapter interface {
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
-	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
+	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error)
 }
 
 type InvoiceItemAdapter interface {
 	CreateInvoiceItems(ctx context.Context, input CreateInvoiceItemsInput) ([]InvoiceItem, error)
-	GetPendingInvoiceItems(ctx context.Context, customerID customer.CustomerID) ([]InvoiceItem, error)
+	GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]InvoiceItem, error)
 }
 
 type UpdateProfileAdapterInput struct {

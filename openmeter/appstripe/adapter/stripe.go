@@ -67,14 +67,18 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
-	_, err := a.tx.AppStripeCustomer.
+	query := a.tx.AppStripeCustomer.
 		Delete().
 		Where(
 			appstripecustomerdb.Namespace(input.CustomerID.Namespace),
-			appstripecustomerdb.AppID(input.AppID.ID),
 			appstripecustomerdb.CustomerID(input.CustomerID.ID),
-		).
-		Exec(ctx)
+		)
+
+	if input.AppID != nil {
+		query = query.Where(appstripecustomerdb.AppID(input.AppID.ID))
+	}
+
+	_, err := query.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to delete app stripe customer data: %w", err)
 	}

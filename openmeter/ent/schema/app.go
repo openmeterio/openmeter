@@ -29,6 +29,18 @@ func (App) Fields() []ent.Field {
 		field.String("description"),
 		field.String("type").GoType(appentity.AppType("")).Immutable(),
 		field.String("status").GoType(appentity.AppStatus("")),
+		field.Bool("is_default").Default(false),
+	}
+}
+
+func (App) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "type"),
+		index.Fields("namespace", "type", "is_default").
+			Annotations(
+				entsql.IndexWhere("is_default = true"),
+			).
+			Unique(),
 	}
 }
 

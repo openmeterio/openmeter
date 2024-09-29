@@ -8,6 +8,7 @@ import (
 
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
@@ -40,14 +41,14 @@ func New(config Config) (customer.Repository, error) {
 }
 
 var (
-	_ customer.Repository                      = (*repository)(nil)
-	_ appobserver.Publisher[customer.Customer] = (*repository)(nil)
+	_ customer.Repository                            = (*repository)(nil)
+	_ appobserver.Publisher[customerentity.Customer] = (*repository)(nil)
 )
 
 type repository struct {
 	db        *entdb.Client
 	tx        *entdb.Tx
-	observers []appobserver.Observer[customer.Customer]
+	observers []appobserver.Observer[customerentity.Customer]
 
 	logger *slog.Logger
 }

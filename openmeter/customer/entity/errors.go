@@ -1,4 +1,4 @@
-package customer
+package customerentity
 
 import (
 	"fmt"

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -20,8 +19,8 @@ type App interface {
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities []CapabilityType) error
 
-	// ValidateCustomer validates if the app can run for the given customer
-	ValidateCustomer(customer customer.Customer, capabilities []CapabilityType) error
+	// // ValidateCustomer validates if the app can run for the given customer
+	// ValidateCustomer(customer customerentity.Customer, capabilities []CapabilityType) error
 }
 
 // AppType represents the type of an app
@@ -102,9 +101,9 @@ func (a AppBase) ValidateCapabilities(capabilities []CapabilityType) error {
 }
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a AppBase) ValidateCustomer(c customer.Customer, capabilities []CapabilityType) error {
-	return fmt.Errorf("each app must implement its own ValidateCustomer method")
-}
+// func (a AppBase) ValidateCustomer(c customerentity.Customer, capabilities []CapabilityType) error {
+// 	return fmt.Errorf("each app must implement its own ValidateCustomer method")
+// }
 
 // Validate validates the app base
 func (a AppBase) Validate() error {
@@ -155,6 +154,23 @@ func (i AppID) Validate() error {
 
 // GetAppInput is the input for getting an installed app
 type GetAppInput = AppID
+
+type GetDefaultAppInput struct {
+	Namespace string
+	Type      AppType
+}
+
+func (i GetDefaultAppInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Type == "" {
+		return errors.New("type is required")
+	}
+
+	return nil
+}
 
 // ListAppInput is the input for listing installed apps
 type ListAppInput struct {

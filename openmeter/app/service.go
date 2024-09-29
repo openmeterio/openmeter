@@ -22,6 +22,7 @@ type MarketplaceService interface {
 
 type AppService interface {
 	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
+	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)
 	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
 	UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error
 }

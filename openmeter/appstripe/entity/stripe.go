@@ -6,10 +6,9 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 var marketplace = appadapter.DefaultMarketplace()
@@ -95,21 +94,22 @@ func (a App) Validate() error {
 }
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a App) ValidateCustomer(customer customer.Customer, capabilities []appentity.CapabilityType) error {
+func (a App) ValidateCustomer(customer customerentity.Customer, capabilities []appentity.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 
 	// All Stripe capabilities require the customer to have a Stripe customer ID associated
-	if customer.External == nil && *customer.External.StripeCustomerID == "" {
-		return app.CustomerPreConditionError{
-			AppID:      a.GetID(),
-			AppType:    a.GetType(),
-			CustomerID: customer.GetID(),
-			Condition:  "customer must have a Stripe customer ID",
-		}
-	}
+	// TODO: get app customer
+	// if customer.External == nil && *customer.External.StripeCustomerID == "" {
+	// 	return app.CustomerPreConditionError{
+	// 		AppID:      a.GetID(),
+	// 		AppType:    a.GetType(),
+	// 		CustomerID: customer.GetID(),
+	// 		Condition:  "customer must have a Stripe customer ID",
+	// 	}
+	// }
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
 	if slices.Contains(capabilities, appentity.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentity.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentity.CapabilityTypeCollectPayments) {
@@ -126,7 +126,7 @@ type CreateAppStripeInput = App
 
 type UpsertStripeCustomerDataInput struct {
 	AppID            appentity.AppID
-	CustomerID       customer.CustomerID
+	CustomerID       customerentity.CustomerID
 	StripeCustomerID string
 }
 
@@ -159,19 +159,11 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 }
 
 type DeleteStripeCustomerDataInput struct {
-	AppID      appentity.AppID
-	CustomerID customer.CustomerID
+	AppID      *appentity.AppID
+	CustomerID customerentity.CustomerID
 }
 
 func (i DeleteStripeCustomerDataInput) Validate() error {
-	if i.AppID.ID == "" {
-		return errors.New("app id is required")
-	}
-
-	if i.AppID.Namespace == "" {
-		return errors.New("app namespace is required")
-	}
-
 	if i.CustomerID.ID == "" {
 		return errors.New("customer id is required")
 	}
@@ -180,8 +172,18 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 		return errors.New("customer namespace is required")
 	}
 
-	if i.AppID.Namespace != i.CustomerID.Namespace {
-		return errors.New("app and customer must be in the same namespace")
+	if i.AppID != nil {
+		if i.AppID.ID == "" {
+			return errors.New("app id is required")
+		}
+
+		if i.AppID.Namespace == "" {
+			return errors.New("app namespace is required")
+		}
+
+		if i.AppID.Namespace != i.CustomerID.Namespace {
+			return errors.New("app and customer must be in the same namespace")
+		}
 	}
 
 	return nil
