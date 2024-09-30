@@ -92,6 +92,9 @@ meters:
 
 notification:
   enabled: true
+#  webhook:
+#    eventTypeRegistrationTimeout: 30s
+#    skipEventTypeRegistrationOnError: false
 
 svix:
   apiKey: secret

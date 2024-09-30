@@ -42,7 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
@@ -305,7 +305,10 @@ func main() {
 	}
 
 	notificationWebhook, err := notificationwebhook.New(notificationwebhook.Config{
-		SvixConfig: conf.Svix,
+		SvixConfig:              conf.Svix,
+		RegistrationTimeout:     conf.Notification.Webhook.EventTypeRegistrationTimeout,
+		SkipRegistrationOnError: conf.Notification.Webhook.SkipEventTypeRegistrationOnError,
+		Logger:                  logger.WithGroup("notification.webhook"),
 	})
 	if err != nil {
 		logger.Error("failed to initialize notification repository", "error", err)

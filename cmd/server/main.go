@@ -422,7 +422,10 @@ func main() {
 
 		var notificationWebhook notificationwebhook.Handler
 		notificationWebhook, err = notificationwebhook.New(notificationwebhook.Config{
-			SvixConfig: conf.Svix,
+			SvixConfig:              conf.Svix,
+			RegistrationTimeout:     conf.Notification.Webhook.EventTypeRegistrationTimeout,
+			SkipRegistrationOnError: conf.Notification.Webhook.SkipEventTypeRegistrationOnError,
+			Logger:                  logger.WithGroup("notification.webhook"),
 		})
 		if err != nil {
 			logger.Error("failed to initialize notification webhook handler", "error", err)
