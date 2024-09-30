@@ -12,7 +12,7 @@ require (
 	github.com/IBM/sarama v1.43.3
 	github.com/ThreeDotsLabs/watermill v1.3.7
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.5
-	github.com/XSAM/otelsql v0.33.0
+	github.com/XSAM/otelsql v0.34.0
 	github.com/alpacahq/alpacadecimal v0.0.4
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/benthosdev/benthos/v4 v4.27.0
