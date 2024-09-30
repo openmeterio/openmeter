@@ -170,7 +170,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	// App Stripe Customer
-	appStripeObserver, err := appstripeobserver.New(appstripeobserver.Config{
+	appStripeObserver, err := appstripeobserver.NewCustomerObserver(appstripeobserver.CustomerObserverConfig{
 		AppService:       appService,
 		AppstripeService: appStripeService,
 	})
