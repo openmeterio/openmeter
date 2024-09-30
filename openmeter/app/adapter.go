@@ -22,9 +22,9 @@ type Adapter interface {
 }
 
 type MarketplaceAdapter interface {
-	RegisterListing(input appentity.RegisterMarketplaceListingInput) error
-	GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error)
-	ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error)
+	Register(input appentity.RegisterMarketplaceListingInput) error
+	Get(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.RegistryItem, error)
+	List(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.RegistryItem], error)
 	InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
 	GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
 	AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
