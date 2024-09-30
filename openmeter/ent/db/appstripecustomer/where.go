@@ -490,21 +490,44 @@ func StripeCustomerIDContainsFold(v string) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(sql.FieldContainsFold(FieldStripeCustomerID, v))
 }
 
-// HasApp applies the HasEdge predicate on the "app" edge.
-func HasApp() predicate.AppStripeCustomer {
+// HasStripeApp applies the HasEdge predicate on the "stripe_app" edge.
+func HasStripeApp() predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, AppTable, AppColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, StripeAppTable, StripeAppColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAppWith applies the HasEdge predicate on the "app" edge with a given conditions (other predicates).
-func HasAppWith(preds ...predicate.AppStripe) predicate.AppStripeCustomer {
+// HasStripeAppWith applies the HasEdge predicate on the "stripe_app" edge with a given conditions (other predicates).
+func HasStripeAppWith(preds ...predicate.AppStripe) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(func(s *sql.Selector) {
-		step := newAppStep()
+		step := newStripeAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomer applies the HasEdge predicate on the "customer" edge.
+func HasCustomer() predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CustomerTable, CustomerColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
+func HasCustomerWith(preds ...predicate.Customer) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(func(s *sql.Selector) {
+		step := newCustomerStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

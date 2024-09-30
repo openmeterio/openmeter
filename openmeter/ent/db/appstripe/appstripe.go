@@ -28,6 +28,8 @@ const (
 	FieldStripeLivemode = "stripe_livemode"
 	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
 	EdgeCustomerApps = "customer_apps"
+	// EdgeApp holds the string denoting the app edge name in mutations.
+	EdgeApp = "app"
 	// Table holds the table name of the appstripe in the database.
 	Table = "app_stripes"
 	// CustomerAppsTable is the table that holds the customer_apps relation/edge.
@@ -37,6 +39,13 @@ const (
 	CustomerAppsInverseTable = "app_stripe_customers"
 	// CustomerAppsColumn is the table column denoting the customer_apps relation/edge.
 	CustomerAppsColumn = "app_id"
+	// AppTable is the table that holds the app relation/edge.
+	AppTable = "app_stripes"
+	// AppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	AppInverseTable = "apps"
+	// AppColumn is the table column denoting the app relation/edge.
+	AppColumn = "id"
 )
 
 // Columns holds all SQL columns for appstripe fields.
@@ -124,10 +133,24 @@ func ByCustomerApps(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCustomerAppsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByAppField orders the results by app field.
+func ByAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAppStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newCustomerAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerAppsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CustomerAppsTable, CustomerAppsColumn),
+	)
+}
+func newAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
 	)
 }

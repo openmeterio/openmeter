@@ -116,6 +116,14 @@ var (
 		Name:       "app_stripes",
 		Columns:    AppStripesColumns,
 		PrimaryKey: []*schema.Column{AppStripesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripes_apps_app",
+				Columns:    []*schema.Column{AppStripesColumns[0]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "appstripe_id",
@@ -136,9 +144,9 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
 		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// AppStripeCustomersTable holds the schema information for the "app_stripe_customers" table.
 	AppStripeCustomersTable = &schema.Table{
@@ -148,8 +156,14 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "app_stripe_customers_app_stripes_customer_apps",
-				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
+				Columns:    []*schema.Column{AppStripeCustomersColumns[6]},
 				RefColumns: []*schema.Column{AppStripesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "app_stripe_customers_customers_customer",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 		},
@@ -162,7 +176,7 @@ var (
 			{
 				Name:    "appstripecustomer_namespace_app_id_customer_id",
 				Unique:  true,
-				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[7], AppStripeCustomersColumns[5]},
+				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[6], AppStripeCustomersColumns[7]},
 			},
 		},
 	}
@@ -1069,7 +1083,9 @@ var (
 func init() {
 	AppCustomersTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomersTable.ForeignKeys[1].RefTable = CustomersTable
+	AppStripesTable.ForeignKeys[0].RefTable = AppsTable
 	AppStripeCustomersTable.ForeignKeys[0].RefTable = AppStripesTable
+	AppStripeCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable

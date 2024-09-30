@@ -35,8 +35,12 @@ func (AppStripe) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("customer_apps", AppStripeCustomer.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		// TODO:
-		// from edge: App.Type
+		// We need to set StorageKey instead of Field, othwerwise ent generate breaks.
+		edge.To("app", App.Type).
+			StorageKey(edge.Column("id")).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
@@ -73,14 +77,21 @@ func (AppStripeCustomer) Indexes() []ent.Index {
 
 func (AppStripeCustomer) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("app", AppStripe.Type).
+		// We don't add an edge to App as it would also point to the `app_id`` field.
+		// This would make ent to generate both a SetAppID and a SetStripeAppID methods.
+		// Where both methods are required to set but setting both errors out.
+		// The App has the same ID as the StripeApp so it's simple to resolve.
+		edge.From("stripe_app", AppStripe.Type).
 			Ref("customer_apps").
 			Field("app_id").
 			Immutable().
 			Required().
 			Unique(),
-		// TODO:
-		// from edge: App.Type
-		// from edge: Customer.Type
+		edge.To("customer", Customer.Type).
+			Field("customer_id").
+			Unique().
+			Immutable().
+			Required().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
