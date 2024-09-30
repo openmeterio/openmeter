@@ -155,17 +155,13 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInpu
 
 func MapAppBaseFromDB(dbApp *db.App, listing appentity.MarketplaceListing) appentity.AppBase {
 	return appentity.AppBase{
-		ManagedResource: models.ManagedResource{
-			ID: dbApp.ID,
-			NamespacedModel: models.NamespacedModel{
-				Namespace: dbApp.Namespace,
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: dbApp.CreatedAt,
-				UpdatedAt: dbApp.UpdatedAt,
-				DeletedAt: dbApp.DeletedAt,
-			},
-		},
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			ID:        dbApp.ID,
+			Namespace: dbApp.Namespace,
+			CreatedAt: dbApp.CreatedAt,
+			UpdatedAt: dbApp.UpdatedAt,
+			DeletedAt: dbApp.DeletedAt,
+		}),
 		Type:    dbApp.Type,
 		Name:    dbApp.Name,
 		Status:  dbApp.Status,
