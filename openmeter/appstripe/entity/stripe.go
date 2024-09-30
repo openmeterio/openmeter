@@ -122,6 +122,18 @@ func (a App) ValidateCustomer(customer customerentity.Customer, capabilities []a
 	return nil
 }
 
+type CustomerAppData struct {
+	StripeCustomerID string `json:"stripeCustomerId"`
+}
+
+func (d CustomerAppData) Validate() error {
+	if d.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
+	}
+
+	return nil
+}
+
 type CreateAppStripeInput struct {
 	Namespace       string
 	Name            string

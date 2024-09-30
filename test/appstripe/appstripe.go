@@ -9,7 +9,6 @@ import (
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
-	appstripecustomer "github.com/openmeterio/openmeter/openmeter/appstripe/customer"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
@@ -68,7 +67,7 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 			Apps: []appcustomerentity.CustomerApp{
 				{
 					Type: appentity.AppTypeStripe,
-					Data: appstripecustomer.CustomerData{
+					Data: appstripeentity.CustomerAppData{
 						StripeCustomerID: "cus_123",
 					},
 				},
