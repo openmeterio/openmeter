@@ -4,6 +4,20 @@
  */
 
 export interface paths {
+  '/api/v1/customers': {
+    /** @description List customers. */
+    get: operations['listCustomers']
+    /** @description Create a new customer. */
+    post: operations['createCustomer']
+  }
+  '/api/v1/customers/{customerIdOrKey}': {
+    /** @description Get a customer by ID or key. */
+    get: operations['getCustomer']
+    /** @description Update a customer by ID or key. */
+    put: operations['updateCustomer']
+    /** @description Delete a customer by ID or key. */
+    delete: operations['deleteCustomer']
+  }
   '/api/v1/events': {
     /**
      * List ingested events
@@ -377,6 +391,16 @@ export type webhooks = Record<string, never>
 
 export interface components {
   schemas: {
+    /** @description Address */
+    Address: {
+      country?: components['schemas']['CountryCode']
+      postalCode?: string
+      state?: string
+      city?: string
+      line1?: string
+      line2?: string
+      phoneNumber?: string
+    }
     /**
      * @description Metadata fields for all resources.
      * These fields are automatically populated by the system for managed entities. Their use and meaning is uniform across all resources.
@@ -498,6 +522,149 @@ export interface components {
       [key: string]: unknown
     }
     /**
+     * @description [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+     * Custom two-letter country codes are also supported for convenience.
+     * @example US
+     */
+    CountryCode: string
+    /**
+     * @description Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+     * Custom three-letter currency codes are also supported for convenience.
+     * @example USD
+     */
+    CurrencyCode: string
+    /**
+     * @description A customer object.
+     * @example {
+     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *   "key": "my_customer_key",
+     *   "name": "ACME Inc.",
+     *   "usageAttribution": {
+     *     "subjectKeys": [
+     *       "my_subject_key"
+     *     ]
+     *   },
+     *   "taxProvider": "stripe_tax",
+     *   "invoicingProvider": "stripe_invoicing",
+     *   "paymentProvider": "stripe_payments",
+     *   "external": {
+     *     "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
+     *   }
+     * }
+     */
+    Customer: {
+      /**
+       * ID
+       * @description A unique identifier for the customer.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: components['schemas']['ULID']
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * @description Timestamp of when the resource was created.
+       */
+      createdAt?: components['schemas']['DateTime']
+      /**
+       * Last Update Time
+       * @description Timestamp of when the resource was last updated.
+       */
+      updatedAt?: components['schemas']['DateTime']
+      /**
+       * Deletion Time
+       * @description Timestamp of when the resource was permanently deleted.
+       */
+      deletedAt?: components['schemas']['DateTime']
+      /**
+       * Archival Time
+       * @description Timestamp of when the resource was archived.
+       */
+      archivedAt?: components['schemas']['DateTime']
+      /**
+       * Usage Attribution
+       * @description Mapping to attribute metered usage to the customer
+       */
+      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      /**
+       * Primary Email
+       * @description The primary email address of the customer.
+       */
+      primaryEmail?: string
+      /**
+       * Currency
+       * @description Currency of the customer.
+       * Used for billing, tax and invoicing.
+       */
+      currency?: components['schemas']['CurrencyCode']
+      /**
+       * Timezone
+       * @description Timezone of the customer.
+       */
+      timezone?: string
+      /**
+       * Billing Address
+       * @description The billing address of the customer.
+       * Used for tax and invoicing.
+       */
+      billingAddress?: components['schemas']['Address']
+      /**
+       * External Mappings
+       * @description External mappings for the customer.
+       */
+      external?: components['schemas']['CustomerExternalMapping']
+    }
+    /** @description A unique customer identifier. */
+    CustomerIdentifier:
+      | components['schemas']['ULID']
+      | components['schemas']['Key']
+    /** @description External mappings for the customer. */
+    CustomerExternalMapping: {
+      /**
+       * Stripe Customer
+       * @description The Stripe customer ID.
+       * Mapping to a Stripe Customer object.
+       * Required to use Stripe as an invocing provider.
+       */
+      stripeCustomerId?: string
+    }
+    /** @description A page of results. */
+    CustomerList: {
+      /** @description The page number. */
+      page: number
+      /** @description The number of items in the page. */
+      pageSize: number
+      /** @description The total number of items. */
+      totalCount: number
+      /** @description The items in the page. */
+      items: components['schemas']['Customer'][]
+    }
+    /**
+     * @description Mapping to attribute metered usage to the customer.
+     * One customer can have multiple subjects,
+     * but one subject can only belong to one customer.
+     */
+    CustomerUsageAttribution: {
+      /**
+       * SubjectKeys
+       * @description The subjects that are attributed to the customer.
+       */
+      subjectKeys: string[]
+    }
+    /**
      * @description CloudEvents Specification JSON Schema
      * @example {
      *   "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
@@ -606,6 +773,11 @@ export interface components {
       readonly storedAt: string
     }
     /**
+     * @description A invoicing provider.
+     * @enum {string}
+     */
+    InvoicingProvider: 'openmeter_sandbox' | 'stripe_invoicing'
+    /**
      * @description A feature is a feature or service offered to a customer.
      * For example: CPU-Hours, Tokens, API Calls, etc.
      */
@@ -680,6 +852,12 @@ export interface components {
        */
       key: string
     }
+    /**
+     * Format: date-time
+     * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+     * @example "2023-01-01T01:01:01.001Z"
+     */
+    DateTime: string
     EntitlementCreateSharedFields: {
       /**
        * @description The feature the subject is entitled to use.
@@ -1199,6 +1377,16 @@ export interface components {
      * @enum {string}
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX'
+    /**
+     * @description Set of key-value pairs.
+     * Metadata can be used to store additional information about a resource.
+     * @example {
+     *   "externalId": "019142cc-a016-796a-8113-1a942fecd26d"
+     * }
+     */
+    Metadata: {
+      [key: string]: string
+    }
     /**
      * @description Aggregation window size.
      * @example MINUTE
@@ -1755,6 +1943,66 @@ export interface components {
        */
       pageSize: number
     }
+    /**
+     * @description A payment provider.
+     * @enum {string}
+     */
+    PaymentProvider: 'openmeter_sandbox' | 'stripe_payments'
+    /** @description Represents common fields of resources. */
+    Resource: {
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: components['schemas']['Key']
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * @description Timestamp of when the resource was created.
+       */
+      createdAt?: components['schemas']['DateTime']
+      /**
+       * Last Update Time
+       * @description Timestamp of when the resource was last updated.
+       */
+      updatedAt?: components['schemas']['DateTime']
+      /**
+       * Deletion Time
+       * @description Timestamp of when the resource was permanently deleted.
+       */
+      deletedAt?: components['schemas']['DateTime']
+      /**
+       * Archival Time
+       * @description Timestamp of when the resource was archived.
+       */
+      archivedAt?: components['schemas']['DateTime']
+    }
+    /**
+     * @description A tax provider.
+     * @enum {string}
+     */
+    TaxProvider: 'openmeter_sandbox' | 'stripe_tax'
+    /** @description A key is a unique string that is used to identify a resource. */
+    Key: string
+    /**
+     * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+     * @example 01G65Z755AFWAKHE12NY0CQ9FH
+     */
+    ULID: string
   }
   responses: {
     /** @description Conflict */
@@ -1795,6 +2043,12 @@ export interface components {
     }
   }
   parameters: {
+    /** @description The page number. */
+    'PaginatedQuery.page'?: number
+    /** @description The number of items in the page. */
+    'PaginatedQuery.pageSize'?: number
+    /** @description Include deleted customers. */
+    queryCustomerList?: boolean
     /** @description A unique identifier for the meter. */
     meterIdOrSlug: components['schemas']['IdOrSlug']
     /** @description A unique identifier for a subject. */
@@ -1897,6 +2151,108 @@ export type $defs = Record<string, never>
 export type external = Record<string, never>
 
 export interface operations {
+  /** @description List customers. */
+  listCustomers: {
+    parameters: {
+      query?: {
+        includeDeleted?: components['parameters']['queryCustomerList']
+        page?: components['parameters']['PaginatedQuery.page']
+        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['CustomerList'][]
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /** @description Create a new customer. */
+  createCustomer: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Customer']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Customer']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /** @description Get a customer by ID or key. */
+  getCustomer: {
+    parameters: {
+      path: {
+        customerIdOrKey: components['schemas']['CustomerIdentifier']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Customer']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /** @description Update a customer by ID or key. */
+  updateCustomer: {
+    parameters: {
+      path: {
+        customerIdOrKey: components['schemas']['CustomerIdentifier']
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Customer']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Customer']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /** @description Delete a customer by ID or key. */
+  deleteCustomer: {
+    parameters: {
+      path: {
+        customerIdOrKey: components['schemas']['CustomerIdentifier']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Customer']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
   /**
    * List ingested events
    * @description List ingested events within a time range.
