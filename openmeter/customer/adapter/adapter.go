@@ -1,4 +1,4 @@
-package repository
+package adapter
 
 import (
 	"context"
@@ -29,12 +29,12 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (customer.Repository, error) {
+func New(config Config) (customer.Adapter, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
-	return &repository{
+	return &adapter{
 		db:        config.Client,
 		logger:    config.Logger,
 		observers: &[]appobserver.Observer[customerentity.Customer]{},
@@ -42,11 +42,11 @@ func New(config Config) (customer.Repository, error) {
 }
 
 var (
-	_ customer.Repository                            = (*repository)(nil)
-	_ appobserver.Publisher[customerentity.Customer] = (*repository)(nil)
+	_ customer.Adapter                               = (*adapter)(nil)
+	_ appobserver.Publisher[customerentity.Customer] = (*adapter)(nil)
 )
 
-type repository struct {
+type adapter struct {
 	db *entdb.Client
 	tx *entdb.Tx
 	// It is a reference so we can pass it down in WithTx
@@ -55,7 +55,7 @@ type repository struct {
 	logger *slog.Logger
 }
 
-func (r *repository) Commit() error {
+func (r *adapter) Commit() error {
 	if r.tx != nil {
 		return r.tx.Commit()
 	}
@@ -63,7 +63,7 @@ func (r *repository) Commit() error {
 	return nil
 }
 
-func (r *repository) Rollback() error {
+func (r *adapter) Rollback() error {
 	if r.tx != nil {
 		return r.tx.Rollback()
 	}
@@ -71,7 +71,7 @@ func (r *repository) Rollback() error {
 	return nil
 }
 
-func (r *repository) client() *entdb.Client {
+func (r *adapter) client() *entdb.Client {
 	if r.tx != nil {
 		return r.tx.Client()
 	}
@@ -79,7 +79,7 @@ func (r *repository) client() *entdb.Client {
 	return r.db
 }
 
-func (r *repository) WithTx(ctx context.Context) (customer.TxRepository, error) {
+func (r *adapter) WithTx(ctx context.Context) (customer.TxAdapter, error) {
 	if r.tx != nil {
 		return r, nil
 	}
@@ -89,7 +89,7 @@ func (r *repository) WithTx(ctx context.Context) (customer.TxRepository, error) 
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
-	return &repository{
+	return &adapter{
 		db:        r.db,
 		tx:        tx,
 		logger:    r.logger,

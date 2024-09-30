@@ -16,7 +16,9 @@ var _ app.AppAdapter = (*adapter)(nil)
 
 // CreateApp creates an app
 func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error) {
-	appCreateQuery := a.tx.App.Create().
+	db := a.client()
+
+	appCreateQuery := db.App.Create().
 		SetNamespace(input.Namespace).
 		SetName(input.Name).
 		SetDescription(input.Description).
@@ -85,7 +87,9 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 
 // GetApp gets an app
 func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
-	dbApp, err := a.client().App.Query().
+	client := a.client()
+
+	dbApp, err := client.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
 		Where(appdb.ID(input.ID)).
 		First(ctx)
@@ -111,7 +115,9 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 
 // GetDefaultApp gets the default app for the app type
 func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
-	dbApp, err := a.client().App.Query().
+	client := a.client()
+
+	dbApp, err := client.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
 		Where(appdb.Type(input.Type)).
 		Where(appdb.DeletedAtIsNil()).

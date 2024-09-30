@@ -18,7 +18,7 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
@@ -165,8 +165,8 @@ func main() {
 	var customerService customer.CustomerService
 
 	if entClient != nil {
-		var customerRepo customer.Repository
-		customerRepo, err = customerrepository.New(customerrepository.Config{
+		var customerAdapter customer.Adapter
+		customerAdapter, err = customeradapter.New(customeradapter.Config{
 			Client: entClient,
 			Logger: logger.WithGroup("customer.postgres"),
 		})
@@ -176,7 +176,7 @@ func main() {
 		}
 
 		customerService, err = customer.NewService(customer.ServiceConfig{
-			Repository: customerRepo,
+			Adapter: customerAdapter,
 		})
 		if err != nil {
 			logger.Error("failed to initialize customer service", "error", err)
