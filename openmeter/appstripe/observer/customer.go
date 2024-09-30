@@ -9,7 +9,6 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
-	appstripecustomer "github.com/openmeterio/openmeter/openmeter/appstripe/customer"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
@@ -79,7 +78,7 @@ func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
 		}
 
 		// Cast app data to stripe customer data
-		appStripeCustomer, ok := customerApp.Data.(appstripecustomer.CustomerData)
+		appStripeCustomer, ok := customerApp.Data.(appstripeentity.CustomerAppData)
 		if !ok {
 			return errors.New("failed to cast app data to stripe customer data")
 		}
