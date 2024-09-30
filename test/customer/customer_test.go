@@ -14,7 +14,7 @@ func TestCustomer(t *testing.T) {
 	env, err := NewTestEnv(ctx)
 	require.NoError(t, err, "CustomerTestEnv() failed")
 	require.NotNil(t, env.Customer())
-	require.NotNil(t, env.CustomerRepo())
+	require.NotNil(t, env.CustomerAdapter())
 
 	defer func() {
 		if err := env.Close(); err != nil {

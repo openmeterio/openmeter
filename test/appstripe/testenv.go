@@ -19,7 +19,7 @@ import (
 	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -35,7 +35,7 @@ type TestEnv interface {
 	AppStripeAdapter() appstripe.Adapter
 	AppStripe() appstripe.Service
 
-	CustomerAdapter() customer.Repository
+	CustomerAdapter() customer.Adapter
 	Customer() customer.Service
 
 	Close() error
@@ -51,7 +51,7 @@ type testEnv struct {
 	app                app.Service
 	appCustomerAdapter appcustomer.Adapter
 	appCustomerService appcustomer.Service
-	customerAdapter    customer.Repository
+	customerAdapter    customer.Adapter
 	customer           customer.Service
 
 	closerFunc func() error
@@ -69,7 +69,7 @@ func (n testEnv) AppStripe() appstripe.Service {
 	return n.appstripe
 }
 
-func (n testEnv) CustomerAdapter() customer.Repository {
+func (n testEnv) CustomerAdapter() customer.Adapter {
 	return n.customerAdapter
 }
 
@@ -102,7 +102,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	// Customer
-	customerRepo, err := customerrepository.New(customerrepository.Config{
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
@@ -111,7 +111,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	customerService, err := customer.NewService(customer.ServiceConfig{
-		Repository: customerRepo,
+		Adapter: customerAdapter,
 	})
 	if err != nil {
 		return nil, err
@@ -205,7 +205,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		app:                appService,
 		appCustomerAdapter: appCustomerAdapter,
 		appCustomerService: appCustomerService,
-		customerAdapter:    customerRepo,
+		customerAdapter:    customerAdapter,
 		customer:           customerService,
 		closerFunc:         closerFunc,
 	}, nil
