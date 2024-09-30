@@ -23,6 +23,7 @@ from azure.core.tracing.decorator_async import distributed_trace_async
 from azure.core.utils import case_insensitive_dict
 
 from ..._operations._operations import (
+    build_create_customer_request,
     build_create_entitlement_request,
     build_create_feature_request,
     build_create_grant_request,
@@ -30,12 +31,14 @@ from ..._operations._operations import (
     build_create_notification_channel_request,
     build_create_notification_rule_request,
     build_create_portal_token_request,
+    build_delete_customer_request,
     build_delete_entitlement_request,
     build_delete_feature_request,
     build_delete_meter_request,
     build_delete_notification_channel_request,
     build_delete_notification_rule_request,
     build_delete_subject_request,
+    build_get_customer_request,
     build_get_debug_metrics_request,
     build_get_entitlement_by_id_request,
     build_get_entitlement_history_request,
@@ -49,6 +52,7 @@ from ..._operations._operations import (
     build_get_subject_request,
     build_ingest_events_request,
     build_invalidate_portal_tokens_request,
+    build_list_customers_request,
     build_list_entitlement_grants_request,
     build_list_entitlements_request,
     build_list_events_request,
@@ -68,6 +72,7 @@ from ..._operations._operations import (
     build_receive_svix_operational_event_request,
     build_reset_entitlement_usage_request,
     build_test_notification_rule_request,
+    build_update_customer_request,
     build_update_notification_channel_request,
     build_update_notification_rule_request,
     build_upsert_subject_request,
@@ -85,6 +90,1048 @@ ClsType = Optional[Callable[[PipelineResponse[HttpRequest, AsyncHttpResponse], T
 
 
 class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-methods
+    @overload
+    async def create_customer(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create a new customer.
+
+        :param body: Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+
+    @overload
+    async def create_customer(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create a new customer.
+
+        :param body: Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+
+    @distributed_trace_async
+    async def create_customer(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create a new customer.
+
+        :param body: Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_customer_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_customers(
+        self, *, include_deleted: bool = False, page: int = 1, page_size: int = 100, **kwargs: Any
+    ) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List customers.
+
+        :keyword include_deleted: Include deleted customers. Default value is False.
+        :paramtype include_deleted: bool
+        :keyword page: The page number. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: The number of items in the page. Default value is 100.
+        :paramtype page_size: int
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "items": [
+                            {
+                                "id": {},  # A unique identifier for the customer.
+                                  Required.
+                                "name": "str",  # Human-readable name for the
+                                  resource. Between 1 and 256 characters. Required.
+                                "usageAttribution": {
+                                    "subjectKeys": [
+                                        "str"  # The subjects that are
+                                          attributed to the customer. Required.
+                                    ]
+                                },
+                                "archivedAt": {},  # Optional. Timestamp of when the
+                                  resource was archived.
+                                "billingAddress": {
+                                    "city": "str",  # Optional. The billing
+                                      address of the customer. Used for tax and invoicing.
+                                    "country": "str",  # Optional. `ISO 3166-1
+                                      <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2
+                                      country code. Custom two-letter country codes are also supported
+                                      for convenience.
+                                    "line1": "str",  # Optional. The billing
+                                      address of the customer. Used for tax and invoicing.
+                                    "line2": "str",  # Optional. The billing
+                                      address of the customer. Used for tax and invoicing.
+                                    "phoneNumber": "str",  # Optional. The
+                                      billing address of the customer. Used for tax and invoicing.
+                                    "postalCode": "str",  # Optional. The billing
+                                      address of the customer. Used for tax and invoicing.
+                                    "state": "str"  # Optional. The billing
+                                      address of the customer. Used for tax and invoicing.
+                                },
+                                "createdAt": {},  # Optional. Timestamp of when the
+                                  resource was created.
+                                "currency": {},  # Optional. Currency of the
+                                  customer. Used for billing, tax and invoicing.
+                                "deletedAt": {},  # Optional. Timestamp of when the
+                                  resource was permanently deleted.
+                                "description": "str",  # Optional. Optional
+                                  description of the resource. Maximum 1024 characters.
+                                "external": {
+                                    "stripeCustomerId": "str"  # Optional. The
+                                      Stripe customer ID. Mapping to a Stripe Customer object. Required
+                                      to use Stripe as an invocing provider.
+                                },
+                                "metadata": {},
+                                "primaryEmail": "str",  # Optional. The primary email
+                                  address of the customer.
+                                "timezone": "str",  # Optional. Timezone of the
+                                  customer.
+                                "updatedAt": {}  # Optional. Timestamp of when the
+                                  resource was last updated.
+                            }
+                        ],
+                        "page": 0,  # The page number. Required.
+                        "pageSize": 0,  # The number of items in the page. Required.
+                        "totalCount": 0  # The total number of items. Required.
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_customers_request(
+            include_deleted=include_deleted,
+            page=page,
+            page_size=page_size,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_customer(self, customer_id_or_key: Any, **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Get a customer by ID or key.
+
+        :param customer_id_or_key: Required.
+        :type customer_id_or_key: any
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_customer_request(
+            customer_id_or_key=customer_id_or_key,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @overload
+    async def update_customer(
+        self, customer_id_or_key: Any, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Update a customer by ID or key.
+
+        :param customer_id_or_key: Required.
+        :type customer_id_or_key: any
+        :param body: Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+
+    @overload
+    async def update_customer(
+        self, customer_id_or_key: Any, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Update a customer by ID or key.
+
+        :param customer_id_or_key: Required.
+        :type customer_id_or_key: any
+        :param body: Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+
+    @distributed_trace_async
+    async def update_customer(self, customer_id_or_key: Any, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Update a customer by ID or key.
+
+        :param customer_id_or_key: Required.
+        :type customer_id_or_key: any
+        :param body: Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_update_customer_request(
+            customer_id_or_key=customer_id_or_key,
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def delete_customer(self, customer_id_or_key: Any, **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Delete a customer by ID or key.
+
+        :param customer_id_or_key: Required.
+        :type customer_id_or_key: any
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": {},  # A unique identifier for the customer. Required.
+                    "name": "str",  # Human-readable name for the resource. Between 1 and 256
+                      characters. Required.
+                    "usageAttribution": {
+                        "subjectKeys": [
+                            "str"  # The subjects that are attributed to the customer.
+                              Required.
+                        ]
+                    },
+                    "archivedAt": {},  # Optional. Timestamp of when the resource was archived.
+                    "billingAddress": {
+                        "city": "str",  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                        "country": "str",  # Optional. `ISO 3166-1
+                          <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 country code.
+                          Custom two-letter country codes are also supported for convenience.
+                        "line1": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "line2": "str",  # Optional. The billing address of the customer.
+                          Used for tax and invoicing.
+                        "phoneNumber": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "postalCode": "str",  # Optional. The billing address of the
+                          customer. Used for tax and invoicing.
+                        "state": "str"  # Optional. The billing address of the customer. Used
+                          for tax and invoicing.
+                    },
+                    "createdAt": {},  # Optional. Timestamp of when the resource was created.
+                    "currency": {},  # Optional. Currency of the customer. Used for billing, tax
+                      and invoicing.
+                    "deletedAt": {},  # Optional. Timestamp of when the resource was permanently
+                      deleted.
+                    "description": "str",  # Optional. Optional description of the resource.
+                      Maximum 1024 characters.
+                    "external": {
+                        "stripeCustomerId": "str"  # Optional. The Stripe customer ID.
+                          Mapping to a Stripe Customer object. Required to use Stripe as an invocing
+                          provider.
+                    },
+                    "metadata": {},
+                    "primaryEmail": "str",  # Optional. The primary email address of the
+                      customer.
+                    "timezone": "str",  # Optional. Timezone of the customer.
+                    "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_delete_customer_request(
+            customer_id_or_key=customer_id_or_key,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
     @distributed_trace_async
     async def list_events(
         self,
