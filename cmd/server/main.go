@@ -42,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -62,7 +63,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
@@ -603,12 +604,16 @@ func initKafkaProducer(ctx context.Context, config config.Configuration, logger 
 }
 
 func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer) (ingest.Collector, *kafkaingest.NamespaceHandler, error) {
-	var collector ingest.Collector
+	topicResolver, err := topicresolver.NewNamespacedTopicResolver(config.Ingest.Kafka.EventsTopicTemplate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create topic name resolver: %w", err)
+	}
 
-	collector, err := kafkaingest.NewCollector(
+	var collector ingest.Collector
+	collector, err = kafkaingest.NewCollector(
 		producer,
 		serializer,
-		config.Ingest.Kafka.EventsTopicTemplate,
+		topicResolver,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
@@ -625,10 +630,10 @@ func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logg
 	}
 
 	namespaceHandler := &kafkaingest.NamespaceHandler{
-		AdminClient:             kafkaAdminClient,
-		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
-		Partitions:              config.Ingest.Kafka.Partitions,
-		Logger:                  logger,
+		AdminClient:   kafkaAdminClient,
+		TopicResolver: topicResolver,
+		Partitions:    config.Ingest.Kafka.Partitions,
+		Logger:        logger,
 	}
 
 	return collector, namespaceHandler, nil

@@ -21,6 +21,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
@@ -43,6 +44,7 @@ type Sink struct {
 	messageCounter    metric.Int64Counter
 	namespaceStore    *NamespaceStore
 	namespaceRefetch  *time.Timer
+	topicResolver     topicresolver.Resolver
 
 	kafkaMetrics *kafkametrics.Metrics
 
@@ -75,11 +77,17 @@ type SinkConfig struct {
 	// FlushSuccessTimeout is the timeout for the OnFlushSuccess callback, after this period the context
 	// of the callback will be canceled.
 	FlushSuccessTimeout time.Duration
+
+	TopicResolver topicresolver.Resolver
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
 	if config.Deduplicator == nil {
 		config.Logger.Warn("deduplicator is not set, deduplication will be disabled")
+	}
+
+	if config.TopicResolver == nil {
+		return nil, errors.New("topic name resolver is required")
 	}
 
 	// Defaults
@@ -128,6 +136,7 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		flushEventCounter: flushEventCounter,
 		messageCounter:    messageCounter,
 		kafkaMetrics:      kafkaMetrics,
+		topicResolver:     config.TopicResolver,
 	}
 
 	return sink, nil
@@ -394,19 +403,30 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 		}
 	}
 
-	// We always replace store to ensure we have latest meter changes
+	// We always replace store to ensure we have the latest meter changes
 	s.namespaceStore = ns
 
 	// We only subscribe to topics if we have a new namespace
-	if isNewNamespace {
-		// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
-		topics := getTopics(*s.namespaceStore)
-		logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
+	if !isNewNamespace {
+		return nil
+	}
 
-		err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
+	// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
+	topics := make([]string, 0, len(s.namespaceStore.namespaces))
+	for namespace := range s.namespaceStore.namespaces {
+		topic, err := s.topicResolver.Resolve(ctx, namespace)
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to topics: %s", err)
+			return fmt.Errorf("failed to resolve topic name for namespace '%s': %w", namespace, err)
 		}
+
+		topics = append(topics, topic)
+	}
+
+	logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
+
+	err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to topics: %s", err)
 	}
 
 	return nil
@@ -787,17 +807,6 @@ func getNamespace(topic string) (string, error) {
 		return "", fmt.Errorf("namespace not found in topic: %s", topic)
 	}
 	return tmp[1], nil
-}
-
-// getTopics return topics from namespaces
-func getTopics(ns NamespaceStore) []string {
-	topics := []string{}
-	for namespace := range ns.namespaces {
-		topic := fmt.Sprintf("om_%s_events", namespace)
-		topics = append(topics, topic)
-	}
-
-	return topics
 }
 
 // dedupeSinkMessages removes duplicates from a list of events

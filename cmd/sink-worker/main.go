@@ -30,6 +30,7 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
@@ -333,6 +334,11 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	// Enable Kafka client logging
 	go pkgkafka.ConsumeLogChannel(consumer, logger.WithGroup("kafka").WithGroup("consumer"))
 
+	topicResolver, err := topicresolver.NewNamespacedTopicResolver(config.Ingest.Kafka.EventsTopicTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create topic name resolver: %w", err)
+	}
+
 	sinkConfig := sink.SinkConfig{
 		Logger:            logger,
 		Tracer:            tracer,
@@ -345,6 +351,7 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 		MaxCommitWait:     config.Sink.MaxCommitWait,
 		NamespaceRefetch:  config.Sink.NamespaceRefetch,
 		FlushEventHandler: flushHandler,
+		TopicResolver:     topicResolver,
 	}
 
 	return sink.NewSink(sinkConfig)

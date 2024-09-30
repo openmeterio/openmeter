@@ -11,24 +11,22 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
 type Collector struct {
-	Producer   *kafka.Producer
-	Serializer serializer.Serializer
-
-	// NamespacedTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
-	// For example: "om_%s_events"
-	NamespacedTopicTemplate string
+	Producer      *kafka.Producer
+	Serializer    serializer.Serializer
+	TopicResolver topicresolver.Resolver
 }
 
 func NewCollector(
 	producer *kafka.Producer,
 	serializer serializer.Serializer,
-	namespacedTopicTemplate string,
+	resolver topicresolver.Resolver,
 ) (*Collector, error) {
 	if producer == nil {
 		return nil, fmt.Errorf("producer is required")
@@ -36,32 +34,36 @@ func NewCollector(
 	if serializer == nil {
 		return nil, fmt.Errorf("serializer is required")
 	}
-	if namespacedTopicTemplate == "" {
-		return nil, fmt.Errorf("namespaced topic template is required")
+	if resolver == nil {
+		return nil, fmt.Errorf("topic name resolver is required")
 	}
 
 	return &Collector{
-		Producer:                producer,
-		Serializer:              serializer,
-		NamespacedTopicTemplate: namespacedTopicTemplate,
+		Producer:      producer,
+		Serializer:    serializer,
+		TopicResolver: resolver,
 	}, nil
 }
 
 // Ingest produces an event to a Kafka topic.
 func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event) error {
-	topic := fmt.Sprintf(s.NamespacedTopicTemplate, namespace)
-	key, err := s.Serializer.SerializeKey(topic, ev)
+	topicName, err := s.TopicResolver.Resolve(ctx, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to resolve namespace to topic name: %w", err)
+	}
+
+	key, err := s.Serializer.SerializeKey(topicName, ev)
 	if err != nil {
 		return fmt.Errorf("serialize event key: %w", err)
 	}
 
-	value, err := s.Serializer.SerializeValue(topic, ev)
+	value, err := s.Serializer.SerializeValue(topicName, ev)
 	if err != nil {
 		return fmt.Errorf("serialize event value: %w", err)
 	}
 
 	msg := &kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		TopicPartition: kafka.TopicPartition{Topic: &topicName, Partition: kafka.PartitionAny},
 		Timestamp:      ev.Time(),
 		Headers: []kafka.Header{
 			{Key: "namespace", Value: []byte(namespace)},
