@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -27,8 +27,8 @@ func (App) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
 		field.String("description"),
-		field.String("type").GoType(appentity.AppType("")).Immutable(),
-		field.String("status").GoType(appentity.AppStatus("")),
+		field.String("type").GoType(appentitybase.AppType("")).Immutable(),
+		field.String("status").GoType(appentitybase.AppStatus("")),
 		field.Bool("is_default").Default(false),
 	}
 }

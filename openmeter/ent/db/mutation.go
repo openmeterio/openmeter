@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -89,8 +89,8 @@ type AppMutation struct {
 	deleted_at           *time.Time
 	name                 *string
 	description          *string
-	_type                *appentity.AppType
-	status               *appentity.AppStatus
+	_type                *appentitybase.AppType
+	status               *appentitybase.AppStatus
 	is_default           *bool
 	clearedFields        map[string]struct{}
 	customer_apps        map[int]struct{}
@@ -484,12 +484,12 @@ func (m *AppMutation) ResetDescription() {
 }
 
 // SetType sets the "type" field.
-func (m *AppMutation) SetType(at appentity.AppType) {
+func (m *AppMutation) SetType(at appentitybase.AppType) {
 	m._type = &at
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *AppMutation) GetType() (r appentity.AppType, exists bool) {
+func (m *AppMutation) GetType() (r appentitybase.AppType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -500,7 +500,7 @@ func (m *AppMutation) GetType() (r appentity.AppType, exists bool) {
 // OldType returns the old "type" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldType(ctx context.Context) (v appentity.AppType, err error) {
+func (m *AppMutation) OldType(ctx context.Context) (v appentitybase.AppType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -520,12 +520,12 @@ func (m *AppMutation) ResetType() {
 }
 
 // SetStatus sets the "status" field.
-func (m *AppMutation) SetStatus(as appentity.AppStatus) {
+func (m *AppMutation) SetStatus(as appentitybase.AppStatus) {
 	m.status = &as
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *AppMutation) Status() (r appentity.AppStatus, exists bool) {
+func (m *AppMutation) Status() (r appentitybase.AppStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -536,7 +536,7 @@ func (m *AppMutation) Status() (r appentity.AppStatus, exists bool) {
 // OldStatus returns the old "status" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldStatus(ctx context.Context) (v appentity.AppStatus, err error) {
+func (m *AppMutation) OldStatus(ctx context.Context) (v appentitybase.AppStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -826,14 +826,14 @@ func (m *AppMutation) SetField(name string, value ent.Value) error {
 		m.SetDescription(v)
 		return nil
 	case app.FieldType:
-		v, ok := value.(appentity.AppType)
+		v, ok := value.(appentitybase.AppType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
 		return nil
 	case app.FieldStatus:
-		v, ok := value.(appentity.AppStatus)
+		v, ok := value.(appentitybase.AppStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

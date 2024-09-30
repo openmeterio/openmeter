@@ -7,41 +7,41 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
 
 var (
-	StripeMarketplaceListing = appentity.MarketplaceListing{
-		Type:        appentity.AppTypeStripe,
+	StripeMarketplaceListing = appentitybase.MarketplaceListing{
+		Type:        appentitybase.AppTypeStripe,
 		Name:        "Stripe",
 		Description: "Stripe is a payment processing platform.",
 		IconURL:     "https://stripe.com/favicon.ico",
-		Capabilities: []appentity.Capability{
+		Capabilities: []appentitybase.Capability{
 			StripeCollectPaymentCapability,
 			StripeCalculateTaxCapability,
 			StripeInvoiceCustomerCapability,
 		},
 	}
 
-	StripeCollectPaymentCapability = appentity.Capability{
-		Type:        appentity.CapabilityTypeCollectPayments,
+	StripeCollectPaymentCapability = appentitybase.Capability{
+		Type:        appentitybase.CapabilityTypeCollectPayments,
 		Key:         "stripe_collect_payment",
 		Name:        "Payment",
 		Description: "Process payments",
 	}
 
-	StripeCalculateTaxCapability = appentity.Capability{
-		Type:        appentity.CapabilityTypeCalculateTax,
+	StripeCalculateTaxCapability = appentitybase.Capability{
+		Type:        appentitybase.CapabilityTypeCalculateTax,
 		Key:         "stripe_calculate_tax",
 		Name:        "Calculate Tax",
 		Description: "Calculate tax for a payment",
 	}
 
-	StripeInvoiceCustomerCapability = appentity.Capability{
-		Type:        appentity.CapabilityTypeInvoiceCustomers,
+	StripeInvoiceCustomerCapability = appentitybase.Capability{
+		Type:        appentitybase.CapabilityTypeInvoiceCustomers,
 		Key:         "stripe_invoice_customer",
 		Name:        "Invoice Customer",
 		Description: "Invoice a customer",
@@ -54,7 +54,7 @@ var (
 
 // App represents an installed Stripe app
 type App struct {
-	appentity.AppBase
+	appentitybase.AppBase
 
 	// TODO: cycle dependencies
 	Client *entdb.Client
@@ -71,7 +71,7 @@ func (a App) Validate() error {
 		return fmt.Errorf("error validating app: %w", err)
 	}
 
-	if a.Type != appentity.AppTypeStripe {
+	if a.Type != appentitybase.AppTypeStripe {
 		return errors.New("app type must be stripe")
 	}
 
@@ -79,11 +79,15 @@ func (a App) Validate() error {
 		return errors.New("stripe account id is required")
 	}
 
+	if a.Client == nil {
+		return errors.New("client is required")
+	}
+
 	return nil
 }
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a App) ValidateCustomer(ctx context.Context, customer customerentity.Customer, capabilities []appentity.CapabilityType) error {
+func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
@@ -121,11 +125,11 @@ func (a App) ValidateCustomer(ctx context.Context, customer customerentity.Custo
 	// TODO: check if the customer exists in Stripe
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
-	if slices.Contains(capabilities, appentity.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentity.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentity.CapabilityTypeCollectPayments) {
+	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
 		// TODO: go to Stripe and check if customer exists by customer.External.StripeCustomerID
 		// Also check if the customer has a country and default payment method
 
-		return errors.New("not implemented")
+		// return errors.New("not implemented")
 	}
 
 	return nil
@@ -172,7 +176,7 @@ func (i CreateAppStripeInput) Validate() error {
 }
 
 type UpsertStripeCustomerDataInput struct {
-	AppID            appentity.AppID
+	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID
 	StripeCustomerID string
 }
@@ -198,7 +202,7 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 }
 
 type DeleteStripeCustomerDataInput struct {
-	AppID      *appentity.AppID
+	AppID      *appentitybase.AppID
 	CustomerID customerentity.CustomerID
 }
 

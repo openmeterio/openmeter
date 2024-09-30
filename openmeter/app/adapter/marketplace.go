@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -28,20 +29,20 @@ func DefaultMarketplace() *Marketplace {
 var _ app.MarketplaceAdapter = (*Marketplace)(nil)
 
 type Marketplace struct {
-	registry map[appentity.AppType]appentity.RegistryItem
+	registry map[appentitybase.AppType]appentity.RegistryItem
 }
 
 // NewMarketplace creates a new marketplace adapter
 func NewMarketplace() *Marketplace {
 	return &Marketplace{
-		registry: map[appentity.AppType]appentity.RegistryItem{},
+		registry: map[appentitybase.AppType]appentity.RegistryItem{},
 	}
 }
 
-// ListListings lists marketplace listings
-func (a Marketplace) List(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+// List lists marketplace listings
+func (a Marketplace) List(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
 	items := lo.Values(a.registry)
-	items = items[input.PageNumber*input.PageSize : input.PageSize]
+	items = lo.Subset(items, (input.PageNumber-1)*input.PageSize, uint(input.PageSize))
 
 	response := pagination.PagedResponse[appentity.RegistryItem]{
 		Page:       input.Page,
@@ -49,11 +50,11 @@ func (a Marketplace) List(ctx context.Context, input appentity.ListMarketplaceLi
 		TotalCount: len(a.registry),
 	}
 
-	return response, fmt.Errorf("not implemented")
+	return response, nil
 }
 
 // Get gets a marketplace listing
-func (a Marketplace) Get(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.RegistryItem, error) {
+func (a Marketplace) Get(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
 	if _, ok := a.registry[input.Type]; !ok {
 		return appentity.RegistryItem{}, app.MarketplaceListingNotFoundError{
 			MarketplaceListingID: input,
