@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -26,6 +27,7 @@ type AppStripeQuery struct {
 	inters           []Interceptor
 	predicates       []predicate.AppStripe
 	withCustomerApps *AppStripeCustomerQuery
+	withApp          *AppQuery
 	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -78,6 +80,28 @@ func (asq *AppStripeQuery) QueryCustomerApps() *AppStripeCustomerQuery {
 			sqlgraph.From(appstripe.Table, appstripe.FieldID, selector),
 			sqlgraph.To(appstripecustomer.Table, appstripecustomer.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, appstripe.CustomerAppsTable, appstripe.CustomerAppsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryApp chains the current query on the "app" edge.
+func (asq *AppStripeQuery) QueryApp() *AppQuery {
+	query := (&AppClient{config: asq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := asq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := asq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripe.Table, appstripe.FieldID, selector),
+			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appstripe.AppTable, appstripe.AppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
 		return fromU, nil
@@ -278,6 +302,7 @@ func (asq *AppStripeQuery) Clone() *AppStripeQuery {
 		inters:           append([]Interceptor{}, asq.inters...),
 		predicates:       append([]predicate.AppStripe{}, asq.predicates...),
 		withCustomerApps: asq.withCustomerApps.Clone(),
+		withApp:          asq.withApp.Clone(),
 		// clone intermediate query.
 		sql:  asq.sql.Clone(),
 		path: asq.path,
@@ -292,6 +317,17 @@ func (asq *AppStripeQuery) WithCustomerApps(opts ...func(*AppStripeCustomerQuery
 		opt(query)
 	}
 	asq.withCustomerApps = query
+	return asq
+}
+
+// WithApp tells the query-builder to eager-load the nodes that are connected to
+// the "app" edge. The optional arguments are used to configure the query builder of the edge.
+func (asq *AppStripeQuery) WithApp(opts ...func(*AppQuery)) *AppStripeQuery {
+	query := (&AppClient{config: asq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	asq.withApp = query
 	return asq
 }
 
@@ -373,8 +409,9 @@ func (asq *AppStripeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*A
 	var (
 		nodes       = []*AppStripe{}
 		_spec       = asq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			asq.withCustomerApps != nil,
+			asq.withApp != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -402,6 +439,12 @@ func (asq *AppStripeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*A
 		if err := asq.loadCustomerApps(ctx, query, nodes,
 			func(n *AppStripe) { n.Edges.CustomerApps = []*AppStripeCustomer{} },
 			func(n *AppStripe, e *AppStripeCustomer) { n.Edges.CustomerApps = append(n.Edges.CustomerApps, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := asq.withApp; query != nil {
+		if err := asq.loadApp(ctx, query, nodes, nil,
+			func(n *AppStripe, e *App) { n.Edges.App = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -435,6 +478,35 @@ func (asq *AppStripeQuery) loadCustomerApps(ctx context.Context, query *AppStrip
 			return fmt.Errorf(`unexpected referenced foreign-key "app_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (asq *AppStripeQuery) loadApp(ctx context.Context, query *AppQuery, nodes []*AppStripe, init func(*AppStripe), assign func(*AppStripe, *App)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*AppStripe)
+	for i := range nodes {
+		fk := nodes[i].ID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(app.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

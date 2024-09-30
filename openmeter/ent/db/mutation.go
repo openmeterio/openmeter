@@ -1762,6 +1762,8 @@ type AppStripeMutation struct {
 	customer_apps        map[int]struct{}
 	removedcustomer_apps map[int]struct{}
 	clearedcustomer_apps bool
+	app                  *string
+	clearedapp           bool
 	done                 bool
 	oldValue             func(context.Context) (*AppStripe, error)
 	predicates           []predicate.AppStripe
@@ -2154,6 +2156,45 @@ func (m *AppStripeMutation) ResetCustomerApps() {
 	m.removedcustomer_apps = nil
 }
 
+// SetAppID sets the "app" edge to the App entity by id.
+func (m *AppStripeMutation) SetAppID(id string) {
+	m.app = &id
+}
+
+// ClearApp clears the "app" edge to the App entity.
+func (m *AppStripeMutation) ClearApp() {
+	m.clearedapp = true
+}
+
+// AppCleared reports if the "app" edge to the App entity was cleared.
+func (m *AppStripeMutation) AppCleared() bool {
+	return m.clearedapp
+}
+
+// AppID returns the "app" edge ID in the mutation.
+func (m *AppStripeMutation) AppID() (id string, exists bool) {
+	if m.app != nil {
+		return *m.app, true
+	}
+	return
+}
+
+// AppIDs returns the "app" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AppID instead. It exists only for internal usage by the builders.
+func (m *AppStripeMutation) AppIDs() (ids []string) {
+	if id := m.app; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetApp resets all changes to the "app" edge.
+func (m *AppStripeMutation) ResetApp() {
+	m.app = nil
+	m.clearedapp = false
+}
+
 // Where appends a list predicates to the AppStripeMutation builder.
 func (m *AppStripeMutation) Where(ps ...predicate.AppStripe) {
 	m.predicates = append(m.predicates, ps...)
@@ -2381,9 +2422,12 @@ func (m *AppStripeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AppStripeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.customer_apps != nil {
 		edges = append(edges, appstripe.EdgeCustomerApps)
+	}
+	if m.app != nil {
+		edges = append(edges, appstripe.EdgeApp)
 	}
 	return edges
 }
@@ -2398,13 +2442,17 @@ func (m *AppStripeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case appstripe.EdgeApp:
+		if id := m.app; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AppStripeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedcustomer_apps != nil {
 		edges = append(edges, appstripe.EdgeCustomerApps)
 	}
@@ -2427,9 +2475,12 @@ func (m *AppStripeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AppStripeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedcustomer_apps {
 		edges = append(edges, appstripe.EdgeCustomerApps)
+	}
+	if m.clearedapp {
+		edges = append(edges, appstripe.EdgeApp)
 	}
 	return edges
 }
@@ -2440,6 +2491,8 @@ func (m *AppStripeMutation) EdgeCleared(name string) bool {
 	switch name {
 	case appstripe.EdgeCustomerApps:
 		return m.clearedcustomer_apps
+	case appstripe.EdgeApp:
+		return m.clearedapp
 	}
 	return false
 }
@@ -2448,6 +2501,9 @@ func (m *AppStripeMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *AppStripeMutation) ClearEdge(name string) error {
 	switch name {
+	case appstripe.EdgeApp:
+		m.ClearApp()
+		return nil
 	}
 	return fmt.Errorf("unknown AppStripe unique edge %s", name)
 }
@@ -2458,6 +2514,9 @@ func (m *AppStripeMutation) ResetEdge(name string) error {
 	switch name {
 	case appstripe.EdgeCustomerApps:
 		m.ResetCustomerApps()
+		return nil
+	case appstripe.EdgeApp:
+		m.ResetApp()
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripe edge %s", name)
@@ -2473,11 +2532,12 @@ type AppStripeCustomerMutation struct {
 	created_at         *time.Time
 	updated_at         *time.Time
 	deleted_at         *time.Time
-	customer_id        *string
 	stripe_customer_id *string
 	clearedFields      map[string]struct{}
-	app                *string
-	clearedapp         bool
+	stripe_app         *string
+	clearedstripe_app  bool
+	customer           *string
+	clearedcustomer    bool
 	done               bool
 	oldValue           func(context.Context) (*AppStripeCustomer, error)
 	predicates         []predicate.AppStripeCustomer
@@ -2740,12 +2800,12 @@ func (m *AppStripeCustomerMutation) ResetDeletedAt() {
 
 // SetAppID sets the "app_id" field.
 func (m *AppStripeCustomerMutation) SetAppID(s string) {
-	m.app = &s
+	m.stripe_app = &s
 }
 
 // AppID returns the value of the "app_id" field in the mutation.
 func (m *AppStripeCustomerMutation) AppID() (r string, exists bool) {
-	v := m.app
+	v := m.stripe_app
 	if v == nil {
 		return
 	}
@@ -2771,17 +2831,17 @@ func (m *AppStripeCustomerMutation) OldAppID(ctx context.Context) (v string, err
 
 // ResetAppID resets all changes to the "app_id" field.
 func (m *AppStripeCustomerMutation) ResetAppID() {
-	m.app = nil
+	m.stripe_app = nil
 }
 
 // SetCustomerID sets the "customer_id" field.
 func (m *AppStripeCustomerMutation) SetCustomerID(s string) {
-	m.customer_id = &s
+	m.customer = &s
 }
 
 // CustomerID returns the value of the "customer_id" field in the mutation.
 func (m *AppStripeCustomerMutation) CustomerID() (r string, exists bool) {
-	v := m.customer_id
+	v := m.customer
 	if v == nil {
 		return
 	}
@@ -2807,7 +2867,7 @@ func (m *AppStripeCustomerMutation) OldCustomerID(ctx context.Context) (v string
 
 // ResetCustomerID resets all changes to the "customer_id" field.
 func (m *AppStripeCustomerMutation) ResetCustomerID() {
-	m.customer_id = nil
+	m.customer = nil
 }
 
 // SetStripeCustomerID sets the "stripe_customer_id" field.
@@ -2859,31 +2919,71 @@ func (m *AppStripeCustomerMutation) ResetStripeCustomerID() {
 	delete(m.clearedFields, appstripecustomer.FieldStripeCustomerID)
 }
 
-// ClearApp clears the "app" edge to the AppStripe entity.
-func (m *AppStripeCustomerMutation) ClearApp() {
-	m.clearedapp = true
+// SetStripeAppID sets the "stripe_app" edge to the AppStripe entity by id.
+func (m *AppStripeCustomerMutation) SetStripeAppID(id string) {
+	m.stripe_app = &id
+}
+
+// ClearStripeApp clears the "stripe_app" edge to the AppStripe entity.
+func (m *AppStripeCustomerMutation) ClearStripeApp() {
+	m.clearedstripe_app = true
 	m.clearedFields[appstripecustomer.FieldAppID] = struct{}{}
 }
 
-// AppCleared reports if the "app" edge to the AppStripe entity was cleared.
-func (m *AppStripeCustomerMutation) AppCleared() bool {
-	return m.clearedapp
+// StripeAppCleared reports if the "stripe_app" edge to the AppStripe entity was cleared.
+func (m *AppStripeCustomerMutation) StripeAppCleared() bool {
+	return m.clearedstripe_app
 }
 
-// AppIDs returns the "app" edge IDs in the mutation.
+// StripeAppID returns the "stripe_app" edge ID in the mutation.
+func (m *AppStripeCustomerMutation) StripeAppID() (id string, exists bool) {
+	if m.stripe_app != nil {
+		return *m.stripe_app, true
+	}
+	return
+}
+
+// StripeAppIDs returns the "stripe_app" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// AppID instead. It exists only for internal usage by the builders.
-func (m *AppStripeCustomerMutation) AppIDs() (ids []string) {
-	if id := m.app; id != nil {
+// StripeAppID instead. It exists only for internal usage by the builders.
+func (m *AppStripeCustomerMutation) StripeAppIDs() (ids []string) {
+	if id := m.stripe_app; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetApp resets all changes to the "app" edge.
-func (m *AppStripeCustomerMutation) ResetApp() {
-	m.app = nil
-	m.clearedapp = false
+// ResetStripeApp resets all changes to the "stripe_app" edge.
+func (m *AppStripeCustomerMutation) ResetStripeApp() {
+	m.stripe_app = nil
+	m.clearedstripe_app = false
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (m *AppStripeCustomerMutation) ClearCustomer() {
+	m.clearedcustomer = true
+	m.clearedFields[appstripecustomer.FieldCustomerID] = struct{}{}
+}
+
+// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
+func (m *AppStripeCustomerMutation) CustomerCleared() bool {
+	return m.clearedcustomer
+}
+
+// CustomerIDs returns the "customer" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomerID instead. It exists only for internal usage by the builders.
+func (m *AppStripeCustomerMutation) CustomerIDs() (ids []string) {
+	if id := m.customer; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomer resets all changes to the "customer" edge.
+func (m *AppStripeCustomerMutation) ResetCustomer() {
+	m.customer = nil
+	m.clearedcustomer = false
 }
 
 // Where appends a list predicates to the AppStripeCustomerMutation builder.
@@ -2933,10 +3033,10 @@ func (m *AppStripeCustomerMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, appstripecustomer.FieldDeletedAt)
 	}
-	if m.app != nil {
+	if m.stripe_app != nil {
 		fields = append(fields, appstripecustomer.FieldAppID)
 	}
-	if m.customer_id != nil {
+	if m.customer != nil {
 		fields = append(fields, appstripecustomer.FieldCustomerID)
 	}
 	if m.stripe_customer_id != nil {
@@ -3136,9 +3236,12 @@ func (m *AppStripeCustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AppStripeCustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.app != nil {
-		edges = append(edges, appstripecustomer.EdgeApp)
+	edges := make([]string, 0, 2)
+	if m.stripe_app != nil {
+		edges = append(edges, appstripecustomer.EdgeStripeApp)
+	}
+	if m.customer != nil {
+		edges = append(edges, appstripecustomer.EdgeCustomer)
 	}
 	return edges
 }
@@ -3147,8 +3250,12 @@ func (m *AppStripeCustomerMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *AppStripeCustomerMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case appstripecustomer.EdgeApp:
-		if id := m.app; id != nil {
+	case appstripecustomer.EdgeStripeApp:
+		if id := m.stripe_app; id != nil {
+			return []ent.Value{*id}
+		}
+	case appstripecustomer.EdgeCustomer:
+		if id := m.customer; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -3157,7 +3264,7 @@ func (m *AppStripeCustomerMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AppStripeCustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -3169,9 +3276,12 @@ func (m *AppStripeCustomerMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AppStripeCustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.clearedapp {
-		edges = append(edges, appstripecustomer.EdgeApp)
+	edges := make([]string, 0, 2)
+	if m.clearedstripe_app {
+		edges = append(edges, appstripecustomer.EdgeStripeApp)
+	}
+	if m.clearedcustomer {
+		edges = append(edges, appstripecustomer.EdgeCustomer)
 	}
 	return edges
 }
@@ -3180,8 +3290,10 @@ func (m *AppStripeCustomerMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *AppStripeCustomerMutation) EdgeCleared(name string) bool {
 	switch name {
-	case appstripecustomer.EdgeApp:
-		return m.clearedapp
+	case appstripecustomer.EdgeStripeApp:
+		return m.clearedstripe_app
+	case appstripecustomer.EdgeCustomer:
+		return m.clearedcustomer
 	}
 	return false
 }
@@ -3190,8 +3302,11 @@ func (m *AppStripeCustomerMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *AppStripeCustomerMutation) ClearEdge(name string) error {
 	switch name {
-	case appstripecustomer.EdgeApp:
-		m.ClearApp()
+	case appstripecustomer.EdgeStripeApp:
+		m.ClearStripeApp()
+		return nil
+	case appstripecustomer.EdgeCustomer:
+		m.ClearCustomer()
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripeCustomer unique edge %s", name)
@@ -3201,8 +3316,11 @@ func (m *AppStripeCustomerMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *AppStripeCustomerMutation) ResetEdge(name string) error {
 	switch name {
-	case appstripecustomer.EdgeApp:
-		m.ResetApp()
+	case appstripecustomer.EdgeStripeApp:
+		m.ResetStripeApp()
+		return nil
+	case appstripecustomer.EdgeCustomer:
+		m.ResetCustomer()
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripeCustomer edge %s", name)
