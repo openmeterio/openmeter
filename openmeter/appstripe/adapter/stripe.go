@@ -16,6 +16,8 @@ var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 
 // CreateApp creates a new app
 func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error) {
+	client := a.client()
+
 	app, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
 		Namespace:   input.Namespace,
 		Name:        input.Name,
@@ -27,7 +29,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 	}
 
 	// Create the stripe app in the database
-	appStripeCreateQuery := a.tx.AppStripe.Create().
+	appStripeCreateQuery := client.AppStripe.Create().
 		SetID(app.GetID().ID).
 		SetNamespace(input.Namespace).
 		SetStripeAccountID(input.StripeAccountID).
@@ -43,6 +45,8 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+	client := a.client()
+
 	err := a.appCustomerService.UpsertAppCustomer(ctx, appcustomerentity.UpsertAppCustomerInput{
 		AppID:      input.AppID,
 		CustomerID: input.CustomerID.ID,
@@ -51,7 +55,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		return fmt.Errorf("failed to upsert app customer: %w", err)
 	}
 
-	err = a.tx.AppStripeCustomer.
+	err = client.AppStripeCustomer.
 		Create().
 		SetNamespace(input.AppID.Namespace).
 		SetAppID(input.AppID.ID).
@@ -70,7 +74,9 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
-	query := a.tx.AppStripeCustomer.
+	client := a.client()
+
+	query := client.AppStripeCustomer.
 		Delete().
 		Where(
 			appstripecustomerdb.Namespace(input.CustomerID.Namespace),

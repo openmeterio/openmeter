@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -22,7 +22,7 @@ const (
 )
 
 type TestEnv interface {
-	CustomerRepo() customer.Repository
+	CustomerAdapter() customer.Adapter
 	Customer() customer.Service
 
 	Close() error
@@ -31,8 +31,8 @@ type TestEnv interface {
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	customerRepo customer.Repository
-	customer     customer.Service
+	customerAdapter customer.Adapter
+	customer        customer.Service
 
 	closerFunc func() error
 }
@@ -41,8 +41,8 @@ func (n testEnv) Close() error {
 	return n.closerFunc()
 }
 
-func (n testEnv) CustomerRepo() customer.Repository {
-	return n.customerRepo
+func (n testEnv) CustomerAdapter() customer.Adapter {
+	return n.customerAdapter
 }
 
 func (n testEnv) Customer() customer.Service {
@@ -73,7 +73,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create database schema: %w", err)
 	}
 
-	repo, err := customerrepository.New(customerrepository.Config{
+	repo, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
@@ -82,7 +82,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	service, err := customer.NewService(customer.ServiceConfig{
-		Repository: repo,
+		Adapter: repo,
 	})
 	if err != nil {
 		return nil, err
@@ -103,8 +103,8 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		customerRepo: repo,
-		customer:     service,
-		closerFunc:   closerFunc,
+		customerAdapter: repo,
+		customer:        service,
+		closerFunc:      closerFunc,
 	}, nil
 }

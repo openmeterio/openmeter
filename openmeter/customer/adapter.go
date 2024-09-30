@@ -9,20 +9,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type TxRepository interface {
-	CustomerRepository
+type TxAdapter interface {
+	CustomerAdapter
 
 	Commit() error
 	Rollback() error
 }
 
-type Repository interface {
-	CustomerRepository
+type Adapter interface {
+	CustomerAdapter
 
-	WithTx(context.Context) (TxRepository, error)
+	WithTx(context.Context) (TxAdapter, error)
 }
 
-type CustomerRepository interface {
+type CustomerAdapter interface {
 	Register(observer appobserver.Observer[customerentity.Customer]) error
 	Deregister(observer appobserver.Observer[customerentity.Customer]) error
 
@@ -33,10 +33,10 @@ type CustomerRepository interface {
 	UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error)
 }
 
-func WithTxNoValue(ctx context.Context, repo Repository, fn func(ctx context.Context, repo TxRepository) error) error {
+func WithTxNoValue(ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) error) error {
 	var err error
 
-	wrapped := func(ctx context.Context, repo TxRepository) (interface{}, error) {
+	wrapped := func(ctx context.Context, repo TxAdapter) (interface{}, error) {
 		if err = fn(ctx, repo); err != nil {
 			return nil, err
 		}
@@ -49,8 +49,8 @@ func WithTxNoValue(ctx context.Context, repo Repository, fn func(ctx context.Con
 	return err
 }
 
-func WithTx[T any](ctx context.Context, repo Repository, fn func(ctx context.Context, repo TxRepository) (T, error)) (resp T, err error) {
-	var txRepo TxRepository
+func WithTx[T any](ctx context.Context, repo Adapter, fn func(ctx context.Context, repo TxAdapter) (T, error)) (resp T, err error) {
+	var txRepo TxAdapter
 
 	txRepo, err = repo.WithTx(ctx)
 	if err != nil {

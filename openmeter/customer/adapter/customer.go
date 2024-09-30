@@ -1,4 +1,4 @@
-package repository
+package adapter
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 )
 
 // Register registers a new observer
-func (r *repository) Register(observer appobserver.Observer[customerentity.Customer]) error {
+func (r *adapter) Register(observer appobserver.Observer[customerentity.Customer]) error {
 	for _, o := range *r.observers {
 		if o == observer {
 			return fmt.Errorf("observer already registered")
@@ -30,7 +30,7 @@ func (r *repository) Register(observer appobserver.Observer[customerentity.Custo
 }
 
 // Deregister deregisters an observer
-func (r *repository) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
+func (r *adapter) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
 	for i, o := range *r.observers {
 		if o == observer {
 			observers := *r.observers
@@ -44,7 +44,7 @@ func (r *repository) Deregister(observer appobserver.Observer[customerentity.Cus
 }
 
 // ListCustomers lists customers
-func (r *repository) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
+func (r *adapter) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
 	db := r.client()
 
 	query := db.Customer.
@@ -99,7 +99,7 @@ func (r *repository) ListCustomers(ctx context.Context, params customerentity.Li
 }
 
 // CreateCustomer creates a new customer
-func (r *repository) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
 	// Create the customer in the database
 	query := r.tx.Customer.Create().
 		SetNamespace(params.Namespace).
@@ -188,7 +188,7 @@ func (r *repository) CreateCustomer(ctx context.Context, params customerentity.C
 }
 
 // DeleteCustomer deletes a customer
-func (r *repository) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
+func (r *adapter) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
 	db := r.client()
 
 	// Soft delete the customer
@@ -226,7 +226,7 @@ func (r *repository) DeleteCustomer(ctx context.Context, input customerentity.De
 }
 
 // GetCustomer gets a customer
-func (r *repository) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
+func (r *adapter) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
 	db := r.client()
 
 	query := db.Customer.Query().
@@ -253,7 +253,7 @@ func (r *repository) GetCustomer(ctx context.Context, input customerentity.GetCu
 }
 
 // UpdateCustomer updates a customer
-func (r *repository) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
 	getCustomerInput := customerentity.GetCustomerInput{
 		Namespace: input.Namespace,
 		ID:        input.ID,
