@@ -117,8 +117,11 @@ func (ascu *AppStripeCustomerUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ascu *AppStripeCustomerUpdate) check() error {
-	if ascu.mutation.AppCleared() && len(ascu.mutation.AppIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.app"`)
+	if ascu.mutation.StripeAppCleared() && len(ascu.mutation.StripeAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.stripe_app"`)
+	}
+	if ascu.mutation.CustomerCleared() && len(ascu.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.customer"`)
 	}
 	return nil
 }
@@ -272,8 +275,11 @@ func (ascuo *AppStripeCustomerUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ascuo *AppStripeCustomerUpdateOne) check() error {
-	if ascuo.mutation.AppCleared() && len(ascuo.mutation.AppIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.app"`)
+	if ascuo.mutation.StripeAppCleared() && len(ascuo.mutation.StripeAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.stripe_app"`)
+	}
+	if ascuo.mutation.CustomerCleared() && len(ascuo.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.customer"`)
 	}
 	return nil
 }

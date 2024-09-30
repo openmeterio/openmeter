@@ -58,7 +58,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 	err = client.AppStripeCustomer.
 		Create().
 		SetNamespace(input.AppID.Namespace).
-		SetAppID(input.AppID.ID).
+		SetStripeAppID(input.AppID.ID).
 		SetCustomerID(input.CustomerID.ID).
 		SetStripeCustomerID(input.StripeCustomerID).
 		// Upsert

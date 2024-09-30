@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 )
 
 // AppStripeCustomerCreate is the builder for creating a AppStripeCustomer entity.
@@ -97,9 +98,20 @@ func (ascc *AppStripeCustomerCreate) SetNillableStripeCustomerID(s *string) *App
 	return ascc
 }
 
-// SetApp sets the "app" edge to the AppStripe entity.
-func (ascc *AppStripeCustomerCreate) SetApp(a *AppStripe) *AppStripeCustomerCreate {
-	return ascc.SetAppID(a.ID)
+// SetStripeAppID sets the "stripe_app" edge to the AppStripe entity by ID.
+func (ascc *AppStripeCustomerCreate) SetStripeAppID(id string) *AppStripeCustomerCreate {
+	ascc.mutation.SetStripeAppID(id)
+	return ascc
+}
+
+// SetStripeApp sets the "stripe_app" edge to the AppStripe entity.
+func (ascc *AppStripeCustomerCreate) SetStripeApp(a *AppStripe) *AppStripeCustomerCreate {
+	return ascc.SetStripeAppID(a.ID)
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (ascc *AppStripeCustomerCreate) SetCustomer(c *Customer) *AppStripeCustomerCreate {
+	return ascc.SetCustomerID(c.ID)
 }
 
 // Mutation returns the AppStripeCustomerMutation object of the builder.
@@ -179,8 +191,11 @@ func (ascc *AppStripeCustomerCreate) check() error {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.customer_id": %w`, err)}
 		}
 	}
-	if len(ascc.mutation.AppIDs()) == 0 {
-		return &ValidationError{Name: "app", err: errors.New(`db: missing required edge "AppStripeCustomer.app"`)}
+	if len(ascc.mutation.StripeAppIDs()) == 0 {
+		return &ValidationError{Name: "stripe_app", err: errors.New(`db: missing required edge "AppStripeCustomer.stripe_app"`)}
+	}
+	if len(ascc.mutation.CustomerIDs()) == 0 {
+		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "AppStripeCustomer.customer"`)}
 	}
 	return nil
 }
@@ -225,20 +240,16 @@ func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph
 		_spec.SetField(appstripecustomer.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := ascc.mutation.CustomerID(); ok {
-		_spec.SetField(appstripecustomer.FieldCustomerID, field.TypeString, value)
-		_node.CustomerID = value
-	}
 	if value, ok := ascc.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
 		_node.StripeCustomerID = &value
 	}
-	if nodes := ascc.mutation.AppIDs(); len(nodes) > 0 {
+	if nodes := ascc.mutation.StripeAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   appstripecustomer.AppTable,
-			Columns: []string{appstripecustomer.AppColumn},
+			Table:   appstripecustomer.StripeAppTable,
+			Columns: []string{appstripecustomer.StripeAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString),
@@ -248,6 +259,23 @@ func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.AppID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ascc.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   appstripecustomer.CustomerTable,
+			Columns: []string{appstripecustomer.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

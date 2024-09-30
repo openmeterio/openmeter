@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
@@ -111,6 +112,25 @@ func (asc *AppStripeCreate) AddCustomerApps(a ...*AppStripeCustomer) *AppStripeC
 		ids[i] = a[i].ID
 	}
 	return asc.AddCustomerAppIDs(ids...)
+}
+
+// SetAppID sets the "app" edge to the App entity by ID.
+func (asc *AppStripeCreate) SetAppID(id string) *AppStripeCreate {
+	asc.mutation.SetAppID(id)
+	return asc
+}
+
+// SetNillableAppID sets the "app" edge to the App entity by ID if the given value is not nil.
+func (asc *AppStripeCreate) SetNillableAppID(id *string) *AppStripeCreate {
+	if id != nil {
+		asc = asc.SetAppID(*id)
+	}
+	return asc
+}
+
+// SetApp sets the "app" edge to the App entity.
+func (asc *AppStripeCreate) SetApp(a *App) *AppStripeCreate {
+	return asc.SetAppID(a.ID)
 }
 
 // Mutation returns the AppStripeMutation object of the builder.
@@ -258,6 +278,23 @@ func (asc *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := asc.mutation.AppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   appstripe.AppTable,
+			Columns: []string{appstripe.AppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

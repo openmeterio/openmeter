@@ -28,17 +28,26 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldStripeCustomerID holds the string denoting the stripe_customer_id field in the database.
 	FieldStripeCustomerID = "stripe_customer_id"
-	// EdgeApp holds the string denoting the app edge name in mutations.
-	EdgeApp = "app"
+	// EdgeStripeApp holds the string denoting the stripe_app edge name in mutations.
+	EdgeStripeApp = "stripe_app"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
 	// Table holds the table name of the appstripecustomer in the database.
 	Table = "app_stripe_customers"
-	// AppTable is the table that holds the app relation/edge.
-	AppTable = "app_stripe_customers"
-	// AppInverseTable is the table name for the AppStripe entity.
+	// StripeAppTable is the table that holds the stripe_app relation/edge.
+	StripeAppTable = "app_stripe_customers"
+	// StripeAppInverseTable is the table name for the AppStripe entity.
 	// It exists in this package in order to avoid circular dependency with the "appstripe" package.
-	AppInverseTable = "app_stripes"
-	// AppColumn is the table column denoting the app relation/edge.
-	AppColumn = "app_id"
+	StripeAppInverseTable = "app_stripes"
+	// StripeAppColumn is the table column denoting the stripe_app relation/edge.
+	StripeAppColumn = "app_id"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "app_stripe_customers"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for appstripecustomer fields.
@@ -121,16 +130,30 @@ func ByStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeCustomerID, opts...).ToFunc()
 }
 
-// ByAppField orders the results by app field.
-func ByAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByStripeAppField orders the results by stripe_app field.
+func ByStripeAppField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAppStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newStripeAppStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newAppStep() *sqlgraph.Step {
+
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newStripeAppStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, AppTable, AppColumn),
+		sqlgraph.To(StripeAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, StripeAppTable, StripeAppColumn),
+	)
+}
+func newCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CustomerTable, CustomerColumn),
 	)
 }

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 )
 
 // AppStripeCustomer is the model entity for the AppStripeCustomer schema.
@@ -40,22 +41,35 @@ type AppStripeCustomer struct {
 
 // AppStripeCustomerEdges holds the relations/edges for other nodes in the graph.
 type AppStripeCustomerEdges struct {
-	// App holds the value of the app edge.
-	App *AppStripe `json:"app,omitempty"`
+	// StripeApp holds the value of the stripe_app edge.
+	StripeApp *AppStripe `json:"stripe_app,omitempty"`
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
-// AppOrErr returns the App value or an error if the edge
+// StripeAppOrErr returns the StripeApp value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e AppStripeCustomerEdges) AppOrErr() (*AppStripe, error) {
-	if e.App != nil {
-		return e.App, nil
+func (e AppStripeCustomerEdges) StripeAppOrErr() (*AppStripe, error) {
+	if e.StripeApp != nil {
+		return e.StripeApp, nil
 	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: appstripe.Label}
 	}
-	return nil, &NotLoadedError{edge: "app"}
+	return nil, &NotLoadedError{edge: "stripe_app"}
+}
+
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AppStripeCustomerEdges) CustomerOrErr() (*Customer, error) {
+	if e.Customer != nil {
+		return e.Customer, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: customer.Label}
+	}
+	return nil, &NotLoadedError{edge: "customer"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -147,9 +161,14 @@ func (asc *AppStripeCustomer) Value(name string) (ent.Value, error) {
 	return asc.selectValues.Get(name)
 }
 
-// QueryApp queries the "app" edge of the AppStripeCustomer entity.
-func (asc *AppStripeCustomer) QueryApp() *AppStripeQuery {
-	return NewAppStripeCustomerClient(asc.config).QueryApp(asc)
+// QueryStripeApp queries the "stripe_app" edge of the AppStripeCustomer entity.
+func (asc *AppStripeCustomer) QueryStripeApp() *AppStripeQuery {
+	return NewAppStripeCustomerClient(asc.config).QueryStripeApp(asc)
+}
+
+// QueryCustomer queries the "customer" edge of the AppStripeCustomer entity.
+func (asc *AppStripeCustomer) QueryCustomer() *CustomerQuery {
+	return NewAppStripeCustomerClient(asc.config).QueryCustomer(asc)
 }
 
 // Update returns a builder for updating this AppStripeCustomer.

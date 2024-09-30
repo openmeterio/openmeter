@@ -388,6 +388,29 @@ func HasCustomerAppsWith(preds ...predicate.AppStripeCustomer) predicate.AppStri
 	})
 }
 
+// HasApp applies the HasEdge predicate on the "app" edge.
+func HasApp() predicate.AppStripe {
+	return predicate.AppStripe(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, AppTable, AppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAppWith applies the HasEdge predicate on the "app" edge with a given conditions (other predicates).
+func HasAppWith(preds ...predicate.App) predicate.AppStripe {
+	return predicate.AppStripe(func(s *sql.Selector) {
+		step := newAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.AppStripe) predicate.AppStripe {
 	return predicate.AppStripe(sql.AndPredicates(predicates...))

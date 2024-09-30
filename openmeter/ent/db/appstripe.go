@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 )
 
@@ -39,9 +40,11 @@ type AppStripe struct {
 type AppStripeEdges struct {
 	// CustomerApps holds the value of the customer_apps edge.
 	CustomerApps []*AppStripeCustomer `json:"customer_apps,omitempty"`
+	// App holds the value of the app edge.
+	App *App `json:"app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // CustomerAppsOrErr returns the CustomerApps value or an error if the edge
@@ -51,6 +54,17 @@ func (e AppStripeEdges) CustomerAppsOrErr() ([]*AppStripeCustomer, error) {
 		return e.CustomerApps, nil
 	}
 	return nil, &NotLoadedError{edge: "customer_apps"}
+}
+
+// AppOrErr returns the App value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AppStripeEdges) AppOrErr() (*App, error) {
+	if e.App != nil {
+		return e.App, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "app"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -138,6 +152,11 @@ func (as *AppStripe) Value(name string) (ent.Value, error) {
 // QueryCustomerApps queries the "customer_apps" edge of the AppStripe entity.
 func (as *AppStripe) QueryCustomerApps() *AppStripeCustomerQuery {
 	return NewAppStripeClient(as.config).QueryCustomerApps(as)
+}
+
+// QueryApp queries the "app" edge of the AppStripe entity.
+func (as *AppStripe) QueryApp() *AppQuery {
+	return NewAppStripeClient(as.config).QueryApp(as)
 }
 
 // Update returns a builder for updating this AppStripe.
