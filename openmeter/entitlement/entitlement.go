@@ -77,6 +77,13 @@ type CreateEntitlementInputs struct {
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 
+	// ActiveFrom allows entitlements to be scheduled for future activation.
+	// If not set, the entitlement is active immediately.
+	ActiveFrom *time.Time `json:"activeFrom,omitempty"`
+	// ActiveTo allows entitlements to be descheduled for future activation.
+	// If not set, the entitlement is active until deletion.
+	ActiveTo *time.Time `json:"activeTo,omitempty"`
+
 	MeasureUsageFrom        *MeasureUsageFromInput `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset         *float64               `json:"issueAfterReset,omitempty"`
 	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
@@ -142,6 +149,13 @@ type GenericProperties struct {
 	models.ManagedModel
 
 	Metadata map[string]string `json:"metadata,omitempty"`
+
+	// ActiveFrom allows entitlements to be scheduled for future activation.
+	// If not set, the entitlement is active immediately.
+	ActiveFrom *time.Time `json:"activeFrom,omitempty"`
+	// ActiveTo allows entitlements to be descheduled for future activation.
+	// If not set, the entitlement is active until deletion.
+	ActiveTo *time.Time `json:"activeTo,omitempty"`
 
 	ID              string          `json:"id,omitempty"`
 	FeatureID       string          `json:"featureId,omitempty"`

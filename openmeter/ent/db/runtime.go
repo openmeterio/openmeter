@@ -345,11 +345,11 @@ func init() {
 	// entitlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	entitlement.UpdateDefaultUpdatedAt = entitlementDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// entitlementDescFeatureKey is the schema descriptor for feature_key field.
-	entitlementDescFeatureKey := entitlementFields[2].Descriptor()
+	entitlementDescFeatureKey := entitlementFields[4].Descriptor()
 	// entitlement.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	entitlement.FeatureKeyValidator = entitlementDescFeatureKey.Validators[0].(func(string) error)
 	// entitlementDescSubjectKey is the schema descriptor for subject_key field.
-	entitlementDescSubjectKey := entitlementFields[3].Descriptor()
+	entitlementDescSubjectKey := entitlementFields[5].Descriptor()
 	// entitlement.SubjectKeyValidator is a validator for the "subject_key" field. It is called by the builders before save.
 	entitlement.SubjectKeyValidator = entitlementDescSubjectKey.Validators[0].(func(string) error)
 	// entitlementDescID is the schema descriptor for id field.

@@ -332,6 +332,12 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
 	}
+	if eu.mutation.ActiveFromCleared() {
+		_spec.ClearField(entitlement.FieldActiveFrom, field.TypeTime)
+	}
+	if eu.mutation.ActiveToCleared() {
+		_spec.ClearField(entitlement.FieldActiveTo, field.TypeTime)
+	}
 	if eu.mutation.MeasureUsageFromCleared() {
 		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)
 	}
@@ -863,6 +869,12 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
+	}
+	if euo.mutation.ActiveFromCleared() {
+		_spec.ClearField(entitlement.FieldActiveFrom, field.TypeTime)
+	}
+	if euo.mutation.ActiveToCleared() {
+		_spec.ClearField(entitlement.FieldActiveTo, field.TypeTime)
 	}
 	if euo.mutation.MeasureUsageFromCleared() {
 		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)

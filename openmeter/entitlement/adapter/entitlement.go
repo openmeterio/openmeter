@@ -390,6 +390,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			FeatureKey:      e.FeatureKey,
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
 			Metadata:        e.Metadata,
+			ActiveFrom:      convert.SafeToUTC(e.ActiveFrom),
 		},
 		MeasureUsageFrom:        e.MeasureUsageFrom,
 		IssueAfterReset:         e.IssueAfterReset,
