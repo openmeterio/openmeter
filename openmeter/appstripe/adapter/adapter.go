@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
@@ -37,11 +36,6 @@ func (c Config) Validate() error {
 func New(config Config) (appstripe.Adapter, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate config: %w", err)
-	}
-
-	err := appstripeentity.RegisterApp()
-	if err != nil {
-		return nil, fmt.Errorf("failed to register app entity: %w", err)
 	}
 
 	adapter := &adapter{

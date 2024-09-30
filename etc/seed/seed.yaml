@@ -4,24 +4,16 @@ input:
     interval: "${SEEDER_INTERVAL:50ms}"
     # batch_size: 1
     mapping: |
-      let max_subjects = ${SEEDER_MAX_SUBJECTS:100}
-
-      let event_type = "api-calls"
+      let max_subjects = ${SEEDER_MAX_SUBJECTS:20}
+      let event_type = "tokens"
       let source = "api-gateway"
-      let methods = ["GET", "POST"]
-      let paths = ["/", "/about", "/contact", "/pricing", "/docs"]
-      let regions = ["us-east-1", "us-west-1", "us-east-2", "us-west-2"]
-      let zoneSuffixes = ["a", "b", "c", "d"]
-
+      let models = ["gpt-3", "gpt-4"]
+      let types = ["input", "output"]
       let subject = "customer-%d".format(random_int(seed: timestamp_unix_nano()) % $max_subjects)
-      let time = (now().ts_sub_iso8601("P3D").ts_unix() + random_int(min: 60, max: 60 * 60 * 24 * 3)).ts_format()
-
-      let method = $methods.index(random_int(seed: timestamp_unix_nano()) % $methods.length())
-      let path = $paths.index(random_int(seed: timestamp_unix_nano()) % $paths.length())
-      let region = $regions.index(random_int(seed: timestamp_unix_nano()) % $regions.length())
-      let zone = "%s%s".format($region, $zoneSuffixes.index(random_int(seed: timestamp_unix_nano()) % $zoneSuffixes.length()))
-      let duration = random_int(seed: timestamp_unix_nano(), max: 1000)
-
+      let time = now().ts_format()
+      let model = $models.index(random_int(seed: timestamp_unix_nano()) % $models.length())
+      let type = $types.index(random_int(seed: timestamp_unix_nano()) % $types.length())
+      let tokens = random_int(seed: timestamp_unix_nano(), max: 100)
       root = {
         "id": uuid_v4(),
         "specversion": "1.0",
@@ -30,14 +22,11 @@ input:
         "subject": $subject,
         "time": $time,
         "data": {
-          "method": $method,
-          "path": $path,
-          "region": $region,
-          "zone": $zone,
-          "duration_ms": $duration,
+          "model": $model,
+          "type": $type,
+          "tokens": $tokens,
         },
       }
-
 output:
   switch:
     cases:
@@ -50,18 +39,9 @@ output:
             headers:
               Content-Type: application/cloudevents+json
               Authorization: "Bearer ${OPENMETER_TOKEN:}"
-            max_in_flight: 64
+            max_in_flight: 1
 
       - check: '"${SEEDER_LOG:false}" == "true"'
         output:
           stdout:
             codec: lines
-
-tracer:
-  open_telemetry_collector:
-    grpc:
-      - address: 127.0.0.1:4317
-    tags:
-      application: openmeter-output
-    sampling:
-      enabled: false

@@ -30,15 +30,21 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 		return appentity.AppBase{}, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	// Get marketplace listing
-	listing, err := a.marketplace.GetListing(ctx, appentity.GetMarketplaceListingInput{
+	// Get registry item
+	registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
-		return appentity.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 	}
 
-	return MapAppBaseFromDB(dbApp, listing), nil
+	// Map app from db
+	app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map app from db: %w", err)
+	}
+
+	return app, nil
 }
 
 // ListApps lists apps
@@ -68,15 +74,20 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 	}
 
 	result := make([]appentity.App, 0, len(paged.Items))
-	for _, item := range paged.Items {
-		listing, err := a.marketplace.GetListing(ctx, appentity.GetMarketplaceListingInput{
-			Type: item.Type,
+	for _, dbApp := range paged.Items {
+		registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
+			Type: dbApp.Type,
 		})
 		if err != nil {
-			return response, fmt.Errorf("failed to get listing for app %s: %w", item.ID, err)
+			return response, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 		}
 
-		result = append(result, MapAppBaseFromDB(item, listing))
+		app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+		if err != nil {
+			return response, fmt.Errorf("failed to map app %s from db: %w", dbApp.ID, err)
+		}
+
+		result = append(result, app)
 	}
 
 	response.TotalCount = paged.TotalCount
@@ -103,14 +114,21 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 		return nil, err
 	}
 
-	listing, err := a.marketplace.GetListing(ctx, appentity.GetMarketplaceListingInput{
+	// Get registry item
+	registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 	}
 
-	return MapAppBaseFromDB(dbApp, listing), nil
+	// Map app from db
+	app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map app from db: %w", err)
+	}
+
+	return app, nil
 }
 
 // GetDefaultApp gets the default app for the app type
@@ -133,14 +151,21 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 		return nil, err
 	}
 
-	listing, err := a.marketplace.GetListing(ctx, appentity.GetMarketplaceListingInput{
+	// Get registry item
+	registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 	}
 
-	return MapAppBaseFromDB(dbApp, listing), nil
+	// Map app from db
+	app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map app from db: %w", err)
+	}
+
+	return app, nil
 }
 
 // UninstallApp uninstalls an app
@@ -153,8 +178,9 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInpu
 	return fmt.Errorf("uninstall not implemented")
 }
 
-func MapAppBaseFromDB(dbApp *db.App, listing appentity.MarketplaceListing) appentity.AppBase {
-	return appentity.AppBase{
+// MapAppBaseFromDB maps an app from the database
+func MapAppBaseFromDB(ctx context.Context, dbApp *db.App, registryItem appentity.RegistryItem) (appentity.App, error) {
+	appBase := appentity.AppBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			ID:        dbApp.ID,
 			Namespace: dbApp.Namespace,
@@ -165,24 +191,13 @@ func MapAppBaseFromDB(dbApp *db.App, listing appentity.MarketplaceListing) appen
 		Type:    dbApp.Type,
 		Name:    dbApp.Name,
 		Status:  dbApp.Status,
-		Listing: listing,
+		Listing: registryItem.Listing,
 	}
+
+	app, err := registryItem.Factory.NewApp(ctx, appBase)
+	if err != nil {
+		return app, fmt.Errorf("failed to create app with %s factory: %w", appBase.Type, err)
+	}
+
+	return app, nil
 }
-
-// func mapStripeAppFromDB(dbApp *db.App, listing appentity.MarketplaceListing) (app.StripeApp, error) {
-// 	appBase := mapAppBaseFromDB(dbApp, listing)
-
-// 	if dbApp.StripeAccountID == nil {
-// 		return app.StripeApp{}, fmt.Errorf("stripe account id is nil")
-// 	}
-
-// 	if dbApp.StripeLivemode == nil {
-// 		return app.StripeApp{}, fmt.Errorf("stripe livemode is nil")
-// 	}
-
-// 	return app.StripeApp{
-// 		AppBase:         appBase,
-// 		StripeAccountId: *dbApp.StripeAccountID,
-// 		Livemode:        *dbApp.StripeLivemode,
-// 	}, nil
-// }

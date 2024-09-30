@@ -114,7 +114,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Adapter: customerAdapter,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create customer service: %w", err)
 	}
 
 	// Marketplace
@@ -134,7 +134,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Marketplace: marketplaceAdapter,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create app service: %w", err)
 	}
 
 	// App Customer
@@ -149,7 +149,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Adapter: appCustomerAdapter,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create appcustomer service: %w", err)
 	}
 
 	// App Stripe
@@ -166,7 +166,12 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Adapter: appStripeAdapter,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
+	}
+
+	err = appstripe.Register(marketplaceAdapter, appService, entClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register stripe app: %w", err)
 	}
 
 	// App Stripe Customer

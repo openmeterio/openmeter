@@ -28,39 +28,39 @@ func DefaultMarketplace() *Marketplace {
 var _ app.MarketplaceAdapter = (*Marketplace)(nil)
 
 type Marketplace struct {
-	marketplaceListings map[appentity.AppType]appentity.MarketplaceListing
+	registry map[appentity.AppType]appentity.RegistryItem
 }
 
 // NewMarketplace creates a new marketplace adapter
 func NewMarketplace() *Marketplace {
 	return &Marketplace{
-		marketplaceListings: map[appentity.AppType]appentity.MarketplaceListing{},
+		registry: map[appentity.AppType]appentity.RegistryItem{},
 	}
 }
 
 // ListListings lists marketplace listings
-func (a Marketplace) ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error) {
-	items := lo.Values(a.marketplaceListings)
+func (a Marketplace) List(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+	items := lo.Values(a.registry)
 	items = items[input.PageNumber*input.PageSize : input.PageSize]
 
-	response := pagination.PagedResponse[appentity.MarketplaceListing]{
+	response := pagination.PagedResponse[appentity.RegistryItem]{
 		Page:       input.Page,
 		Items:      items,
-		TotalCount: len(a.marketplaceListings),
+		TotalCount: len(a.registry),
 	}
 
 	return response, fmt.Errorf("not implemented")
 }
 
-// GetListing gets a marketplace listing
-func (a Marketplace) GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error) {
-	if _, ok := a.marketplaceListings[input.Type]; !ok {
-		return appentity.MarketplaceListing{}, app.MarketplaceListingNotFoundError{
+// Get gets a marketplace listing
+func (a Marketplace) Get(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.RegistryItem, error) {
+	if _, ok := a.registry[input.Type]; !ok {
+		return appentity.RegistryItem{}, app.MarketplaceListingNotFoundError{
 			MarketplaceListingID: input,
 		}
 	}
 
-	return a.marketplaceListings[input.Type], nil
+	return a.registry[input.Type], nil
 }
 
 // InstallAppWithAPIKey installs an app with an API key
@@ -78,17 +78,17 @@ func (a Marketplace) AuthorizeOauth2Install(ctx context.Context, input appentity
 	return fmt.Errorf("not implemented")
 }
 
-// RegisterListing registers a marketplace listing
-func (a Marketplace) RegisterListing(listing appentity.RegisterMarketplaceListingInput) error {
-	if _, ok := a.marketplaceListings[listing.Type]; ok {
-		return fmt.Errorf("marketplace listing with key %s already exists", listing.Type)
+// Register registers an app type
+func (a Marketplace) Register(input appentity.RegisterMarketplaceListingInput) error {
+	if _, ok := a.registry[input.Listing.Type]; ok {
+		return fmt.Errorf("marketplace listing with key %s already exists", input.Listing.Type)
 	}
 
-	if err := listing.Validate(); err != nil {
-		return fmt.Errorf("marketplace listing with key %s is invalid: %w", listing.Type, err)
+	if err := input.Listing.Validate(); err != nil {
+		return fmt.Errorf("marketplace listing with key %s is invalid: %w", input.Listing.Type, err)
 	}
 
-	a.marketplaceListings[listing.Type] = listing
+	a.registry[input.Listing.Type] = input
 
 	return nil
 }
