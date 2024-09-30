@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
 
 type AppFactory interface {
-	NewApp(context.Context, AppBase) (App, error)
+	NewApp(context.Context, appentitybase.AppBase) (App, error)
 }
 
 type RegistryItem struct {
-	Listing MarketplaceListing
+	Listing appentitybase.MarketplaceListing
 	Factory AppFactory
 }
 

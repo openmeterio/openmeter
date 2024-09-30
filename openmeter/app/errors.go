@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 var _ error = (*AppNotFoundError)(nil)
 
 type AppNotFoundError struct {
-	appentity.AppID
+	appentitybase.AppID
 }
 
 func (e AppNotFoundError) Error() string {
@@ -22,7 +23,7 @@ var _ error = (*AppDefaultNotFoundError)(nil)
 
 type AppDefaultNotFoundError struct {
 	Namespace string
-	Type      appentity.AppType
+	Type      appentitybase.AppType
 }
 
 func (e AppDefaultNotFoundError) Error() string {
@@ -32,8 +33,8 @@ func (e AppDefaultNotFoundError) Error() string {
 var _ error = (*CustomerPreConditionError)(nil)
 
 type CustomerPreConditionError struct {
-	appentity.AppID
-	AppType    appentity.AppType
+	appentitybase.AppID
+	AppType    appentitybase.AppType
 	CustomerID customerentity.CustomerID
 	Condition  string
 }

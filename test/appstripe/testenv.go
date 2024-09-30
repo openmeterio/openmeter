@@ -32,6 +32,7 @@ const (
 )
 
 type TestEnv interface {
+	App() app.Service
 	AppStripeAdapter() appstripe.Adapter
 	AppStripe() appstripe.Service
 
@@ -59,6 +60,10 @@ type testEnv struct {
 
 func (n testEnv) Close() error {
 	return n.closerFunc()
+}
+
+func (n testEnv) App() app.Service {
+	return n.app
 }
 
 func (n testEnv) AppStripeAdapter() appstripe.Adapter {

@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -97,13 +97,13 @@ func (au *AppUpdate) SetNillableDescription(s *string) *AppUpdate {
 }
 
 // SetStatus sets the "status" field.
-func (au *AppUpdate) SetStatus(as appentity.AppStatus) *AppUpdate {
+func (au *AppUpdate) SetStatus(as appentitybase.AppStatus) *AppUpdate {
 	au.mutation.SetStatus(as)
 	return au
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (au *AppUpdate) SetNillableStatus(as *appentity.AppStatus) *AppUpdate {
+func (au *AppUpdate) SetNillableStatus(as *appentitybase.AppStatus) *AppUpdate {
 	if as != nil {
 		au.SetStatus(*as)
 	}
@@ -369,13 +369,13 @@ func (auo *AppUpdateOne) SetNillableDescription(s *string) *AppUpdateOne {
 }
 
 // SetStatus sets the "status" field.
-func (auo *AppUpdateOne) SetStatus(as appentity.AppStatus) *AppUpdateOne {
+func (auo *AppUpdateOne) SetStatus(as appentitybase.AppStatus) *AppUpdateOne {
 	auo.mutation.SetStatus(as)
 	return auo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableStatus(as *appentity.AppStatus) *AppUpdateOne {
+func (auo *AppUpdateOne) SetNillableStatus(as *appentitybase.AppStatus) *AppUpdateOne {
 	if as != nil {
 		auo.SetStatus(*as)
 	}

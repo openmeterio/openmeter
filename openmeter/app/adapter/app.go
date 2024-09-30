@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -16,22 +17,22 @@ var _ app.AppAdapter = (*adapter)(nil)
 
 // CreateApp creates an app
 func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error) {
-	db := a.client()
+	client := a.client()
 
-	appCreateQuery := db.App.Create().
+	appCreateQuery := client.App.Create().
 		SetNamespace(input.Namespace).
 		SetName(input.Name).
 		SetDescription(input.Description).
 		SetType(input.Type).
-		SetStatus(appentity.AppStatusReady)
+		SetStatus(appentitybase.AppStatusReady)
 
 	dbApp, err := appCreateQuery.Save(ctx)
 	if err != nil {
-		return appentity.AppBase{}, fmt.Errorf("failed to create app: %w", err)
+		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
 	// Get registry item
-	registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
+	registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
@@ -49,9 +50,9 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 
 // ListApps lists apps
 func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
-	db := a.client()
+	client := a.client()
 
-	query := db.App.
+	query := client.App.
 		Query().
 		Where(appdb.Namespace(params.Namespace))
 
@@ -75,7 +76,7 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 
 	result := make([]appentity.App, 0, len(paged.Items))
 	for _, dbApp := range paged.Items {
-		registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
+		registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
 			Type: dbApp.Type,
 		})
 		if err != nil {
@@ -115,7 +116,7 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 	}
 
 	// Get registry item
-	registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
+	registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
@@ -152,7 +153,7 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 	}
 
 	// Get registry item
-	registryItem, err := a.marketplace.Get(ctx, appentity.GetMarketplaceListingInput{
+	registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
@@ -180,7 +181,7 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInpu
 
 // MapAppBaseFromDB maps an app from the database
 func MapAppBaseFromDB(ctx context.Context, dbApp *db.App, registryItem appentity.RegistryItem) (appentity.App, error) {
-	appBase := appentity.AppBase{
+	appBase := appentitybase.AppBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			ID:        dbApp.ID,
 			Namespace: dbApp.Namespace,

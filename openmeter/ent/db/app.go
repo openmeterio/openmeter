@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 )
 
@@ -34,9 +34,9 @@ type App struct {
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// Type holds the value of the "type" field.
-	Type appentity.AppType `json:"type,omitempty"`
+	Type appentitybase.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
-	Status appentity.AppStatus `json:"status,omitempty"`
+	Status appentitybase.AppStatus `json:"status,omitempty"`
 	// IsDefault holds the value of the "is_default" field.
 	IsDefault bool `json:"is_default,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -146,13 +146,13 @@ func (a *App) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				a.Type = appentity.AppType(value.String)
+				a.Type = appentitybase.AppType(value.String)
 			}
 		case app.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				a.Status = appentity.AppStatus(value.String)
+				a.Status = appentitybase.AppStatus(value.String)
 			}
 		case app.FieldIsDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {

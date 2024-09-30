@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
@@ -69,11 +70,11 @@ func (c CustomerObserver) PostDelete(customer *customerentity.Customer) error {
 
 // upsert upserts default stripe customer data
 func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
-	var defaultAppID *appentity.AppID
+	var defaultAppID *appentitybase.AppID
 
 	for _, customerApp := range customer.Apps {
 		// Skip non stripe apps
-		if customerApp.Type != appentity.AppTypeStripe {
+		if customerApp.Type != appentitybase.AppTypeStripe {
 			continue
 		}
 
@@ -83,7 +84,7 @@ func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
 			return errors.New("failed to cast app data to stripe customer data")
 		}
 
-		var appID appentity.AppID
+		var appID appentitybase.AppID
 
 		// If there is no app id, it's the default app
 		if customerApp.AppID != nil {
@@ -96,7 +97,7 @@ func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
 			// Get default app
 			app, err := c.appService.GetDefaultApp(context.Background(), appentity.GetDefaultAppInput{
 				Namespace: customer.GetID().Namespace,
-				Type:      appentity.AppTypeStripe,
+				Type:      appentitybase.AppTypeStripe,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to get default app: %w", err)
