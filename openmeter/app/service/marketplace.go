@@ -10,24 +10,34 @@ import (
 
 var _ app.MarketplaceService = (*Service)(nil)
 
-func (s *Service) GetListing(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.MarketplaceListing, error) {
+func (s *Service) Register(input appentity.RegisterMarketplaceListingInput) error {
 	if err := input.Validate(); err != nil {
-		return appentity.MarketplaceListing{}, app.ValidationError{
+		return app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.GetListing(ctx, input)
+	return s.marketplace.Register(input)
 }
 
-func (s *Service) ListListings(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.MarketplaceListing], error) {
+func (s *Service) Get(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.RegistryItem, error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[appentity.MarketplaceListing]{}, app.ValidationError{
+		return appentity.RegistryItem{}, app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.ListListings(ctx, input)
+	return s.marketplace.Get(ctx, input)
+}
+
+func (s *Service) List(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.PagedResponse[appentity.RegistryItem]{}, app.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.marketplace.List(ctx, input)
 }
 
 func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {

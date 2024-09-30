@@ -86,7 +86,7 @@ func (i MarketplaceListingID) Validate() error {
 	return nil
 }
 
-type RegisterMarketplaceListingInput = MarketplaceListing
+type RegisterMarketplaceListingInput = RegistryItem
 
 type GetMarketplaceListingInput = MarketplaceListingID
 

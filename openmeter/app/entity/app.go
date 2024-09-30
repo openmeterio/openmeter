@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	// customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -15,13 +16,13 @@ type App interface {
 	GetType() AppType
 	GetName() string
 	GetStatus() AppStatus
-	GetListing() MarketplaceListing
+	Get() MarketplaceListing
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities []CapabilityType) error
 
 	// // ValidateCustomer validates if the app can run for the given customer
-	// ValidateCustomer(customer customerentity.Customer, capabilities []CapabilityType) error
+	// ValidateCustomer(ctx context.Context, customer customerentity.Customer, capabilities []CapabilityType) error
 }
 
 // AppType represents the type of an app
@@ -72,7 +73,7 @@ func (a AppBase) GetStatus() AppStatus {
 	return a.Status
 }
 
-func (a AppBase) GetListing() MarketplaceListing {
+func (a AppBase) Get() MarketplaceListing {
 	return a.Listing
 }
 

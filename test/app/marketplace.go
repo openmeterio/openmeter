@@ -39,9 +39,11 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
 
 	// Get the listing
-	listing, err := service.GetListing(ctx, appentity.GetMarketplaceListingInput{
+	registryItem, err := service.Get(ctx, appentity.GetMarketplaceListingInput{
 		Type: TestType,
 	})
+
+	listing := registryItem.Listing
 
 	require.NoError(t, err, "Fetching listing must not return error")
 	require.NotNil(t, listing, "Listing must not be nil")
@@ -59,7 +61,7 @@ func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t
 	service := s.Env.App()
 
 	// Get the listing
-	list, err := service.ListListings(ctx, appentity.ListMarketplaceListingInput{})
+	list, err := service.List(ctx, appentity.ListMarketplaceListingInput{})
 
 	require.NoError(t, err, "Fetching listings must not return error")
 	require.NotNil(t, list, "Listings must not be nil")

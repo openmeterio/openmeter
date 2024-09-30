@@ -1,29 +1,17 @@
 package appstripeentity
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
-	"sync"
 
-	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
-
-var marketplace = appadapter.DefaultMarketplace()
-
-var createDefaultMarketplaceOnce sync.Once
-
-func RegisterApp() error {
-	var err error
-
-	createDefaultMarketplaceOnce.Do(func() {
-		err = marketplace.RegisterListing(StripeMarketplaceListing)
-	})
-
-	return err
-}
 
 var (
 	StripeMarketplaceListing = appentity.MarketplaceListing{
@@ -69,7 +57,8 @@ type App struct {
 	appentity.AppBase
 
 	// TODO: cycle dependencies
-	// AppService       app.Service
+	Client *entdb.Client
+	// AppService app.Service
 	// AppStripeService appstripe.Service
 	// BillingService   billing.Service
 
@@ -94,22 +83,42 @@ func (a App) Validate() error {
 }
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a App) ValidateCustomer(customer customerentity.Customer, capabilities []appentity.CapabilityType) error {
+func (a App) ValidateCustomer(ctx context.Context, customer customerentity.Customer, capabilities []appentity.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 
-	// All Stripe capabilities require the customer to have a Stripe customer ID associated
-	// TODO: get app customer
-	// if customer.External == nil && *customer.External.StripeCustomerID == "" {
-	// 	return app.CustomerPreConditionError{
-	// 		AppID:      a.GetID(),
-	// 		AppType:    a.GetType(),
-	// 		CustomerID: customer.GetID(),
-	// 		Condition:  "customer must have a Stripe customer ID",
-	// 	}
-	// }
+	stripeCustomer, err := a.Client.AppStripeCustomer.
+		Query().
+		Where(appstripecustomerdb.Namespace(a.Namespace)).
+		Where(appstripecustomerdb.AppID(a.ID)).
+		Where(appstripecustomerdb.CustomerID(customer.ID)).
+		Only(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return app.CustomerPreConditionError{
+				AppID:      a.GetID(),
+				AppType:    a.GetType(),
+				CustomerID: customer.GetID(),
+				Condition:  "customer has no data for stripe app",
+			}
+		}
+
+		return fmt.Errorf("error getting stripe customer: %w", err)
+	}
+
+	// Check if the customer has a Stripe customer ID
+	if stripeCustomer.StripeCustomerID == nil || *stripeCustomer.StripeCustomerID == "" {
+		return app.CustomerPreConditionError{
+			AppID:      a.GetID(),
+			AppType:    a.GetType(),
+			CustomerID: customer.GetID(),
+			Condition:  "customer must have a stripe customer id",
+		}
+	}
+
+	// TODO: check if the customer exists in Stripe
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
 	if slices.Contains(capabilities, appentity.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentity.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentity.CapabilityTypeCollectPayments) {
