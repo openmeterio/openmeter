@@ -4,13 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
+	appcustomeradapter "github.com/openmeterio/openmeter/openmeter/appcustomer/adapter"
+	appcustomerservice "github.com/openmeterio/openmeter/openmeter/appcustomer/service"
+	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
+	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
+	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -55,6 +63,8 @@ const (
 )
 
 func NewTestEnv(ctx context.Context) (TestEnv, error) {
+	logger := slog.Default().WithGroup("app")
+
 	postgresHost := defaultx.IfZero(os.Getenv("POSTGRES_HOST"), DefaultPostgresHost)
 
 	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, fmt.Sprintf(PostgresURLTemplate, postgresHost))
@@ -72,17 +82,27 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create database schema: %w", err)
 	}
 
-	// We also need to create the stripe adapter to add it to the marketplace registry
-	_, err = appstripeadapter.New(appstripeadapter.Config{
+	// Customer
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
+		Logger: logger.WithGroup("postgres"),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stripe adapter: %w", err)
+		return nil, fmt.Errorf("failed to create customer repo: %w", err)
 	}
 
+	customerService, err := customer.NewService(customer.ServiceConfig{
+		Adapter: customerAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer service: %w", err)
+	}
+
+	// Marketplace
 	marketplaceAdapter := appadapter.NewMarketplaceAdapter()
 
-	adapter, err := appadapter.New(appadapter.Config{
+	// App
+	appAdapter, err := appadapter.New(appadapter.Config{
 		Client:      entClient,
 		Marketplace: marketplaceAdapter,
 	})
@@ -90,12 +110,64 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
 	}
 
-	service, err := appservice.New(appservice.Config{
-		Adapter:     adapter,
+	appService, err := appservice.New(appservice.Config{
+		Adapter:     appAdapter,
 		Marketplace: marketplaceAdapter,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create app service: %w", err)
+	}
+
+	// App Customer
+	appCustomerAdapter, err := appcustomeradapter.New(appcustomeradapter.Config{
+		Client: entClient,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appcustomer adapter: %w", err)
+	}
+
+	appCustomerService, err := appcustomerservice.New(appcustomerservice.Config{
+		Adapter: appCustomerAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appcustomer service: %w", err)
+	}
+
+	// App Stripe
+	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
+		Client:             entClient,
+		AppService:         appService,
+		AppCustomerService: appCustomerService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
+	}
+
+	appStripeService, err := appstripeservice.New(appstripeservice.Config{
+		Adapter: appStripeAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
+	}
+
+	err = appstripe.Register(marketplaceAdapter, appService, entClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register stripe app: %w", err)
+	}
+
+	// App Stripe Customer
+	appStripeObserver, err := appstripeobserver.NewCustomerObserver(appstripeobserver.CustomerObserverConfig{
+		AppService:       appService,
+		AppstripeService: appStripeService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create app stripe observer: %w", err)
+	}
+
+	// Register app stripe observer on customer service
+	err = customerService.Register(appStripeObserver)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register app stripe observer on custoemr service: %w", err)
 	}
 
 	closerFunc := func() error {
@@ -113,8 +185,8 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		adapter:    adapter,
-		app:        service,
+		adapter:    appAdapter,
+		app:        appService,
 		closerFunc: closerFunc,
 	}, nil
 }

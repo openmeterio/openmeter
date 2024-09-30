@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -65,9 +66,27 @@ func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
 	}, nil
 }
 
-func (f AppFactory) NewApp(ctx context.Context, app appentity.AppBase) (appentity.App, error) {
+func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+	// stripeApp, err := client.AppStripe.
+	// 	Query().
+	// 	Where(appstripedb.ID(appBase.GetID().ID)).
+	// 	Where(appstripedb.Namespace(appBase.GetID().Namespace)).
+	// 	First(ctx)
+	// if err != nil {
+	// 	if entdb.IsNotFound(err) {
+	// 		return nil, app.AppNotFoundError{
+	// 			AppID: appBase.GetID(),
+	// 		}
+	// 	}
+
+	// 	return nil, fmt.Errorf("failed to get stripe app: %w", err)
+	// }
+
 	return &appstripeentity.App{
-		AppBase: app,
+		AppBase: appBase,
 		Client:  f.Client,
+
+		// StripeAccountId: stripeApp.StripeAccountID,
+		// Livemode:        stripeApp.StripeLivemode,
 	}, nil
 }

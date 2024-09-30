@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
 
 // CustomerApp represents an app installed for a customer
 type CustomerApp struct {
-	*appentity.AppID
-	Type appentity.AppType `json:"type"`
-	Data interface{}       `json:"data"`
+	*appentitybase.AppID
+	Type appentitybase.AppType `json:"type"`
+	Data interface{}           `json:"data"`
 }
 
 func (a CustomerApp) Validate() error {
@@ -31,7 +31,7 @@ func (a CustomerApp) Validate() error {
 }
 
 type UpsertAppCustomerInput struct {
-	AppID appentity.AppID
+	AppID appentitybase.AppID
 	// TODO: use customer.CustomerID without cyclic dependency
 	CustomerID string
 }

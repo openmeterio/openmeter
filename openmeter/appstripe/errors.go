@@ -3,13 +3,13 @@ package appstripe
 import (
 	"fmt"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
 
 var _ error = (*AppNotFoundError)(nil)
 
 type AppNotFoundError struct {
-	appentity.AppID
+	appentitybase.AppID
 }
 
 func (e AppNotFoundError) Error() string {

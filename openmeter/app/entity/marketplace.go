@@ -4,78 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type MarketplaceListing struct {
-	Type         AppType      `json:"type"`
-	Name         string       `json:"name"`
-	Description  string       `json:"description"`
-	IconURL      string       `json:"iconUrl"`
-	Capabilities []Capability `json:"capabilities"`
-}
-
-func (p MarketplaceListing) Validate() error {
-	if p.Type == "" {
-		return errors.New("type is required")
-	}
-
-	if p.Name == "" {
-		return errors.New("name is required")
-	}
-
-	if p.Description == "" {
-		return errors.New("description is required")
-	}
-
-	if p.IconURL == "" {
-		return errors.New("icon url is required")
-	}
-
-	for i, capability := range p.Capabilities {
-		if err := capability.Validate(); err != nil {
-			return fmt.Errorf("error validating capability a position %d: %w", i, err)
-		}
-	}
-
-	return nil
-}
-
-type CapabilityType string
-
-const (
-	CapabilityTypeReportUsage      CapabilityType = "reportUsage"
-	CapabilityTypeReportEvents     CapabilityType = "reportEvents"
-	CapabilityTypeCalculateTax     CapabilityType = "calculateTax"
-	CapabilityTypeInvoiceCustomers CapabilityType = "invoiceCustomers"
-	CapabilityTypeCollectPayments  CapabilityType = "collectPayments"
-)
-
-type Capability struct {
-	Type        CapabilityType `json:"type"`
-	Key         string         `json:"key"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-}
-
-func (c Capability) Validate() error {
-	if c.Key == "" {
-		return errors.New("key is required")
-	}
-
-	if c.Name == "" {
-		return errors.New("name is required")
-	}
-
-	if c.Description == "" {
-		return errors.New("description is required")
-	}
-
-	return nil
-}
-
 type MarketplaceListingID struct {
-	Type AppType
+	Type appentitybase.AppType
 }
 
 func (i MarketplaceListingID) Validate() error {
@@ -88,13 +22,13 @@ func (i MarketplaceListingID) Validate() error {
 
 type RegisterMarketplaceListingInput = RegistryItem
 
-type GetMarketplaceListingInput = MarketplaceListingID
+type MarketplaceGetInput = MarketplaceListingID
 
-type ListMarketplaceListingInput struct {
+type MarketplaceListInput struct {
 	pagination.Page
 }
 
-func (i ListMarketplaceListingInput) Validate() error {
+func (i MarketplaceListInput) Validate() error {
 	if err := i.Page.Validate(); err != nil {
 		return fmt.Errorf("error validating page: %w", err)
 	}

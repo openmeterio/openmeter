@@ -20,7 +20,7 @@ func (s *Service) Register(input appentity.RegisterMarketplaceListingInput) erro
 	return s.marketplace.Register(input)
 }
 
-func (s *Service) Get(ctx context.Context, input appentity.GetMarketplaceListingInput) (appentity.RegistryItem, error) {
+func (s *Service) Get(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
 	if err := input.Validate(); err != nil {
 		return appentity.RegistryItem{}, app.ValidationError{
 			Err: err,
@@ -30,7 +30,7 @@ func (s *Service) Get(ctx context.Context, input appentity.GetMarketplaceListing
 	return s.marketplace.Get(ctx, input)
 }
 
-func (s *Service) List(ctx context.Context, input appentity.ListMarketplaceListingInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+func (s *Service) List(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
 	if err := input.Validate(); err != nil {
 		return pagination.PagedResponse[appentity.RegistryItem]{}, app.ValidationError{
 			Err: err,

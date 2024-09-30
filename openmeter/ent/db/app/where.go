@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -97,13 +97,13 @@ func Description(v string) predicate.App {
 }
 
 // Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
-func Type(v appentity.AppType) predicate.App {
+func Type(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldEQ(FieldType, vc))
 }
 
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
-func Status(v appentity.AppStatus) predicate.App {
+func Status(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldEQ(FieldStatus, vc))
 }
@@ -449,19 +449,19 @@ func DescriptionContainsFold(v string) predicate.App {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v appentity.AppType) predicate.App {
+func TypeEQ(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v appentity.AppType) predicate.App {
+func TypeNEQ(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...appentity.AppType) predicate.App {
+func TypeIn(vs ...appentitybase.AppType) predicate.App {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -470,7 +470,7 @@ func TypeIn(vs ...appentity.AppType) predicate.App {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...appentity.AppType) predicate.App {
+func TypeNotIn(vs ...appentitybase.AppType) predicate.App {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -479,73 +479,73 @@ func TypeNotIn(vs ...appentity.AppType) predicate.App {
 }
 
 // TypeGT applies the GT predicate on the "type" field.
-func TypeGT(v appentity.AppType) predicate.App {
+func TypeGT(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldGT(FieldType, vc))
 }
 
 // TypeGTE applies the GTE predicate on the "type" field.
-func TypeGTE(v appentity.AppType) predicate.App {
+func TypeGTE(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldGTE(FieldType, vc))
 }
 
 // TypeLT applies the LT predicate on the "type" field.
-func TypeLT(v appentity.AppType) predicate.App {
+func TypeLT(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldLT(FieldType, vc))
 }
 
 // TypeLTE applies the LTE predicate on the "type" field.
-func TypeLTE(v appentity.AppType) predicate.App {
+func TypeLTE(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldLTE(FieldType, vc))
 }
 
 // TypeContains applies the Contains predicate on the "type" field.
-func TypeContains(v appentity.AppType) predicate.App {
+func TypeContains(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContains(FieldType, vc))
 }
 
 // TypeHasPrefix applies the HasPrefix predicate on the "type" field.
-func TypeHasPrefix(v appentity.AppType) predicate.App {
+func TypeHasPrefix(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldHasPrefix(FieldType, vc))
 }
 
 // TypeHasSuffix applies the HasSuffix predicate on the "type" field.
-func TypeHasSuffix(v appentity.AppType) predicate.App {
+func TypeHasSuffix(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldHasSuffix(FieldType, vc))
 }
 
 // TypeEqualFold applies the EqualFold predicate on the "type" field.
-func TypeEqualFold(v appentity.AppType) predicate.App {
+func TypeEqualFold(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldEqualFold(FieldType, vc))
 }
 
 // TypeContainsFold applies the ContainsFold predicate on the "type" field.
-func TypeContainsFold(v appentity.AppType) predicate.App {
+func TypeContainsFold(v appentitybase.AppType) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContainsFold(FieldType, vc))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v appentity.AppStatus) predicate.App {
+func StatusEQ(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v appentity.AppStatus) predicate.App {
+func StatusNEQ(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...appentity.AppStatus) predicate.App {
+func StatusIn(vs ...appentitybase.AppStatus) predicate.App {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -554,7 +554,7 @@ func StatusIn(vs ...appentity.AppStatus) predicate.App {
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...appentity.AppStatus) predicate.App {
+func StatusNotIn(vs ...appentitybase.AppStatus) predicate.App {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -563,55 +563,55 @@ func StatusNotIn(vs ...appentity.AppStatus) predicate.App {
 }
 
 // StatusGT applies the GT predicate on the "status" field.
-func StatusGT(v appentity.AppStatus) predicate.App {
+func StatusGT(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldGT(FieldStatus, vc))
 }
 
 // StatusGTE applies the GTE predicate on the "status" field.
-func StatusGTE(v appentity.AppStatus) predicate.App {
+func StatusGTE(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldGTE(FieldStatus, vc))
 }
 
 // StatusLT applies the LT predicate on the "status" field.
-func StatusLT(v appentity.AppStatus) predicate.App {
+func StatusLT(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldLT(FieldStatus, vc))
 }
 
 // StatusLTE applies the LTE predicate on the "status" field.
-func StatusLTE(v appentity.AppStatus) predicate.App {
+func StatusLTE(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldLTE(FieldStatus, vc))
 }
 
 // StatusContains applies the Contains predicate on the "status" field.
-func StatusContains(v appentity.AppStatus) predicate.App {
+func StatusContains(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContains(FieldStatus, vc))
 }
 
 // StatusHasPrefix applies the HasPrefix predicate on the "status" field.
-func StatusHasPrefix(v appentity.AppStatus) predicate.App {
+func StatusHasPrefix(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldHasPrefix(FieldStatus, vc))
 }
 
 // StatusHasSuffix applies the HasSuffix predicate on the "status" field.
-func StatusHasSuffix(v appentity.AppStatus) predicate.App {
+func StatusHasSuffix(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldHasSuffix(FieldStatus, vc))
 }
 
 // StatusEqualFold applies the EqualFold predicate on the "status" field.
-func StatusEqualFold(v appentity.AppStatus) predicate.App {
+func StatusEqualFold(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldEqualFold(FieldStatus, vc))
 }
 
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
-func StatusContainsFold(v appentity.AppStatus) predicate.App {
+func StatusContainsFold(v appentitybase.AppStatus) predicate.App {
 	vc := string(v)
 	return predicate.App(sql.FieldContainsFold(FieldStatus, vc))
 }

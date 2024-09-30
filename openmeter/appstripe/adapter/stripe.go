@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
@@ -22,7 +23,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 		Namespace:   input.Namespace,
 		Name:        input.Name,
 		Description: input.Description,
-		Type:        appentity.AppTypeStripe,
+		Type:        appentitybase.AppTypeStripe,
 	})
 	if err != nil {
 		return appstripeentity.App{}, fmt.Errorf("failed to create app: %w", err)
@@ -98,7 +99,9 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 // mapAppStripeFromDB maps a database stripe app to an app entity
 func mapAppStripeFromDB(app appentity.App, dbAppStripe *db.AppStripe) appstripeentity.App {
 	return appstripeentity.App{
-		AppBase:         app.GetAppBase(),
+		AppBase: app.GetAppBase(),
+		// TODO: add Client
+
 		StripeAccountId: dbAppStripe.StripeAccountID,
 		Livemode:        dbAppStripe.StripeLivemode,
 	}

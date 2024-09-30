@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 )
@@ -92,13 +92,13 @@ func (ac *AppCreate) SetDescription(s string) *AppCreate {
 }
 
 // SetType sets the "type" field.
-func (ac *AppCreate) SetType(at appentity.AppType) *AppCreate {
+func (ac *AppCreate) SetType(at appentitybase.AppType) *AppCreate {
 	ac.mutation.SetType(at)
 	return ac
 }
 
 // SetStatus sets the "status" field.
-func (ac *AppCreate) SetStatus(as appentity.AppStatus) *AppCreate {
+func (ac *AppCreate) SetStatus(as appentitybase.AppStatus) *AppCreate {
 	ac.mutation.SetStatus(as)
 	return ac
 }
@@ -447,7 +447,7 @@ func (u *AppUpsert) UpdateDescription() *AppUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsert) SetStatus(v appentity.AppStatus) *AppUpsert {
+func (u *AppUpsert) SetStatus(v appentitybase.AppStatus) *AppUpsert {
 	u.Set(app.FieldStatus, v)
 	return u
 }
@@ -612,7 +612,7 @@ func (u *AppUpsertOne) UpdateDescription() *AppUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsertOne) SetStatus(v appentity.AppStatus) *AppUpsertOne {
+func (u *AppUpsertOne) SetStatus(v appentitybase.AppStatus) *AppUpsertOne {
 	return u.Update(func(s *AppUpsert) {
 		s.SetStatus(v)
 	})
@@ -948,7 +948,7 @@ func (u *AppUpsertBulk) UpdateDescription() *AppUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsertBulk) SetStatus(v appentity.AppStatus) *AppUpsertBulk {
+func (u *AppUpsertBulk) SetStatus(v appentitybase.AppStatus) *AppUpsertBulk {
 	return u.Update(func(s *AppUpsert) {
 		s.SetStatus(v)
 	})

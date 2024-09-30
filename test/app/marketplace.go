@@ -8,10 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var TestType = appentity.AppTypeStripe
+var TestType = appentitybase.AppTypeStripe
 
 type AppHandlerTestSuite struct {
 	Env TestEnv
@@ -39,7 +41,7 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
 
 	// Get the listing
-	registryItem, err := service.Get(ctx, appentity.GetMarketplaceListingInput{
+	registryItem, err := service.Get(ctx, appentity.MarketplaceGetInput{
 		Type: TestType,
 	})
 
@@ -61,12 +63,17 @@ func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t
 	service := s.Env.App()
 
 	// Get the listing
-	list, err := service.List(ctx, appentity.ListMarketplaceListingInput{})
+	list, err := service.List(ctx, appentity.MarketplaceListInput{
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+	})
 
 	require.NoError(t, err, "Fetching listings must not return error")
 	require.NotNil(t, list, "Listings must not be nil")
 	require.Equal(t, 1, list.TotalCount, "Listings total count must be 1")
-	require.Equal(t, 0, list.Page.PageNumber, "Listings page must be 0")
+	require.Equal(t, 1, list.Page.PageNumber, "Listings page must be 0")
 	require.Len(t, list.Items, 1, "Listings must have a single item")
-	require.ElementsMatch(t, list.Items, []appentity.MarketplaceListing{appstripeentity.StripeMarketplaceListing}, "Listings must match")
+	require.Equal(t, list.Items[0].Listing, appstripeentity.StripeMarketplaceListing, "Listings must match")
 }

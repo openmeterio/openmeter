@@ -35,5 +35,9 @@ func TestAppStripe(t *testing.T) {
 		t.Run("CustomerCreate", func(t *testing.T) {
 			testSuite.TestCustomerCreate(ctx, t)
 		})
+
+		t.Run("TestCustomerValidate", func(t *testing.T) {
+			testSuite.TestCustomerValidate(ctx, t)
+		})
 	})
 }
