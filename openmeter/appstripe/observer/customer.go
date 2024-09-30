@@ -20,12 +20,12 @@ type CustomerObserver struct {
 	appstripeService appstripe.Service
 }
 
-type Config struct {
+type CustomerObserverConfig struct {
 	AppService       app.Service
 	AppstripeService appstripe.Service
 }
 
-func (c Config) Validate() error {
+func (c CustomerObserverConfig) Validate() error {
 	if c.AppService == nil {
 		return errors.New("app service cannot be null")
 	}
@@ -37,7 +37,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (*CustomerObserver, error) {
+func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
