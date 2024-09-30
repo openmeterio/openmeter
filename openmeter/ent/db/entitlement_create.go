@@ -93,6 +93,34 @@ func (ec *EntitlementCreate) SetFeatureID(s string) *EntitlementCreate {
 	return ec
 }
 
+// SetActiveFrom sets the "active_from" field.
+func (ec *EntitlementCreate) SetActiveFrom(t time.Time) *EntitlementCreate {
+	ec.mutation.SetActiveFrom(t)
+	return ec
+}
+
+// SetNillableActiveFrom sets the "active_from" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableActiveFrom(t *time.Time) *EntitlementCreate {
+	if t != nil {
+		ec.SetActiveFrom(*t)
+	}
+	return ec
+}
+
+// SetActiveTo sets the "active_to" field.
+func (ec *EntitlementCreate) SetActiveTo(t time.Time) *EntitlementCreate {
+	ec.mutation.SetActiveTo(t)
+	return ec
+}
+
+// SetNillableActiveTo sets the "active_to" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableActiveTo(t *time.Time) *EntitlementCreate {
+	if t != nil {
+		ec.SetActiveTo(*t)
+	}
+	return ec
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (ec *EntitlementCreate) SetFeatureKey(s string) *EntitlementCreate {
 	ec.mutation.SetFeatureKey(s)
@@ -461,6 +489,14 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldEntitlementType, field.TypeEnum, value)
 		_node.EntitlementType = value
 	}
+	if value, ok := ec.mutation.ActiveFrom(); ok {
+		_spec.SetField(entitlement.FieldActiveFrom, field.TypeTime, value)
+		_node.ActiveFrom = &value
+	}
+	if value, ok := ec.mutation.ActiveTo(); ok {
+		_spec.SetField(entitlement.FieldActiveTo, field.TypeTime, value)
+		_node.ActiveTo = &value
+	}
 	if value, ok := ec.mutation.FeatureKey(); ok {
 		_spec.SetField(entitlement.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = value
@@ -774,6 +810,12 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(entitlement.FieldFeatureID)
+		}
+		if _, exists := u.create.mutation.ActiveFrom(); exists {
+			s.SetIgnore(entitlement.FieldActiveFrom)
+		}
+		if _, exists := u.create.mutation.ActiveTo(); exists {
+			s.SetIgnore(entitlement.FieldActiveTo)
 		}
 		if _, exists := u.create.mutation.FeatureKey(); exists {
 			s.SetIgnore(entitlement.FieldFeatureKey)
@@ -1164,6 +1206,12 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(entitlement.FieldFeatureID)
+			}
+			if _, exists := b.mutation.ActiveFrom(); exists {
+				s.SetIgnore(entitlement.FieldActiveFrom)
+			}
+			if _, exists := b.mutation.ActiveTo(); exists {
+				s.SetIgnore(entitlement.FieldActiveTo)
 			}
 			if _, exists := b.mutation.FeatureKey(); exists {
 				s.SetIgnore(entitlement.FieldFeatureKey)

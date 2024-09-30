@@ -628,6 +628,8 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "entitlement_type", Type: field.TypeEnum, Enums: []string{"metered", "static", "boolean"}},
+		{Name: "active_from", Type: field.TypeTime, Nullable: true},
+		{Name: "active_to", Type: field.TypeTime, Nullable: true},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "measure_usage_from", Type: field.TypeTime, Nullable: true},
@@ -650,7 +652,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[19]},
+				Columns:    []*schema.Column{EntitlementsColumns[21]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -674,27 +676,27 @@ var (
 			{
 				Name:    "entitlement_namespace_subject_key",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[8]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[10]},
 			},
 			{
 				Name:    "entitlement_namespace_id_subject_key",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[8]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[10]},
 			},
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[19], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[21], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[18]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[20]},
 			},
 			{
 				Name:    "entitlement_current_usage_period_end_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[18], EntitlementsColumns[5]},
+				Columns: []*schema.Column{EntitlementsColumns[20], EntitlementsColumns[5]},
 			},
 		},
 	}

@@ -90,6 +90,16 @@ func FeatureID(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldFeatureID, v))
 }
 
+// ActiveFrom applies equality check predicate on the "active_from" field. It's identical to ActiveFromEQ.
+func ActiveFrom(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldActiveFrom, v))
+}
+
+// ActiveTo applies equality check predicate on the "active_to" field. It's identical to ActiveToEQ.
+func ActiveTo(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldActiveTo, v))
+}
+
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
 func FeatureKey(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldFeatureKey, v))
@@ -428,6 +438,106 @@ func FeatureIDEqualFold(v string) predicate.Entitlement {
 // FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
 func FeatureIDContainsFold(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
+// ActiveFromEQ applies the EQ predicate on the "active_from" field.
+func ActiveFromEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldActiveFrom, v))
+}
+
+// ActiveFromNEQ applies the NEQ predicate on the "active_from" field.
+func ActiveFromNEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldActiveFrom, v))
+}
+
+// ActiveFromIn applies the In predicate on the "active_from" field.
+func ActiveFromIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldActiveFrom, vs...))
+}
+
+// ActiveFromNotIn applies the NotIn predicate on the "active_from" field.
+func ActiveFromNotIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldActiveFrom, vs...))
+}
+
+// ActiveFromGT applies the GT predicate on the "active_from" field.
+func ActiveFromGT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldActiveFrom, v))
+}
+
+// ActiveFromGTE applies the GTE predicate on the "active_from" field.
+func ActiveFromGTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldActiveFrom, v))
+}
+
+// ActiveFromLT applies the LT predicate on the "active_from" field.
+func ActiveFromLT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldActiveFrom, v))
+}
+
+// ActiveFromLTE applies the LTE predicate on the "active_from" field.
+func ActiveFromLTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldActiveFrom, v))
+}
+
+// ActiveFromIsNil applies the IsNil predicate on the "active_from" field.
+func ActiveFromIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldActiveFrom))
+}
+
+// ActiveFromNotNil applies the NotNil predicate on the "active_from" field.
+func ActiveFromNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldActiveFrom))
+}
+
+// ActiveToEQ applies the EQ predicate on the "active_to" field.
+func ActiveToEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldActiveTo, v))
+}
+
+// ActiveToNEQ applies the NEQ predicate on the "active_to" field.
+func ActiveToNEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldActiveTo, v))
+}
+
+// ActiveToIn applies the In predicate on the "active_to" field.
+func ActiveToIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldActiveTo, vs...))
+}
+
+// ActiveToNotIn applies the NotIn predicate on the "active_to" field.
+func ActiveToNotIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldActiveTo, vs...))
+}
+
+// ActiveToGT applies the GT predicate on the "active_to" field.
+func ActiveToGT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldActiveTo, v))
+}
+
+// ActiveToGTE applies the GTE predicate on the "active_to" field.
+func ActiveToGTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldActiveTo, v))
+}
+
+// ActiveToLT applies the LT predicate on the "active_to" field.
+func ActiveToLT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldActiveTo, v))
+}
+
+// ActiveToLTE applies the LTE predicate on the "active_to" field.
+func ActiveToLTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldActiveTo, v))
+}
+
+// ActiveToIsNil applies the IsNil predicate on the "active_to" field.
+func ActiveToIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldActiveTo))
+}
+
+// ActiveToNotNil applies the NotNil predicate on the "active_to" field.
+func ActiveToNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldActiveTo))
 }
 
 // FeatureKeyEQ applies the EQ predicate on the "feature_key" field.

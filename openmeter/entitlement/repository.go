@@ -16,7 +16,6 @@ type UpdateEntitlementUsagePeriodParams struct {
 }
 
 type EntitlementRepo interface {
-	// Entitlement Management
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
