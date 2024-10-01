@@ -1,12 +1,11 @@
 package appadapter
 
 import (
-	"context"
 	"errors"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
 )
 
 type Config struct {
@@ -32,7 +31,7 @@ func New(config Config) (app.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db:          config.Client,
+		db:          entcontext.NewClient(config.Client),
 		marketplace: config.Marketplace,
 	}
 
@@ -46,50 +45,10 @@ func NewMarketplaceAdapter() app.MarketplaceAdapter {
 var _ app.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db          *entdb.Client
+	db          entcontext.DB
 	marketplace app.MarketplaceAdapter
 }
 
-func (r adapter) Commit(ctx context.Context) error {
-	tx := entdb.TxFromContext(ctx)
-	if tx != nil {
-		return tx.Commit()
-	}
-
-	return nil
-}
-
-func (r adapter) Rollback(ctx context.Context) error {
-	tx := entdb.TxFromContext(ctx)
-	if tx != nil {
-		return tx.Rollback()
-	}
-
-	return nil
-}
-
-func (r adapter) client(ctx context.Context) *entdb.Client {
-	client := entdb.FromContext(ctx)
-	if client != nil {
-		return client
-	}
-
-	return r.db
-}
-
-func (r adapter) WithTx(ctx context.Context) (context.Context, error) {
-	// If there is already a transaction in the context, we don't need to create a new one
-	tx := entdb.TxFromContext(ctx)
-	if tx != nil {
-		return ctx, nil
-	}
-
-	tx, err := r.db.Tx(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
-	}
-
-	ctx = entdb.NewTxContext(ctx, tx)
-
-	return ctx, nil
+func (a *adapter) DB() entcontext.DB {
+	return a.db
 }
