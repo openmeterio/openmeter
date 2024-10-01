@@ -24,10 +24,13 @@ func Register(marketplace app.MarketplaceService, appService app.Service, db *en
 		return fmt.Errorf("failed to create stripe app factory: %w", err)
 	}
 
-	marketplace.Register(appentity.RegistryItem{
+	err = marketplace.Register(appentity.RegistryItem{
 		Listing: appstripeentity.StripeMarketplaceListing,
 		Factory: stripeAppFactory,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to register stripe app: %w", err)
+	}
 
 	return nil
 }

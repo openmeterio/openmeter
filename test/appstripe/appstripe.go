@@ -7,7 +7,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
@@ -112,6 +111,9 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		},
 	})
 
+	require.NoError(t, err, "Create customer must not return error")
+	require.NotNil(t, customer, "Create customer must return customer")
+
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
@@ -120,10 +122,10 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	})
 
 	require.NoError(t, err, "Create customer must not return error")
-	require.NotNil(t, customer, "Create customer must return customer")
+	require.NotNil(t, customerWithoutStripeData, "Create customer must return customer")
 
 	// Get App
-	getApp, err := s.Env.App().GetApp(ctx, appentity.GetAppInput(stripeApp.GetID()))
+	getApp, err := s.Env.App().GetApp(ctx, stripeApp.GetID())
 
 	require.NoError(t, err, "Get app must not return error")
 
