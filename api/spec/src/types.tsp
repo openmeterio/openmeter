@@ -3,7 +3,6 @@
  */
 // See: https://github.com/ulid/spec/issues/94
 @pattern("^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$")
-@friendlyName("ULID")
 @example("01G65Z755AFWAKHE12NY0CQ9FH")
 scalar ULID extends string;
 
@@ -16,7 +15,6 @@ scalar ULID extends string;
 )
 @minLength(1)
 @maxLength(64)
-@friendlyName("Key")
 scalar Key extends string;
 
 // NOTE (andras): key format enforcement isn't supported by TypeSpec (patternProperties). See: https://github.com/microsoft/typespec/discussions/1626
@@ -25,7 +23,6 @@ scalar Key extends string;
  * Metadata can be used to store additional information about a resource.
  */
 @example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
-@friendlyName("Metadata")
 model Metadata {
   ...Record<string>;
 }

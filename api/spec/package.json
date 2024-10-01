@@ -28,7 +28,8 @@
   "pnpm": {
     "patchedDependencies": {
       "@typespec/http": "patches/@typespec__http.patch",
-      "@typespec/openapi3": "patches/@typespec__openapi3.patch"
+      "@typespec/openapi3": "patches/@typespec__openapi3.patch",
+      "@typespec/openapi": "patches/@typespec__openapi.patch"
     }
   }
 }
