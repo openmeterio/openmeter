@@ -241,7 +241,7 @@ func (i SendMessageInput) Validate() error {
 }
 
 type RegisterEventTypesInputs struct {
-	EvenTypes   []EventType
+	EventTypes  []EventType
 	AllowUpdate bool
 }
 
@@ -271,7 +271,7 @@ const (
 type Config struct {
 	SvixConfig
 
-	RegisterEvenTypes       []EventType
+	RegisterEventTypes      []EventType
 	RegistrationTimeout     time.Duration
 	SkipRegistrationOnError bool
 
@@ -283,8 +283,8 @@ func New(config Config) (Handler, error) {
 		return nil, errors.New("logger is required")
 	}
 
-	if config.RegisterEvenTypes == nil {
-		config.RegisterEvenTypes = NotificationEventTypes
+	if config.RegisterEventTypes == nil {
+		config.RegisterEventTypes = NotificationEventTypes
 	}
 
 	if config.RegistrationTimeout == 0 {
@@ -296,12 +296,12 @@ func New(config Config) (Handler, error) {
 		return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
 	}
 
-	if len(config.RegisterEvenTypes) > 0 {
+	if len(config.RegisterEventTypes) > 0 {
 		ctx, cancel := context.WithTimeout(context.Background(), config.RegistrationTimeout)
 		defer cancel()
 
 		err = handler.RegisterEventTypes(ctx, RegisterEventTypesInputs{
-			EvenTypes: config.RegisterEvenTypes,
+			EventTypes: config.RegisterEventTypes,
 		})
 		if err != nil {
 			if config.SkipRegistrationOnError {

@@ -76,15 +76,15 @@ func newSvixWebhookHandler(config SvixConfig) (Handler, error) {
 }
 
 func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params RegisterEventTypesInputs) error {
-	for _, evenType := range params.EvenTypes {
+	for _, eventType := range params.EventTypes {
 		input := &svix.EventTypeUpdate{
-			Description: evenType.Description,
+			Description: eventType.Description,
 			FeatureFlag: *svix.NullableString(nil),
-			GroupName:   *svix.NullableString(&evenType.GroupName),
-			Schemas:     evenType.Schemas,
+			GroupName:   *svix.NullableString(&eventType.GroupName),
+			Schemas:     eventType.Schemas,
 		}
 
-		_, err := h.client.EventType.Update(ctx, evenType.Name, input)
+		_, err := h.client.EventType.Update(ctx, eventType.Name, input)
 		if err != nil {
 			err = unwrapSvixError(err)
 

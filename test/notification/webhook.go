@@ -41,7 +41,7 @@ type WebhookTestSuite struct {
 
 func (s *WebhookTestSuite) Setup(ctx context.Context, t *testing.T) {
 	err := s.Env.NotificationWebhook().RegisterEventTypes(ctx, notificationwebhook.RegisterEventTypesInputs{
-		EvenTypes: notificationwebhook.NotificationEventTypes,
+		EventTypes: notificationwebhook.NotificationEventTypes,
 	})
 	assert.NoError(t, err, "Registering event types must not fail")
 }
