@@ -165,7 +165,7 @@ interface Channels {
      */
     @query
     @example(true)
-    includeDeleted?: boolean,
+    includeDeleted?: boolean = false,
 
     /**
      * Include disabled notification channels in response.
@@ -174,7 +174,7 @@ interface Channels {
      */
     @query
     @example(false)
-    includeDisabled?: boolean,
+    includeDisabled?: boolean = false,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<ChannelOrderBy>,
@@ -200,7 +200,7 @@ interface Channels {
   update(@path channelId: ULID, @body request: ChannelCreateRequest): {
     @statusCode _: 200;
     @body body: Channel;
-  } | OpenMeter.CommonErrors;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Get a notification channel by id.

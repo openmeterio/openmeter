@@ -281,7 +281,7 @@ interface Rules {
   update(@path ruleId: ULID, @body request: RuleCreateRequest): {
     @statusCode _: 200;
     @body body: Rule;
-  } | OpenMeter.CommonErrors;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Get a notification rule by id.
