@@ -12,9 +12,7 @@ var _ appcustomer.Adapter = (*adapter)(nil)
 
 // UpsertAppCustomer upserts an app customer.
 func (a adapter) UpsertAppCustomer(ctx context.Context, input appcustomerentity.UpsertAppCustomerInput) error {
-	client := a.DB().Client(ctx)
-
-	err := client.AppCustomer.
+	err := a.db.AppCustomer.
 		Create().
 		SetNamespace(input.AppID.Namespace).
 		SetAppID(input.AppID.ID).

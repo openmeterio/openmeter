@@ -12,90 +12,91 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 
 // CreateApp creates a new app
 func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error) {
-	client := a.DB().Client(ctx)
+	return transaction.Run(ctx, a, func(ctx context.Context) (appstripeentity.App, error) {
+		// Create the base app
+		appBase, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
+			Namespace:   input.Namespace,
+			Name:        input.Name,
+			Description: input.Description,
+			Type:        appentitybase.AppTypeStripe,
+		})
+		if err != nil {
+			return appstripeentity.App{}, fmt.Errorf("failed to create app: %w", err)
+		}
 
-	// Create the base app
-	appBase, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
-		Namespace:   input.Namespace,
-		Name:        input.Name,
-		Description: input.Description,
-		Type:        appentitybase.AppTypeStripe,
+		// Create the stripe app in the database
+		appStripeCreateQuery := a.db.AppStripe.Create().
+			SetID(appBase.GetID().ID).
+			SetNamespace(input.Namespace).
+			SetStripeAccountID(input.StripeAccountID).
+			SetStripeLivemode(input.Livemode)
+
+		dbAppStripe, err := appStripeCreateQuery.Save(ctx)
+		if err != nil {
+			return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: %w", err)
+		}
+
+		return mapAppStripeFromDB(a.db, appBase, dbAppStripe), nil
 	})
-	if err != nil {
-		return appstripeentity.App{}, fmt.Errorf("failed to create app: %w", err)
-	}
-
-	// Create the stripe app in the database
-	appStripeCreateQuery := client.AppStripe.Create().
-		SetID(appBase.GetID().ID).
-		SetNamespace(input.Namespace).
-		SetStripeAccountID(input.StripeAccountID).
-		SetStripeLivemode(input.Livemode)
-
-	dbAppStripe, err := appStripeCreateQuery.Save(ctx)
-	if err != nil {
-		return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: %w", err)
-	}
-
-	return mapAppStripeFromDB(a.DB().ClientNoTx(), appBase, dbAppStripe), nil
 }
 
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
-	client := a.DB().Client(ctx)
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		err := a.appCustomerService.UpsertAppCustomer(ctx, appcustomerentity.UpsertAppCustomerInput{
+			AppID:      input.AppID,
+			CustomerID: input.CustomerID.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upsert app customer: %w", err)
+		}
 
-	err := a.appCustomerService.UpsertAppCustomer(ctx, appcustomerentity.UpsertAppCustomerInput{
-		AppID:      input.AppID,
-		CustomerID: input.CustomerID.ID,
+		err = a.db.AppStripeCustomer.
+			Create().
+			SetNamespace(input.AppID.Namespace).
+			SetStripeAppID(input.AppID.ID).
+			SetCustomerID(input.CustomerID.ID).
+			SetStripeCustomerID(input.StripeCustomerID).
+			// Upsert
+			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
+			UpdateStripeCustomerID().
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to upsert app stripe customer data: %w", err)
+		}
+
+		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("failed to upsert app customer: %w", err)
-	}
-
-	err = client.AppStripeCustomer.
-		Create().
-		SetNamespace(input.AppID.Namespace).
-		SetStripeAppID(input.AppID.ID).
-		SetCustomerID(input.CustomerID.ID).
-		SetStripeCustomerID(input.StripeCustomerID).
-		// Upsert
-		OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
-		UpdateStripeCustomerID().
-		Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to upsert app stripe customer data: %w", err)
-	}
-
-	return nil
 }
 
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
-	client := a.DB().Client(ctx)
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		query := a.db.AppStripeCustomer.
+			Delete().
+			Where(
+				appstripecustomerdb.Namespace(input.CustomerID.Namespace),
+				appstripecustomerdb.CustomerID(input.CustomerID.ID),
+			)
 
-	query := client.AppStripeCustomer.
-		Delete().
-		Where(
-			appstripecustomerdb.Namespace(input.CustomerID.Namespace),
-			appstripecustomerdb.CustomerID(input.CustomerID.ID),
-		)
+		if input.AppID != nil {
+			query = query.Where(appstripecustomerdb.AppID(input.AppID.ID))
+		}
 
-	if input.AppID != nil {
-		query = query.Where(appstripecustomerdb.AppID(input.AppID.ID))
-	}
+		_, err := query.Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app stripe customer data: %w", err)
+		}
 
-	_, err := query.Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to delete app stripe customer data: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity

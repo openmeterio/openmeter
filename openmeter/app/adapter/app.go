@@ -9,6 +9,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -17,37 +18,35 @@ var _ app.AppAdapter = (*adapter)(nil)
 
 // CreateApp creates an app
 func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
-	client := a.db.Client(ctx)
+	return transaction.Run(ctx, a, func(ctx context.Context) (appentitybase.AppBase, error) {
+		appCreateQuery := a.db.App.Create().
+			SetNamespace(input.Namespace).
+			SetName(input.Name).
+			SetDescription(input.Description).
+			SetType(input.Type).
+			SetStatus(appentitybase.AppStatusReady)
 
-	appCreateQuery := client.App.Create().
-		SetNamespace(input.Namespace).
-		SetName(input.Name).
-		SetDescription(input.Description).
-		SetType(input.Type).
-		SetStatus(appentitybase.AppStatusReady)
+		dbApp, err := appCreateQuery.Save(ctx)
+		if err != nil {
+			return appentitybase.AppBase{}, fmt.Errorf("failed to create app: %w", err)
+		}
 
-	dbApp, err := appCreateQuery.Save(ctx)
-	if err != nil {
-		return appentitybase.AppBase{}, fmt.Errorf("failed to create app: %w", err)
-	}
+		// Get registry item
+		registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
+			Type: dbApp.Type,
+		})
+		if err != nil {
+			return appentitybase.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+		}
 
-	// Get registry item
-	registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
-		Type: dbApp.Type,
+		// Map app base from db
+		return mapAppBaseFromDB(dbApp, registryItem), nil
 	})
-	if err != nil {
-		return appentitybase.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
-	}
-
-	// Map app base from db
-	return mapAppBaseFromDB(dbApp, registryItem), nil
 }
 
 // ListApps lists apps
 func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
-	client := a.db.Client(ctx)
-
-	query := client.App.
+	query := a.db.App.
 		Query().
 		Where(appdb.Namespace(params.Namespace))
 
@@ -94,9 +93,7 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 
 // GetApp gets an app
 func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
-	client := a.db.Client(ctx)
-
-	dbApp, err := client.App.Query().
+	dbApp, err := a.db.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
 		Where(appdb.ID(input.ID)).
 		First(ctx)
@@ -129,9 +126,7 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 
 // GetDefaultApp gets the default app for the app type
 func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
-	client := a.db.Client(ctx)
-
-	dbApp, err := client.App.Query().
+	dbApp, err := a.db.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
 		Where(appdb.Type(input.Type)).
 		Where(appdb.DeletedAtIsNil()).
@@ -166,12 +161,10 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 
 // UninstallApp uninstalls an app
 func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error {
-	if err := input.Validate(); err != nil {
-		return err
-	}
-
-	// TODO: Implement uninstall logic
-	return fmt.Errorf("uninstall not implemented")
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		// TODO: Implement uninstall logic
+		return fmt.Errorf("uninstall not implemented")
+	})
 }
 
 // mapAppBaseFromDB maps an app base from the database

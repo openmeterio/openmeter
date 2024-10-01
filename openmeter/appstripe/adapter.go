@@ -4,13 +4,13 @@ import (
 	"context"
 
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
-	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 type Adapter interface {
 	AppStripeAdapter
 
-	DB() entcontext.DB
+	entutils.TxCreator
 }
 
 type AppStripeAdapter interface {
