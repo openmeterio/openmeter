@@ -168,7 +168,7 @@ func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 			err := next.Commit(ctx, tx)
 
 			for _, observer := range *r.observers {
-				if err := observer.PostCreate(customer); err != nil {
+				if err := observer.PostCreate(ctx, customer); err != nil {
 					r.logger.Error("failed to create customer: post-create hook failed", "error", err)
 				}
 			}
@@ -178,7 +178,7 @@ func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 	})
 
 	// for _, observer := range *r.observers {
-	// 	if err := observer.PostCreate(customer); err != nil {
+	// 	if err := observer.PostCreate(ctx, customer); err != nil {
 	// 		r.logger.Error("failed to create customer: post-create hook failed", "error", err)
 	// 		return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
 	// 	}
@@ -217,7 +217,7 @@ func (r *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 
 	// Post-delete hook
 	for _, observer := range *r.observers {
-		if err := observer.PostDelete(customer); err != nil {
+		if err := observer.PostDelete(ctx, customer); err != nil {
 			return fmt.Errorf("failed to delete customer: post-delete hook failed: %w", err)
 		}
 	}
@@ -429,7 +429,7 @@ func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 
 	// Post-update hook
 	for _, observer := range *r.observers {
-		if err := observer.PostUpdate(customer); err != nil {
+		if err := observer.PostUpdate(ctx, customer); err != nil {
 			return nil, fmt.Errorf("failed to update customer: post-update hook failed: %w", err)
 		}
 	}
