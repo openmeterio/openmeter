@@ -48,17 +48,17 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 	}, nil
 }
 
-func (c CustomerObserver) PostCreate(customer *customerentity.Customer) error {
-	return c.upsert(customer)
+func (c CustomerObserver) PostCreate(ctx context.Context, customer *customerentity.Customer) error {
+	return c.upsert(ctx, customer)
 }
 
-func (c CustomerObserver) PostUpdate(customer *customerentity.Customer) error {
-	return c.upsert(customer)
+func (c CustomerObserver) PostUpdate(ctx context.Context, customer *customerentity.Customer) error {
+	return c.upsert(ctx, customer)
 }
 
-func (c CustomerObserver) PostDelete(customer *customerentity.Customer) error {
+func (c CustomerObserver) PostDelete(ctx context.Context, customer *customerentity.Customer) error {
 	// Delete stripe customer data for all Stripe apps for the customer in the namespace
-	err := c.appstripeService.DeleteStripeCustomerData(context.Background(), appstripeentity.DeleteStripeCustomerDataInput{
+	err := c.appstripeService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func (c CustomerObserver) PostDelete(customer *customerentity.Customer) error {
 }
 
 // upsert upserts default stripe customer data
-func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
+func (c CustomerObserver) upsert(ctx context.Context, customer *customerentity.Customer) error {
 	var defaultAppID *appentitybase.AppID
 
 	for _, customerApp := range customer.Apps {
@@ -95,7 +95,7 @@ func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
 			}
 
 			// Get default app
-			app, err := c.appService.GetDefaultApp(context.Background(), appentity.GetDefaultAppInput{
+			app, err := c.appService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
 				Namespace: customer.GetID().Namespace,
 				Type:      appentitybase.AppTypeStripe,
 			})
@@ -110,7 +110,7 @@ func (c CustomerObserver) upsert(customer *customerentity.Customer) error {
 		}
 
 		// Upsert stripe customer data
-		err := c.appstripeService.UpsertStripeCustomerData(context.Background(), appstripeentity.UpsertStripeCustomerDataInput{
+		err := c.appstripeService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
 			AppID:            appID,
 			CustomerID:       customer.GetID(),
 			StripeCustomerID: appStripeCustomer.StripeCustomerID,
