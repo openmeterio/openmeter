@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -18,7 +19,7 @@ func (s *Service) CreateApp(ctx context.Context, input appentity.CreateAppInput)
 		}
 	}
 
-	return app.WithTx(ctx, s.adapter, func(ctx context.Context) (appentitybase.AppBase, error) {
+	return entcontext.WithTx(ctx, s.adapter.DB(), func(ctx context.Context) (appentitybase.AppBase, error) {
 		return s.adapter.CreateApp(ctx, input)
 	})
 }
@@ -60,7 +61,7 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.DeleteAppInp
 		}
 	}
 
-	return app.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter app.Adapter) error {
-		return adapter.UninstallApp(ctx, input)
+	return entcontext.WithTxNoValue(ctx, s.adapter.DB(), func(ctx context.Context) error {
+		return s.adapter.UninstallApp(ctx, input)
 	})
 }

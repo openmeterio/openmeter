@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
 )
 
 var _ appstripe.AppService = (*Service)(nil)
@@ -16,7 +17,7 @@ func (s *Service) CreateStripeApp(ctx context.Context, input appstripeentity.Cre
 		}
 	}
 
-	return appstripe.WithTx(ctx, s.adapter, func(ctx context.Context) (appstripeentity.App, error) {
+	return entcontext.WithTx(ctx, s.adapter.DB(), func(ctx context.Context) (appstripeentity.App, error) {
 		return s.adapter.CreateStripeApp(ctx, input)
 	})
 }
@@ -38,7 +39,7 @@ func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripee
 		}
 	}
 
-	return appstripe.WithTxNoValue(ctx, s.adapter, func(ctx context.Context) error {
+	return entcontext.WithTxNoValue(ctx, s.adapter.DB(), func(ctx context.Context) error {
 		return s.adapter.DeleteStripeCustomerData(ctx, input)
 	})
 }
