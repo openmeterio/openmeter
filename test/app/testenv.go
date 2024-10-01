@@ -17,8 +17,8 @@ import (
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
 	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -91,7 +91,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer repo: %w", err)
 	}
 
-	customerService, err := customer.NewService(customer.ServiceConfig{
+	customerService, err := customerservice.New(customerservice.Config{
 		Adapter: customerAdapter,
 	})
 	if err != nil {

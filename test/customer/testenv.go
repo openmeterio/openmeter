@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -73,16 +74,16 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create database schema: %w", err)
 	}
 
-	repo, err := customeradapter.New(customeradapter.Config{
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create customer repo: %w", err)
+		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
 	}
 
-	service, err := customer.NewService(customer.ServiceConfig{
-		Adapter: repo,
+	customerService, err := customerservice.New(customerservice.Config{
+		Adapter: customerAdapter,
 	})
 	if err != nil {
 		return nil, err
@@ -103,8 +104,8 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		customerAdapter: repo,
-		customer:        service,
+		customerAdapter: customerAdapter,
+		customer:        customerService,
 		closerFunc:      closerFunc,
 	}, nil
 }
