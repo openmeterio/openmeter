@@ -1,4 +1,4 @@
-package appcustomer
+package customerentity
 
 import (
 	"errors"

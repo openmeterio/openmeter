@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
@@ -64,7 +63,7 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
 			Name: "Test Customer",
-			Apps: []appcustomerentity.CustomerApp{
+			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,
 					Data: appstripeentity.CustomerAppData{
@@ -100,7 +99,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
 			Name: "Test Customer",
-			Apps: []appcustomerentity.CustomerApp{
+			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,
 					Data: appstripeentity.CustomerAppData{

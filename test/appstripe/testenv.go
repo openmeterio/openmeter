@@ -11,9 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
-	"github.com/openmeterio/openmeter/openmeter/appcustomer"
-	appcustomeradapter "github.com/openmeterio/openmeter/openmeter/appcustomer/adapter"
-	appcustomerservice "github.com/openmeterio/openmeter/openmeter/appcustomer/service"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
 	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
@@ -49,12 +46,10 @@ type testEnv struct {
 	adapter   appstripe.Adapter
 	appstripe appstripe.Service
 
-	appAdapter         app.Adapter
-	app                app.Service
-	appCustomerAdapter appcustomer.Adapter
-	appCustomerService appcustomer.Service
-	customerAdapter    customer.Adapter
-	customer           customer.Service
+	appAdapter      app.Adapter
+	app             app.Service
+	customerAdapter customer.Adapter
+	customer        customer.Service
 
 	closerFunc func() error
 }
@@ -143,26 +138,11 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
 	}
 
-	// App Customer
-	appCustomerAdapter, err := appcustomeradapter.New(appcustomeradapter.Config{
-		Client: entClient,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create appcustomer adapter: %w", err)
-	}
-
-	appCustomerService, err := appcustomerservice.New(appcustomerservice.Config{
-		Adapter: appCustomerAdapter,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create appcustomer service: %w", err)
-	}
-
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
-		Client:             entClient,
-		AppService:         appService,
-		AppCustomerService: appCustomerService,
+		Client:          entClient,
+		AppService:      appService,
+		CustomerService: customerService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
@@ -210,14 +190,12 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		adapter:            appStripeAdapter,
-		appstripe:          appStripeService,
-		appAdapter:         appAdapter,
-		app:                appService,
-		appCustomerAdapter: appCustomerAdapter,
-		appCustomerService: appCustomerService,
-		customerAdapter:    customerAdapter,
-		customer:           customerService,
-		closerFunc:         closerFunc,
+		adapter:         appStripeAdapter,
+		appstripe:       appStripeService,
+		appAdapter:      appAdapter,
+		app:             appService,
+		customerAdapter: customerAdapter,
+		customer:        customerService,
+		closerFunc:      closerFunc,
 	}, nil
 }

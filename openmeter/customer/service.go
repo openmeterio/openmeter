@@ -21,4 +21,6 @@ type CustomerService interface {
 	DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer customerentity.GetCustomerInput) (*customerentity.Customer, error)
 	UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error)
+
+	UpsertAppCustomer(ctx context.Context, input customerentity.UpsertAppCustomerInput) error
 }

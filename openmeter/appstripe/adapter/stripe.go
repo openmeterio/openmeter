@@ -6,9 +6,9 @@ import (
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
@@ -50,7 +50,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
 	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		err := a.appCustomerService.UpsertAppCustomer(ctx, appcustomerentity.UpsertAppCustomerInput{
+		err := a.customerService.UpsertAppCustomer(ctx, customerentity.UpsertAppCustomerInput{
 			AppID:      input.AppID,
 			CustomerID: input.CustomerID.ID,
 		})

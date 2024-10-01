@@ -68,3 +68,13 @@ func (s *Service) UpdateCustomer(ctx context.Context, input customerentity.Updat
 
 	return s.adapter.UpdateCustomer(ctx, input)
 }
+
+func (s *Service) UpsertAppCustomer(ctx context.Context, input customerentity.UpsertAppCustomerInput) error {
+	if err := input.Validate(); err != nil {
+		return customerentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.adapter.UpsertAppCustomer(ctx, input)
+}

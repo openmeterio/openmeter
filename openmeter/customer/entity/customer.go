@@ -6,7 +6,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -17,13 +16,13 @@ import (
 type Customer struct {
 	models.ManagedResource
 
-	Name             string                          `json:"name"`
-	Timezone         *timezone.Timezone              `json:"timezone"`
-	UsageAttribution CustomerUsageAttribution        `json:"usageAttribution"`
-	PrimaryEmail     *string                         `json:"primaryEmail"`
-	Currency         *currencyx.Code                 `json:"currency"`
-	BillingAddress   *models.Address                 `json:"billingAddress"`
-	Apps             []appcustomerentity.CustomerApp `json:"apps"`
+	Name             string                   `json:"name"`
+	Timezone         *timezone.Timezone       `json:"timezone"`
+	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
+	PrimaryEmail     *string                  `json:"primaryEmail"`
+	Currency         *currencyx.Code          `json:"currency"`
+	BillingAddress   *models.Address          `json:"billingAddress"`
+	Apps             []CustomerApp            `json:"apps"`
 }
 
 func (c Customer) GetID() CustomerID {
