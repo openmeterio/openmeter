@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -124,13 +123,14 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 	// TODO: check if the customer exists in Stripe
 
+	// TODO: implement
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
-	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
-		// TODO: go to Stripe and check if customer exists by customer.External.StripeCustomerID
-		// Also check if the customer has a country and default payment method
+	// if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
+	// 	// TODO: go to Stripe and check if customer exists by customer.External.StripeCustomerID
+	// 	// Also check if the customer has a country and default payment method
 
-		// return errors.New("not implemented")
-	}
+	// 	return errors.New("not implemented")
+	// }
 
 	return nil
 }
