@@ -1,9 +1,11 @@
 package appobserver
 
+import "context"
+
 type Observer[T any] interface {
-	PostCreate(*T) error
-	PostUpdate(*T) error
-	PostDelete(*T) error
+	PostCreate(context.Context, *T) error
+	PostUpdate(context.Context, *T) error
+	PostDelete(context.Context, *T) error
 }
 
 type Publisher[T any] interface {
