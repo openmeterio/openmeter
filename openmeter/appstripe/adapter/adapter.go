@@ -7,17 +7,17 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Config struct {
-	Client             *entdb.Client
-	AppService         app.Service
-	AppCustomerService appcustomer.Service
+	Client          *entdb.Client
+	AppService      app.Service
+	CustomerService customer.Service
 }
 
 func (c Config) Validate() error {
@@ -29,8 +29,8 @@ func (c Config) Validate() error {
 		return errors.New("app service is required")
 	}
 
-	if c.AppCustomerService == nil {
-		return errors.New("app customer service is required")
+	if c.CustomerService == nil {
+		return errors.New("customer service is required")
 	}
 
 	return nil
@@ -42,9 +42,9 @@ func New(config Config) (appstripe.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db:                 config.Client,
-		appService:         config.AppService,
-		appCustomerService: config.AppCustomerService,
+		db:              config.Client,
+		appService:      config.AppService,
+		customerService: config.CustomerService,
 	}
 
 	return adapter, nil
@@ -55,8 +55,8 @@ var _ appstripe.Adapter = (*adapter)(nil)
 type adapter struct {
 	db *entdb.Client
 
-	appService         app.Service
-	appCustomerService appcustomer.Service
+	appService      app.Service
+	customerService customer.Service
 }
 
 // Tx implements entutils.TxCreator interface

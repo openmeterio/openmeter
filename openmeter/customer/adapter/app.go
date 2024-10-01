@@ -1,17 +1,14 @@
-package appcustomeradapter
+package adapter
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/appcustomer"
-	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
-var _ appcustomer.Adapter = (*adapter)(nil)
-
 // UpsertAppCustomer upserts an app customer.
-func (a adapter) UpsertAppCustomer(ctx context.Context, input appcustomerentity.UpsertAppCustomerInput) error {
+func (a adapter) UpsertAppCustomer(ctx context.Context, input customerentity.UpsertAppCustomerInput) error {
 	err := a.db.AppCustomer.
 		Create().
 		SetNamespace(input.AppID.Namespace).
