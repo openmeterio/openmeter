@@ -201,12 +201,13 @@ func TransactingRepo[R, T any](
 		TxUser[T]
 		TxCreator
 	},
-	cb func(ctx context.Context, rep T) (*R, error),
-) (*R, error) {
-	return transaction.Run(ctx, repo, func(ctx context.Context) (*R, error) {
+	cb func(ctx context.Context, rep T) (R, error),
+) (R, error) {
+	return transaction.Run(ctx, repo, func(ctx context.Context) (R, error) {
+		var def R
 		tx, err := GetDriverFromContext(ctx)
 		if err != nil {
-			return nil, err
+			return def, err
 		}
 		return cb(ctx, repo.WithTx(ctx, tx))
 	})
