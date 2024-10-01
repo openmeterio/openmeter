@@ -47,37 +47,41 @@ var _ app.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	db          *entdb.Client
-	tx          *entdb.Tx
 	marketplace app.MarketplaceAdapter
 }
 
-func (r adapter) Commit() error {
-	if r.tx != nil {
-		return r.tx.Commit()
+func (r adapter) Commit(ctx context.Context) error {
+	tx := entdb.TxFromContext(ctx)
+	if tx != nil {
+		return tx.Commit()
 	}
 
 	return nil
 }
 
-func (r adapter) Rollback() error {
-	if r.tx != nil {
-		return r.tx.Rollback()
+func (r adapter) Rollback(ctx context.Context) error {
+	tx := entdb.TxFromContext(ctx)
+	if tx != nil {
+		return tx.Rollback()
 	}
 
 	return nil
 }
 
-func (r adapter) client() *entdb.Client {
-	if r.tx != nil {
-		return r.tx.Client()
+func (r adapter) client(ctx context.Context) *entdb.Client {
+	client := entdb.FromContext(ctx)
+	if client != nil {
+		return client
 	}
 
 	return r.db
 }
 
-func (r adapter) WithTx(ctx context.Context) (app.TxAdapter, error) {
-	if r.tx != nil {
-		return r, nil
+func (r adapter) WithTx(ctx context.Context) (context.Context, error) {
+	// If there is already a transaction in the context, we don't need to create a new one
+	tx := entdb.TxFromContext(ctx)
+	if tx != nil {
+		return ctx, nil
 	}
 
 	tx, err := r.db.Tx(ctx)
@@ -85,9 +89,7 @@ func (r adapter) WithTx(ctx context.Context) (app.TxAdapter, error) {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
-	return &adapter{
-		db:          r.db,
-		tx:          tx,
-		marketplace: r.marketplace,
-	}, nil
+	ctx = entdb.NewTxContext(ctx, tx)
+
+	return ctx, nil
 }

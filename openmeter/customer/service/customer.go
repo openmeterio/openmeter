@@ -24,14 +24,14 @@ func (s *Service) ListCustomers(ctx context.Context, input customerentity.ListCu
 }
 
 func (s *Service) CreateCustomer(ctx context.Context, input customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
-	return customer.WithTx(ctx, s.adapter, func(ctx context.Context, adapter customer.TxAdapter) (*customerentity.Customer, error) {
-		return adapter.CreateCustomer(ctx, input)
+	return customer.WithTx(ctx, s.adapter, func(ctx context.Context) (*customerentity.Customer, error) {
+		return s.adapter.CreateCustomer(ctx, input)
 	})
 }
 
 func (s *Service) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
-	return customer.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter customer.TxAdapter) error {
-		return adapter.DeleteCustomer(ctx, input)
+	return customer.WithTxNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.DeleteCustomer(ctx, input)
 	})
 }
 
@@ -40,7 +40,7 @@ func (s *Service) GetCustomer(ctx context.Context, customer customerentity.GetCu
 }
 
 func (s *Service) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
-	return customer.WithTx(ctx, s.adapter, func(ctx context.Context, adapter customer.TxAdapter) (*customerentity.Customer, error) {
-		return adapter.UpdateCustomer(ctx, input)
+	return customer.WithTx(ctx, s.adapter, func(ctx context.Context) (*customerentity.Customer, error) {
+		return s.adapter.UpdateCustomer(ctx, input)
 	})
 }
