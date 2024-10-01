@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
@@ -175,7 +176,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		customerService, err = customer.NewService(customer.ServiceConfig{
+		customerService, err = customerservice.New(customerservice.Config{
 			Adapter: customerAdapter,
 		})
 		if err != nil {
