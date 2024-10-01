@@ -11,6 +11,7 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -219,12 +220,13 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	// List customers
 	list, err := service.ListCustomers(ctx, customerentity.ListCustomersInput{
 		Namespace: s.namespace,
+		Page:      pagination.Page{PageNumber: 1, PageSize: 10},
 	})
 
 	require.NoError(t, err, "Listing customers must not return error")
 	require.NotNil(t, list, "Customers must not be nil")
 	require.Equal(t, 2, list.TotalCount, "Customers total count must be 1")
-	require.Equal(t, 0, list.Page.PageNumber, "Customers page must be 0")
+	require.Equal(t, 1, list.Page.PageNumber, "Customers page must be 0")
 	require.Len(t, list.Items, 2, "Customers must have a single item")
 	require.Equal(t, s.namespace, list.Items[0].Namespace, "Customer namespace must match")
 	require.NotNil(t, list.Items[0].ID, "Customer ID must not be nil")
