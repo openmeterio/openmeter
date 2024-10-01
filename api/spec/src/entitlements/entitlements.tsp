@@ -235,7 +235,7 @@ model EntitlementSharedFields {
    * The identifier key unique to the subject
    */
   @example("customer-1")
-  subjectkey: Key;
+  subjectKey: Key;
 
   /**
    * The feature the subject is entitled to use.
