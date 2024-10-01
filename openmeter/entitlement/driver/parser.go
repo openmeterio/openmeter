@@ -284,5 +284,9 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 		return request, errors.New("unknown entitlement type")
 	}
 
+	// We prune activity data explicitly
+	request.ActiveFrom = nil
+	request.ActiveTo = nil
+
 	return request, nil
 }

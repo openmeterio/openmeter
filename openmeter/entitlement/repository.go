@@ -16,19 +16,33 @@ type UpdateEntitlementUsagePeriodParams struct {
 }
 
 type EntitlementRepo interface {
-	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
+	// GetActiveEntitlementsOfSubject returns all active entitlements of a subject at a given time
+	GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey, at time.Time) ([]Entitlement, error)
+
+	// GetActiveEntitlementOfSubjectAt returns the active entitlement of a subject at a given time by feature key
+	GetActiveEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, featureKey string, at time.Time) (*Entitlement, error)
+
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
-	GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
+
+	// ListNamespacesWithActiveEntitlements returns a list of namespaces that have active entitlements
+	//
+	// Active in this context means the entitlement is active at any point between now and the given time.
+	// If includeDeletedAfter is before the current time, it will include namespaces that have entitlements active at that instance.
 	ListNamespacesWithActiveEntitlements(ctx context.Context, includeDeletedAfter time.Time) ([]string, error)
 
+	// HasEntitlementForMeter returns true if the meter has any active or inactive entitlements
 	HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
 
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params UpdateEntitlementUsagePeriodParams) error
-	ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, highwatermark time.Time) ([]Entitlement, error)
+
+	// ListActiveEntitlementsWithExpiredUsagePeriod returns a list of active entitlements with usage period that expired before the highwatermark
+	//
+	// Only entitlements active at the highwatermark are considered. FIXME: this implementation might be incorrect
+	ListActiveEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, highwatermark time.Time) ([]Entitlement, error)
 
 	LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID) error
 

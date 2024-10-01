@@ -183,8 +183,6 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 		return err
 	}
 
-	// Right now transaction is magically passed through ctx here.
-	// Until we refactor and fix this, to avoid any potential errors due to changes in downstream connectors, the code is inlined here.
 	// issue default grants
 	if metered.HasDefaultGrant() {
 		if metered.IssueAfterReset == nil {
