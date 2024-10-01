@@ -135,6 +135,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 			ServerURL: fmt.Sprintf(SvixServerURLTemplate, svixHost),
 			Debug:     false,
 		},
+		Logger: logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)

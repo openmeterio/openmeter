@@ -273,6 +273,10 @@ func TestComplete(t *testing.T) {
 				},
 				ConsumerGroupName: "om_notification_service",
 			},
+			Webhook: WebhookConfiguration{
+				EventTypeRegistrationTimeout:     notificationwebhook.DefaultRegistrationTimeout,
+				SkipEventTypeRegistrationOnError: false,
+			},
 		},
 		Svix: notificationwebhook.SvixConfig{
 			APIKey:    "test-svix-token",

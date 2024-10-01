@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -240,7 +241,7 @@ func (i SendMessageInput) Validate() error {
 }
 
 type RegisterEventTypesInputs struct {
-	EvenTypes   []EventType
+	EventTypes  []EventType
 	AllowUpdate bool
 }
 
@@ -263,15 +264,31 @@ type Handler interface {
 	SendMessage(ctx context.Context, params SendMessageInput) (*Message, error)
 }
 
+const (
+	DefaultRegistrationTimeout = 30 * time.Second
+)
+
 type Config struct {
 	SvixConfig
 
-	RegisterEvenTypes []EventType
+	RegisterEventTypes      []EventType
+	RegistrationTimeout     time.Duration
+	SkipRegistrationOnError bool
+
+	Logger *slog.Logger
 }
 
 func New(config Config) (Handler, error) {
-	if config.RegisterEvenTypes == nil {
-		config.RegisterEvenTypes = NotificationEventTypes
+	if config.Logger == nil {
+		return nil, errors.New("logger is required")
+	}
+
+	if config.RegisterEventTypes == nil {
+		config.RegisterEventTypes = NotificationEventTypes
+	}
+
+	if config.RegistrationTimeout == 0 {
+		config.RegistrationTimeout = DefaultRegistrationTimeout
 	}
 
 	handler, err := newSvixWebhookHandler(config.SvixConfig)
@@ -279,15 +296,19 @@ func New(config Config) (Handler, error) {
 		return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
 	}
 
-	if len(config.RegisterEvenTypes) > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if len(config.RegisterEventTypes) > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), config.RegistrationTimeout)
 		defer cancel()
 
 		err = handler.RegisterEventTypes(ctx, RegisterEventTypesInputs{
-			EvenTypes: config.RegisterEvenTypes,
+			EventTypes: config.RegisterEventTypes,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to register event types: %w", err)
+			if config.SkipRegistrationOnError {
+				config.Logger.Warn("failed to register event types", "error", err)
+			} else {
+				return nil, fmt.Errorf("failed to register event types: %w", err)
+			}
 		}
 	}
 
