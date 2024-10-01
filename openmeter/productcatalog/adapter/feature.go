@@ -109,13 +109,11 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		Where(db_feature.Namespace(params.Namespace))
 
 	if len(params.MeterSlugs) > 0 {
-		query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
+		query = query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
 	}
 
 	if len(params.IDsOrKeys) > 0 {
-		for _, idOrKey := range params.IDsOrKeys {
-			query.Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
-		}
+		query = query.Where(db_feature.Or(db_feature.IDIn(params.IDsOrKeys...), db_feature.KeyIn(params.IDsOrKeys...)))
 	}
 
 	if !params.IncludeArchived {
