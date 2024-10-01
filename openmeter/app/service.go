@@ -4,6 +4,7 @@ import (
 	"context"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -22,7 +23,7 @@ type MarketplaceService interface {
 }
 
 type AppService interface {
-	CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error)
+	CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error)
 	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
 	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)
 	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)

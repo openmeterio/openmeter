@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
 
@@ -19,7 +20,8 @@ var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error) {
 	client := a.client()
 
-	app, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
+	// Create the base app
+	appBase, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
 		Namespace:   input.Namespace,
 		Name:        input.Name,
 		Description: input.Description,
@@ -31,7 +33,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 	// Create the stripe app in the database
 	appStripeCreateQuery := client.AppStripe.Create().
-		SetID(app.GetID().ID).
+		SetID(appBase.GetID().ID).
 		SetNamespace(input.Namespace).
 		SetStripeAccountID(input.StripeAccountID).
 		SetStripeLivemode(input.Livemode)
@@ -41,7 +43,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 		return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: %w", err)
 	}
 
-	return mapAppStripeFromDB(app, dbAppStripe), nil
+	return mapAppStripeFromDB(a.db, appBase, dbAppStripe), nil
 }
 
 // UpsertStripeCustomerData upserts stripe customer data
@@ -97,10 +99,10 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity
-func mapAppStripeFromDB(app appentity.App, dbAppStripe *db.AppStripe) appstripeentity.App {
+func mapAppStripeFromDB(client *entdb.Client, appBase appentitybase.AppBase, dbAppStripe *db.AppStripe) appstripeentity.App {
 	return appstripeentity.App{
-		AppBase: app.GetAppBase(),
-		// TODO: add Client
+		AppBase: appBase,
+		Client:  client,
 
 		StripeAccountId: dbAppStripe.StripeAccountID,
 		Livemode:        dbAppStripe.StripeLivemode,

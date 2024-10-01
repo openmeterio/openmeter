@@ -11,6 +11,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 )
 
 // Register registers the stripe app with the marketplace
@@ -67,26 +68,26 @@ func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
 }
 
 func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
-	// stripeApp, err := client.AppStripe.
-	// 	Query().
-	// 	Where(appstripedb.ID(appBase.GetID().ID)).
-	// 	Where(appstripedb.Namespace(appBase.GetID().Namespace)).
-	// 	First(ctx)
-	// if err != nil {
-	// 	if entdb.IsNotFound(err) {
-	// 		return nil, app.AppNotFoundError{
-	// 			AppID: appBase.GetID(),
-	// 		}
-	// 	}
+	stripeApp, err := f.Client.AppStripe.
+		Query().
+		Where(appstripedb.ID(appBase.GetID().ID)).
+		Where(appstripedb.Namespace(appBase.GetID().Namespace)).
+		First(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return nil, app.AppNotFoundError{
+				AppID: appBase.GetID(),
+			}
+		}
 
-	// 	return nil, fmt.Errorf("failed to get stripe app: %w", err)
-	// }
+		return nil, fmt.Errorf("failed to get stripe app: %w", err)
+	}
 
 	return &appstripeentity.App{
 		AppBase: appBase,
 		Client:  f.Client,
 
-		// StripeAccountId: stripeApp.StripeAccountID,
-		// Livemode:        stripeApp.StripeLivemode,
+		StripeAccountId: stripeApp.StripeAccountID,
+		Livemode:        stripeApp.StripeLivemode,
 	}, nil
 }

@@ -127,8 +127,12 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	require.NoError(t, err, "Get app must not return error")
 
-	// Validate the customer
+	// Generic app should validate the customer
 	err = getApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
+	require.NoError(t, err, "Validate customer must not return error")
+
+	// Stripe app should validate the customer
+	err = stripeApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
 	require.NoError(t, err, "Validate customer must not return error")
 
 	// Validate the customer with an invalid capability

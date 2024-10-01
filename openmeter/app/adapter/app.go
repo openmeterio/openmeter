@@ -16,7 +16,7 @@ import (
 var _ app.AppAdapter = (*adapter)(nil)
 
 // CreateApp creates an app
-func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentity.App, error) {
+func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
 	client := a.client()
 
 	appCreateQuery := client.App.Create().
@@ -28,7 +28,7 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 
 	dbApp, err := appCreateQuery.Save(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create app: %w", err)
+		return appentitybase.AppBase{}, fmt.Errorf("failed to create app: %w", err)
 	}
 
 	// Get registry item
@@ -36,16 +36,11 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 		Type: dbApp.Type,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+		return appentitybase.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 	}
 
-	// Map app from db
-	app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map app from db: %w", err)
-	}
-
-	return app, nil
+	// Map app base from db
+	return mapAppBaseFromDB(dbApp, registryItem), nil
 }
 
 // ListApps lists apps
@@ -83,7 +78,7 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 			return response, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
 		}
 
-		app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+		app, err := mapAppFromDB(ctx, dbApp, registryItem)
 		if err != nil {
 			return response, fmt.Errorf("failed to map app %s from db: %w", dbApp.ID, err)
 		}
@@ -124,7 +119,7 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 	}
 
 	// Map app from db
-	app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+	app, err := mapAppFromDB(ctx, dbApp, registryItem)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map app from db: %w", err)
 	}
@@ -161,7 +156,7 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 	}
 
 	// Map app from db
-	app, err := MapAppBaseFromDB(ctx, dbApp, registryItem)
+	app, err := mapAppFromDB(ctx, dbApp, registryItem)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map app from db: %w", err)
 	}
@@ -179,9 +174,9 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInpu
 	return fmt.Errorf("uninstall not implemented")
 }
 
-// MapAppBaseFromDB maps an app from the database
-func MapAppBaseFromDB(ctx context.Context, dbApp *db.App, registryItem appentity.RegistryItem) (appentity.App, error) {
-	appBase := appentitybase.AppBase{
+// mapAppBaseFromDB maps an app base from the database
+func mapAppBaseFromDB(dbApp *db.App, registryItem appentity.RegistryItem) appentitybase.AppBase {
+	return appentitybase.AppBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			ID:        dbApp.ID,
 			Namespace: dbApp.Namespace,
@@ -194,6 +189,11 @@ func MapAppBaseFromDB(ctx context.Context, dbApp *db.App, registryItem appentity
 		Status:  dbApp.Status,
 		Listing: registryItem.Listing,
 	}
+}
+
+// mapAppFromDB maps an app from the database
+func mapAppFromDB(ctx context.Context, dbApp *db.App, registryItem appentity.RegistryItem) (appentity.App, error) {
+	appBase := mapAppBaseFromDB(dbApp, registryItem)
 
 	app, err := registryItem.Factory.NewApp(ctx, appBase)
 	if err != nil {
