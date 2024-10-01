@@ -582,6 +582,33 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 	)
 }
 
+func entitlementActiveBetween(from, to time.Time) []predicate.Entitlement {
+	return []predicate.Entitlement{
+		db_entitlement.Or(
+			db_entitlement.And(db_entitlement.ActiveFromIsNil(), db_entitlement.CreatedAtLTE(to)),
+			db_entitlement.ActiveFromLTE(to),
+		),
+		db_entitlement.Or(
+			db_entitlement.ActiveToIsNil(),
+			db_entitlement.ActiveToGT(from),
+		),
+	}
+}
+
+func entitlementActiveAt(at time.Time) []predicate.Entitlement {
+	return []predicate.Entitlement{
+		db_entitlement.Or(
+			// If activeFrom is nil activity starts at creation time
+			db_entitlement.And(db_entitlement.ActiveFromIsNil(), db_entitlement.CreatedAtLTE(at)),
+			db_entitlement.ActiveFromLTE(at),
+		),
+		db_entitlement.Or(
+			db_entitlement.ActiveToIsNil(),
+			db_entitlement.ActiveToGT(at),
+		),
+	}
+}
+
 func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
 	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
 		urq.
@@ -630,31 +657,4 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 		},
 	)
 	return defaultx.WithDefault(res, nil), err
-}
-
-func entitlementActiveBetween(from, to time.Time) []predicate.Entitlement {
-	return []predicate.Entitlement{
-		db_entitlement.Or(
-			db_entitlement.And(db_entitlement.ActiveFromIsNil(), db_entitlement.CreatedAtLTE(to)),
-			db_entitlement.ActiveFromLTE(to),
-		),
-		db_entitlement.Or(
-			db_entitlement.ActiveToIsNil(),
-			db_entitlement.ActiveToGT(from),
-		),
-	}
-}
-
-func entitlementActiveAt(at time.Time) []predicate.Entitlement {
-	return []predicate.Entitlement{
-		db_entitlement.Or(
-			// If activeFrom is nil activity starts at creation time
-			db_entitlement.And(db_entitlement.ActiveFromIsNil(), db_entitlement.CreatedAtLTE(at)),
-			db_entitlement.ActiveFromLTE(at),
-		),
-		db_entitlement.Or(
-			db_entitlement.ActiveToIsNil(),
-			db_entitlement.ActiveToGT(at),
-		),
-	}
 }
