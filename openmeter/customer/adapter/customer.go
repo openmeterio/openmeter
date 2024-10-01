@@ -8,7 +8,6 @@ import (
 
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -45,9 +44,9 @@ func (r *adapter) Deregister(observer appobserver.Observer[customerentity.Custom
 
 // ListCustomers lists customers
 func (r *adapter) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
-	db := r.client()
+	client := r.client(ctx)
 
-	query := db.Customer.
+	query := client.Customer.
 		Query().
 		WithSubjects().
 		Where(customerdb.Namespace(params.Namespace))
@@ -100,8 +99,10 @@ func (r *adapter) ListCustomers(ctx context.Context, params customerentity.ListC
 
 // CreateCustomer creates a new customer
 func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+	client := r.client(ctx)
+
 	// Create the customer in the database
-	query := r.tx.Customer.Create().
+	query := client.Customer.Create().
 		SetNamespace(params.Namespace).
 		SetName(params.Name).
 		SetNillablePrimaryEmail(params.PrimaryEmail).
@@ -127,12 +128,12 @@ func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 	// Create customer subjects
 	// TODO: customer.AddSubjects produces an invalid database query so we create it separately in a transaction.
 	// The number and shape of the queries executed is the same, it's a devex thing only.
-	customerSubjects, err := r.tx.CustomerSubjects.
+	customerSubjects, err := client.CustomerSubjects.
 		CreateBulk(
 			lo.Map(
 				params.UsageAttribution.SubjectKeys,
 				func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
-					return r.tx.CustomerSubjects.Create().
+					return client.CustomerSubjects.Create().
 						SetNamespace(customerEntity.Namespace).
 						SetCustomerID(customerEntity.ID).
 						SetSubjectKey(subjectKey)
@@ -162,37 +163,22 @@ func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 	customer.Apps = params.Apps
 
 	// Post-create hook
-	// TODO: share the transaction with the hooks instead of pushing execution after the commit
-	r.tx.OnCommit(func(next db.Committer) db.Committer {
-		return db.CommitFunc(func(ctx context.Context, tx *db.Tx) error {
-			err := next.Commit(ctx, tx)
-
-			for _, observer := range *r.observers {
-				if err := observer.PostCreate(ctx, customer); err != nil {
-					r.logger.Error("failed to create customer: post-create hook failed", "error", err)
-				}
-			}
-
-			return err
-		})
-	})
-
-	// for _, observer := range *r.observers {
-	// 	if err := observer.PostCreate(ctx, customer); err != nil {
-	// 		r.logger.Error("failed to create customer: post-create hook failed", "error", err)
-	// 		return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
-	// 	}
-	// }
+	for _, observer := range *r.observers {
+		if err := observer.PostCreate(ctx, customer); err != nil {
+			r.logger.Error("failed to create customer: post-create hook failed", "error", err)
+			return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
+		}
+	}
 
 	return customer, nil
 }
 
 // DeleteCustomer deletes a customer
 func (r *adapter) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
-	db := r.client()
+	client := r.client(ctx)
 
 	// Soft delete the customer
-	query := db.Customer.Update().
+	query := client.Customer.Update().
 		Where(customerdb.ID(input.ID)).
 		Where(customerdb.Namespace(input.Namespace)).
 		Where(customerdb.DeletedAtIsNil()).
@@ -227,9 +213,9 @@ func (r *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 
 // GetCustomer gets a customer
 func (r *adapter) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
-	db := r.client()
+	client := r.client(ctx)
 
-	query := db.Customer.Query().
+	query := client.Customer.Query().
 		WithSubjects().
 		Where(customerdb.ID(input.ID)).
 		Where(customerdb.Namespace(input.Namespace))
@@ -254,6 +240,8 @@ func (r *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 
 // UpdateCustomer updates a customer
 func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+	client := r.client(ctx)
+
 	getCustomerInput := customerentity.GetCustomerInput{
 		Namespace: input.Namespace,
 		ID:        input.ID,
@@ -269,7 +257,7 @@ func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 		return nil, err
 	}
 
-	query := r.tx.Customer.UpdateOneID(dbCustomer.ID).
+	query := client.Customer.UpdateOneID(dbCustomer.ID).
 		Where(customerdb.Namespace(input.Namespace)).
 		SetUpdatedAt(clock.Now().UTC()).
 		SetName(input.Name).
@@ -337,12 +325,12 @@ func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 		}
 	}
 
-	_, err = r.tx.CustomerSubjects.
+	_, err = client.CustomerSubjects.
 		CreateBulk(
 			lo.Map(
 				subjectsKeysToAdd,
 				func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
-					return r.tx.CustomerSubjects.Create().
+					return client.CustomerSubjects.Create().
 						SetNamespace(input.Namespace).
 						SetCustomerID(input.ID).
 						SetSubjectKey(subjectKey)
@@ -379,7 +367,7 @@ func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 		}
 	}
 
-	_, err = r.tx.CustomerSubjects.
+	_, err = client.CustomerSubjects.
 		Delete().
 		Where(customersubjectsdb.CustomerID(input.ID)).
 		Where(customersubjectsdb.Namespace(input.Namespace)).

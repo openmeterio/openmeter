@@ -18,7 +18,7 @@ var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 
 // CreateApp creates a new app
 func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error) {
-	client := a.client()
+	client := a.client(ctx)
 
 	// Create the base app
 	appBase, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
@@ -48,7 +48,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
-	client := a.client()
+	client := a.client(ctx)
 
 	err := a.appCustomerService.UpsertAppCustomer(ctx, appcustomerentity.UpsertAppCustomerInput{
 		AppID:      input.AppID,
@@ -77,7 +77,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
-	client := a.client()
+	client := a.client(ctx)
 
 	query := client.AppStripeCustomer.
 		Delete().

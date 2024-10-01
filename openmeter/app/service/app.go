@@ -18,8 +18,8 @@ func (s *Service) CreateApp(ctx context.Context, input appentity.CreateAppInput)
 		}
 	}
 
-	return app.WithTx(ctx, s.adapter, func(ctx context.Context, adapter app.TxAdapter) (appentitybase.AppBase, error) {
-		return adapter.CreateApp(ctx, input)
+	return app.WithTx(ctx, s.adapter, func(ctx context.Context) (appentitybase.AppBase, error) {
+		return s.adapter.CreateApp(ctx, input)
 	})
 }
 
@@ -60,7 +60,7 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.DeleteAppInp
 		}
 	}
 
-	return app.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter app.TxAdapter) error {
+	return app.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter app.Adapter) error {
 		return adapter.UninstallApp(ctx, input)
 	})
 }
