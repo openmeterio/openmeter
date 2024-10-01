@@ -16,7 +16,5 @@ func (s *Service) UpsertAppCustomer(ctx context.Context, input appcustomerentity
 		}
 	}
 
-	return appcustomer.WithTxNoValue(ctx, s.adapter, func(ctx context.Context, adapter appcustomer.TxAdapter) error {
-		return adapter.UpsertAppCustomer(ctx, input)
-	})
+	return s.adapter.UpsertAppCustomer(ctx, input)
 }

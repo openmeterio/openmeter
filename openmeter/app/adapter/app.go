@@ -17,7 +17,7 @@ var _ app.AppAdapter = (*adapter)(nil)
 
 // CreateApp creates an app
 func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
-	client := a.client()
+	client := a.client(ctx)
 
 	appCreateQuery := client.App.Create().
 		SetNamespace(input.Namespace).
@@ -45,7 +45,7 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 
 // ListApps lists apps
 func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
-	client := a.client()
+	client := a.client(ctx)
 
 	query := client.App.
 		Query().
@@ -94,7 +94,7 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 
 // GetApp gets an app
 func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
-	client := a.client()
+	client := a.client(ctx)
 
 	dbApp, err := client.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
@@ -129,7 +129,7 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 
 // GetDefaultApp gets the default app for the app type
 func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
-	client := a.client()
+	client := a.client(ctx)
 
 	dbApp, err := client.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
