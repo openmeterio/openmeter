@@ -5,14 +5,14 @@ import (
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Adapter interface {
 	AppAdapter
 
-	DB() entcontext.DB
+	entutils.TxCreator
 }
 
 type MarketplaceAdapter interface {

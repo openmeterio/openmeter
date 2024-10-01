@@ -5,14 +5,14 @@ import (
 
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Adapter interface {
 	CustomerAdapter
 
-	DB() entcontext.DB
+	entutils.TxCreator
 }
 
 type CustomerAdapter interface {
