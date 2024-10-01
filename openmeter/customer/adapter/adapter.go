@@ -1,15 +1,14 @@
 package adapter
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
 )
 
 type Config struct {
@@ -35,7 +34,7 @@ func New(config Config) (customer.Adapter, error) {
 	}
 
 	return &adapter{
-		db:        config.Client,
+		db:        entcontext.NewClient(config.Client),
 		logger:    config.Logger,
 		observers: &[]appobserver.Observer[customerentity.Customer]{},
 	}, nil
@@ -47,54 +46,13 @@ var (
 )
 
 type adapter struct {
-	db *entdb.Client
+	db entcontext.DB
 	// It is a reference so we can pass it down in WithTx
 	observers *[]appobserver.Observer[customerentity.Customer]
 
 	logger *slog.Logger
 }
 
-func (r adapter) Commit(ctx context.Context) error {
-	tx := entdb.TxFromContext(ctx)
-	if tx != nil {
-		return tx.Commit()
-	}
-
-	return nil
-}
-
-func (r adapter) Rollback(ctx context.Context) error {
-	tx := entdb.TxFromContext(ctx)
-	if tx != nil {
-		return tx.Rollback()
-	}
-
-	return nil
-}
-
-func (r adapter) client(ctx context.Context) *entdb.Client {
-	client := entdb.FromContext(ctx)
-	if client != nil {
-		return client
-	}
-
-	return r.db
-}
-
-func (r adapter) WithTx(ctx context.Context) (context.Context, error) {
-	// If there is already a transaction in the context, we don't need to create a new one
-	tx := entdb.TxFromContext(ctx)
-	if tx != nil {
-		return ctx, nil
-	}
-
-	tx, err := r.db.Tx(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
-	}
-
-	ctx = entdb.NewTxContext(ctx, tx)
-	// ctx = entdb.NewContext(ctx, tx.Client())
-
-	return ctx, nil
+func (a *adapter) DB() entcontext.DB {
+	return a.db
 }

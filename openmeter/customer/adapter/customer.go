@@ -44,7 +44,7 @@ func (r *adapter) Deregister(observer appobserver.Observer[customerentity.Custom
 
 // ListCustomers lists customers
 func (r *adapter) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
-	client := r.client(ctx)
+	client := r.DB().Client(ctx)
 
 	query := client.Customer.
 		Query().
@@ -99,7 +99,7 @@ func (r *adapter) ListCustomers(ctx context.Context, params customerentity.ListC
 
 // CreateCustomer creates a new customer
 func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
-	client := r.client(ctx)
+	client := r.DB().Client(ctx)
 
 	// Create the customer in the database
 	query := client.Customer.Create().
@@ -175,7 +175,7 @@ func (r *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 
 // DeleteCustomer deletes a customer
 func (r *adapter) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
-	client := r.client(ctx)
+	client := r.DB().Client(ctx)
 
 	// Soft delete the customer
 	query := client.Customer.Update().
@@ -213,7 +213,7 @@ func (r *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 
 // GetCustomer gets a customer
 func (r *adapter) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
-	client := r.client(ctx)
+	client := r.DB().Client(ctx)
 
 	query := client.Customer.Query().
 		WithSubjects().
@@ -240,7 +240,7 @@ func (r *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 
 // UpdateCustomer updates a customer
 func (r *adapter) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
-	client := r.client(ctx)
+	client := r.DB().Client(ctx)
 
 	getCustomerInput := customerentity.GetCustomerInput{
 		Namespace: input.Namespace,
