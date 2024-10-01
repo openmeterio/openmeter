@@ -1,12 +1,15 @@
 package appcustomeradapter
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/appcustomer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Config struct {
@@ -27,7 +30,7 @@ func New(config Config) (appcustomer.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db: entcontext.NewClient(config.Client),
+		db: config.Client,
 	}
 
 	return adapter, nil
@@ -36,9 +39,16 @@ func New(config Config) (appcustomer.Adapter, error) {
 var _ appcustomer.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db entcontext.DB
+	db *entdb.Client
 }
 
-func (a *adapter) DB() entcontext.DB {
-	return a.db
+// Tx implements entutils.TxCreator interface
+func (e *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
+		ReadOnly: false,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
+	}
+	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }

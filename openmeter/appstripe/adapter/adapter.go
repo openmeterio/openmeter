@@ -1,6 +1,8 @@
 package appstripeadapter
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -8,7 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Config struct {
@@ -39,7 +42,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db:                 entcontext.NewClient(config.Client),
+		db:                 config.Client,
 		appService:         config.AppService,
 		appCustomerService: config.AppCustomerService,
 	}
@@ -50,12 +53,19 @@ func New(config Config) (appstripe.Adapter, error) {
 var _ appstripe.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db entcontext.DB
+	db *entdb.Client
 
 	appService         app.Service
 	appCustomerService appcustomer.Service
 }
 
-func (a *adapter) DB() entcontext.DB {
-	return a.db
+// Tx implements entutils.TxCreator interface
+func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
+		ReadOnly: false,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
+	}
+	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }

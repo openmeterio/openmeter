@@ -4,7 +4,7 @@ import (
 	"context"
 
 	appcustomerentity "github.com/openmeterio/openmeter/openmeter/appcustomer/entity"
-	entcontext "github.com/openmeterio/openmeter/pkg/framework/entutils/context"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 type TxAdapter interface {
@@ -14,7 +14,7 @@ type TxAdapter interface {
 type Adapter interface {
 	AppCustomerAdapter
 
-	DB() entcontext.DB
+	entutils.TxCreator
 }
 
 type AppCustomerAdapter interface {
