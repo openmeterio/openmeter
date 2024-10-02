@@ -1541,7 +1541,7 @@ export interface components {
      */
     Subject: {
       /** @example 01G65Z755AFWAKHE12NY0CQ9FH */
-      id?: string
+      id: string
       /** @example customer-id */
       key: string
       /** @example Customer Name */
