@@ -31,9 +31,8 @@ func (a CustomerApp) Validate() error {
 }
 
 type UpsertAppCustomerInput struct {
-	AppID appentitybase.AppID
-	// TODO: use customer.CustomerID without cyclic dependency
-	CustomerID string
+	AppID      appentitybase.AppID
+	CustomerID CustomerID
 }
 
 func (i UpsertAppCustomerInput) Validate() error {
@@ -41,11 +40,12 @@ func (i UpsertAppCustomerInput) Validate() error {
 		return fmt.Errorf("error validating app id: %w", err)
 	}
 
-	// if err := i.CustomerID.Validate(); err != nil {
-	// 	return fmt.Errorf("error validating customer id: %w", err)
-	// }
-	if i.CustomerID == "" {
-		return errors.New("customer id is required")
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("error validating customer id: %w", err)
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app namespace and customer namespace must match")
 	}
 
 	return nil

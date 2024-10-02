@@ -13,7 +13,7 @@ func (a adapter) UpsertAppCustomer(ctx context.Context, input customerentity.Ups
 		Create().
 		SetNamespace(input.AppID.Namespace).
 		SetAppID(input.AppID.ID).
-		SetCustomerID(input.CustomerID).
+		SetCustomerID(input.CustomerID.ID).
 		// Upsert
 		OnConflict().
 		DoNothing().
