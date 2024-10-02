@@ -36,7 +36,8 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			SetID(appBase.GetID().ID).
 			SetNamespace(input.Namespace).
 			SetStripeAccountID(input.StripeAccountID).
-			SetStripeLivemode(input.Livemode)
+			SetStripeLivemode(input.Livemode).
+			SetAPIKey(input.APIKey.ID)
 
 		dbAppStripe, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {

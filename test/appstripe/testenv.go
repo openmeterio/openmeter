@@ -18,6 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/secret"
+	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
+	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -31,25 +34,19 @@ const (
 
 type TestEnv interface {
 	App() app.Service
-	AppStripeAdapter() appstripe.Adapter
 	AppStripe() appstripe.Service
-
-	CustomerAdapter() customer.Adapter
 	Customer() customer.Service
-
+	Secret() secret.Service
 	Close() error
 }
 
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	adapter   appstripe.Adapter
+	app       app.Service
 	appstripe appstripe.Service
-
-	appAdapter      app.Adapter
-	app             app.Service
-	customerAdapter customer.Adapter
-	customer        customer.Service
+	customer  customer.Service
+	secret    secret.Service
 
 	closerFunc func() error
 }
@@ -62,20 +59,16 @@ func (n testEnv) App() app.Service {
 	return n.app
 }
 
-func (n testEnv) AppStripeAdapter() appstripe.Adapter {
-	return n.adapter
-}
-
 func (n testEnv) AppStripe() appstripe.Service {
 	return n.appstripe
 }
 
-func (n testEnv) CustomerAdapter() customer.Adapter {
-	return n.customerAdapter
-}
-
 func (n testEnv) Customer() customer.Service {
 	return n.customer
+}
+
+func (n testEnv) Secret() secret.Service {
+	return n.secret
 }
 
 const (
@@ -118,6 +111,16 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)
 	}
 
+	// Secret
+	secretAdapter := secretadapter.New()
+
+	secretService, err := secretservice.New(secretservice.Config{
+		Adapter: secretAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secret service")
+	}
+
 	// Marketplace
 	marketplaceAdapter := appadapter.NewMarketplaceAdapter()
 
@@ -143,6 +146,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Client:          entClient,
 		AppService:      appService,
 		CustomerService: customerService,
+		SecretService:   secretService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
@@ -155,7 +159,14 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
 	}
 
-	err = appstripe.Register(marketplaceAdapter, appService, entClient)
+	// Register stripe app type with marketplace
+	err = appstripe.Register(appstripe.RegisterConfig{
+		AppService:       appService,
+		AppStripeService: appStripeService,
+		Client:           entClient,
+		Marketplace:      marketplaceAdapter,
+		SecretService:    secretService,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register stripe app: %w", err)
 	}
@@ -190,12 +201,10 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		adapter:         appStripeAdapter,
-		appstripe:       appStripeService,
-		appAdapter:      appAdapter,
-		app:             appService,
-		customerAdapter: customerAdapter,
-		customer:        customerService,
-		closerFunc:      closerFunc,
+		app:        appService,
+		appstripe:  appStripeService,
+		customer:   customerService,
+		secret:     secretService,
+		closerFunc: closerFunc,
 	}, nil
 }

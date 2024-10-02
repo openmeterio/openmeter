@@ -133,7 +133,12 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
 	}
 
-	err = appstripe.Register(marketplaceAdapter, appService, entClient)
+	err = appstripe.Register(appstripe.RegisterConfig{
+		AppService:       appService,
+		AppStripeService: appStripeService,
+		Client:           entClient,
+		Marketplace:      marketplaceAdapter,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register stripe app: %w", err)
 	}

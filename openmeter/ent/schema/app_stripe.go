@@ -26,6 +26,7 @@ func (AppStripe) Mixin() []ent.Mixin {
 
 func (AppStripe) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("api_key").Nillable().NotEmpty().Sensitive(),
 		field.String("stripe_account_id").Immutable(),
 		field.Bool("stripe_livemode").Immutable(),
 	}

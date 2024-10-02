@@ -114,6 +114,10 @@ func init() {
 	appstripe.DefaultUpdatedAt = appstripeDescUpdatedAt.Default.(func() time.Time)
 	// appstripe.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	appstripe.UpdateDefaultUpdatedAt = appstripeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appstripeDescAPIKey is the schema descriptor for api_key field.
+	appstripeDescAPIKey := appstripeFields[0].Descriptor()
+	// appstripe.APIKeyValidator is a validator for the "api_key" field. It is called by the builders before save.
+	appstripe.APIKeyValidator = appstripeDescAPIKey.Validators[0].(func(string) error)
 	// appstripeDescID is the schema descriptor for id field.
 	appstripeDescID := appstripeMixinFields0[0].Descriptor()
 	// appstripe.DefaultID holds the default value on creation for the id field.

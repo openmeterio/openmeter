@@ -12,6 +12,8 @@ import (
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
 
+const APIKeySecretKey = "stripe_api_key"
+
 // App represents an installed Stripe app
 type App struct {
 	appentitybase.AppBase

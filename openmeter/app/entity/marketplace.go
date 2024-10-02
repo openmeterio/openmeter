@@ -39,12 +39,21 @@ func (i MarketplaceListInput) Validate() error {
 type InstallAppWithAPIKeyInput struct {
 	MarketplaceListingID
 
-	APIKey string
+	Namespace string
+	APIKey    string
 }
 
 func (i InstallAppWithAPIKeyInput) Validate() error {
 	if err := i.MarketplaceListingID.Validate(); err != nil {
 		return fmt.Errorf("error validating marketplace listing id: %w", err)
+	}
+
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.APIKey == "" {
+		return errors.New("api key is required")
 	}
 
 	return nil

@@ -85,6 +85,11 @@ func DeletedAt(v time.Time) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// APIKey applies equality check predicate on the "api_key" field. It's identical to APIKeyEQ.
+func APIKey(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldAPIKey, v))
+}
+
 // StripeAccountID applies equality check predicate on the "stripe_account_id" field. It's identical to StripeAccountIDEQ.
 func StripeAccountID(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldStripeAccountID, v))
@@ -288,6 +293,71 @@ func DeletedAtIsNil() predicate.AppStripe {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// APIKeyEQ applies the EQ predicate on the "api_key" field.
+func APIKeyEQ(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldAPIKey, v))
+}
+
+// APIKeyNEQ applies the NEQ predicate on the "api_key" field.
+func APIKeyNEQ(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNEQ(FieldAPIKey, v))
+}
+
+// APIKeyIn applies the In predicate on the "api_key" field.
+func APIKeyIn(vs ...string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldIn(FieldAPIKey, vs...))
+}
+
+// APIKeyNotIn applies the NotIn predicate on the "api_key" field.
+func APIKeyNotIn(vs ...string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNotIn(FieldAPIKey, vs...))
+}
+
+// APIKeyGT applies the GT predicate on the "api_key" field.
+func APIKeyGT(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGT(FieldAPIKey, v))
+}
+
+// APIKeyGTE applies the GTE predicate on the "api_key" field.
+func APIKeyGTE(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGTE(FieldAPIKey, v))
+}
+
+// APIKeyLT applies the LT predicate on the "api_key" field.
+func APIKeyLT(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLT(FieldAPIKey, v))
+}
+
+// APIKeyLTE applies the LTE predicate on the "api_key" field.
+func APIKeyLTE(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLTE(FieldAPIKey, v))
+}
+
+// APIKeyContains applies the Contains predicate on the "api_key" field.
+func APIKeyContains(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldContains(FieldAPIKey, v))
+}
+
+// APIKeyHasPrefix applies the HasPrefix predicate on the "api_key" field.
+func APIKeyHasPrefix(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldHasPrefix(FieldAPIKey, v))
+}
+
+// APIKeyHasSuffix applies the HasSuffix predicate on the "api_key" field.
+func APIKeyHasSuffix(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldHasSuffix(FieldAPIKey, v))
+}
+
+// APIKeyEqualFold applies the EqualFold predicate on the "api_key" field.
+func APIKeyEqualFold(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEqualFold(FieldAPIKey, v))
+}
+
+// APIKeyContainsFold applies the ContainsFold predicate on the "api_key" field.
+func APIKeyContainsFold(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldContainsFold(FieldAPIKey, v))
 }
 
 // StripeAccountIDEQ applies the EQ predicate on the "stripe_account_id" field.

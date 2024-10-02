@@ -55,6 +55,20 @@ func (asu *AppStripeUpdate) ClearDeletedAt() *AppStripeUpdate {
 	return asu
 }
 
+// SetAPIKey sets the "api_key" field.
+func (asu *AppStripeUpdate) SetAPIKey(s string) *AppStripeUpdate {
+	asu.mutation.SetAPIKey(s)
+	return asu
+}
+
+// SetNillableAPIKey sets the "api_key" field if the given value is not nil.
+func (asu *AppStripeUpdate) SetNillableAPIKey(s *string) *AppStripeUpdate {
+	if s != nil {
+		asu.SetAPIKey(*s)
+	}
+	return asu
+}
+
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
 func (asu *AppStripeUpdate) AddCustomerAppIDs(ids ...int) *AppStripeUpdate {
 	asu.mutation.AddCustomerAppIDs(ids...)
@@ -132,7 +146,20 @@ func (asu *AppStripeUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (asu *AppStripeUpdate) check() error {
+	if v, ok := asu.mutation.APIKey(); ok {
+		if err := appstripe.APIKeyValidator(v); err != nil {
+			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := asu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(appstripe.Table, appstripe.Columns, sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString))
 	if ps := asu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -149,6 +176,9 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if asu.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripe.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := asu.mutation.APIKey(); ok {
+		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 	}
 	if asu.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -238,6 +268,20 @@ func (asuo *AppStripeUpdateOne) SetNillableDeletedAt(t *time.Time) *AppStripeUpd
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (asuo *AppStripeUpdateOne) ClearDeletedAt() *AppStripeUpdateOne {
 	asuo.mutation.ClearDeletedAt()
+	return asuo
+}
+
+// SetAPIKey sets the "api_key" field.
+func (asuo *AppStripeUpdateOne) SetAPIKey(s string) *AppStripeUpdateOne {
+	asuo.mutation.SetAPIKey(s)
+	return asuo
+}
+
+// SetNillableAPIKey sets the "api_key" field if the given value is not nil.
+func (asuo *AppStripeUpdateOne) SetNillableAPIKey(s *string) *AppStripeUpdateOne {
+	if s != nil {
+		asuo.SetAPIKey(*s)
+	}
 	return asuo
 }
 
@@ -331,7 +375,20 @@ func (asuo *AppStripeUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (asuo *AppStripeUpdateOne) check() error {
+	if v, ok := asuo.mutation.APIKey(); ok {
+		if err := appstripe.APIKeyValidator(v); err != nil {
+			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, err error) {
+	if err := asuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(appstripe.Table, appstripe.Columns, sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString))
 	id, ok := asuo.mutation.ID()
 	if !ok {
@@ -365,6 +422,9 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 	}
 	if asuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripe.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := asuo.mutation.APIKey(); ok {
+		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 	}
 	if asuo.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

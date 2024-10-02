@@ -4,8 +4,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 )
 
-func New() (secret.Adapter, error) {
-	return &adapter{}, nil
+func New() secret.Adapter {
+	return &adapter{}
 }
 
 var _ secret.Adapter = (*adapter)(nil)

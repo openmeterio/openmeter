@@ -6,6 +6,7 @@ import (
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 type CreateAppStripeInput struct {
@@ -14,6 +15,7 @@ type CreateAppStripeInput struct {
 	Description     string
 	StripeAccountID string
 	Livemode        bool
+	APIKey          secretentity.SecretID
 }
 
 func (i CreateAppStripeInput) Validate() error {
@@ -31,6 +33,14 @@ func (i CreateAppStripeInput) Validate() error {
 
 	if i.StripeAccountID == "" {
 		return errors.New("stripe account id is required")
+	}
+
+	if err := i.APIKey.Validate(); err != nil {
+		return fmt.Errorf("error validating api key: %w", err)
+	}
+
+	if i.APIKey.Namespace != i.Namespace {
+		return errors.New("api key must be in the same namespace as the app")
 	}
 
 	return nil

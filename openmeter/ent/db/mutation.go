@@ -1756,6 +1756,7 @@ type AppStripeMutation struct {
 	created_at           *time.Time
 	updated_at           *time.Time
 	deleted_at           *time.Time
+	api_key              *string
 	stripe_account_id    *string
 	stripe_livemode      *bool
 	clearedFields        map[string]struct{}
@@ -2030,6 +2031,42 @@ func (m *AppStripeMutation) ResetDeletedAt() {
 	delete(m.clearedFields, appstripe.FieldDeletedAt)
 }
 
+// SetAPIKey sets the "api_key" field.
+func (m *AppStripeMutation) SetAPIKey(s string) {
+	m.api_key = &s
+}
+
+// APIKey returns the value of the "api_key" field in the mutation.
+func (m *AppStripeMutation) APIKey() (r string, exists bool) {
+	v := m.api_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAPIKey returns the old "api_key" field's value of the AppStripe entity.
+// If the AppStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeMutation) OldAPIKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAPIKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAPIKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAPIKey: %w", err)
+	}
+	return oldValue.APIKey, nil
+}
+
+// ResetAPIKey resets all changes to the "api_key" field.
+func (m *AppStripeMutation) ResetAPIKey() {
+	m.api_key = nil
+}
+
 // SetStripeAccountID sets the "stripe_account_id" field.
 func (m *AppStripeMutation) SetStripeAccountID(s string) {
 	m.stripe_account_id = &s
@@ -2229,7 +2266,7 @@ func (m *AppStripeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppStripeMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, appstripe.FieldNamespace)
 	}
@@ -2241,6 +2278,9 @@ func (m *AppStripeMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, appstripe.FieldDeletedAt)
+	}
+	if m.api_key != nil {
+		fields = append(fields, appstripe.FieldAPIKey)
 	}
 	if m.stripe_account_id != nil {
 		fields = append(fields, appstripe.FieldStripeAccountID)
@@ -2264,6 +2304,8 @@ func (m *AppStripeMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case appstripe.FieldDeletedAt:
 		return m.DeletedAt()
+	case appstripe.FieldAPIKey:
+		return m.APIKey()
 	case appstripe.FieldStripeAccountID:
 		return m.StripeAccountID()
 	case appstripe.FieldStripeLivemode:
@@ -2285,6 +2327,8 @@ func (m *AppStripeMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldUpdatedAt(ctx)
 	case appstripe.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case appstripe.FieldAPIKey:
+		return m.OldAPIKey(ctx)
 	case appstripe.FieldStripeAccountID:
 		return m.OldStripeAccountID(ctx)
 	case appstripe.FieldStripeLivemode:
@@ -2325,6 +2369,13 @@ func (m *AppStripeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case appstripe.FieldAPIKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAPIKey(v)
 		return nil
 	case appstripe.FieldStripeAccountID:
 		v, ok := value.(string)
@@ -2409,6 +2460,9 @@ func (m *AppStripeMutation) ResetField(name string) error {
 		return nil
 	case appstripe.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case appstripe.FieldAPIKey:
+		m.ResetAPIKey()
 		return nil
 	case appstripe.FieldStripeAccountID:
 		m.ResetStripeAccountID()
