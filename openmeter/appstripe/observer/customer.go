@@ -18,7 +18,7 @@ var _ appobserver.Observer[customerentity.Customer] = (*CustomerObserver)(nil)
 
 type CustomerObserver struct {
 	appService       app.Service
-	appstripeService appstripe.Service
+	appStripeService appstripe.Service
 }
 
 type CustomerObserverConfig struct {
@@ -44,7 +44,7 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 	}
 	return &CustomerObserver{
 		appService:       config.AppService,
-		appstripeService: config.AppstripeService,
+		appStripeService: config.AppstripeService,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (c CustomerObserver) PostUpdate(ctx context.Context, customer *customerenti
 
 func (c CustomerObserver) PostDelete(ctx context.Context, customer *customerentity.Customer) error {
 	// Delete stripe customer data for all Stripe apps for the customer in the namespace
-	err := c.appstripeService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+	err := c.appStripeService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 	if err != nil {
@@ -110,7 +110,7 @@ func (c CustomerObserver) upsert(ctx context.Context, customer *customerentity.C
 		}
 
 		// Upsert stripe customer data
-		err := c.appstripeService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
+		err := c.appStripeService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
 			AppID:            appID,
 			CustomerID:       customer.GetID(),
 			StripeCustomerID: appStripeCustomer.StripeCustomerID,
