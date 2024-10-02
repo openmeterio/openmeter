@@ -32,12 +32,14 @@ interface Features {
     /**
      * Filter by meterSlug
      */
-    @query meterSlug?: string,
+    @query
+    meterSlug?: string[],
 
     /**
      * Filter by meterGroupByFilters
      */
-    @query includeArchived?: boolean = false,
+    @query
+    includeArchived?: boolean = false,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
