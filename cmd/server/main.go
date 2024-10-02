@@ -86,6 +86,7 @@ func main() {
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")
+	flags.Bool("validate", false, "Validate configuration and exit")
 
 	_ = flags.Parse(os.Args[1:])
 
@@ -115,6 +116,10 @@ func main() {
 		println("configuration error:")
 		println(err.Error())
 		os.Exit(1)
+	}
+
+	if v, _ := flags.GetBool("validate"); v {
+		os.Exit(0)
 	}
 
 	extraResources, _ := resource.New(
