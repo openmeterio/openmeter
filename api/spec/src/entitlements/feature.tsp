@@ -127,4 +127,11 @@ model Feature {
   ...ResourceTimestamps;
   ...Archiveable;
   ...FeatureCreateInputs;
+
+  /**
+   * Readonly unique ULID identifier.
+   */
+  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
+  @visibility("read")
+  id: ULID;
 }
