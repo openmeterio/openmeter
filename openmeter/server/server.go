@@ -100,6 +100,10 @@ func NewServer(config *Config) (*Server, error) {
 					// Unfortunately, the OpenAPI 3 filter library doesn't support context changes
 					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
 					SkipSettingDefaults: true,
+
+					// Excluding read-only validation because required and readOnly fields in our Go models are translated to non-nil fields, leading to a zero-value being passed to the API
+					// The OpenAPI spec says read-only fields SHOULD NOT be sent in requests, so technically it should be fine, hence disabling validation for now to make our life easier
+					ExcludeReadOnlyValidations: true,
 				},
 			}),
 		},
