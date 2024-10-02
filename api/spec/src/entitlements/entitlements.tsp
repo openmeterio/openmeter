@@ -76,6 +76,7 @@ interface Entitlements {
  * Type of the entitlement.
  */
 @friendlyName("EntitlementType")
+@extension("x-go-type", "string")
 enum EntitlementType {
   metered: "metered",
   boolean: "boolean",
