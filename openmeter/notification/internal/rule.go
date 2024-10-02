@@ -68,7 +68,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				CurrentPeriodEnd:   convert.ToPointer(from),
 				CurrentPeriodStart: convert.ToPointer(to),
 				DisplayName:        convert.ToPointer("Test Subject 1"),
-				Id:                 convert.ToPointer("01J5AW0ZD6T8624PCK0Q5TYX71"),
+				Id:                 "01J5AW0ZD6T8624PCK0Q5TYX71",
 				Key:                "test-subject-1",
 				Metadata: &map[string]interface{}{
 					"test-metadata-key": "test-metadata-value",

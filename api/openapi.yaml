@@ -3331,9 +3331,7 @@ components:
       type: object
       description: A subject is a unique identifier for a user or entity.
       required:
-        # Validator doesn't obey required for readOnly properties
-        # See: https://github.com/stoplightio/spectral/issues/1274
-        # - id
+        - id
         - key
       additionalProperties: false
       properties:
