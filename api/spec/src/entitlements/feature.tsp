@@ -91,7 +91,7 @@ model FeatureCreateInputs {
 
   @summary("Optional metadata")
   @example(#{ key: "value" })
-  metadata: Metadata;
+  metadata?: Metadata;
 
   // /**
   //  * The meter that the feature is associated with and and based on which usage is calculated.
