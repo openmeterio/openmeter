@@ -146,7 +146,6 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Client:          entClient,
 		AppService:      appService,
 		CustomerService: customerService,
-		SecretService:   secretService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
