@@ -227,6 +227,13 @@ model EntitlementSharedFields {
   ...OmitProperties<EntitlementCreateSharedFields, "featureKey" | "featureId">;
 
   /**
+   * Readonly unique ULID identifier.
+   */
+  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
+  @visibility("read")
+  id: ULID;
+
+  /**
    * The type of the entitlement.
    */
   @summary("Type")
