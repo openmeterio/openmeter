@@ -64,7 +64,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 				CurrentPeriodEnd:   &time.Time{},
 				CurrentPeriodStart: &time.Time{},
 				DisplayName:        nil,
-				Id:                 convert.ToPointer("01J4VD1XZH5HM705DCPB8XD5QD"),
+				Id:                 "01J4VD1XZH5HM705DCPB8XD5QD",
 				Key:                "customer-1",
 				Metadata:           nil,
 				StripeCustomerId:   nil,

@@ -23,7 +23,7 @@ func (s SubjectKeyAndID) Validate() error {
 }
 
 type Subject struct {
-	Id                 *string                `json:"id"`
+	Id                 string                 `json:"id"`
 	Key                string                 `json:"key"`
 	DisplayName        *string                `json:"displayName,omitempty"`
 	Metadata           map[string]interface{} `json:"metadata"`
