@@ -1,3 +1,7 @@
+import "@typespec/openapi3";
+
+using TypeSpec.OpenAPI;
+
 /**
  * ULID (Universally Unique Lexicographically Sortable Identifier).
  */
@@ -17,11 +21,24 @@ scalar ULID extends string;
 @maxLength(64)
 scalar Key extends string;
 
+/**
+ * ULID (Universally Unique Lexicographically Sortable Identifier).
+ * A key is a unique string that is used to identify a resource.
+ *
+ * TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+ */
+@pattern("^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$")
+@minLength(1)
+@maxLength(64)
+scalar ULIDOrKey extends string;
+
 // NOTE (andras): key format enforcement isn't supported by TypeSpec (patternProperties). See: https://github.com/microsoft/typespec/discussions/1626
+// TODO: decide if we want to use the generated Metadata type instead and update code to use it
 /**
  * Set of key-value pairs.
  * Metadata can be used to store additional information about a resource.
  */
+@extension("x-go-type", "map[string]string")
 @example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
 model Metadata {
   ...Record<string>;

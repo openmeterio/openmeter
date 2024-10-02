@@ -96,6 +96,18 @@ func (m *Generate) WebSdk() *dagger.Directory {
 		WithoutDirectory("node_modules")
 }
 
+func (m *Generate) Server() *dagger.Directory {
+	openapi := m.Openapi()
+
+	source := m.Source.
+		WithFile("api/openapi.yaml", openapi)
+
+	return goModule().
+		WithSource(source).
+		Exec([]string{"go", "generate", "-x", "./api"}).
+		Directory("/work/src/api")
+}
+
 func (m *Generate) Check(ctx context.Context) error {
 	result := goModuleCross("").
 		WithSource(m.Source).

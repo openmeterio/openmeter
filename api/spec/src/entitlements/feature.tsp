@@ -32,12 +32,14 @@ interface Features {
     /**
      * Filter by meterSlug
      */
-    @query meterSlug?: string,
+    @query
+    meterSlug?: string[],
 
     /**
      * Filter by meterGroupByFilters
      */
-    @query includeArchived?: boolean = false,
+    @query
+    includeArchived?: boolean = false,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
@@ -91,7 +93,7 @@ model FeatureCreateInputs {
 
   @summary("Optional metadata")
   @example(#{ key: "value" })
-  metadata: Metadata;
+  metadata?: Metadata;
 
   // /**
   //  * The meter that the feature is associated with and and based on which usage is calculated.
@@ -125,4 +127,11 @@ model Feature {
   ...ResourceTimestamps;
   ...Archiveable;
   ...FeatureCreateInputs;
+
+  /**
+   * Readonly unique ULID identifier.
+   */
+  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
+  @visibility("read")
+  id: ULID;
 }

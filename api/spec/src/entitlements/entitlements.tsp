@@ -76,6 +76,7 @@ interface Entitlements {
  * Type of the entitlement.
  */
 @friendlyName("EntitlementType")
+@extension("x-go-type", "string")
 enum EntitlementType {
   metered: "metered",
   boolean: "boolean",
@@ -224,6 +225,13 @@ union EntitlementCreateInputs {
 model EntitlementSharedFields {
   ...ResourceTimestamps;
   ...OmitProperties<EntitlementCreateSharedFields, "featureKey" | "featureId">;
+
+  /**
+   * Readonly unique ULID identifier.
+   */
+  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
+  @visibility("read")
+  id: ULID;
 
   /**
    * The type of the entitlement.
