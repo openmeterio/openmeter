@@ -291,7 +291,9 @@ type queryMeterView struct {
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
-	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
+	viewAlias := "meter"
+	viewName := fmt.Sprintf("%s %s", GetMeterViewName(d.Database, d.Namespace, d.MeterSlug), viewAlias)
+	getColumn := columnFactory(viewAlias)
 
 	var selectColumns, groupByColumns, where []string
 
@@ -363,7 +365,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 
 	if len(d.Subject) > 0 {
 		mapFunc := func(subject string) string {
-			return queryView.Equal("subject", subject)
+			return queryView.Equal(getColumn("subject"), subject)
 		}
 
 		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
@@ -383,7 +385,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 				return "", nil, fmt.Errorf("empty filter for group by: %s", column)
 			}
 			mapFunc := func(value string) string {
-				return queryView.Equal(sqlbuilder.Escape(column), value)
+				return queryView.Equal(sqlbuilder.Escape(getColumn(column)), value)
 			}
 
 			where = append(where, queryView.Or(slicesx.Map(values, mapFunc)...))
@@ -391,11 +393,11 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	if d.From != nil {
-		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.Unix()))
+		where = append(where, queryView.GreaterEqualThan(getColumn("windowstart"), d.From.Unix()))
 	}
 
 	if d.To != nil {
-		where = append(where, queryView.LessEqualThan("windowend", d.To.Unix()))
+		where = append(where, queryView.LessEqualThan(getColumn("windowend"), d.To.Unix()))
 	}
 
 	if len(where) > 0 {
@@ -464,4 +466,10 @@ func GetEventsTableName(database string) string {
 func GetMeterViewName(database string, namespace string, meterSlug string) string {
 	meterViewName := fmt.Sprintf("%s%s_%s", tablePrefix, namespace, meterSlug)
 	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), sqlbuilder.Escape(meterViewName))
+}
+
+func columnFactory(alias string) func(string) string {
+	return func(column string) string {
+		return fmt.Sprintf("%s.%s", alias, column)
+	}
 }
