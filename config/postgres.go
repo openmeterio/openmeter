@@ -19,14 +19,17 @@ type PostgresConfig struct {
 
 // Validate validates the configuration.
 func (c PostgresConfig) Validate() error {
+	var errs []error
+
 	if c.URL == "" {
-		return errors.New("database URL is required")
-	}
-	if err := c.AutoMigrate.Validate(); err != nil {
-		return err
+		errs = append(errs, errors.New("database URL is required"))
 	}
 
-	return nil
+	if err := c.AutoMigrate.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }
 
 func ConfigurePostgres(v *viper.Viper) {

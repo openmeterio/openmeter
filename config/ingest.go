@@ -2,13 +2,13 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -18,11 +18,13 @@ type IngestConfiguration struct {
 
 // Validate validates the configuration.
 func (c IngestConfiguration) Validate() error {
+	var errs []error
+
 	if err := c.Kafka.Validate(); err != nil {
-		return fmt.Errorf("kafka: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "kafka"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type KafkaIngestConfiguration struct {
@@ -34,14 +36,17 @@ type KafkaIngestConfiguration struct {
 
 // Validate validates the configuration.
 func (c KafkaIngestConfiguration) Validate() error {
+	var errs []error
+
 	if c.EventsTopicTemplate == "" {
-		return errors.New("events topic template is required")
+		errs = append(errs, errors.New("events topic template is required"))
 	}
 
 	if err := c.KafkaConfiguration.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
-	return nil
+
+	return errors.Join(errs...)
 }
 
 type KafkaConfiguration struct {
@@ -71,19 +76,21 @@ type KafkaConfiguration struct {
 }
 
 func (c KafkaConfiguration) Validate() error {
+	var errs []error
+
 	if c.Broker == "" {
-		return errors.New("broker is required")
+		errs = append(errs, errors.New("broker is required"))
 	}
 
 	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
-		return errors.New("StatsInterval must be >=5s")
+		errs = append(errs, errors.New("StatsInterval must be >=5s"))
 	}
 
 	if c.TopicMetadataRefreshInterval > 0 && c.TopicMetadataRefreshInterval.Duration() < 10*time.Second {
-		return errors.New("topic metadata refresh interval must be >=10s")
+		errs = append(errs, errors.New("topic metadata refresh interval must be >=10s"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // CreateKafkaConfig creates a Kafka config map.

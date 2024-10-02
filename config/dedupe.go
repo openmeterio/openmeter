@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/dedupe/memorydedupe"
 	"github.com/openmeterio/openmeter/openmeter/dedupe/redisdedupe"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
@@ -43,7 +44,7 @@ func (c DedupeConfiguration) Validate() error {
 	}
 
 	if err := c.DedupeDriverConfiguration.Validate(); err != nil {
-		return fmt.Errorf("driver(%s): %w", c.DedupeDriverConfiguration.DriverName(), err)
+		return errorsx.WithPrefix(err, fmt.Sprintf("driver(%s)", c.DriverName()))
 	}
 
 	return nil
@@ -149,11 +150,13 @@ func (c DedupeDriverMemoryConfiguration) NewDeduplicator() (dedupe.Deduplicator,
 }
 
 func (c DedupeDriverMemoryConfiguration) Validate() error {
+	var errs []error
+
 	if c.Size == 0 {
-		return errors.New("size is required")
+		errs = append(errs, errors.New("size is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // Dedupe redis driver configuration
@@ -181,17 +184,19 @@ func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, 
 }
 
 func (c DedupeDriverRedisConfiguration) Validate() error {
+	var errs []error
+
 	if c.Address == "" {
-		return errors.New("address is required")
+		errs = append(errs, errors.New("address is required"))
 	}
 
 	if c.Sentinel.Enabled {
 		if c.Sentinel.MasterName == "" {
-			return errors.New("sentinel: master name is required")
+			errs = append(errs, errors.New("sentinel: master name is required"))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ConfigureDedupe configures some defaults in the Viper instance.

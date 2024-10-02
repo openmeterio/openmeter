@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type EventsConfiguration struct {
@@ -30,10 +31,17 @@ func (c EventSubsystemConfiguration) Validate() error {
 		return nil
 	}
 
+	var errs []error
+
 	if c.Topic == "" {
-		return errors.New("topic name is required")
+		errs = append(errs, errors.New("topic name is required"))
 	}
-	return c.AutoProvision.Validate()
+
+	if err := c.AutoProvision.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "auto provision"))
+	}
+
+	return errors.Join(errs...)
 }
 
 type AutoProvisionConfiguration struct {
@@ -43,10 +51,17 @@ type AutoProvisionConfiguration struct {
 }
 
 func (c AutoProvisionConfiguration) Validate() error {
-	if c.Enabled && c.Partitions < 1 {
-		return errors.New("partitions must be greater than 0")
+	if !c.Enabled {
+		return nil
 	}
-	return nil
+
+	var errs []error
+
+	if c.Partitions < 1 {
+		errs = append(errs, errors.New("partitions must be greater than 0"))
+	}
+
+	return errors.Join(errs...)
 }
 
 type ConsumerConfiguration struct {
@@ -64,23 +79,25 @@ type ConsumerConfiguration struct {
 }
 
 func (c ConsumerConfiguration) Validate() error {
+	var errs []error
+
 	if c.ProcessingTimeout < 0 {
-		return errors.New("processing timeout must be positive or 0")
+		errs = append(errs, errors.New("processing timeout must be positive or 0"))
 	}
 
 	if c.ConsumerGroupName == "" {
-		return errors.New("consumer group name is required")
+		errs = append(errs, errors.New("consumer group name is required"))
 	}
 
 	if err := c.Retry.Validate(); err != nil {
-		return fmt.Errorf("retry configuration is invalid: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "retry"))
 	}
 
 	if err := c.DLQ.Validate(); err != nil {
-		return fmt.Errorf("dlq configuration is invalid: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "dlq"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type DLQConfiguration struct {
@@ -94,15 +111,17 @@ func (c DLQConfiguration) Validate() error {
 		return nil
 	}
 
+	var errs []error
+
 	if c.Topic == "" {
-		return errors.New("topic name is required")
+		errs = append(errs, errors.New("topic name is required"))
 	}
 
 	if err := c.AutoProvision.Validate(); err != nil {
-		return fmt.Errorf("auto provision configuration is invalid: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "auto provision"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type DLQAutoProvisionConfiguration struct {
@@ -116,14 +135,17 @@ func (c DLQAutoProvisionConfiguration) Validate() error {
 		return nil
 	}
 
+	var errs []error
+
 	if c.Partitions < 1 {
-		return errors.New("partitions must be greater than 0")
+		errs = append(errs, errors.New("partitions must be greater than 0"))
 	}
 
 	if c.Retention <= 0 {
-		return errors.New("retention must be greater than 0")
+		errs = append(errs, errors.New("retention must be greater than 0"))
 	}
-	return nil
+
+	return errors.Join(errs...)
 }
 
 type RetryConfiguration struct {
@@ -138,23 +160,25 @@ type RetryConfiguration struct {
 }
 
 func (c RetryConfiguration) Validate() error {
+	var errs []error
+
 	if c.MaxRetries < 0 {
-		return errors.New("max retries must be positive or 0")
+		errs = append(errs, errors.New("max retries must be positive or 0"))
 	}
 
 	if c.MaxElapsedTime < 0 {
-		return errors.New("max elapsed time must be positive or 0")
+		errs = append(errs, errors.New("max elapsed time must be positive or 0"))
 	}
 
 	if c.InitialInterval <= 0 {
-		return errors.New("initial interval must be greater than 0")
+		errs = append(errs, errors.New("initial interval must be greater than 0"))
 	}
 
 	if c.MaxInterval <= 0 {
-		return errors.New("max interval must be greater than 0")
+		errs = append(errs, errors.New("max interval must be greater than 0"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func ConfigureConsumer(v *viper.Viper, prefix string) {

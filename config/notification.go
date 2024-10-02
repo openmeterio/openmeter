@@ -1,12 +1,13 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type WebhookConfiguration struct {
@@ -24,10 +25,17 @@ type NotificationConfiguration struct {
 }
 
 func (c NotificationConfiguration) Validate() error {
-	if err := c.Consumer.Validate(); err != nil {
-		return fmt.Errorf("consumer: %w", err)
+	if !c.Enabled {
+		return nil
 	}
-	return nil
+
+	var errs []error
+
+	if err := c.Consumer.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "consumer"))
+	}
+
+	return errors.Join(errs...)
 }
 
 func ConfigureNotification(v *viper.Viper) {

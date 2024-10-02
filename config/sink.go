@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type SinkConfiguration struct {
@@ -21,27 +22,29 @@ type SinkConfiguration struct {
 }
 
 func (c SinkConfiguration) Validate() error {
+	var errs []error
+
 	if c.MinCommitCount < 1 {
-		return errors.New("MinCommitCount must be greater than 0")
+		errs = append(errs, errors.New("MinCommitCount must be greater than 0"))
 	}
 
 	if c.MaxCommitWait < 1 {
-		return errors.New("MaxCommitWait must be greater than 0")
+		errs = append(errs, errors.New("MaxCommitWait must be greater than 0"))
 	}
 
 	if c.NamespaceRefetch < 1 {
-		return errors.New("NamespaceRefetch must be greater than 0")
+		errs = append(errs, errors.New("NamespaceRefetch must be greater than 0"))
 	}
 
 	if err := c.IngestNotifications.Validate(); err != nil {
-		return fmt.Errorf("ingest notifications: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "ingest notifications"))
 	}
 
 	if err := c.Kafka.Validate(); err != nil {
-		return fmt.Errorf("kafka: %w", err)
+		errs = append(errs, errorsx.WithPrefix(err, "kafka"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type IngestNotificationsConfiguration struct {
@@ -49,15 +52,17 @@ type IngestNotificationsConfiguration struct {
 }
 
 func (c IngestNotificationsConfiguration) Validate() error {
+	var errs []error
+
 	if c.MaxEventsInBatch < 0 {
-		return errors.New("ChunkSize must not be negative")
+		errs = append(errs, errors.New("ChunkSize must not be negative"))
 	}
 
 	if c.MaxEventsInBatch > 1000 {
-		return errors.New("ChunkSize must not be greater than 1000")
+		errs = append(errs, errors.New("ChunkSize must not be greater than 1000"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ConfigureSink setup Sink specific configuration defaults for provided *viper.Viper instance.
