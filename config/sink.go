@@ -4,8 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/spf13/viper"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type SinkConfiguration struct {

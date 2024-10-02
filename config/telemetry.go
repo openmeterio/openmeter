@@ -13,7 +13,6 @@ import (
 
 	"github.com/golang-cz/devslog"
 	"github.com/lmittmann/tint"
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -24,6 +23,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type OTLPExporterTelemetryConfig struct {
