@@ -17,6 +17,8 @@ import (
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
+	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -99,6 +101,16 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	// Marketplace
 	marketplaceAdapter := appadapter.NewMarketplaceAdapter()
 
+	// Secret
+	secretAdapter := secretadapter.New()
+
+	secretService, err := secretservice.New(secretservice.Config{
+		Adapter: secretAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secret service")
+	}
+
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client:      entClient,
@@ -134,10 +146,12 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	err = appstripe.Register(appstripe.RegisterConfig{
-		AppService:       appService,
-		AppStripeService: appStripeService,
-		Client:           entClient,
-		Marketplace:      marketplaceAdapter,
+		AppService:          appService,
+		AppStripeService:    appStripeService,
+		Client:              entClient,
+		Marketplace:         marketplaceAdapter,
+		SecretService:       secretService,
+		StripeClientFactory: appstripe.StripeClientFactory,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register stripe app: %w", err)
