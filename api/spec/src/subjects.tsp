@@ -45,8 +45,10 @@ model Subject {
   @example("Customer Name")
   displayName?: string;
 
+  // TODO: figure out if we want to support arbitrary values or string only
+
   @example(#{ hubspotId: "123456" })
-  metadata?: Record<string>;
+  metadata?: Record<unknown> | null;
 
   @example(DateTime.fromISO("2023-01-01T00:00:00Z"))
   currentPeriodStart?: DateTime;
