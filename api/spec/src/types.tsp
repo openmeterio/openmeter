@@ -1,3 +1,7 @@
+import "@typespec/openapi3";
+
+using TypeSpec.OpenAPI;
+
 /**
  * ULID (Universally Unique Lexicographically Sortable Identifier).
  */
@@ -29,10 +33,12 @@ scalar Key extends string;
 scalar ULIDOrKey extends string;
 
 // NOTE (andras): key format enforcement isn't supported by TypeSpec (patternProperties). See: https://github.com/microsoft/typespec/discussions/1626
+// TODO: decide if we want to use the generated Metadata type instead and update code to use it
 /**
  * Set of key-value pairs.
  * Metadata can be used to store additional information about a resource.
  */
+@extension("x-go-type", "map[string]string")
 @example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
 model Metadata {
   ...Record<string>;
