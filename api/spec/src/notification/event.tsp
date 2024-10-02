@@ -108,7 +108,7 @@ model EventBalanceThresholdPayloadData {
 
   @visibility("read")
   @summary("Subject")
-  subject: Subject;
+  subject: OpenMeter.Subject;
 
   @visibility("read")
   @summary("Entitlement Value")
@@ -118,12 +118,6 @@ model EventBalanceThresholdPayloadData {
   @summary("Threshold")
   threshold: RuleBalanceThresholdValue;
 }
-
-/**
- * FIXME: move subject api to OpenMeter so Subject model is avaiable here.
- */
-@friendlyName("DummySubject")
-model Subject {}
 
 /**
  * Type of the notification event.

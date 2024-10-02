@@ -13,6 +13,7 @@ import "./customer.tsp";
 import "./events.tsp";
 import "./meters.tsp";
 import "./portal.tsp";
+import "./subjects.tsp";
 import "./debug.tsp";
 import "./notification";
 import "./entitlements";
