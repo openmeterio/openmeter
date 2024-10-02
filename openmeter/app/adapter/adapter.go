@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -42,8 +44,14 @@ func New(config Config) (app.Adapter, error) {
 	return adapter, nil
 }
 
+type Marketplace struct {
+	registry map[appentitybase.AppType]appentity.RegistryItem
+}
+
 func NewMarketplaceAdapter() app.MarketplaceAdapter {
-	return DefaultMarketplace()
+	return Marketplace{
+		registry: map[appentitybase.AppType]appentity.RegistryItem{},
+	}
 }
 
 var _ app.Adapter = (*adapter)(nil)

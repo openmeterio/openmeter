@@ -3,41 +3,15 @@ package appadapter
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var (
-	createDefaultMarketplaceOnce sync.Once
-	defaultMarketplace           *Marketplace
-)
-
-func DefaultMarketplace() *Marketplace {
-	createDefaultMarketplaceOnce.Do(func() {
-		defaultMarketplace = NewMarketplace()
-	})
-
-	return defaultMarketplace
-}
-
 var _ app.MarketplaceAdapter = (*Marketplace)(nil)
-
-type Marketplace struct {
-	registry map[appentitybase.AppType]appentity.RegistryItem
-}
-
-// NewMarketplace creates a new marketplace adapter
-func NewMarketplace() *Marketplace {
-	return &Marketplace{
-		registry: map[appentitybase.AppType]appentity.RegistryItem{},
-	}
-}
 
 // List lists marketplace listings
 func (a Marketplace) List(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
@@ -66,7 +40,24 @@ func (a Marketplace) Get(ctx context.Context, input appentity.MarketplaceGetInpu
 
 // InstallAppWithAPIKey installs an app with an API key
 func (a Marketplace) InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Get registry item
+	registryItem, err := a.Get(ctx, appentity.MarketplaceGetInput{
+		Type: input.Type,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
+	}
+
+	// Install app
+	app, err := registryItem.Factory.InstallAppWithAPIKey(ctx, appentity.AppFactoryInstallAppWithAPIKeyInput{
+		Namespace: input.Namespace,
+		APIKey:    input.APIKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to install app: %w", err)
+	}
+
+	return app, nil
 }
 
 // GetOauth2InstallURL gets an OAuth2 install URL

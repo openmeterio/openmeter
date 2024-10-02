@@ -73,6 +73,12 @@ func (asc *AppStripeCreate) SetNillableDeletedAt(t *time.Time) *AppStripeCreate 
 	return asc
 }
 
+// SetAPIKey sets the "api_key" field.
+func (asc *AppStripeCreate) SetAPIKey(s string) *AppStripeCreate {
+	asc.mutation.SetAPIKey(s)
+	return asc
+}
+
 // SetStripeAccountID sets the "stripe_account_id" field.
 func (asc *AppStripeCreate) SetStripeAccountID(s string) *AppStripeCreate {
 	asc.mutation.SetStripeAccountID(s)
@@ -198,6 +204,14 @@ func (asc *AppStripeCreate) check() error {
 	if _, ok := asc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "AppStripe.updated_at"`)}
 	}
+	if _, ok := asc.mutation.APIKey(); !ok {
+		return &ValidationError{Name: "api_key", err: errors.New(`db: missing required field "AppStripe.api_key"`)}
+	}
+	if v, ok := asc.mutation.APIKey(); ok {
+		if err := appstripe.APIKeyValidator(v); err != nil {
+			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
+		}
+	}
 	if _, ok := asc.mutation.StripeAccountID(); !ok {
 		return &ValidationError{Name: "stripe_account_id", err: errors.New(`db: missing required field "AppStripe.stripe_account_id"`)}
 	}
@@ -255,6 +269,10 @@ func (asc *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 	if value, ok := asc.mutation.DeletedAt(); ok {
 		_spec.SetField(appstripe.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := asc.mutation.APIKey(); ok {
+		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
+		_node.APIKey = &value
 	}
 	if value, ok := asc.mutation.StripeAccountID(); ok {
 		_spec.SetField(appstripe.FieldStripeAccountID, field.TypeString, value)
@@ -379,6 +397,18 @@ func (u *AppStripeUpsert) ClearDeletedAt() *AppStripeUpsert {
 	return u
 }
 
+// SetAPIKey sets the "api_key" field.
+func (u *AppStripeUpsert) SetAPIKey(v string) *AppStripeUpsert {
+	u.Set(appstripe.FieldAPIKey, v)
+	return u
+}
+
+// UpdateAPIKey sets the "api_key" field to the value that was provided on create.
+func (u *AppStripeUpsert) UpdateAPIKey() *AppStripeUpsert {
+	u.SetExcluded(appstripe.FieldAPIKey)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -471,6 +501,20 @@ func (u *AppStripeUpsertOne) UpdateDeletedAt() *AppStripeUpsertOne {
 func (u *AppStripeUpsertOne) ClearDeletedAt() *AppStripeUpsertOne {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAPIKey sets the "api_key" field.
+func (u *AppStripeUpsertOne) SetAPIKey(v string) *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.SetAPIKey(v)
+	})
+}
+
+// UpdateAPIKey sets the "api_key" field to the value that was provided on create.
+func (u *AppStripeUpsertOne) UpdateAPIKey() *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.UpdateAPIKey()
 	})
 }
 
@@ -733,6 +777,20 @@ func (u *AppStripeUpsertBulk) UpdateDeletedAt() *AppStripeUpsertBulk {
 func (u *AppStripeUpsertBulk) ClearDeletedAt() *AppStripeUpsertBulk {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAPIKey sets the "api_key" field.
+func (u *AppStripeUpsertBulk) SetAPIKey(v string) *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.SetAPIKey(v)
+	})
+}
+
+// UpdateAPIKey sets the "api_key" field to the value that was provided on create.
+func (u *AppStripeUpsertBulk) UpdateAPIKey() *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.UpdateAPIKey()
 	})
 }
 

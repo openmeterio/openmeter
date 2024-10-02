@@ -13,8 +13,10 @@ func TestAppStripe(t *testing.T) {
 
 	env, err := NewTestEnv(ctx)
 	require.NoError(t, err, "AppStripeTestEnv() failed")
+	require.NotNil(t, env.App())
 	require.NotNil(t, env.AppStripe())
-	require.NotNil(t, env.AppStripeAdapter())
+	require.NotNil(t, env.Customer())
+	require.NotNil(t, env.Secret())
 
 	defer func() {
 		if err := env.Close(); err != nil {
