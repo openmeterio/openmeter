@@ -2494,11 +2494,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
+                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
-                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -2575,11 +2575,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # JSON input template you can fill out and use as your body input.
                 body = [
                     {
+                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
-                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -2590,11 +2590,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
+                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
-                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -2630,11 +2630,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
+                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
-                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -2665,11 +2665,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
+                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
-                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -2752,11 +2752,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 200
                 response == {
+                    "id": "str",  # Required.
                     "key": "str",  # Required.
                     "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                     "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                     "displayName": "str",  # Optional.
-                    "id": "str",  # Optional.
                     "metadata": {
                         "str": {}  # Optional. Dictionary of :code:`<any>`.
                     },
