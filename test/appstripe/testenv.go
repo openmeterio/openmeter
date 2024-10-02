@@ -166,6 +166,11 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Client:           entClient,
 		Marketplace:      marketplaceAdapter,
 		SecretService:    secretService,
+		StripeClientFactory: func(apiKey string) appstripe.StripeClient {
+			return &StripeClientMock{
+				StripeAccountID: "acct_123",
+			}
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register stripe app: %w", err)
@@ -206,5 +211,21 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		customer:   customerService,
 		secret:     secretService,
 		closerFunc: closerFunc,
+	}, nil
+}
+
+type StripeClientMock struct {
+	StripeAccountID string
+}
+
+func (c *StripeClientMock) GetAccount(ctx context.Context) (appstripe.StripeAccount, error) {
+	return appstripe.StripeAccount{
+		StripeAccountID: c.StripeAccountID,
+	}, nil
+}
+
+func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (appstripe.StripeCustomer, error) {
+	return appstripe.StripeCustomer{
+		StripeCustomerID: stripeCustomerID,
 	}, nil
 }

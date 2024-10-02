@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
@@ -17,11 +18,12 @@ import (
 )
 
 type RegisterConfig struct {
-	AppService       app.Service
-	AppStripeService Service
-	Client           *entdb.Client
-	Marketplace      app.MarketplaceService
-	SecretService    secret.Service
+	AppService          app.Service
+	AppStripeService    Service
+	Client              *entdb.Client
+	Marketplace         app.MarketplaceService
+	SecretService       secret.Service
+	StripeClientFactory func(apiKey string) StripeClient
 }
 
 func (c RegisterConfig) Validate() error {
@@ -54,11 +56,17 @@ func Register(config RegisterConfig) error {
 		return fmt.Errorf("invalid register config: %w", err)
 	}
 
+	stripeClientFactory := config.StripeClientFactory
+	if stripeClientFactory == nil {
+		stripeClientFactory = StripeClientFactory
+	}
+
 	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
-		AppService:       config.AppService,
-		AppStripeService: config.AppStripeService,
-		Client:           config.Client,
-		SecretService:    config.SecretService,
+		AppService:          config.AppService,
+		AppStripeService:    config.AppStripeService,
+		Client:              config.Client,
+		SecretService:       config.SecretService,
+		StripeClientFactory: stripeClientFactory,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stripe app factory: %w", err)
@@ -76,10 +84,11 @@ func Register(config RegisterConfig) error {
 }
 
 type AppFactoryConfig struct {
-	AppService       app.Service
-	AppStripeService Service
-	SecretService    secret.Service
-	Client           *entdb.Client
+	AppService          app.Service
+	AppStripeService    Service
+	Client              *entdb.Client
+	SecretService       secret.Service
+	StripeClientFactory func(apiKey string) StripeClient
 }
 
 func (a AppFactoryConfig) Validate() error {
@@ -99,16 +108,21 @@ func (a AppFactoryConfig) Validate() error {
 		return errors.New("secret service is required")
 	}
 
+	if a.StripeClientFactory == nil {
+		return errors.New("stripe client factory is required")
+	}
+
 	return nil
 }
 
 // AppFactory is the factory for creating stripe app instances
 type AppFactory struct {
-	AppService       app.Service
-	AppStripeService Service
-	BillingService   billing.Service
-	SecretService    secret.Service
-	Client           *entdb.Client
+	AppService          app.Service
+	AppStripeService    Service
+	BillingService      billing.Service
+	Client              *entdb.Client
+	SecretService       secret.Service
+	StripeClientFactory func(apiKey string) StripeClient
 }
 
 func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
@@ -117,10 +131,11 @@ func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
 	}
 
 	return AppFactory{
-		AppService:       config.AppService,
-		AppStripeService: config.AppStripeService,
-		SecretService:    config.SecretService,
-		Client:           config.Client,
+		AppService:          config.AppService,
+		AppStripeService:    config.AppStripeService,
+		SecretService:       config.SecretService,
+		Client:              config.Client,
+		StripeClientFactory: config.StripeClientFactory,
 	}, nil
 }
 
@@ -154,9 +169,21 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	// TODO: get accountID from Stripe
-	stripeAccountID := "todo_stripe_account_id"
-	livemode := false
+	// Check if the API key is a test key
+	livemode := true
+
+	if strings.HasPrefix(input.APIKey, "sk_test") || strings.HasPrefix(input.APIKey, "rk_test") {
+		livemode = false
+	}
+
+	stripeClient := f.StripeClientFactory(input.APIKey)
+
+	// TODO: this is the first call to stripe, we should check if the API key is valid and return typed errors
+	// Get stripe account
+	stripeAccount, err := stripeClient.GetAccount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stripe account: %w", err)
+	}
 
 	// Create secret
 	secretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
@@ -173,7 +200,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		Namespace:       input.Namespace,
 		Name:            "Stripe",
 		Description:     "Stripe",
-		StripeAccountID: stripeAccountID,
+		StripeAccountID: stripeAccount.StripeAccountID,
 		Livemode:        livemode,
 		APIKey:          secretID,
 	})

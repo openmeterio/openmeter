@@ -367,6 +367,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stripe/stripe-go/v80 v80.0.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tetratelabs/wazero v1.6.0 // indirect
 	github.com/tilinna/z85 v1.0.0 // indirect
