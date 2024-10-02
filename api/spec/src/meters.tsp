@@ -194,7 +194,7 @@ enum WindowSize {
 /**
  * A unique meter identifier.
  */
-alias MeterIdentifier = ULID | Key;
+alias MeterIdentifier = ULIDOrKey;
 
 /**
  * Meter query parameters.
