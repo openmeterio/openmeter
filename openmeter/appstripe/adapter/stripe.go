@@ -52,7 +52,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
 		err := a.customerService.UpsertAppCustomer(ctx, customerentity.UpsertAppCustomerInput{
 			AppID:      input.AppID,
-			CustomerID: input.CustomerID.ID,
+			CustomerID: input.CustomerID,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to upsert app customer: %w", err)
