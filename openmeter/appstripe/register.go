@@ -12,19 +12,59 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
+	"github.com/openmeterio/openmeter/openmeter/secret"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
+type RegisterConfig struct {
+	AppService       app.Service
+	AppStripeService Service
+	Client           *entdb.Client
+	Marketplace      app.MarketplaceService
+	SecretService    secret.Service
+}
+
+func (c RegisterConfig) Validate() error {
+	if c.AppService == nil {
+		return errors.New("app service is required")
+	}
+
+	if c.AppStripeService == nil {
+		return errors.New("app stripe service is required")
+	}
+
+	if c.Client == nil {
+		return errors.New("client is required")
+	}
+
+	if c.Marketplace == nil {
+		return errors.New("marketplace is required")
+	}
+
+	if c.SecretService == nil {
+		return errors.New("secret service is required")
+	}
+
+	return nil
+}
+
 // Register registers the stripe app with the marketplace
-func Register(marketplace app.MarketplaceService, appService app.Service, db *entdb.Client) error {
+func Register(config RegisterConfig) error {
+	if err := config.Validate(); err != nil {
+		return fmt.Errorf("invalid register config: %w", err)
+	}
+
 	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
-		AppService: appService,
-		Client:     db,
+		AppService:       config.AppService,
+		AppStripeService: config.AppStripeService,
+		Client:           config.Client,
+		SecretService:    config.SecretService,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stripe app factory: %w", err)
 	}
 
-	err = marketplace.Register(appentity.RegistryItem{
+	err = config.Marketplace.Register(appentity.RegistryItem{
 		Listing: appstripeentity.StripeMarketplaceListing,
 		Factory: stripeAppFactory,
 	})
@@ -35,16 +75,11 @@ func Register(marketplace app.MarketplaceService, appService app.Service, db *en
 	return nil
 }
 
-// AppFactory is the factory for creating stripe app instances
-type AppFactory struct {
-	AppService     app.Service
-	BillingService billing.Service
-	Client         *entdb.Client
-}
-
 type AppFactoryConfig struct {
-	AppService app.Service
-	Client     *entdb.Client
+	AppService       app.Service
+	AppStripeService Service
+	SecretService    secret.Service
+	Client           *entdb.Client
 }
 
 func (a AppFactoryConfig) Validate() error {
@@ -52,11 +87,28 @@ func (a AppFactoryConfig) Validate() error {
 		return errors.New("app service is required")
 	}
 
+	if a.AppStripeService == nil {
+		return errors.New("app stripe service is required")
+	}
+
 	if a.Client == nil {
 		return errors.New("client is required")
 	}
 
+	if a.SecretService == nil {
+		return errors.New("secret service is required")
+	}
+
 	return nil
+}
+
+// AppFactory is the factory for creating stripe app instances
+type AppFactory struct {
+	AppService       app.Service
+	AppStripeService Service
+	BillingService   billing.Service
+	SecretService    secret.Service
+	Client           *entdb.Client
 }
 
 func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
@@ -65,8 +117,10 @@ func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
 	}
 
 	return AppFactory{
-		AppService: config.AppService,
-		Client:     config.Client,
+		AppService:       config.AppService,
+		AppStripeService: config.AppStripeService,
+		SecretService:    config.SecretService,
+		Client:           config.Client,
 	}, nil
 }
 
@@ -93,4 +147,39 @@ func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (
 		StripeAccountId: stripeApp.StripeAccountID,
 		Livemode:        stripeApp.StripeLivemode,
 	}, nil
+}
+
+func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid input: %w", err)
+	}
+
+	// TODO: get accountID from Stripe
+	stripeAccountID := "todo_stripe_account_id"
+	livemode := false
+
+	// Create secret
+	secretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+		Namespace: input.Namespace,
+		Key:       appstripeentity.APIKeySecretKey,
+		Value:     input.APIKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secret: %w", err)
+	}
+
+	// Create stripe app
+	app, err := f.AppStripeService.CreateStripeApp(ctx, appstripeentity.CreateAppStripeInput{
+		Namespace:       input.Namespace,
+		Name:            "Stripe",
+		Description:     "Stripe",
+		StripeAccountID: stripeAccountID,
+		Livemode:        livemode,
+		APIKey:          secretID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create app: %w", err)
+	}
+
+	return app, nil
 }

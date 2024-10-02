@@ -7,6 +7,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -30,12 +31,13 @@ func (s *AppHandlerTestSuite) setupNamespace(t *testing.T) {
 func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
-	app, err := s.Env.AppStripe().CreateStripeApp(ctx, appstripeentity.CreateAppStripeInput{
-		Namespace:       s.namespace,
-		Name:            "Test App",
-		Description:     "Test App Description",
-		StripeAccountID: "acct_123",
-		Livemode:        true,
+	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    "test_stripe_api_key",
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -47,12 +49,13 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	app, err := s.Env.AppStripe().CreateStripeApp(ctx, appstripeentity.CreateAppStripeInput{
-		Namespace:       s.namespace,
-		Name:            "Test App",
-		Description:     "Test App Description",
-		StripeAccountID: "acct_123",
-		Livemode:        true,
+	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    "test_stripe_api_key",
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -83,16 +86,17 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	stripeApp, err := s.Env.AppStripe().CreateStripeApp(ctx, appstripeentity.CreateAppStripeInput{
-		Namespace:       s.namespace,
-		Name:            "Test App",
-		Description:     "Test App Description",
-		StripeAccountID: "acct_123",
-		Livemode:        true,
+	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    "test_stripe_api_key",
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, stripeApp, "Create stripe app must return app")
+	require.NotNil(t, app, "Create stripe app must return app")
 
 	// Create test customers
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
@@ -124,7 +128,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NotNil(t, customerWithoutStripeData, "Create customer must return customer")
 
 	// Get App
-	getApp, err := s.Env.App().GetApp(ctx, stripeApp.GetID())
+	getApp, err := s.Env.App().GetApp(ctx, app.GetID())
 
 	require.NoError(t, err, "Get app must not return error")
 
@@ -133,7 +137,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NoError(t, err, "Validate customer must not return error")
 
 	// Stripe app should validate the customer
-	err = stripeApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
+	err = app.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
 	require.NoError(t, err, "Validate customer must not return error")
 
 	// Validate the customer with an invalid capability
