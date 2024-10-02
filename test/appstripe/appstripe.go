@@ -13,6 +13,8 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
+var TestStripeAPIKey = "test_stripe_api_key"
+
 type AppHandlerTestSuite struct {
 	Env TestEnv
 
@@ -37,7 +39,7 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 		},
 
 		Namespace: s.namespace,
-		APIKey:    "test_stripe_api_key",
+		APIKey:    TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -55,7 +57,7 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 		},
 
 		Namespace: s.namespace,
-		APIKey:    "test_stripe_api_key",
+		APIKey:    TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -92,7 +94,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		},
 
 		Namespace: s.namespace,
-		APIKey:    "test_stripe_api_key",
+		APIKey:    TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
