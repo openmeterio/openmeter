@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -19,7 +18,6 @@ type Config struct {
 	Client          *entdb.Client
 	AppService      app.Service
 	CustomerService customer.Service
-	SecretService   secret.Service
 }
 
 func (c Config) Validate() error {
@@ -35,10 +33,6 @@ func (c Config) Validate() error {
 		return errors.New("customer service is required")
 	}
 
-	if c.SecretService == nil {
-		return errors.New("secret service is required")
-	}
-
 	return nil
 }
 
@@ -51,7 +45,6 @@ func New(config Config) (appstripe.Adapter, error) {
 		db:              config.Client,
 		appService:      config.AppService,
 		customerService: config.CustomerService,
-		secretService:   config.SecretService,
 	}
 
 	return adapter, nil
@@ -64,7 +57,6 @@ type adapter struct {
 
 	appService      app.Service
 	customerService customer.Service
-	secretService   secret.Service
 }
 
 // Tx implements entutils.TxCreator interface
