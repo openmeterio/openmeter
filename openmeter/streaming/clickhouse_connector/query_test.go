@@ -271,7 +271,7 @@ func TestQueryMeterView(t *testing.T) {
 				GroupBy:     []string{"subject", "group1", "group2"},
 				WindowSize:  &windowSize,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.subject = ?) AND meter.windowstart >= ? AND meter.windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"subject1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate all available data
@@ -281,7 +281,7 @@ func TestQueryMeterView(t *testing.T) {
 				MeterSlug:   "meter1",
 				Aggregation: models.MeterAggregationSum,
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter",
 			wantArgs: nil,
 		},
 		{ // Aggregate with count aggregation
@@ -291,7 +291,7 @@ func TestQueryMeterView(t *testing.T) {
 				MeterSlug:   "meter1",
 				Aggregation: models.MeterAggregationCount,
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), toFloat64(countMerge(value)) AS value FROM openmeter.om_my_namespace_meter1",
+			wantSQL:  "SELECT min(windowstart), max(windowend), toFloat64(countMerge(value)) AS value FROM openmeter.om_my_namespace_meter1 meter",
 			wantArgs: nil,
 		},
 		{ // Aggregate data from start
@@ -302,7 +302,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation: models.MeterAggregationSum,
 				From:        &from,
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE windowstart >= ?",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE meter.windowstart >= ?",
 			wantArgs: []interface{}{from.Unix()},
 		},
 		{ // Aggregate data between period
@@ -314,7 +314,7 @@ func TestQueryMeterView(t *testing.T) {
 				From:        &from,
 				To:          &to,
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE windowstart >= ? AND windowend <= ?",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE meter.windowstart >= ? AND meter.windowend <= ?",
 			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data between period, groupped by window size
@@ -327,7 +327,7 @@ func TestQueryMeterView(t *testing.T) {
 				To:          &to,
 				WindowSize:  &windowSize,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE meter.windowstart >= ? AND meter.windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
 			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data between period in a different timezone, groupped by window size
@@ -341,7 +341,7 @@ func TestQueryMeterView(t *testing.T) {
 				WindowSize:     &windowSize,
 				WindowTimeZone: tz,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'Asia/Shanghai') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'Asia/Shanghai') AS windowend, sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'Asia/Shanghai') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'Asia/Shanghai') AS windowend, sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE meter.windowstart >= ? AND meter.windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
 			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data for a single subject
@@ -353,7 +353,7 @@ func TestQueryMeterView(t *testing.T) {
 				Subject:     []string{subject},
 				GroupBy:     []string{"subject"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"subject1"},
 		},
 		{ // Aggregate data for a single subject and group by additional fields
@@ -365,7 +365,7 @@ func TestQueryMeterView(t *testing.T) {
 				Subject:     []string{subject},
 				GroupBy:     []string{"subject", "group1", "group2"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.subject = ?) GROUP BY subject, group1, group2",
 			wantArgs: []interface{}{"subject1"},
 		},
 		{ // Aggregate data for a multiple subjects
@@ -377,7 +377,7 @@ func TestQueryMeterView(t *testing.T) {
 				Subject:     []string{subject, "subject2"},
 				GroupBy:     []string{"subject"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.subject = ? OR meter.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"subject1", "subject2"},
 		},
 		{ // Aggregate data with filtering for a single group and single value
@@ -388,7 +388,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation:   models.MeterAggregationSum,
 				FilterGroupBy: map[string][]string{"g1": {"g1v1"}},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = ?)",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.g1 = ?)",
 			wantArgs: []interface{}{"g1v1"},
 		},
 		{ // Aggregate data with filtering for a single group and multiple values
@@ -399,7 +399,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation:   models.MeterAggregationSum,
 				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = ? OR g1 = ?)",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.g1 = ? OR meter.g1 = ?)",
 			wantArgs: []interface{}{"g1v1", "g1v2"},
 		},
 		{ // Aggregate data with filtering for multiple groups and multiple values
@@ -410,7 +410,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation:   models.MeterAggregationSum,
 				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}, "g2": {"g2v1", "g2v2"}},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = ? OR g1 = ?) AND (g2 = ? OR g2 = ?)",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.g1 = ? OR meter.g1 = ?) AND (meter.g2 = ? OR meter.g2 = ?)",
 			wantArgs: []interface{}{"g1v1", "g1v2", "g2v1", "g2v2"},
 		},
 	}

@@ -291,7 +291,8 @@ type queryMeterView struct {
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
-	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
+	viewAlias := "meter"
+	viewName := GetMeterViewName(d.Database, d.Namespace, fmt.Sprintf("%s %s", d.MeterSlug, viewAlias))
 
 	var selectColumns, groupByColumns, where []string
 
@@ -363,7 +364,8 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 
 	if len(d.Subject) > 0 {
 		mapFunc := func(subject string) string {
-			return queryView.Equal("subject", subject)
+			column := fmt.Sprintf("%s.subject", viewAlias)
+			return queryView.Equal(column, subject)
 		}
 
 		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
@@ -383,6 +385,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 				return "", nil, fmt.Errorf("empty filter for group by: %s", column)
 			}
 			mapFunc := func(value string) string {
+				column := fmt.Sprintf("%s.%s", viewAlias, column)
 				return queryView.Equal(sqlbuilder.Escape(column), value)
 			}
 
@@ -391,11 +394,13 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	if d.From != nil {
-		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.Unix()))
+		column := fmt.Sprintf("%s.windowstart", viewAlias)
+		where = append(where, queryView.GreaterEqualThan(column, d.From.Unix()))
 	}
 
 	if d.To != nil {
-		where = append(where, queryView.LessEqualThan("windowend", d.To.Unix()))
+		column := fmt.Sprintf("%s.windowend", viewAlias)
+		where = append(where, queryView.LessEqualThan(column, d.To.Unix()))
 	}
 
 	if len(where) > 0 {
