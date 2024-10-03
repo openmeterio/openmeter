@@ -20,7 +20,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
 		activeFromTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
 
-		if input.ActiveTo != nil && input.ActiveTo == nil {
+		if input.ActiveTo != nil && input.ActiveFrom == nil {
 			return nil, &models.GenericUserError{Message: "ActiveFrom must be set if ActiveTo is set"}
 		}
 		if input.ActiveTo != nil && !input.ActiveTo.After(activeFromTime) {

@@ -59,6 +59,8 @@ type CreateEntitlementRepoInputs struct {
 	SubjectKey      string            `json:"subjectKey"`
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
+	ActiveFrom      *time.Time        `json:"activeFrom,omitempty"`
+	ActiveTo        *time.Time        `json:"activeTo,omitempty"`
 
 	MeasureUsageFrom        *time.Time         `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset         *float64           `json:"issueAfterReset,omitempty"`
