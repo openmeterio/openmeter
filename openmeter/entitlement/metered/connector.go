@@ -174,6 +174,8 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		UsagePeriod:             model.UsagePeriod,
 		CurrentUsagePeriod:      &currentPeriod,
 		PreserveOverageAtReset:  model.PreserveOverageAtReset,
+		ActiveFrom:              model.ActiveFrom,
+		ActiveTo:                model.ActiveTo,
 	}, nil
 }
 
