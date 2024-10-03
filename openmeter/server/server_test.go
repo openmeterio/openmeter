@@ -65,17 +65,23 @@ var (
 
 type MockStreamingConnector struct{}
 
+var _ streaming.Connector = &MockStreamingConnector{}
+
 func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
 	return []streaming.CountEventRow{}, nil
 }
 
-func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
 	events := []api.IngestedEvent{
 		{
 			Event: mockEvent,
 		},
 	}
-	return events, nil
+	return events, nil, nil
+}
+
+func (c *MockStreamingConnector) PaginateEvents(ctx context.Context, namespace string, params streaming.PaginateEventsParams) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
+	return []api.IngestedEvent{}, nil, nil
 }
 
 func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {

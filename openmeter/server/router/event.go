@@ -69,18 +69,20 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	}
 
 	queryParams := streaming.ListEventsParams{
-		From:           &from,
-		To:             params.To,
-		IngestedAtFrom: params.IngestedAtFrom,
-		IngestedAtTo:   params.IngestedAtTo,
-		ID:             params.Id,
-		Subject:        params.Subject,
-		HasError:       params.HasError,
-		Limit:          limit,
+		Filters: streaming.EventsTableFilters{
+			From:           &from,
+			To:             params.To,
+			IngestedAtFrom: params.IngestedAtFrom,
+			IngestedAtTo:   params.IngestedAtTo,
+			ID:             params.Id,
+			Subject:        params.Subject,
+			HasError:       params.HasError,
+		},
+		Limit: limit,
 	}
 
 	// Query events
-	events, err := a.config.StreamingConnector.ListEvents(ctx, namespace, queryParams)
+	events, _, err := a.config.StreamingConnector.ListEvents(ctx, namespace, queryParams)
 	if err != nil {
 		err := fmt.Errorf("query events: %w", err)
 
