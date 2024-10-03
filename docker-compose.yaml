@@ -58,16 +58,24 @@ services:
 
   # Development
   # docker compose --profile dev up
-  redpanda:
-    image: docker.redpanda.com/redpandadata/console:v2.3.1
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
     profiles:
       - dev
     depends_on:
       - kafka
     ports:
-      - 127.0.0.1:8084:8080
+      - "127.0.0.1:8084:8080"
     environment:
-      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      DYNAMIC_CONFIG_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://kafka-ui:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   wiretap:
     image: pb33f/wiretap:v0.0.49
