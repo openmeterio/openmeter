@@ -3,8 +3,9 @@ package appstripeadapter
 import (
 	"context"
 
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/stripe/stripe-go/v80/client"
+
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 )
 
 type StripeClient interface {
