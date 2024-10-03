@@ -108,8 +108,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=postgres
-    volumes:
-      - ./etc/postgres-init:/docker-entrypoint-initdb.d/
+    configs:
+      - source: svix_sql
+        target: /docker-entrypoint-initdb.d/svix.sql
     command: ["postgres", "-c", "wal_level=logical"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-d", "$${POSTGRES_DB}", "-U", "$${POSTGRES_USER}"]
@@ -134,3 +135,11 @@ services:
     depends_on:
       - postgres
       - redis
+
+configs:
+  svix_sql:
+    content: |
+      CREATE USER svix WITH PASSWORD 'svix';
+      CREATE DATABASE svix;
+      GRANT ALL PRIVILEGES ON DATABASE svix TO svix;
+      ALTER DATABASE svix OWNER TO svix;
