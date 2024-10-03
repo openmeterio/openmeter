@@ -52,9 +52,15 @@ services:
   redis:
     profiles:
       - redis
-    image: redis:7.0.12-alpine
+    image: redis:7.0-alpine
     ports:
-      - 127.0.0.1:6379:6379
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "--maxmemory", "50mb", "--maxmemory-policy", "noeviction", "--maxmemory-samples", "10"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
   # Development
   # docker compose --profile dev up
