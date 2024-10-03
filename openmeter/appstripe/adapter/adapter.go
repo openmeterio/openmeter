@@ -17,15 +17,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
-
 type Config struct {
 	Client              *entdb.Client
 	AppService          app.Service
 	CustomerService     customer.Service
 	Marketplace         app.MarketplaceService
 	SecretService       secret.Service
-	StripeClientFactory StripeClientFactory
+	StripeClientFactory appstripeentity.StripeClientFactory
 }
 
 func (c Config) Validate() error {
@@ -58,15 +56,17 @@ func New(config Config) (appstripe.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db:              config.Client,
-		appService:      config.AppService,
-		customerService: config.CustomerService,
+		db:                  config.Client,
+		appService:          config.AppService,
+		customerService:     config.CustomerService,
+		secretService:       config.SecretService,
+		stripeClientFactory: config.StripeClientFactory,
 	}
 
 	// Create stripe app factory
 	stripeClientFactory := config.StripeClientFactory
 	if stripeClientFactory == nil {
-		stripeClientFactory = NewStripeClient
+		stripeClientFactory = appstripeentity.NewStripeClient
 	}
 
 	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
@@ -112,8 +112,10 @@ var _ appstripe.Adapter = (*adapter)(nil)
 type adapter struct {
 	db *entdb.Client
 
-	appService      app.Service
-	customerService customer.Service
+	appService          app.Service
+	customerService     customer.Service
+	secretService       secret.Service
+	stripeClientFactory appstripeentity.StripeClientFactory
 }
 
 // Tx implements entutils.TxCreator interface

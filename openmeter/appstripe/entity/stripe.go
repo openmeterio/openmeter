@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	// "github.com/openmeterio/openmeter/openmeter/appstripe"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/secret"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -19,13 +22,12 @@ const APIKeySecretKey = "stripe_api_key"
 // App represents an installed Stripe app
 type App struct {
 	appentitybase.AppBase
-
-	Client *entdb.Client
-	// AppStripeService appstripe.Service
-	// BillingService   billing.Service
-
 	StripeAccountId string `json:"stripeAccountId"`
 	Livemode        bool   `json:"livemode"`
+
+	Client              *entdb.Client
+	StripeClientFactory StripeClientFactory
+	SecretService       secret.Service
 }
 
 func (a App) Validate() error {
@@ -37,12 +39,20 @@ func (a App) Validate() error {
 		return errors.New("app type must be stripe")
 	}
 
+	if a.Client == nil {
+		return errors.New("client is required")
+	}
+
 	if a.StripeAccountId == "" {
 		return errors.New("stripe account id is required")
 	}
 
-	if a.Client == nil {
-		return errors.New("client is required")
+	if a.StripeClientFactory == nil {
+		return errors.New("stripe client factory is required")
+	}
+
+	if a.SecretService == nil {
+		return errors.New("secret service is required")
 	}
 
 	return nil
@@ -55,6 +65,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 
+	// Get Stripe Customer
 	stripeCustomer, err := a.Client.AppStripeCustomer.
 		Query().
 		Where(appstripecustomerdb.Namespace(a.Namespace)).
@@ -84,16 +95,88 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 		}
 	}
 
-	// TODO: check if the customer exists in Stripe
+	// Get Stripe App
+	stripeApp, err := a.Client.AppStripe.
+		Query().
+		Where(appstripedb.Namespace(a.Namespace)).
+		Where(appstripedb.ID(a.ID)).
+		First(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return app.AppNotFoundError{
+				AppID: a.GetID(),
+			}
+		}
 
-	// TODO: implement
+		return fmt.Errorf("failed to get stripe app: %w", err)
+	}
+
+	// Get Stripe API Key
+	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: stripeApp.Namespace,
+			ID:        stripeApp.ID,
+		},
+		Key: APIKeySecretKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get stripe api key secret: %w", err)
+	}
+
+	// Stripe Client
+	stripeClient, err := a.StripeClientFactory(StripeClientConfig{
+		Namespace: stripeApp.Namespace,
+		APIKey:    apiKeySecret.Value,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create stripe client: %w", err)
+	}
+
+	// Check if the customer exists in Stripe
+	_, err = stripeClient.GetCustomer(ctx, *stripeCustomer.StripeCustomerID)
+	if err != nil {
+		// TODO: return a typed error if the customer does not exist in Stripe
+		return err
+	}
+
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
-	// if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
-	// 	// TODO: go to Stripe and check if customer exists by customer.External.StripeCustomerID
-	// 	// Also check if the customer has a country and default payment method
+	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
+		// Get payment methods
+		paymentMethods, err := stripeClient.GetCustomerPaymentMethods(ctx, *stripeCustomer.StripeCustomerID)
+		if err != nil {
+			return fmt.Errorf("failed to get stripe customer payment methods: %w", err)
+		}
 
-	// 	return errors.New("not implemented")
-	// }
+		// Must have at least one payment method
+		if len(paymentMethods) == 0 {
+			return app.CustomerPreConditionError{
+				AppID:      a.GetID(),
+				AppType:    a.GetType(),
+				CustomerID: customer.GetID(),
+				Condition:  "customer must have at least one payment method",
+			}
+		}
+
+		// Must have at least one payment method with a billing address
+		// Billing address is required for tax calculation and invoice creation
+		hasAddress := false
+
+		for _, paymentMethod := range paymentMethods {
+			if paymentMethod.BillingAddress != nil {
+				hasAddress = true
+				break
+			}
+		}
+
+		if !hasAddress {
+			return app.CustomerPreConditionError{
+				AppID:      a.GetID(),
+				AppType:    a.GetType(),
+				CustomerID: customer.GetID(),
+				Condition:  "customer must have at least one payment method with a billing address",
+			}
+		}
+	}
 
 	return nil
 }
