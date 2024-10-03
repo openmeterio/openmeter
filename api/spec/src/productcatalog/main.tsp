@@ -11,5 +11,6 @@ import "./prices.tsp";
 import "./ratecards.tsp";
 import "./routes.tsp";
 import "./tax.tsp";
+import "./subscription.tsp";
 
 namespace OpenMeter.ProductCatalog;

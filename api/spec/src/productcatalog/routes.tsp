@@ -208,3 +208,132 @@ interface PlanPhases {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
+
+@route("/api/v1/subscriptions")
+@tag("Subscriptions")
+interface Subscriptions {
+  @get
+  @operationId("getSubscription")
+  @sharedRoute
+  get(
+    @path subscriptionId: ULID,
+    @query expand?: false,
+
+    /**
+     * The time at which the subscription should be queried. If not provided the current time is used.
+     */
+    @query at?: DateTime,
+  ): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  @get
+  @operationId("getSubscription")
+  @sharedRoute
+  getExpanded(
+    @path subscriptionId: ULID,
+    @query expand: true,
+
+    /**
+     * The time at which the subscription should be queried. If not provided the current time is used.
+     */
+    @query at?: DateTime,
+  ): SubscriptionExpanded | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  create(
+    @body body: {
+      customerId: ULID;
+      plan: {
+        key: Key;
+        version: integer;
+      };
+      currency: CurrencyCode;
+      activeFrom: DateTime;
+
+      /**
+       * Batch processing commands for customizing the susbcription.
+       * The key format is `/phases/{phaseKey}/items/{itemKey}`.
+       *
+       * Add operations insert a new member based on the creation input without altering the existing members.
+       *
+       * Remove operations remove the member from the document.
+       *
+       */
+      @maxItems(100)
+      customizations: SubscriptionItemPatch[];
+    },
+  ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
+
+  /**
+   * Batch processing commands for manipulating running subscriptions.
+   * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+   *
+   * Add operations insert a new member based on the creation input without altering the existing members.
+   *
+   * Remove operations remove the member from the collection / document.
+   *
+   * The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
+   */
+  @patch
+  @operationId("editSubscription")
+  @route("/{subscriptionId}")
+  edit(
+    @path subscriptionId: ULID,
+
+    @body
+    @maxItems(100)
+    body: SubscriptionPatch[],
+  ):
+    | Subscription
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+
+  /**
+   * Migrates the subscripiton to the procided version of the plan.
+   */
+  @post
+  @operationId("migrateSubscription")
+  @route("/{subscriptionId}/migrate")
+  migrate(
+    @path subscriptionId: ULID,
+    @body body: {
+      @minValue(1)
+      targetVersion: integer;
+    },
+  ):
+    | Subscription
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+
+  /**
+   * Cancels the subscription.
+   */
+  @post
+  @operationId("cancelSubscription")
+  @route("/{subscriptionId}/cancel")
+  cancel(
+    @path subscriptionId: ULID,
+    @body body: {
+      /**
+       * If not provided the subscription is canceled immediately.
+       */
+      effectiveDate?: DateTime;
+    },
+  ):
+    | Subscription
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+
+  /**
+   * Cancels the scheduled cancelation.
+   */
+  @post
+  @operationId("unscheduleCancelation")
+  @route("/{subscriptionId}/unschedule-cancelation")
+  unscheduleCancelation(@path subscriptionId: ULID):
+    | Subscription
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+}

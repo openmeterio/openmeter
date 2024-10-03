@@ -52,6 +52,17 @@ model Metadata {
 scalar DateTime extends utcDateTime;
 
 /**
+ * Represents a resource with a key.
+ */
+@friendlyName("KeyedResource")
+model Keyed {
+  /**
+   * A locally unique identifier for the resource.
+   */
+  key: Key;
+}
+
+/**
  * Represents a resource with a unique key.
  */
 @friendlyName("UniqueResource")
@@ -101,6 +112,31 @@ model Resource {
   metadata?: Metadata; // FIXME: linter error for: = #{};
 
   ...ResourceTimestamps;
+}
+
+/**
+ * Represents a resource that doesn't exist in the persistence layer, just a representation.
+ */
+@friendlyName("VirtualResource")
+model VirtualResource {
+  ...OmitProperties<Resource, "id">;
+  ...Keyed;
+}
+
+/**
+ * Represents resources that can be cadenced, have scheduled activity changes.
+ */
+@friendlyName("CadencedResource")
+model CadencedResource {
+  /**
+   * The cadence start of the resource.
+   */
+  activeFrom: DateTime;
+
+  /**
+   * The cadence end of the resource.
+   */
+  activeTo?: DateTime;
 }
 
 /**
