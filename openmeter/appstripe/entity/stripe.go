@@ -135,7 +135,15 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	// Check if the customer exists in Stripe
 	_, err = stripeClient.GetCustomer(ctx, *stripeCustomer.StripeCustomerID)
 	if err != nil {
-		// TODO: return a typed error if the customer does not exist in Stripe
+		if _, ok := err.(stripeCustomerNotFoundError); ok {
+			return app.CustomerPreConditionError{
+				AppID:      a.GetID(),
+				AppType:    a.GetType(),
+				CustomerID: customer.GetID(),
+				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", *stripeCustomer.StripeCustomerID, stripeApp.StripeAccountID),
+			}
+		}
+
 		return err
 	}
 

@@ -23,7 +23,6 @@ const (
 )
 
 type TestEnv interface {
-	CustomerAdapter() customer.Adapter
 	Customer() customer.Service
 
 	Close() error
@@ -32,18 +31,13 @@ type TestEnv interface {
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	customerAdapter customer.Adapter
-	customer        customer.Service
+	customer customer.Service
 
 	closerFunc func() error
 }
 
 func (n testEnv) Close() error {
 	return n.closerFunc()
-}
-
-func (n testEnv) CustomerAdapter() customer.Adapter {
-	return n.customerAdapter
 }
 
 func (n testEnv) Customer() customer.Service {
@@ -104,8 +98,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		customerAdapter: customerAdapter,
-		customer:        customerService,
-		closerFunc:      closerFunc,
+		customer:   customerService,
+		closerFunc: closerFunc,
 	}, nil
 }
