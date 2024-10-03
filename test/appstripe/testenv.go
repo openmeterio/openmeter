@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
-	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -164,21 +163,6 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
-	}
-
-	// App Stripe Customer
-	appStripeObserver, err := appstripeobserver.NewCustomerObserver(appstripeobserver.CustomerObserverConfig{
-		AppService:       appService,
-		AppstripeService: appStripeService,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create app stripe observer: %w", err)
-	}
-
-	// Register app stripe observer on customer service
-	err = customerService.Register(appStripeObserver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to register app stripe observer on custoemr service: %w", err)
 	}
 
 	closerFunc := func() error {
