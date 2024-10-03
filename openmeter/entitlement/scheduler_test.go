@@ -302,6 +302,169 @@ func TestScheduling(t *testing.T) {
 				assert.Equal(t, &activeTo, ent.ActiveTo)
 			},
 		},
+		{
+			name: "Should allow scheduling entitlement after current scheduled entitlement",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+				activeTo1 := testutils.GetRFC3339Time(t, "2024-01-03T15:00:00Z")
+
+				activeFrom2 := testutils.GetRFC3339Time(t, "2024-01-03T18:00:00Z")
+				activeTo2 := testutils.GetRFC3339Time(t, "2024-01-03T19:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				_, err = conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+						ActiveTo:   lo.ToPtr(activeTo1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Create second entitlement
+				_, err = conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom2),
+						ActiveTo:   lo.ToPtr(activeTo2),
+					},
+				)
+				assert.Nil(t, err)
+			},
+		},
+		{
+			name: "Should error if entitlements with defined schedules overlap",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+				activeTo1 := testutils.GetRFC3339Time(t, "2024-01-03T15:00:00Z")
+
+				activeFrom2 := testutils.GetRFC3339Time(t, "2024-01-03T14:00:00Z")
+				activeTo2 := testutils.GetRFC3339Time(t, "2024-01-03T16:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+						ActiveTo:   lo.ToPtr(activeTo1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Create second entitlement
+				_, err = conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom2),
+						ActiveTo:   lo.ToPtr(activeTo2),
+					},
+				)
+
+				var conflictErr *entitlement.AlreadyExistsError
+				assert.ErrorAsf(t, err, &conflictErr, "expected error to be of type %T", conflictErr)
+				assert.Equal(t, ent1.ID, conflictErr.EntitlementID)
+			},
+		},
+		{
+			name: "Should error when attempting to schedule after indefinite entitlement",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				activeFrom2 := testutils.GetRFC3339Time(t, "2024-01-03T14:00:00Z")
+				activeTo2 := testutils.GetRFC3339Time(t, "2024-01-03T16:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Create second entitlement
+				_, err = conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom2),
+						ActiveTo:   lo.ToPtr(activeTo2),
+					},
+				)
+
+				var conflictErr *entitlement.AlreadyExistsError
+				assert.ErrorAsf(t, err, &conflictErr, "expected error to be of type %T", conflictErr)
+				assert.Equal(t, ent1.ID, conflictErr.EntitlementID)
+			},
+		},
 	}
 
 	for _, tc := range tt {
