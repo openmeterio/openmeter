@@ -1,4 +1,4 @@
-package appstripeobserver
+package appstripeadapter
 
 import (
 	"context"
@@ -18,12 +18,12 @@ var _ appobserver.Observer[customerentity.Customer] = (*CustomerObserver)(nil)
 
 type CustomerObserver struct {
 	appService       app.Service
-	appStripeService appstripe.Service
+	appStripeAdapter appstripe.Adapter
 }
 
 type CustomerObserverConfig struct {
 	AppService       app.Service
-	AppstripeService appstripe.Service
+	AppStripeAdapter appstripe.Adapter
 }
 
 func (c CustomerObserverConfig) Validate() error {
@@ -31,8 +31,8 @@ func (c CustomerObserverConfig) Validate() error {
 		return errors.New("app service cannot be null")
 	}
 
-	if c.AppstripeService == nil {
-		return errors.New("app stripe service cannot be null")
+	if c.AppStripeAdapter == nil {
+		return errors.New("app stripe adapter cannot be null")
 	}
 
 	return nil
@@ -44,7 +44,7 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 	}
 	return &CustomerObserver{
 		appService:       config.AppService,
-		appStripeService: config.AppstripeService,
+		appStripeAdapter: config.AppStripeAdapter,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (c CustomerObserver) PostUpdate(ctx context.Context, customer *customerenti
 
 func (c CustomerObserver) PostDelete(ctx context.Context, customer *customerentity.Customer) error {
 	// Delete stripe customer data for all Stripe apps for the customer in the namespace
-	err := c.appStripeService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+	err := c.appStripeAdapter.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 	if err != nil {
@@ -110,11 +110,17 @@ func (c CustomerObserver) upsert(ctx context.Context, customer *customerentity.C
 		}
 
 		// Upsert stripe customer data
-		err := c.appStripeService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
+		upsertStripeCustomerInput := appstripeentity.UpsertStripeCustomerDataInput{
 			AppID:            appID,
 			CustomerID:       customer.GetID(),
 			StripeCustomerID: appStripeCustomer.StripeCustomerID,
-		})
+		}
+
+		if err := upsertStripeCustomerInput.Validate(); err != nil {
+			return fmt.Errorf("failed to validate upsert stripe customer data input: %w", err)
+		}
+
+		err := c.appStripeAdapter.UpsertStripeCustomerData(ctx, upsertStripeCustomerInput)
 		if err != nil {
 			return fmt.Errorf("failed to upsert stripe customer data: %w", err)
 		}
