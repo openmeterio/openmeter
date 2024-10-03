@@ -22,6 +22,9 @@ type EntitlementRepo interface {
 	// GetActiveEntitlementOfSubjectAt returns the active entitlement of a subject at a given time by feature key
 	GetActiveEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, featureKey string, at time.Time) (*Entitlement, error)
 
+	// GetScheduledEntitlements returns all scheduled entitlements for a given subject-feature pair that become inactive after the given time, sorted by the time they become active
+	GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey models.SubjectKey, featureKey string, starting time.Time) ([]Entitlement, error)
+
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
