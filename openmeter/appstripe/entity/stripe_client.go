@@ -108,6 +108,15 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error) {
 	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, nil)
 	if err != nil {
+		// Stripe customer not found error
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
+			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
+				return StripeCustomer{}, stripeCustomerNotFoundError{
+					StripeCustomerID: stripeCustomerID,
+				}
+			}
+		}
+
 		return StripeCustomer{}, c.providerError(err)
 	}
 
@@ -118,17 +127,13 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 
 // GetCustomerPaymentMethods returns the payment methods for the stripe customer
 func (c *stripeClient) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]StripePaymentMethod, error) {
+	var paymentMethods []StripePaymentMethod
+
 	iterator := c.client.PaymentMethods.List(&stripe.PaymentMethodListParams{
 		Customer: stripe.String(stripeCustomerID),
 	})
 
-	var paymentMethods []StripePaymentMethod
-
 	for iterator.Next() {
-		if iterator.Err() != nil {
-			return paymentMethods, c.providerError(iterator.Err())
-		}
-
 		stripePaymentMethod := iterator.PaymentMethod()
 
 		paymentMethod := StripePaymentMethod{
@@ -149,6 +154,10 @@ func (c *stripeClient) GetCustomerPaymentMethods(ctx context.Context, stripeCust
 		}
 
 		paymentMethods = append(paymentMethods, paymentMethod)
+	}
+
+	if iterator.Err() != nil {
+		return nil, c.providerError(iterator.Err())
 	}
 
 	return paymentMethods, nil
@@ -173,4 +182,14 @@ func (c *stripeClient) providerError(err error) error {
 	}
 
 	return err
+}
+
+var _ error = (*stripeCustomerNotFoundError)(nil)
+
+type stripeCustomerNotFoundError struct {
+	StripeCustomerID string
+}
+
+func (e stripeCustomerNotFoundError) Error() string {
+	return fmt.Sprintf("stripe customer %s not found", e.StripeCustomerID)
 }
