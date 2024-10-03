@@ -1,6 +1,6 @@
 ingest:
   kafka:
-    broker: kafka:29092
+    broker: kafka:9092
 
 aggregation:
   clickhouse:
@@ -10,8 +10,15 @@ sink:
   minCommitCount: 1
   namespaceRefetch: 1s
   kafka:
-    brokers: kafka:29092
+    brokers: kafka:9092
     brokerAddressFamily: v4
+  dedupe:
+    enabled: true
+    driver: redis
+    config:
+      address: redis:6379
+      database: 0
+      expiration: 768h # 32d
 
 postgres:
   url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
