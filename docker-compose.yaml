@@ -118,7 +118,7 @@ services:
       retries: 30
 
   svix:
-    image: svix/svix-server:v1.29
+    image: svix/svix-server:v1.37
     profiles:
       - webhook
     environment:
@@ -130,7 +130,7 @@ services:
       SVIX_LOG_LEVEL: "info"
       SVIX_QUEUE_TYPE: "redis"
     ports:
-      - "8071:8071"
+      - "127.0.0.1:8071:8071"
     depends_on:
       - postgres
       - redis
