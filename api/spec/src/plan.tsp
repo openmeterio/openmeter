@@ -76,6 +76,11 @@ model Plan extends UniqueResource {
 @friendlyName("PlanPhase")
 model PlanPhase {
   /**
+   * Unique key among the plan phases. Used to reference the phase in the subscription & plan.
+   */
+  key: Key;
+
+  /**
    * Interval after the subscription starts to transition to the phase.
    * When null, the phase starts immediately after the subscription starts.
    */
@@ -92,7 +97,7 @@ model PlanPhase {
    * The discount on the plan.
    */
   @summary("Discount")
-  discount?: PlanDiscount;
+  discount?: AppliedDiscount;
 
   /**
    * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
@@ -104,21 +109,21 @@ model PlanPhase {
 /**
  * A discount on plan. One of: percentage or amount.
  */
-@friendlyName("PlanDiscount")
+@friendlyName("AppliedDiscount")
 @discriminator("type")
-union PlanDiscount {
+union AppliedDiscount {
   @summary("Percentage discount")
-  percentage: PlanDiscountPercentage,
+  percentage: AppliedDiscountPercentage,
 
   @summary("Amount discount")
-  amount: PlanDiscountAmount,
+  amount: AppliedDiscountAmount,
 }
 
 /**
  * Percentage discount on plan.
  */
 @friendlyName("PlanDiscountPercentage")
-model PlanDiscountPercentage {
+model AppliedDiscountPercentage {
   ...DiscountPercentage;
 
   /**
@@ -133,7 +138,7 @@ model PlanDiscountPercentage {
  * Amount discount on plan.
  */
 @friendlyName("PlanDiscountAmount")
-model PlanDiscountAmount {
+model AppliedDiscountAmount {
   ...DiscountAmount;
 
   /**
@@ -202,5 +207,5 @@ model PlanVariantOverridePreset {
    * The discount on the plan.
    */
   @summary("Discount")
-  discount?: PlanDiscount;
+  discount?: AppliedDiscount;
 }

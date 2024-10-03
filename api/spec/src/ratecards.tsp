@@ -23,6 +23,24 @@ enum RateCardType {
 @friendlyName("RateCardBase")
 model RateCardBase extends Resource {
   /**
+   * Copied from product doc:
+   *
+   * The identifier of the RateCard.
+   * SubscriptionItem/RateCard can be identified, it has a reference:
+   *
+   * 1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
+   *  1.1 It can be an ID reference, for an exact version of the Feature (Features can change across versions)
+   *  1.2 It can be a Key reference, which always refers to the latest (active or inactive) version of a Feature
+   *
+   * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
+   *
+   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”
+   *
+   * In practice this will need an ID being generated
+   */
+  key: Key;
+
+  /**
    * The feature the customer is entitled to use.
    */
   @summary("Feature key")
@@ -75,13 +93,6 @@ model RateCardFlatFee extends RateCardBase {
   @summary("Price")
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
   price: FlatPriceWithPaymentTerm | null;
-
-  /**
-   * The discount of the rate card. Either a percentage or an amount.
-   * Only available when price is set.
-   */
-  @summary("Discount")
-  discount?: DiscountPercentage | DiscountAmount;
 }
 
 /**
@@ -105,12 +116,6 @@ model RateCardUsageBased extends RateCardBase {
   @summary("Price")
   @example(#{ type: PriceType.unit, amount: "0.01", minimumAmount: "100" })
   price: UnitPriceWithCommitments | TieredPriceWithCommitments | FlatPriceWithPaymentTerm | null;
-
-  /**
-   * The discount of the rate card.
-   */
-  @summary("Discount")
-  discount?: Discount;
 }
 
 /**

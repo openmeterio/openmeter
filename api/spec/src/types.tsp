@@ -110,6 +110,22 @@ model Resource {
 }
 
 /**
+ * Represents resources that can be cadenced, have scheduled activity changes.
+ */
+@friendlyName("CadencedResource")
+model CadencedResource {
+  /**
+   * The cadence start of the resource.
+   */
+  activeFrom: DateTime;
+
+  /**
+   * The cadence end of the resource.
+   */
+  activeTo?: DateTime;
+}
+
+/**
  * Collects the timestamps used by all resources.
  */
 @friendlyName("Timestamps")
