@@ -93,21 +93,23 @@ services:
   # Credit
   # docker compose --profile postgres up
   postgres:
-    image: postgres:14.9
+    image: postgres:14.9-alpine
     profiles:
       - postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
       - ./etc/postgres-init:/docker-entrypoint-initdb.d/
-    command:
-      - "postgres"
-      - "-c"
-      - "wal_level=logical"
+    command: ["postgres", "-c", "wal_level=logical"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "$${POSTGRES_DB}", "-U", "$${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   svix:
     image: svix/svix-server:v1.29
