@@ -7,9 +7,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	// "github.com/openmeterio/openmeter/openmeter/appstripe"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const APIKeySecretKey = "stripe_api_key"
@@ -19,6 +21,7 @@ type App struct {
 	appentitybase.AppBase
 
 	Client *entdb.Client
+	// AppStripeService appstripe.Service
 	// BillingService   billing.Service
 
 	StripeAccountId string `json:"stripeAccountId"`
@@ -114,4 +117,9 @@ type StripeAccount struct {
 
 type StripeCustomer struct {
 	StripeCustomerID string
+}
+
+type StripePaymentMethod struct {
+	ID             string
+	BillingAddress *models.Address
 }

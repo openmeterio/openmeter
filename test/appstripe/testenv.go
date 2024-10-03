@@ -148,10 +148,10 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		Marketplace:     marketplaceAdapter,
 		SecretService:   secretService,
-		StripeClientFactory: func(apiKey string) appstripeadapter.StripeClient {
+		StripeClientFactory: func(config appstripeadapter.StripeClientConfig) (appstripeadapter.StripeClient, error) {
 			return &StripeClientMock{
 				StripeAccountID: "acct_123",
-			}
+			}, nil
 		},
 	})
 	if err != nil {
@@ -202,4 +202,8 @@ func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID str
 	return appstripeentity.StripeCustomer{
 		StripeCustomerID: stripeCustomerID,
 	}, nil
+}
+
+func (c *StripeClientMock) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]appstripeentity.StripePaymentMethod, error) {
+	return nil, nil
 }

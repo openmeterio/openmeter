@@ -9,6 +9,7 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
+// AppNotFoundError
 var _ error = (*AppNotFoundError)(nil)
 
 type AppNotFoundError struct {
@@ -19,6 +20,7 @@ func (e AppNotFoundError) Error() string {
 	return fmt.Sprintf("app with id %s not found in %s namespace", e.ID, e.Namespace)
 }
 
+// AppDefaultNotFoundError
 var _ error = (*AppDefaultNotFoundError)(nil)
 
 type AppDefaultNotFoundError struct {
@@ -30,6 +32,33 @@ func (e AppDefaultNotFoundError) Error() string {
 	return fmt.Sprintf("there is no default app for %s type in %s namespace", e.Type, e.Namespace)
 }
 
+// AppProviderAuthenticationError
+var _ error = (*AppProviderAuthenticationError)(nil)
+
+type AppProviderAuthenticationError struct {
+	Namespace     string
+	Type          appentitybase.AppType
+	ProviderError error
+}
+
+func (e AppProviderAuthenticationError) Error() string {
+	return fmt.Sprintf("provider authentication error for %s app type in %s namespace: %s", e.Type, e.Namespace, e.ProviderError)
+}
+
+// AppProviderError
+var _ error = (*AppProviderError)(nil)
+
+type AppProviderError struct {
+	Namespace     string
+	Type          appentitybase.AppType
+	ProviderError error
+}
+
+func (e AppProviderError) Error() string {
+	return fmt.Sprintf("provider error for %s app type in %s namespace: %s", e.Type, e.Namespace, e.ProviderError)
+}
+
+// CustomerPreConditionError
 var _ error = (*CustomerPreConditionError)(nil)
 
 type CustomerPreConditionError struct {
@@ -67,6 +96,7 @@ func (e CustomerPreConditionError) Error() string {
 	return fmt.Sprintf("customer with id %s does not meet condition %s for %s app type with id %s in namespace %s", e.CustomerID.ID, e.Condition, e.AppType, e.AppID.ID, e.AppID.Namespace)
 }
 
+// MarketplaceListingNotFoundError
 var _ error = (*MarketplaceListingNotFoundError)(nil)
 
 type MarketplaceListingNotFoundError struct {

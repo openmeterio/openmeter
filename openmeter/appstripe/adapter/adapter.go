@@ -17,13 +17,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
+type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
+
 type Config struct {
 	Client              *entdb.Client
 	AppService          app.Service
 	CustomerService     customer.Service
 	Marketplace         app.MarketplaceService
 	SecretService       secret.Service
-	StripeClientFactory func(apiKey string) StripeClient
+	StripeClientFactory StripeClientFactory
 }
 
 func (c Config) Validate() error {
@@ -64,7 +66,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	// Create stripe app factory
 	stripeClientFactory := config.StripeClientFactory
 	if stripeClientFactory == nil {
-		stripeClientFactory = StripeClientFactory
+		stripeClientFactory = NewStripeClient
 	}
 
 	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
