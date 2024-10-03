@@ -28,7 +28,7 @@ interface Subscriptions {
       };
       currency: CurrencyCode;
       activeFrom: DateTime;
-      overrides: unknown[]; // TBD
+      overrides: unknown[]; // TBD; TypeSpec doesn't allow for Record/Map with typed keys
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
@@ -59,7 +59,7 @@ interface Subscriptions {
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Cancels the subscription.
+   * Cancels the scheduled cancelation.
    */
   @post
   @operationId("cancelScheduledCancelation")
@@ -139,7 +139,9 @@ interface Subscriptions {
  * Subscription is an exact subscription instance.
  */
 @friendlyName("Subscription")
-model Subscription extends global.Resource {
+model Subscription {
+  ...global.Resource;
+
   /**
    * The customer ID of the subscription.
    */
@@ -152,12 +154,12 @@ model Subscription extends global.Resource {
     /**
      * The plan Key of the subscription.
      */
-    planKey: Key;
+    key: Key;
 
     /**
      * The plan version of the subscription.
      */
-    planVersion: integer;
+    version: integer;
   };
 
   /**
@@ -208,6 +210,9 @@ model SubscriptionPhase {
   discount?: AppliedDiscount;
 }
 
+/**
+ * The actual contents of the Subscription, what the user gets, what they pay, etc...
+ */
 @friendlyName("SubscriptionItem")
 model SubscriptionItem {
   /**
@@ -250,7 +255,7 @@ model SubscriptionItem {
     | null;
 
   /**
-   * Access describes what access is gained via the SubscriptionItem
+   * Describes what access is gained via the SubscriptionItem
    */
   feature?: {
     /**
