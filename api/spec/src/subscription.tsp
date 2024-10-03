@@ -27,6 +27,7 @@ interface Subscriptions {
         planVersion: integer;
       };
       currency: CurrencyCode;
+      activeFrom: DateTime;
       overrides: unknown[]; // TBD
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
@@ -36,12 +37,38 @@ interface Subscriptions {
    */
   @post
   @operationId("migrateSubscription")
+  @route("/{subscriptionId}/migrate")
   migrate(
     @path subscriptionId: ULID,
     @body body: {
       targetVersion: integer;
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Cancels the subscription.
+   */
+  @post
+  @operationId("cancelSubscription")
+  @route("/{subscriptionId}/cancel")
+  cancel(
+    @path subscriptionId: ULID,
+    @body body: {
+      effective: "IMMEDIATE" | DateTime;
+    },
+  ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Cancels the subscription.
+   */
+  @post
+  @operationId("cancelScheduledCancelation")
+  @route("/{subscriptionId}/cancel-scheduled-cancelation")
+  cancelScheduledCancelation(@path subscriptionId: ULID):
+    | Subscription
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
 
   @get
   @operationId("getSubscriptionItemsAt")
