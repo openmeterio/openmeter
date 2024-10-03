@@ -13,6 +13,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -146,6 +147,13 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Client:          entClient,
 		AppService:      appService,
 		CustomerService: customerService,
+		Marketplace:     marketplaceAdapter,
+		SecretService:   secretService,
+		StripeClientFactory: func(apiKey string) appstripeadapter.StripeClient {
+			return &StripeClientMock{
+				StripeAccountID: "acct_123",
+			}
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
@@ -156,23 +164,6 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
-	}
-
-	// Register stripe app type with marketplace
-	err = appstripe.Register(appstripe.RegisterConfig{
-		AppService:       appService,
-		AppStripeService: appStripeService,
-		Client:           entClient,
-		Marketplace:      marketplaceAdapter,
-		SecretService:    secretService,
-		StripeClientFactory: func(apiKey string) appstripe.StripeClient {
-			return &StripeClientMock{
-				StripeAccountID: "acct_123",
-			}
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to register stripe app: %w", err)
 	}
 
 	// App Stripe Customer
@@ -217,14 +208,14 @@ type StripeClientMock struct {
 	StripeAccountID string
 }
 
-func (c *StripeClientMock) GetAccount(ctx context.Context) (appstripe.StripeAccount, error) {
-	return appstripe.StripeAccount{
+func (c *StripeClientMock) GetAccount(ctx context.Context) (appstripeentity.StripeAccount, error) {
+	return appstripeentity.StripeAccount{
 		StripeAccountID: c.StripeAccountID,
 	}, nil
 }
 
-func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (appstripe.StripeCustomer, error) {
-	return appstripe.StripeCustomer{
+func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (appstripeentity.StripeCustomer, error) {
+	return appstripeentity.StripeCustomer{
 		StripeCustomerID: stripeCustomerID,
 	}, nil
 }

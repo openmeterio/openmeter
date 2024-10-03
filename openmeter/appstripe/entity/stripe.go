@@ -107,3 +107,11 @@ func (d CustomerAppData) Validate() error {
 
 	return nil
 }
+
+type StripeAccount struct {
+	StripeAccountID string
+}
+
+type StripeCustomer struct {
+	StripeCustomerID string
+}

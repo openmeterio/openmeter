@@ -1,4 +1,4 @@
-package appstripe
+package appstripeadapter
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -17,75 +18,9 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
-type RegisterConfig struct {
-	AppService          app.Service
-	AppStripeService    Service
-	Client              *entdb.Client
-	Marketplace         app.MarketplaceService
-	SecretService       secret.Service
-	StripeClientFactory func(apiKey string) StripeClient
-}
-
-func (c RegisterConfig) Validate() error {
-	if c.AppService == nil {
-		return errors.New("app service is required")
-	}
-
-	if c.AppStripeService == nil {
-		return errors.New("app stripe service is required")
-	}
-
-	if c.Client == nil {
-		return errors.New("client is required")
-	}
-
-	if c.Marketplace == nil {
-		return errors.New("marketplace is required")
-	}
-
-	if c.SecretService == nil {
-		return errors.New("secret service is required")
-	}
-
-	return nil
-}
-
-// Register registers the stripe app with the marketplace
-func Register(config RegisterConfig) error {
-	if err := config.Validate(); err != nil {
-		return fmt.Errorf("invalid register config: %w", err)
-	}
-
-	stripeClientFactory := config.StripeClientFactory
-	if stripeClientFactory == nil {
-		stripeClientFactory = StripeClientFactory
-	}
-
-	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
-		AppService:          config.AppService,
-		AppStripeService:    config.AppStripeService,
-		Client:              config.Client,
-		SecretService:       config.SecretService,
-		StripeClientFactory: stripeClientFactory,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create stripe app factory: %w", err)
-	}
-
-	err = config.Marketplace.Register(appentity.RegistryItem{
-		Listing: appstripeentity.StripeMarketplaceListing,
-		Factory: stripeAppFactory,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to register stripe app: %w", err)
-	}
-
-	return nil
-}
-
 type AppFactoryConfig struct {
 	AppService          app.Service
-	AppStripeService    Service
+	AppStripeAdapter    appstripe.Adapter
 	Client              *entdb.Client
 	SecretService       secret.Service
 	StripeClientFactory func(apiKey string) StripeClient
@@ -96,8 +31,8 @@ func (a AppFactoryConfig) Validate() error {
 		return errors.New("app service is required")
 	}
 
-	if a.AppStripeService == nil {
-		return errors.New("app stripe service is required")
+	if a.AppStripeAdapter == nil {
+		return errors.New("app stripe adapter is required")
 	}
 
 	if a.Client == nil {
@@ -118,7 +53,7 @@ func (a AppFactoryConfig) Validate() error {
 // AppFactory is the factory for creating stripe app instances
 type AppFactory struct {
 	AppService          app.Service
-	AppStripeService    Service
+	AppStripeAdapter    appstripe.AppStripeAdapter
 	BillingService      billing.Service
 	Client              *entdb.Client
 	SecretService       secret.Service
@@ -132,7 +67,7 @@ func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
 
 	return AppFactory{
 		AppService:          config.AppService,
-		AppStripeService:    config.AppStripeService,
+		AppStripeAdapter:    config.AppStripeAdapter,
 		SecretService:       config.SecretService,
 		Client:              config.Client,
 		StripeClientFactory: config.StripeClientFactory,
@@ -196,14 +131,20 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 	}
 
 	// Create stripe app
-	app, err := f.AppStripeService.CreateStripeApp(ctx, appstripeentity.CreateAppStripeInput{
+	createStripeAppInput := appstripeentity.CreateAppStripeInput{
 		Namespace:       input.Namespace,
 		Name:            "Stripe",
 		Description:     "Stripe",
 		StripeAccountID: stripeAccount.StripeAccountID,
 		Livemode:        livemode,
 		APIKey:          secretID,
-	})
+	}
+
+	if err := createStripeAppInput.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid create stripe app input: %w", err)
+	}
+
+	app, err := f.AppStripeAdapter.CreateStripeApp(ctx, createStripeAppInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
