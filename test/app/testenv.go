@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
-	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
 	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
@@ -130,9 +129,12 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
-		Client:          entClient,
-		AppService:      appService,
-		CustomerService: customerService,
+		Client:              entClient,
+		AppService:          appService,
+		CustomerService:     customerService,
+		Marketplace:         marketplaceAdapter,
+		SecretService:       secretService,
+		StripeClientFactory: appstripeadapter.StripeClientFactory,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
@@ -143,18 +145,6 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
-	}
-
-	err = appstripe.Register(appstripe.RegisterConfig{
-		AppService:          appService,
-		AppStripeService:    appStripeService,
-		Client:              entClient,
-		Marketplace:         marketplaceAdapter,
-		SecretService:       secretService,
-		StripeClientFactory: appstripe.StripeClientFactory,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to register stripe app: %w", err)
 	}
 
 	// App Stripe Customer
