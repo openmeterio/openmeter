@@ -557,6 +557,44 @@ func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.Entit
 	})
 }
 
+func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey models.SubjectKey, featureKey string, starting time.Time) ([]entitlement.Entitlement, error) {
+	res, err := entutils.TransactingRepo(
+		ctx,
+		a,
+		func(ctx context.Context, repo *entitlementDBAdapter) (*[]entitlement.Entitlement, error) {
+			res, err := repo.db.Entitlement.Query().
+				Where(
+					db_entitlement.Or(
+						db_entitlement.ActiveToIsNil(),
+						db_entitlement.ActiveToGT(starting),
+					),
+				).
+				Where(
+					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
+					db_entitlement.Namespace(namespace),
+					db_entitlement.SubjectKey(string(subjectKey)),
+				).Order(
+				func(s *sql.Selector) {
+					// order by COALESCE(ActiveFrom, CreatedAt) ASC
+					orderBy := fmt.Sprintf("COALESCE(%s, %s) ASC", db_entitlement.FieldActiveFrom, db_entitlement.FieldCreatedAt)
+					s.OrderBy(orderBy)
+				},
+			).All(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			result := make([]entitlement.Entitlement, 0, len(res))
+			for _, e := range res {
+				result = append(result, *mapEntitlementEntity(e))
+			}
+
+			return &result, nil
+		},
+	)
+	return defaultx.WithDefault(res, nil), err
+}
+
 func entitlementActiveBetween(from, to time.Time) []predicate.Entitlement {
 	return []predicate.Entitlement{
 		db_entitlement.Or(

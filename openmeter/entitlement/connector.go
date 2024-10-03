@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -61,6 +60,7 @@ type ListEntitlementsParams struct {
 
 type Connector interface {
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
+	ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, namespace string, id string) error
@@ -104,71 +104,10 @@ func NewEntitlementConnector(
 }
 
 func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error) {
-	doInTx := func(ctx context.Context) (*Entitlement, error) {
-		activeFromTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
-
-		// ID has priority over key
-		featureIdOrKey := input.FeatureID
-		if featureIdOrKey == nil {
-			featureIdOrKey = input.FeatureKey
-		}
-		if featureIdOrKey == nil {
-			return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
-		}
-
-		feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
-		if err != nil || feat == nil {
-			return nil, &feature.FeatureNotFoundError{ID: *featureIdOrKey}
-		}
-
-		// fill featureId and featureKey
-		input.FeatureID = &feat.ID
-		input.FeatureKey = &feat.Key
-
-		currentEntitlements, err := c.entitlementRepo.GetActiveEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey), activeFromTime)
-		if err != nil {
-			return nil, err
-		}
-		for _, ent := range currentEntitlements {
-			// you can only have a single entitlemnet per feature key
-			if ent.FeatureKey == feat.Key || ent.FeatureID == feat.ID {
-				return nil, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: feat.ID, SubjectKey: input.SubjectKey}
-			}
-		}
-
-		connector, err := c.getTypeConnector(input)
-		if err != nil {
-			return nil, err
-		}
-		repoInputs, err := connector.BeforeCreate(input, *feat)
-		if err != nil {
-			return nil, err
-		}
-
-		ent, err := c.entitlementRepo.CreateEntitlement(ctx, *repoInputs)
-		if err != nil {
-			return nil, err
-		}
-
-		err = connector.AfterCreate(ctx, ent)
-		if err != nil {
-			return nil, err
-		}
-
-		err = c.publisher.Publish(ctx, EntitlementCreatedEvent{
-			Entitlement: *ent,
-			Namespace: eventmodels.NamespaceID{
-				ID: input.Namespace,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		return ent, err
+	if input.ActiveTo != nil || input.ActiveFrom != nil {
+		return nil, fmt.Errorf("activeTo and activeFrom are not supported in CreateEntitlement")
 	}
-
-	return transaction.Run(ctx, c.entitlementRepo, doInTx)
+	return c.ScheduleEntitlement(ctx, input)
 }
 
 // OverrideEntitlement replaces an existing entitlement with a new one.

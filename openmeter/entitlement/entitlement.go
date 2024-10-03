@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -112,6 +113,37 @@ type Entitlement struct {
 
 	// static
 	Config []byte `json:"config,omitempty"`
+}
+
+// ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
+func (e Entitlement) ActiveFromTime() time.Time {
+	return defaultx.WithDefault(e.ActiveFrom, e.CreatedAt)
+}
+
+// ActiveToTime returns the time the entitlement is active to. Its either the ActiveTo field or the DeletedAt field or nil
+func (e Entitlement) ActiveToTime() *time.Time {
+	if e.ActiveTo != nil {
+		return e.ActiveTo
+	}
+	return e.DeletedAt
+}
+
+// IsActive returns if the entitlement is active at the given time
+// Period start is determined by
+func (e Entitlement) IsActive(at time.Time) bool {
+	if e.DeletedAt != nil && !at.Before(*e.DeletedAt) {
+		return false
+	}
+
+	if e.ActiveFromTime().After(at) {
+		return false
+	}
+
+	if e.ActiveTo != nil && !at.Before(*e.ActiveTo) {
+		return false
+	}
+
+	return true
 }
 
 func (e Entitlement) GetType() EntitlementType {
