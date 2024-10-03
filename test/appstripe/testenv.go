@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
@@ -24,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -148,7 +151,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		Marketplace:     marketplaceAdapter,
 		SecretService:   secretService,
-		StripeClientFactory: func(config appstripeadapter.StripeClientConfig) (appstripeadapter.StripeClient, error) {
+		StripeClientFactory: func(config appstripeentity.StripeClientConfig) (appstripeentity.StripeClient, error) {
 			return &StripeClientMock{
 				StripeAccountID: "acct_123",
 			}, nil
@@ -205,5 +208,16 @@ func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID str
 }
 
 func (c *StripeClientMock) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]appstripeentity.StripePaymentMethod, error) {
-	return nil, nil
+	return []appstripeentity.StripePaymentMethod{
+		{
+			ID: "pm_123",
+			BillingAddress: &models.Address{
+				City:       lo.ToPtr("San Francisco"),
+				PostalCode: lo.ToPtr("94103"),
+				State:      lo.ToPtr("CA"),
+				Country:    lo.ToPtr(models.CountryCode("US")),
+				Line1:      lo.ToPtr("123 Market St"),
+			},
+		},
+	}, nil
 }

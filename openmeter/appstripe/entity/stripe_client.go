@@ -1,4 +1,4 @@
-package appstripeadapter
+package appstripeentity
 
 import (
 	"context"
@@ -13,14 +13,15 @@ import (
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
+
 type StripeClient interface {
-	GetAccount(ctx context.Context) (appstripeentity.StripeAccount, error)
-	GetCustomer(ctx context.Context, stripeCustomerID string) (appstripeentity.StripeCustomer, error)
-	GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]appstripeentity.StripePaymentMethod, error)
+	GetAccount(ctx context.Context) (StripeAccount, error)
+	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
+	GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]StripePaymentMethod, error)
 }
 
 type StripeClientConfig struct {
@@ -92,36 +93,36 @@ func (l leveledLogger) Errorf(format string, args ...interface{}) {
 }
 
 // GetAccount returns the authorized stripe account
-func (c *stripeClient) GetAccount(ctx context.Context) (appstripeentity.StripeAccount, error) {
+func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 	stripeAccount, err := c.client.Accounts.Get()
 	if err != nil {
-		return appstripeentity.StripeAccount{}, c.providerError(err)
+		return StripeAccount{}, c.providerError(err)
 	}
 
-	return appstripeentity.StripeAccount{
+	return StripeAccount{
 		StripeAccountID: stripeAccount.ID,
 	}, nil
 }
 
 // GetCustomer returns the stripe customer by stripe customer ID
-func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string) (appstripeentity.StripeCustomer, error) {
+func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error) {
 	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, nil)
 	if err != nil {
-		return appstripeentity.StripeCustomer{}, c.providerError(err)
+		return StripeCustomer{}, c.providerError(err)
 	}
 
-	return appstripeentity.StripeCustomer{
+	return StripeCustomer{
 		StripeCustomerID: stripeCustomer.ID,
 	}, nil
 }
 
 // GetCustomerPaymentMethods returns the payment methods for the stripe customer
-func (c *stripeClient) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]appstripeentity.StripePaymentMethod, error) {
+func (c *stripeClient) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]StripePaymentMethod, error) {
 	iterator := c.client.PaymentMethods.List(&stripe.PaymentMethodListParams{
 		Customer: stripe.String(stripeCustomerID),
 	})
 
-	var paymentMethods []appstripeentity.StripePaymentMethod
+	var paymentMethods []StripePaymentMethod
 
 	for iterator.Next() {
 		if iterator.Err() != nil {
@@ -130,7 +131,7 @@ func (c *stripeClient) GetCustomerPaymentMethods(ctx context.Context, stripeCust
 
 		stripePaymentMethod := iterator.PaymentMethod()
 
-		paymentMethod := appstripeentity.StripePaymentMethod{
+		paymentMethod := StripePaymentMethod{
 			ID: stripePaymentMethod.ID,
 		}
 
