@@ -37,7 +37,7 @@ func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime metereden
 	_, err := entutils.TransactingRepo[interface{}, *usageResetDBAdapter](
 		ctx,
 		a,
-		func(ctx context.Context, repo *usageResetDBAdapter) (*interface{}, error) {
+		func(ctx context.Context, repo *usageResetDBAdapter) (interface{}, error) {
 			_, err := repo.db.UsageReset.Create().
 				SetEntitlementID(usageResetTime.EntitlementID).
 				SetNamespace(usageResetTime.Namespace).
