@@ -23,7 +23,7 @@ type AppFactoryConfig struct {
 	AppStripeAdapter    appstripe.Adapter
 	Client              *entdb.Client
 	SecretService       secret.Service
-	StripeClientFactory StripeClientFactory
+	StripeClientFactory appstripeentity.StripeClientFactory
 }
 
 func (a AppFactoryConfig) Validate() error {
@@ -57,7 +57,7 @@ type AppFactory struct {
 	BillingService      billing.Service
 	Client              *entdb.Client
 	SecretService       secret.Service
-	StripeClientFactory StripeClientFactory
+	StripeClientFactory appstripeentity.StripeClientFactory
 }
 
 func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
@@ -68,8 +68,8 @@ func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
 	return AppFactory{
 		AppService:          config.AppService,
 		AppStripeAdapter:    config.AppStripeAdapter,
-		SecretService:       config.SecretService,
 		Client:              config.Client,
+		SecretService:       config.SecretService,
 		StripeClientFactory: config.StripeClientFactory,
 	}, nil
 }
@@ -90,13 +90,21 @@ func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (
 		return nil, fmt.Errorf("failed to get stripe app: %w", err)
 	}
 
-	return &appstripeentity.App{
-		AppBase: appBase,
-		Client:  f.Client,
-
+	app := appstripeentity.App{
+		AppBase:         appBase,
 		StripeAccountId: stripeApp.StripeAccountID,
 		Livemode:        stripeApp.StripeLivemode,
-	}, nil
+
+		Client:              f.Client,
+		SecretService:       f.SecretService,
+		StripeClientFactory: f.StripeClientFactory,
+	}
+
+	if err := app.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid stripe app: %w", err)
+	}
+
+	return &app, nil
 }
 
 func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
@@ -111,7 +119,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		livemode = false
 	}
 
-	stripeClient, err := f.StripeClientFactory(StripeClientConfig{
+	stripeClient, err := f.StripeClientFactory(appstripeentity.StripeClientConfig{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
 	})

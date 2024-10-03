@@ -10,7 +10,6 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -44,7 +43,14 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: %w", err)
 		}
 
-		return mapAppStripeFromDB(a.db, appBase, dbAppStripe), nil
+		// Map the database stripe app to an app entity
+		app := a.mapAppStripeFromDB(appBase, dbAppStripe)
+
+		if err := app.Validate(); err != nil {
+			return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: invalid app: %w", err)
+		}
+
+		return app, nil
 	})
 }
 
@@ -101,12 +107,14 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity
-func mapAppStripeFromDB(client *entdb.Client, appBase appentitybase.AppBase, dbAppStripe *db.AppStripe) appstripeentity.App {
+func (a adapter) mapAppStripeFromDB(appBase appentitybase.AppBase, dbAppStripe *db.AppStripe) appstripeentity.App {
 	return appstripeentity.App{
-		AppBase: appBase,
-		Client:  client,
-
-		StripeAccountId: dbAppStripe.StripeAccountID,
+		AppBase:         appBase,
 		Livemode:        dbAppStripe.StripeLivemode,
+		StripeAccountId: dbAppStripe.StripeAccountID,
+
+		Client:              a.db,
+		SecretService:       a.secretService,
+		StripeClientFactory: a.stripeClientFactory,
 	}
 }
