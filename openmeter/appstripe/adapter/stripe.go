@@ -10,7 +10,9 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -44,10 +46,9 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 		}
 
 		// Map the database stripe app to an app entity
-		app := a.mapAppStripeFromDB(appBase, dbAppStripe)
-
-		if err := app.Validate(); err != nil {
-			return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: invalid app: %w", err)
+		app, err := mapAppStripeFromDB(appBase, dbAppStripe, a.db, a.secretService, a.stripeClientFactory)
+		if err != nil {
+			return appstripeentity.App{}, err
 		}
 
 		return app, nil
@@ -107,14 +108,26 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity
-func (a adapter) mapAppStripeFromDB(appBase appentitybase.AppBase, dbAppStripe *db.AppStripe) appstripeentity.App {
-	return appstripeentity.App{
+func mapAppStripeFromDB(
+	appBase appentitybase.AppBase,
+	dbAppStripe *db.AppStripe,
+	client *entdb.Client,
+	secretService secret.Service,
+	stripeClientFactory appstripeentity.StripeClientFactory,
+) (appstripeentity.App, error) {
+	app := appstripeentity.App{
 		AppBase:         appBase,
 		Livemode:        dbAppStripe.StripeLivemode,
 		StripeAccountId: dbAppStripe.StripeAccountID,
 
-		Client:              a.db,
-		SecretService:       a.secretService,
-		StripeClientFactory: a.stripeClientFactory,
+		Client:              client,
+		SecretService:       secretService,
+		StripeClientFactory: stripeClientFactory,
 	}
+
+	if err := app.Validate(); err != nil {
+		return appstripeentity.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
+	}
+
+	return app, nil
 }
