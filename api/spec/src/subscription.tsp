@@ -44,6 +44,14 @@ interface Subscriptions {
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   @get
+  @operationId("getSubscriptionItemsAt")
+  @route("/{subscriptionId}/items")
+  getItems(
+    @path subscriptionId: ULID,
+    @query at: DateTime,
+  ): SubscriptionItem[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  @get
   @operationId("getPhases")
   @summary("Get the phases of a subscription")
   @route("/{subscriptionId}/phases")
