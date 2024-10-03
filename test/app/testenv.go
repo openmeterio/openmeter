@@ -127,12 +127,11 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 
 	// App Stripe
 	_, err = appstripeadapter.New(appstripeadapter.Config{
-		Client:              entClient,
-		AppService:          appService,
-		CustomerService:     customerService,
-		Marketplace:         marketplaceAdapter,
-		SecretService:       secretService,
-		StripeClientFactory: appstripeadapter.StripeClientFactory,
+		Client:          entClient,
+		AppService:      appService,
+		CustomerService: customerService,
+		Marketplace:     marketplaceAdapter,
+		SecretService:   secretService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)

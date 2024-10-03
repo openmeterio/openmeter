@@ -23,7 +23,7 @@ type AppFactoryConfig struct {
 	AppStripeAdapter    appstripe.Adapter
 	Client              *entdb.Client
 	SecretService       secret.Service
-	StripeClientFactory func(apiKey string) StripeClient
+	StripeClientFactory StripeClientFactory
 }
 
 func (a AppFactoryConfig) Validate() error {
@@ -57,7 +57,7 @@ type AppFactory struct {
 	BillingService      billing.Service
 	Client              *entdb.Client
 	SecretService       secret.Service
-	StripeClientFactory func(apiKey string) StripeClient
+	StripeClientFactory StripeClientFactory
 }
 
 func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
@@ -111,7 +111,13 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		livemode = false
 	}
 
-	stripeClient := f.StripeClientFactory(input.APIKey)
+	stripeClient, err := f.StripeClientFactory(StripeClientConfig{
+		Namespace: input.Namespace,
+		APIKey:    input.APIKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stripe client: %w", err)
+	}
 
 	// TODO: this is the first call to stripe, we should check if the API key is valid and return typed errors
 	// Get stripe account
