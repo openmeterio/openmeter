@@ -90,21 +90,12 @@ func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (
 		return nil, fmt.Errorf("failed to get stripe app: %w", err)
 	}
 
-	app := appstripeentity.App{
-		AppBase:         appBase,
-		StripeAccountId: stripeApp.StripeAccountID,
-		Livemode:        stripeApp.StripeLivemode,
-
-		Client:              f.Client,
-		SecretService:       f.SecretService,
-		StripeClientFactory: f.StripeClientFactory,
+	app, err := mapAppStripeFromDB(appBase, stripeApp, f.Client, f.SecretService, f.StripeClientFactory)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
 
-	if err := app.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid stripe app: %w", err)
-	}
-
-	return &app, nil
+	return app, nil
 }
 
 func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
