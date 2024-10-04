@@ -1,38 +1,37 @@
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
   kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    depends_on:
-      - zookeeper
+    image: confluentinc/cp-kafka:7.7.1
     ports:
-      - 127.0.0.1:29092:29092
+      - "127.0.0.1:29092:29092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      CLUSTER_ID: ca497efe-9f82-4b84-890b-d9969a9a2e1c
+      KAFKA_BROKER_ID: 0
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      JMX_PORT: 9997
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997"
     healthcheck:
-      test: kafka-topics --bootstrap-server kafka:9092 --list
+      test: ["CMD-SHELL", "JMX_PORT=9998", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
       interval: 5s
       timeout: 3s
-      retries: 100
+      retries: 30
 
   clickhouse:
-    image: clickhouse/clickhouse-server:23.3.9.55-alpine
+    image: clickhouse/clickhouse-server:24.9-alpine
     ports:
-      - 127.0.0.1:8123:8123
-      - 127.0.0.1:9000:9000
-      - 127.0.0.1:9009:9009
+      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9009:9009"
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: default
@@ -43,32 +42,46 @@ services:
         soft: 262144
         hard: 262144
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://clickhouse:8123/ping || exit 1
+      test: ["CMD", "wget", "--spider", "http://clickhouse:8123/ping"]
       interval: 5s
       timeout: 3s
-      retries: 100
+      retries: 30
 
   # Deduplication
   # docker compose --profile redis up
   redis:
     profiles:
       - redis
-    image: redis:7.0.12-alpine
+    image: redis:7.0-alpine
     ports:
-      - 127.0.0.1:6379:6379
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "--maxmemory", "50mb", "--maxmemory-policy", "noeviction", "--maxmemory-samples", "10"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
   # Development
   # docker compose --profile dev up
-  redpanda:
-    image: docker.redpanda.com/redpandadata/console:v2.3.1
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
     profiles:
       - dev
     depends_on:
       - kafka
     ports:
-      - 127.0.0.1:8084:8080
+      - "127.0.0.1:8084:8080"
     environment:
-      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      DYNAMIC_CONFIG_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://kafka-ui:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   wiretap:
     image: pb33f/wiretap:v0.0.49
@@ -86,24 +99,27 @@ services:
   # Credit
   # docker compose --profile postgres up
   postgres:
-    image: postgres:14.9
+    image: postgres:14.9-alpine
     profiles:
       - postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=postgres
-    volumes:
-      - ./etc/postgres-init:/docker-entrypoint-initdb.d/
-    command:
-      - "postgres"
-      - "-c"
-      - "wal_level=logical"
+    configs:
+      - source: svix_sql
+        target: /docker-entrypoint-initdb.d/svix.sql
+    command: ["postgres", "-c", "wal_level=logical"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "$${POSTGRES_DB}", "-U", "$${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   svix:
-    image: svix/svix-server:v1.29
+    image: svix/svix-server:v1.37
     profiles:
       - webhook
     environment:
@@ -115,7 +131,15 @@ services:
       SVIX_LOG_LEVEL: "info"
       SVIX_QUEUE_TYPE: "redis"
     ports:
-      - "8071:8071"
+      - "127.0.0.1:8071:8071"
     depends_on:
       - postgres
       - redis
+
+configs:
+  svix_sql:
+    content: |
+      CREATE USER svix WITH PASSWORD 'svix';
+      CREATE DATABASE svix;
+      GRANT ALL PRIVILEGES ON DATABASE svix TO svix;
+      ALTER DATABASE svix OWNER TO svix;

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   openmeter:
     image: "local"
