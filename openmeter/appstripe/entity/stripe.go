@@ -203,5 +203,7 @@ type StripeCustomer struct {
 
 type StripePaymentMethod struct {
 	ID             string
+	Name           string
+	Email          string
 	BillingAddress *models.Address
 }
