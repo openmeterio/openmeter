@@ -21,7 +21,6 @@ type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 type StripeClient interface {
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
-	GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]StripePaymentMethod, error)
 }
 
 type StripeClientConfig struct {
@@ -120,47 +119,42 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 		return StripeCustomer{}, c.providerError(err)
 	}
 
-	return StripeCustomer{
+	customer := StripeCustomer{
 		StripeCustomerID: stripeCustomer.ID,
-	}, nil
+		Currency:         string(stripeCustomer.Currency),
+	}
+
+	if stripeCustomer.InvoiceSettings != nil {
+		invoiceSettings := *stripeCustomer.InvoiceSettings
+
+		if stripeCustomer.InvoiceSettings.DefaultPaymentMethod != nil {
+			customer.DefaultPaymentMethod = lo.ToPtr(toStripePaymentMethod(invoiceSettings.DefaultPaymentMethod))
+		}
+	}
+
+	return customer, nil
 }
 
-// GetCustomerPaymentMethods returns the payment methods for the stripe customer
-func (c *stripeClient) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]StripePaymentMethod, error) {
-	var paymentMethods []StripePaymentMethod
-
-	iterator := c.client.PaymentMethods.List(&stripe.PaymentMethodListParams{
-		Customer: stripe.String(stripeCustomerID),
-	})
-
-	for iterator.Next() {
-		stripePaymentMethod := iterator.PaymentMethod()
-
-		paymentMethod := StripePaymentMethod{
-			ID: stripePaymentMethod.ID,
-		}
-
-		if stripePaymentMethod.BillingDetails != nil && stripePaymentMethod.BillingDetails.Address != nil {
-			address := *stripePaymentMethod.BillingDetails.Address
-
-			paymentMethod.BillingAddress = &models.Address{
-				Country:    lo.ToPtr(models.CountryCode(address.Country)),
-				City:       lo.ToPtr(address.City),
-				State:      lo.ToPtr(address.State),
-				PostalCode: lo.ToPtr(address.PostalCode),
-				Line1:      lo.ToPtr(address.Line1),
-				Line2:      lo.ToPtr(address.Line2),
-			}
-		}
-
-		paymentMethods = append(paymentMethods, paymentMethod)
+// StripePaymentMethod converts a Stripe API payment method to a StripePaymentMethod
+func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaymentMethod {
+	paymentMethod := StripePaymentMethod{
+		ID: stripePaymentMethod.ID,
 	}
 
-	if iterator.Err() != nil {
-		return nil, c.providerError(iterator.Err())
+	if stripePaymentMethod.BillingDetails != nil && stripePaymentMethod.BillingDetails.Address != nil {
+		address := *stripePaymentMethod.BillingDetails.Address
+
+		paymentMethod.BillingAddress = &models.Address{
+			Country:    lo.ToPtr(models.CountryCode(address.Country)),
+			City:       lo.ToPtr(address.City),
+			State:      lo.ToPtr(address.State),
+			PostalCode: lo.ToPtr(address.PostalCode),
+			Line1:      lo.ToPtr(address.Line1),
+			Line2:      lo.ToPtr(address.Line2),
+		}
 	}
 
-	return paymentMethods, nil
+	return paymentMethod
 }
 
 // providerError returns a typed error for stripe provider errors

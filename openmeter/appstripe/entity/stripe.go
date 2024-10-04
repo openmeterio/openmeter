@@ -66,7 +66,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	}
 
 	// Get Stripe Customer
-	stripeCustomer, err := a.Client.AppStripeCustomer.
+	stripeCustomerDBEntity, err := a.Client.AppStripeCustomer.
 		Query().
 		Where(appstripecustomerdb.Namespace(a.Namespace)).
 		Where(appstripecustomerdb.AppID(a.ID)).
@@ -86,7 +86,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	}
 
 	// Check if the customer has a Stripe customer ID
-	if stripeCustomer.StripeCustomerID == nil || *stripeCustomer.StripeCustomerID == "" {
+	if stripeCustomerDBEntity.StripeCustomerID == nil || *stripeCustomerDBEntity.StripeCustomerID == "" {
 		return app.CustomerPreConditionError{
 			AppID:      a.GetID(),
 			AppType:    a.GetType(),
@@ -133,14 +133,14 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	}
 
 	// Check if the customer exists in Stripe
-	_, err = stripeClient.GetCustomer(ctx, *stripeCustomer.StripeCustomerID)
+	stripeCustomer, err := stripeClient.GetCustomer(ctx, *stripeCustomerDBEntity.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeCustomerNotFoundError); ok {
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
 				CustomerID: customer.GetID(),
-				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", *stripeCustomer.StripeCustomerID, stripeApp.StripeAccountID),
+				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", *stripeCustomerDBEntity.StripeCustomerID, stripeApp.StripeAccountID),
 			}
 		}
 
@@ -149,41 +149,28 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
 	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
-		// Get payment methods
-		paymentMethods, err := stripeClient.GetCustomerPaymentMethods(ctx, *stripeCustomer.StripeCustomerID)
-		if err != nil {
-			return fmt.Errorf("failed to get stripe customer payment methods: %w", err)
-		}
-
-		// Must have at least one payment method
-		if len(paymentMethods) == 0 {
+		// Check if the customer has a default payment method
+		if stripeCustomer.DefaultPaymentMethod == nil {
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
 				CustomerID: customer.GetID(),
-				Condition:  "customer must have at least one payment method",
+				Condition:  "stripe customer must have a default payment method",
 			}
 		}
 
-		// Must have at least one payment method with a billing address
+		// Payment method must have a billing address
 		// Billing address is required for tax calculation and invoice creation
-		hasAddress := false
-
-		for _, paymentMethod := range paymentMethods {
-			if paymentMethod.BillingAddress != nil {
-				hasAddress = true
-				break
-			}
-		}
-
-		if !hasAddress {
+		if stripeCustomer.DefaultPaymentMethod.BillingAddress == nil {
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
 				CustomerID: customer.GetID(),
-				Condition:  "customer must have at least one payment method with a billing address",
+				Condition:  "stripe customer default payment method must have a billing address",
 			}
 		}
+
+		// TODO: should we have currency as an input to validation?
 	}
 
 	return nil
@@ -208,6 +195,10 @@ type StripeAccount struct {
 
 type StripeCustomer struct {
 	StripeCustomerID string
+	Currency         string
+	// ID of a payment method that’s attached to the customer,
+	// to be used as the customer’s default payment method for invoices.
+	DefaultPaymentMethod *StripePaymentMethod
 }
 
 type StripePaymentMethod struct {

@@ -204,12 +204,7 @@ func (c *StripeClientMock) GetAccount(ctx context.Context) (appstripeentity.Stri
 func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (appstripeentity.StripeCustomer, error) {
 	return appstripeentity.StripeCustomer{
 		StripeCustomerID: stripeCustomerID,
-	}, nil
-}
-
-func (c *StripeClientMock) GetCustomerPaymentMethods(ctx context.Context, stripeCustomerID string) ([]appstripeentity.StripePaymentMethod, error) {
-	return []appstripeentity.StripePaymentMethod{
-		{
+		DefaultPaymentMethod: &appstripeentity.StripePaymentMethod{
 			ID: "pm_123",
 			BillingAddress: &models.Address{
 				City:       lo.ToPtr("San Francisco"),
