@@ -65,7 +65,7 @@ func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, 
 
 // Set sets events into redis
 func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
-	keys := make([]string, len(items))
+	keys := make([]string, 0, len(items))
 	for _, item := range items {
 		keys = append(keys, item.Key())
 	}
