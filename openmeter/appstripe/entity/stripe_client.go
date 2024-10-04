@@ -144,13 +144,17 @@ func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaym
 	if stripePaymentMethod.BillingDetails != nil && stripePaymentMethod.BillingDetails.Address != nil {
 		address := *stripePaymentMethod.BillingDetails.Address
 
+		paymentMethod.Name = stripePaymentMethod.BillingDetails.Name
+		paymentMethod.Email = stripePaymentMethod.BillingDetails.Email
+
 		paymentMethod.BillingAddress = &models.Address{
-			Country:    lo.ToPtr(models.CountryCode(address.Country)),
-			City:       lo.ToPtr(address.City),
-			State:      lo.ToPtr(address.State),
-			PostalCode: lo.ToPtr(address.PostalCode),
-			Line1:      lo.ToPtr(address.Line1),
-			Line2:      lo.ToPtr(address.Line2),
+			Country:     lo.ToPtr(models.CountryCode(address.Country)),
+			City:        lo.ToPtr(address.City),
+			State:       lo.ToPtr(address.State),
+			PostalCode:  lo.ToPtr(address.PostalCode),
+			Line1:       lo.ToPtr(address.Line1),
+			Line2:       lo.ToPtr(address.Line2),
+			PhoneNumber: lo.ToPtr(stripePaymentMethod.BillingDetails.Phone),
 		}
 	}
 
