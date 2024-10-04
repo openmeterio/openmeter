@@ -710,6 +710,24 @@ func (u *EntitlementUpsert) ClearDeletedAt() *EntitlementUpsert {
 	return u
 }
 
+// SetActiveTo sets the "active_to" field.
+func (u *EntitlementUpsert) SetActiveTo(v time.Time) *EntitlementUpsert {
+	u.Set(entitlement.FieldActiveTo, v)
+	return u
+}
+
+// UpdateActiveTo sets the "active_to" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateActiveTo() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldActiveTo)
+	return u
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (u *EntitlementUpsert) ClearActiveTo() *EntitlementUpsert {
+	u.SetNull(entitlement.FieldActiveTo)
+	return u
+}
+
 // SetConfig sets the "config" field.
 func (u *EntitlementUpsert) SetConfig(v []uint8) *EntitlementUpsert {
 	u.Set(entitlement.FieldConfig, v)
@@ -813,9 +831,6 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.ActiveFrom(); exists {
 			s.SetIgnore(entitlement.FieldActiveFrom)
-		}
-		if _, exists := u.create.mutation.ActiveTo(); exists {
-			s.SetIgnore(entitlement.FieldActiveTo)
 		}
 		if _, exists := u.create.mutation.FeatureKey(); exists {
 			s.SetIgnore(entitlement.FieldFeatureKey)
@@ -925,6 +940,27 @@ func (u *EntitlementUpsertOne) UpdateDeletedAt() *EntitlementUpsertOne {
 func (u *EntitlementUpsertOne) ClearDeletedAt() *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetActiveTo sets the "active_to" field.
+func (u *EntitlementUpsertOne) SetActiveTo(v time.Time) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetActiveTo(v)
+	})
+}
+
+// UpdateActiveTo sets the "active_to" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateActiveTo() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateActiveTo()
+	})
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (u *EntitlementUpsertOne) ClearActiveTo() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearActiveTo()
 	})
 }
 
@@ -1210,9 +1246,6 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			if _, exists := b.mutation.ActiveFrom(); exists {
 				s.SetIgnore(entitlement.FieldActiveFrom)
 			}
-			if _, exists := b.mutation.ActiveTo(); exists {
-				s.SetIgnore(entitlement.FieldActiveTo)
-			}
 			if _, exists := b.mutation.FeatureKey(); exists {
 				s.SetIgnore(entitlement.FieldFeatureKey)
 			}
@@ -1322,6 +1355,27 @@ func (u *EntitlementUpsertBulk) UpdateDeletedAt() *EntitlementUpsertBulk {
 func (u *EntitlementUpsertBulk) ClearDeletedAt() *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetActiveTo sets the "active_to" field.
+func (u *EntitlementUpsertBulk) SetActiveTo(v time.Time) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetActiveTo(v)
+	})
+}
+
+// UpdateActiveTo sets the "active_to" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateActiveTo() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateActiveTo()
+	})
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (u *EntitlementUpsertBulk) ClearActiveTo() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearActiveTo()
 	})
 }
 
