@@ -699,6 +699,20 @@ func (u *EntitlementUpdateOne) SetOrClearDeletedAt(value *time.Time) *Entitlemen
 	return u.SetDeletedAt(*value)
 }
 
+func (u *EntitlementUpdate) SetOrClearActiveTo(value *time.Time) *EntitlementUpdate {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *EntitlementUpdateOne) SetOrClearActiveTo(value *time.Time) *EntitlementUpdateOne {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
 func (u *EntitlementUpdate) SetOrClearConfig(value *[]uint8) *EntitlementUpdate {
 	if value == nil {
 		return u.ClearConfig()
