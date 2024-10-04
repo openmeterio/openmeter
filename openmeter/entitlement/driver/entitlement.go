@@ -23,7 +23,7 @@ import (
 
 type EntitlementHandler interface {
 	CreateEntitlement() CreateEntitlementHandler
-	OverrideEntitlement() OverrideEntitlementHandler
+	OverrideEntitlement() OverrideEntitlementHandler // Maybe rename (both here & API) to Supersede
 	GetEntitlement() GetEntitlementHandler
 	GetEntitlementById() GetEntitlementByIdHandler
 	DeleteEntitlement() DeleteEntitlementHandler

@@ -884,6 +884,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
+		require.NotNil(t, resp2)
+		require.NotNil(t, resp2.JSON201)
+
 		metered, err = resp2.JSON201.AsEntitlementMetered()
 		require.NoError(t, err)
 

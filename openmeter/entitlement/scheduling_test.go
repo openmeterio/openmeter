@@ -13,8 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
-
-
 func TestScheduling(t *testing.T) {
 	tt := []struct {
 		name string

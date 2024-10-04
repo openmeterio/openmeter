@@ -61,7 +61,11 @@ type ListEntitlementsParams struct {
 type Connector interface {
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
+	// OverrideEntitlement replaces a currently active entitlement with a new one.
 	OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error)
+	// SupersedeEntitlement replaces an entitlement by scheduling a new one
+	SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error)
+
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, namespace string, id string) error
 
@@ -114,7 +118,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error) {
 	// Validate input
 	if subject != input.SubjectKey {
-		return nil, &models.GenericUserError{Message: "Subject key in path and body do not match"}
+		return nil, &models.GenericUserError{Message: "Subject keys do not match"}
 	}
 
 	// Find the entitlement to override
@@ -136,36 +140,11 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 		return nil, fmt.Errorf("inconsistency error, entitlement already deleted: %s", oldEnt.ID)
 	}
 
-	// ID has priority over key
-	featureIdOrKey := input.FeatureID
-	if featureIdOrKey == nil {
-		featureIdOrKey = input.FeatureKey
-	}
-	if featureIdOrKey == nil {
-		return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
+	if input.ActiveFrom != nil || input.ActiveTo != nil {
+		return nil, &models.GenericUserError{Message: "ActiveFrom and ActiveTo are not supported in OverrideEntitlement"}
 	}
 
-	feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
-	if err != nil || feat == nil {
-		return nil, &feature.FeatureNotFoundError{ID: *featureIdOrKey}
-	}
-
-	if feat.ID != oldEnt.FeatureID {
-		return nil, &models.GenericUserError{Message: "Feature in path and body do not match"}
-	}
-
-	// Do the override in TX
-	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
-		// Delete previous entitlement
-		// FIXME: we publish an event during this even if we fail later
-		err := c.DeleteEntitlement(ctx, input.Namespace, oldEnt.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		// Create new entitlement
-		return c.CreateEntitlement(ctx, input)
-	})
+	return c.SupersedeEntitlement(ctx, oldEnt.ID, input)
 }
 
 func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error) {
