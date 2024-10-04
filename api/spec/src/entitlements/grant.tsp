@@ -77,10 +77,17 @@ interface Grants {
 /**
  * The grant.
  */
-@friendlyName("Grant")
+@friendlyName("EntitlementGrant")
 model Grant {
   ...ResourceTimestamps;
   ...OmitProperties<GrantCreateInput, "recurrence">;
+
+  /**
+   * Readonly unique ULID identifier.
+   */
+  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
+  @visibility("read")
+  id: ULID;
 
   /**
    * The unique entitlement ULID that the grant is associated with.
@@ -117,7 +124,7 @@ model Grant {
 /**
  * The grant creation input.
  */
-@friendlyName("GrantCreateInput")
+@friendlyName("EntitlementGrantCreateInput")
 model GrantCreateInput {
   /**
    * The amount to grant. Should be a positive number.
@@ -154,7 +161,7 @@ model GrantCreateInput {
    * Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
    */
   @example(100.0)
-  maxRolloveAmount?: float64 = 0;
+  maxRolloverAmount?: float64 = 0;
 
   /**
    * Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.

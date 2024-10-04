@@ -303,7 +303,7 @@ model GrantBurnDownHistorySegment {
    */
   @example(100)
   @visibility("read")
-  balanceAtEnt: float64;
+  balanceAtEnd: float64;
 
   /**
    * The balance breakdown of each active grant at the end of the period: GrantID: Balance

@@ -46,7 +46,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		SubjectKey:             metered.SubjectKey,
 		Type:                   api.EntitlementMeteredType(metered.EntitlementType),
 		UpdatedAt:              metered.UpdatedAt,
-		UsagePeriod:            *mapUsagePeriod(e.UsagePeriod),
+		UsagePeriod:            mapUsagePeriod(e.UsagePeriod),
 		CurrentUsagePeriod:     *mapPeriod(e.CurrentUsagePeriod),
 		LastReset:              metered.LastReset,
 		PreserveOverageAtReset: convert.ToPointer(metered.PreserveOverageAtReset),
@@ -172,7 +172,7 @@ func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	}
 	return &api.RecurringPeriod{
 		Anchor:   u.Anchor,
-		Interval: api.RecurringPeriodEnum(u.Interval),
+		Interval: api.RecurringPeriodInterval(u.Interval),
 	}
 }
 
