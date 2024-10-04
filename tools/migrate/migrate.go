@@ -2,12 +2,12 @@
 package migrate
 
 import (
+	"database/sql"
 	"embed"
 	"io/fs"
-	"net/url"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/database/pgx"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
@@ -20,42 +20,35 @@ type Migrate = migrate.Migrate
 //go:embed migrations
 var OMMigrations embed.FS
 
+type Options struct {
+	DB       *sql.DB
+	FS       fs.FS
+	FSPath   string
+	PGConfig *pgx.Config
+}
+
 // NewMigrate creates a new migrate instance.
-func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
-	d, err := iofs.New(fs, fsPath)
+func NewMigrate(opt Options) (*Migrate, error) {
+	d, err := iofs.New(opt.FS, opt.FSPath)
 	if err != nil {
 		return nil, err
 	}
-	return migrate.NewWithSourceInstance("iofs", d, conn)
+
+	driver, err := pgx.WithInstance(opt.DB, opt.PGConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return migrate.NewWithInstance("iofs", d, "postgres", driver)
 }
 
-func Up(conn string) error {
-	conn, err := SetMigrationTableName(conn, MigrationsTable)
-	if err != nil {
-		return err
-	}
-	m, err := NewMigrate(conn, OMMigrations, "migrations")
-	if err != nil {
-		return err
-	}
-
-	defer m.Close()
-	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-	return nil
-}
-
-func SetMigrationTableName(conn, tableName string) (string, error) {
-	parsedURL, err := url.Parse(conn)
-	if err != nil {
-		return "", err
-	}
-
-	values := parsedURL.Query()
-	values.Set("x-migrations-table", tableName)
-	parsedURL.RawQuery = values.Encode()
-
-	return parsedURL.String(), nil
+func Default(db *sql.DB) (*Migrate, error) {
+	return NewMigrate(Options{
+		DB:     db,
+		FS:     OMMigrations,
+		FSPath: "migrations",
+		PGConfig: &pgx.Config{
+			MigrationsTable: MigrationsTable,
+		},
+	})
 }

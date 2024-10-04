@@ -12,7 +12,7 @@ func TestUpDownUp(t *testing.T) {
 	testDB := testutils.InitPostgresDB(t)
 	defer testDB.PGDriver.Close()
 
-	migrator, err := migrate.NewMigrate(testDB.URL, migrate.OMMigrations, "migrations")
+	migrator, err := migrate.Default(testDB.SQLDriver)
 	if err != nil {
 		t.Fatal(err)
 	}

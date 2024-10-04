@@ -2,6 +2,7 @@ package startup
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/config"
@@ -9,19 +10,23 @@ import (
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
-func DB(ctx context.Context, cfg config.PostgresConfig, db *db.Client) error {
+func DB(ctx context.Context, cfg config.PostgresConfig, client *db.Client, db *sql.DB) error {
 	if !cfg.AutoMigrate.Enabled() {
 		return nil
 	}
 
 	switch cfg.AutoMigrate {
 	case config.AutoMigrateEnt:
-		if err := db.Schema.Create(ctx); err != nil {
+		if err := client.Schema.Create(ctx); err != nil {
 			return fmt.Errorf("failed to migrate db: %w", err)
 		}
 	case config.AutoMigrateMigration:
-		if err := migrate.Up(cfg.URL); err != nil {
-			return fmt.Errorf("failed to migrate db: %w", err)
+		if m, err := migrate.Default(db); err == nil {
+			if err := m.Up(); err != nil {
+				return fmt.Errorf("failed to migrate db: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to create migrate instance: %w", err)
 		}
 	}
 
