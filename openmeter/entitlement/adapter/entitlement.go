@@ -171,6 +171,31 @@ func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlemen
 	return err
 }
 
+func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error {
+	_, err := entutils.TransactingRepo[interface{}, *entitlementDBAdapter](
+		ctx,
+		a,
+		func(ctx context.Context, repo *entitlementDBAdapter) (*interface{}, error) {
+			ent, err := repo.GetEntitlement(ctx, entitlementID)
+			if err != nil {
+				return nil, err
+			}
+
+			if ent.ActiveTo != nil {
+				return nil, fmt.Errorf("entitlement %s is already deactivated", entitlementID.ID)
+			}
+
+			_, err = repo.db.Entitlement.Update().
+				Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
+				SetActiveTo(at).
+				Save(ctx)
+			return nil, err
+		},
+	)
+
+	return err
+}
+
 func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eventFilters []balanceworker.IngestEventQueryFilter) ([]balanceworker.IngestEventDataResponse, error) {
 	return entutils.TransactingRepo[[]balanceworker.IngestEventDataResponse, *entitlementDBAdapter](
 		ctx,

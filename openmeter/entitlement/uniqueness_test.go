@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSchedulingConstraint(t *testing.T) {

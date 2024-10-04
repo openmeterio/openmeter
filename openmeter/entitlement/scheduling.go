@@ -125,3 +125,71 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 		return ent, err
 	})
 }
+
+func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error) {
+	// Find the entitlement to override
+	oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementId})
+	if err != nil {
+		return nil, err
+	}
+
+	if oldEnt == nil {
+		return nil, fmt.Errorf("inconsistency error, entitlement is nil: %s", entitlementId)
+	}
+
+	if oldEnt.DeletedAt != nil {
+		return nil, &AlreadyDeletedError{EntitlementID: oldEnt.ID}
+	}
+
+	// ID has priority over key
+	featureIdOrKey := input.FeatureID
+	if featureIdOrKey == nil {
+		featureIdOrKey = input.FeatureKey
+	}
+	if featureIdOrKey == nil {
+		return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
+	}
+
+	feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
+	if err != nil {
+		return nil, err
+	}
+
+	if feat == nil {
+		return nil, fmt.Errorf("inconsistency error, feature is nil: %s", *featureIdOrKey)
+	}
+
+	// Validate that old a new entitlement belong to same feature & subject
+
+	if feat.Key != oldEnt.FeatureKey {
+		return nil, &models.GenericUserError{Message: "Old and new entitlements belong to different features"}
+	}
+
+	if input.SubjectKey != oldEnt.SubjectKey {
+		return nil, &models.GenericUserError{Message: "Old and new entitlements belong to different subjects"}
+	}
+
+	// To override we close the old entitlement as inactive and create the new one
+	activationTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
+
+	if !activationTime.After(oldEnt.ActiveFromTime()) {
+		return nil, &models.GenericUserError{Message: "New entitlement must be active after the old one"}
+	}
+
+	// To avoid unintended consequences, we don't allow overriding an entitlement with another one which wouldn't otherwise be overlapping
+	// Otherwise create ScheduleEntitlement would return an InconsistencyError which is hard to make sense of
+	if oldEnt.ActiveToTime() != nil && oldEnt.ActiveToTime().Before(activationTime) {
+		return nil, &models.GenericUserError{Message: "New entitlement must be active before the old one ends"}
+	}
+
+	// Do the override in TX
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
+		err := c.entitlementRepo.DeactivateEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: oldEnt.ID}, activationTime)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create new entitlement
+		return c.ScheduleEntitlement(ctx, input)
+	})
+}
