@@ -205,7 +205,9 @@ func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID str
 	return appstripeentity.StripeCustomer{
 		StripeCustomerID: stripeCustomerID,
 		DefaultPaymentMethod: &appstripeentity.StripePaymentMethod{
-			ID: "pm_123",
+			ID:    "pm_123",
+			Name:  "ACME Inc.",
+			Email: "acme@test.com",
 			BillingAddress: &models.Address{
 				City:       lo.ToPtr("San Francisco"),
 				PostalCode: lo.ToPtr("94103"),
