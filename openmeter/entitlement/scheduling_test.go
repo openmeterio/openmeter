@@ -3,6 +3,7 @@ package entitlement_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -309,6 +310,366 @@ func TestScheduling(t *testing.T) {
 				var conflictErr *entitlement.AlreadyExistsError
 				assert.ErrorAsf(t, err, &conflictErr, "expected error to be of type %T", conflictErr)
 				assert.Equal(t, ent1.ID, conflictErr.EntitlementID)
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			conn, deps := setupDependecies(t)
+			defer deps.Teardown()
+			tc.fn(t, conn, deps)
+		})
+	}
+}
+
+func TestSuperseding(t *testing.T) {
+	tt := []struct {
+		name string
+		fn   func(t *testing.T, conn entitlement.Connector, deps *dependencies)
+	}{
+		{
+			name: "Should error if original entitlement is not found",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Supersede nonexistent entitlement
+				_, err = conn.SupersedeEntitlement(
+					ctx,
+					"bogus-id",
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.EqualError(t, err, "entitlement not found bogus-id in namespace ns1")
+			},
+		},
+		{
+			name: "Should error if feature is not found",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Supersede entitlement
+				_, err = conn.SupersedeEntitlement(
+					ctx,
+					ent1.ID,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature2"), // invlid value
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
+					},
+				)
+				assert.EqualError(t, err, "feature not found: feature2")
+			},
+		},
+		{
+			name: "Should error for differing feature",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				_, err = deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature2",
+					Key:       "feature2",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Supersede entitlement
+				_, err = conn.SupersedeEntitlement(
+					ctx,
+					ent1.ID,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature2"), // invalid value
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
+					},
+				)
+				assert.EqualError(t, err, "Old and new entitlements belong to different features")
+			},
+		},
+		{
+			name: "Should error for differing subjects",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Supersede entitlement
+				_, err = conn.SupersedeEntitlement(
+					ctx,
+					ent1.ID,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject2", // invalid value
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour)),
+					},
+				)
+				assert.EqualError(t, err, "Old and new entitlements belong to different subjects")
+			},
+		},
+		{
+			name: "Should supersede entitlement",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Supersede entitlement
+				ent2, err := conn.SupersedeEntitlement(
+					ctx,
+					ent1.ID,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour)),
+					},
+				)
+				assert.Nil(t, err)
+
+				ent1, err = conn.GetEntitlement(ctx, ent1.Namespace, ent1.ID)
+				assert.Nil(t, err)
+
+				assert.Equal(t, lo.ToPtr(activeFrom1.Add(time.Hour)), ent1.ActiveTo)
+				assert.Equal(t, lo.ToPtr(activeFrom1.Add(time.Hour)), ent2.ActiveFrom)
+				assert.Nil(t, ent2.ActiveTo)
+			},
+		},
+		{
+			name: "Should error if entitlements are not overlapping",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+						ActiveTo:   lo.ToPtr(activeFrom1.Add(time.Hour)),
+					},
+				)
+				assert.Nil(t, err)
+
+				// Supersede entitlement
+				_, err = conn.SupersedeEntitlement(
+					ctx,
+					ent1.ID,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour * 2)),
+						ActiveTo:        lo.ToPtr(activeFrom1.Add(time.Hour * 3)),
+					},
+				)
+				assert.EqualError(t, err, "New entitlement must be active before the old one ends")
+			},
+		},
+		{
+			name: "Should use current time for scheduling if activeFrom is not provided",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-01T12:00:00Z")
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+				})
+
+				assert.Nil(t, err)
+
+				// Create first entitlement
+				ent1, err := conn.ScheduleEntitlement(
+					ctx,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+						// 12h in future
+						ActiveFrom: lo.ToPtr(activeFrom1),
+					},
+				)
+				assert.Nil(t, err)
+
+				currentTime := testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z")
+				clock.FreezeTime(currentTime)
+				defer clock.UnFreeze()
+
+				// Supersede entitlement
+				ent2, err := conn.SupersedeEntitlement(
+					ctx,
+					ent1.ID,
+					entitlement.CreateEntitlementInputs{
+						Namespace:       "ns1",
+						FeatureKey:      lo.ToPtr("feature1"),
+						SubjectKey:      "subject1",
+						EntitlementType: entitlement.EntitlementTypeBoolean,
+					},
+				)
+				assert.Nil(t, err)
+
+				ent1, err = conn.GetEntitlement(ctx, ent1.Namespace, ent1.ID)
+				assert.Nil(t, err)
+
+				// This assertions could fail if the test is slow
+				assert.Equal(t, lo.ToPtr(currentTime), ent1.ActiveTo)
+				assert.Equal(t, lo.ToPtr(currentTime), ent2.ActiveFrom)
+				assert.Nil(t, ent2.ActiveTo)
 			},
 		},
 	}

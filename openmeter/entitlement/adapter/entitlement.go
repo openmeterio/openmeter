@@ -185,11 +185,19 @@ func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitl
 				return nil, fmt.Errorf("entitlement %s is already deactivated", entitlementID.ID)
 			}
 
-			_, err = repo.db.Entitlement.Update().
+			c, err := repo.db.Entitlement.Update().
 				Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
 				SetActiveTo(at).
 				Save(ctx)
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+
+			if c != 1 {
+				return nil, fmt.Errorf("updated %d entitlements, which is not 1", c)
+			}
+
+			return nil, nil
 		},
 	)
 
