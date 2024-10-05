@@ -21,6 +21,8 @@ type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 type StripeClient interface {
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
+	CreateCustomer(ctx context.Context, input StripeClientCreateStripeCustomerInput) (StripeCustomer, error)
+	CreateCheckoutSession(ctx context.Context, input StripeClientCreateCheckoutSessionInput) (StripeCheckoutSession, error)
 }
 
 type StripeClientConfig struct {
@@ -121,7 +123,10 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 
 	customer := StripeCustomer{
 		StripeCustomerID: stripeCustomer.ID,
-		Currency:         string(stripeCustomer.Currency),
+	}
+
+	if stripeCustomer.Currency != "" {
+		customer.Currency = lo.ToPtr(string(stripeCustomer.Currency))
 	}
 
 	if stripeCustomer.InvoiceSettings != nil {
@@ -133,6 +138,119 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 	}
 
 	return customer, nil
+}
+
+// CreateCustomer creates a stripe customer
+func (c *stripeClient) CreateCustomer(ctx context.Context, input StripeClientCreateStripeCustomerInput) (StripeCustomer, error) {
+	if err := input.Validate(); err != nil {
+		return StripeCustomer{}, err
+	}
+
+	// Create customer
+	params := &stripe.CustomerParams{}
+
+	stripeCustomer, err := c.client.Customers.New(params)
+	if err != nil {
+		return StripeCustomer{}, c.providerError(err)
+	}
+
+	out := StripeCustomer{
+		StripeCustomerID: stripeCustomer.ID,
+	}
+
+	return out, nil
+}
+
+// CreateCheckoutSession creates a checkout session
+func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input StripeClientCreateCheckoutSessionInput) (StripeCheckoutSession, error) {
+	if err := input.Validate(); err != nil {
+		return StripeCheckoutSession{}, err
+	}
+
+	// Create checkout session
+	params := &stripe.CheckoutSessionParams{
+		Customer:                 lo.ToPtr(input.StripeCustomerID),
+		Mode:                     lo.ToPtr(string(stripe.CheckoutSessionModeSetup)),
+		BillingAddressCollection: lo.ToPtr(string(stripe.CheckoutSessionBillingAddressCollectionAuto)),
+		CustomerUpdate: &stripe.CheckoutSessionCustomerUpdateParams{
+			Address: lo.ToPtr("auto"),
+			Name:    lo.ToPtr("auto"),
+		},
+		TaxIDCollection: &stripe.CheckoutSessionTaxIDCollectionParams{
+			Enabled:  lo.ToPtr(true),
+			Required: lo.ToPtr("if_supported"),
+		},
+		SetupIntentData: &stripe.CheckoutSessionSetupIntentDataParams{
+			Metadata: map[string]string{
+				"om_namespace":   input.AppID.Namespace,
+				"om_app_id":      input.AppID.ID,
+				"om_customer_id": input.CustomerID.ID,
+			},
+		},
+	}
+
+	if input.Options.SuccessURL != nil {
+		params.SuccessURL = input.Options.SuccessURL
+	}
+
+	if input.Options.CancelURL != nil {
+		params.CancelURL = input.Options.CancelURL
+	}
+
+	if input.Options.ReturnURL != nil {
+		params.ReturnURL = input.Options.ReturnURL
+	}
+
+	if input.Options.ClientReferenceID != nil {
+		params.ClientReferenceID = input.Options.ClientReferenceID
+	}
+
+	if input.Options.CustomText != nil {
+		params.CustomText = input.Options.CustomText
+	}
+
+	if len(input.Options.Metadata) > 0 {
+		params.Metadata = input.Options.Metadata
+	}
+
+	if input.Options.UIMode != nil {
+		params.Mode = lo.ToPtr(string(*input.Options.UIMode))
+	}
+
+	if input.Options.PaymentMethodTypes != nil {
+		params.PaymentMethodTypes = *input.Options.PaymentMethodTypes
+	}
+
+	session, err := c.client.CheckoutSessions.New(params)
+	if err != nil {
+		return StripeCheckoutSession{}, c.providerError(err)
+	}
+
+	// Create output
+	if session.SetupIntent == nil {
+		return StripeCheckoutSession{}, errors.New("setup intent is required")
+	}
+
+	stripeCheckoutSession := StripeCheckoutSession{
+		SessionID:     session.ID,
+		URL:           session.URL,
+		SetupIntentID: session.SetupIntent.ID,
+		Mode:          session.Mode,
+	}
+
+	if session.CancelURL != "" {
+		stripeCheckoutSession.CancelURL = &session.CancelURL
+	}
+
+	if session.ReturnURL != "" {
+		stripeCheckoutSession.ReturnURL = &session.ReturnURL
+	}
+
+	if session.SuccessURL != "" {
+		stripeCheckoutSession.SuccessURL = &session.SuccessURL
+	}
+
+	return stripeCheckoutSession, nil
 }
 
 // StripePaymentMethod converts a Stripe API payment method to a StripePaymentMethod
