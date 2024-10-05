@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
@@ -216,5 +217,28 @@ func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID str
 				Line1:      lo.ToPtr("123 Market St"),
 			},
 		},
+	}, nil
+}
+
+func (c *StripeClientMock) CreateCustomer(ctx context.Context, input appstripeentity.StripeClientCreateStripeCustomerInput) (appstripeentity.StripeCustomer, error) {
+	if err := input.Validate(); err != nil {
+		return appstripeentity.StripeCustomer{}, err
+	}
+
+	return appstripeentity.StripeCustomer{
+		StripeCustomerID: "cus_123",
+	}, nil
+}
+
+func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input appstripeentity.StripeClientCreateCheckoutSessionInput) (appstripeentity.StripeCheckoutSession, error) {
+	if err := input.Validate(); err != nil {
+		return appstripeentity.StripeCheckoutSession{}, err
+	}
+
+	return appstripeentity.StripeCheckoutSession{
+		SessionID:     "cs_123",
+		SetupIntentID: "seti_123",
+		Mode:          stripe.CheckoutSessionModeSetup,
+		URL:           "https://checkout.stripe.com/cs_123/test",
 	}, nil
 }

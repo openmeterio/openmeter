@@ -6,6 +6,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/stripe/stripe-go/v80"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -149,4 +150,56 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	// Validate the customer without stripe data
 	err = getApp.ValidateCustomer(ctx, customerWithoutStripeData, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
 	require.ErrorContains(t, err, "customer has no data", "Validate customer must return error")
+}
+
+// TestCreateCheckoutSession tests stripe app behavior when creating a new checkout session
+func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Create a stripe app first
+	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, app, "Create stripe app must return app")
+
+	// Create test customers
+	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
+		Namespace: s.namespace,
+		Customer: customerentity.Customer{
+			Name: "Test Customer",
+			Apps: []customerentity.CustomerApp{
+				{
+					Type: appentitybase.AppTypeStripe,
+					Data: appstripeentity.CustomerAppData{
+						StripeCustomerID: "cus_123",
+					},
+				},
+			},
+		},
+	})
+
+	require.NoError(t, err, "Create customer must not return error")
+	require.NotNil(t, customer, "Create customer must return customer")
+
+	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+		AppID:      app.GetID(),
+		CustomerID: customer.GetID(),
+		Options:    appstripeentity.StripeCheckoutSessionOptions{},
+	})
+
+	require.NoError(t, err, "Create checkout session must not return error")
+
+	require.Equal(t, appstripeentity.StripeCheckoutSession{
+		SessionID:     "cs_123",
+		SetupIntentID: "seti_123",
+		Mode:          stripe.CheckoutSessionModeSetup,
+		URL:           "https://checkout.stripe.com/cs_123/test",
+	}, checkoutSession, "Create checkout session must match")
 }

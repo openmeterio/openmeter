@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/stripe/stripe-go/v80"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -195,7 +197,7 @@ type StripeAccount struct {
 
 type StripeCustomer struct {
 	StripeCustomerID string
-	Currency         string
+	Currency         *string
 	// ID of a payment method that’s attached to the customer,
 	// to be used as the customer’s default payment method for invoices.
 	DefaultPaymentMethod *StripePaymentMethod
@@ -206,4 +208,35 @@ type StripePaymentMethod struct {
 	Name           string
 	Email          string
 	BillingAddress *models.Address
+}
+
+type StripeCheckoutSession struct {
+	SessionID     string
+	SetupIntentID string
+	URL           string
+	Mode          stripe.CheckoutSessionMode
+
+	CancelURL  *string
+	SuccessURL *string
+	ReturnURL  *string
+}
+
+func (o StripeCheckoutSession) Validate() error {
+	if o.SessionID == "" {
+		return errors.New("session id is required")
+	}
+
+	if o.SetupIntentID == "" {
+		return errors.New("setup intent id is required")
+	}
+
+	if o.URL == "" {
+		return errors.New("url is required")
+	}
+
+	if o.Mode != stripe.CheckoutSessionModeSetup {
+		return errors.New("mode must be setup")
+	}
+
+	return nil
 }

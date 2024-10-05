@@ -3,6 +3,9 @@ package appstripeentity
 import (
 	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/stripe/stripe-go/v80"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -45,6 +48,43 @@ func (i CreateAppStripeInput) Validate() error {
 
 	return nil
 }
+
+type CreateStripeCustomerInput struct {
+	AppID      appentitybase.AppID
+	CustomerID customerentity.CustomerID
+}
+
+func (i CreateStripeCustomerInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("error validating customer id: %w", err)
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
+	}
+
+	return nil
+}
+
+type CreateStripeCustomerOutput struct {
+	StripeCustomerID string
+}
+
+func (o CreateStripeCustomerOutput) Validate() error {
+	if o.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
+	}
+
+	return nil
+}
+
+type (
+	StripeClientCreateStripeCustomerInput = CreateStripeCustomerInput
+)
 
 type UpsertStripeCustomerDataInput struct {
 	AppID            appentitybase.AppID
@@ -97,6 +137,105 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 
 		if i.AppID.Namespace != i.CustomerID.Namespace {
 			return errors.New("app and customer must be in the same namespace")
+		}
+	}
+
+	return nil
+}
+
+type StripeCheckoutSessionOptions struct {
+	CancelURL          *string
+	ClientReferenceID  *string
+	CustomText         *stripe.CheckoutSessionCustomTextParams
+	Metadata           map[string]string
+	ReturnURL          *string
+	SuccessURL         *string
+	UIMode             *stripe.CheckoutSessionUIMode
+	PaymentMethodTypes *[]*string
+}
+
+type CreateCheckoutSessionInput struct {
+	AppID            appentitybase.AppID
+	CustomerID       customerentity.CustomerID
+	StripeCustomerID *string
+	Options          StripeCheckoutSessionOptions
+}
+
+func (i CreateCheckoutSessionInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("error validating customer id: %w", err)
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
+	}
+
+	if i.StripeCustomerID != nil && !strings.HasPrefix(*i.StripeCustomerID, "cus_") {
+		return errors.New("stripe customer id must start with cus_")
+	}
+
+	if i.Options.UIMode != nil {
+		switch *i.Options.UIMode {
+		case stripe.CheckoutSessionUIModeEmbedded:
+			if i.Options.ReturnURL == nil {
+				return errors.New("return url is required for embedded ui mode")
+			}
+
+			if i.Options.CancelURL != nil {
+				return errors.New("cancel url is not allowed for embedded ui mode")
+			}
+		case stripe.CheckoutSessionUIModeHosted:
+			if i.Options.SuccessURL == nil {
+				return errors.New("success url is required for hosted ui mode")
+			}
+		}
+	}
+
+	return nil
+}
+
+type StripeClientCreateCheckoutSessionInput struct {
+	AppID            appentitybase.AppID
+	CustomerID       customerentity.CustomerID
+	StripeCustomerID string
+	Options          StripeCheckoutSessionOptions
+}
+
+func (i StripeClientCreateCheckoutSessionInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("error validating customer id: %w", err)
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
+	}
+
+	if i.StripeCustomerID != "" && !strings.HasPrefix(i.StripeCustomerID, "cus_") {
+		return errors.New("stripe customer id must start with cus_")
+	}
+
+	if i.Options.UIMode != nil {
+		switch *i.Options.UIMode {
+		case stripe.CheckoutSessionUIModeEmbedded:
+			if i.Options.ReturnURL == nil {
+				return errors.New("return url is required for embedded ui mode")
+			}
+
+			if i.Options.CancelURL != nil {
+				return errors.New("cancel url is not allowed for embedded ui mode")
+			}
+		case stripe.CheckoutSessionUIModeHosted:
+			if i.Options.SuccessURL == nil {
+				return errors.New("success url is required for hosted ui mode")
+			}
 		}
 	}
 
