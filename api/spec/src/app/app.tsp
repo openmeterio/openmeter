@@ -45,6 +45,14 @@ interface AppAPI {
   @route("/{id}")
   @operationId("uninstallApp")
   uninstallApp(@path id: string): App | NotFoundError | CommonErrors;
+
+  /**
+   * Stripe webhook.
+   */
+  @post
+  @route("/{id}/stripe/webhook")
+  @operationId("handleStripeWebhook")
+  handleStripeWebhook(@path id: string, @body body: StripeWebhookEvent): void | CommonErrors;
 }
 
 /**
@@ -175,4 +183,78 @@ model StripeApp {
    * Livemode, true if the app is in production mode.
    */
   livemode: boolean;
+}
+
+/**
+ * Stripe webhook event.
+ */
+@friendlyName("StripeWebhookEvent")
+model StripeWebhookEvent {
+  /**
+   * The event ID.
+   */
+  id: string;
+
+  /**
+   * The event type.
+   */
+  type: string;
+
+  /**
+   * Live mode.
+   */
+  livemode: boolean;
+
+  /**
+   * The event created timestamp.
+   */
+  created: int32;
+
+  /**
+   * The event data.
+   */
+  data: StripeSetupIntent;
+}
+
+/**
+ * Stripe setup intent.
+ */
+@friendlyName("StripeSetupIntent")
+model StripeSetupIntent {
+  /**
+   * The setup intent id.
+   */
+  id: string;
+
+  /**
+   * The setup intent status.
+   */
+  status: StripePaymentIntentStatus;
+
+  /**
+   * The setup intent payment method.
+   */
+  payment_method?: string;
+
+  /**
+   * The setup intent payment method types.
+   */
+  payment_method_types?: string[];
+
+  /**
+   * The setup intent customer.
+   */
+  customer: string;
+}
+
+/**
+ * Stripe payment intent status.
+ */
+enum StripePaymentIntentStatus {
+  Canceled: "canceled",
+  Processing: "processing",
+  RequiresAction: "requires_action",
+  RequiresConfirmation: "requires_confirmation",
+  RequiresPaymentMethod: "requires_payment_method",
+  Succeeded: "succeeded",
 }
