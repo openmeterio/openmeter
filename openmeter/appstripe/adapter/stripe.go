@@ -141,7 +141,8 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.ID,
 		},
-		Key: *stripeApp.APIKey,
+		AppID: input.AppID,
+		Key:   *stripeApp.APIKey,
 	})
 	if err != nil {
 		return appstripeentity.StripeCheckoutSession{}, fmt.Errorf("failed to get stripe api key secret: %w", err)

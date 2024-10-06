@@ -4,20 +4,27 @@ import (
 	"errors"
 	"fmt"
 
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // SecretID represents a secret identifier.
 type SecretID struct {
 	models.NamespacedID
-
-	Key string
+	AppID appentitybase.AppID
+	Key   string
 }
 
 func (i SecretID) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
 		return ValidationError{
 			Err: fmt.Errorf("secret %w", err),
+		}
+	}
+
+	if err := i.AppID.Validate(); err != nil {
+		return ValidationError{
+			Err: fmt.Errorf("secret app id %w", err),
 		}
 	}
 

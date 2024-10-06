@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
@@ -19,6 +20,7 @@ import (
 type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 
 type StripeClient interface {
+	SetupWebhook(ctx context.Context, input StripeClientSetupWebhookInput) (StripeWebhookEndpoint, error)
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
 	CreateCustomer(ctx context.Context, input StripeClientCreateStripeCustomerInput) (StripeCustomer, error)
@@ -91,6 +93,36 @@ func (l leveledLogger) Warnf(format string, args ...interface{}) {
 
 func (l leveledLogger) Errorf(format string, args ...interface{}) {
 	l.logger.Error(fmt.Sprintf(format, args...))
+}
+
+// SetupWebhook setups a stripe webhook to handle setup intents and save the payment method
+func (c *stripeClient) SetupWebhook(ctx context.Context, input StripeClientSetupWebhookInput) (StripeWebhookEndpoint, error) {
+	if err := input.Validate(); err != nil {
+		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
+	}
+
+	webhookURL, err := url.JoinPath(input.BaseURL, "/api/v1/apps/%s/stripe/webhook", input.AppID.ID)
+	if err != nil {
+		return StripeWebhookEndpoint{}, fmt.Errorf("failed to join url path: %w", err)
+	}
+
+	params := &stripe.WebhookEndpointParams{
+		EnabledEvents: []*string{
+			lo.ToPtr("setup_intent.succeeded"),
+		},
+		URL: lo.ToPtr(webhookURL),
+	}
+	result, err := c.client.WebhookEndpoints.New(params)
+	if err != nil {
+		return StripeWebhookEndpoint{}, fmt.Errorf("failed to create stripe webhook: %w", err)
+	}
+
+	out := StripeWebhookEndpoint{
+		EndpointID: result.ID,
+		Secret:     result.Secret,
+	}
+
+	return out, nil
 }
 
 // GetAccount returns the authorized stripe account

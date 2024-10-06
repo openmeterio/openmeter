@@ -196,6 +196,13 @@ type StripeClientMock struct {
 	StripeAccountID string
 }
 
+func (c *StripeClientMock) SetupWebhook(ctx context.Context, input appstripeentity.StripeClientSetupWebhookInput) (appstripeentity.StripeWebhookEndpoint, error) {
+	return appstripeentity.StripeWebhookEndpoint{
+		EndpointID: "we_123",
+		Secret:     "whsec_123",
+	}, nil
+}
+
 func (c *StripeClientMock) GetAccount(ctx context.Context) (appstripeentity.StripeAccount, error) {
 	return appstripeentity.StripeAccount{
 		StripeAccountID: c.StripeAccountID,

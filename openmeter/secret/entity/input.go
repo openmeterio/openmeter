@@ -1,17 +1,21 @@
 package secretentity
 
-import "errors"
+import (
+	"errors"
+
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+)
 
 type CreateAppSecretInput struct {
-	Namespace string
-	Key       string
-	Value     string
+	AppID appentitybase.AppID
+	Key   string
+	Value string
 }
 
 func (i CreateAppSecretInput) Validate() error {
-	if i.Namespace == "" {
+	if err := i.AppID.Validate(); err != nil {
 		return ValidationError{
-			Err: errors.New("namespace is required"),
+			Err: errors.New("app id is invalid"),
 		}
 	}
 

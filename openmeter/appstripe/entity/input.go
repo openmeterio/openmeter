@@ -13,15 +13,21 @@ import (
 )
 
 type CreateAppStripeInput struct {
+	ID              *string
 	Namespace       string
 	Name            string
 	Description     string
 	StripeAccountID string
 	Livemode        bool
 	APIKey          secretentity.SecretID
+	WebhookSecret   secretentity.SecretID
 }
 
 func (i CreateAppStripeInput) Validate() error {
+	if i.ID != nil && *i.ID == "" {
+		return errors.New("id cannot be empty if provided")
+	}
+
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -44,6 +50,14 @@ func (i CreateAppStripeInput) Validate() error {
 
 	if i.APIKey.Namespace != i.Namespace {
 		return errors.New("api key must be in the same namespace as the app")
+	}
+
+	if err := i.WebhookSecret.Validate(); err != nil {
+		return fmt.Errorf("error validating webhook secret: %w", err)
+	}
+
+	if i.WebhookSecret.Namespace != i.Namespace {
+		return errors.New("webhook secret must be in the same namespace as the app")
 	}
 
 	return nil
@@ -77,6 +91,23 @@ type CreateStripeCustomerOutput struct {
 func (o CreateStripeCustomerOutput) Validate() error {
 	if o.StripeCustomerID == "" {
 		return errors.New("stripe customer id is required")
+	}
+
+	return nil
+}
+
+type StripeClientSetupWebhookInput struct {
+	AppID   appentitybase.AppID
+	BaseURL string
+}
+
+func (i StripeClientSetupWebhookInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.BaseURL == "" {
+		return errors.New("base url is required")
 	}
 
 	return nil

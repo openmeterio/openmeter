@@ -12,10 +12,11 @@ func (a adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateA
 	// In this example the ID is the same as the value.
 	return secretentity.SecretID{
 		NamespacedID: models.NamespacedID{
-			Namespace: input.Namespace,
+			Namespace: input.AppID.Namespace,
 			ID:        input.Value,
 		},
-		Key: input.Key,
+		AppID: input.AppID,
+		Key:   input.Key,
 	}, nil
 }
 
@@ -28,7 +29,8 @@ func (a adapter) GetAppSecret(ctx context.Context, input secretentity.GetAppSecr
 				Namespace: input.Namespace,
 				ID:        input.ID,
 			},
-			Key: input.Key,
+			AppID: input.AppID,
+			Key:   input.Key,
 		},
 		Value: input.ID,
 	}, nil
