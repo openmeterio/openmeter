@@ -3,6 +3,7 @@ package appstripe
 import (
 	"context"
 
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -21,5 +22,5 @@ type AppStripeAdapter interface {
 	SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) error
 
 	// Service methods
-	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.StripeCheckoutSession, error)
+	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error)
 }

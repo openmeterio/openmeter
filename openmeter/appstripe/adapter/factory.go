@@ -12,6 +12,7 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -25,7 +26,7 @@ type AppFactoryConfig struct {
 	AppStripeAdapter    appstripe.Adapter
 	Client              *entdb.Client
 	SecretService       secret.Service
-	StripeClientFactory appstripeentity.StripeClientFactory
+	StripeClientFactory stripeclient.StripeClientFactory
 }
 
 func (a AppFactoryConfig) Validate() error {
@@ -59,7 +60,7 @@ type AppFactory struct {
 	BillingService      billing.Service
 	Client              *entdb.Client
 	SecretService       secret.Service
-	StripeClientFactory appstripeentity.StripeClientFactory
+	StripeClientFactory stripeclient.StripeClientFactory
 }
 
 func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
@@ -114,7 +115,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 	}
 
 	// Get stripe client
-	stripeClient, err := f.StripeClientFactory(appstripeentity.StripeClientConfig{
+	stripeClient, err := f.StripeClientFactory(stripeclient.StripeClientConfig{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
 	})
@@ -145,7 +146,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 	}
 
 	// Setup webhook
-	stripeWebhookEndpoint, err := stripeClient.SetupWebhook(ctx, appstripeentity.StripeClientSetupWebhookInput{
+	stripeWebhookEndpoint, err := stripeClient.SetupWebhook(ctx, stripeclient.SetupWebhookInput{
 		AppID: appID,
 	})
 	if err != nil {
