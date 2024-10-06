@@ -28,6 +28,8 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldStripeCustomerID holds the string denoting the stripe_customer_id field in the database.
 	FieldStripeCustomerID = "stripe_customer_id"
+	// FieldStripeDefaultPaymentMethodID holds the string denoting the stripe_default_payment_method_id field in the database.
+	FieldStripeDefaultPaymentMethodID = "stripe_default_payment_method_id"
 	// EdgeStripeApp holds the string denoting the stripe_app edge name in mutations.
 	EdgeStripeApp = "stripe_app"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -60,6 +62,7 @@ var Columns = []string{
 	FieldAppID,
 	FieldCustomerID,
 	FieldStripeCustomerID,
+	FieldStripeDefaultPaymentMethodID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -128,6 +131,11 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByStripeCustomerID orders the results by the stripe_customer_id field.
 func ByStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeCustomerID, opts...).ToFunc()
+}
+
+// ByStripeDefaultPaymentMethodID orders the results by the stripe_default_payment_method_id field.
+func ByStripeDefaultPaymentMethodID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStripeDefaultPaymentMethodID, opts...).ToFunc()
 }
 
 // ByStripeAppField orders the results by stripe_app field.

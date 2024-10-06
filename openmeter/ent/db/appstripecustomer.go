@@ -33,6 +33,8 @@ type AppStripeCustomer struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	// StripeCustomerID holds the value of the "stripe_customer_id" field.
 	StripeCustomerID *string `json:"stripe_customer_id,omitempty"`
+	// StripeDefaultPaymentMethodID holds the value of the "stripe_default_payment_method_id" field.
+	StripeDefaultPaymentMethodID *string `json:"stripe_default_payment_method_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppStripeCustomerQuery when eager-loading is set.
 	Edges        AppStripeCustomerEdges `json:"edges"`
@@ -79,7 +81,7 @@ func (*AppStripeCustomer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appstripecustomer.FieldID:
 			values[i] = new(sql.NullInt64)
-		case appstripecustomer.FieldNamespace, appstripecustomer.FieldAppID, appstripecustomer.FieldCustomerID, appstripecustomer.FieldStripeCustomerID:
+		case appstripecustomer.FieldNamespace, appstripecustomer.FieldAppID, appstripecustomer.FieldCustomerID, appstripecustomer.FieldStripeCustomerID, appstripecustomer.FieldStripeDefaultPaymentMethodID:
 			values[i] = new(sql.NullString)
 		case appstripecustomer.FieldCreatedAt, appstripecustomer.FieldUpdatedAt, appstripecustomer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -147,6 +149,13 @@ func (asc *AppStripeCustomer) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				asc.StripeCustomerID = new(string)
 				*asc.StripeCustomerID = value.String
+			}
+		case appstripecustomer.FieldStripeDefaultPaymentMethodID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field stripe_default_payment_method_id", values[i])
+			} else if value.Valid {
+				asc.StripeDefaultPaymentMethodID = new(string)
+				*asc.StripeDefaultPaymentMethodID = value.String
 			}
 		default:
 			asc.selectValues.Set(columns[i], values[i])
@@ -216,6 +225,11 @@ func (asc *AppStripeCustomer) String() string {
 	builder.WriteString(", ")
 	if v := asc.StripeCustomerID; v != nil {
 		builder.WriteString("stripe_customer_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := asc.StripeDefaultPaymentMethodID; v != nil {
+		builder.WriteString("stripe_default_payment_method_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')

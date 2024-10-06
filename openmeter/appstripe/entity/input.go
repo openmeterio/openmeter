@@ -185,6 +185,8 @@ type StripeCheckoutSessionOptions struct {
 	PaymentMethodTypes *[]*string
 }
 
+type GetAppInput = appentitybase.AppID
+
 type CreateCheckoutSessionInput struct {
 	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID

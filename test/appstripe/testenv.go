@@ -249,3 +249,18 @@ func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input apps
 		URL:           "https://checkout.stripe.com/cs_123/test",
 	}, nil
 }
+
+func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (appstripeentity.StripePaymentMethod, error) {
+	return appstripeentity.StripePaymentMethod{
+		ID:    "pm_123",
+		Name:  "ACME Inc.",
+		Email: "acme@test.com",
+		BillingAddress: &models.Address{
+			City:       lo.ToPtr("San Francisco"),
+			PostalCode: lo.ToPtr("94103"),
+			State:      lo.ToPtr("CA"),
+			Country:    lo.ToPtr(models.CountryCode("US")),
+			Line1:      lo.ToPtr("123 Market St"),
+		},
+	}, nil
+}
