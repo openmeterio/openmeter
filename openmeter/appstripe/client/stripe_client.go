@@ -1,4 +1,4 @@
-package appstripeentity
+package client
 
 import (
 	"context"
@@ -26,11 +26,11 @@ const (
 type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 
 type StripeClient interface {
-	SetupWebhook(ctx context.Context, input StripeClientSetupWebhookInput) (StripeWebhookEndpoint, error)
+	SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error)
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
-	CreateCustomer(ctx context.Context, input StripeClientCreateStripeCustomerInput) (StripeCustomer, error)
-	CreateCheckoutSession(ctx context.Context, input StripeClientCreateCheckoutSessionInput) (StripeCheckoutSession, error)
+	CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error)
+	CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error)
 	GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error)
 }
 
@@ -103,7 +103,7 @@ func (l leveledLogger) Errorf(format string, args ...interface{}) {
 }
 
 // SetupWebhook setups a stripe webhook to handle setup intents and save the payment method
-func (c *stripeClient) SetupWebhook(ctx context.Context, input StripeClientSetupWebhookInput) (StripeWebhookEndpoint, error) {
+func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error) {
 	if err := input.Validate(); err != nil {
 		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
 	}
@@ -153,7 +153,7 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 		// Stripe customer not found error
 		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
 			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-				return StripeCustomer{}, stripeCustomerNotFoundError{
+				return StripeCustomer{}, StripeCustomerNotFoundError{
 					StripeCustomerID: stripeCustomerID,
 				}
 			}
@@ -188,7 +188,7 @@ func (c *stripeClient) GetPaymentMethod(ctx context.Context, stripePaymentMethod
 		// Stripe customer not found error
 		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
 			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-				return StripePaymentMethod{}, stripePaymentMethodNotFoundError{
+				return StripePaymentMethod{}, StripePaymentMethodNotFoundError{
 					StripePaymentMethodID: stripePaymentMethodID,
 				}
 			}
@@ -201,7 +201,7 @@ func (c *stripeClient) GetPaymentMethod(ctx context.Context, stripePaymentMethod
 }
 
 // CreateCustomer creates a stripe customer
-func (c *stripeClient) CreateCustomer(ctx context.Context, input StripeClientCreateStripeCustomerInput) (StripeCustomer, error) {
+func (c *stripeClient) CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error) {
 	if err := input.Validate(); err != nil {
 		return StripeCustomer{}, err
 	}
@@ -222,7 +222,7 @@ func (c *stripeClient) CreateCustomer(ctx context.Context, input StripeClientCre
 }
 
 // CreateCheckoutSession creates a checkout session
-func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input StripeClientCreateCheckoutSessionInput) (StripeCheckoutSession, error) {
+func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error) {
 	if err := input.Validate(); err != nil {
 		return StripeCheckoutSession{}, err
 	}
@@ -358,22 +358,4 @@ func (c *stripeClient) providerError(err error) error {
 	}
 
 	return err
-}
-
-var _ error = (*stripeCustomerNotFoundError)(nil)
-
-type stripeCustomerNotFoundError struct {
-	StripeCustomerID string
-}
-
-func (e stripeCustomerNotFoundError) Error() string {
-	return fmt.Sprintf("stripe customer %s not found", e.StripeCustomerID)
-}
-
-type stripePaymentMethodNotFoundError struct {
-	StripePaymentMethodID string
-}
-
-func (e stripePaymentMethodNotFoundError) Error() string {
-	return fmt.Sprintf("stripe customer %s not found", e.StripePaymentMethodID)
 }

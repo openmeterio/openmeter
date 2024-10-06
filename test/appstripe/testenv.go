@@ -16,7 +16,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -152,7 +152,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		Marketplace:     marketplaceAdapter,
 		SecretService:   secretService,
-		StripeClientFactory: func(config appstripeentity.StripeClientConfig) (appstripeentity.StripeClient, error) {
+		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
 			return &StripeClientMock{
 				StripeAccountID: "acct_123",
 			}, nil
@@ -196,23 +196,23 @@ type StripeClientMock struct {
 	StripeAccountID string
 }
 
-func (c *StripeClientMock) SetupWebhook(ctx context.Context, input appstripeentity.StripeClientSetupWebhookInput) (appstripeentity.StripeWebhookEndpoint, error) {
-	return appstripeentity.StripeWebhookEndpoint{
+func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.SetupWebhookInput) (stripeclient.StripeWebhookEndpoint, error) {
+	return stripeclient.StripeWebhookEndpoint{
 		EndpointID: "we_123",
 		Secret:     "whsec_123",
 	}, nil
 }
 
-func (c *StripeClientMock) GetAccount(ctx context.Context) (appstripeentity.StripeAccount, error) {
-	return appstripeentity.StripeAccount{
+func (c *StripeClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
+	return stripeclient.StripeAccount{
 		StripeAccountID: c.StripeAccountID,
 	}, nil
 }
 
-func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (appstripeentity.StripeCustomer, error) {
-	return appstripeentity.StripeCustomer{
+func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (stripeclient.StripeCustomer, error) {
+	return stripeclient.StripeCustomer{
 		StripeCustomerID: stripeCustomerID,
-		DefaultPaymentMethod: &appstripeentity.StripePaymentMethod{
+		DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
 			ID:    "pm_123",
 			Name:  "ACME Inc.",
 			Email: "acme@test.com",
@@ -227,22 +227,22 @@ func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID str
 	}, nil
 }
 
-func (c *StripeClientMock) CreateCustomer(ctx context.Context, input appstripeentity.StripeClientCreateStripeCustomerInput) (appstripeentity.StripeCustomer, error) {
+func (c *StripeClientMock) CreateCustomer(ctx context.Context, input stripeclient.CreateStripeCustomerInput) (stripeclient.StripeCustomer, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.StripeCustomer{}, err
+		return stripeclient.StripeCustomer{}, err
 	}
 
-	return appstripeentity.StripeCustomer{
+	return stripeclient.StripeCustomer{
 		StripeCustomerID: "cus_123",
 	}, nil
 }
 
-func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input appstripeentity.StripeClientCreateCheckoutSessionInput) (appstripeentity.StripeCheckoutSession, error) {
+func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input stripeclient.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.StripeCheckoutSession{}, err
+		return stripeclient.StripeCheckoutSession{}, err
 	}
 
-	return appstripeentity.StripeCheckoutSession{
+	return stripeclient.StripeCheckoutSession{
 		SessionID:     "cs_123",
 		SetupIntentID: "seti_123",
 		Mode:          stripe.CheckoutSessionModeSetup,
@@ -250,8 +250,8 @@ func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input apps
 	}, nil
 }
 
-func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (appstripeentity.StripePaymentMethod, error) {
-	return appstripeentity.StripePaymentMethod{
+func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (stripeclient.StripePaymentMethod, error) {
+	return stripeclient.StripePaymentMethod{
 		ID:    "pm_123",
 		Name:  "ACME Inc.",
 		Email: "acme@test.com",

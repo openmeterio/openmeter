@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/stripe/stripe-go/v80"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
@@ -19,20 +18,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const (
-	APIKeySecretKey  = "stripe_api_key"
-	WebhookSecretKey = "stripe_webhook_secret"
-)
-
 // App represents an installed Stripe app
 type App struct {
 	appentitybase.AppBase
 	StripeAccountId string `json:"stripeAccountId"`
 	Livemode        bool   `json:"livemode"`
 
-	Client              *entdb.Client       `json:"-"`
-	StripeClientFactory StripeClientFactory `json:"-"`
-	SecretService       secret.Service      `json:"-"`
+	Client              *entdb.Client                    `json:"-"`
+	StripeClientFactory stripeclient.StripeClientFactory `json:"-"`
+	SecretService       secret.Service                   `json:"-"`
 }
 
 func (a App) Validate() error {
@@ -130,7 +124,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	}
 
 	// Stripe Client
-	stripeClient, err := a.StripeClientFactory(StripeClientConfig{
+	stripeClient, err := a.StripeClientFactory(stripeclient.StripeClientConfig{
 		Namespace: stripeApp.Namespace,
 		APIKey:    apiKeySecret.Value,
 	})
@@ -141,7 +135,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	// Check if the customer exists in Stripe
 	stripeCustomer, err := stripeClient.GetCustomer(ctx, *stripeCustomerDBEntity.StripeCustomerID)
 	if err != nil {
-		if _, ok := err.(stripeCustomerNotFoundError); ok {
+		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
@@ -155,7 +149,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
 	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
-		var paymentMethod StripePaymentMethod
+		var paymentMethod stripeclient.StripePaymentMethod
 
 		// Check if the customer has a default payment method in OpenMeter
 		// If not try to use the Stripe Customer's default payment method
@@ -163,7 +157,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 			// Get the default payment method
 			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerDBEntity.StripeDefaultPaymentMethodID)
 			if err != nil {
-				if _, ok := err.(stripePaymentMethodNotFoundError); ok {
+				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
 					return app.CustomerPreConditionError{
 						AppID:      a.GetID(),
 						AppType:    a.GetType(),
@@ -200,101 +194,6 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 		}
 
 		// TODO: should we have currency as an input to validation?
-	}
-
-	return nil
-}
-
-// CustomerAppData represents the Stripe associated data for an app used by a customer
-type CustomerAppData struct {
-	StripeCustomerID string `json:"stripeCustomerId"`
-}
-
-func (d CustomerAppData) Validate() error {
-	if d.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
-	}
-
-	return nil
-}
-
-type StripeWebhookEndpoint struct {
-	EndpointID string
-	Secret     string
-}
-
-type StripeAccount struct {
-	StripeAccountID string
-}
-
-type StripeCustomer struct {
-	StripeCustomerID string
-	Currency         *string
-	// ID of a payment method that’s attached to the customer,
-	// to be used as the customer’s default payment method for invoices.
-	DefaultPaymentMethod *StripePaymentMethod
-}
-
-type StripePaymentMethod struct {
-	ID             string
-	Name           string
-	Email          string
-	BillingAddress *models.Address
-}
-
-type StripeCheckoutSession struct {
-	SessionID     string
-	SetupIntentID string
-	URL           string
-	Mode          stripe.CheckoutSessionMode
-
-	CancelURL  *string
-	SuccessURL *string
-	ReturnURL  *string
-}
-
-func (o StripeCheckoutSession) Validate() error {
-	if o.SessionID == "" {
-		return errors.New("session id is required")
-	}
-
-	if o.SetupIntentID == "" {
-		return errors.New("setup intent id is required")
-	}
-
-	if o.URL == "" {
-		return errors.New("url is required")
-	}
-
-	if o.Mode != stripe.CheckoutSessionModeSetup {
-		return errors.New("mode must be setup")
-	}
-
-	return nil
-}
-
-type SetCustomerDefaultPaymentMethodInput struct {
-	AppID            appentitybase.AppID
-	CustomerID       customerentity.CustomerID
-	StripeCustomerID string
-	PaymentMethodID  *string
-}
-
-func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
-	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("app id: %w", err)
-	}
-
-	if err := i.CustomerID.Validate(); err != nil {
-		return fmt.Errorf("customer id: %w", err)
-	}
-
-	if i.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
-	}
-
-	if i.PaymentMethodID == nil {
-		return errors.New("payment method id is required")
 	}
 
 	return nil
