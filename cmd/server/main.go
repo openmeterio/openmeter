@@ -12,24 +12,17 @@ import (
 	"syscall"
 	"time"
 
-	health "github.com/AppsFlyer/go-sundheit"
-	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-slog/otelslog"
 	"github.com/oklog/run"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	slogmulti "github.com/samber/slog-multi"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 
@@ -61,12 +54,9 @@ import (
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
-	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -122,87 +112,30 @@ func main() {
 		os.Exit(0)
 	}
 
-	extraResources, _ := resource.New(
-		context.Background(),
-		resource.WithContainer(),
-		resource.WithAttributes(
-			semconv.ServiceName("openmeter"),
-			semconv.ServiceVersion(version),
-			semconv.DeploymentEnvironment(conf.Environment),
-		),
-	)
-	res, _ := resource.Merge(
-		resource.Default(),
-		extraResources,
-	)
+	app, cleanup, err := InitializeApplication(ctx, conf)
+	if err != nil {
+		println(fmt.Errorf("failed to initialize application: %w", err).Error())
+		os.Exit(1)
+	}
 
-	logger := slog.New(slogmulti.Pipe(
-		otelslog.NewHandler,
-		contextx.NewLogHandler,
-		operation.NewLogHandler,
-	).Handler(conf.Telemetry.Log.NewHandler(os.Stdout)))
-	logger = otelslog.WithResource(logger, res)
+	defer cleanup()
+
+	logger := app.Logger
 
 	slog.SetDefault(logger)
 
-	telemetryRouter := chi.NewRouter()
-	telemetryRouter.Mount("/debug", middleware.Profiler())
+	telemetryRouter := app.TelemetryHandler
 
 	// Initialize OTel Metrics
-	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
-	if err != nil {
-		logger.Error("failed to initialize OpenTelemetry Metrics provider", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer func() {
-		// Use dedicated context with timeout for shutdown as parent context might be canceled
-		// by the time the execution reaches this stage.
-		ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
-		defer cancel()
-
-		if err := otelMeterProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
-		}
-	}()
+	otelMeterProvider := app.MeterProvider
 	otel.SetMeterProvider(otelMeterProvider)
-	metricMeter := otelMeterProvider.Meter(otelName)
-
-	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
-		telemetryRouter.Handle("/metrics", promhttp.Handler())
-	}
+	metricMeter := app.Meter
 
 	// Initialize OTel Tracer
-	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
-	if err != nil {
-		logger.Error("failed to initialize OpenTelemetry Trace provider", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer func() {
-		// Use dedicated context with timeout for shutdown as parent context might be canceled
-		// by the time the execution reaches this stage.
-		ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
-		defer cancel()
-
-		if err := otelTracerProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
-		}
-	}()
+	otelTracerProvider := app.TracerProvider
 
 	otel.SetTracerProvider(otelTracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
-
-	// Configure health checker
-	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
-	{
-		handler := healthhttp.HandleHealthJSON(healthChecker)
-		telemetryRouter.Handle("/healthz", handler)
-
-		// Kubernetes style health checks
-		telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write([]byte("ok"))
-		})
-		telemetryRouter.Handle("/healthz/ready", handler)
-	}
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
 		"address":             conf.Address,
