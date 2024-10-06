@@ -17,6 +17,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+const (
+	SetupIntentDataMetadataNamespace  = "om_namespace"
+	SetupIntentDataMetadataAppID      = "om_app_id"
+	SetupIntentDataMetadataCustomerID = "om_customer_id"
+)
+
 type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 
 type StripeClient interface {
@@ -25,6 +31,7 @@ type StripeClient interface {
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
 	CreateCustomer(ctx context.Context, input StripeClientCreateStripeCustomerInput) (StripeCustomer, error)
 	CreateCheckoutSession(ctx context.Context, input StripeClientCreateCheckoutSessionInput) (StripeCheckoutSession, error)
+	GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error)
 }
 
 type StripeClientConfig struct {
@@ -139,7 +146,9 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 
 // GetCustomer returns the stripe customer by stripe customer ID
 func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error) {
-	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, nil)
+	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, &stripe.CustomerParams{
+		Expand: []*string{lo.ToPtr("invoice_settings.default_payment_method")},
+	})
 	if err != nil {
 		// Stripe customer not found error
 		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
@@ -170,6 +179,25 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 	}
 
 	return customer, nil
+}
+
+// GetPaymentMethod returns the stripe payment method by stripe payment method ID
+func (c *stripeClient) GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error) {
+	stripePaymentMethod, err := c.client.PaymentMethods.Get(stripePaymentMethodID, nil)
+	if err != nil {
+		// Stripe customer not found error
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
+			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
+				return StripePaymentMethod{}, stripePaymentMethodNotFoundError{
+					StripePaymentMethodID: stripePaymentMethodID,
+				}
+			}
+		}
+
+		return StripePaymentMethod{}, c.providerError(err)
+	}
+
+	return toStripePaymentMethod(stripePaymentMethod), nil
 }
 
 // CreateCustomer creates a stripe customer
@@ -214,9 +242,9 @@ func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input StripeCl
 		},
 		SetupIntentData: &stripe.CheckoutSessionSetupIntentDataParams{
 			Metadata: map[string]string{
-				"om_namespace":   input.AppID.Namespace,
-				"om_app_id":      input.AppID.ID,
-				"om_customer_id": input.CustomerID.ID,
+				SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
+				SetupIntentDataMetadataAppID:      input.AppID.ID,
+				SetupIntentDataMetadataCustomerID: input.CustomerID.ID,
 			},
 		},
 	}
@@ -340,4 +368,12 @@ type stripeCustomerNotFoundError struct {
 
 func (e stripeCustomerNotFoundError) Error() string {
 	return fmt.Sprintf("stripe customer %s not found", e.StripeCustomerID)
+}
+
+type stripePaymentMethodNotFoundError struct {
+	StripePaymentMethodID string
+}
+
+func (e stripePaymentMethodNotFoundError) Error() string {
+	return fmt.Sprintf("stripe customer %s not found", e.StripePaymentMethodID)
 }

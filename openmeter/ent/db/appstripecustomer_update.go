@@ -74,6 +74,26 @@ func (ascu *AppStripeCustomerUpdate) ClearStripeCustomerID() *AppStripeCustomerU
 	return ascu
 }
 
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (ascu *AppStripeCustomerUpdate) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerUpdate {
+	ascu.mutation.SetStripeDefaultPaymentMethodID(s)
+	return ascu
+}
+
+// SetNillableStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field if the given value is not nil.
+func (ascu *AppStripeCustomerUpdate) SetNillableStripeDefaultPaymentMethodID(s *string) *AppStripeCustomerUpdate {
+	if s != nil {
+		ascu.SetStripeDefaultPaymentMethodID(*s)
+	}
+	return ascu
+}
+
+// ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
+func (ascu *AppStripeCustomerUpdate) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpdate {
+	ascu.mutation.ClearStripeDefaultPaymentMethodID()
+	return ascu
+}
+
 // Mutation returns the AppStripeCustomerMutation object of the builder.
 func (ascu *AppStripeCustomerUpdate) Mutation() *AppStripeCustomerMutation {
 	return ascu.mutation
@@ -153,6 +173,12 @@ func (ascu *AppStripeCustomerUpdate) sqlSave(ctx context.Context) (n int, err er
 	if ascu.mutation.StripeCustomerIDCleared() {
 		_spec.ClearField(appstripecustomer.FieldStripeCustomerID, field.TypeString)
 	}
+	if value, ok := ascu.mutation.StripeDefaultPaymentMethodID(); ok {
+		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
+	}
+	if ascu.mutation.StripeDefaultPaymentMethodIDCleared() {
+		_spec.ClearField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ascu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appstripecustomer.Label}
@@ -216,6 +242,26 @@ func (ascuo *AppStripeCustomerUpdateOne) SetNillableStripeCustomerID(s *string) 
 // ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
 func (ascuo *AppStripeCustomerUpdateOne) ClearStripeCustomerID() *AppStripeCustomerUpdateOne {
 	ascuo.mutation.ClearStripeCustomerID()
+	return ascuo
+}
+
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (ascuo *AppStripeCustomerUpdateOne) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerUpdateOne {
+	ascuo.mutation.SetStripeDefaultPaymentMethodID(s)
+	return ascuo
+}
+
+// SetNillableStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field if the given value is not nil.
+func (ascuo *AppStripeCustomerUpdateOne) SetNillableStripeDefaultPaymentMethodID(s *string) *AppStripeCustomerUpdateOne {
+	if s != nil {
+		ascuo.SetStripeDefaultPaymentMethodID(*s)
+	}
+	return ascuo
+}
+
+// ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
+func (ascuo *AppStripeCustomerUpdateOne) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpdateOne {
+	ascuo.mutation.ClearStripeDefaultPaymentMethodID()
 	return ascuo
 }
 
@@ -327,6 +373,12 @@ func (ascuo *AppStripeCustomerUpdateOne) sqlSave(ctx context.Context) (_node *Ap
 	}
 	if ascuo.mutation.StripeCustomerIDCleared() {
 		_spec.ClearField(appstripecustomer.FieldStripeCustomerID, field.TypeString)
+	}
+	if value, ok := ascuo.mutation.StripeDefaultPaymentMethodID(); ok {
+		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
+	}
+	if ascuo.mutation.StripeDefaultPaymentMethodIDCleared() {
+		_spec.ClearField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString)
 	}
 	_node = &AppStripeCustomer{config: ascuo.config}
 	_spec.Assign = _node.assignValues

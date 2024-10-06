@@ -64,6 +64,75 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 	})
 }
 
+// GetStripeApp gets an app
+func (a adapter) GetStripeApp(ctx context.Context, appID appentitybase.AppID) (appstripeentity.App, error) {
+	app, err := a.appService.GetApp(ctx, appID)
+	if err != nil {
+		return appstripeentity.App{}, err
+	}
+
+	if stripeApp, ok := app.(appstripeentity.App); ok {
+		return stripeApp, nil
+	}
+
+	return appstripeentity.App{}, fmt.Errorf("app is not a stripe app")
+}
+
+// SetCustomerDefaultPaymentMethod sets the default payment method for a customer
+func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) error {
+	if err := input.Validate(); err != nil {
+		return appstripe.ValidationError{
+			Err: fmt.Errorf("error set customer default payment method: %w", err),
+		}
+	}
+
+	// Get the stripe app customer
+	appCustomer, err := a.db.AppStripeCustomer.
+		Query().
+		Where(
+			appstripecustomerdb.Namespace(input.AppID.Namespace),
+			appstripecustomerdb.AppID(input.AppID.ID),
+			appstripecustomerdb.CustomerID(input.CustomerID.ID),
+		).
+		Only(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return app.CustomerPreConditionError{
+				AppID:      input.AppID,
+				CustomerID: input.CustomerID,
+				Condition:  "customer has no data for stripe app",
+			}
+		}
+	}
+
+	// Check if the stripe customer id matches with the input
+	if appCustomer.StripeCustomerID != &input.StripeCustomerID {
+		return app.CustomerPreConditionError{
+			AppID:      input.AppID,
+			CustomerID: input.CustomerID,
+			Condition:  "customer stripe customer id mismatch",
+		}
+	}
+
+	// Set the default payment method
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		_, err := a.db.AppStripeCustomer.
+			Update().
+			Where(
+				appstripecustomerdb.Namespace(input.AppID.Namespace),
+				appstripecustomerdb.AppID(input.AppID.ID),
+				appstripecustomerdb.CustomerID(input.CustomerID.ID),
+			).
+			SetNillableStripeDefaultPaymentMethodID(input.PaymentMethodID).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to set customer default payment method: %w", err)
+		}
+
+		return nil
+	})
+}
+
 // CreateCheckoutSession creates a new checkout session
 func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.StripeCheckoutSession, error) {
 	// Get the stripe app
