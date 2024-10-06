@@ -30,9 +30,9 @@ type App struct {
 	StripeAccountId string `json:"stripeAccountId"`
 	Livemode        bool   `json:"livemode"`
 
-	Client              *entdb.Client
-	StripeClientFactory StripeClientFactory
-	SecretService       secret.Service
+	Client              *entdb.Client       `json:"-"`
+	StripeClientFactory StripeClientFactory `json:"-"`
+	SecretService       secret.Service      `json:"-"`
 }
 
 func (a App) Validate() error {
@@ -155,19 +155,42 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
 	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
-		// Check if the customer has a default payment method
-		if stripeCustomer.DefaultPaymentMethod == nil {
-			return app.CustomerPreConditionError{
-				AppID:      a.GetID(),
-				AppType:    a.GetType(),
-				CustomerID: customer.GetID(),
-				Condition:  "stripe customer must have a default payment method",
+		var paymentMethod StripePaymentMethod
+
+		// Check if the customer has a default payment method in OpenMeter
+		// If not try to use the Stripe Customer's default payment method
+		if stripeCustomerDBEntity.StripeDefaultPaymentMethodID != nil {
+			// Get the default payment method
+			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerDBEntity.StripeDefaultPaymentMethodID)
+			if err != nil {
+				if _, ok := err.(stripePaymentMethodNotFoundError); ok {
+					return app.CustomerPreConditionError{
+						AppID:      a.GetID(),
+						AppType:    a.GetType(),
+						CustomerID: customer.GetID(),
+						Condition:  fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerDBEntity.StripeDefaultPaymentMethodID, stripeApp.StripeAccountID),
+					}
+				}
+
+				return fmt.Errorf("failed to get default payment method: %w", err)
+			}
+		} else {
+			// Check if the customer has a default payment method
+			if stripeCustomer.DefaultPaymentMethod != nil {
+				paymentMethod = *stripeCustomer.DefaultPaymentMethod
+			} else {
+				return app.CustomerPreConditionError{
+					AppID:      a.GetID(),
+					AppType:    a.GetType(),
+					CustomerID: customer.GetID(),
+					Condition:  "stripe customer must have a default payment method",
+				}
 			}
 		}
 
 		// Payment method must have a billing address
 		// Billing address is required for tax calculation and invoice creation
-		if stripeCustomer.DefaultPaymentMethod.BillingAddress == nil {
+		if paymentMethod.BillingAddress == nil {
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
@@ -245,6 +268,33 @@ func (o StripeCheckoutSession) Validate() error {
 
 	if o.Mode != stripe.CheckoutSessionModeSetup {
 		return errors.New("mode must be setup")
+	}
+
+	return nil
+}
+
+type SetCustomerDefaultPaymentMethodInput struct {
+	AppID            appentitybase.AppID
+	CustomerID       customerentity.CustomerID
+	StripeCustomerID string
+	PaymentMethodID  *string
+}
+
+func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("app id: %w", err)
+	}
+
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("customer id: %w", err)
+	}
+
+	if i.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
+	}
+
+	if i.PaymentMethodID == nil {
+		return errors.New("payment method id is required")
 	}
 
 	return nil

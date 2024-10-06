@@ -146,6 +146,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "stripe_default_payment_method_id", Type: field.TypeString, Nullable: true},
 		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -157,13 +158,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "app_stripe_customers_app_stripes_customer_apps",
-				Columns:    []*schema.Column{AppStripeCustomersColumns[6]},
+				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
 				RefColumns: []*schema.Column{AppStripesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "app_stripe_customers_customers_customer",
-				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
+				Columns:    []*schema.Column{AppStripeCustomersColumns[8]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -177,7 +178,7 @@ var (
 			{
 				Name:    "appstripecustomer_namespace_app_id_customer_id",
 				Unique:  true,
-				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[6], AppStripeCustomersColumns[7]},
+				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[7], AppStripeCustomersColumns[8]},
 			},
 		},
 	}

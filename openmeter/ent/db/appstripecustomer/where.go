@@ -90,6 +90,11 @@ func StripeCustomerID(v string) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(sql.FieldEQ(FieldStripeCustomerID, v))
 }
 
+// StripeDefaultPaymentMethodID applies equality check predicate on the "stripe_default_payment_method_id" field. It's identical to StripeDefaultPaymentMethodIDEQ.
+func StripeDefaultPaymentMethodID(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldEQ(FieldStripeDefaultPaymentMethodID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(sql.FieldEQ(FieldNamespace, v))
@@ -488,6 +493,81 @@ func StripeCustomerIDEqualFold(v string) predicate.AppStripeCustomer {
 // StripeCustomerIDContainsFold applies the ContainsFold predicate on the "stripe_customer_id" field.
 func StripeCustomerIDContainsFold(v string) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(sql.FieldContainsFold(FieldStripeCustomerID, v))
+}
+
+// StripeDefaultPaymentMethodIDEQ applies the EQ predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDEQ(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldEQ(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDNEQ applies the NEQ predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDNEQ(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldNEQ(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDIn applies the In predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDIn(vs ...string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldIn(FieldStripeDefaultPaymentMethodID, vs...))
+}
+
+// StripeDefaultPaymentMethodIDNotIn applies the NotIn predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDNotIn(vs ...string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldNotIn(FieldStripeDefaultPaymentMethodID, vs...))
+}
+
+// StripeDefaultPaymentMethodIDGT applies the GT predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDGT(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldGT(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDGTE applies the GTE predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDGTE(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldGTE(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDLT applies the LT predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDLT(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldLT(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDLTE applies the LTE predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDLTE(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldLTE(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDContains applies the Contains predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDContains(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldContains(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDHasPrefix applies the HasPrefix predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDHasPrefix(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldHasPrefix(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDHasSuffix applies the HasSuffix predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDHasSuffix(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldHasSuffix(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDIsNil applies the IsNil predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDIsNil() predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldIsNull(FieldStripeDefaultPaymentMethodID))
+}
+
+// StripeDefaultPaymentMethodIDNotNil applies the NotNil predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDNotNil() predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldNotNull(FieldStripeDefaultPaymentMethodID))
+}
+
+// StripeDefaultPaymentMethodIDEqualFold applies the EqualFold predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDEqualFold(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldEqualFold(FieldStripeDefaultPaymentMethodID, v))
+}
+
+// StripeDefaultPaymentMethodIDContainsFold applies the ContainsFold predicate on the "stripe_default_payment_method_id" field.
+func StripeDefaultPaymentMethodIDContainsFold(v string) predicate.AppStripeCustomer {
+	return predicate.AppStripeCustomer(sql.FieldContainsFold(FieldStripeDefaultPaymentMethodID, v))
 }
 
 // HasStripeApp applies the HasEdge predicate on the "stripe_app" edge.

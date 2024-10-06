@@ -2579,22 +2579,23 @@ func (m *AppStripeMutation) ResetEdge(name string) error {
 // AppStripeCustomerMutation represents an operation that mutates the AppStripeCustomer nodes in the graph.
 type AppStripeCustomerMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int
-	namespace          *string
-	created_at         *time.Time
-	updated_at         *time.Time
-	deleted_at         *time.Time
-	stripe_customer_id *string
-	clearedFields      map[string]struct{}
-	stripe_app         *string
-	clearedstripe_app  bool
-	customer           *string
-	clearedcustomer    bool
-	done               bool
-	oldValue           func(context.Context) (*AppStripeCustomer, error)
-	predicates         []predicate.AppStripeCustomer
+	op                               Op
+	typ                              string
+	id                               *int
+	namespace                        *string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	stripe_customer_id               *string
+	stripe_default_payment_method_id *string
+	clearedFields                    map[string]struct{}
+	stripe_app                       *string
+	clearedstripe_app                bool
+	customer                         *string
+	clearedcustomer                  bool
+	done                             bool
+	oldValue                         func(context.Context) (*AppStripeCustomer, error)
+	predicates                       []predicate.AppStripeCustomer
 }
 
 var _ ent.Mutation = (*AppStripeCustomerMutation)(nil)
@@ -2973,6 +2974,55 @@ func (m *AppStripeCustomerMutation) ResetStripeCustomerID() {
 	delete(m.clearedFields, appstripecustomer.FieldStripeCustomerID)
 }
 
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (m *AppStripeCustomerMutation) SetStripeDefaultPaymentMethodID(s string) {
+	m.stripe_default_payment_method_id = &s
+}
+
+// StripeDefaultPaymentMethodID returns the value of the "stripe_default_payment_method_id" field in the mutation.
+func (m *AppStripeCustomerMutation) StripeDefaultPaymentMethodID() (r string, exists bool) {
+	v := m.stripe_default_payment_method_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeDefaultPaymentMethodID returns the old "stripe_default_payment_method_id" field's value of the AppStripeCustomer entity.
+// If the AppStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeCustomerMutation) OldStripeDefaultPaymentMethodID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeDefaultPaymentMethodID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeDefaultPaymentMethodID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeDefaultPaymentMethodID: %w", err)
+	}
+	return oldValue.StripeDefaultPaymentMethodID, nil
+}
+
+// ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
+func (m *AppStripeCustomerMutation) ClearStripeDefaultPaymentMethodID() {
+	m.stripe_default_payment_method_id = nil
+	m.clearedFields[appstripecustomer.FieldStripeDefaultPaymentMethodID] = struct{}{}
+}
+
+// StripeDefaultPaymentMethodIDCleared returns if the "stripe_default_payment_method_id" field was cleared in this mutation.
+func (m *AppStripeCustomerMutation) StripeDefaultPaymentMethodIDCleared() bool {
+	_, ok := m.clearedFields[appstripecustomer.FieldStripeDefaultPaymentMethodID]
+	return ok
+}
+
+// ResetStripeDefaultPaymentMethodID resets all changes to the "stripe_default_payment_method_id" field.
+func (m *AppStripeCustomerMutation) ResetStripeDefaultPaymentMethodID() {
+	m.stripe_default_payment_method_id = nil
+	delete(m.clearedFields, appstripecustomer.FieldStripeDefaultPaymentMethodID)
+}
+
 // SetStripeAppID sets the "stripe_app" edge to the AppStripe entity by id.
 func (m *AppStripeCustomerMutation) SetStripeAppID(id string) {
 	m.stripe_app = &id
@@ -3074,7 +3124,7 @@ func (m *AppStripeCustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppStripeCustomerMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, appstripecustomer.FieldNamespace)
 	}
@@ -3095,6 +3145,9 @@ func (m *AppStripeCustomerMutation) Fields() []string {
 	}
 	if m.stripe_customer_id != nil {
 		fields = append(fields, appstripecustomer.FieldStripeCustomerID)
+	}
+	if m.stripe_default_payment_method_id != nil {
+		fields = append(fields, appstripecustomer.FieldStripeDefaultPaymentMethodID)
 	}
 	return fields
 }
@@ -3118,6 +3171,8 @@ func (m *AppStripeCustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerID()
 	case appstripecustomer.FieldStripeCustomerID:
 		return m.StripeCustomerID()
+	case appstripecustomer.FieldStripeDefaultPaymentMethodID:
+		return m.StripeDefaultPaymentMethodID()
 	}
 	return nil, false
 }
@@ -3141,6 +3196,8 @@ func (m *AppStripeCustomerMutation) OldField(ctx context.Context, name string) (
 		return m.OldCustomerID(ctx)
 	case appstripecustomer.FieldStripeCustomerID:
 		return m.OldStripeCustomerID(ctx)
+	case appstripecustomer.FieldStripeDefaultPaymentMethodID:
+		return m.OldStripeDefaultPaymentMethodID(ctx)
 	}
 	return nil, fmt.Errorf("unknown AppStripeCustomer field %s", name)
 }
@@ -3199,6 +3256,13 @@ func (m *AppStripeCustomerMutation) SetField(name string, value ent.Value) error
 		}
 		m.SetStripeCustomerID(v)
 		return nil
+	case appstripecustomer.FieldStripeDefaultPaymentMethodID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeDefaultPaymentMethodID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown AppStripeCustomer field %s", name)
 }
@@ -3235,6 +3299,9 @@ func (m *AppStripeCustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(appstripecustomer.FieldStripeCustomerID) {
 		fields = append(fields, appstripecustomer.FieldStripeCustomerID)
 	}
+	if m.FieldCleared(appstripecustomer.FieldStripeDefaultPaymentMethodID) {
+		fields = append(fields, appstripecustomer.FieldStripeDefaultPaymentMethodID)
+	}
 	return fields
 }
 
@@ -3254,6 +3321,9 @@ func (m *AppStripeCustomerMutation) ClearField(name string) error {
 		return nil
 	case appstripecustomer.FieldStripeCustomerID:
 		m.ClearStripeCustomerID()
+		return nil
+	case appstripecustomer.FieldStripeDefaultPaymentMethodID:
+		m.ClearStripeDefaultPaymentMethodID()
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripeCustomer nullable field %s", name)
@@ -3283,6 +3353,9 @@ func (m *AppStripeCustomerMutation) ResetField(name string) error {
 		return nil
 	case appstripecustomer.FieldStripeCustomerID:
 		m.ResetStripeCustomerID()
+		return nil
+	case appstripecustomer.FieldStripeDefaultPaymentMethodID:
+		m.ResetStripeDefaultPaymentMethodID()
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripeCustomer field %s", name)

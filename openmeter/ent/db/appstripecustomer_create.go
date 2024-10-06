@@ -98,6 +98,20 @@ func (ascc *AppStripeCustomerCreate) SetNillableStripeCustomerID(s *string) *App
 	return ascc
 }
 
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (ascc *AppStripeCustomerCreate) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerCreate {
+	ascc.mutation.SetStripeDefaultPaymentMethodID(s)
+	return ascc
+}
+
+// SetNillableStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field if the given value is not nil.
+func (ascc *AppStripeCustomerCreate) SetNillableStripeDefaultPaymentMethodID(s *string) *AppStripeCustomerCreate {
+	if s != nil {
+		ascc.SetStripeDefaultPaymentMethodID(*s)
+	}
+	return ascc
+}
+
 // SetStripeAppID sets the "stripe_app" edge to the AppStripe entity by ID.
 func (ascc *AppStripeCustomerCreate) SetStripeAppID(id string) *AppStripeCustomerCreate {
 	ascc.mutation.SetStripeAppID(id)
@@ -244,6 +258,10 @@ func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
 		_node.StripeCustomerID = &value
 	}
+	if value, ok := ascc.mutation.StripeDefaultPaymentMethodID(); ok {
+		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
+		_node.StripeDefaultPaymentMethodID = &value
+	}
 	if nodes := ascc.mutation.StripeAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -378,6 +396,24 @@ func (u *AppStripeCustomerUpsert) ClearStripeCustomerID() *AppStripeCustomerUpse
 	return u
 }
 
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (u *AppStripeCustomerUpsert) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerUpsert {
+	u.Set(appstripecustomer.FieldStripeDefaultPaymentMethodID, v)
+	return u
+}
+
+// UpdateStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field to the value that was provided on create.
+func (u *AppStripeCustomerUpsert) UpdateStripeDefaultPaymentMethodID() *AppStripeCustomerUpsert {
+	u.SetExcluded(appstripecustomer.FieldStripeDefaultPaymentMethodID)
+	return u
+}
+
+// ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
+func (u *AppStripeCustomerUpsert) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpsert {
+	u.SetNull(appstripecustomer.FieldStripeDefaultPaymentMethodID)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -485,6 +521,27 @@ func (u *AppStripeCustomerUpsertOne) UpdateStripeCustomerID() *AppStripeCustomer
 func (u *AppStripeCustomerUpsertOne) ClearStripeCustomerID() *AppStripeCustomerUpsertOne {
 	return u.Update(func(s *AppStripeCustomerUpsert) {
 		s.ClearStripeCustomerID()
+	})
+}
+
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (u *AppStripeCustomerUpsertOne) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerUpsertOne {
+	return u.Update(func(s *AppStripeCustomerUpsert) {
+		s.SetStripeDefaultPaymentMethodID(v)
+	})
+}
+
+// UpdateStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field to the value that was provided on create.
+func (u *AppStripeCustomerUpsertOne) UpdateStripeDefaultPaymentMethodID() *AppStripeCustomerUpsertOne {
+	return u.Update(func(s *AppStripeCustomerUpsert) {
+		s.UpdateStripeDefaultPaymentMethodID()
+	})
+}
+
+// ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
+func (u *AppStripeCustomerUpsertOne) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpsertOne {
+	return u.Update(func(s *AppStripeCustomerUpsert) {
+		s.ClearStripeDefaultPaymentMethodID()
 	})
 }
 
@@ -761,6 +818,27 @@ func (u *AppStripeCustomerUpsertBulk) UpdateStripeCustomerID() *AppStripeCustome
 func (u *AppStripeCustomerUpsertBulk) ClearStripeCustomerID() *AppStripeCustomerUpsertBulk {
 	return u.Update(func(s *AppStripeCustomerUpsert) {
 		s.ClearStripeCustomerID()
+	})
+}
+
+// SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
+func (u *AppStripeCustomerUpsertBulk) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerUpsertBulk {
+	return u.Update(func(s *AppStripeCustomerUpsert) {
+		s.SetStripeDefaultPaymentMethodID(v)
+	})
+}
+
+// UpdateStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field to the value that was provided on create.
+func (u *AppStripeCustomerUpsertBulk) UpdateStripeDefaultPaymentMethodID() *AppStripeCustomerUpsertBulk {
+	return u.Update(func(s *AppStripeCustomerUpsert) {
+		s.UpdateStripeDefaultPaymentMethodID()
+	})
+}
+
+// ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
+func (u *AppStripeCustomerUpsertBulk) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpsertBulk {
+	return u.Update(func(s *AppStripeCustomerUpsert) {
+		s.ClearStripeDefaultPaymentMethodID()
 	})
 }
 

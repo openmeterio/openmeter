@@ -122,7 +122,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		return nil, fmt.Errorf("failed to create stripe client: %w", err)
 	}
 
-	// Retreive stripe account
+	// Retrieve stripe account
 	stripeAccount, err := stripeClient.GetAccount(ctx)
 	if err != nil {
 		return nil, err
