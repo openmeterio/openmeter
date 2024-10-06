@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -99,17 +101,19 @@ func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (
 }
 
 func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+	// Validate input
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	// Check if the API key is a test key
+	// Check if the Stripe API key is a test key
 	livemode := true
 
 	if strings.HasPrefix(input.APIKey, "sk_test") || strings.HasPrefix(input.APIKey, "rk_test") {
 		livemode = false
 	}
 
+	// Get stripe client
 	stripeClient, err := f.StripeClientFactory(appstripeentity.StripeClientConfig{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
@@ -118,18 +122,41 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		return nil, fmt.Errorf("failed to create stripe client: %w", err)
 	}
 
-	// TODO: this is the first call to stripe, we should check if the API key is valid and return typed errors
-	// Get stripe account
+	// Retreive stripe account
 	stripeAccount, err := stripeClient.GetAccount(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stripe account: %w", err)
+		return nil, err
 	}
 
-	// Create secret
-	secretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
-		Namespace: input.Namespace,
-		Key:       appstripeentity.APIKeySecretKey,
-		Value:     input.APIKey,
+	// We generate the app ID here because we need it to setup the webhook and create the secrets
+	appID := appentitybase.AppID{Namespace: input.Namespace, ID: ulid.Make().String()}
+
+	// TODO: secret creation, webhook setup and app creation should be done in a transaction
+	// This is challenging because we need to coordinate between three remote services (secret, stripe, db)
+
+	// Create API Key secret
+	apiKeySecretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+		AppID: appID,
+		Key:   appstripeentity.APIKeySecretKey,
+		Value: input.APIKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secret: %w", err)
+	}
+
+	// Setup webhook
+	stripeWebhookEndpoint, err := stripeClient.SetupWebhook(ctx, appstripeentity.StripeClientSetupWebhookInput{
+		AppID: appID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup webhook: %w", err)
+	}
+
+	// Create webhook secret
+	webhookSecretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+		AppID: appID,
+		Key:   appstripeentity.WebhookSecretKey,
+		Value: stripeWebhookEndpoint.Secret,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secret: %w", err)
@@ -137,12 +164,14 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 
 	// Create stripe app
 	createStripeAppInput := appstripeentity.CreateAppStripeInput{
+		ID:              &appID.ID,
 		Namespace:       input.Namespace,
 		Name:            "Stripe",
-		Description:     "Stripe",
+		Description:     fmt.Sprintf("Stripe account %s", stripeAccount.StripeAccountID),
 		StripeAccountID: stripeAccount.StripeAccountID,
 		Livemode:        livemode,
-		APIKey:          secretID,
+		APIKey:          apiKeySecretID,
+		WebhookSecret:   webhookSecretID,
 	}
 
 	if err := createStripeAppInput.Validate(); err != nil {
