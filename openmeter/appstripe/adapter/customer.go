@@ -104,7 +104,8 @@ func (a adapter) CreateStripeCustomer(ctx context.Context, input appstripeentity
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.ID,
 		},
-		Key: *stripeApp.APIKey,
+		AppID: input.AppID,
+		Key:   *stripeApp.APIKey,
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)

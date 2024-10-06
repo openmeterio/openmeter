@@ -19,7 +19,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const APIKeySecretKey = "stripe_api_key"
+const (
+	APIKeySecretKey  = "stripe_api_key"
+	WebhookSecretKey = "stripe_webhook_secret"
+)
 
 // App represents an installed Stripe app
 type App struct {
@@ -119,7 +122,8 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.ID,
 		},
-		Key: APIKeySecretKey,
+		AppID: a.GetID(),
+		Key:   APIKeySecretKey,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get stripe api key secret: %w", err)
@@ -189,6 +193,11 @@ func (d CustomerAppData) Validate() error {
 	}
 
 	return nil
+}
+
+type StripeWebhookEndpoint struct {
+	EndpointID string
+	Secret     string
 }
 
 type StripeAccount struct {
