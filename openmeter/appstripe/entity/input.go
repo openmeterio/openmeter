@@ -8,8 +8,14 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
+)
+
+const (
+	APIKeySecretKey  = "stripe_api_key"
+	WebhookSecretKey = "stripe_webhook_secret"
 )
 
 type CreateAppStripeInput struct {
@@ -96,27 +102,6 @@ func (o CreateStripeCustomerOutput) Validate() error {
 	return nil
 }
 
-type StripeClientSetupWebhookInput struct {
-	AppID   appentitybase.AppID
-	BaseURL string
-}
-
-func (i StripeClientSetupWebhookInput) Validate() error {
-	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
-	}
-
-	if i.BaseURL == "" {
-		return errors.New("base url is required")
-	}
-
-	return nil
-}
-
-type (
-	StripeClientCreateStripeCustomerInput = CreateStripeCustomerInput
-)
-
 type UpsertStripeCustomerDataInput struct {
 	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID
@@ -174,24 +159,13 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 	return nil
 }
 
-type StripeCheckoutSessionOptions struct {
-	CancelURL          *string
-	ClientReferenceID  *string
-	CustomText         *stripe.CheckoutSessionCustomTextParams
-	Metadata           map[string]string
-	ReturnURL          *string
-	SuccessURL         *string
-	UIMode             *stripe.CheckoutSessionUIMode
-	PaymentMethodTypes *[]*string
-}
-
 type GetAppInput = appentitybase.AppID
 
 type CreateCheckoutSessionInput struct {
 	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID
 	StripeCustomerID *string
-	Options          StripeCheckoutSessionOptions
+	Options          stripeclient.StripeCheckoutSessionOptions
 }
 
 func (i CreateCheckoutSessionInput) Validate() error {
@@ -231,45 +205,41 @@ func (i CreateCheckoutSessionInput) Validate() error {
 	return nil
 }
 
-type StripeClientCreateCheckoutSessionInput struct {
+// CustomerAppData represents the Stripe associated data for an app used by a customer
+type CustomerAppData struct {
+	StripeCustomerID string `json:"stripeCustomerId"`
+}
+
+func (d CustomerAppData) Validate() error {
+	if d.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
+	}
+
+	return nil
+}
+
+type SetCustomerDefaultPaymentMethodInput struct {
 	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID
 	StripeCustomerID string
-	Options          StripeCheckoutSessionOptions
+	PaymentMethodID  *string
 }
 
-func (i StripeClientCreateCheckoutSessionInput) Validate() error {
+func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
 	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
+		return fmt.Errorf("app id: %w", err)
 	}
 
 	if err := i.CustomerID.Validate(); err != nil {
-		return fmt.Errorf("error validating customer id: %w", err)
+		return fmt.Errorf("customer id: %w", err)
 	}
 
-	if i.AppID.Namespace != i.CustomerID.Namespace {
-		return errors.New("app and customer must be in the same namespace")
+	if i.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
 	}
 
-	if i.StripeCustomerID != "" && !strings.HasPrefix(i.StripeCustomerID, "cus_") {
-		return errors.New("stripe customer id must start with cus_")
-	}
-
-	if i.Options.UIMode != nil {
-		switch *i.Options.UIMode {
-		case stripe.CheckoutSessionUIModeEmbedded:
-			if i.Options.ReturnURL == nil {
-				return errors.New("return url is required for embedded ui mode")
-			}
-
-			if i.Options.CancelURL != nil {
-				return errors.New("cancel url is not allowed for embedded ui mode")
-			}
-		case stripe.CheckoutSessionUIModeHosted:
-			if i.Options.SuccessURL == nil {
-				return errors.New("success url is required for hosted ui mode")
-			}
-		}
+	if i.PaymentMethodID == nil {
+		return errors.New("payment method id is required")
 	}
 
 	return nil

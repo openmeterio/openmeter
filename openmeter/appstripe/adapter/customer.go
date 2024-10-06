@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -112,7 +113,7 @@ func (a adapter) CreateStripeCustomer(ctx context.Context, input appstripeentity
 	}
 
 	// Stripe Client
-	stripeClient, err := a.stripeClientFactory(appstripeentity.StripeClientConfig{
+	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
 		Namespace: stripeApp.Namespace,
 		APIKey:    apiKeySecret.Value,
 	})
@@ -121,7 +122,10 @@ func (a adapter) CreateStripeCustomer(ctx context.Context, input appstripeentity
 	}
 
 	// Create stripe customer
-	stripeCustomer, err := stripeClient.CreateCustomer(ctx, input)
+	stripeCustomer, err := stripeClient.CreateCustomer(ctx, stripeclient.CreateStripeCustomerInput{
+		AppID:      input.AppID,
+		CustomerID: input.CustomerID,
+	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)
 	}

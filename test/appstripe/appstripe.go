@@ -10,6 +10,7 @@ import (
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
@@ -191,12 +192,12 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		AppID:      app.GetID(),
 		CustomerID: customer.GetID(),
-		Options:    appstripeentity.StripeCheckoutSessionOptions{},
+		Options:    stripeclient.StripeCheckoutSessionOptions{},
 	})
 
 	require.NoError(t, err, "Create checkout session must not return error")
 
-	require.Equal(t, appstripeentity.StripeCheckoutSession{
+	require.Equal(t, stripeclient.StripeCheckoutSession{
 		SessionID:     "cs_123",
 		SetupIntentID: "seti_123",
 		Mode:          stripe.CheckoutSessionModeSetup,

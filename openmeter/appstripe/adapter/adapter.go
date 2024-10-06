@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -23,7 +24,7 @@ type Config struct {
 	CustomerService     customer.Service
 	Marketplace         app.MarketplaceService
 	SecretService       secret.Service
-	StripeClientFactory appstripeentity.StripeClientFactory
+	StripeClientFactory stripeclient.StripeClientFactory
 }
 
 func (c Config) Validate() error {
@@ -66,7 +67,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	// Create stripe app factory
 	stripeClientFactory := config.StripeClientFactory
 	if stripeClientFactory == nil {
-		stripeClientFactory = appstripeentity.NewStripeClient
+		stripeClientFactory = stripeclient.NewStripeClient
 	}
 
 	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
@@ -115,7 +116,7 @@ type adapter struct {
 	appService          app.Service
 	customerService     customer.Service
 	secretService       secret.Service
-	stripeClientFactory appstripeentity.StripeClientFactory
+	stripeClientFactory stripeclient.StripeClientFactory
 }
 
 // Tx implements entutils.TxCreator interface
