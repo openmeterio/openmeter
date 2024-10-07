@@ -161,6 +161,10 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 
 type GetAppInput = appentitybase.AppID
 
+type GetWebhookSecretInput = appentitybase.AppID
+
+type GetWebhookSecretOutput = secretentity.Secret
+
 type CreateCheckoutSessionInput struct {
 	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID
@@ -220,9 +224,12 @@ func (d CustomerAppData) Validate() error {
 
 type SetCustomerDefaultPaymentMethodInput struct {
 	AppID            appentitybase.AppID
-	CustomerID       customerentity.CustomerID
 	StripeCustomerID string
-	PaymentMethodID  *string
+	PaymentMethodID  string
+}
+
+type SetCustomerDefaultPaymentMethodOutput struct {
+	CustomerID customerentity.CustomerID
 }
 
 func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
@@ -230,15 +237,11 @@ func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
 		return fmt.Errorf("app id: %w", err)
 	}
 
-	if err := i.CustomerID.Validate(); err != nil {
-		return fmt.Errorf("customer id: %w", err)
-	}
-
 	if i.StripeCustomerID == "" {
 		return errors.New("stripe customer id is required")
 	}
 
-	if i.PaymentMethodID == nil {
+	if i.PaymentMethodID == "" {
 		return errors.New("payment method id is required")
 	}
 

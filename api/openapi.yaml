@@ -52,6 +52,38 @@ tags:
 
       [Learn more](https://openmeter.io/docs/getting-started/notification/overview)
 paths:
+  # Apps
+  /api/v1/apps/{id}/stripe/webhook:
+    post:
+      operationId: appStripeWebhook
+      description: Stripe webhook.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeWebhookResponse'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - AppsStripe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeWebhookEvent'
   # Customer Endpoints
   /api/v1/customers:
     post:
@@ -4039,6 +4071,471 @@ components:
       example: 01G65Z755AFWAKHE12NY0CQ9FH
       pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       description: ULID (Universally Unique Lexicographically Sortable Identifier).
+    App:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/StripeApp'
+      description: |-
+        App.
+        One of: stripe
+    App.AppStatus:
+      type: string
+      enum:
+        - ready
+        - unauthorized
+      description: App installed status.
+    App.AppType:
+      type: string
+      enum:
+        - stripe
+      description: App type.
+    App.StripePaymentIntentStatus:
+      type: string
+      enum:
+        - canceled
+        - processing
+        - requires_action
+        - requires_confirmation
+        - requires_payment_method
+        - succeeded
+      description: Stripe payment intent status.
+    AppBase:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - listing
+        - status
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/App.AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+      description: |-
+        Abstract base model for installed apps.
+
+        Represent an app installed to the organization.
+        This is an actual instance, with its own configuration and credentials.
+    AppCapability:
+      type: object
+      required:
+        - type
+        - key
+        - name
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/AppCapabilityType'
+          description: The capability type.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/Key'
+          description: Key
+        name:
+          type: string
+          description: The capability name.
+        description:
+          type: string
+          description: The capability description.
+        requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppRequirements'
+          description: The capability requirements.
+      example:
+        type: collectPayments
+        key: stripe_collect_payment
+        name: Collect Payments
+        description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+      description: |-
+        App capability.
+
+        Capabilities only exist in config so they don't extend the Resource model.
+    AppCapabilityType:
+      type: string
+      enum:
+        - reportUsage
+        - reportEvents
+        - calculateTax
+        - invoiceCustomers
+        - collectPayments
+      description: App capability type.
+    AppList:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - items
+      properties:
+        page:
+          type: integer
+          description: The page number.
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: The number of items in the page.
+        totalCount:
+          type: integer
+          description: The total number of items.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/App'
+          maxItems: 1000
+          description: The items in the page.
+      description: A page of results.
+    AppRequirements:
+      type: string
+      enum:
+        - customer.countryCode
+        - customer.external.stripeCustomerId
+    MarketplaceApiKeyInstallRequest:
+      type: object
+      required:
+        - _
+      properties:
+        _:
+          type: object
+          properties:
+            appKey:
+              allOf:
+                - $ref: '#/components/schemas/Key'
+              description: The key of the app to install.
+            apiKey:
+              type: string
+              description: The API key.
+          required:
+            - appKey
+            - apiKey
+      description: App API key install request.
+    MarketplaceListListingsResponse:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - items
+      properties:
+        page:
+          type: integer
+          description: The page number.
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: The number of items in the page.
+        totalCount:
+          type: integer
+          description: The total number of items.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketplaceListing'
+          maxItems: 1000
+          description: The items in the page.
+      description: Marketplace list listings response.
+    MarketplaceListing:
+      type: object
+      required:
+        - key
+        - name
+        - description
+        - type
+        - iconUrl
+        - capabilities
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/Key'
+          description: The app's key.
+        name:
+          type: string
+          description: The app's name.
+        description:
+          type: string
+          description: The app's description.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/App.AppType'
+          description: The app's type
+        iconUrl:
+          type: string
+          description: The app's icon URL.
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppCapability'
+          description: The app's capabilities.
+      example:
+        key: stripe
+        type: stripe
+        name: Stripe
+        description: Stripe interation allows you to collect payments with Stripe.
+        iconUrl: /images/stripe.png
+        capabilities:
+          - type: calculateTax
+            key: stripe_calculate_tax
+            name: Calculate Tax
+            description: Stripe Tax calculates tax portion of the invoices.
+            requirements:
+              - customer.external.stripeCustomerId
+          - type: invoiceCustomers
+            key: stripe_invoice_customers
+            name: Invoice Customers
+            description: Stripe invoices customers with due amount.
+            requirements:
+              - customer.external.stripeCustomerId
+          - type: collectPayments
+            key: stripe_collect_payments
+            name: Collect Payments
+            description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+            requirements:
+              - customer.external.stripeCustomerId
+      description: |-
+        A marketplace listing.
+        Represent an available app in the app marketplace that can be installed to the organization.
+
+        Marketplace apps only exist in config so they don't extend the Resource model.
+    StripeApp:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - listing
+        - status
+        - type
+        - stripeAccountId
+        - livemode
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/App.AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app's type is Stripe.
+        stripeAccountId:
+          type: string
+          description: The Stripe account ID.
+        livemode:
+          type: boolean
+          description: Livemode, true if the app is in production mode.
+      example:
+        id: 01G65Z755AFWAKHE12NY0CQ9FH
+        type: stripe
+        name: Stripe
+        status: ready
+        listing:
+          key: stripe
+          type: stripe
+          name: Stripe
+          description: Stripe interation allows you to collect payments with Stripe.
+          iconUrl: /images/stripe.png
+          capabilities:
+            - type: calculateTax
+              key: stripe_calculate_tax
+              name: Calculate Tax
+              description: Stripe Tax calculates tax portion of the invoices.
+              requirements:
+                - customer.external.stripeCustomerId
+            - type: invoiceCustomers
+              key: stripe_invoice_customers
+              name: Invoice Customers
+              description: Stripe invoices customers with due amount.
+              requirements:
+                - customer.external.stripeCustomerId
+            - type: collectPayments
+              key: stripe_collect_payments
+              name: Collect Payments
+              description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+              requirements:
+                - customer.external.stripeCustomerId
+        createdAt: 2024-01-01T01:01:01.001Z
+        updatedAt: 2024-01-01T01:01:01.001Z
+        stripeAccountId: acct_123456789
+        livemode: true
+      description: A installed Stripe app object.
+    StripeSetupIntent:
+      type: object
+      required:
+        - id
+        - status
+        - customer
+        - metadata
+      properties:
+        id:
+          type: string
+          description: The setup intent id.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/App.StripePaymentIntentStatus'
+          description: The setup intent status.
+        payment_method:
+          type: string
+          description: The setup intent payment method.
+        payment_method_types:
+          type: array
+          items:
+            type: string
+          description: The setup intent payment method types.
+        customer:
+          type: string
+          description: The setup intent customer.
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: The setup intent metadata.
+      description: Stripe setup intent.
+    StripeWebhookEvent:
+      type: object
+      required:
+        - id
+        - type
+        - livemode
+        - created
+        - data
+      properties:
+        id:
+          type: string
+          description: The event ID.
+        type:
+          type: string
+          description: The event type.
+        livemode:
+          type: boolean
+          description: Live mode.
+        created:
+          type: integer
+          format: int32
+          description: The event created timestamp.
+        data:
+          allOf:
+            - $ref: '#/components/schemas/StripeSetupIntent'
+          description: The event data.
+      description: Stripe webhook event.
+    StripeWebhookResponse:
+      type: object
+      required:
+        - namespaceId
+        - appId
+      properties:
+        namespaceId:
+          type: string
+        appId:
+          type: string
+        customerId:
+          type: string
+      description: Stripe webhook response.
 
   parameters:
     PaginatedQuery.page:
