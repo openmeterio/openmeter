@@ -192,6 +192,12 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespac
 	if err != nil {
 		return nil, err
 	}
+
+	// If the entitlement is not active it cannot provide access
+	if !ent.IsActive(at) {
+		return &NoAccessValue{}, nil
+	}
+
 	connector, err := c.getTypeConnector(ent)
 	if err != nil {
 		return nil, err
