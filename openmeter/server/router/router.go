@@ -11,6 +11,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/appstripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -62,6 +64,7 @@ type Config struct {
 	ErrorHandler        errorsx.Handler
 
 	// deps
+	AppStripe                   appstripe.Service
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
@@ -127,12 +130,21 @@ func (c Config) Validate() error {
 		}
 	}
 
+	if c.AppStripe == nil {
+		return errors.New("app stripe service is required")
+	}
+
+	if c.Customer == nil {
+		return errors.New("customer service is required")
+	}
+
 	return nil
 }
 
 type Router struct {
 	config Config
 
+	appStripeHandler          appstripehttpdriver.AppStripeHandler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
@@ -202,6 +214,13 @@ func NewRouter(config Config) (*Router, error) {
 	router.customerHandler = customerhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Customer,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// App Stripe
+	router.appStripeHandler = appstripehttpdriver.New(
+		staticNamespaceDecoder,
+		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

@@ -109,6 +109,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "api_key", Type: field.TypeString},
+		{Name: "webhook_secret", Type: field.TypeString},
 		{Name: "stripe_account_id", Type: field.TypeString},
 		{Name: "stripe_livemode", Type: field.TypeBool},
 	}

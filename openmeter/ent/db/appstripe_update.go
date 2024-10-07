@@ -69,6 +69,20 @@ func (asu *AppStripeUpdate) SetNillableAPIKey(s *string) *AppStripeUpdate {
 	return asu
 }
 
+// SetWebhookSecret sets the "webhook_secret" field.
+func (asu *AppStripeUpdate) SetWebhookSecret(s string) *AppStripeUpdate {
+	asu.mutation.SetWebhookSecret(s)
+	return asu
+}
+
+// SetNillableWebhookSecret sets the "webhook_secret" field if the given value is not nil.
+func (asu *AppStripeUpdate) SetNillableWebhookSecret(s *string) *AppStripeUpdate {
+	if s != nil {
+		asu.SetWebhookSecret(*s)
+	}
+	return asu
+}
+
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
 func (asu *AppStripeUpdate) AddCustomerAppIDs(ids ...int) *AppStripeUpdate {
 	asu.mutation.AddCustomerAppIDs(ids...)
@@ -153,6 +167,11 @@ func (asu *AppStripeUpdate) check() error {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
+	if v, ok := asu.mutation.WebhookSecret(); ok {
+		if err := appstripe.WebhookSecretValidator(v); err != nil {
+			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -179,6 +198,9 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := asu.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
+	}
+	if value, ok := asu.mutation.WebhookSecret(); ok {
+		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
 	}
 	if asu.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -285,6 +307,20 @@ func (asuo *AppStripeUpdateOne) SetNillableAPIKey(s *string) *AppStripeUpdateOne
 	return asuo
 }
 
+// SetWebhookSecret sets the "webhook_secret" field.
+func (asuo *AppStripeUpdateOne) SetWebhookSecret(s string) *AppStripeUpdateOne {
+	asuo.mutation.SetWebhookSecret(s)
+	return asuo
+}
+
+// SetNillableWebhookSecret sets the "webhook_secret" field if the given value is not nil.
+func (asuo *AppStripeUpdateOne) SetNillableWebhookSecret(s *string) *AppStripeUpdateOne {
+	if s != nil {
+		asuo.SetWebhookSecret(*s)
+	}
+	return asuo
+}
+
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
 func (asuo *AppStripeUpdateOne) AddCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
 	asuo.mutation.AddCustomerAppIDs(ids...)
@@ -382,6 +418,11 @@ func (asuo *AppStripeUpdateOne) check() error {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
+	if v, ok := asuo.mutation.WebhookSecret(); ok {
+		if err := appstripe.WebhookSecretValidator(v); err != nil {
+			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -425,6 +466,9 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 	}
 	if value, ok := asuo.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
+	}
+	if value, ok := asuo.mutation.WebhookSecret(); ok {
+		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
 	}
 	if asuo.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

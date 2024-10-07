@@ -28,6 +28,8 @@ type AppStripe struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// APIKey holds the value of the "api_key" field.
 	APIKey *string `json:"-"`
+	// WebhookSecret holds the value of the "webhook_secret" field.
+	WebhookSecret string `json:"-"`
 	// StripeAccountID holds the value of the "stripe_account_id" field.
 	StripeAccountID string `json:"stripe_account_id,omitempty"`
 	// StripeLivemode holds the value of the "stripe_livemode" field.
@@ -76,7 +78,7 @@ func (*AppStripe) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appstripe.FieldStripeLivemode:
 			values[i] = new(sql.NullBool)
-		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldAPIKey, appstripe.FieldStripeAccountID:
+		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldAPIKey, appstripe.FieldWebhookSecret, appstripe.FieldStripeAccountID:
 			values[i] = new(sql.NullString)
 		case appstripe.FieldCreatedAt, appstripe.FieldUpdatedAt, appstripe.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -132,6 +134,12 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				as.APIKey = new(string)
 				*as.APIKey = value.String
+			}
+		case appstripe.FieldWebhookSecret:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field webhook_secret", values[i])
+			} else if value.Valid {
+				as.WebhookSecret = value.String
 			}
 		case appstripe.FieldStripeAccountID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -206,6 +214,8 @@ func (as *AppStripe) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("api_key=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("webhook_secret=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("stripe_account_id=")
 	builder.WriteString(as.StripeAccountID)

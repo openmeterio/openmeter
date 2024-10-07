@@ -24,6 +24,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldAPIKey holds the string denoting the api_key field in the database.
 	FieldAPIKey = "api_key"
+	// FieldWebhookSecret holds the string denoting the webhook_secret field in the database.
+	FieldWebhookSecret = "webhook_secret"
 	// FieldStripeAccountID holds the string denoting the stripe_account_id field in the database.
 	FieldStripeAccountID = "stripe_account_id"
 	// FieldStripeLivemode holds the string denoting the stripe_livemode field in the database.
@@ -58,6 +60,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldAPIKey,
+	FieldWebhookSecret,
 	FieldStripeAccountID,
 	FieldStripeLivemode,
 }
@@ -83,6 +86,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// APIKeyValidator is a validator for the "api_key" field. It is called by the builders before save.
 	APIKeyValidator func(string) error
+	// WebhookSecretValidator is a validator for the "webhook_secret" field. It is called by the builders before save.
+	WebhookSecretValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -118,6 +123,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByAPIKey orders the results by the api_key field.
 func ByAPIKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAPIKey, opts...).ToFunc()
+}
+
+// ByWebhookSecret orders the results by the webhook_secret field.
+func ByWebhookSecret(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebhookSecret, opts...).ToFunc()
 }
 
 // ByStripeAccountID orders the results by the stripe_account_id field.
