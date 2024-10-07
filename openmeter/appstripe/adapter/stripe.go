@@ -68,8 +68,8 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 }
 
 // GetStripeApp gets an app
-func (a adapter) GetStripeApp(ctx context.Context, appID appentitybase.AppID) (appstripeentity.App, error) {
-	app, err := a.appService.GetApp(ctx, appID)
+func (a adapter) GetStripeApp(ctx context.Context, input appstripeentity.GetAppInput) (appstripeentity.App, error) {
+	app, err := a.appService.GetApp(ctx, input)
 	if err != nil {
 		return appstripeentity.App{}, err
 	}
@@ -92,17 +92,26 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 	// Get the stripe app
 	stripeApp, err := a.db.AppStripe.
 		Query().
-		Where(appstripedb.ID(input.ID)).
-		Where(appstripedb.Namespace(input.Namespace)).
+		Where(appstripedb.ID(input.AppID)).
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
 			return secretentity.Secret{}, app.AppNotFoundError{
-				AppID: input,
+				// TODO: how should we handle this?
+				// GetWebhookSecret doesn't know the namespace
+				AppID: appentitybase.AppID{
+					Namespace: "unknown",
+					ID:        input.AppID,
+				},
 			}
 		}
 
 		return secretentity.Secret{}, fmt.Errorf("failed to get stripe app: %w", err)
+	}
+
+	appID := appentitybase.AppID{
+		Namespace: stripeApp.Namespace,
+		ID:        stripeApp.ID,
 	}
 
 	// Get the webhook secret
@@ -111,7 +120,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.ID,
 		},
-		AppID: input,
+		AppID: appID,
 		Key:   appstripeentity.WebhookSecretKey,
 	})
 	if err != nil {
