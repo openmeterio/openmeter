@@ -30,3 +30,25 @@ func WithPrefix(err error, prefix string) error {
 
 	return errors.Join(errs...)
 }
+
+var _ error = (*warnError)(nil)
+
+type warnError struct {
+	Err error
+}
+
+func (w *warnError) Error() string {
+	return w.Err.Error()
+}
+
+func (w *warnError) Unwrap() error {
+	return w.Err
+}
+
+func NewWarnError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return &warnError{Err: err}
+}
