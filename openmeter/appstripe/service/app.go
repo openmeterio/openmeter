@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 )
 
@@ -21,9 +20,9 @@ func (s *Service) GetWebhookSecret(ctx context.Context, input appstripeentity.Ge
 	return s.adapter.GetWebhookSecret(ctx, input)
 }
 
-func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error) {
+func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
 	if err := input.Validate(); err != nil {
-		return stripeclient.StripeCheckoutSession{}, appstripe.ValidationError{
+		return appstripeentity.CreateCheckoutSessionOutput{}, appstripe.ValidationError{
 			Err: fmt.Errorf("error create checkout session: %w", err),
 		}
 	}

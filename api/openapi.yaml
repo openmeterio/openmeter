@@ -53,6 +53,37 @@ tags:
       [Learn more](https://openmeter.io/docs/getting-started/notification/overview)
 paths:
   # Apps
+  /api/v1/apps/{id}/stripe/checkout/sessions:
+    post:
+      operationId: createAppStripeCheckoutSession
+      description: Create checkout session.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateStripeCheckoutSessionResponse'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - AppsStripe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
   /api/v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
@@ -4496,6 +4527,11 @@ components:
             type: string
           description: The setup intent metadata.
       description: Stripe setup intent.
+    StripeCheckoutSessionMode:
+      type: string
+      enum:
+        - setup
+      description: Stripe CheckoutSession.mode
     StripeWebhookEvent:
       type: object
       required:
@@ -4536,6 +4572,120 @@ components:
         customerId:
           type: string
       description: Stripe webhook response.
+    CheckoutSessionCustomTextAfterSubmitParams:
+      type: object
+      properties:
+        afterSubmit:
+          type: object
+          properties:
+            message:
+              type: string
+        shippingAddress:
+          type: object
+          properties:
+            message:
+              type: string
+        submit:
+          type: object
+          properties:
+            message:
+              type: string
+        termsOfServiceAcceptance:
+          type: object
+          properties:
+            message:
+              type: string
+      description: Stripe CheckoutSession.custom_text
+    CheckoutSessionUIMode:
+      type: string
+      enum:
+        - embedded
+        - hosted
+      description: Stripe CheckoutSession.ui_mode
+    CreateStripeCheckoutSessionRequest:
+      type: object
+      required:
+        - customerId
+        - options
+      properties:
+        customerId:
+          type: string
+          description: The customer ID.
+        stripeCustomerId:
+          type: string
+          description: |-
+            Stripe customer ID.
+            If not provided OpenMeter creates a new Stripe customer.
+        options:
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionRequestOptions'
+          description: Options passed to Stripe when creating the checkout session.
+      description: Create Stripe checkout session request.
+    CreateStripeCheckoutSessionRequestOptions:
+      type: object
+      properties:
+        cancelURL:
+          type: string
+        clientReferenceID:
+          type: string
+        customText:
+          $ref: '#/components/schemas/CheckoutSessionCustomTextAfterSubmitParams'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        returnURL:
+          type: string
+        successURL:
+          type: string
+        uiMode:
+          $ref: '#/components/schemas/CheckoutSessionUIMode'
+        paymentMethodTypes:
+          type: array
+          items:
+            type: string
+      description: Create Stripe checkout session options
+    CreateStripeCheckoutSessionResponse:
+      type: object
+      required:
+        - customerId
+        - stripeCustomerId
+        - sessionId
+        - setupIntentId
+        - url
+        - mode
+      properties:
+        customerId:
+          type: string
+          description: The OpenMeter customer ID.
+        stripeCustomerId:
+          type: string
+          description: The Stripe customer ID.
+        sessionId:
+          type: string
+          description: The checkout session ID.
+        setupIntentId:
+          type: string
+          description: The checkout session setup intent ID.
+        url:
+          type: string
+          description: URL to show the checkout session.
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/StripeCheckoutSessionMode'
+          description: |-
+            Mode
+            Always `setup` for now.
+        cancelURL:
+          type: string
+          description: Cancel URL.
+        successURL:
+          type: string
+          description: Success URL.
+        returnURL:
+          type: string
+          description: Return URL.
+      description: Create Stripe Checkout Session response.
 
   parameters:
     PaginatedQuery.page:

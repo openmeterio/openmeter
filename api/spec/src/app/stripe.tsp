@@ -29,6 +29,17 @@ interface AppStripeAPI {
   @route("/webhook")
   @operationId("appStripeWebhook")
   appStripeWebhook(@path id: string, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
+
+  /**
+   * Create checkout session.
+   */
+  @post
+  @route("/checkout/sessions")
+  @operationId("createAppStripeCheckoutSession")
+  createAppStripeCheckoutSession(@path id: string, @body body: CreateStripeCheckoutSessionRequest): {
+    @statusCode _: 201;
+    @body body: CreateStripeCheckoutSessionResponse;
+  } | CommonErrors;
 }
 
 /**
@@ -39,6 +50,151 @@ model StripeWebhookResponse {
   namespaceId: string;
   appId: string;
   customerId?: string;
+}
+
+/**
+ * Create Stripe checkout session request.
+ */
+@friendlyName("CreateStripeCheckoutSessionRequest")
+model CreateStripeCheckoutSessionRequest {
+  /**
+   * The customer ID.
+   */
+  customerId: string;
+
+  /**
+   * Stripe customer ID.
+   * If not provided OpenMeter creates a new Stripe customer.
+   */
+  stripeCustomerId?: string;
+
+  /**
+   * Options passed to Stripe when creating the checkout session.
+   */
+  options: CreateStripeCheckoutSessionRequestOptions;
+}
+
+/**
+ * Create Stripe checkout session options
+ */
+@friendlyName("CreateStripeCheckoutSessionRequestOptions")
+model CreateStripeCheckoutSessionRequestOptions {
+  cancelURL?: string;
+  clientReferenceID?: string;
+  customText?: CheckoutSessionCustomTextParams;
+  metadata?: Record<string>;
+  returnURL?: string;
+  successURL?: string;
+  uiMode?: CheckoutSessionUIMode;
+  paymentMethodTypes?: string[];
+}
+
+/**
+ * Create Stripe Checkout Session response.
+ */
+@friendlyName("CreateStripeCheckoutSessionResponse")
+model CreateStripeCheckoutSessionResponse {
+  /**
+   * The OpenMeter customer ID.
+   */
+  customerId: string;
+
+  /**
+   * The Stripe customer ID.
+   */
+  stripeCustomerId: string;
+
+  /**
+   * The checkout session ID.
+   */
+  sessionId: string;
+
+  /**
+   * The checkout session setup intent ID.
+   */
+  setupIntentId: string;
+
+  /**
+   * URL to show the checkout session.
+   */
+  url: string;
+
+  /**
+   * Mode
+   * Always `setup` for now.
+   */
+  mode: StripeCheckoutSessionMode;
+
+  /**
+   * Cancel URL.
+   */
+  cancelURL?: string;
+
+  /**
+   * Success URL.
+   */
+  successURL?: string;
+
+  /**
+   * Return URL.
+   */
+  returnURL?: string;
+}
+
+/**
+ * Stripe CheckoutSession.mode
+ * @see https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-mode
+ *
+ * Stripe checkout session mode.
+ */
+@friendlyName("StripeCheckoutSessionMode")
+enum StripeCheckoutSessionMode {
+  Setup: "setup",
+}
+
+/**
+ * Stripe CheckoutSession.ui_mode
+ * @see https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-ui_mode
+ *
+ * Stripe checkout session UI mode.
+ */
+@friendlyName("CheckoutSessionUIMode")
+enum CheckoutSessionUIMode {
+  Embedded: "embedded",
+  Hosted: "hosted",
+}
+
+/**
+ * Stripe CheckoutSession.custom_text
+ * @see https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-custom_text
+ *
+ * Display additional text for your customers using custom text.
+ */
+@friendlyName("CheckoutSessionCustomTextAfterSubmitParams")
+model CheckoutSessionCustomTextParams {
+  // Custom text that should be displayed after the payment confirmation button.
+  afterSubmit?: {
+    // Text may be up to 1200 characters in length.
+    message?: string;
+  };
+
+  // Custom text that should be displayed alongside shipping address collection.
+  shippingAddress?: {
+    // Text may be up to 1200 characters in length.
+    message?: string;
+  };
+
+  // Custom text that should be displayed alongside the payment confirmation button.
+  submit?: {
+    // Text may be up to 1200 characters in length.
+    message?: string;
+  };
+
+  // Custom text that should be displayed in place of the default terms of service agreement text.
+  termsOfServiceAcceptance?: {
+    // Text may be up to 1200 characters in length.
+    message?: string;
+  };
 }
 
 /**
