@@ -11,6 +11,12 @@ type EntitlementValue interface {
 	HasAccess() bool
 }
 
+type NoAccessValue struct{}
+
+func (NoAccessValue) HasAccess() bool {
+	return false
+}
+
 type SubTypeConnector interface {
 	GetValue(entitlement *Entitlement, at time.Time) (EntitlementValue, error)
 
