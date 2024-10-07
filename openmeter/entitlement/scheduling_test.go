@@ -400,7 +400,7 @@ func TestSuperseding(t *testing.T) {
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
 						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature2"), // invlid value
+						FeatureKey:      lo.ToPtr("feature2"), // invalid value
 						SubjectKey:      "subject1",
 						EntitlementType: entitlement.EntitlementTypeBoolean,
 						// 12h in future
