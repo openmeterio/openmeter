@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -35,7 +36,7 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	if from.Before(minimumFrom) {
 		err := fmt.Errorf("from date is too old: %s", from)
 
-		a.config.ErrorHandler.HandleContext(ctx, err)
+		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
@@ -44,7 +45,7 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	if params.To != nil && params.To.Before(from) {
 		err := fmt.Errorf("to date is before from date: %s < %s", params.To, params.From)
 
-		a.config.ErrorHandler.HandleContext(ctx, err)
+		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
@@ -53,7 +54,7 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	if params.IngestedAtFrom != nil && params.IngestedAtFrom.Before(minimumFrom) {
 		err := fmt.Errorf("ingestedAtFrom date is too old: %s", params.IngestedAtFrom)
 
-		a.config.ErrorHandler.HandleContext(ctx, err)
+		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
@@ -62,7 +63,7 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	if params.IngestedAtFrom != nil && params.IngestedAtTo != nil && params.IngestedAtTo.Before(*params.IngestedAtFrom) {
 		err := fmt.Errorf("ingestedAtTo date is before ingestedAtFrom date: %s < %s", params.IngestedAtTo, params.IngestedAtFrom)
 
-		a.config.ErrorHandler.HandleContext(ctx, err)
+		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
