@@ -118,7 +118,7 @@ model Grant {
   /**
    * The recurrence period of the grant.
    */
-  recurrence: RecurringPeriod;
+  recurrence?: RecurringPeriod;
 }
 
 /**
