@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -215,6 +216,11 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 
 	// We don't care about delete events
 	if event.Operation != snapshot.ValueOperationUpdate {
+		return false
+	}
+
+	// We don't care about events of inactive entitlements
+	if !event.Entitlement.IsActive(clock.Now()) {
 		return false
 	}
 
