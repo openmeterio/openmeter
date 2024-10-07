@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
 	"k8s.io/utils/strings/slices"
 
@@ -83,7 +84,7 @@ func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params Regis
 			Description: eventType.Description,
 			FeatureFlag: *svix.NullableString(nil),
 			GroupName:   *svix.NullableString(&eventType.GroupName),
-			Schemas:     eventType.Schemas,
+			Schemas:     lo.ToPtr(eventType.Schemas),
 		}
 
 		_, err := h.client.EventType.Update(ctx, eventType.Name, input)
@@ -337,8 +338,8 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 		Url:         params.URL,
 		Disabled:    &params.Disabled,
 		RateLimit:   *svix.NullableInt32(params.RateLimit),
-		FilterTypes: params.EventTypes,
-		Channels:    params.Channels,
+		FilterTypes: lo.ToPtr(params.EventTypes),
+		Channels:    lo.ToPtr(params.Channels),
 		Metadata: func() *map[string]string {
 			if len(params.Metadata) > 0 {
 				return &params.Metadata
@@ -501,15 +502,19 @@ func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhook
 			return true
 		}
 
-		for _, eventType := range params.EventTypes {
-			if slices.Contains(o.FilterTypes, eventType) {
-				return true
+		if o.FilterTypes != nil {
+			for _, eventType := range params.EventTypes {
+				if slices.Contains(*o.FilterTypes, eventType) {
+					return true
+				}
 			}
 		}
 
-		for _, channel := range params.Channels {
-			if slices.Contains(o.Channels, channel) {
-				return true
+		if o.Channels != nil {
+			for _, channel := range params.Channels {
+				if slices.Contains(*o.Channels, channel) {
+					return true
+				}
 			}
 		}
 
@@ -553,7 +558,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 	}
 
 	input := &svix.MessageIn{
-		Channels:  params.Channels,
+		Channels:  lo.ToPtr(params.Channels),
 		EventId:   *svix.NullableString(eventID),
 		EventType: params.EventType,
 		Payload:   params.Payload,
@@ -584,7 +589,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 			return ""
 		}(),
 		EventType: o.EventType,
-		Channels:  o.Channels,
+		Channels:  lo.FromPtr(o.Channels),
 		Payload:   o.Payload,
 	}, nil
 }
@@ -602,8 +607,8 @@ func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *Webhook {
 		Disabled:    defaultx.WithDefault(e.Disabled, false),
 		RateLimit:   e.RateLimit.Get(),
 		Description: e.Description,
-		EventTypes:  e.FilterTypes,
-		Channels: slices.Filter(nil, e.Channels, func(s string) bool {
+		EventTypes:  lo.FromPtr(e.FilterTypes),
+		Channels: slices.Filter(nil, lo.FromPtr(e.Channels), func(s string) bool {
 			return s != NullChannel
 		}),
 		CreatedAt: e.CreatedAt,
