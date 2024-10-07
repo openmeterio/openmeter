@@ -219,6 +219,44 @@ func (i CreateCheckoutSessionInput) Validate() error {
 	return nil
 }
 
+type CreateCheckoutSessionOutput struct {
+	CustomerID       customerentity.CustomerID
+	StripeCustomerID string
+
+	SessionID     string
+	SetupIntentID string
+	URL           string
+	Mode          stripe.CheckoutSessionMode
+
+	CancelURL  *string
+	SuccessURL *string
+	ReturnURL  *string
+}
+
+func (o CreateCheckoutSessionOutput) Validate() error {
+	if err := o.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("error validating customer id: %w", err)
+	}
+
+	if o.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
+	}
+
+	if o.SessionID == "" {
+		return errors.New("session id is required")
+	}
+
+	if o.SetupIntentID == "" {
+		return errors.New("setup intent id is required")
+	}
+
+	if o.URL == "" {
+		return errors.New("url is required")
+	}
+
+	return nil
+}
+
 // CustomerAppData represents the Stripe associated data for an app used by a customer
 type CustomerAppData struct {
 	StripeCustomerID string `json:"stripeCustomerId"`

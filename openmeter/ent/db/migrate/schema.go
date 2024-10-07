@@ -181,6 +181,11 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[7], AppStripeCustomersColumns[8]},
 			},
+			{
+				Name:    "appstripecustomer_app_id_stripe_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeCustomersColumns[7], AppStripeCustomersColumns[5]},
+			},
 		},
 	}
 	// BalanceSnapshotsColumns holds the columns for the "balance_snapshots" table.
