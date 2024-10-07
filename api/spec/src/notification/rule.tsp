@@ -12,7 +12,7 @@ namespace OpenMeter.Notification;
  * Metadata only fields of a notification channel.
  */
 @friendlyName("NotificationRuleMeta")
-model RuleMeta {
+model NotificationRuleMeta {
   /**
    * Identifies the notification rule.
    */
@@ -26,16 +26,16 @@ model RuleMeta {
    */
   @visibility("read")
   @summary("Rule Type")
-  type: EventType;
+  type: NotificationEventType;
 }
 
 /**
  * Common fields of a notificaiton channel.
  */
 @friendlyName("NotificationRuleCommon")
-model RuleCommon<T extends EventType> {
+model NotificationRuleCommon<T extends NotificationEventType> {
   ...ResourceTimestamps;
-  ...OmitProperties<RuleMeta, "type">;
+  ...OmitProperties<NotificationRuleMeta, "type">;
 
   /**
    * Notification rule type.
@@ -65,14 +65,14 @@ model RuleCommon<T extends EventType> {
    */
   @visibility("read", "create", "query", "update")
   @summary("Channels assigned to Rule")
-  channels: Array<ChannelMeta>;
+  channels: Array<NotificationChannelMeta>;
 }
 
 /**
  * Threshold value with multiple supported types.
  */
 @friendlyName("NotificationRuleBalanceThresholdValue")
-model RuleBalanceThresholdValue {
+model NotificationRuleBalanceThresholdValue {
   /**
    * Value of the threshold.
    */
@@ -117,8 +117,8 @@ model FeatureMeta {
  * Notification rule with entitlements.balance.threshold type.
  */
 @friendlyName("NotificationRuleBalanceThreshold")
-model RuleBalanceThreshold {
-  ...RuleCommon<EventType.entitlementsBalanceThreshold>;
+model NotificationRuleBalanceThreshold {
+  ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>;
 
   /**
    * List of thresholds the rule suppose to be triggered.
@@ -127,7 +127,7 @@ model RuleBalanceThreshold {
   @summary("Entitlement Balance Thresholds")
   @minItems(1)
   @maxItems(10)
-  thresholds: Array<RuleBalanceThresholdValue>;
+  thresholds: Array<NotificationRuleBalanceThresholdValue>;
 
   /**
    * Optional field containing list of features the rule applies to.
@@ -144,34 +144,35 @@ model RuleBalanceThreshold {
 @friendlyName("NotificationRule")
 @discriminator("type")
 @oneOf
-union Rule {
-  entitlementsBalanceThreshold: RuleBalanceThreshold,
+union NotificationRule {
+  entitlementsBalanceThreshold: NotificationRuleBalanceThreshold,
 }
 
 /**
- * Union type for requests creating new notificatio nchannel with certain type.
+ * Union type for requests creating new notification rule with certain type.
  */
 @friendlyName("NotificationRuleCreateRequest")
 @discriminator("type")
 @oneOf
-union RuleCreateRequest {
-  entitlementsBalanceThreshold: RuleBalanceThresholdCreateRequest,
+union NotificationRuleCreateRequest {
+  entitlementsBalanceThreshold: NotificationRuleBalanceThresholdCreateRequest,
 }
 
 /**
- * Request with input parameters for creating new notification channel with webhook type.
+ * Request with input parameters for creating new notification rule with webhook type.
  */
 @withVisibility("create", "update")
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
-model RuleBalanceThresholdCreateRequest {
-  ...OmitProperties<RuleBalanceThreshold, "features">;
+model NotificationRuleBalanceThresholdCreateRequest {
+  ...OmitProperties<NotificationRuleBalanceThreshold, "channels" | "features">;
 
-  // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
-  // where the code generation results a less complicated/more idiomatic code.
-  //
-  //  alias IdOrKey = ULID | Key;
-  //  const features = Array<IdOrKey>;
-  //
+  /**
+   * List of notification channels the rule is applied to.
+   */
+  @visibility("create", "update")
+  @summary("Channels")
+  @minItems(1)
+  channels: Array<ULID>;
 
   /**
    * Optional field for defining the scope of notification by feature. It may contain features by id or key.
@@ -179,14 +180,14 @@ model RuleBalanceThresholdCreateRequest {
   @visibility("create", "update")
   @summary("Features")
   @minItems(1)
-  features?: Array<string>;
+  features?: Array<ULIDOrKey>;
 }
 
 /**
  * Order by options for notification channels.
  */
 @friendlyName("NotificationRuleOrderBy")
-enum RuleOrderBy {
+enum NotificationRuleOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   id: "id",
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
@@ -196,15 +197,6 @@ enum RuleOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   updatedAt: "updatedAt",
 }
-
-// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
-// results a model with friendlyName set to `RulePaginatedResponse` instead of `NotificationRulePaginatedResponse` which
-// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
-/**
- * Paginated response for listing notification rules.
- */
-@friendlyName("NotificationRulePaginatedResponse")
-model RulesPaginatedResponse is OpenMeter.PaginatedResponse<Rule>;
 
 @route("/api/v1/notification/rules")
 @tag("Notification (Experimental)")
@@ -234,20 +226,13 @@ interface Rules {
     @example(false)
     includeDisabled?: boolean = false,
 
-    // TODO(chrisgacsal): figure out if there is a way to use union type for attribute like this
-    // where the code generation results a less complicated/more idiomatic code.
-    //
-    //  alias IdOrKey = ULID | Key;
-    //  const features = Array<IdOrKey>;
-    //
-
     /**
      * Filtering by multiple feature ids/keys.
      *
      * Usage: `?feature=feature-1&feature=feature-2`
      */
     @query(#{ explode: true })
-    feature?: Array<string>,
+    feature?: Array<ULIDOrKey>,
 
     /**
      * Filtering by multiple notifiaction channel ids.
@@ -258,8 +243,8 @@ interface Rules {
     channel?: Array<string>,
 
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<RuleOrderBy>,
-  ): RulesPaginatedResponse | OpenMeter.CommonErrors;
+    ...OpenMeter.QueryOrdering<NotificationRuleOrderBy>,
+  ): OpenMeter.PaginatedResponse<NotificationRule> | OpenMeter.CommonErrors;
 
   /**
    * Create a new notification rule.
@@ -267,9 +252,9 @@ interface Rules {
   @post
   @operationId("createNotificationRule")
   @summary("Create a notification rule")
-  create(@body request: RuleCreateRequest): {
+  create(@body request: NotificationRuleCreateRequest): {
     @statusCode _: 201;
-    @body body: Rule;
+    @body body: NotificationRule;
   } | OpenMeter.CommonErrors;
 
   /**
@@ -278,9 +263,9 @@ interface Rules {
   @put
   @operationId("updateNotificationRule")
   @summary("Update a notification rule")
-  update(@path ruleId: ULID, @body request: RuleCreateRequest): {
+  update(@path ruleId: ULID, @body request: NotificationRuleCreateRequest): {
     @statusCode _: 200;
-    @body body: Rule;
+    @body body: NotificationRule;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -289,7 +274,7 @@ interface Rules {
   @get
   @operationId("getNotificationRule")
   @summary("Get notification rule")
-  get(@path ruleId: ULID): Rule | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(@path ruleId: ULID): NotificationRule | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Soft delete notification rule by id.

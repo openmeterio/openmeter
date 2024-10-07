@@ -12,7 +12,7 @@ namespace OpenMeter.Notification;
  * Type of the notification channel.
  */
 @friendlyName("NotificationChannelType")
-enum ChannelType {
+enum NotificationChannelType {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   webhook: "WEBHOOK",
 }
@@ -21,7 +21,7 @@ enum ChannelType {
  * Metadata only fields of a notification channel.
  */
 @friendlyName("NotificationChannelMeta")
-model ChannelMeta {
+model NotificationChannelMeta {
   /**
    * Identifies the notification channel.
    */
@@ -35,16 +35,16 @@ model ChannelMeta {
    */
   @visibility("read")
   @summary("Channel Type")
-  type: ChannelType;
+  type: NotificationChannelType;
 }
 
 /**
  * Common fields of a notificaiton channel.
  */
 @friendlyName("NotificationChannelCommon")
-model ChannelCommon<T extends ChannelType> {
+model NotificationChannelCommon<T extends NotificationChannelType> {
   ...ResourceTimestamps;
-  ...OmitProperties<ChannelMeta, "type">;
+  ...OmitProperties<NotificationChannelMeta, "type">;
 
   /**
    * Notification channel type.
@@ -74,8 +74,8 @@ model ChannelCommon<T extends ChannelType> {
  * Notification channel with webhook type.
  */
 @friendlyName("NotificationChannelWebhook")
-model ChannelWebhook {
-  ...ChannelCommon<ChannelType.webhook>;
+model NotificationChannelWebhook {
+  ...NotificationChannelCommon<NotificationChannelType.webhook>;
 
   /**
    * Webhook URL where the notification is sent.
@@ -101,7 +101,7 @@ model ChannelWebhook {
   @summary("Signing Secret")
   @pattern("^(whsec_)?[a-zA-Z0-9+/=]{32,100}$")
   @example("whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8")
-  signingSecret: string;
+  signingSecret?: string;
 }
 
 /**
@@ -110,8 +110,8 @@ model ChannelWebhook {
 @friendlyName("NotificationChannel")
 @discriminator("type")
 @oneOf
-union Channel {
-  webhook: ChannelWebhook,
+union NotificationChannel {
+  webhook: NotificationChannelWebhook,
 }
 
 /**
@@ -120,15 +120,18 @@ union Channel {
 @friendlyName("NotificationChannelCreateRequest")
 @discriminator("type")
 @oneOf
-union ChannelCreateRequest {
-  webhook: ChannelWebhook,
+union NotificationChannelCreateRequest {
+  webhook: NotificationChannelWebhookCreateRequest,
 }
+
+@friendlyName("NotificationChannelWebhookCreateRequest")
+model NotificationChannelWebhookCreateRequest is NotificationChannelWebhook;
 
 /**
  * Order by options for notification channels.
  */
 @friendlyName("NotificationChannelOrderBy")
-enum ChannelOrderBy {
+enum NotificationChannelOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   id: "id",
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
@@ -138,15 +141,6 @@ enum ChannelOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   updatedAt: "updatedAt",
 }
-
-// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
-// results a firendlyName RulePaginatedResponse instead of NotificationRulePaginatedResponse which
-// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
-/**
- * Paginated response for listing notification channels.
- */
-@friendlyName("NotificationChannelsPaginatedResponse")
-model ChannelsPaginatedResponse is OpenMeter.PaginatedResponse<Channel>;
 
 @route("/api/v1/notification/channels")
 @tag("Notification (Experimental)")
@@ -177,8 +171,8 @@ interface Channels {
     includeDisabled?: boolean = false,
 
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<ChannelOrderBy>,
-  ): ChannelsPaginatedResponse | OpenMeter.CommonErrors;
+    ...OpenMeter.QueryOrdering<NotificationChannelOrderBy>,
+  ): OpenMeter.PaginatedResponse<NotificationChannel> | OpenMeter.CommonErrors;
 
   /**
    * Create a new notification channel.
@@ -186,9 +180,9 @@ interface Channels {
   @post
   @operationId("createNotificationChannel")
   @summary("Create a notification channel")
-  create(@body request: ChannelCreateRequest): {
+  create(@body request: NotificationChannelCreateRequest): {
     @statusCode _: 201;
-    @body body: Channel;
+    @body body: NotificationChannel;
   } | OpenMeter.CommonErrors;
 
   /**
@@ -197,9 +191,9 @@ interface Channels {
   @put
   @operationId("updateNotificationChannel")
   @summary("Update a notification channel")
-  update(@path channelId: ULID, @body request: ChannelCreateRequest): {
+  update(@path channelId: ULID, @body request: NotificationChannelCreateRequest): {
     @statusCode _: 200;
-    @body body: Channel;
+    @body body: NotificationChannel;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -208,7 +202,7 @@ interface Channels {
   @get
   @operationId("getNotificationChannel")
   @summary("Get notification channel")
-  get(@path channelId: ULID): Channel | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(@path channelId: ULID): NotificationChannel | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Soft delete notification channel by id.
