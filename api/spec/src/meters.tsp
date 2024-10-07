@@ -234,14 +234,14 @@ model MeterQuery {
   /**
    * Filtering by multiple subjects.
    */
-  @query
+  @query(#{ explode: true })
   @example(#["customer-1", "customer-2"])
   subject?: string[];
 
   /**
    * Simple filter for group bys with exact match.
    */
-  @query(#{ explode: false, style: "deepObject" })
+  @query(#{ explode: true, style: "deepObject" })
   @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
   filterGroupBy?: Record<string>;
 
@@ -249,7 +249,7 @@ model MeterQuery {
    * If not specified a single aggregate will be returned for each subject and time window.
    * `subject` is a reserved group by value.
    */
-  @query
+  @query(#{ explode: true })
   @example(#["model", "type"])
   groupBy?: string[];
 }

@@ -3846,7 +3846,6 @@ components:
         type: object
         additionalProperties:
           type: string
-      explode: false
       style: deepObject
     MeterQuery.from:
       name: from
@@ -3872,7 +3871,6 @@ components:
         type: array
         items:
           type: string
-      explode: false
     MeterQuery.subject:
       name: subject
       in: query
@@ -3882,7 +3880,6 @@ components:
         type: array
         items:
           type: string
-      explode: false
     MeterQuery.to:
       name: to
       in: query
