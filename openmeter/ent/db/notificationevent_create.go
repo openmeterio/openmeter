@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
@@ -66,8 +65,8 @@ func (nec *NotificationEventCreate) SetPayload(s string) *NotificationEventCreat
 }
 
 // SetAnnotations sets the "annotations" field.
-func (nec *NotificationEventCreate) SetAnnotations(a api.Annotations) *NotificationEventCreate {
-	nec.mutation.SetAnnotations(a)
+func (nec *NotificationEventCreate) SetAnnotations(m map[string]interface{}) *NotificationEventCreate {
+	nec.mutation.SetAnnotations(m)
 	return nec
 }
 
@@ -347,7 +346,7 @@ func (u *NotificationEventUpsert) UpdatePayload() *NotificationEventUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *NotificationEventUpsert) SetAnnotations(v api.Annotations) *NotificationEventUpsert {
+func (u *NotificationEventUpsert) SetAnnotations(v map[string]interface{}) *NotificationEventUpsert {
 	u.Set(notificationevent.FieldAnnotations, v)
 	return u
 }
@@ -439,7 +438,7 @@ func (u *NotificationEventUpsertOne) UpdatePayload() *NotificationEventUpsertOne
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *NotificationEventUpsertOne) SetAnnotations(v api.Annotations) *NotificationEventUpsertOne {
+func (u *NotificationEventUpsertOne) SetAnnotations(v map[string]interface{}) *NotificationEventUpsertOne {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -704,7 +703,7 @@ func (u *NotificationEventUpsertBulk) UpdatePayload() *NotificationEventUpsertBu
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *NotificationEventUpsertBulk) SetAnnotations(v api.Annotations) *NotificationEventUpsertBulk {
+func (u *NotificationEventUpsertBulk) SetAnnotations(v map[string]interface{}) *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.SetAnnotations(v)
 	})

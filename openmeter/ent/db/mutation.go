@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -15629,7 +15628,7 @@ type NotificationEventMutation struct {
 	created_at               *time.Time
 	_type                    *notification.EventType
 	payload                  *string
-	annotations              *api.Annotations
+	annotations              *map[string]interface{}
 	clearedFields            map[string]struct{}
 	delivery_statuses        map[string]struct{}
 	removeddelivery_statuses map[string]struct{}
@@ -15926,12 +15925,12 @@ func (m *NotificationEventMutation) ResetPayload() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *NotificationEventMutation) SetAnnotations(a api.Annotations) {
-	m.annotations = &a
+func (m *NotificationEventMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *NotificationEventMutation) Annotations() (r api.Annotations, exists bool) {
+func (m *NotificationEventMutation) Annotations() (r map[string]interface{}, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -15942,7 +15941,7 @@ func (m *NotificationEventMutation) Annotations() (r api.Annotations, exists boo
 // OldAnnotations returns the old "annotations" field's value of the NotificationEvent entity.
 // If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v api.Annotations, err error) {
+func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -16207,7 +16206,7 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 		m.SetPayload(v)
 		return nil
 	case notificationevent.FieldAnnotations:
-		v, ok := value.(api.Annotations)
+		v, ok := value.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

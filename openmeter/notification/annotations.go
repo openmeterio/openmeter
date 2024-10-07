@@ -1,7 +1,5 @@
 package notification
 
-import "github.com/openmeterio/openmeter/api"
-
 const (
 	// AnnotationRuleTestEvent indicates that the event is generated as part of testing a notification rule
 	AnnotationRuleTestEvent = "notification.rule.test"
@@ -14,4 +12,4 @@ const (
 	AnnotationEventDedupeHash = "event.balance.dedupe.hash"
 )
 
-type Annotations = api.Annotations
+type Annotations = map[string]interface{}

@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -44,8 +43,8 @@ func (neu *NotificationEventUpdate) SetNillablePayload(s *string) *NotificationE
 }
 
 // SetAnnotations sets the "annotations" field.
-func (neu *NotificationEventUpdate) SetAnnotations(a api.Annotations) *NotificationEventUpdate {
-	neu.mutation.SetAnnotations(a)
+func (neu *NotificationEventUpdate) SetAnnotations(m map[string]interface{}) *NotificationEventUpdate {
+	neu.mutation.SetAnnotations(m)
 	return neu
 }
 
@@ -236,8 +235,8 @@ func (neuo *NotificationEventUpdateOne) SetNillablePayload(s *string) *Notificat
 }
 
 // SetAnnotations sets the "annotations" field.
-func (neuo *NotificationEventUpdateOne) SetAnnotations(a api.Annotations) *NotificationEventUpdateOne {
-	neuo.mutation.SetAnnotations(a)
+func (neuo *NotificationEventUpdateOne) SetAnnotations(m map[string]interface{}) *NotificationEventUpdateOne {
+	neuo.mutation.SetAnnotations(m)
 	return neuo
 }
 

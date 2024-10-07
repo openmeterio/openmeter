@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/samber/lo"
 )
 
 type payloadObjectMapper interface {
@@ -74,12 +75,20 @@ func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 		deliveryStatuses = append(deliveryStatuses, status)
 	}
 
+	var annotations api.Annotations
+	if len(e.Annotations) > 0 {
+		annotations = make(api.Annotations)
+		for k, v := range e.Annotations {
+			annotations[k] = v
+		}
+	}
+
 	event := api.NotificationEvent{
 		CreatedAt:      e.CreatedAt,
 		DeliveryStatus: deliveryStatuses,
 		Id:             e.ID,
 		Rule:           rule,
-		Annotations:    lo.EmptyableToPtr(e.Annotations),
+		Annotations:    lo.EmptyableToPtr(annotations),
 	}
 
 	switch e.Type {
