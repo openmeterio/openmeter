@@ -548,7 +548,6 @@ paths:
           schema:
             type: string
             format: date-time
-          explode: false
         - name: ingestedAtTo
           in: query
           required: false
@@ -559,7 +558,6 @@ paths:
           schema:
             type: string
             format: date-time
-          explode: false
         - name: hasError
           in: query
           required: false
@@ -571,7 +569,6 @@ paths:
             If provided with false, only list events without processing error.
           schema:
             type: boolean
-          explode: false
         - name: id
           in: query
           required: false
@@ -581,7 +578,6 @@ paths:
             Accepts partial ID.
           schema:
             type: string
-          explode: false
         - name: subject
           in: query
           required: false
@@ -591,7 +587,6 @@ paths:
             Accepts partial subject.
           schema:
             type: string
-          explode: false
         - name: from
           in: query
           required: false
@@ -602,7 +597,6 @@ paths:
           schema:
             type: string
             format: date-time
-          explode: false
         - name: to
           in: query
           required: false
@@ -613,7 +607,6 @@ paths:
           schema:
             type: string
             format: date-time
-          explode: false
         - name: limit
           in: query
           required: false
@@ -623,7 +616,6 @@ paths:
             minimum: 1
             maximum: 100
             default: 100
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -748,7 +740,6 @@ paths:
             type: array
             items:
               type: string
-          explode: false
         - name: includeArchived
           in: query
           required: false
@@ -1861,7 +1852,6 @@ paths:
             type: string
             format: date-time
             example: 2023-01-01T01:01:01.001Z
-          explode: false
         - name: to
           in: query
           required: false
@@ -1872,7 +1862,6 @@ paths:
             type: string
             format: date-time
             example: 2023-01-01T01:01:01.001Z
-          explode: false
         - name: feature
           in: query
           required: false
@@ -3606,7 +3595,6 @@ paths:
             type: string
             format: date-time
             example: 2023-01-01T01:01:01.001Z
-          explode: false
         - name: to
           in: query
           required: false
@@ -3617,14 +3605,12 @@ paths:
             type: string
             format: date-time
             example: 2023-01-01T01:01:01.001Z
-          explode: false
         - name: windowSize
           in: query
           required: true
           description: Windowsize
           schema:
             $ref: '#/components/schemas/WindowSize'
-          explode: false
         - name: windowTimeZone
           in: query
           required: false
@@ -3632,7 +3618,6 @@ paths:
           schema:
             type: string
             default: UTC
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -3858,7 +3843,6 @@ components:
         type: string
         format: date-time
         example: 2023-01-01T01:01:01.001Z
-      explode: false
     MeterQuery.groupBy:
       name: groupBy
       in: query
@@ -3891,7 +3875,6 @@ components:
         type: string
         format: date-time
         example: 2023-01-01T01:01:01.001Z
-      explode: false
     MeterQuery.windowSize:
       name: windowSize
       in: query
@@ -3899,7 +3882,6 @@ components:
       description: If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
       schema:
         $ref: '#/components/schemas/WindowSize'
-      explode: false
     MeterQuery.windowTimeZone:
       name: windowTimeZone
       in: query
@@ -3910,7 +3892,6 @@ components:
       schema:
         type: string
         default: UTC
-      explode: false
     NotificationChannelOrderByOrdering.order:
       name: order
       in: query

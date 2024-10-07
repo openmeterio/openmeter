@@ -208,7 +208,7 @@ interface Events {
      * Start date-time in RFC 3339 format.
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
     from?: DateTime,
 
@@ -216,7 +216,7 @@ interface Events {
      * End date-time in RFC 3339 format.
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(DateTime.fromISO("2023-02-01T01:01:01.001Z"))
     to?: DateTime,
 

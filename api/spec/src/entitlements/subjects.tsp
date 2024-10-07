@@ -144,23 +144,23 @@ interface Subjects {
     /**
      * Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.
      */
-    @query from?: DateTime,
+    @query(#{ explode: true }) from?: DateTime,
 
     /**
      * End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
      * If not now then gets truncated to the granularity of the underlying meter.
      */
-    @query to?: DateTime,
+    @query(#{ explode: true }) to?: DateTime,
 
     /**
      * Windowsize
      */
-    @query windowSize: OpenMeter.WindowSize,
+    @query(#{ explode: true }) windowSize: OpenMeter.WindowSize,
 
     /**
      * The timezone used when calculating the windows.
      */
-    @query windowTimeZone?: string = "UTC",
+    @query(#{ explode: true }) windowTimeZone?: string = "UTC",
   ): WindowedBalanceHistory | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**

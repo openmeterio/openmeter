@@ -25,7 +25,7 @@ interface Events {
      *
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
     ingestedAtFrom?: utcDateTime,
 
@@ -34,7 +34,7 @@ interface Events {
      *
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
     ingestedAtTo?: utcDateTime,
 
@@ -45,7 +45,7 @@ interface Events {
      *
      * If provided with false, only list events without processing error.
      */
-    @query
+    @query(#{ explode: true })
     @example(false)
     hasError?: boolean,
 
@@ -54,7 +54,7 @@ interface Events {
      *
      * Accepts partial ID.
      */
-    @query
+    @query(#{ explode: true })
     @example("my-event-id")
     id?: string,
 
@@ -63,7 +63,7 @@ interface Events {
      *
      * Accepts partial subject.
      */
-    @query
+    @query(#{ explode: true })
     @example("customer-1")
     subject?: string,
 
@@ -72,7 +72,7 @@ interface Events {
      *
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
     from?: utcDateTime,
 
@@ -81,14 +81,14 @@ interface Events {
      *
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
     to?: utcDateTime,
 
     /**
      * Number of events to return.
      */
-    @query
+    @query(#{ explode: true })
     @minValue(1)
     @maxValue(100)
     @example(100)
