@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -175,7 +176,7 @@ func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitl
 	_, err := entutils.TransactingRepo[interface{}, *entitlementDBAdapter](
 		ctx,
 		a,
-		func(ctx context.Context, repo *entitlementDBAdapter) (*interface{}, error) {
+		func(ctx context.Context, repo *entitlementDBAdapter) (interface{}, error) {
 			ent, err := repo.GetEntitlement(ctx, entitlementID)
 			if err != nil {
 				return nil, err
