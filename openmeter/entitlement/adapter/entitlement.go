@@ -582,18 +582,6 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 	)
 }
 
-func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
-	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
-		urq.
-			Order(db_usagereset.ByResetTime(sql.OrderDesc())).
-			Limit(1)
-
-		if len(namespaces) > 0 {
-			urq.Where(db_usagereset.NamespaceIn(namespaces...))
-		}
-	})
-}
-
 func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey models.SubjectKey, featureKey string, starting time.Time) ([]entitlement.Entitlement, error) {
 	res, err := entutils.TransactingRepo(
 		ctx,
@@ -657,4 +645,16 @@ func entitlementActiveAt(at time.Time) []predicate.Entitlement {
 			db_entitlement.ActiveToGT(at),
 		),
 	}
+}
+
+func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
+	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
+		urq.
+			Order(db_usagereset.ByResetTime(sql.OrderDesc())).
+			Limit(1)
+
+		if len(namespaces) > 0 {
+			urq.Where(db_usagereset.NamespaceIn(namespaces...))
+		}
+	})
 }

@@ -44,7 +44,14 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 		return nil, fmt.Errorf("multiple entitlements found: %s", entitlementID.ID)
 	}
 
-	entitlementEntity := &entitlements.Items[0]
+	entitlementEntity := entitlements.Items[0]
+	return w.processEntitlementEntity(ctx, &entitlementEntity, calculatedAt, source)
+}
+
+func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, source string) (marshaler.Event, error) {
+	if entitlementEntity == nil {
+		return nil, fmt.Errorf("entitlement entity is nil")
+	}
 
 	if entitlementEntity.DeletedAt != nil {
 		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
@@ -60,7 +67,7 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 			return nil, fmt.Errorf("failed to create entitlement delete snapshot event: %w", err)
 		}
 
-		_ = w.highWatermarkCache.Add(entitlementID.ID, highWatermarkCacheEntry{
+		_ = w.highWatermarkCache.Add(entitlementEntity.ID, highWatermarkCacheEntry{
 			HighWatermark: calculatedAt.Add(-defaultClockDrift),
 			IsDeleted:     true,
 		})
@@ -73,7 +80,7 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 	}
 
-	_ = w.highWatermarkCache.Add(entitlementID.ID, highWatermarkCacheEntry{
+	_ = w.highWatermarkCache.Add(entitlementEntity.ID, highWatermarkCacheEntry{
 		HighWatermark: calculatedAt.Add(-defaultClockDrift),
 	})
 
