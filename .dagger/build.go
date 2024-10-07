@@ -215,8 +215,14 @@ func (m *Binary) build(platform dagger.Platform, version string, pkg string) *da
 	}
 
 	return goModule().
+		With(func(m *dagger.Go) *dagger.Go {
+			if platform != "" {
+				m = m.WithPlatform(platform)
+			}
+
+			return m
+		}).
 		WithSource(m.Source).
-		WithPlatform(platform).
 		Build(dagger.GoWithSourceBuildOpts{
 			Pkg:      pkg,
 			Trimpath: true,
