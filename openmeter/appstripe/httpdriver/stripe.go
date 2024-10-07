@@ -71,12 +71,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request AppStripeWebhookRequest) (AppStripeWebhookResponse, error) {
-			// In the response, we return what resources took action
-			response := AppStripeWebhookResponse{
-				NamespaceId: request.AppID.Namespace,
-				AppId:       request.AppID.ID,
-			}
-
+			// Handle the webhook event based on the event type
 			switch request.Event.Type {
 			case stripeclient.WebhookEventTypeSetupIntentSucceeded:
 				// Unmarshal to payment intent object
@@ -86,6 +81,27 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				if err != nil {
 					return AppStripeWebhookResponse{}, appstripe.ValidationError{
 						Err: fmt.Errorf("failed to unmarshal payment intent: %w", err),
+					}
+				}
+
+				// Validate the payment intent metadata
+				if metadataAppId, ok := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataAppID]; !ok {
+					// When the app id is set, it must match the app id in the API path
+					if metadataAppId != "" && metadataAppId != request.AppID.ID {
+						return AppStripeWebhookResponse{}, appstripe.ValidationError{
+							Err: fmt.Errorf("appid mismatch: in request %s, in payment intent metadata %s", request.AppID.ID, metadataAppId),
+						}
+					}
+
+					// If the app id is not set, we ignore the event as it's not initiated by the app
+					// This can be the case when someone manually creates a payment intent
+					return AppStripeWebhookResponse{}, nil
+				}
+
+				// This is an extra consistency check that should never fail as we skip manually created payment intents above
+				if metadataNamespace, ok := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataNamespace]; !ok || metadataNamespace != request.AppID.Namespace {
+					return AppStripeWebhookResponse{}, appstripe.ValidationError{
+						Err: fmt.Errorf("namespace mismatch: in request %s, in payment intent metadata %s", request.AppID.Namespace, metadataNamespace),
 					}
 				}
 
@@ -112,16 +128,17 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				// Decroate the response with the customer id
-				response.CustomerId = &out.CustomerID.ID
-
-			default:
-				return AppStripeWebhookResponse{}, appstripe.ValidationError{
-					Err: fmt.Errorf("unsupported event type: %s", request.Event.Type),
-				}
+				// In the response, we return what resources took action
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+					CustomerId:  &out.CustomerID.ID,
+				}, nil
 			}
 
-			return response, nil
+			return AppStripeWebhookResponse{}, appstripe.ValidationError{
+				Err: fmt.Errorf("unsupported event type: %s", request.Event.Type),
+			}
 		},
 		commonhttp.JSONResponseEncoderWithStatus[AppStripeWebhookResponse](http.StatusCreated),
 		httptransport.AppendOptions(
