@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/samber/lo"
 )
 
 type payloadObjectMapper interface {
@@ -85,13 +84,8 @@ func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 
 	switch e.Type {
 	case EventTypeBalanceThreshold:
-		event.Type = api.EntitlementsBalanceThreshold
-		err = event.Payload.FromNotificationEventBalanceThresholdPayload(e.AsNotificationEventBalanceThresholdPayload())
-		if err != nil {
-			return event, ValidationError{
-				Err: fmt.Errorf("invalid event type: %s", e.Type),
-			}
-		}
+		event.Type = api.NotificationEventTypeEntitlementsBalanceThreshold
+		event.Payload = e.AsNotificationEventBalanceThresholdPayload()
 	default:
 		return event, ValidationError{
 			Err: fmt.Errorf("invalid event type: %s", e.Type),
@@ -105,7 +99,7 @@ func (e Event) AsNotificationEventBalanceThresholdPayload() api.NotificationEven
 	return api.NotificationEventBalanceThresholdPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
-		Type:      api.NotificationEventType(e.Type),
+		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
 		Data: struct {
 			Entitlement api.EntitlementMetered                    `json:"entitlement"`
 			Feature     api.Feature                               `json:"feature"`
@@ -123,7 +117,7 @@ func (e Event) AsNotificationEventBalanceThresholdPayload() api.NotificationEven
 }
 
 const (
-	EventTypeBalanceThreshold = EventType(api.EntitlementsBalanceThreshold)
+	EventTypeBalanceThreshold = EventType(api.NotificationEventTypeEntitlementsBalanceThreshold)
 )
 
 type EventType api.NotificationEventType
@@ -202,7 +196,7 @@ func (p EventPayload) AsNotificationEventBalanceThresholdPayload(eventId string,
 		},
 		Id:        eventId,
 		Timestamp: ts,
-		Type:      api.EntitlementsBalanceThreshold,
+		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
 	}
 }
 
@@ -220,8 +214,8 @@ func (b BalanceThresholdPayload) Validate() error {
 }
 
 const (
-	EventOrderByID        = api.ListNotificationEventsParamsOrderById
-	EventOrderByCreatedAt = api.ListNotificationEventsParamsOrderByCreatedAt
+	EventOrderByID        = api.NotificationEventOrderById
+	EventOrderByCreatedAt = api.NotificationEventOrderByCreatedAt
 )
 
 var _ validator = (*ListEventsInput)(nil)
@@ -245,7 +239,7 @@ type ListEventsInput struct {
 
 	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
 
-	OrderBy api.ListNotificationEventsParamsOrderBy
+	OrderBy api.NotificationEventOrderBy
 	Order   sortx.Order
 }
 

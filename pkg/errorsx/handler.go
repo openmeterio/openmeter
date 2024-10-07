@@ -49,11 +49,19 @@ func NewSlogHandler(logger *slog.Logger) SlogHandler {
 }
 
 func (h SlogHandler) Handle(err error) {
-	h.Logger.Error(err.Error())
+	if wErr, ok := ErrorAs[*warnError](err); ok {
+		h.Logger.Warn(wErr.Error())
+	} else {
+		h.Logger.Error(err.Error())
+	}
 }
 
 func (h SlogHandler) HandleContext(ctx context.Context, err error) {
-	h.Logger.ErrorContext(ctx, err.Error())
+	if wErr, ok := ErrorAs[*warnError](err); ok {
+		h.Logger.WarnContext(ctx, wErr.Error())
+	} else {
+		h.Logger.ErrorContext(ctx, err.Error())
+	}
 }
 
 // NopHandler ignores all errors.

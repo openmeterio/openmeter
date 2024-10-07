@@ -35,7 +35,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				IsSoftLimit:             convert.ToPointer(false),
 				IsUnlimited:             convert.ToPointer(true),
 				IssueAfterReset:         convert.ToPointer(10.0),
-				IssueAfterResetPriority: convert.ToPointer(5),
+				IssueAfterResetPriority: convert.ToPointer[uint8](5),
 				LastReset:               time.Time{},
 				MeasureUsageFrom:        time.Time{},
 				Metadata: &map[string]string{
@@ -45,9 +45,9 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				SubjectKey:             "test-subject-1",
 				Type:                   api.EntitlementMeteredTypeMetered,
 				UpdatedAt:              updatedAt,
-				UsagePeriod: api.RecurringPeriod{
+				UsagePeriod: &api.RecurringPeriod{
 					Anchor:   from,
-					Interval: api.RecurringPeriodEnumDAY,
+					Interval: api.RecurringPeriodIntervalDAY,
 				},
 			},
 			Feature: api.Feature{

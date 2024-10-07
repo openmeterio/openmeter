@@ -42,18 +42,12 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 
 		switch params.Type {
 		case notification.ChannelTypeWebhook:
-			var headers map[string]string
-			headers, err = notification.StrictInterfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast custom headers: %w", err)
-			}
-
 			var wb *webhook.Webhook
 			wb, err = s.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{
 				Namespace:     params.Namespace,
 				ID:            &channel.ID,
 				URL:           channel.Config.WebHook.URL,
-				CustomHeaders: headers,
+				CustomHeaders: channel.Config.WebHook.CustomHeaders,
 				Disabled:      channel.Disabled,
 				Secret:        &channel.Config.WebHook.SigningSecret,
 				Metadata: map[string]string{
@@ -203,17 +197,11 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 
 		switch params.Type {
 		case notification.ChannelTypeWebhook:
-			var headers map[string]string
-			headers, err = notification.StrictInterfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast custom headers: %w", err)
-			}
-
 			_, err = s.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInput{
 				Namespace:     params.Namespace,
 				ID:            channel.ID,
 				URL:           channel.Config.WebHook.URL,
-				CustomHeaders: headers,
+				CustomHeaders: channel.Config.WebHook.CustomHeaders,
 				Disabled:      channel.Disabled,
 				Secret:        &channel.Config.WebHook.SigningSecret,
 				Metadata: map[string]string{
