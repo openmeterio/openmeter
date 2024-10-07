@@ -38,7 +38,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		}),
 		IssueAfterResetPriority: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *uint8 {
 			return convert.SafeDeRef(i.Priority, func(p uint8) *uint8 {
-				return convert.ToPointer(uint8(p))
+				return convert.ToPointer(p)
 			})
 		}),
 		MeasureUsageFrom:       metered.MeasureUsageFrom,
