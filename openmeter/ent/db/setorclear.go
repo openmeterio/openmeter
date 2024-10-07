@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -881,14 +882,14 @@ func (u *NotificationChannelUpdateOne) SetOrClearDisabled(value *bool) *Notifica
 	return u.SetDisabled(*value)
 }
 
-func (u *NotificationEventUpdate) SetOrClearAnnotations(value *map[string]interface{}) *NotificationEventUpdate {
+func (u *NotificationEventUpdate) SetOrClearAnnotations(value *api.Annotations) *NotificationEventUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *NotificationEventUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *NotificationEventUpdateOne {
+func (u *NotificationEventUpdateOne) SetOrClearAnnotations(value *api.Annotations) *NotificationEventUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}

@@ -5,6 +5,7 @@ package db
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -475,7 +476,7 @@ func init() {
 	notificationevent.DefaultCreatedAt = notificationeventDescCreatedAt.Default.(func() time.Time)
 	// notificationeventDescAnnotations is the schema descriptor for annotations field.
 	notificationeventDescAnnotations := notificationeventFields[4].Descriptor()
-	notificationevent.ValueScanner.Annotations = notificationeventDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
+	notificationevent.ValueScanner.Annotations = notificationeventDescAnnotations.ValueScanner.(field.TypeValueScanner[api.Annotations])
 	// notificationeventDescID is the schema descriptor for id field.
 	notificationeventDescID := notificationeventMixinFields0[0].Descriptor()
 	// notificationevent.DefaultID holds the default value on creation for the id field.

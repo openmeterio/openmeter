@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
@@ -85,7 +86,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all NotificationEvent fields.
 	ValueScanner struct {
-		Annotations field.TypeValueScanner[map[string]interface{}]
+		Annotations field.TypeValueScanner[api.Annotations]
 	}
 )
 
