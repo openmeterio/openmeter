@@ -122,13 +122,13 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 type (
 	UpdateCustomerRequest  = customer.UpdateCustomerInput
 	UpdateCustomerResponse = api.Customer
-	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, api.ULID]
+	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, string]
 )
 
 // UpdateCustomer returns a handler for updating a customer.
 func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID api.ULID) (UpdateCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerID string) (UpdateCustomerRequest, error) {
 			body := api.Customer{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateCustomerRequest{}, fmt.Errorf("field to decode update customer request: %w", err)

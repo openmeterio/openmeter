@@ -45,7 +45,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				SubjectKey:             "test-subject-1",
 				Type:                   api.EntitlementMeteredTypeMetered,
 				UpdatedAt:              updatedAt,
-				UsagePeriod: &api.RecurringPeriod{
+				UsagePeriod: api.RecurringPeriod{
 					Anchor:   from,
 					Interval: api.RecurringPeriodIntervalDAY,
 				},

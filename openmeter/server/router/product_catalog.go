@@ -28,7 +28,7 @@ func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
 
 // Delete feature
 // (DELETE /api/v1/features/{featureId})
-func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
+func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.DeleteFeature(w, r, featureId)
 		return
@@ -38,7 +38,7 @@ func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 
 // Get feature
 // (GET /api/v1/features/{featureId})
-func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
+func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.GetFeature(w, r, featureId)
 		return

@@ -9,7 +9,7 @@ import (
 
 // Create entitlement
 // (POST /api/v1/subjects/{subjectIdOrKey}/entitlements)
-func (a *Router) CreateEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey) {
+func (a *Router) CreateEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.CreateFeature(w, r)
 		return
@@ -32,7 +32,7 @@ func (a *Router) ListSubjectEntitlements(w http.ResponseWriter, r *http.Request,
 
 // Get the value of a specific entitlement.
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value)
-func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey, params api.GetEntitlementValueParams) {
+func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string, params api.GetEntitlementValueParams) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.GetEntitlementValue(w, r, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 		return
@@ -46,7 +46,7 @@ func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, sub
 
 // Create grant
 // (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants)
-func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey) {
+func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.CreateGrant(w, r, subjectIdOrKey, entitlementIdOrFeatureKey)
 		return
@@ -59,7 +59,7 @@ func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOr
 
 // List grants for an entitlement
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants)
-func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey, params api.ListEntitlementGrantsParams) {
+func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string, params api.ListEntitlementGrantsParams) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.ListEntitlementGrants(w, r, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 		return
@@ -72,7 +72,7 @@ func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, s
 
 // Reset entitlement
 // (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset)
-func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.ResetEntitlementUsage(w, r, subjectIdOrKey, entitlementId)
 		return
@@ -85,7 +85,7 @@ func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, s
 
 // Get the balance history of a specific entitlement.
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history)
-func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId, params api.GetEntitlementHistoryParams) {
+func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string, params api.GetEntitlementHistoryParams) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.GetEntitlementHistory(w, r, subjectIdOrKey, entitlementId, params)
 		return
@@ -109,7 +109,7 @@ func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params
 
 // Delete entitlement
 // (DELETE /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
-func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.DeleteEntitlement(w, r, subjectIdOrKey, entitlementId)
 		return
@@ -121,7 +121,7 @@ func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subje
 
 // Get entitlement
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
-func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.GetEntitlement(w, r, subjectIdOrKey, entitlementId)
 		return
@@ -133,7 +133,7 @@ func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectI
 
 // Get an entitlement
 // (GET /api/v1/entitlements/{entitlementId})
-func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId api.EntitlementId) {
+func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.GetEntitlementById(w, r, entitlementId)
 		return
@@ -145,7 +145,7 @@ func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, enti
 
 // Override an entitlement
 // (PUT /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override)
-func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey) {
+func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.OverrideEntitlement(w, r, subjectIdOrKey, entitlementIdOrFeatureKey)
 		return
