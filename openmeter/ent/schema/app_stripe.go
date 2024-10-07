@@ -75,6 +75,8 @@ func (AppStripeCustomer) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "app_id", "customer_id").
 			Unique(),
+		index.Fields("app_id", "stripe_customer_id").
+			Unique(),
 	}
 }
 

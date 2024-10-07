@@ -161,7 +161,17 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 
 type GetAppInput = appentitybase.AppID
 
-type GetWebhookSecretInput = appentitybase.AppID
+type GetWebhookSecretInput struct {
+	AppID string
+}
+
+func (i GetWebhookSecretInput) Validate() error {
+	if i.AppID == "" {
+		return errors.New("app id is required")
+	}
+
+	return nil
+}
 
 type GetWebhookSecretOutput = secretentity.Secret
 
