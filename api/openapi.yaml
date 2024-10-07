@@ -2871,7 +2871,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/Subject'
+                $ref: '#/components/schemas/SubjectUpsert'
   /api/v1/subjects/{subjectIdOrKey}:
     get:
       operationId: getSubject
@@ -6484,6 +6484,51 @@ components:
           example: cus_JMOlctsKV8
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
+        key: customer-id
+        displayName: Customer Name
+        metadata:
+          hubspotId: '123456'
+        currentPeriodStart: 2023-01-01T00:00:00Z
+        currentPeriodEnd: 2023-02-01T00:00:00Z
+        stripeCustomerId: cus_JMOlctsKV8
+      description: A subject is a unique identifier for a user or entity.
+    SubjectUpsert:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: |-
+            A unique, human-readable identifier for the subject.
+            Must consist only alphanumeric and underscore characters.
+          example: customer-id
+        displayName:
+          type: string
+          example: Customer Name
+          description: A human-readable display name for the subject.
+        metadata:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          example: {}
+        currentPeriodStart:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          example: 2023-02-01T00:00:00Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        stripeCustomerId:
+          type: string
+          example: cus_JMOlctsKV8
+      example:
         key: customer-id
         displayName: Customer Name
         metadata:
