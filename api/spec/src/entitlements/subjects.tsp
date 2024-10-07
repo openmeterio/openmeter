@@ -124,7 +124,7 @@ interface Subjects {
   getEntitlementValue(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
-    @query time?: DateTime,
+    @query(#{ explode: true }) time?: DateTime,
   ): EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**

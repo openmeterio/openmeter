@@ -3398,7 +3398,6 @@ paths:
             type: string
             format: date-time
             example: 2023-01-01T01:01:01.001Z
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
