@@ -17,7 +17,7 @@ import (
 
 type (
 	ListChannelsRequest  = notification.ListChannelsInput
-	ListChannelsResponse = api.NotificationChannelsResponse
+	ListChannelsResponse = api.NotificationChannelPaginatedResponse
 	ListChannelsParams   = api.ListNotificationChannelsParams
 	ListChannelsHandler  httptransport.HandlerWithArgs[ListChannelsRequest, ListChannelsResponse, ListChannelsParams]
 )
@@ -33,8 +33,8 @@ func (h *handler) ListChannels() ListChannelsHandler {
 			req := ListChannelsRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         defaultx.WithDefault(params.OrderBy, api.ListNotificationChannelsParamsOrderById),
-				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.ListNotificationChannelsParamsOrderSortOrderASC)),
+				OrderBy:         defaultx.WithDefault(params.OrderBy, api.NotificationChannelOrderById),
+				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
@@ -141,12 +141,12 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 type (
 	UpdateChannelRequest  = notification.UpdateChannelInput
 	UpdateChannelResponse = api.NotificationChannel
-	UpdateChannelHandler  httptransport.HandlerWithArgs[UpdateChannelRequest, UpdateChannelResponse, api.ChannelId]
+	UpdateChannelHandler  httptransport.HandlerWithArgs[UpdateChannelRequest, UpdateChannelResponse, string]
 )
 
 func (h *handler) UpdateChannel() UpdateChannelHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, channelID api.ChannelId) (UpdateChannelRequest, error) {
+		func(ctx context.Context, r *http.Request, channelID string) (UpdateChannelRequest, error) {
 			body := api.NotificationChannelCreateRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateChannelRequest{}, fmt.Errorf("field to decode update channel request: %w", err)
@@ -202,12 +202,12 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 type (
 	DeleteChannelRequest  = notification.DeleteChannelInput
 	DeleteChannelResponse = interface{}
-	DeleteChannelHandler  httptransport.HandlerWithArgs[DeleteChannelRequest, DeleteChannelResponse, api.ChannelId]
+	DeleteChannelHandler  httptransport.HandlerWithArgs[DeleteChannelRequest, DeleteChannelResponse, string]
 )
 
 func (h *handler) DeleteChannel() DeleteChannelHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, channelID api.ChannelId) (DeleteChannelRequest, error) {
+		func(ctx context.Context, r *http.Request, channelID string) (DeleteChannelRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeleteChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -238,12 +238,12 @@ func (h *handler) DeleteChannel() DeleteChannelHandler {
 type (
 	GetChannelRequest  = notification.GetChannelInput
 	GetChannelResponse = api.NotificationChannel
-	GetChannelHandler  httptransport.HandlerWithArgs[GetChannelRequest, GetChannelResponse, api.ChannelId]
+	GetChannelHandler  httptransport.HandlerWithArgs[GetChannelRequest, GetChannelResponse, string]
 )
 
 func (h *handler) GetChannel() GetChannelHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, channelID api.ChannelId) (GetChannelRequest, error) {
+		func(ctx context.Context, r *http.Request, channelID string) (GetChannelRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)

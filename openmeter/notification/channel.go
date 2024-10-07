@@ -39,16 +39,10 @@ type Channel struct {
 
 func (c Channel) AsNotificationChannel() (api.NotificationChannel, error) {
 	var channel api.NotificationChannel
-	var err error
 
 	switch c.Type {
 	case ChannelTypeWebhook:
-		err = channel.FromNotificationChannelWebhook(c.AsNotificationChannelWebhook())
-		if err != nil {
-			return channel, ValidationError{
-				Err: err,
-			}
-		}
+		channel = c.AsNotificationChannelWebhook()
 	default:
 		return channel, ValidationError{
 			Err: fmt.Errorf("invalid channel type: %s", c.Type),
@@ -61,18 +55,18 @@ func (c Channel) AsNotificationChannel() (api.NotificationChannel, error) {
 func (c Channel) AsNotificationChannelWebhook() api.NotificationChannelWebhook {
 	return api.NotificationChannelWebhook{
 		CreatedAt: c.CreatedAt,
-		CustomHeaders: convert.SafeDeRef(&c.Config.WebHook.CustomHeaders, func(m map[string]interface{}) *map[string]interface{} {
+		CustomHeaders: convert.SafeDeRef(&c.Config.WebHook.CustomHeaders, func(m map[string]string) *map[string]string {
 			if len(m) > 0 {
 				return &m
 			}
 
 			return nil
 		}),
-		Disabled:      c.Disabled,
+		Disabled:      convert.ToPointer(c.Disabled),
 		Id:            c.ID,
 		Name:          c.Name,
-		SigningSecret: c.Config.WebHook.SigningSecret,
-		Type:          api.NotificationChannelType(c.Type),
+		SigningSecret: convert.ToPointer(c.Config.WebHook.SigningSecret),
+		Type:          api.NotificationChannelWebhookTypeWEBHOOK,
 		UpdatedAt:     c.UpdatedAt,
 		Url:           c.Config.WebHook.URL,
 		DeletedAt:     c.DeletedAt,
@@ -133,7 +127,7 @@ func (c ChannelConfig) Validate() error {
 // WebHookChannelConfig defines the configuration specific to channel with webhook type.
 type WebHookChannelConfig struct {
 	// CustomHeaders stores a set of HTTP headers which are applied to the outgoing webhook message.
-	CustomHeaders map[string]interface{} `json:"customHeaders,omitempty"`
+	CustomHeaders map[string]string `json:"customHeaders,omitempty"`
 	// URL is the webhook endpoint url where the messages are sent to.
 	URL string `json:"url"`
 	// SigningSecret defines the secret which can be used for validating the signature of the message sent
@@ -161,10 +155,10 @@ func (w WebHookChannelConfig) Validate() error {
 }
 
 const (
-	ChannelOrderByID        = api.ListNotificationChannelsParamsOrderById
-	ChannelOrderByType      = api.ListNotificationChannelsParamsOrderByType
-	ChannelOrderByCreatedAt = api.ListNotificationChannelsParamsOrderByCreatedAt
-	ChannelOrderByUpdatedAt = api.ListNotificationChannelsParamsOrderByUpdatedAt
+	ChannelOrderByID        = api.NotificationChannelOrderById
+	ChannelOrderByType      = api.NotificationChannelOrderByType
+	ChannelOrderByCreatedAt = api.NotificationChannelOrderByCreatedAt
+	ChannelOrderByUpdatedAt = api.NotificationChannelOrderByUpdatedAt
 )
 
 const (
@@ -181,7 +175,7 @@ type ListChannelsInput struct {
 	Channels        []string
 	IncludeDisabled bool
 
-	OrderBy api.ListNotificationChannelsParamsOrderBy
+	OrderBy api.NotificationChannelOrderBy
 	Order   sortx.Order
 }
 

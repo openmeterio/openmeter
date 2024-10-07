@@ -18,7 +18,7 @@ import (
 
 type (
 	ListEventsRequest  = notification.ListEventsInput
-	ListEventsResponse = api.NotificationEventsResponse
+	ListEventsResponse = api.NotificationEventPaginatedResponse
 	ListEventsParams   = api.ListNotificationEventsParams
 	ListEventsHandler  httptransport.HandlerWithArgs[ListEventsRequest, ListEventsResponse, ListEventsParams]
 )
@@ -33,7 +33,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 
 			req := ListEventsRequest{
 				Namespaces: []string{ns},
-				Order:      sortx.Order(defaultx.WithDefault(params.Order, api.ListNotificationEventsParamsOrderSortOrderDESC)),
+				Order:      sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
 				OrderBy:    defaultx.WithDefault(params.OrderBy, notification.EventOrderByCreatedAt),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
@@ -87,12 +87,12 @@ func (h *handler) ListEvents() ListEventsHandler {
 type (
 	GetEventRequest  = notification.GetEventInput
 	GetEventResponse = api.NotificationEvent
-	GetEventHandler  httptransport.HandlerWithArgs[GetEventRequest, GetEventResponse, api.EventId]
+	GetEventHandler  httptransport.HandlerWithArgs[GetEventRequest, GetEventResponse, string]
 )
 
 func (h *handler) GetEvent() GetEventHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, eventID api.EventId) (GetEventRequest, error) {
+		func(ctx context.Context, r *http.Request, eventID string) (GetEventRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetEventRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)

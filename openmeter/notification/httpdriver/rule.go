@@ -18,7 +18,7 @@ import (
 
 type (
 	ListRulesRequest  = notification.ListRulesInput
-	ListRulesResponse = api.NotificationRulesResponse
+	ListRulesResponse = api.NotificationRulePaginatedResponse
 	ListRulesParams   = api.ListNotificationRulesParams
 	ListRulesHandler  httptransport.HandlerWithArgs[ListRulesRequest, ListRulesResponse, ListRulesParams]
 )
@@ -34,7 +34,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			req := ListRulesRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         defaultx.WithDefault(params.OrderBy, api.ListNotificationRulesParamsOrderById),
+				OrderBy:         defaultx.WithDefault(params.OrderBy, api.NotificationRuleOrderById),
 				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
@@ -142,12 +142,12 @@ func (h *handler) CreateRule() CreateRuleHandler {
 type (
 	UpdateRuleRequest  = notification.UpdateRuleInput
 	UpdateRuleResponse = api.NotificationRule
-	UpdateRuleHandler  httptransport.HandlerWithArgs[UpdateRuleRequest, UpdateRuleResponse, api.RuleId]
+	UpdateRuleHandler  httptransport.HandlerWithArgs[UpdateRuleRequest, UpdateRuleResponse, string]
 )
 
 func (h *handler) UpdateRule() UpdateRuleHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, ruleID api.RuleId) (UpdateRuleRequest, error) {
+		func(ctx context.Context, r *http.Request, ruleID string) (UpdateRuleRequest, error) {
 			body := api.NotificationRuleCreateRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateRuleRequest{}, fmt.Errorf("field to decode update rule request: %w", err)
@@ -203,12 +203,12 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 type (
 	DeleteRuleRequest  = notification.DeleteRuleInput
 	DeleteRuleResponse = interface{}
-	DeleteRuleHandler  httptransport.HandlerWithArgs[DeleteRuleRequest, DeleteRuleResponse, api.RuleId]
+	DeleteRuleHandler  httptransport.HandlerWithArgs[DeleteRuleRequest, DeleteRuleResponse, string]
 )
 
 func (h *handler) DeleteRule() DeleteRuleHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, ruleID api.RuleId) (DeleteRuleRequest, error) {
+		func(ctx context.Context, r *http.Request, ruleID string) (DeleteRuleRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeleteRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -239,12 +239,12 @@ func (h *handler) DeleteRule() DeleteRuleHandler {
 type (
 	GetRuleRequest  = notification.GetRuleInput
 	GetRuleResponse = api.NotificationRule
-	GetRuleHandler  httptransport.HandlerWithArgs[GetRuleRequest, GetRuleResponse, api.RuleId]
+	GetRuleHandler  httptransport.HandlerWithArgs[GetRuleRequest, GetRuleResponse, string]
 )
 
 func (h *handler) GetRule() GetRuleHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, ruleID api.RuleId) (GetRuleRequest, error) {
+		func(ctx context.Context, r *http.Request, ruleID string) (GetRuleRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -281,12 +281,12 @@ type TestRuleRequest struct {
 
 type (
 	TestRuleResponse = api.NotificationEvent
-	TestRuleHandler  httptransport.HandlerWithArgs[TestRuleRequest, TestRuleResponse, api.RuleId]
+	TestRuleHandler  httptransport.HandlerWithArgs[TestRuleRequest, TestRuleResponse, string]
 )
 
 func (h *handler) TestRule() TestRuleHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, ruleID api.RuleId) (TestRuleRequest, error) {
+		func(ctx context.Context, r *http.Request, ruleID string) (TestRuleRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return TestRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
