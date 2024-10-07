@@ -118,8 +118,8 @@ func (d *Driver) invoiceToGOBL(input billing.InvoiceWithValidation) invoiceWithV
 
 	invoice := &bill.Invoice{
 		Type:   inv.Type.CBCKey(),
-		Series: inv.InvoiceNumber.Series,
-		Code:   inv.InvoiceNumber.Code,
+		Series: cbc.Code(inv.InvoiceNumber.Series),
+		Code:   cbc.Code(inv.InvoiceNumber.Code),
 		IssueDate: cal.Date{
 			Date: civil.DateOf(lo.FromPtrOr(inv.IssuedAt, inv.CreatedAt).In(loc)),
 		},
