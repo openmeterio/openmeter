@@ -666,6 +666,7 @@ paths:
     post:
       operationId: ingestEvents
       parameters: []
+      description: Ingests an event or batch of events following the CloudEvents specification.
       responses:
         '200':
           description: The request has succeeded.

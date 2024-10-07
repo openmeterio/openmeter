@@ -95,6 +95,9 @@ interface Events {
     limit?: integer = 100,
   ): IngestedEvent[] | CommonErrors;
 
+  /**
+   * Ingests an event or batch of events following the CloudEvents specification.
+   */
   @post
   @operationId("ingestEvents")
   @sharedRoute

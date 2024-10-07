@@ -1,3 +1,7 @@
 extends: [[spectral:oas, recommended]]
 rules:
   info-contact: off
+
+  # Disabled due to TypeSpec conversion
+  oas3-valid-schema-example: off
+  no-$ref-siblings: off
