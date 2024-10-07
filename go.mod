@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go v0.112.1
 	entgo.io/ent v0.14.1
 	github.com/AppsFlyer/go-sundheit v0.6.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.28.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.29.0
 	github.com/IBM/sarama v1.43.3
 	github.com/ThreeDotsLabs/watermill v1.3.7
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.5
@@ -180,7 +180,6 @@ require (
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/colinmarc/hdfs v1.1.3 // indirect
-	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/couchbase/gocb/v2 v2.8.0 // indirect
 	github.com/couchbase/gocbcore/v10 v10.4.0 // indirect
 	github.com/couchbase/gocbcoreps v0.1.2 // indirect
