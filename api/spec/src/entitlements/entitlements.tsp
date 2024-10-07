@@ -124,7 +124,7 @@ model EntitlementCreateSharedFields {
   /**
    * The usage period associated with the entitlement.
    */
-  usagePeriod?: RecurringPeriod;
+  usagePeriod?: RecurringPeriodCreateInput;
 }
 
 /**
@@ -150,7 +150,7 @@ model EntitlementMeteredCreateInputs {
   /**
    * The usage period associated with the entitlement.
    */
-  usagePeriod: RecurringPeriod;
+  usagePeriod: RecurringPeriodCreateInput;
 
   /**
    * Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
@@ -224,7 +224,7 @@ union EntitlementCreateInputs {
 @friendlyName("EntitlementBaseTemplate")
 model EntitlementSharedFields {
   ...ResourceTimestamps;
-  ...OmitProperties<EntitlementCreateSharedFields, "featureKey" | "featureId">;
+  ...OmitProperties<EntitlementCreateSharedFields, "featureKey" | "featureId" | "usagePeriod">;
 
   /**
    * Readonly unique ULID identifier.
@@ -260,7 +260,12 @@ model EntitlementSharedFields {
   /**
    * The current usage period.
    */
-  currentUsagePeriod: Period;
+  currentUsagePeriod?: Period;
+
+  /**
+   * The defined usage period of the entitlement
+   */
+  usagePeriod?: RecurringPeriod;
 }
 
 /**
@@ -286,6 +291,12 @@ model EntitlementMeteredCalculatedFields {
    */
   @visibility("read")
   measureUsageFrom: DateTime;
+
+  /**
+   * THe usage period of the entitlement.
+   */
+  @visibility("read")
+  usagePeriod: RecurringPeriod;
 }
 
 /**
@@ -299,8 +310,8 @@ model EntitlementMetered {
     EntitlementMeteredCreateInputs,
     "type" | "measureUsageFrom" | "metadata" | "usagePeriod" | "featureKey" | "featureId" | "currentUsagePeriod"
   >;
-  ...OmitProperties<EntitlementMeteredCalculatedFields, "currentUsagePeriod">;
-  ...OmitProperties<EntitlementSharedFields, "type">;
+  ...OmitProperties<EntitlementSharedFields, "type" | "currentUsagePeriod" | "usagePeriod">;
+  ...EntitlementMeteredCalculatedFields;
 }
 
 /**

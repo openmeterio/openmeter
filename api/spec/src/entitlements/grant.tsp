@@ -179,7 +179,7 @@ model GrantCreateInput {
   /**
    * The subject of the grant.
    */
-  recurrence?: RecurringPeriod;
+  recurrence?: RecurringPeriodCreateInput;
 }
 
 /**

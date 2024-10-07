@@ -28,7 +28,7 @@ interface Subjects {
   @operationId("createEntitlement")
   post(@path subjectIdOrKey: string, @body entitlement: EntitlementCreateInputs): {
     @statusCode _: 201;
-    @body body: Entitlement;
+    @body body: EntitlementCreateInputs;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
 
   /**

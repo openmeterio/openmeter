@@ -189,6 +189,26 @@ model RecurringPeriod {
 }
 
 /**
+ * Recurring period with an interval and an anchor.
+ */
+@example(#{ interval: RecurringPeriodInterval.Day, anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z") })
+@friendlyName("RecurringPeriodCreateInput")
+model RecurringPeriodCreateInput {
+  /**
+   * The unit of time for the interval.
+   */
+  @summary("Interval")
+  interval: RecurringPeriodInterval;
+
+  /**
+   * A date-time anchor to base the recurring period on.
+   */
+  @summary("Anchor time")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  anchor?: DateTime;
+}
+
+/**
  * A period with a start and end time.
  */
 @friendlyName("Period")

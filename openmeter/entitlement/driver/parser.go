@@ -36,9 +36,9 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		IssueAfterReset: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *float64 {
 			return &i.Amount
 		}),
-		IssueAfterResetPriority: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *int {
-			return convert.SafeDeRef(i.Priority, func(p uint8) *int {
-				return convert.ToPointer(int(p))
+		IssueAfterResetPriority: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *uint8 {
+			return convert.SafeDeRef(i.Priority, func(p uint8) *uint8 {
+				return convert.ToPointer(uint8(p))
 			})
 		}),
 		MeasureUsageFrom:       metered.MeasureUsageFrom,
@@ -46,7 +46,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		SubjectKey:             metered.SubjectKey,
 		Type:                   api.EntitlementMeteredType(metered.EntitlementType),
 		UpdatedAt:              metered.UpdatedAt,
-		UsagePeriod:            mapUsagePeriod(e.UsagePeriod),
+		UsagePeriod:            *mapUsagePeriod(e.UsagePeriod),
 		CurrentUsagePeriod:     *mapPeriod(e.CurrentUsagePeriod),
 		LastReset:              metered.LastReset,
 		PreserveOverageAtReset: convert.ToPointer(metered.PreserveOverageAtReset),
@@ -69,7 +69,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		SubjectKey:         static.SubjectKey,
 		Type:               api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          static.UpdatedAt,
-		Config:             string(static.Config),
+		Config:             static.Config,
 		CurrentUsagePeriod: mapPeriod(static.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
@@ -91,7 +91,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		Id:                 boolean.ID,
 		Metadata:           convert.MapToPointer(boolean.Metadata),
 		SubjectKey:         boolean.SubjectKey,
-		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
+		Type:               string(boolean.EntitlementType),
 		UpdatedAt:          boolean.UpdatedAt,
 		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
@@ -200,16 +200,14 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 	switch v := value.(type) {
 	case api.EntitlementMeteredCreateInputs:
 		request = entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			FeatureID:       v.FeatureId,
-			FeatureKey:      v.FeatureKey,
-			SubjectKey:      subjectIdOrKey,
-			EntitlementType: entitlement.EntitlementTypeMetered,
-			IsSoftLimit:     v.IsSoftLimit,
-			IssueAfterReset: v.IssueAfterReset,
-			IssueAfterResetPriority: convert.SafeDeRef(v.IssueAfterResetPriority, func(i int) *uint8 {
-				return convert.ToPointer(uint8(i))
-			}),
+			Namespace:               ns,
+			FeatureID:               v.FeatureId,
+			FeatureKey:              v.FeatureKey,
+			SubjectKey:              subjectIdOrKey,
+			EntitlementType:         entitlement.EntitlementTypeMetered,
+			IsSoftLimit:             v.IsSoftLimit,
+			IssueAfterReset:         v.IssueAfterReset,
+			IssueAfterResetPriority: v.IssueAfterResetPriority,
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),

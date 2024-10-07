@@ -86,7 +86,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					OrderBy: grant.OrderBy(
 						strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(grant.OrderByEffectiveAt))),
 					),
-					Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
+					Order:            commonhttp.GetSortOrder(api.SortOrderASC, params.Params.Order),
 					SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
 					FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
 				},

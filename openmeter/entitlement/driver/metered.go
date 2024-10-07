@@ -106,15 +106,9 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if apiGrant.Recurrence != nil {
-				// defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt)
-				anchor := apiGrant.Recurrence.Anchor
-				if anchor.IsZero() {
-					anchor = apiGrant.EffectiveAt
-				}
-
 				req.GrantInput.Recurrence = &recurrence.Recurrence{
 					Interval: recurrence.RecurrenceInterval(apiGrant.Recurrence.Interval),
-					Anchor:   anchor,
+					Anchor:   defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt),
 				}
 			}
 
