@@ -21,6 +21,8 @@ const (
 	SetupIntentDataMetadataNamespace  = "om_namespace"
 	SetupIntentDataMetadataAppID      = "om_app_id"
 	SetupIntentDataMetadataCustomerID = "om_customer_id"
+
+	WebhookEventTypeSetupIntentSucceeded = "setup_intent.succeeded"
 )
 
 type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
@@ -115,7 +117,7 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 
 	params := &stripe.WebhookEndpointParams{
 		EnabledEvents: []*string{
-			lo.ToPtr("setup_intent.succeeded"),
+			lo.ToPtr(WebhookEventTypeSetupIntentSucceeded),
 		},
 		URL: lo.ToPtr(webhookURL),
 	}

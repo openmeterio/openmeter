@@ -79,6 +79,12 @@ func (asc *AppStripeCreate) SetAPIKey(s string) *AppStripeCreate {
 	return asc
 }
 
+// SetWebhookSecret sets the "webhook_secret" field.
+func (asc *AppStripeCreate) SetWebhookSecret(s string) *AppStripeCreate {
+	asc.mutation.SetWebhookSecret(s)
+	return asc
+}
+
 // SetStripeAccountID sets the "stripe_account_id" field.
 func (asc *AppStripeCreate) SetStripeAccountID(s string) *AppStripeCreate {
 	asc.mutation.SetStripeAccountID(s)
@@ -212,6 +218,14 @@ func (asc *AppStripeCreate) check() error {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
+	if _, ok := asc.mutation.WebhookSecret(); !ok {
+		return &ValidationError{Name: "webhook_secret", err: errors.New(`db: missing required field "AppStripe.webhook_secret"`)}
+	}
+	if v, ok := asc.mutation.WebhookSecret(); ok {
+		if err := appstripe.WebhookSecretValidator(v); err != nil {
+			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
+		}
+	}
 	if _, ok := asc.mutation.StripeAccountID(); !ok {
 		return &ValidationError{Name: "stripe_account_id", err: errors.New(`db: missing required field "AppStripe.stripe_account_id"`)}
 	}
@@ -273,6 +287,10 @@ func (asc *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 	if value, ok := asc.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 		_node.APIKey = &value
+	}
+	if value, ok := asc.mutation.WebhookSecret(); ok {
+		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
+		_node.WebhookSecret = value
 	}
 	if value, ok := asc.mutation.StripeAccountID(); ok {
 		_spec.SetField(appstripe.FieldStripeAccountID, field.TypeString, value)
@@ -409,6 +427,18 @@ func (u *AppStripeUpsert) UpdateAPIKey() *AppStripeUpsert {
 	return u
 }
 
+// SetWebhookSecret sets the "webhook_secret" field.
+func (u *AppStripeUpsert) SetWebhookSecret(v string) *AppStripeUpsert {
+	u.Set(appstripe.FieldWebhookSecret, v)
+	return u
+}
+
+// UpdateWebhookSecret sets the "webhook_secret" field to the value that was provided on create.
+func (u *AppStripeUpsert) UpdateWebhookSecret() *AppStripeUpsert {
+	u.SetExcluded(appstripe.FieldWebhookSecret)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -515,6 +545,20 @@ func (u *AppStripeUpsertOne) SetAPIKey(v string) *AppStripeUpsertOne {
 func (u *AppStripeUpsertOne) UpdateAPIKey() *AppStripeUpsertOne {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.UpdateAPIKey()
+	})
+}
+
+// SetWebhookSecret sets the "webhook_secret" field.
+func (u *AppStripeUpsertOne) SetWebhookSecret(v string) *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.SetWebhookSecret(v)
+	})
+}
+
+// UpdateWebhookSecret sets the "webhook_secret" field to the value that was provided on create.
+func (u *AppStripeUpsertOne) UpdateWebhookSecret() *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.UpdateWebhookSecret()
 	})
 }
 
@@ -791,6 +835,20 @@ func (u *AppStripeUpsertBulk) SetAPIKey(v string) *AppStripeUpsertBulk {
 func (u *AppStripeUpsertBulk) UpdateAPIKey() *AppStripeUpsertBulk {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.UpdateAPIKey()
+	})
+}
+
+// SetWebhookSecret sets the "webhook_secret" field.
+func (u *AppStripeUpsertBulk) SetWebhookSecret(v string) *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.SetWebhookSecret(v)
+	})
+}
+
+// UpdateWebhookSecret sets the "webhook_secret" field to the value that was provided on create.
+func (u *AppStripeUpsertBulk) UpdateWebhookSecret() *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.UpdateWebhookSecret()
 	})
 }
 

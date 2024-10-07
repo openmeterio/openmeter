@@ -90,6 +90,11 @@ func APIKey(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldAPIKey, v))
 }
 
+// WebhookSecret applies equality check predicate on the "webhook_secret" field. It's identical to WebhookSecretEQ.
+func WebhookSecret(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldWebhookSecret, v))
+}
+
 // StripeAccountID applies equality check predicate on the "stripe_account_id" field. It's identical to StripeAccountIDEQ.
 func StripeAccountID(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldStripeAccountID, v))
@@ -358,6 +363,71 @@ func APIKeyEqualFold(v string) predicate.AppStripe {
 // APIKeyContainsFold applies the ContainsFold predicate on the "api_key" field.
 func APIKeyContainsFold(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldContainsFold(FieldAPIKey, v))
+}
+
+// WebhookSecretEQ applies the EQ predicate on the "webhook_secret" field.
+func WebhookSecretEQ(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldWebhookSecret, v))
+}
+
+// WebhookSecretNEQ applies the NEQ predicate on the "webhook_secret" field.
+func WebhookSecretNEQ(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNEQ(FieldWebhookSecret, v))
+}
+
+// WebhookSecretIn applies the In predicate on the "webhook_secret" field.
+func WebhookSecretIn(vs ...string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldIn(FieldWebhookSecret, vs...))
+}
+
+// WebhookSecretNotIn applies the NotIn predicate on the "webhook_secret" field.
+func WebhookSecretNotIn(vs ...string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNotIn(FieldWebhookSecret, vs...))
+}
+
+// WebhookSecretGT applies the GT predicate on the "webhook_secret" field.
+func WebhookSecretGT(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGT(FieldWebhookSecret, v))
+}
+
+// WebhookSecretGTE applies the GTE predicate on the "webhook_secret" field.
+func WebhookSecretGTE(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGTE(FieldWebhookSecret, v))
+}
+
+// WebhookSecretLT applies the LT predicate on the "webhook_secret" field.
+func WebhookSecretLT(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLT(FieldWebhookSecret, v))
+}
+
+// WebhookSecretLTE applies the LTE predicate on the "webhook_secret" field.
+func WebhookSecretLTE(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLTE(FieldWebhookSecret, v))
+}
+
+// WebhookSecretContains applies the Contains predicate on the "webhook_secret" field.
+func WebhookSecretContains(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldContains(FieldWebhookSecret, v))
+}
+
+// WebhookSecretHasPrefix applies the HasPrefix predicate on the "webhook_secret" field.
+func WebhookSecretHasPrefix(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldHasPrefix(FieldWebhookSecret, v))
+}
+
+// WebhookSecretHasSuffix applies the HasSuffix predicate on the "webhook_secret" field.
+func WebhookSecretHasSuffix(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldHasSuffix(FieldWebhookSecret, v))
+}
+
+// WebhookSecretEqualFold applies the EqualFold predicate on the "webhook_secret" field.
+func WebhookSecretEqualFold(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEqualFold(FieldWebhookSecret, v))
+}
+
+// WebhookSecretContainsFold applies the ContainsFold predicate on the "webhook_secret" field.
+func WebhookSecretContainsFold(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldContainsFold(FieldWebhookSecret, v))
 }
 
 // StripeAccountIDEQ applies the EQ predicate on the "stripe_account_id" field.

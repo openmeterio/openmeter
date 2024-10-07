@@ -118,6 +118,10 @@ func init() {
 	appstripeDescAPIKey := appstripeFields[0].Descriptor()
 	// appstripe.APIKeyValidator is a validator for the "api_key" field. It is called by the builders before save.
 	appstripe.APIKeyValidator = appstripeDescAPIKey.Validators[0].(func(string) error)
+	// appstripeDescWebhookSecret is the schema descriptor for webhook_secret field.
+	appstripeDescWebhookSecret := appstripeFields[1].Descriptor()
+	// appstripe.WebhookSecretValidator is a validator for the "webhook_secret" field. It is called by the builders before save.
+	appstripe.WebhookSecretValidator = appstripeDescWebhookSecret.Validators[0].(func(string) error)
 	// appstripeDescID is the schema descriptor for id field.
 	appstripeDescID := appstripeMixinFields0[0].Descriptor()
 	// appstripe.DefaultID holds the default value on creation for the id field.

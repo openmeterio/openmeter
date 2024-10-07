@@ -1757,6 +1757,7 @@ type AppStripeMutation struct {
 	updated_at           *time.Time
 	deleted_at           *time.Time
 	api_key              *string
+	webhook_secret       *string
 	stripe_account_id    *string
 	stripe_livemode      *bool
 	clearedFields        map[string]struct{}
@@ -2067,6 +2068,42 @@ func (m *AppStripeMutation) ResetAPIKey() {
 	m.api_key = nil
 }
 
+// SetWebhookSecret sets the "webhook_secret" field.
+func (m *AppStripeMutation) SetWebhookSecret(s string) {
+	m.webhook_secret = &s
+}
+
+// WebhookSecret returns the value of the "webhook_secret" field in the mutation.
+func (m *AppStripeMutation) WebhookSecret() (r string, exists bool) {
+	v := m.webhook_secret
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebhookSecret returns the old "webhook_secret" field's value of the AppStripe entity.
+// If the AppStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeMutation) OldWebhookSecret(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebhookSecret is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebhookSecret requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebhookSecret: %w", err)
+	}
+	return oldValue.WebhookSecret, nil
+}
+
+// ResetWebhookSecret resets all changes to the "webhook_secret" field.
+func (m *AppStripeMutation) ResetWebhookSecret() {
+	m.webhook_secret = nil
+}
+
 // SetStripeAccountID sets the "stripe_account_id" field.
 func (m *AppStripeMutation) SetStripeAccountID(s string) {
 	m.stripe_account_id = &s
@@ -2266,7 +2303,7 @@ func (m *AppStripeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppStripeMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, appstripe.FieldNamespace)
 	}
@@ -2281,6 +2318,9 @@ func (m *AppStripeMutation) Fields() []string {
 	}
 	if m.api_key != nil {
 		fields = append(fields, appstripe.FieldAPIKey)
+	}
+	if m.webhook_secret != nil {
+		fields = append(fields, appstripe.FieldWebhookSecret)
 	}
 	if m.stripe_account_id != nil {
 		fields = append(fields, appstripe.FieldStripeAccountID)
@@ -2306,6 +2346,8 @@ func (m *AppStripeMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case appstripe.FieldAPIKey:
 		return m.APIKey()
+	case appstripe.FieldWebhookSecret:
+		return m.WebhookSecret()
 	case appstripe.FieldStripeAccountID:
 		return m.StripeAccountID()
 	case appstripe.FieldStripeLivemode:
@@ -2329,6 +2371,8 @@ func (m *AppStripeMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDeletedAt(ctx)
 	case appstripe.FieldAPIKey:
 		return m.OldAPIKey(ctx)
+	case appstripe.FieldWebhookSecret:
+		return m.OldWebhookSecret(ctx)
 	case appstripe.FieldStripeAccountID:
 		return m.OldStripeAccountID(ctx)
 	case appstripe.FieldStripeLivemode:
@@ -2376,6 +2420,13 @@ func (m *AppStripeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAPIKey(v)
+		return nil
+	case appstripe.FieldWebhookSecret:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebhookSecret(v)
 		return nil
 	case appstripe.FieldStripeAccountID:
 		v, ok := value.(string)
@@ -2463,6 +2514,9 @@ func (m *AppStripeMutation) ResetField(name string) error {
 		return nil
 	case appstripe.FieldAPIKey:
 		m.ResetAPIKey()
+		return nil
+	case appstripe.FieldWebhookSecret:
+		m.ResetWebhookSecret()
 		return nil
 	case appstripe.FieldStripeAccountID:
 		m.ResetStripeAccountID()

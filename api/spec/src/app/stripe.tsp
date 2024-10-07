@@ -27,8 +27,18 @@ interface AppStripeAPI {
    */
   @post
   @route("/webhook")
-  @operationId("handleStripeWebhook")
-  handleStripeWebhook(@path id: string, @body body: StripeWebhookEvent): void | CommonErrors;
+  @operationId("appStripeWebhook")
+  appStripeWebhook(@path id: string, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
+}
+
+/**
+ * Stripe webhook response.
+ */
+@friendlyName("StripeWebhookResponse")
+model StripeWebhookResponse {
+  namespaceId: string;
+  appId: string;
+  customerId?: string;
 }
 
 /**

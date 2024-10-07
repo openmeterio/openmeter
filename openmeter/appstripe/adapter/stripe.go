@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
@@ -48,7 +49,8 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			SetNamespace(input.Namespace).
 			SetStripeAccountID(input.StripeAccountID).
 			SetStripeLivemode(input.Livemode).
-			SetAPIKey(input.APIKey.ID)
+			SetAPIKey(input.APIKey.ID).
+			SetWebhookSecret(input.WebhookSecret.ID)
 
 		dbAppStripe, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
@@ -79,10 +81,50 @@ func (a adapter) GetStripeApp(ctx context.Context, appID appentitybase.AppID) (a
 	return appstripeentity.App{}, fmt.Errorf("app is not a stripe app")
 }
 
-// SetCustomerDefaultPaymentMethod sets the default payment method for a customer
-func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) error {
+// GetWebhookSecret gets the webhook secret
+func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
 	if err := input.Validate(); err != nil {
-		return appstripe.ValidationError{
+		return secretentity.Secret{}, appstripe.ValidationError{
+			Err: fmt.Errorf("error get webhook secret: %w", err),
+		}
+	}
+
+	// Get the stripe app
+	stripeApp, err := a.db.AppStripe.
+		Query().
+		Where(appstripedb.ID(input.ID)).
+		Where(appstripedb.Namespace(input.Namespace)).
+		Only(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return secretentity.Secret{}, app.AppNotFoundError{
+				AppID: input,
+			}
+		}
+
+		return secretentity.Secret{}, fmt.Errorf("failed to get stripe app: %w", err)
+	}
+
+	// Get the webhook secret
+	secret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: stripeApp.Namespace,
+			ID:        stripeApp.ID,
+		},
+		AppID: input,
+		Key:   appstripeentity.WebhookSecretKey,
+	})
+	if err != nil {
+		return secretentity.Secret{}, fmt.Errorf("failed to get webhook secret: %w", err)
+	}
+
+	return secret, nil
+}
+
+// SetCustomerDefaultPaymentMethod sets the default payment method for a customer
+func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
+	if err := input.Validate(); err != nil {
+		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, appstripe.ValidationError{
 			Err: fmt.Errorf("error set customer default payment method: %w", err),
 		}
 	}
@@ -93,44 +135,51 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 		Where(
 			appstripecustomerdb.Namespace(input.AppID.Namespace),
 			appstripecustomerdb.AppID(input.AppID.ID),
-			appstripecustomerdb.CustomerID(input.CustomerID.ID),
+			appstripecustomerdb.StripeCustomerID(input.StripeCustomerID),
 		).
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return app.CustomerPreConditionError{
-				AppID:      input.AppID,
-				CustomerID: input.CustomerID,
-				Condition:  "customer has no data for stripe app",
+			return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, appstripe.StripeCustomerPreConditionError{
+				AppID:            input.AppID,
+				StripeCustomerID: input.StripeCustomerID,
+				Condition:        "stripe customer has no data for stripe app",
 			}
 		}
 	}
 
+	customerID := customerentity.CustomerID{
+		Namespace: input.AppID.Namespace,
+		ID:        appCustomer.CustomerID,
+	}
+
 	// Check if the stripe customer id matches with the input
 	if appCustomer.StripeCustomerID != &input.StripeCustomerID {
-		return app.CustomerPreConditionError{
+		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.CustomerPreConditionError{
 			AppID:      input.AppID,
-			CustomerID: input.CustomerID,
+			CustomerID: customerID,
 			Condition:  "customer stripe customer id mismatch",
 		}
 	}
 
 	// Set the default payment method
-	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+	return transaction.Run(ctx, a, func(ctx context.Context) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 		_, err := a.db.AppStripeCustomer.
 			Update().
 			Where(
 				appstripecustomerdb.Namespace(input.AppID.Namespace),
 				appstripecustomerdb.AppID(input.AppID.ID),
-				appstripecustomerdb.CustomerID(input.CustomerID.ID),
+				appstripecustomerdb.CustomerID(customerID.ID),
 			).
-			SetNillableStripeDefaultPaymentMethodID(input.PaymentMethodID).
+			SetStripeDefaultPaymentMethodID(input.PaymentMethodID).
 			Save(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to set customer default payment method: %w", err)
+			return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, fmt.Errorf("failed to set customer default payment method: %w", err)
 		}
 
-		return nil
+		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{
+			CustomerID: customerID,
+		}, nil
 	})
 }
 
