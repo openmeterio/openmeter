@@ -97,27 +97,13 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 				return CreateChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			value, err := body.ValueByDiscriminator()
-			if err != nil {
-				return CreateChannelRequest{}, notification.ValidationError{
-					Err: err,
-				}
-			}
-
 			req := CreateChannelRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
 			}
 
-			switch v := value.(type) {
-			case api.NotificationChannelWebhookCreateRequest:
-				req = req.FromNotificationChannelWebhookCreateRequest(v)
-			default:
-				return CreateChannelRequest{}, notification.ValidationError{
-					Err: fmt.Errorf("invalid channel type: %T", v),
-				}
-			}
+			req = req.FromNotificationChannelWebhookCreateRequest(body)
 
 			return req, nil
 		},
@@ -157,13 +143,6 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 				return UpdateChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			value, err := body.ValueByDiscriminator()
-			if err != nil {
-				return UpdateChannelRequest{}, notification.ValidationError{
-					Err: err,
-				}
-			}
-
 			req := UpdateChannelRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
@@ -171,14 +150,7 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 				ID: channelID,
 			}
 
-			switch v := value.(type) {
-			case api.NotificationChannelWebhookCreateRequest:
-				req = req.FromNotificationChannelWebhookCreateRequest(v)
-			default:
-				return UpdateChannelRequest{}, notification.ValidationError{
-					Err: fmt.Errorf("invalid channel type: %T", v),
-				}
-			}
+			req = req.FromNotificationChannelWebhookCreateRequest(body)
 
 			return req, nil
 		},

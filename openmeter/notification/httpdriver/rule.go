@@ -98,27 +98,13 @@ func (h *handler) CreateRule() CreateRuleHandler {
 				return CreateRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			value, err := body.ValueByDiscriminator()
-			if err != nil {
-				return CreateRuleRequest{}, notification.ValidationError{
-					Err: err,
-				}
-			}
-
 			req := CreateRuleRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
 			}
 
-			switch v := value.(type) {
-			case api.NotificationRuleBalanceThresholdCreateRequest:
-				req = req.FromNotificationRuleBalanceThresholdCreateRequest(v)
-			default:
-				return CreateRuleRequest{}, notification.ValidationError{
-					Err: fmt.Errorf("invalid channel type: %T", v),
-				}
-			}
+			req = req.FromNotificationRuleBalanceThresholdCreateRequest(body)
 
 			return req, nil
 		},
@@ -158,13 +144,6 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 				return UpdateRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			value, err := body.ValueByDiscriminator()
-			if err != nil {
-				return UpdateRuleRequest{}, notification.ValidationError{
-					Err: err,
-				}
-			}
-
 			req := UpdateRuleRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
@@ -172,14 +151,7 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 				ID: ruleID,
 			}
 
-			switch v := value.(type) {
-			case api.NotificationRuleBalanceThresholdCreateRequest:
-				req = req.FromNotificationRuleBalanceThresholdCreateRequest(v)
-			default:
-				return UpdateRuleRequest{}, notification.ValidationError{
-					Err: fmt.Errorf("invalid rule type: %T", v),
-				}
-			}
+			req = req.FromNotificationRuleBalanceThresholdCreateRequest(body)
 
 			return req, nil
 		},
