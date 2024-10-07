@@ -79,9 +79,6 @@ func TestValidationErrors(t *testing.T) {
 
 	expectedOutput := ValidationErrorsComplement{
 		Fields: map[string][]ValidationErrorJSON{
-			"code": {
-				{Code: "validation_required", Message: "cannot be blank"},
-			},
 			"customer.billingAddress": {
 				{Code: "customer_billing_address_not_found", Message: "missing customer billing address"},
 			},
