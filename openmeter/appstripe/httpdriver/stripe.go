@@ -33,16 +33,14 @@ type (
 func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, id api.ULID) (AppStripeWebhookRequest, error) {
-			// Resolve the namespace
-			namespace, err := h.resolveNamespace(ctx)
-			if err != nil {
-				return AppStripeWebhookRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
-			}
-
-			appID := appentitybase.AppID{Namespace: namespace, ID: id}
+			// Note that the webhook handler has no namespace resolver
+			// We only know the namespace from the app id. Which we trust because
+			// we validate the payload signature with the app's webhook secret.
 
 			// Get the webhook secret for the app
-			secret, err := h.service.GetWebhookSecret(ctx, appID)
+			secret, err := h.service.GetWebhookSecret(ctx, appstripeentity.GetWebhookSecretInput{
+				AppID: id,
+			})
 			if err != nil {
 				return AppStripeWebhookRequest{}, fmt.Errorf("failed to get webhook secret: %w", err)
 			}
@@ -58,6 +56,11 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				return AppStripeWebhookRequest{}, appstripe.ValidationError{
 					Err: fmt.Errorf("failed to construct webhook event: %w", err),
 				}
+			}
+
+			appID := appentitybase.AppID{
+				Namespace: secret.SecretID.Namespace,
+				ID:        id,
 			}
 
 			req := AppStripeWebhookRequest{

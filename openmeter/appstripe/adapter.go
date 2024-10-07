@@ -16,7 +16,7 @@ type Adapter interface {
 
 type AppStripeAdapter interface {
 	CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error)
-	GetStripeApp(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.App, error)
+	GetStripeApp(ctx context.Context, input appstripeentity.GetAppInput) (appstripeentity.App, error)
 	UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error
 	DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error
 
