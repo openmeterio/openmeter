@@ -197,10 +197,12 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	require.NoError(t, err, "Create checkout session must not return error")
 
-	require.Equal(t, stripeclient.StripeCheckoutSession{
-		SessionID:     "cs_123",
-		SetupIntentID: "seti_123",
-		Mode:          stripe.CheckoutSessionModeSetup,
-		URL:           "https://checkout.stripe.com/cs_123/test",
+	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
+		CustomerID:       customer.GetID(),
+		StripeCustomerID: "cus_123",
+		SessionID:        "cs_123",
+		SetupIntentID:    "seti_123",
+		Mode:             stripe.CheckoutSessionModeSetup,
+		URL:              "https://checkout.stripe.com/cs_123/test",
 	}, checkoutSession, "Create checkout session must match")
 }

@@ -3,7 +3,6 @@ package appstripe
 import (
 	"context"
 
-	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -21,7 +20,7 @@ type AppStripeAdapter interface {
 	DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error
 
 	// Service methods
-	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error)
+	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 	SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error)
 }
