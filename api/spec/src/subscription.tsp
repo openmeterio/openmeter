@@ -184,7 +184,7 @@ interface Subscriptions {
   @get
   @operationId("getSubscriptionPhaseItemsAt")
   @route("/{subscriptionId}/phases/{phaseKey}/items")
-  @deprecated("Use the getExpanded instead.")
+  @tag("Proposal")
   getItems(
     @path subscriptionId: ULID,
     @path phaseKey: Key,
@@ -201,7 +201,7 @@ interface Subscriptions {
   @post
   @operationId("addSubscriptionPhaseItem")
   @route("/{subscriptionId}/phases/{phaseKey}/items")
-  @deprecated("Use the edit instead.")
+  @tag("Proposal")
   addPhaseItem(
     @path subscriptionId: ULID,
     @path phaseKey: Key,
@@ -211,7 +211,7 @@ interface Subscriptions {
   @delete
   @operationId("deleteSubscriptionPhaseItem")
   @route("/{subscriptionId}/phases/{phaseKey}/items/{itemKey}")
-  @deprecated("Use the edit instead.")
+  @tag("Proposal")
   deletePhaseItem(@path subscriptionId: ULID, @path phaseKey: Key, @path itemKey: Key): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
