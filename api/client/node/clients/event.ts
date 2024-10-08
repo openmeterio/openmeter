@@ -68,7 +68,7 @@ export type Event = {
    *   "path": "/hello"
    * }
    */
-  data: Record<string, unknown>
+  data: Record<string, string | number>
 }
 
 export class EventsClient extends BaseClient {

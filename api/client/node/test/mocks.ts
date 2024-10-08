@@ -84,7 +84,7 @@ export const mockEntitlement: Entitlement = {
   featureKey: mockFeature.key,
   subjectKey: mockSubject.key,
   usagePeriod: {
-    interval: mockCreateEntitlementInput.usagePeriod.interval,
+    interval: mockCreateEntitlementInput.usagePeriod!.interval,
     anchor: '2024-01-01T00:00:00Z',
   },
   currentUsagePeriod: {

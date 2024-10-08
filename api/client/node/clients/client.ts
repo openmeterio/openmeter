@@ -14,7 +14,7 @@ export type RequestOptions = {
   headers?: IncomingHttpHeaders
 }
 
-export type Problem = components['schemas']['Problem']
+export type Problem = components['schemas']['UnexpectedProblemResponse']
 
 type UndiciRequestOptions = { dispatcher?: Dispatcher } & Omit<
   Dispatcher.RequestOptions,
