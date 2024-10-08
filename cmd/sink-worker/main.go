@@ -4,28 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"syscall"
 
-	health "github.com/AppsFlyer/go-sundheit"
-	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-slog/otelslog"
 	"github.com/oklog/run"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
@@ -37,10 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var otelName string = "openmeter.io/sink-worker"
@@ -93,72 +81,23 @@ func main() {
 		os.Exit(0)
 	}
 
-	extraResources, _ := resource.New(
-		ctx,
-		resource.WithContainer(),
-		resource.WithAttributes(
-			semconv.ServiceName("openmeter-sink-worker"),
-			semconv.ServiceVersion(version),
-			semconv.DeploymentEnvironment(conf.Environment),
-		),
-	)
-	res, _ := resource.Merge(
-		resource.Default(),
-		extraResources,
-	)
+	logger := initializeLogger(conf)
 
-	logger := slog.New(otelslog.NewHandler(conf.Telemetry.Log.NewHandler(os.Stdout)))
-	logger = otelslog.WithResource(logger, res)
+	app, cleanup, err := initializeApplication(ctx, conf, logger)
+	if err != nil {
+		logger.Error("failed to initialize application", "error", err)
+	}
+	defer cleanup()
 
+	// TODO: move to global initializer
 	slog.SetDefault(logger)
 
-	telemetryRouter := chi.NewRouter()
-	telemetryRouter.Mount("/debug", middleware.Profiler())
-
-	// Initialize OTel Metrics
-	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
-	if err != nil {
-		logger.Error("failed to initialize OpenTelemetry Metrics provider", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer func() {
-		if err = otelMeterProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
-		}
-	}()
-	otel.SetMeterProvider(otelMeterProvider)
-	metricMeter := otelMeterProvider.Meter(otelName)
-
-	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
-		telemetryRouter.Handle("/metrics", promhttp.Handler())
-	}
-
-	// Initialize OTel Tracer
-	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
-	if err != nil {
-		logger.Error("failed to initialize OpenTelemetry Trace provider", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer func() {
-		if err = otelTracerProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
-		}
-	}()
-
-	otel.SetTracerProvider(otelTracerProvider)
+	// TODO: move to global initializer
+	otel.SetMeterProvider(app.MeterProvider)
+	otel.SetTracerProvider(app.TracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
-	tracer := otelTracerProvider.Tracer(otelName)
 
-	// Configure health checker
-	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
-	handler := healthhttp.HandleHealthJSON(healthChecker)
-	telemetryRouter.Handle("/healthz", handler)
-
-	// Kubernetes style health checks
-	telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("ok"))
-	})
-	telemetryRouter.Handle("/healthz/ready", handler)
+	tracer := app.TracerProvider.Tracer(otelName)
 
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
 		"telemetry.address":   conf.Telemetry.Address,
@@ -168,19 +107,14 @@ func main() {
 	var group run.Group
 
 	// initialize system event producer
-	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, metricMeter)
+	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
 	}
 
-	// Initialize meter repository
-	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
-		return *meter
-	}))
-
 	// Initialize sink worker
-	sink, err := initSink(conf, logger, metricMeter, tracer, meterRepository, ingestEventFlushHandler)
+	sink, err := initSink(conf, logger, app.Meter, tracer, app.MeterRepository, ingestEventFlushHandler)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -189,29 +123,21 @@ func main() {
 		_ = sink.Close()
 	}()
 
-	// Set up telemetry server
-	server := &http.Server{
-		Addr:    conf.Telemetry.Address,
-		Handler: telemetryRouter,
-		BaseContext: func(_ net.Listener) context.Context {
-			return ctx
-		},
-	}
-	defer func() {
-		_ = server.Close()
-	}()
-
 	// Add sink worker to run group
 	group.Add(
 		func() error { return sink.Run(ctx) },
 		func(err error) { _ = sink.Close() },
 	)
 
-	// Add telemetry server to run group
-	group.Add(
-		func() error { return server.ListenAndServe() },
-		func(err error) { _ = server.Shutdown(ctx) },
-	)
+	// Set up telemetry server
+	{
+		server := app.TelemetryServer
+
+		group.Add(
+			func() error { return server.ListenAndServe() },
+			func(err error) { _ = server.Shutdown(ctx) },
+		)
+	}
 
 	// Setup signal handler
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
