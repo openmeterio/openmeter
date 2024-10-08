@@ -9,6 +9,7 @@ import "..";
 import "./app.tsp";
 import "./capability.tsp";
 import "./marketplace.tsp";
+import "./stripe.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

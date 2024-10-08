@@ -17,14 +17,14 @@ namespace OpenMeter.App;
  */
 @route("/api/v1/marketplace")
 @tag("Apps")
-interface MarketplaceAPI {
+interface Marketplace {
   /**
    * List available apps of the app marketplace.
    */
   @get
   @route("/listings")
   @operationId("marketplaceListListings")
-  marketplaceListings(...MarketplaceListListingsRequest): MarketplaceListListingsResponse | CommonErrors;
+  marketplaceListings(...PaginatedQuery): Paginated<Listing> | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
 
@@ -57,20 +57,6 @@ interface MarketplaceAPI {
   @route("/install/apikey")
   @operationId("marketplaceAppAPIKeyInstall")
   marketplaceAppAPIKeyInstall(...MarketplaceApiKeyInstallRequest): AppBase | CommonErrors;
-}
-
-/**
- * Query params for listing marketplace listings.
- */
-@friendlyName("MarketplaceListListingsRequest")
-model MarketplaceListListingsRequest extends PaginatedQuery {}
-
-/**
- * Marketplace list listings response.
- */
-@friendlyName("MarketplaceListListingsResponse")
-model MarketplaceListListingsResponse {
-  ...Paginated<Listing>;
 }
 
 /**

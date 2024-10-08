@@ -20,13 +20,13 @@ import (
 type (
 	CreateAppStripeCheckoutSessionRequest  = appstripeentity.CreateCheckoutSessionInput
 	CreateAppStripeCheckoutSessionResponse = api.CreateStripeCheckoutSessionResponse
-	CreateAppStripeCheckoutSessionHandler  httptransport.HandlerWithArgs[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse, api.ULID]
+	CreateAppStripeCheckoutSessionHandler  httptransport.HandlerWithArgs[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse, string]
 )
 
 // CreateAppStripeCheckoutSession returns a handler for creating a checkout session.
 func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessionHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appID api.ULID) (CreateAppStripeCheckoutSessionRequest, error) {
+		func(ctx context.Context, r *http.Request, appID string) (CreateAppStripeCheckoutSessionRequest, error) {
 			body := api.CreateStripeCheckoutSessionRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("field to decode create app stripe checkout session request: %w", err)

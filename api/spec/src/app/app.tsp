@@ -22,7 +22,7 @@ namespace OpenMeter.App;
  */
 @route("/api/v1/apps")
 @tag("Apps")
-interface AppAPI {
+interface Installed {
   /**
    * List apps.
    */
@@ -37,7 +37,7 @@ interface AppAPI {
   @get
   @route("/{id}")
   @operationId("getApp")
-  getApp(@path id: string): App | CommonErrors;
+  getApp(@path id: ULID): App | CommonErrors;
 
   /**
    * Uninstall an app.
@@ -45,7 +45,7 @@ interface AppAPI {
   @delete
   @route("/{id}")
   @operationId("uninstallApp")
-  uninstallApp(@path id: string): App | NotFoundError | CommonErrors;
+  uninstallApp(@path id: ULID): App | NotFoundError | CommonErrors;
 }
 
 /**

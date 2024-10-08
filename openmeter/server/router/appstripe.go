@@ -5,14 +5,13 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/appstripe/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Handle app stripe webhook
 // (POST /api/v1/apps/{appId}/stripe/webhook)
-func (a *Router) AppStripeWebhook(w http.ResponseWriter, r *http.Request, appID api.ULID) {
+func (a *Router) AppStripeWebhook(w http.ResponseWriter, r *http.Request, appID string) {
 	const MaxBodyBytes = int64(65536)
 	r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes)
 	payload, err := io.ReadAll(r.Body)
@@ -32,6 +31,6 @@ func (a *Router) AppStripeWebhook(w http.ResponseWriter, r *http.Request, appID 
 
 // Handle create app stripe checkout session
 // (POST /api/v1/apps/{appId}/stripe/checkout-session)
-func (a *Router) CreateAppStripeCheckoutSession(w http.ResponseWriter, r *http.Request, appID api.ULID) {
+func (a *Router) CreateAppStripeCheckoutSession(w http.ResponseWriter, r *http.Request, appID string) {
 	a.appStripeHandler.CreateAppStripeCheckoutSession().With(appID).ServeHTTP(w, r)
 }
