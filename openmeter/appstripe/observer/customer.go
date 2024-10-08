@@ -1,4 +1,4 @@
-package appstripeadapter
+package observer
 
 import (
 	"context"

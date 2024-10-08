@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	appstripeobserver "github.com/openmeterio/openmeter/openmeter/appstripe/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/secret"
@@ -57,6 +58,7 @@ func New(config Config) (appstripe.Adapter, error) {
 		stripeClientFactory = stripeclient.NewStripeClient
 	}
 
+	// Create app stripe adapter
 	adapter := &adapter{
 		db:                  config.Client,
 		appService:          config.AppService,
@@ -66,7 +68,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	}
 
 	// Create app stripe customer observer
-	appStripeObserver, err := NewCustomerObserver(CustomerObserverConfig{
+	appStripeObserver, err := appstripeobserver.NewCustomerObserver(appstripeobserver.CustomerObserverConfig{
 		AppService:       config.AppService,
 		AppStripeAdapter: adapter,
 	})
