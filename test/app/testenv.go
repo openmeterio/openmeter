@@ -95,11 +95,6 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)
 	}
 
-	// Marketplace
-	marketplaceAdapter := appadapter.NewMarketplaceAdapter(appadapter.MarketplaceConfig{
-		BaseURL: "http://localhost:8888",
-	})
-
 	// Secret
 	secretAdapter := secretadapter.New()
 
@@ -112,16 +107,15 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
-		Client:      entClient,
-		Marketplace: marketplaceAdapter,
+		Client:  entClient,
+		BaseURL: "http://localhost:8888",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
 	}
 
 	appService, err := appservice.New(appservice.Config{
-		Adapter:     appAdapter,
-		Marketplace: marketplaceAdapter,
+		Adapter: appAdapter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
@@ -132,7 +126,6 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Client:          entClient,
 		AppService:      appService,
 		CustomerService: customerService,
-		Marketplace:     marketplaceAdapter,
 		SecretService:   secretService,
 	})
 	if err != nil {

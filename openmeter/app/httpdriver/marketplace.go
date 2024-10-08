@@ -43,7 +43,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			return req, nil
 		},
 		func(ctx context.Context, request MarketplaceAppAPIKeyInstallRequest) (MarketplaceAppAPIKeyInstallResponse, error) {
-			app, err := h.service.InstallAppWithAPIKey(ctx, request)
+			app, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request)
 			if err != nil {
 				return MarketplaceAppAPIKeyInstallResponse{}, err
 			}

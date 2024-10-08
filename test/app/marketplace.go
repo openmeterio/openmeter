@@ -41,7 +41,7 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
 
 	// Get the listing
-	registryItem, err := service.Get(ctx, appentity.MarketplaceGetInput{
+	registryItem, err := service.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
 		Type: TestType,
 	})
 
@@ -63,7 +63,7 @@ func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t
 	service := s.Env.App()
 
 	// Get the listing
-	list, err := service.List(ctx, appentity.MarketplaceListInput{
+	list, err := service.ListMarketplaceListings(ctx, appentity.MarketplaceListInput{
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,

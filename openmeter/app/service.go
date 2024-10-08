@@ -9,20 +9,19 @@ import (
 )
 
 type Service interface {
-	MarketplaceService
 	AppService
 }
 
-type MarketplaceService interface {
-	Register(input appentity.RegisterMarketplaceListingInput) error
-	Get(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error)
-	List(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error)
-	InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
-	GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
-	AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
-}
-
 type AppService interface {
+	// Marketplace
+	RegisterMarketplaceListing(input appentity.RegisterMarketplaceListingInput) error
+	GetMarketplaceListing(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error)
+	ListMarketplaceListings(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error)
+	InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
+	GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
+	AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
+
+	// Installed app
 	CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error)
 	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
 	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)

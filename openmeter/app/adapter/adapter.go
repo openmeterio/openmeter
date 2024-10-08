@@ -15,8 +15,8 @@ import (
 )
 
 type Config struct {
-	Client      *entdb.Client
-	Marketplace app.MarketplaceAdapter
+	Client  *entdb.Client
+	BaseURL string
 }
 
 func (c Config) Validate() error {
@@ -24,8 +24,8 @@ func (c Config) Validate() error {
 		return errors.New("ent client is required")
 	}
 
-	if c.Marketplace == nil {
-		return errors.New("marketplace adapter is required")
+	if c.BaseURL == "" {
+		return errors.New("base url is required")
 	}
 
 	return nil
@@ -37,42 +37,20 @@ func New(config Config) (app.Adapter, error) {
 	}
 
 	adapter := &adapter{
-		db:          config.Client,
-		marketplace: config.Marketplace,
+		db:       config.Client,
+		registry: map[appentitybase.AppType]appentity.RegistryItem{},
+		baseURL:  config.BaseURL,
 	}
 
 	return adapter, nil
 }
 
-type MarketplaceConfig struct {
-	BaseURL string
-}
-
-func (c MarketplaceConfig) Validate() error {
-	if c.BaseURL == "" {
-		return errors.New("base url is required")
-	}
-
-	return nil
-}
-
-type Marketplace struct {
-	registry map[appentitybase.AppType]appentity.RegistryItem
-	baseURL  string
-}
-
-func NewMarketplaceAdapter(config MarketplaceConfig) app.MarketplaceAdapter {
-	return Marketplace{
-		registry: map[appentitybase.AppType]appentity.RegistryItem{},
-		baseURL:  config.BaseURL,
-	}
-}
-
 var _ app.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db          *entdb.Client
-	marketplace app.MarketplaceAdapter
+	db       *entdb.Client
+	registry map[appentitybase.AppType]appentity.RegistryItem
+	baseURL  string
 }
 
 // Tx implements entutils.TxCreator interface
