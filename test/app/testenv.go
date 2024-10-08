@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 const (
@@ -75,6 +76,10 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 
 	if err = entClient.Schema.Create(ctx); err != nil {
 		return nil, fmt.Errorf("failed to create database schema: %w", err)
+	}
+
+	if err := migrate.Up(postgresHost); err != nil {
+		return nil, fmt.Errorf("failed to migrate db: %w", err)
 	}
 
 	// Customer
