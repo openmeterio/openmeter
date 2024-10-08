@@ -23,5 +23,6 @@
   "files.exclude": {
     "**/node_modules": false
   },
-  "typespec.tsp-server.path": "${workspaceFolder}/api/spec/node_modules/@typespec/compiler"
+  "typespec.tsp-server.path": "${workspaceFolder}/api/spec/node_modules/@typespec/compiler",
+  "go.buildTags": "wireinject"
 }
