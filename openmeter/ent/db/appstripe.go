@@ -27,7 +27,7 @@ type AppStripe struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// APIKey holds the value of the "api_key" field.
-	APIKey *string `json:"-"`
+	APIKey string `json:"-"`
 	// WebhookSecret holds the value of the "webhook_secret" field.
 	WebhookSecret string `json:"-"`
 	// StripeAccountID holds the value of the "stripe_account_id" field.
@@ -132,8 +132,7 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field api_key", values[i])
 			} else if value.Valid {
-				as.APIKey = new(string)
-				*as.APIKey = value.String
+				as.APIKey = value.String
 			}
 		case appstripe.FieldWebhookSecret:
 			if value, ok := values[i].(*sql.NullString); !ok {

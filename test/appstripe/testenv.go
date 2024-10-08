@@ -126,7 +126,9 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	// Marketplace
-	marketplaceAdapter := appadapter.NewMarketplaceAdapter()
+	marketplaceAdapter := appadapter.NewMarketplaceAdapter(appadapter.MarketplaceConfig{
+		BaseURL: "http://localhost:8888",
+	})
 
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{

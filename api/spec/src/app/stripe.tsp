@@ -79,6 +79,7 @@ model CreateStripeCheckoutSessionRequest {
  */
 @friendlyName("CreateStripeCheckoutSessionRequestOptions")
 model CreateStripeCheckoutSessionRequestOptions {
+  currency?: CurrencyCode;
   cancelURL?: string;
   clientReferenceID?: string;
   customText?: CheckoutSessionCustomTextParams;
@@ -290,7 +291,9 @@ model StripeWebhookEvent {
   /**
    * The event data.
    */
-  data: StripeSetupIntent;
+  data: {
+    object: StripeSetupIntent
+  };
 }
 
 /**

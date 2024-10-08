@@ -286,7 +286,7 @@ func (asc *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := asc.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
-		_node.APIKey = &value
+		_node.APIKey = value
 	}
 	if value, ok := asc.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)

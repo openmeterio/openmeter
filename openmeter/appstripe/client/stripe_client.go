@@ -119,7 +119,12 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 		EnabledEvents: []*string{
 			lo.ToPtr(WebhookEventTypeSetupIntentSucceeded),
 		},
-		URL: lo.ToPtr(webhookURL),
+		URL:         lo.ToPtr(webhookURL),
+		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),
+		Metadata: map[string]string{
+			SetupIntentDataMetadataNamespace: input.AppID.Namespace,
+			SetupIntentDataMetadataAppID:     input.AppID.ID,
+		},
 	}
 	result, err := c.client.WebhookEndpoints.New(params)
 	if err != nil {
@@ -230,7 +235,13 @@ func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCh
 	}
 
 	// Enrich user sent metadata with openmeter metadata
-	metadata := input.Options.Metadata
+	metadata := map[string]string{}
+
+	if len(input.Options.Metadata) > 0 {
+		for k, v := range input.Options.Metadata {
+			metadata[k] = v
+		}
+	}
 
 	metadata[SetupIntentDataMetadataNamespace] = input.AppID.Namespace
 	metadata[SetupIntentDataMetadataAppID] = input.AppID.ID
@@ -239,6 +250,7 @@ func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCh
 	// Create checkout session
 	params := &stripe.CheckoutSessionParams{
 		Customer:                 lo.ToPtr(input.StripeCustomerID),
+		Currency:                 input.Options.Currency,
 		Mode:                     lo.ToPtr(string(stripe.CheckoutSessionModeSetup)),
 		BillingAddressCollection: lo.ToPtr(string(stripe.CheckoutSessionBillingAddressCollectionAuto)),
 		CustomerUpdate: &stripe.CheckoutSessionCustomerUpdateParams{

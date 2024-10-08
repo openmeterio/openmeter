@@ -42,12 +42,16 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				CustomerID:       customerentity.CustomerID{Namespace: namespace, ID: body.CustomerId},
 				StripeCustomerID: body.StripeCustomerId,
 				Options: stripeclient.StripeCheckoutSessionOptions{
+					Currency:          body.Options.Currency,
 					CancelURL:         body.Options.CancelURL,
 					ClientReferenceID: body.Options.ClientReferenceID,
 					ReturnURL:         body.Options.ReturnURL,
 					SuccessURL:        body.Options.SuccessURL,
-					UIMode:            lo.ToPtr(stripe.CheckoutSessionUIMode(*body.Options.UiMode)),
 				},
+			}
+
+			if body.Options.UiMode != nil {
+				req.Options.UIMode = lo.ToPtr(stripe.CheckoutSessionUIMode(*body.Options.UiMode))
 			}
 
 			if body.Options.PaymentMethodTypes != nil {
