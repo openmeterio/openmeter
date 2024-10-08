@@ -73,7 +73,6 @@ var _ app.Adapter = (*adapter)(nil)
 type adapter struct {
 	db          *entdb.Client
 	marketplace app.MarketplaceAdapter
-	baseURL     string
 }
 
 // Tx implements entutils.TxCreator interface

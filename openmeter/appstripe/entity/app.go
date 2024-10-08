@@ -114,7 +114,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: stripeApp.Namespace,
-			ID:        stripeApp.ID,
+			ID:        stripeApp.APIKey,
 		},
 		AppID: a.GetID(),
 		Key:   APIKeySecretKey,

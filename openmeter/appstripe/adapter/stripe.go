@@ -118,7 +118,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 	secret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: stripeApp.Namespace,
-			ID:        stripeApp.ID,
+			ID:        stripeApp.WebhookSecret,
 		},
 		AppID: appID,
 		Key:   appstripeentity.WebhookSecretKey,
@@ -245,9 +245,9 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 
 					stripeCustomerId = out.StripeCustomerID
 				}
+			} else {
+				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe app customer: %w", err)
 			}
-
-			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe app customer: %w", err)
 		}
 
 		// If the stripe app customer exists we check if the Stripe Customer ID matches with the input
@@ -267,10 +267,10 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 	apiKeySecret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: stripeApp.Namespace,
-			ID:        stripeApp.ID,
+			ID:        stripeApp.APIKey,
 		},
 		AppID: input.AppID,
-		Key:   *stripeApp.APIKey,
+		Key:   appstripeentity.APIKeySecretKey,
 	})
 	if err != nil {
 		return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
