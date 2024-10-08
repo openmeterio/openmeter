@@ -46,7 +46,7 @@ RUN xx-verify /usr/local/bin/openmeter-notification-service
 
 FROM alpine:3.20.3@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d
 
-RUN apk add --update --no-cache ca-certificates tzdata bash curl
+RUN apk add --update --no-cache ca-certificates tzdata bash
 
 SHELL ["/bin/bash", "-c"]
 
