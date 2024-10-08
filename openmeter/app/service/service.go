@@ -9,22 +9,16 @@ import (
 var _ app.Service = (*Service)(nil)
 
 type Service struct {
-	adapter     app.Adapter
-	marketplace app.MarketplaceAdapter
+	adapter app.Adapter
 }
 
 type Config struct {
-	Adapter     app.Adapter
-	Marketplace app.MarketplaceAdapter
+	Adapter app.Adapter
 }
 
 func (c Config) Validate() error {
 	if c.Adapter == nil {
 		return errors.New("adapter cannot be null")
-	}
-
-	if c.Marketplace == nil {
-		return errors.New("marketplace cannot be null")
 	}
 
 	return nil
@@ -36,7 +30,6 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter:     config.Adapter,
-		marketplace: config.Marketplace,
+		adapter: config.Adapter,
 	}, nil
 }

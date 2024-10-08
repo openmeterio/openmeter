@@ -11,10 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var _ app.MarketplaceAdapter = (*Marketplace)(nil)
-
-// List lists marketplace listings
-func (a Marketplace) List(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+// ListMarketplaceListings lists marketplace listings
+func (a adapter) ListMarketplaceListings(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
 	items := lo.Values(a.registry)
 	items = lo.Subset(items, (input.PageNumber-1)*input.PageSize, uint(input.PageSize))
 
@@ -27,8 +25,8 @@ func (a Marketplace) List(ctx context.Context, input appentity.MarketplaceListIn
 	return response, nil
 }
 
-// Get gets a marketplace listing
-func (a Marketplace) Get(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
+// GetMarketplaceListing gets a marketplace listing
+func (a adapter) GetMarketplaceListing(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
 	if _, ok := a.registry[input.Type]; !ok {
 		return appentity.RegistryItem{}, app.MarketplaceListingNotFoundError{
 			MarketplaceListingID: input,
@@ -38,10 +36,10 @@ func (a Marketplace) Get(ctx context.Context, input appentity.MarketplaceGetInpu
 	return a.registry[input.Type], nil
 }
 
-// InstallAppWithAPIKey installs an app with an API key
-func (a Marketplace) InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
+// InstallMarketplaceListingWithAPIKey installs an app with an API key
+func (a adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
 	// Get registry item
-	registryItem, err := a.Get(ctx, appentity.MarketplaceGetInput{
+	registryItem, err := a.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
 		Type: input.Type,
 	})
 	if err != nil {
@@ -61,18 +59,18 @@ func (a Marketplace) InstallAppWithAPIKey(ctx context.Context, input appentity.I
 	return app, nil
 }
 
-// GetOauth2InstallURL gets an OAuth2 install URL
-func (a Marketplace) GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
+// GetMarketplaceListingOauth2InstallURL gets an OAuth2 install URL
+func (a adapter) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
 	return appentity.GetOauth2InstallURLOutput{}, fmt.Errorf("not implemented")
 }
 
 // AuthorizeOauth2Install authorizes an OAuth2 install
-func (a Marketplace) AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error {
+func (a adapter) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error {
 	return fmt.Errorf("not implemented")
 }
 
-// Register registers an app type
-func (a Marketplace) Register(input appentity.RegisterMarketplaceListingInput) error {
+// RegisterMarketplaceListing registers an app type
+func (a adapter) RegisterMarketplaceListing(input appentity.RegisterMarketplaceListingInput) error {
 	if _, ok := a.registry[input.Listing.Type]; ok {
 		return fmt.Errorf("marketplace listing with key %s already exists", input.Listing.Type)
 	}

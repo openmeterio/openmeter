@@ -10,7 +10,7 @@ import (
 // (GET /api/v1/marketplace/listings)
 func (a *Router) MarketplaceListListings(w http.ResponseWriter, r *http.Request, params api.MarketplaceListListingsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("Unimplemented"))
+	_, _ = w.Write([]byte("Unimplemented"))
 }
 
 // Install a marketplace app by API key
@@ -23,12 +23,12 @@ func (a *Router) MarketplaceAppAPIKeyInstall(w http.ResponseWriter, r *http.Requ
 // (GET /api/v1/marketplace/install/oauth2)
 func (a *Router) MarketplaceOAuth2InstallGetURL(w http.ResponseWriter, r *http.Request, params api.MarketplaceOAuth2InstallGetURLParams) {
 	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("Unimplemented"))
+	_, _ = w.Write([]byte("Unimplemented"))
 }
 
 // Authorize the installation of a marketplace app by OAuth2
 // (// (GET /api/v1/marketplace/install/oauth2/authorize))
 func (a *Router) MarketplaceOAuth2InstallAuthorize(w http.ResponseWriter, r *http.Request, params api.MarketplaceOAuth2InstallAuthorizeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("Unimplemented"))
+	_, _ = w.Write([]byte("Unimplemented"))
 }

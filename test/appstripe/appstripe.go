@@ -35,7 +35,7 @@ func (s *AppHandlerTestSuite) setupNamespace(t *testing.T) {
 func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
-	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
 		},
@@ -53,7 +53,7 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
 		},
@@ -90,7 +90,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
 		},
@@ -158,7 +158,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	app, err := s.Env.App().InstallAppWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
 		},

@@ -8,64 +8,64 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var _ app.MarketplaceService = (*Service)(nil)
+var _ app.AppService = (*Service)(nil)
 
-func (s *Service) Register(input appentity.RegisterMarketplaceListingInput) error {
+func (s *Service) RegisterMarketplaceListing(input appentity.RegisterMarketplaceListingInput) error {
 	if err := input.Validate(); err != nil {
 		return app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.Register(input)
+	return s.adapter.RegisterMarketplaceListing(input)
 }
 
-func (s *Service) Get(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
+func (s *Service) GetMarketplaceListing(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
 	if err := input.Validate(); err != nil {
 		return appentity.RegistryItem{}, app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.Get(ctx, input)
+	return s.adapter.GetMarketplaceListing(ctx, input)
 }
 
-func (s *Service) List(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+func (s *Service) ListMarketplaceListings(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
 	if err := input.Validate(); err != nil {
 		return pagination.PagedResponse[appentity.RegistryItem]{}, app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.List(ctx, input)
+	return s.adapter.ListMarketplaceListings(ctx, input)
 }
 
-func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
+func (s *Service) InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.InstallAppWithAPIKey(ctx, input)
+	return s.adapter.InstallMarketplaceListingWithAPIKey(ctx, input)
 }
 
-func (s *Service) GetOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
+func (s *Service) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
 	if err := input.Validate(); err != nil {
 		return appentity.GetOauth2InstallURLOutput{}, app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.GetOauth2InstallURL(ctx, input)
+	return s.adapter.GetMarketplaceListingOauth2InstallURL(ctx, input)
 }
 
-func (s *Service) AuthorizeOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error {
+func (s *Service) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error {
 	if err := input.Validate(); err != nil {
 		return app.ValidationError{
 			Err: err,
 		}
 	}
 
-	return s.marketplace.AuthorizeOauth2Install(ctx, input)
+	return s.adapter.AuthorizeMarketplaceListingOauth2Install(ctx, input)
 }

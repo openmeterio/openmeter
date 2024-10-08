@@ -22,7 +22,6 @@ type Config struct {
 	Client              *entdb.Client
 	AppService          app.Service
 	CustomerService     customer.Service
-	Marketplace         app.MarketplaceService
 	SecretService       secret.Service
 	StripeClientFactory stripeclient.StripeClientFactory
 }
@@ -38,10 +37,6 @@ func (c Config) Validate() error {
 
 	if c.CustomerService == nil {
 		return errors.New("customer service is required")
-	}
-
-	if c.Marketplace == nil {
-		return errors.New("marketplace is required")
 	}
 
 	if c.SecretService == nil {
@@ -97,7 +92,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	}
 
 	// Register stripe app in marketplace
-	err = config.Marketplace.Register(appentity.RegistryItem{
+	err = config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
 		Listing: appstripeentity.StripeMarketplaceListing,
 		Factory: stripeAppFactory,
 	})

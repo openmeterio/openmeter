@@ -32,7 +32,7 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 		}
 
 		// Get registry item
-		registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
+		registryItem, err := a.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
 			Type: dbApp.Type,
 		})
 		if err != nil {
@@ -70,7 +70,7 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 
 	result := make([]appentity.App, 0, len(paged.Items))
 	for _, dbApp := range paged.Items {
-		registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
+		registryItem, err := a.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
 			Type: dbApp.Type,
 		})
 		if err != nil {
@@ -108,7 +108,7 @@ func (a adapter) GetApp(ctx context.Context, input appentity.GetAppInput) (appen
 	}
 
 	// Get registry item
-	registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
+	registryItem, err := a.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {
@@ -143,7 +143,7 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 	}
 
 	// Get registry item
-	registryItem, err := a.marketplace.Get(ctx, appentity.MarketplaceGetInput{
+	registryItem, err := a.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
 		Type: dbApp.Type,
 	})
 	if err != nil {

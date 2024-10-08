@@ -193,12 +193,6 @@ func main() {
 		}
 	}
 
-	// Initialize Marketplace
-	// TODO: create marketplace service
-	marketplaceAdapter := appadapter.NewMarketplaceAdapter(appadapter.MarketplaceConfig{
-		BaseURL: conf.Stripe.Webhook.BaseURL,
-	})
-
 	// Initialize Secret
 	secretService, err := secretservice.New(secretservice.Config{
 		Adapter: secretadapter.New(),
@@ -214,8 +208,8 @@ func main() {
 	if entClient != nil {
 		var appAdapter app.Adapter
 		appAdapter, err = appadapter.New(appadapter.Config{
-			Client:      entClient,
-			Marketplace: marketplaceAdapter,
+			Client:  entClient,
+			BaseURL: conf.Stripe.Webhook.BaseURL,
 		})
 		if err != nil {
 			logger.Error("failed to initialize app repository", "error", err)
@@ -223,8 +217,7 @@ func main() {
 		}
 
 		appService, err = appservice.New(appservice.Config{
-			Adapter:     appAdapter,
-			Marketplace: marketplaceAdapter,
+			Adapter: appAdapter,
 		})
 		if err != nil {
 			logger.Error("failed to initialize app service", "error", err)
@@ -241,7 +234,6 @@ func main() {
 			Client:          entClient,
 			AppService:      appService,
 			CustomerService: customerService,
-			Marketplace:     marketplaceAdapter,
 			SecretService:   secretService,
 		})
 		if err != nil {
