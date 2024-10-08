@@ -5,15 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
-	"time"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
-	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -47,26 +44,18 @@ const (
 	DefaultPostgresHost = "127.0.0.1"
 )
 
-func NewTestEnv(ctx context.Context) (TestEnv, error) {
+func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	logger := slog.Default().WithGroup("customer")
 
-	postgresHost := defaultx.IfZero(os.Getenv("POSTGRES_HOST"), DefaultPostgresHost)
+	// Initialize postgres driver
+	driver := testutils.InitPostgresDB(t)
 
-	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, fmt.Sprintf(PostgresURLTemplate, postgresHost))
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize postgres driver: %w", err)
+	entClient := driver.EntDriver.Client()
+	if err := migrate.Up(driver.URL); err != nil {
+		t.Fatalf("failed to migrate db: %s", err.Error())
 	}
 
-	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
-	entClient := entPostgresDriver.Client()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := migrate.Up(postgresHost); err != nil {
-		return nil, fmt.Errorf("failed to migrate db: %w", err)
-	}
-
+	// Initialize customer adapter
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
@@ -85,11 +74,11 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	closerFunc := func() error {
 		var errs error
 
-		if err = entPostgresDriver.Close(); err != nil {
+		if err = entClient.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
 		}
 
-		if err = postgresDriver.Close(); err != nil {
+		if err = driver.PGDriver.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close postgres driver: %w", err))
 		}
 
