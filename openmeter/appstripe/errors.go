@@ -18,6 +18,17 @@ func (e AppNotFoundError) Error() string {
 	return fmt.Sprintf("app with id %s not found in %s namespace", e.ID, e.Namespace)
 }
 
+// WebhookAppNotFoundError
+var _ error = (*WebhookAppNotFoundError)(nil)
+
+type WebhookAppNotFoundError struct {
+	AppID string
+}
+
+func (e WebhookAppNotFoundError) Error() string {
+	return fmt.Sprintf("app with id %s not found", e.AppID)
+}
+
 // StripeCustomerPreConditionError
 var _ error = (*StripeCustomerPreConditionError)(nil)
 

@@ -96,13 +96,8 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return secretentity.Secret{}, app.AppNotFoundError{
-				// TODO: how should we handle this?
-				// GetWebhookSecret doesn't know the namespace
-				AppID: appentitybase.AppID{
-					Namespace: "unknown",
-					ID:        input.AppID,
-				},
+			return secretentity.Secret{}, appstripe.WebhookAppNotFoundError{
+				AppID: input.AppID,
 			}
 		}
 
@@ -162,8 +157,17 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 		ID:        appCustomer.CustomerID,
 	}
 
+	// Should not happen as we filter in database query for stripe customer id
+	if appCustomer.StripeCustomerID == nil {
+		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, appstripe.StripeCustomerPreConditionError{
+			AppID:            input.AppID,
+			StripeCustomerID: input.StripeCustomerID,
+			Condition:        "stripe customer id is not set",
+		}
+	}
+
 	// Check if the stripe customer id matches with the input
-	if appCustomer.StripeCustomerID != &input.StripeCustomerID {
+	if *appCustomer.StripeCustomerID != input.StripeCustomerID {
 		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.CustomerPreConditionError{
 			AppID:      input.AppID,
 			CustomerID: customerID,
@@ -202,7 +206,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return appstripeentity.CreateCheckoutSessionOutput{}, app.AppNotFoundError{
+			return appstripeentity.CreateCheckoutSessionOutput{}, appstripe.AppNotFoundError{
 				AppID: input.AppID,
 			}
 		}
