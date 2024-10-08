@@ -44,13 +44,27 @@ func New(config Config) (app.Adapter, error) {
 	return adapter, nil
 }
 
-type Marketplace struct {
-	registry map[appentitybase.AppType]appentity.RegistryItem
+type MarketplaceConfig struct {
+	BaseURL string
 }
 
-func NewMarketplaceAdapter() app.MarketplaceAdapter {
+func (c MarketplaceConfig) Validate() error {
+	if c.BaseURL == "" {
+		return errors.New("base url is required")
+	}
+
+	return nil
+}
+
+type Marketplace struct {
+	registry map[appentitybase.AppType]appentity.RegistryItem
+	baseURL  string
+}
+
+func NewMarketplaceAdapter(config MarketplaceConfig) app.MarketplaceAdapter {
 	return Marketplace{
 		registry: map[appentitybase.AppType]appentity.RegistryItem{},
+		baseURL:  config.BaseURL,
 	}
 }
 
@@ -59,6 +73,7 @@ var _ app.Adapter = (*adapter)(nil)
 type adapter struct {
 	db          *entdb.Client
 	marketplace app.MarketplaceAdapter
+	baseURL     string
 }
 
 // Tx implements entutils.TxCreator interface

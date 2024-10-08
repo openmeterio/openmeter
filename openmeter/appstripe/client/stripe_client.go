@@ -229,6 +229,13 @@ func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCh
 		return StripeCheckoutSession{}, err
 	}
 
+	// Enrich user sent metadata with openmeter metadata
+	metadata := input.Options.Metadata
+
+	metadata[SetupIntentDataMetadataNamespace] = input.AppID.Namespace
+	metadata[SetupIntentDataMetadataAppID] = input.AppID.ID
+	metadata[SetupIntentDataMetadataCustomerID] = input.CustomerID.ID
+
 	// Create checkout session
 	params := &stripe.CheckoutSessionParams{
 		Customer:                 lo.ToPtr(input.StripeCustomerID),
@@ -243,11 +250,7 @@ func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCh
 			Required: lo.ToPtr("if_supported"),
 		},
 		SetupIntentData: &stripe.CheckoutSessionSetupIntentDataParams{
-			Metadata: map[string]string{
-				SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
-				SetupIntentDataMetadataAppID:      input.AppID.ID,
-				SetupIntentDataMetadataCustomerID: input.CustomerID.ID,
-			},
+			Metadata: metadata,
 		},
 	}
 
@@ -269,10 +272,6 @@ func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCh
 
 	if input.Options.CustomText != nil {
 		params.CustomText = input.Options.CustomText
-	}
-
-	if len(input.Options.Metadata) > 0 {
-		params.Metadata = input.Options.Metadata
 	}
 
 	if input.Options.UIMode != nil {
