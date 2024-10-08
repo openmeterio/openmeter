@@ -65,17 +65,6 @@ func New(config Config) (appstripe.Adapter, error) {
 		stripeClientFactory: stripeClientFactory,
 	}
 
-	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{
-		AppService:          config.AppService,
-		AppStripeAdapter:    adapter,
-		Client:              config.Client,
-		SecretService:       config.SecretService,
-		StripeClientFactory: stripeClientFactory,
-	})
-	if err != nil {
-		return adapter, fmt.Errorf("failed to create stripe app factory: %w", err)
-	}
-
 	// Create app stripe customer observer
 	appStripeObserver, err := NewCustomerObserver(CustomerObserverConfig{
 		AppService:       config.AppService,
@@ -94,7 +83,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	// Register stripe app in marketplace
 	err = config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
 		Listing: appstripeentity.StripeMarketplaceListing,
-		Factory: stripeAppFactory,
+		Factory: adapter,
 	})
 	if err != nil {
 		return adapter, fmt.Errorf("failed to register stripe app: %w", err)
