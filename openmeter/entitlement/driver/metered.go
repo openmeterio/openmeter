@@ -209,7 +209,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				return ResetEntitlementUsageHandlerRequest{}, err
 			}
 
-			var body api.ResetEntitlementUsageJSONBody
+			var body api.ResetEntitlementUsageInput
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return ResetEntitlementUsageHandlerRequest{}, err
@@ -294,12 +294,12 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 			windows := make([]api.BalanceHistoryWindow, 0, len(windowedHistory))
 			for _, window := range windowedHistory {
 				windows = append(windows, api.BalanceHistoryWindow{
-					BalanceAtStart: &window.BalanceAtStart,
-					Period: &api.Period{
+					BalanceAtStart: window.BalanceAtStart,
+					Period: api.Period{
 						From: window.From,
 						To:   window.To,
 					},
-					Usage: &window.UsageInPeriod,
+					Usage: window.UsageInPeriod,
 				})
 			}
 
@@ -310,20 +310,20 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 				usages := make([]api.GrantUsageRecord, 0, len(segment.GrantUsages))
 				for _, usage := range segment.GrantUsages {
 					usages = append(usages, api.GrantUsageRecord{
-						GrantId: &usage.GrantID,
-						Usage:   &usage.Usage,
+						GrantId: usage.GrantID,
+						Usage:   usage.Usage,
 					})
 				}
 
 				burndown = append(burndown, api.GrantBurnDownHistorySegment{
-					BalanceAtEnd:         convert.ToPointer(segment.ApplyUsage().Balance()),
-					BalanceAtStart:       convert.ToPointer(segment.BalanceAtStart.Balance()),
-					GrantBalancesAtEnd:   convert.ToPointer((map[string]float64)(segment.ApplyUsage())),
-					GrantBalancesAtStart: convert.ToPointer((map[string]float64)(segment.BalanceAtStart)),
-					GrantUsages:          &usages,
-					Overage:              &segment.Overage,
-					Usage:                &segment.TotalUsage,
-					Period: &api.Period{
+					BalanceAtEnd:         segment.ApplyUsage().Balance(),
+					BalanceAtStart:       segment.BalanceAtStart.Balance(),
+					GrantBalancesAtEnd:   (map[string]float64)(segment.ApplyUsage()),
+					GrantBalancesAtStart: (map[string]float64)(segment.BalanceAtStart),
+					GrantUsages:          usages,
+					Overage:              segment.Overage,
+					Usage:                segment.TotalUsage,
+					Period: api.Period{
 						From: segment.From,
 						To:   segment.To,
 					},
@@ -331,8 +331,8 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 			}
 
 			return api.WindowedBalanceHistory{
-				WindowedHistory: &windows,
-				BurndownHistory: &burndown,
+				WindowedHistory: windows,
+				BurndownHistory: burndown,
 			}, err
 		},
 		commonhttp.JSONResponseEncoder[api.WindowedBalanceHistory],
@@ -359,11 +359,11 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 		EffectiveAt: grant.EffectiveAt,
 		Expiration: api.ExpirationPeriod{
 			Count:    int(grant.Expiration.Count),
-			Duration: api.ExpirationPeriodDuration(grant.Expiration.Duration),
+			Duration: api.ExpirationDuration(grant.Expiration.Duration),
 		},
 		Id:                grant.ID,
 		Metadata:          &grant.Metadata,
-		Priority:          convert.ToPointer(int(grant.Priority)),
+		Priority:          convert.ToPointer(int8(grant.Priority)),
 		UpdatedAt:         grant.UpdatedAt,
 		DeletedAt:         grant.DeletedAt,
 		EntitlementId:     grant.EntitlementID,
@@ -377,7 +377,7 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 	if grant.Recurrence != nil {
 		apiGrant.Recurrence = &api.RecurringPeriod{
 			Anchor:   grant.Recurrence.Anchor,
-			Interval: api.RecurringPeriodEnum(grant.Recurrence.Interval),
+			Interval: api.RecurringPeriodInterval(grant.Recurrence.Interval),
 		}
 	}
 

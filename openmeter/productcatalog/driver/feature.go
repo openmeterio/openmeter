@@ -155,7 +155,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				OrderBy: feature.FeatureOrderBy(
 					strcase.CamelToSnake(defaultx.WithDefault((*string)(apiParams.OrderBy), string(feature.FeatureOrderByUpdatedAt))),
 				),
-				Order:      commonhttp.GetSortOrder(api.ListFeaturesParamsOrderSortOrderASC, apiParams.Order),
+				Order:      commonhttp.GetSortOrder(api.SortOrderASC, apiParams.Order),
 				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}
 

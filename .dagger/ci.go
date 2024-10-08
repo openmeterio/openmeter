@@ -23,22 +23,22 @@ func (m *Openmeter) Ci(ctx context.Context) (*dagger.Directory, error) {
 
 	releaseAssets := dag.Directory().WithFiles("", m.releaseAssets("ci"))
 
-	generated := dag.Directory().
-		WithFile("", m.Generate().Openapi()).
-		WithDirectory("sdk/python", m.Generate().PythonSdk()).
-		WithDirectory("sdk/node", m.Generate().NodeSdk()).
-		WithDirectory("sdk/web", m.Generate().WebSdk())
+	// generated := dag.Directory().
+	// 	WithFile("", m.Generate().Openapi()).
+	// 	WithDirectory("sdk/python", m.Generate().PythonSdk()).
+	// 	WithDirectory("sdk/node", m.Generate().NodeSdk()).
+	// 	WithDirectory("sdk/web", m.Generate().WebSdk())
 
 	dir := dag.Directory().
 		WithFile("scans/image.sarif", trivy.Container(containerImages[0]).Report("sarif")).
 		WithFile("scans/helm-openmeter.sarif", trivy.HelmChart(helmChartOpenMeter).Report("sarif")).
 		WithFile("scans/helm-benthos-collector.sarif", trivy.HelmChart(helmChartBenthosCollector).Report("sarif")).
 		WithDirectory("charts/", helmCharts).
-		WithDirectory("release/", releaseAssets).
-		WithDirectory("generated/", generated)
+		WithDirectory("release/", releaseAssets)
+		// WithDirectory("generated/", generated)
 
 	p.addJobs(
-		m.Generate().Check,
+		// m.Generate().Check,
 
 		wrapSyncable(m.Test()),
 		m.Lint().All,

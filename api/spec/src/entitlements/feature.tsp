@@ -32,7 +32,7 @@ interface Features {
     /**
      * Filter by meterSlug
      */
-    @query
+    @query(#{ explode: true })
     meterSlug?: string[],
 
     /**

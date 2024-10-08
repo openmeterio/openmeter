@@ -28,7 +28,7 @@ interface Subjects {
   @operationId("createEntitlement")
   post(@path subjectIdOrKey: string, @body entitlement: EntitlementCreateInputs): {
     @statusCode _: 201;
-    @body body: Entitlement;
+    @body body: EntitlementCreateInputs;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
 
   /**
@@ -124,7 +124,7 @@ interface Subjects {
   getEntitlementValue(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
-    @query time?: DateTime,
+    @query(#{ explode: true }) time?: DateTime,
   ): EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**
@@ -144,23 +144,23 @@ interface Subjects {
     /**
      * Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.
      */
-    @query from?: DateTime,
+    @query(#{ explode: true }) from?: DateTime,
 
     /**
      * End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
      * If not now then gets truncated to the granularity of the underlying meter.
      */
-    @query to?: DateTime,
+    @query(#{ explode: true }) to?: DateTime,
 
     /**
      * Windowsize
      */
-    @query windowSize: OpenMeter.WindowSize,
+    @query(#{ explode: true }) windowSize: OpenMeter.WindowSize,
 
     /**
      * The timezone used when calculating the windows.
      */
-    @query windowTimeZone?: string = "UTC",
+    @query(#{ explode: true }) windowTimeZone?: string = "UTC",
   ): WindowedBalanceHistory | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**
@@ -303,7 +303,7 @@ model GrantBurnDownHistorySegment {
    */
   @example(100)
   @visibility("read")
-  balanceAtEnt: float64;
+  balanceAtEnd: float64;
 
   /**
    * The balance breakdown of each active grant at the end of the period: GrantID: Balance

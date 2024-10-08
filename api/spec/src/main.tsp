@@ -37,11 +37,5 @@ using TypeSpec.Versioning;
     url: "http://www.apache.org/licenses/LICENSE-2.0.html",
   },
 })
-@server(
-  "https://127.0.0.1:{port}",
-  "Local",
-  {
-    port: string = "8888",
-  }
-)
+@server("https://127.0.0.1", "Local")
 namespace OpenMeter;

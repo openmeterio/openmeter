@@ -25,7 +25,7 @@ func NewCreateChannelInput(name string) notification.CreateChannelInput {
 				Type: notification.ChannelTypeWebhook,
 			},
 			WebHook: notification.WebHookChannelConfig{
-				CustomHeaders: map[string]interface{}{
+				CustomHeaders: map[string]string{
 					"X-TEST-HEADER": "NotificationChannelTest",
 				},
 				URL:           TestWebhookURL,
@@ -109,7 +109,7 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 		Config: notification.ChannelConfig{
 			ChannelConfigMeta: channel.Config.ChannelConfigMeta,
 			WebHook: notification.WebHookChannelConfig{
-				CustomHeaders: map[string]interface{}{
+				CustomHeaders: map[string]string{
 					"X-TEST-HEADER": "NotificationUpdateChannel2",
 				},
 				URL:           "http://example.com/update",

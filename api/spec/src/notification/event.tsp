@@ -12,7 +12,7 @@ namespace OpenMeter.Notification;
  * Type of the notification event.
  */
 @friendlyName("NotificationEventType")
-enum EventType {
+enum NotificationEventType {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   entitlementsBalanceThreshold: "entitlements.balance.threshold",
 }
@@ -20,8 +20,8 @@ enum EventType {
 /**
  * The delivery status of the notification event.
  */
-@friendlyName("NotificationDeliveryStatus")
-model DeliveryStatus {
+@friendlyName("NotificationEventDeliveryStatus")
+model NotificationEventDeliveryStatus {
   /**
    * Delivery state of the notification event to the channel.
    */
@@ -45,6 +45,13 @@ model DeliveryStatus {
   @summary("Last Update Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   updatedAt: DateTime;
+
+  /**
+   * Notification channel the delivery sattus associated with.
+   */
+  @visibility("read")
+  @summary("Notification Channel")
+  channel: NotificationChannelMeta;
 }
 
 /**
@@ -53,15 +60,15 @@ model DeliveryStatus {
 @friendlyName("NotificationEventPayload")
 @discriminator("type")
 @oneOf
-union EventPayload {
-  entitlementsBalanceThreshold: EventBalanceThresholdPayload,
+union NotificationEventPayload {
+  entitlementsBalanceThreshold: NotificationEventBalanceThresholdPayload,
 }
 
 /**
  * Payload for notification event with `entitlements.balance.threshold` type.
  */
 @friendlyName("NotificationEventBalanceThresholdPayload")
-model EventBalanceThresholdPayload {
+model NotificationEventBalanceThresholdPayload {
   /**
    * A unique identifier for the notification event the payload belongs to.
    */
@@ -75,7 +82,7 @@ model EventBalanceThresholdPayload {
    */
   @visibility("read")
   @summary("Notification Event Type")
-  type: EventType.entitlementsBalanceThreshold;
+  type: NotificationEventType.entitlementsBalanceThreshold;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
@@ -90,14 +97,14 @@ model EventBalanceThresholdPayload {
    */
   @visibility("read")
   @summary("Payload Data")
-  data: EventBalanceThresholdPayloadData;
+  data: NotificationEventBalanceThresholdPayloadData;
 }
 
 /**
  * Data of the payload for notification event with `entitlements.balance.threshold` type.
  */
 @friendlyName("NotificationEventBalanceThresholdPayloadData")
-model EventBalanceThresholdPayloadData {
+model NotificationEventBalanceThresholdPayloadData {
   @visibility("read")
   @summary("Entitlement")
   entitlement: OpenMeter.Entitlements.EntitlementMetered;
@@ -116,14 +123,14 @@ model EventBalanceThresholdPayloadData {
 
   @visibility("read")
   @summary("Threshold")
-  threshold: RuleBalanceThresholdValue;
+  threshold: NotificationRuleBalanceThresholdValue;
 }
 
 /**
  * Type of the notification event.
  */
 @friendlyName("NotificationEvent")
-model Event {
+model NotificationEvent {
   /**
    * A unique identifier of the notification event.
    */
@@ -137,7 +144,7 @@ model Event {
    */
   @visibility("read")
   @summary("Event Type")
-  type: EventType;
+  type: NotificationEventType;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
@@ -152,49 +159,40 @@ model Event {
    */
   @visibility("read")
   @summary("Owner Rule")
-  rule: Rule;
+  rule: NotificationRule;
 
   /**
    * The delivery status of the notification event.
    */
   @visibility("read")
   @summary("Delivery Status")
-  deliveryStatus: Array<DeliveryStatus>;
+  deliveryStatus: Array<NotificationEventDeliveryStatus>;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
    */
   @visibility("read")
   @summary("Event Payload")
-  payload: EventPayload;
+  payload: NotificationEventPayload;
 
   /**
    * Set of key-value pairs managed by the system. Cannot be modified by user.
    */
   @visibility("read")
   @summary("Annotations")
-  annotations: Annotations;
+  annotations?: Annotations;
 }
 
 /**
  * Order by options for notification channels.
  */
 @friendlyName("NotificationEventOrderBy")
-enum EventOrderBy {
+enum NotificationEventOrderBy {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   id: "id",
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   createdAt: "createdAt",
 }
-
-// NOTE(chrisgacsal): this is a workaround of using the model OpenMeter.PaginatedResponse<Rule>
-// results a firendlyName RulePaginatedResponse instead of NotificationRulePaginatedResponse which
-// seems to be a bug in typespec. This way we can override the friendlyName of the paginated response.
-/**
- * Paginated response for listing notification events.
- */
-@friendlyName("NotificationEventsPaginatedResponse")
-model EventsPaginatedResponse is OpenMeter.PaginatedResponse<Event>;
 
 @route("/api/v1/notification/events")
 @tag("Notification (Experimental)")
@@ -210,7 +208,7 @@ interface Events {
      * Start date-time in RFC 3339 format.
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
     from?: DateTime,
 
@@ -218,7 +216,7 @@ interface Events {
      * End date-time in RFC 3339 format.
      * Inclusive.
      */
-    @query
+    @query(#{ explode: true })
     @example(DateTime.fromISO("2023-02-01T01:01:01.001Z"))
     to?: DateTime,
 
@@ -262,8 +260,8 @@ interface Events {
     channel?: Array<ULID>,
 
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<EventOrderBy>,
-  ): EventsPaginatedResponse | OpenMeter.CommonErrors;
+    ...OpenMeter.QueryOrdering<NotificationEventOrderBy>,
+  ): OpenMeter.PaginatedResponse<NotificationEvent> | OpenMeter.CommonErrors;
 
   /**
    * Get a notification event by id.

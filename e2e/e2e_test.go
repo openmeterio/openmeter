@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -475,7 +476,7 @@ func TestCredit(t *testing.T) {
 	const waitTime = time.Second * 30
 
 	t.Run("Create Feature", func(t *testing.T) {
-		randKey := ulid.Make().String()
+		randKey := strings.ToLower(ulid.Make().String())
 		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
 			Name:      "Credit Test Feature",
 			MeterSlug: convert.ToPointer("credit_test_meter"),

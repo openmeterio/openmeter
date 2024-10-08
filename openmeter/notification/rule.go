@@ -46,16 +46,10 @@ type Rule struct {
 
 func (r Rule) AsNotificationRule() (api.NotificationRule, error) {
 	var rule api.NotificationRule
-	var err error
 
 	switch r.Type {
 	case RuleTypeBalanceThreshold:
-		err = rule.FromNotificationRuleBalanceThreshold(r.AsNotificationRuleBalanceThreshold())
-		if err != nil {
-			return rule, ValidationError{
-				Err: err,
-			}
-		}
+		rule = r.AsNotificationRuleBalanceThreshold()
 	default:
 		return rule, ValidationError{
 			Err: fmt.Errorf("invalid rule type: %s", r.Type),
@@ -77,7 +71,7 @@ func (r Rule) AsNotificationRuleBalanceThreshold() api.NotificationRuleBalanceTh
 	return api.NotificationRuleBalanceThreshold{
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
-		Disabled:  r.Disabled,
+		Disabled:  convert.ToPointer(r.Disabled),
 		Features: convert.SafeDeRef(&r.Config.BalanceThreshold.Features, func(featureIDs []string) *[]FeatureMeta {
 			var features []FeatureMeta
 			for _, id := range featureIDs {
@@ -95,7 +89,7 @@ func (r Rule) AsNotificationRuleBalanceThreshold() api.NotificationRuleBalanceTh
 		Id:         r.ID,
 		Name:       r.Name,
 		Thresholds: r.Config.BalanceThreshold.Thresholds,
-		Type:       api.NotificationEventType(r.Type),
+		Type:       api.NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
 		UpdatedAt:  r.UpdatedAt,
 		DeletedAt:  r.DeletedAt,
 	}
@@ -142,7 +136,7 @@ func (r Rule) HasEnabledChannels() bool {
 }
 
 const (
-	RuleTypeBalanceThreshold = RuleType(api.EntitlementsBalanceThreshold)
+	RuleTypeBalanceThreshold = RuleType(api.NotificationEventTypeEntitlementsBalanceThreshold)
 )
 
 type RuleType api.NotificationEventType
@@ -250,10 +244,10 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 type RuleOrderBy string
 
 const (
-	RuleOrderByID        = api.ListNotificationRulesParamsOrderById
-	RuleOrderByType      = api.ListNotificationRulesParamsOrderByType
-	RuleOrderByCreatedAt = api.ListNotificationRulesParamsOrderByCreatedAt
-	RuleOrderByUpdatedAt = api.ListNotificationRulesParamsOrderByUpdatedAt
+	RuleOrderByID        = api.NotificationRuleOrderById
+	RuleOrderByType      = api.NotificationRuleOrderByType
+	RuleOrderByCreatedAt = api.NotificationRuleOrderByCreatedAt
+	RuleOrderByUpdatedAt = api.NotificationRuleOrderByUpdatedAt
 )
 
 var _ validator = (*ListRulesInput)(nil)
@@ -267,7 +261,7 @@ type ListRulesInput struct {
 	Types           []RuleType
 	Channels        []string
 
-	OrderBy api.ListNotificationRulesParamsOrderBy
+	OrderBy api.NotificationRuleOrderBy
 	Order   sortx.Order
 }
 

@@ -75,23 +75,26 @@ func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 		deliveryStatuses = append(deliveryStatuses, status)
 	}
 
+	var annotations api.Annotations
+	if len(e.Annotations) > 0 {
+		annotations = make(api.Annotations)
+		for k, v := range e.Annotations {
+			annotations[k] = v
+		}
+	}
+
 	event := api.NotificationEvent{
 		CreatedAt:      e.CreatedAt,
 		DeliveryStatus: deliveryStatuses,
 		Id:             e.ID,
 		Rule:           rule,
-		Annotations:    lo.EmptyableToPtr(e.Annotations),
+		Annotations:    lo.EmptyableToPtr(annotations),
 	}
 
 	switch e.Type {
 	case EventTypeBalanceThreshold:
-		event.Type = api.EntitlementsBalanceThreshold
-		err = event.Payload.FromNotificationEventBalanceThresholdPayload(e.AsNotificationEventBalanceThresholdPayload())
-		if err != nil {
-			return event, ValidationError{
-				Err: fmt.Errorf("invalid event type: %s", e.Type),
-			}
-		}
+		event.Type = api.NotificationEventTypeEntitlementsBalanceThreshold
+		event.Payload = e.AsNotificationEventBalanceThresholdPayload()
 	default:
 		return event, ValidationError{
 			Err: fmt.Errorf("invalid event type: %s", e.Type),
@@ -105,7 +108,7 @@ func (e Event) AsNotificationEventBalanceThresholdPayload() api.NotificationEven
 	return api.NotificationEventBalanceThresholdPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
-		Type:      api.NotificationEventType(e.Type),
+		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
 		Data: struct {
 			Entitlement api.EntitlementMetered                    `json:"entitlement"`
 			Feature     api.Feature                               `json:"feature"`
@@ -123,7 +126,7 @@ func (e Event) AsNotificationEventBalanceThresholdPayload() api.NotificationEven
 }
 
 const (
-	EventTypeBalanceThreshold = EventType(api.EntitlementsBalanceThreshold)
+	EventTypeBalanceThreshold = EventType(api.NotificationEventTypeEntitlementsBalanceThreshold)
 )
 
 type EventType api.NotificationEventType
@@ -202,7 +205,7 @@ func (p EventPayload) AsNotificationEventBalanceThresholdPayload(eventId string,
 		},
 		Id:        eventId,
 		Timestamp: ts,
-		Type:      api.EntitlementsBalanceThreshold,
+		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
 	}
 }
 
@@ -220,8 +223,8 @@ func (b BalanceThresholdPayload) Validate() error {
 }
 
 const (
-	EventOrderByID        = api.ListNotificationEventsParamsOrderById
-	EventOrderByCreatedAt = api.ListNotificationEventsParamsOrderByCreatedAt
+	EventOrderByID        = api.NotificationEventOrderById
+	EventOrderByCreatedAt = api.NotificationEventOrderByCreatedAt
 )
 
 var _ validator = (*ListEventsInput)(nil)
@@ -245,7 +248,7 @@ type ListEventsInput struct {
 
 	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
 
-	OrderBy api.ListNotificationEventsParamsOrderBy
+	OrderBy api.NotificationEventOrderBy
 	Order   sortx.Order
 }
 

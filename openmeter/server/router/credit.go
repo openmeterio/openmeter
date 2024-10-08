@@ -21,7 +21,7 @@ func (a *Router) ListGrants(w http.ResponseWriter, r *http.Request, params api.L
 
 // Delete a grant
 // (DELETE /api/v1/grants/{grantId})
-func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId api.GrantId) {
+func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId string) {
 	if !a.config.EntitlementsEnabled {
 		unimplemented.VoidGrant(w, r, grantId)
 		return

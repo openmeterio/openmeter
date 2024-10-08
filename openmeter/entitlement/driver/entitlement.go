@@ -287,7 +287,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				OrderBy: entitlement.ListEntitlementsOrderBy(
 					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
 				),
-				Order:            commonhttp.GetSortOrder(api.ListEntitlementsParamsOrderSortOrderASC, params.Order),
+				Order:            commonhttp.GetSortOrder(api.SortOrderASC, params.Order),
 				SubjectKeys:      convert.DerefHeaderPtr[string](params.Subject),
 				FeatureIDsOrKeys: convert.DerefHeaderPtr[string](params.Feature),
 				EntitlementTypes: slicesx.Map[string, entitlement.EntitlementType](convert.DerefHeaderPtr[string](params.EntitlementType), func(s string) entitlement.EntitlementType {

@@ -239,6 +239,11 @@ jobs:
         run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
         working-directory: quickstart
 
+      - name: Check container health
+        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
+        if: always()
+        continue-on-error: true
+
       - name: Wait for worker to become ready
         run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
 
