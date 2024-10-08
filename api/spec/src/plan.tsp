@@ -85,7 +85,8 @@ model PlanPhase {
    * When null, the phase starts immediately after the subscription starts.
    */
   @summary("Start after")
-  startAfter: Interval | null;
+  @encode(DurationKnownEncoding.ISO8601)
+  startAfter: duration | null;
 
   /**
    * The rate cards of the plan.
