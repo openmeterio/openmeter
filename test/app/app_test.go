@@ -28,11 +28,11 @@ func TestApp(t *testing.T) {
 			Env: env,
 		}
 
-		t.Run("TestGet", func(t *testing.T) {
+		t.Run("TestGetMarketplaceListing", func(t *testing.T) {
 			testSuite.TestGetMarketplaceListing(ctx, t)
 		})
 
-		t.Run("TestListListings", func(t *testing.T) {
+		t.Run("TestListMarketplaceListings", func(t *testing.T) {
 			testSuite.TestListMarketplaceListings(ctx, t)
 		})
 	})
