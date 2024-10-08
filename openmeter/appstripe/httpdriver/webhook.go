@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"time"
 
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/webhook"
@@ -19,6 +19,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
+type AppStripeWebhookParams struct {
+	AppID   api.ULID
+	Payload []byte
+}
+
 type AppStripeWebhookRequest struct {
 	AppID appentitybase.AppID
 	Event stripe.Event
@@ -26,32 +31,27 @@ type AppStripeWebhookRequest struct {
 
 type (
 	AppStripeWebhookResponse = api.StripeWebhookResponse
-	AppStripeWebhookHandler  httptransport.HandlerWithArgs[AppStripeWebhookRequest, AppStripeWebhookResponse, api.ULID]
+	AppStripeWebhookHandler  httptransport.HandlerWithArgs[AppStripeWebhookRequest, AppStripeWebhookResponse, AppStripeWebhookParams]
 )
 
 // AppStripeWebhook returns a new httptransport.Handler for creating a customer.
 func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, id api.ULID) (AppStripeWebhookRequest, error) {
+		func(ctx context.Context, r *http.Request, params AppStripeWebhookParams) (AppStripeWebhookRequest, error) {
 			// Note that the webhook handler has no namespace resolver
 			// We only know the namespace from the app id. Which we trust because
 			// we validate the payload signature with the app's webhook secret.
 
 			// Get the webhook secret for the app
 			secret, err := h.service.GetWebhookSecret(ctx, appstripeentity.GetWebhookSecretInput{
-				AppID: id,
+				AppID: params.AppID,
 			})
 			if err != nil {
-				return AppStripeWebhookRequest{}, fmt.Errorf("failed to get webhook secret: %w", err)
+				return AppStripeWebhookRequest{}, err
 			}
 
-			// Validate the webhook payload
-			payload, err := io.ReadAll(r.Body)
-			if err != nil {
-				return AppStripeWebhookRequest{}, fmt.Errorf("failed to read request body: %w", err)
-			}
-
-			event, err := webhook.ConstructEvent(payload, r.Header.Get("Stripe-Signature"), secret.Value)
+			// Validate the webhook event
+			event, err := webhook.ConstructEventWithTolerance(params.Payload, r.Header.Get("Stripe-Signature"), secret.Value, time.Hour*10000)
 			if err != nil {
 				return AppStripeWebhookRequest{}, appstripe.ValidationError{
 					Err: fmt.Errorf("failed to construct webhook event: %w", err),
@@ -60,7 +60,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 			appID := appentitybase.AppID{
 				Namespace: secret.SecretID.Namespace,
-				ID:        id,
+				ID:        params.AppID,
 			}
 
 			req := AppStripeWebhookRequest{
