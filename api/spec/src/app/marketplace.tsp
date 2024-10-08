@@ -55,8 +55,8 @@ interface MarketplaceAPI {
    */
   @post
   @route("/install/apikey")
-  @operationId("marketplaceAPIKeyInstall")
-  appAPIKeyInstall(...MarketplaceApiKeyInstallRequest): App | CommonErrors;
+  @operationId("marketplaceAppAPIKeyInstall")
+  marketplaceAppAPIKeyInstall(...MarketplaceApiKeyInstallRequest): AppBase | CommonErrors;
 }
 
 /**
@@ -101,12 +101,14 @@ model MarketplaceOAuth2InstallAuthorizeResponse {
 model MarketplaceApiKeyInstallRequest {
   @body _: {
     /**
-     * The key of the app to install.
+     * The type of the app to install.
+     * For example `stripe`.
      */
-    appKey: Key;
+    type: AppType;
 
     /**
-     * The API key.
+     * The API key for the provider.
+     * For example, the Stripe API key.
      */
     apiKey: string;
   };
@@ -120,7 +122,6 @@ model MarketplaceApiKeyInstallRequest {
  */
 @friendlyName("MarketplaceListing")
 @example(#{
-  key: "stripe",
   type: AppType.Stripe,
   name: "Stripe",
   description: "Stripe interation allows you to collect payments with Stripe.",
@@ -151,9 +152,9 @@ model MarketplaceApiKeyInstallRequest {
 })
 model Listing {
   /**
-   * The app's key.
+   * The app's type
    */
-  key: Key;
+  type: AppType;
 
   /**
    * The app's name.
@@ -164,11 +165,6 @@ model Listing {
    * The app's description.
    */
   description: string;
-
-  /**
-   * The app's type
-   */
-  type: AppType;
 
   /**
    * The app's icon URL.

@@ -52,6 +52,48 @@ tags:
 
       [Learn more](https://openmeter.io/docs/getting-started/notification/overview)
 paths:
+  # Marketplace
+  /api/v1/marketplace/install/apikey:
+    post:
+      operationId: marketplaceAPIKeyInstall
+      description: Install an marketplace via API Key.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppBase'
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  allOf:
+                    - $ref: '#/components/schemas/App.AppType'
+                  description: |-
+                    The type of the app to install.
+                    For example `stripe`.
+                apiKey:
+                  type: string
+                  description: |-
+                    The API key for the provider.
+                    For example, the Stripe API key.
+              required:
+                - type
+                - apiKey
   # Apps
   /api/v1/apps/{id}/stripe/checkout/sessions:
     post:

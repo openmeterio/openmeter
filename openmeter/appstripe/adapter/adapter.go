@@ -56,18 +56,18 @@ func New(config Config) (appstripe.Adapter, error) {
 		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
 
+	// Create stripe app factory
+	stripeClientFactory := config.StripeClientFactory
+	if stripeClientFactory == nil {
+		stripeClientFactory = stripeclient.NewStripeClient
+	}
+
 	adapter := &adapter{
 		db:                  config.Client,
 		appService:          config.AppService,
 		customerService:     config.CustomerService,
 		secretService:       config.SecretService,
-		stripeClientFactory: config.StripeClientFactory,
-	}
-
-	// Create stripe app factory
-	stripeClientFactory := config.StripeClientFactory
-	if stripeClientFactory == nil {
-		stripeClientFactory = stripeclient.NewStripeClient
+		stripeClientFactory: stripeClientFactory,
 	}
 
 	stripeAppFactory, err := NewAppFactory(AppFactoryConfig{

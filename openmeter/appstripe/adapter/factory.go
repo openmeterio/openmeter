@@ -147,7 +147,8 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 
 	// Setup webhook
 	stripeWebhookEndpoint, err := stripeClient.SetupWebhook(ctx, stripeclient.SetupWebhookInput{
-		AppID: appID,
+		AppID:   appID,
+		BaseURL: input.BaseURL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup webhook: %w", err)

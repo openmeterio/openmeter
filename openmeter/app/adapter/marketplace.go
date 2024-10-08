@@ -52,6 +52,7 @@ func (a Marketplace) InstallAppWithAPIKey(ctx context.Context, input appentity.I
 	app, err := registryItem.Factory.InstallAppWithAPIKey(ctx, appentity.AppFactoryInstallAppWithAPIKeyInput{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
+		BaseURL:   a.baseURL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to install app: %w", err)
