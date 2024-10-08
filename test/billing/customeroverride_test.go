@@ -46,6 +46,9 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	// Given we have an existing customer
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
+		Customer: customerentity.Customer{
+			Name: "Johny the Doe",
+		},
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customer)
@@ -145,6 +148,9 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	// Given we have an existing customer
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
+		Customer: customerentity.Customer{
+			Name: "Johny the Doe",
+		},
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customer)
@@ -214,6 +220,9 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
+		Customer: customerentity.Customer{
+			Name: "Johny the Doe",
+		},
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customer)
