@@ -38,6 +38,8 @@ const (
 	InvoiceStatusPendingCreation InvoiceStatus = "pending_creation"
 	// InvoiceStatusCreated is the status of an invoice that has been created.
 	InvoiceStatusCreated InvoiceStatus = "created"
+	// InvoiceStatusValidationFailed is the status of an invoice that failed validation.
+	InvoiceStatusValidationFailed InvoiceStatus = "validation_failed"
 	// InvoiceStatusDraft is the status of an invoice that is in draft both on OpenMeter and the provider side.
 	InvoiceStatusDraft InvoiceStatus = "draft"
 	// InvoiceStatusDraftSync is the status of an invoice that is being synced with the provider.
