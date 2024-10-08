@@ -4597,8 +4597,12 @@ components:
           format: int32
           description: The event created timestamp.
         data:
-          allOf:
-            - $ref: '#/components/schemas/StripeSetupIntent'
+          type: object
+          properties:
+            object:
+              $ref: '#/components/schemas/StripeSetupIntent'
+          required:
+            - object
           description: The event data.
       description: Stripe webhook event.
     StripeWebhookResponse:
@@ -4666,6 +4670,8 @@ components:
     CreateStripeCheckoutSessionRequestOptions:
       type: object
       properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
         cancelURL:
           type: string
         clientReferenceID:

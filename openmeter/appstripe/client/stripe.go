@@ -49,6 +49,7 @@ type StripeCheckoutSession struct {
 
 type StripeCheckoutSessionOptions struct {
 	CancelURL          *string
+	Currency           *string
 	ClientReferenceID  *string
 	CustomText         *stripe.CheckoutSessionCustomTextParams
 	Metadata           map[string]string

@@ -58,6 +58,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.20.0-alpha.6
 	github.com/stretchr/testify v1.9.0
+	github.com/stripe/stripe-go/v80 v80.0.0
 	github.com/svix/svix-webhooks v1.36.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.55.0
 	go.opentelemetry.io/otel v1.30.0
@@ -367,7 +368,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/stripe/stripe-go/v80 v80.0.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tetratelabs/wazero v1.6.0 // indirect
 	github.com/tilinna/z85 v1.0.0 // indirect

@@ -60,7 +60,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/registry/startup"
-	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/server"
@@ -413,13 +412,8 @@ func main() {
 	})
 
 	// Initialize Secret
-	var secretService secret.Service
-
-	var secretAdapter secret.Adapter
-	secretAdapter = secretadapter.New()
-
-	secretService, err = secretservice.New(secretservice.Config{
-		Adapter: secretAdapter,
+	secretService, err := secretservice.New(secretservice.Config{
+		Adapter: secretadapter.New(),
 	})
 	if err != nil {
 		logger.Error("failed to initialize secret service", "error", err)

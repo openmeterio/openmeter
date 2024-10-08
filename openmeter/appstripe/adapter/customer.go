@@ -103,10 +103,10 @@ func (a adapter) CreateStripeCustomer(ctx context.Context, input appstripeentity
 	apiKeySecret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: stripeApp.Namespace,
-			ID:        stripeApp.ID,
+			ID:        stripeApp.APIKey,
 		},
 		AppID: input.AppID,
-		Key:   *stripeApp.APIKey,
+		Key:   appstripeentity.APIKeySecretKey,
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)

@@ -96,7 +96,9 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	}
 
 	// Marketplace
-	marketplaceAdapter := appadapter.NewMarketplaceAdapter()
+	marketplaceAdapter := appadapter.NewMarketplaceAdapter(appadapter.MarketplaceConfig{
+		BaseURL: "http://localhost:8888",
+	})
 
 	// Secret
 	secretAdapter := secretadapter.New()
