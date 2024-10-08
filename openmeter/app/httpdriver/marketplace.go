@@ -24,7 +24,7 @@ type (
 func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (MarketplaceAppAPIKeyInstallRequest, error) {
-			body := api.MarketplaceAPIKeyInstallJSONRequestBody{}
+			body := api.MarketplaceAppAPIKeyInstallJSONBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
 			}
@@ -53,11 +53,11 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			return MarketplaceAppAPIKeyInstallResponse{
 				Id:     appBase.ID,
 				Name:   appBase.Name,
-				Status: api.AppAppStatus(appBase.Status),
+				Status: api.OpenMeterAppAppStatus(appBase.Status),
 				// TODO(pmarton): adapter to implement metadata
 				// Metadata: appBase.Metadata,
 				Listing: api.MarketplaceListing{
-					Type:        api.AppAppType(appBase.Listing.Type),
+					Type:        api.OpenMeterAppAppType(appBase.Listing.Type),
 					Name:        appBase.Listing.Name,
 					Description: appBase.Listing.Description,
 					IconUrl:     appBase.Listing.IconURL,

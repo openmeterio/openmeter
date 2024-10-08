@@ -21,14 +21,14 @@ namespace OpenMeter.App;
  */
 @route("/api/v1/apps/{id}/stripe")
 @tag("AppsStripe")
-interface AppStripeAPI {
+interface AppStripe {
   /**
    * Stripe webhook.
    */
   @post
   @route("/webhook")
   @operationId("appStripeWebhook")
-  appStripeWebhook(@path id: string, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
+  appStripeWebhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
 
   /**
    * Create checkout session.
@@ -36,7 +36,7 @@ interface AppStripeAPI {
   @post
   @route("/checkout/sessions")
   @operationId("createAppStripeCheckoutSession")
-  createAppStripeCheckoutSession(@path id: string, @body body: CreateStripeCheckoutSessionRequest): {
+  createAppStripeCheckoutSession(@path id: ULID, @body body: CreateStripeCheckoutSessionRequest): {
     @statusCode _: 201;
     @body body: CreateStripeCheckoutSessionResponse;
   } | CommonErrors;
@@ -47,9 +47,9 @@ interface AppStripeAPI {
  */
 @friendlyName("StripeWebhookResponse")
 model StripeWebhookResponse {
-  namespaceId: string;
-  appId: string;
-  customerId?: string;
+  namespaceId: ULID;
+  appId: ULID;
+  customerId?: ULID;
 }
 
 /**
@@ -60,7 +60,7 @@ model CreateStripeCheckoutSessionRequest {
   /**
    * The customer ID.
    */
-  customerId: string;
+  customerId: ULID;
 
   /**
    * Stripe customer ID.
@@ -98,7 +98,7 @@ model CreateStripeCheckoutSessionResponse {
   /**
    * The OpenMeter customer ID.
    */
-  customerId: string;
+  customerId: ULID;
 
   /**
    * The Stripe customer ID.
@@ -292,7 +292,7 @@ model StripeWebhookEvent {
    * The event data.
    */
   data: {
-    object: StripeSetupIntent
+    object: StripeSetupIntent;
   };
 }
 

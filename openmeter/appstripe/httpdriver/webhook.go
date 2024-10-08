@@ -20,7 +20,7 @@ import (
 )
 
 type AppStripeWebhookParams struct {
-	AppID   api.ULID
+	AppID   string
 	Payload []byte
 }
 
