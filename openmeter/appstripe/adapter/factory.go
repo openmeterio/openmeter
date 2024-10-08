@@ -2,7 +2,6 @@ package appstripeadapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -11,74 +10,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
-	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
-type AppFactoryConfig struct {
-	AppService          app.Service
-	AppStripeAdapter    appstripe.Adapter
-	Client              *entdb.Client
-	SecretService       secret.Service
-	StripeClientFactory stripeclient.StripeClientFactory
-}
+// This file implements the app.AppFactory interface
+var _ appentity.AppFactory = (*adapter)(nil)
 
-func (a AppFactoryConfig) Validate() error {
-	if a.AppService == nil {
-		return errors.New("app service is required")
-	}
-
-	if a.AppStripeAdapter == nil {
-		return errors.New("app stripe adapter is required")
-	}
-
-	if a.Client == nil {
-		return errors.New("client is required")
-	}
-
-	if a.SecretService == nil {
-		return errors.New("secret service is required")
-	}
-
-	if a.StripeClientFactory == nil {
-		return errors.New("stripe client factory is required")
-	}
-
-	return nil
-}
-
-// AppFactory is the factory for creating stripe app instances
-type AppFactory struct {
-	AppService          app.Service
-	AppStripeAdapter    appstripe.AppStripeAdapter
-	BillingService      billing.Service
-	Client              *entdb.Client
-	SecretService       secret.Service
-	StripeClientFactory stripeclient.StripeClientFactory
-}
-
-func NewAppFactory(config AppFactoryConfig) (AppFactory, error) {
-	if err := config.Validate(); err != nil {
-		return AppFactory{}, fmt.Errorf("invalid app factory config: %w", err)
-	}
-
-	return AppFactory{
-		AppService:          config.AppService,
-		AppStripeAdapter:    config.AppStripeAdapter,
-		Client:              config.Client,
-		SecretService:       config.SecretService,
-		StripeClientFactory: config.StripeClientFactory,
-	}, nil
-}
-
-func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
-	stripeApp, err := f.Client.AppStripe.
+// NewApp implement the app.AppFactory interface and returns a Stripe App by extending the AppBase
+func (a adapter) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+	stripeApp, err := a.db.AppStripe.
 		Query().
 		Where(appstripedb.ID(appBase.GetID().ID)).
 		Where(appstripedb.Namespace(appBase.GetID().Namespace)).
@@ -93,7 +37,7 @@ func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (
 		return nil, fmt.Errorf("failed to get stripe app: %w", err)
 	}
 
-	app, err := mapAppStripeFromDB(appBase, stripeApp, f.Client, f.SecretService, f.StripeClientFactory)
+	app, err := mapAppStripeFromDB(appBase, stripeApp, a.db, a.secretService, a.stripeClientFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
@@ -101,7 +45,8 @@ func (f AppFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (
 	return app, nil
 }
 
-func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+// NewApp implement the app.AppFactory interface and installs a Stripe App type
+func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
 	// Validate input
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
@@ -115,7 +60,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 	}
 
 	// Get stripe client
-	stripeClient, err := f.StripeClientFactory(stripeclient.StripeClientConfig{
+	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
 	})
@@ -136,7 +81,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 	// This is challenging because we need to coordinate between three remote services (secret, stripe, db)
 
 	// Create API Key secret
-	apiKeySecretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+	apiKeySecretID, err := a.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
 		AppID: appID,
 		Key:   appstripeentity.APIKeySecretKey,
 		Value: input.APIKey,
@@ -155,7 +100,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 	}
 
 	// Create webhook secret
-	webhookSecretID, err := f.SecretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+	webhookSecretID, err := a.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
 		AppID: appID,
 		Key:   appstripeentity.WebhookSecretKey,
 		Value: stripeWebhookEndpoint.Secret,
@@ -180,7 +125,7 @@ func (f AppFactory) InstallAppWithAPIKey(ctx context.Context, input appentity.Ap
 		return nil, fmt.Errorf("invalid create stripe app input: %w", err)
 	}
 
-	app, err := f.AppStripeAdapter.CreateStripeApp(ctx, createStripeAppInput)
+	app, err := a.CreateStripeApp(ctx, createStripeAppInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
