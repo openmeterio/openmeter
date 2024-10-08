@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/openmeter/app"
+	apppkg "github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/appstripe"
@@ -203,10 +203,10 @@ func main() {
 	}
 
 	// Initialize App
-	var appService app.Service
+	var appService apppkg.Service
 
 	if entClient != nil {
-		var appAdapter app.Adapter
+		var appAdapter apppkg.Adapter
 		appAdapter, err = appadapter.New(appadapter.Config{
 			Client:  entClient,
 			BaseURL: conf.Stripe.Webhook.BaseURL,
