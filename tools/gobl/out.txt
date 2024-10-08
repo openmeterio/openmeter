@@ -1,0 +1,2159 @@
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Invoice
+ */
+model BillInvoiceInvoice {
+
+  exchange_rates?: CurrencyExchange-RateExchangeRate[];
+
+
+  meta?: CbcMetaMeta;
+
+
+  delivery?: BillInvoiceDelivery;
+
+
+  currency: CurrencyCodeCode;
+
+
+  supplier: OrgPartyParty;
+
+
+  payment?: BillInvoicePayment;
+
+
+  code: CbcCodeCode;
+
+
+  preceding?: OrgDocument-RefDocumentRef[];
+
+
+  charges?: BillInvoiceCharge[];
+
+
+  $tags?: CbcKeyKey[];
+
+
+  type: CbcKeyKey;
+
+
+  lines?: BillInvoiceLine[];
+
+
+  series?: CbcCodeCode;
+
+
+  $addons?: CbcKeyKey[];
+
+
+  op_date?: CalDateDate;
+
+
+  complements?: SchemaObjectObject[];
+
+
+  outlays?: BillInvoiceOutlay[];
+
+
+  uuid?: BillInvoiceInvoiceUuid;
+
+
+  discounts?: BillInvoiceDiscount[];
+
+
+  notes?: CbcNoteNote[];
+
+
+  totals: BillInvoiceTotals;
+
+
+  customer?: OrgPartyParty;
+
+
+  value_date?: CalDateDate;
+
+
+  ordering?: BillInvoiceOrdering;
+
+
+  issue_date: CalDateDate;
+
+
+  $regime?: L10nTax-Country-CodeTaxCountryCode;
+
+
+  tax?: BillInvoiceTax;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Charge
+ */
+model BillInvoiceCharge {
+
+  base?: NumAmountAmount;
+
+
+  meta?: CbcMetaMeta;
+
+
+  code?: BillInvoiceChargeCode;
+
+
+  reason?: BillInvoiceChargeReason;
+
+
+  uuid?: BillInvoiceChargeUuid;
+
+
+  key?: CbcKeyKey;
+
+
+  taxes?: TaxSetCombo[];
+
+
+  i: BillInvoiceChargeI;
+
+
+  percent?: NumPercentagePercentage;
+
+
+  ref?: BillInvoiceChargeRef;
+
+
+  amount: NumAmountAmount;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Charge/properties/code
+ */
+scalar BillInvoiceChargeCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Charge/properties/i
+ */
+scalar BillInvoiceChargeI extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Charge/properties/reason
+ */
+scalar BillInvoiceChargeReason extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Charge/properties/ref
+ */
+scalar BillInvoiceChargeRef extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Charge/properties/uuid
+ */
+scalar BillInvoiceChargeUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Delivery
+ */
+model BillInvoiceDelivery {
+
+  receiver?: OrgPartyParty;
+
+
+  identities?: OrgIdentityIdentity[];
+
+
+  date?: CalDateDate;
+
+
+  period?: CalPeriodPeriod;
+
+
+  meta?: CbcMetaMeta;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Discount
+ */
+model BillInvoiceDiscount {
+
+  ref?: BillInvoiceDiscountRef;
+
+
+  taxes?: TaxSetCombo[];
+
+
+  uuid?: BillInvoiceDiscountUuid;
+
+
+  reason?: BillInvoiceDiscountReason;
+
+
+  base?: NumAmountAmount;
+
+
+  code?: BillInvoiceDiscountCode;
+
+
+  meta?: CbcMetaMeta;
+
+
+  i: BillInvoiceDiscountI;
+
+
+  percent?: NumPercentagePercentage;
+
+
+  amount: NumAmountAmount;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Discount/properties/code
+ */
+scalar BillInvoiceDiscountCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Discount/properties/i
+ */
+scalar BillInvoiceDiscountI extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Discount/properties/reason
+ */
+scalar BillInvoiceDiscountReason extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Discount/properties/ref
+ */
+scalar BillInvoiceDiscountRef extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Discount/properties/uuid
+ */
+scalar BillInvoiceDiscountUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Invoice/properties/uuid
+ */
+scalar BillInvoiceInvoiceUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Line
+ */
+model BillInvoiceLine {
+
+  notes?: CbcNoteNote[];
+
+
+  uuid?: BillInvoiceLineUuid;
+
+
+  quantity: NumAmountAmount;
+
+
+  sum: NumAmountAmount;
+
+
+  taxes?: TaxSetCombo[];
+
+
+  discounts?: BillInvoiceLineDiscount[];
+
+
+  charges?: BillInvoiceLineCharge[];
+
+
+  item: OrgItemItem;
+
+
+  total: NumAmountAmount;
+
+
+  i: BillInvoiceLineI;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Line/properties/i
+ */
+scalar BillInvoiceLineI extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Line/properties/uuid
+ */
+scalar BillInvoiceLineUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/LineCharge
+ */
+model BillInvoiceLineCharge {
+
+  percent?: NumPercentagePercentage;
+
+
+  amount: NumAmountAmount;
+
+
+  code?: BillInvoiceLineChargeCode;
+
+
+  reason?: BillInvoiceLineChargeReason;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/LineCharge/properties/code
+ */
+scalar BillInvoiceLineChargeCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/LineCharge/properties/reason
+ */
+scalar BillInvoiceLineChargeReason extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/LineDiscount
+ */
+model BillInvoiceLineDiscount {
+
+  amount: NumAmountAmount;
+
+
+  code?: BillInvoiceLineDiscountCode;
+
+
+  reason?: BillInvoiceLineDiscountReason;
+
+
+  percent?: NumPercentagePercentage;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/LineDiscount/properties/code
+ */
+scalar BillInvoiceLineDiscountCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/LineDiscount/properties/reason
+ */
+scalar BillInvoiceLineDiscountReason extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Ordering
+ */
+model BillInvoiceOrdering {
+
+  buyer?: OrgPartyParty;
+
+
+  receiving?: OrgDocument-RefDocumentRef[];
+
+
+  despatch?: OrgDocument-RefDocumentRef[];
+
+
+  tender?: OrgDocument-RefDocumentRef[];
+
+
+  seller?: OrgPartyParty;
+
+
+  projects?: OrgDocument-RefDocumentRef[];
+
+
+  contracts?: OrgDocument-RefDocumentRef[];
+
+
+  period?: CalPeriodPeriod;
+
+
+  purchases?: OrgDocument-RefDocumentRef[];
+
+
+  sales?: OrgDocument-RefDocumentRef[];
+
+
+  identities?: OrgIdentityIdentity[];
+
+
+  code?: CbcCodeCode;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Outlay
+ */
+model BillInvoiceOutlay {
+
+  date?: CalDateDate;
+
+
+  code?: BillInvoiceOutlayCode;
+
+
+  series?: BillInvoiceOutlaySeries;
+
+
+  description: BillInvoiceOutlayDescription;
+
+
+  supplier?: OrgPartyParty;
+
+
+  amount: NumAmountAmount;
+
+
+  uuid?: BillInvoiceOutlayUuid;
+
+
+  i: BillInvoiceOutlayI;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Outlay/properties/code
+ */
+scalar BillInvoiceOutlayCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Outlay/properties/description
+ */
+scalar BillInvoiceOutlayDescription extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Outlay/properties/i
+ */
+scalar BillInvoiceOutlayI extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Outlay/properties/series
+ */
+scalar BillInvoiceOutlaySeries extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Outlay/properties/uuid
+ */
+scalar BillInvoiceOutlayUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Payment
+ */
+model BillInvoicePayment {
+
+  instructions?: PayInstructionsInstructions;
+
+
+  payee?: OrgPartyParty;
+
+
+  terms?: PayTermsTerms;
+
+
+  advances?: PayAdvanceAdvance[];
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Tax
+ */
+model BillInvoiceTax {
+
+  ext?: TaxExtensionsExtensions;
+
+
+  meta?: CbcMetaMeta;
+
+
+  prices_include?: CbcCodeCode;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/bill/invoice#/$defs/Totals
+ */
+model BillInvoiceTotals {
+
+  sum: NumAmountAmount;
+
+
+  tax_included?: NumAmountAmount;
+
+
+  total_with_tax: NumAmountAmount;
+
+
+  payable: NumAmountAmount;
+
+
+  total: NumAmountAmount;
+
+
+  tax?: NumAmountAmount;
+
+
+  outlays?: NumAmountAmount;
+
+
+  advance?: NumAmountAmount;
+
+
+  rounding?: NumAmountAmount;
+
+
+  due?: NumAmountAmount;
+
+
+  taxes?: TaxTotalTotal;
+
+
+  discount?: NumAmountAmount;
+
+
+  charge?: NumAmountAmount;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cal/date#/$defs/Date
+ */
+scalar CalDateDate extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cal/period#/$defs/Period
+ */
+model CalPeriodPeriod {
+
+  end: CalDateDate;
+
+
+  label?: CalPeriodPeriodLabel;
+
+
+  start: CalDateDate;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cal/period#/$defs/Period/properties/label
+ */
+scalar CalPeriodPeriodLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cbc/code#/$defs/Code
+ */
+scalar CbcCodeCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cbc/key#/$defs/Key
+ */
+scalar CbcKeyKey extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cbc/meta#/$defs/Meta
+ */
+scalar CbcMetaMeta extends Record<unknown>;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cbc/note#/$defs/Note
+ */
+model CbcNoteNote {
+
+  key?: CbcKeyKey;
+
+
+  code?: CbcNoteNoteCode;
+
+
+  src?: CbcKeyKey;
+
+
+  text: CbcNoteNoteText;
+
+
+  meta?: CbcMetaMeta;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cbc/note#/$defs/Note/properties/code
+ */
+scalar CbcNoteNoteCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cbc/note#/$defs/Note/properties/text
+ */
+scalar CbcNoteNoteText extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/currency/code#/$defs/Code
+ */
+scalar CurrencyCodeCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/currency/exchange-rate#/$defs/ExchangeRate
+ */
+model CurrencyExchange-RateExchangeRate {
+
+  from: CurrencyCodeCode;
+
+
+  to: CurrencyCodeCode;
+
+
+  amount: NumAmountAmount;
+
+
+  at?: CalDate-TimeDateTime;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/cal/date-time#/$defs/DateTime
+ */
+scalar CalDate-TimeDateTime extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/l10n/tax-country-code#/$defs/TaxCountryCode
+ */
+scalar L10nTax-Country-CodeTaxCountryCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/num/amount#/$defs/Amount
+ */
+scalar NumAmountAmount extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/num/percentage#/$defs/Percentage
+ */
+scalar NumPercentagePercentage extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/document-ref#/$defs/DocumentRef
+ */
+model OrgDocument-RefDocumentRef {
+
+  uuid?: OrgDocument-RefDocumentRefUuid;
+
+
+  url?: OrgDocument-RefDocumentRefUrl;
+
+
+  issue_date?: CalDateDate;
+
+
+  period?: CalPeriodPeriod;
+
+
+  code: CbcCodeCode;
+
+
+  ext?: TaxExtensionsExtensions;
+
+
+  series?: CbcCodeCode;
+
+
+  identities?: OrgIdentityIdentity[];
+
+
+  type?: CbcKeyKey;
+
+
+  line?: OrgDocument-RefDocumentRefLine;
+
+
+  description?: OrgDocument-RefDocumentRefDescription;
+
+
+  reason?: OrgDocument-RefDocumentRefReason;
+
+
+  stamps?: HeadStampStamp[];
+
+
+  meta?: CbcMetaMeta;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/head/stamp#/$defs/Stamp
+ */
+model HeadStampStamp {
+
+  val: HeadStampStampVal;
+
+
+  prv: CbcKeyKey;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/head/stamp#/$defs/Stamp/properties/val
+ */
+scalar HeadStampStampVal extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/document-ref#/$defs/DocumentRef/properties/description
+ */
+scalar OrgDocument-RefDocumentRefDescription extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/document-ref#/$defs/DocumentRef/properties/line
+ */
+scalar OrgDocument-RefDocumentRefLine extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/document-ref#/$defs/DocumentRef/properties/reason
+ */
+scalar OrgDocument-RefDocumentRefReason extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/document-ref#/$defs/DocumentRef/properties/url
+ */
+scalar OrgDocument-RefDocumentRefUrl extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/document-ref#/$defs/DocumentRef/properties/uuid
+ */
+scalar OrgDocument-RefDocumentRefUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/identity#/$defs/Identity
+ */
+model OrgIdentityIdentity {
+
+  uuid?: OrgIdentityIdentityUuid;
+
+
+  label?: OrgIdentityIdentityLabel;
+
+
+  country?: L10nIso-Country-CodeISOCountryCode;
+
+
+  key?: CbcKeyKey;
+
+
+  type?: CbcCodeCode;
+
+
+  code: CbcCodeCode;
+
+
+  description?: OrgIdentityIdentityDescription;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/l10n/iso-country-code#/$defs/ISOCountryCode
+ */
+scalar L10nIso-Country-CodeISOCountryCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/identity#/$defs/Identity/properties/description
+ */
+scalar OrgIdentityIdentityDescription extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/identity#/$defs/Identity/properties/label
+ */
+scalar OrgIdentityIdentityLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/identity#/$defs/Identity/properties/uuid
+ */
+scalar OrgIdentityIdentityUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/item#/$defs/Item
+ */
+model OrgItemItem {
+
+  description?: OrgItemItemDescription;
+
+
+  currency?: CurrencyCodeCode;
+
+
+  key?: CbcKeyKey;
+
+
+  identities?: OrgIdentityIdentity[];
+
+
+  meta?: CbcMetaMeta;
+
+
+  ref?: OrgItemItemRef;
+
+
+  price: NumAmountAmount;
+
+
+  name: OrgItemItemName;
+
+
+  alt_prices?: CurrencyAmountAmount[];
+
+
+  unit?: OrgUnitUnit;
+
+
+  uuid?: OrgItemItemUuid;
+
+
+  ext?: TaxExtensionsExtensions;
+
+
+  origin?: L10nIso-Country-CodeISOCountryCode;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/currency/amount#/$defs/Amount
+ */
+model CurrencyAmountAmount {
+
+  currency: CurrencyCodeCode;
+
+
+  value: NumAmountAmount;
+
+
+  label?: CurrencyAmountAmountLabel;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/currency/amount#/$defs/Amount/properties/label
+ */
+scalar CurrencyAmountAmountLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/item#/$defs/Item/properties/description
+ */
+scalar OrgItemItemDescription extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/item#/$defs/Item/properties/name
+ */
+scalar OrgItemItemName extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/item#/$defs/Item/properties/ref
+ */
+scalar OrgItemItemRef extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/item#/$defs/Item/properties/uuid
+ */
+scalar OrgItemItemUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/party#/$defs/Party
+ */
+model OrgPartyParty {
+
+  registration?: OrgRegistrationRegistration;
+
+
+  label?: OrgPartyPartyLabel;
+
+
+  name?: OrgPartyPartyName;
+
+
+  ext?: TaxExtensionsExtensions;
+
+
+  meta?: CbcMetaMeta;
+
+
+  identities?: OrgIdentityIdentity[];
+
+
+  tax_id?: TaxIdentityIdentity;
+
+
+  telephones?: OrgTelephoneTelephone[];
+
+
+  logos?: OrgImageImage[];
+
+
+  emails?: OrgEmailEmail[];
+
+
+  websites?: OrgWebsiteWebsite[];
+
+
+  alias?: OrgPartyPartyAlias;
+
+
+  inboxes?: OrgInboxInbox[];
+
+
+  addresses?: OrgAddressAddress[];
+
+
+  uuid?: OrgPartyPartyUuid;
+
+
+  people?: OrgPersonPerson[];
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address
+ */
+model OrgAddressAddress {
+
+  uuid?: OrgAddressAddressUuid;
+
+
+  region?: OrgAddressAddressRegion;
+
+
+  block?: OrgAddressAddressBlock;
+
+
+  po_box?: OrgAddressAddressPo_box;
+
+
+  coords?: OrgCoordinatesCoordinates;
+
+
+  num?: OrgAddressAddressNum;
+
+
+  floor?: OrgAddressAddressFloor;
+
+
+  country?: L10nIso-Country-CodeISOCountryCode;
+
+
+  code?: OrgAddressAddressCode;
+
+
+  meta?: CbcMetaMeta;
+
+
+  street_extra?: OrgAddressAddressStreet_extra;
+
+
+  locality?: OrgAddressAddressLocality;
+
+
+  label?: OrgAddressAddressLabel;
+
+
+  street?: OrgAddressAddressStreet;
+
+
+  door?: OrgAddressAddressDoor;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/block
+ */
+scalar OrgAddressAddressBlock extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/code
+ */
+scalar OrgAddressAddressCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/door
+ */
+scalar OrgAddressAddressDoor extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/floor
+ */
+scalar OrgAddressAddressFloor extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/label
+ */
+scalar OrgAddressAddressLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/locality
+ */
+scalar OrgAddressAddressLocality extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/num
+ */
+scalar OrgAddressAddressNum extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/po_box
+ */
+scalar OrgAddressAddressPo_box extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/region
+ */
+scalar OrgAddressAddressRegion extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/street
+ */
+scalar OrgAddressAddressStreet extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/street_extra
+ */
+scalar OrgAddressAddressStreet_extra extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/address#/$defs/Address/properties/uuid
+ */
+scalar OrgAddressAddressUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/coordinates#/$defs/Coordinates
+ */
+model OrgCoordinatesCoordinates {
+
+  w3w?: OrgCoordinatesCoordinatesW3w;
+
+
+  geohash?: OrgCoordinatesCoordinatesGeohash;
+
+
+  lat?: OrgCoordinatesCoordinatesLat;
+
+
+  lon?: OrgCoordinatesCoordinatesLon;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/coordinates#/$defs/Coordinates/properties/geohash
+ */
+scalar OrgCoordinatesCoordinatesGeohash extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/coordinates#/$defs/Coordinates/properties/lat
+ */
+scalar OrgCoordinatesCoordinatesLat extends float64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/coordinates#/$defs/Coordinates/properties/lon
+ */
+scalar OrgCoordinatesCoordinatesLon extends float64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/coordinates#/$defs/Coordinates/properties/w3w
+ */
+scalar OrgCoordinatesCoordinatesW3w extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/email#/$defs/Email
+ */
+model OrgEmailEmail {
+
+  addr: OrgEmailEmailAddr;
+
+
+  meta?: CbcMetaMeta;
+
+
+  uuid?: OrgEmailEmailUuid;
+
+
+  label?: OrgEmailEmailLabel;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/email#/$defs/Email/properties/addr
+ */
+scalar OrgEmailEmailAddr extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/email#/$defs/Email/properties/label
+ */
+scalar OrgEmailEmailLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/email#/$defs/Email/properties/uuid
+ */
+scalar OrgEmailEmailUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image
+ */
+model OrgImageImage {
+
+  uuid?: OrgImageImageUuid;
+
+
+  data?: OrgImageImageData;
+
+
+  url?: OrgImageImageUrl;
+
+
+  mime?: OrgImageImageMime;
+
+
+  height?: OrgImageImageHeight;
+
+
+  width?: OrgImageImageWidth;
+
+
+  alt?: OrgImageImageAlt;
+
+
+  description?: OrgImageImageDescription;
+
+
+  label?: OrgImageImageLabel;
+
+
+  digest?: DsigDigestDigest;
+
+
+  meta?: CbcMetaMeta;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/dsig/digest#/$defs/Digest
+ */
+model DsigDigestDigest {
+
+  alg: DsigDigestDigestAlg;
+
+
+  val: DsigDigestDigestVal;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/dsig/digest#/$defs/Digest/properties/alg
+ */
+scalar DsigDigestDigestAlg extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/dsig/digest#/$defs/Digest/properties/val
+ */
+scalar DsigDigestDigestVal extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/alt
+ */
+scalar OrgImageImageAlt extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/data
+ */
+scalar OrgImageImageData extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/description
+ */
+scalar OrgImageImageDescription extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/height
+ */
+scalar OrgImageImageHeight extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/label
+ */
+scalar OrgImageImageLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/mime
+ */
+scalar OrgImageImageMime extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/url
+ */
+scalar OrgImageImageUrl extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/uuid
+ */
+scalar OrgImageImageUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/image#/$defs/Image/properties/width
+ */
+scalar OrgImageImageWidth extends uint64;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/inbox#/$defs/Inbox
+ */
+model OrgInboxInbox {
+
+  uuid?: OrgInboxInboxUuid;
+
+
+  key: CbcKeyKey;
+
+
+  role?: CbcKeyKey;
+
+
+  name?: OrgInboxInboxName;
+
+
+  code: OrgInboxInboxCode;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/inbox#/$defs/Inbox/properties/code
+ */
+scalar OrgInboxInboxCode extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/inbox#/$defs/Inbox/properties/name
+ */
+scalar OrgInboxInboxName extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/inbox#/$defs/Inbox/properties/uuid
+ */
+scalar OrgInboxInboxUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/party#/$defs/Party/properties/alias
+ */
+scalar OrgPartyPartyAlias extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/party#/$defs/Party/properties/label
+ */
+scalar OrgPartyPartyLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/party#/$defs/Party/properties/name
+ */
+scalar OrgPartyPartyName extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/party#/$defs/Party/properties/uuid
+ */
+scalar OrgPartyPartyUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/person#/$defs/Person
+ */
+model OrgPersonPerson {
+
+  uuid?: OrgPersonPersonUuid;
+
+
+  label?: OrgPersonPersonLabel;
+
+
+  name: OrgNameName;
+
+
+  role?: OrgPersonPersonRole;
+
+
+  emails?: OrgEmailEmail[];
+
+
+  telephones?: OrgTelephoneTelephone[];
+
+
+  avatars?: OrgImageImage[];
+
+
+  meta?: CbcMetaMeta;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name
+ */
+model OrgNameName {
+
+  surname2?: OrgNameNameSurname2;
+
+
+  middle?: OrgNameNameMiddle;
+
+
+  suffix?: OrgNameNameSuffix;
+
+
+  given?: OrgNameNameGiven;
+
+
+  alias?: OrgNameNameAlias;
+
+
+  surname?: OrgNameNameSurname;
+
+
+  meta?: CbcMetaMeta;
+
+
+  uuid?: OrgNameNameUuid;
+
+
+  prefix?: OrgNameNamePrefix;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/alias
+ */
+scalar OrgNameNameAlias extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/given
+ */
+scalar OrgNameNameGiven extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/middle
+ */
+scalar OrgNameNameMiddle extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/prefix
+ */
+scalar OrgNameNamePrefix extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/suffix
+ */
+scalar OrgNameNameSuffix extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/surname
+ */
+scalar OrgNameNameSurname extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/surname2
+ */
+scalar OrgNameNameSurname2 extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/name#/$defs/Name/properties/uuid
+ */
+scalar OrgNameNameUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/person#/$defs/Person/properties/label
+ */
+scalar OrgPersonPersonLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/person#/$defs/Person/properties/role
+ */
+scalar OrgPersonPersonRole extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/person#/$defs/Person/properties/uuid
+ */
+scalar OrgPersonPersonUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration
+ */
+model OrgRegistrationRegistration {
+
+  entry?: OrgRegistrationRegistrationEntry;
+
+
+  uuid?: OrgRegistrationRegistrationUuid;
+
+
+  label?: OrgRegistrationRegistrationLabel;
+
+
+  capital?: NumAmountAmount;
+
+
+  volume?: OrgRegistrationRegistrationVolume;
+
+
+  office?: OrgRegistrationRegistrationOffice;
+
+
+  book?: OrgRegistrationRegistrationBook;
+
+
+  page?: OrgRegistrationRegistrationPage;
+
+
+  currency?: CurrencyCodeCode;
+
+
+  section?: OrgRegistrationRegistrationSection;
+
+
+  sheet?: OrgRegistrationRegistrationSheet;
+
+
+  other?: OrgRegistrationRegistrationOther;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/book
+ */
+scalar OrgRegistrationRegistrationBook extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/entry
+ */
+scalar OrgRegistrationRegistrationEntry extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/label
+ */
+scalar OrgRegistrationRegistrationLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/office
+ */
+scalar OrgRegistrationRegistrationOffice extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/other
+ */
+scalar OrgRegistrationRegistrationOther extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/page
+ */
+scalar OrgRegistrationRegistrationPage extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/section
+ */
+scalar OrgRegistrationRegistrationSection extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/sheet
+ */
+scalar OrgRegistrationRegistrationSheet extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/uuid
+ */
+scalar OrgRegistrationRegistrationUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/registration#/$defs/Registration/properties/volume
+ */
+scalar OrgRegistrationRegistrationVolume extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/telephone#/$defs/Telephone
+ */
+model OrgTelephoneTelephone {
+
+  num: OrgTelephoneTelephoneNum;
+
+
+  uuid?: OrgTelephoneTelephoneUuid;
+
+
+  label?: OrgTelephoneTelephoneLabel;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/telephone#/$defs/Telephone/properties/label
+ */
+scalar OrgTelephoneTelephoneLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/telephone#/$defs/Telephone/properties/num
+ */
+scalar OrgTelephoneTelephoneNum extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/telephone#/$defs/Telephone/properties/uuid
+ */
+scalar OrgTelephoneTelephoneUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/unit#/$defs/Unit
+ */
+scalar OrgUnitUnit extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/website#/$defs/Website
+ */
+model OrgWebsiteWebsite {
+
+  label?: OrgWebsiteWebsiteLabel;
+
+
+  title?: OrgWebsiteWebsiteTitle;
+
+
+  url: OrgWebsiteWebsiteUrl;
+
+
+  uuid?: OrgWebsiteWebsiteUuid;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/website#/$defs/Website/properties/label
+ */
+scalar OrgWebsiteWebsiteLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/website#/$defs/Website/properties/title
+ */
+scalar OrgWebsiteWebsiteTitle extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/website#/$defs/Website/properties/url
+ */
+scalar OrgWebsiteWebsiteUrl extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/org/website#/$defs/Website/properties/uuid
+ */
+scalar OrgWebsiteWebsiteUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Advance
+ */
+model PayAdvanceAdvance {
+
+  ref?: PayAdvanceAdvanceRef;
+
+
+  description: PayAdvanceAdvanceDescription;
+
+
+  percent?: NumPercentagePercentage;
+
+
+  amount: NumAmountAmount;
+
+
+  meta?: CbcMetaMeta;
+
+
+  date?: CalDateDate;
+
+
+  currency?: CurrencyCodeCode;
+
+
+  credit_transfer?: PayAdvanceCreditTransfer;
+
+
+  key?: CbcKeyKey;
+
+
+  grant?: PayAdvanceAdvanceGrant;
+
+
+  uuid?: PayAdvanceAdvanceUuid;
+
+
+  card?: PayAdvanceCard;
+
+
+  ext?: TaxExtensionsExtensions;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Advance/properties/description
+ */
+scalar PayAdvanceAdvanceDescription extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Advance/properties/grant
+ */
+scalar PayAdvanceAdvanceGrant extends boolean;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Advance/properties/ref
+ */
+scalar PayAdvanceAdvanceRef extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Advance/properties/uuid
+ */
+scalar PayAdvanceAdvanceUuid extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Card
+ */
+model PayAdvanceCard {
+
+  holder: PayAdvanceCardHolder;
+
+
+  last4: PayAdvanceCardLast4;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Card/properties/holder
+ */
+scalar PayAdvanceCardHolder extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/Card/properties/last4
+ */
+scalar PayAdvanceCardLast4 extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/CreditTransfer
+ */
+model PayAdvanceCreditTransfer {
+
+  bic?: PayAdvanceCreditTransferBic;
+
+
+  number?: PayAdvanceCreditTransferNumber;
+
+
+  name?: PayAdvanceCreditTransferName;
+
+
+  branch?: OrgAddressAddress;
+
+
+  iban?: PayAdvanceCreditTransferIban;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/CreditTransfer/properties/bic
+ */
+scalar PayAdvanceCreditTransferBic extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/CreditTransfer/properties/iban
+ */
+scalar PayAdvanceCreditTransferIban extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/CreditTransfer/properties/name
+ */
+scalar PayAdvanceCreditTransferName extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/advance#/$defs/CreditTransfer/properties/number
+ */
+scalar PayAdvanceCreditTransferNumber extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Instructions
+ */
+model PayInstructionsInstructions {
+
+  detail?: PayInstructionsInstructionsDetail;
+
+
+  notes?: PayInstructionsInstructionsNotes;
+
+
+  direct_debit?: PayInstructionsDirectDebit;
+
+
+  credit_transfer?: PayInstructionsCreditTransfer[];
+
+
+  card?: PayInstructionsCard;
+
+
+  ext?: TaxExtensionsExtensions;
+
+
+  ref?: PayInstructionsInstructionsRef;
+
+
+  online?: PayInstructionsOnline[];
+
+
+  meta?: CbcMetaMeta;
+
+
+  key: CbcKeyKey;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Card
+ */
+model PayInstructionsCard {
+
+  last4: PayInstructionsCardLast4;
+
+
+  holder: PayInstructionsCardHolder;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Card/properties/holder
+ */
+scalar PayInstructionsCardHolder extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Card/properties/last4
+ */
+scalar PayInstructionsCardLast4 extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/CreditTransfer
+ */
+model PayInstructionsCreditTransfer {
+
+  iban?: PayInstructionsCreditTransferIban;
+
+
+  bic?: PayInstructionsCreditTransferBic;
+
+
+  number?: PayInstructionsCreditTransferNumber;
+
+
+  name?: PayInstructionsCreditTransferName;
+
+
+  branch?: OrgAddressAddress;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/CreditTransfer/properties/bic
+ */
+scalar PayInstructionsCreditTransferBic extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/CreditTransfer/properties/iban
+ */
+scalar PayInstructionsCreditTransferIban extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/CreditTransfer/properties/name
+ */
+scalar PayInstructionsCreditTransferName extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/CreditTransfer/properties/number
+ */
+scalar PayInstructionsCreditTransferNumber extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/DirectDebit
+ */
+model PayInstructionsDirectDebit {
+
+  creditor?: PayInstructionsDirectDebitCreditor;
+
+
+  account?: PayInstructionsDirectDebitAccount;
+
+
+  ref?: PayInstructionsDirectDebitRef;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/DirectDebit/properties/account
+ */
+scalar PayInstructionsDirectDebitAccount extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/DirectDebit/properties/creditor
+ */
+scalar PayInstructionsDirectDebitCreditor extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/DirectDebit/properties/ref
+ */
+scalar PayInstructionsDirectDebitRef extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Instructions/properties/detail
+ */
+scalar PayInstructionsInstructionsDetail extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Instructions/properties/notes
+ */
+scalar PayInstructionsInstructionsNotes extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Instructions/properties/ref
+ */
+scalar PayInstructionsInstructionsRef extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Online
+ */
+model PayInstructionsOnline {
+
+  key?: CbcKeyKey;
+
+
+  label?: PayInstructionsOnlineLabel;
+
+
+  url: PayInstructionsOnlineUrl;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Online/properties/label
+ */
+scalar PayInstructionsOnlineLabel extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/instructions#/$defs/Online/properties/url
+ */
+scalar PayInstructionsOnlineUrl extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/terms#/$defs/Terms
+ */
+model PayTermsTerms {
+
+  detail?: PayTermsTermsDetail;
+
+
+  due_dates?: PayTermsDueDate[];
+
+
+  notes?: PayTermsTermsNotes;
+
+
+  key?: CbcKeyKey;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/terms#/$defs/DueDate
+ */
+model PayTermsDueDate {
+
+  notes?: PayTermsDueDateNotes;
+
+
+  amount: NumAmountAmount;
+
+
+  percent?: NumPercentagePercentage;
+
+
+  currency?: CurrencyCodeCode;
+
+
+  date: CalDateDate;
+
+
+
+}
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/terms#/$defs/DueDate/properties/notes
+ */
+scalar PayTermsDueDateNotes extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/terms#/$defs/Terms/properties/detail
+ */
+scalar PayTermsTermsDetail extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/pay/terms#/$defs/Terms/properties/notes
+ */
+scalar PayTermsTermsNotes extends string;
+
+/**
+ *
+ * Location: https://gobl.org/draft-0/schema/object#/$defs/Object
+ */
+model SchemaObjectObject {
+
+
