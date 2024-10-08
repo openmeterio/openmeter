@@ -1,14 +1,21 @@
 import "@typespec/http";
 import "@typespec/rest";
+import "@typespec/openapi";
 import "@typespec/openapi3";
+import "@typespec/versioning";
 
 import "./types.tsp";
+import "./errors.tsp";
+import "./prices.tsp";
 import "./ratecards.tsp";
-import "./plan.tsp";
+import "./jsonpatch.tsp";
+import "./discounts.tsp";
+import "./entitlements/main.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
+using TypeSpec.Versioning;
 
 namespace OpenMeter;
 
@@ -17,7 +24,29 @@ namespace OpenMeter;
 interface Subscriptions {
   @get
   @operationId("getSubscription")
-  get(@path subscriptionId: ULID): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  @sharedRoute
+  get(
+    @path subscriptionId: ULID,
+    @query expand?: false,
+
+    /**
+     * The time at which the subscription should be queried. If not provided the current time is used.
+     */
+    @query at?: DateTime,
+  ): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  @get
+  @operationId("getSubscription")
+  @sharedRoute
+  getExpanded(
+    @path subscriptionId: ULID,
+    @query expand: true,
+
+    /**
+     * The time at which the subscription should be queried. If not provided the current time is used.
+     */
+    @query at?: DateTime,
+  ): SubscriptionExpanded | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   create(
     @body body: {
@@ -28,9 +57,37 @@ interface Subscriptions {
       };
       currency: CurrencyCode;
       activeFrom: DateTime;
-      overrides: unknown[]; // TBD; TypeSpec doesn't allow for Record/Map with typed keys
+
+      /**
+       * JSON Patch (RFC6902).
+       *
+       * It is a partial implementation of the JSON Patch standard:
+       * 1. It only respecting the `add` and `remove` operations. All other operations defined in RFC6902 are ignored during execution.
+       * 2. The provided value for ADD operation doesn't match the target type. It is the creation input type for the SubscriptionItem.
+       */
+      @maxItems(100)
+      overrides: SubscriptionItemOverride[];
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
+
+  /**
+   * Applies the JSON Patch (RFC6902) atomically (RFC5789).
+   *
+   * It is a partial implementation of the JSON Patch standard:
+   * 1. It only respecting the `add` and `remove` operations. All other operations defined in RFC6902 are ignored during execution.
+   * 2. The provided value for ADD operation doesn't match the target type. It is the creation input type for the SubscriptionItem and SubscriptionPhase.
+   */
+  @patch
+  @operationId("editSubscription")
+  @route("/{subscriptionId}")
+  edit(
+    @header accept: "json-patch+json",
+    @path subscriptionId: ULID,
+
+    @body
+    @maxItems(100)
+    body: SubscriptionItemOverride[],
+  ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Migrates the subscripiton to the procided version of the plan.
@@ -41,6 +98,7 @@ interface Subscriptions {
   migrate(
     @path subscriptionId: ULID,
     @body body: {
+      @minValue(1)
       targetVersion: integer;
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -54,7 +112,10 @@ interface Subscriptions {
   cancel(
     @path subscriptionId: ULID,
     @body body: {
-      effective: "IMMEDIATE" | DateTime;
+      /**
+       * If not provided the subscription is canceled immediately.
+       */
+      effectiveDate?: DateTime;
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -71,25 +132,24 @@ interface Subscriptions {
     | OpenMeter.CommonErrors;
 
   @get
-  @operationId("getSubscriptionItemsAt")
-  @route("/{subscriptionId}/items")
-  getItems(
-    @path subscriptionId: ULID,
-    @query at: DateTime,
-  ): SubscriptionItem[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  @get
   @operationId("getPhases")
   @summary("Get the phases of a subscription")
   @route("/{subscriptionId}/phases")
   getPhases(@path subscriptionId: ULID): SubscriptionPhase[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
+  // We have separate APIs for manipulating phases (adding and removing) to limit what aspects of RFC6902 we implement.
+  // This decision can later be overturned.
+
   @delete
   @operationId("deleteSubscriptionPhase")
   @route("/{subscriptionId}/phases/{phaseKey}")
-  deletePhase(@path subscriptionId: ULID, @path phaseKey: Key): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  deletePhase(@path subscriptionId: ULID, @path phaseKey: Key):
+    | {
+        @statusCode _: 204;
+      }
+    | OpenMeter.NotFoundError
+    | OpenMeter.ConflictError
+    | OpenMeter.CommonErrors;
 
   @post
   @operationId("addSubscriptionPhase")
@@ -98,10 +158,10 @@ interface Subscriptions {
     @path subscriptionId: ULID,
     @body phase: {
       key: Key;
-      rateCards: RateCard[]; // TODO: we need common ground on this interface
+      rateCards: RateCard[];
       activeFrom: DateTime;
     },
-  ): SubscriptionPhase | OpenMeter.ConflictError | OpenMeter.CommonErrors;
+  ): SubscriptionPhase | OpenMeter.NotFoundError | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
   /**
    * Extend has to delay both the current and all subsequent phases by the provided duration.
@@ -118,10 +178,31 @@ interface Subscriptions {
     },
   ): SubscriptionPhase[] | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
-  @post
-  @operationId("addSubscriptionPhaseRateCard")
+  // Direct management of a SubscriptionPhase's SubscriptionItems would be possible via these APIs.
+  // Its unclear if we'll need them.
+
+  @get
+  @operationId("getSubscriptionPhaseItemsAt")
   @route("/{subscriptionId}/phases/{phaseKey}/items")
-  addPhaseRateCard(
+  @deprecated("Use the getExpanded instead.")
+  getItems(
+    @path subscriptionId: ULID,
+    @path phaseKey: Key,
+
+    /**
+     * The time at which the items should be queried. If not provided the current time is used.
+     */
+    @query at?: DateTime,
+  ): {
+    items: SubscriptionItem[];
+    at: DateTime;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  @post
+  @operationId("addSubscriptionPhaseItem")
+  @route("/{subscriptionId}/phases/{phaseKey}/items")
+  @deprecated("Use the edit instead.")
+  addPhaseItem(
     @path subscriptionId: ULID,
     @path phaseKey: Key,
     @body rateCard: RateCard,
@@ -130,9 +211,19 @@ interface Subscriptions {
   @delete
   @operationId("deleteSubscriptionPhaseItem")
   @route("/{subscriptionId}/phases/{phaseKey}/items/{itemKey}")
+  @deprecated("Use the edit instead.")
   deletePhaseItem(@path subscriptionId: ULID, @path phaseKey: Key, @path itemKey: Key): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+}
+
+/**
+ * Expanded subscription
+ */
+@friendlyName("SubscriptionExpanded")
+model SubscriptionExpanded {
+  ...Subscription;
+  phases: SubscriptionPhaseExpanded[];
 }
 
 /**
@@ -176,38 +267,43 @@ model Subscription {
 }
 
 /**
+ * Expanded subscription phase
+ */
+@friendlyName("SubscriptionPhaseExpanded")
+model SubscriptionPhaseExpanded {
+  ...SubscriptionPhase;
+  items: SubscriptionItem[];
+}
+
+/**
  * Subscription phase, analogous to plan phases.
  */
 @friendlyName("SubscriptionPhase")
 model SubscriptionPhase {
+  ...VirtualResource;
+  ...OmitProperties<SubscriptionPhaseCreateInput, "startAfter">;
+
   /**
-   * The time at which the phase becomes active.
+   * The time from which the phase is active.
    */
   activeFrom: DateTime;
+}
 
+@friendlyName("SubscriptionPhaseCreateInput")
+model SubscriptionPhaseCreateInput {
   /**
-   * The templating plan's phase which templated this phase.
-   *
-   * Undefined if the phase is not templated, i.e. manually created.
+   * Interval after the subscription starts to transition to the phase.
+   * When null, the phase starts immediately after the subscription starts.
    */
-  templatingPlanPhase?: Key;
+  @summary("Start after")
+  @encode(DurationKnownEncoding.ISO8601)
+  startAfter: duration | null;
 
   /**
-   * The key by which the phase can be identified.
-   */
-  key: Key;
-
-  /**
-   * The contents of the phase
-   */
-  @summary("Items")
-  items: SubscriptionItem[];
-
-  /**
-   * The discount on the plan.
+   * The discounts on the plan.
    */
   @summary("Discount")
-  discount?: AppliedDiscount;
+  discounts?: AppliedDiscount[];
 }
 
 /**
@@ -215,6 +311,9 @@ model SubscriptionPhase {
  */
 @friendlyName("SubscriptionItem")
 model SubscriptionItem {
+  // Key is overriden to add extra doc. Uses the same type.
+  ...OmitProperties<VirtualResource, "key">;
+
   /**
    * Copied from product doc:
    *
@@ -257,11 +356,11 @@ model SubscriptionItem {
   /**
    * Describes what access is gained via the SubscriptionItem
    */
-  feature?: {
+  included?: {
     /**
      * The feature the customer is entitled to use.
      */
-    featureKey: Key;
+    feature: Entitlements.Feature;
 
     /**
      * The entitlement of the Subscription Item.
@@ -269,3 +368,23 @@ model SubscriptionItem {
     entitlement?: Entitlements.Entitlement;
   };
 }
+
+// SubscriptionPhaseOverride is not possible via a patch endpoint
+
+// @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
+// scalar SubscriptionPhasePatchKey extends string;
+
+// alias SubscriptionPhaseOverride = JSONPatchAdd<
+//   SubscriptionPhaseCreateInput,
+//   SubscriptionPhasePatchKey
+// > | JSONPatchRemove<SubscriptionPhasePatchKey>;
+
+@pattern("^\\/phases\\/[a-zA-Z0-9\\-]+\\/items\\/[a-zA-Z0-9\\-]+$")
+scalar SubscriptionItemPatchKey extends string;
+
+alias SubscriptionOverride = SubscriptionItemOverride;
+
+alias SubscriptionItemOverride = JSONPatchAdd<
+  RateCard,
+  SubscriptionItemPatchKey
+> | JSONPatchRemove<SubscriptionItemPatchKey>;

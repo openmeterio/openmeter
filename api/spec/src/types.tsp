@@ -59,6 +59,17 @@ scalar DateTime extends utcDateTime;
 scalar Money extends string;
 
 /**
+ * Represents a resource with a key.
+ */
+@friendlyName("KeyedResource")
+model Keyed {
+  /**
+   * A locally unique identifier for the resource.
+   */
+  key: Key;
+}
+
+/**
  * Represents a resource with a unique key.
  */
 @friendlyName("UniqueResource")
@@ -107,6 +118,15 @@ model Resource {
   metadata?: Metadata; // FIXME: linter error for: = #{};
 
   ...ResourceTimestamps;
+}
+
+/**
+ * Represents a resource that doesn't exist in the persistence layer, just a representation.
+ */
+@friendlyName("VirtualResource")
+model VirtualResource {
+  ...OmitProperties<Resource, "id">;
+  ...Keyed;
 }
 
 /**

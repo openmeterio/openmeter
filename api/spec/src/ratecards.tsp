@@ -20,11 +20,17 @@ enum RateCardType {
 /**
  * A rate card defines the pricing and entitlement of a feature or service.
  */
-@friendlyName("RateCard")
-@discriminator("type")
-model RateCard {
+@friendlyName("RateCardResource")
+model RateCardResource {
   ...Resource;
+  ...RateCard;
+}
 
+/**
+ * A rate card defines the pricing and entitlement of a feature or service.
+ */
+@friendlyName("RateCard")
+model RateCard {
   /**
    * Copied from product doc:
    *
@@ -83,15 +89,6 @@ model RateCard {
     | TieredPriceWithCommitments
     | FlatPriceWithPaymentTerm
     | null;
-}
-
-/**
- * Rate card override.
- */
-@friendlyName("RateCardOverride")
-@discriminator("type")
-model RateCardOverride {
-  ...PickProperties<RateCard, "type" | "price" | "discount">;
 }
 
 /**

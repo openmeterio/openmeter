@@ -84,3 +84,46 @@ model DiscountUsage {
   @summary("Usage")
   usage: float64;
 }
+
+/**
+ * A discount on plan. One of: percentage or amount.
+ */
+@friendlyName("AppliedDiscount")
+@discriminator("type")
+union AppliedDiscount {
+  @summary("Percentage discount")
+  percentage: AppliedDiscountPercentage,
+
+  @summary("Amount discount")
+  amount: AppliedDiscountAmount,
+}
+
+/**
+ * Percentage discount on plan.
+ */
+@friendlyName("PlanDiscountPercentage")
+model AppliedDiscountPercentage {
+  ...DiscountPercentage;
+
+  /**
+   * The rate cards that the discount applies to.
+   * When not specified, the discount applies to all rate cards.
+   */
+  @summary("Applies To")
+  appliesTo?: Key[];
+}
+
+/**
+ * Amount discount on plan.
+ */
+@friendlyName("PlanDiscountAmount")
+model AppliedDiscountAmount {
+  ...DiscountAmount;
+
+  /**
+   * The rate cards that the discount applies to.
+   * When not specified, the discount applies to all rate cards.
+   */
+  @summary("Applies To")
+  appliesTo?: Key[];
+}
