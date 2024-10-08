@@ -11,7 +11,7 @@ func TestAppStripe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	env, err := NewTestEnv(ctx)
+	env, err := NewTestEnv(t, ctx)
 	require.NoError(t, err, "AppStripeTestEnv() failed")
 	require.NotNil(t, env.App())
 	require.NotNil(t, env.AppStripe())
