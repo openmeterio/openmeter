@@ -74,8 +74,8 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err = entClient.Schema.Create(ctx); err != nil {
-		return nil, fmt.Errorf("failed to create database schema: %w", err)
+	if err := migrate.Up(postgresHost); err != nil {
+		return nil, fmt.Errorf("failed to migrate db: %w", err)
 	}
 
 	if err := migrate.Up(postgresHost); err != nil {
