@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	TestNamespace = "default"
-
 	PostgresURLTemplate = "postgres://postgres:postgres@%s:5432/postgres?sslmode=disable"
 )
 
