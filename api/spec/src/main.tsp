@@ -18,6 +18,7 @@ import "./subjects.tsp";
 import "./debug.tsp";
 import "./notification";
 import "./entitlements";
+import "./billing";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
