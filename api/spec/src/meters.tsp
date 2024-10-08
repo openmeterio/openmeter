@@ -32,11 +32,7 @@ interface Meters {
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryJson(
-    @path meterIdOrSlug: MeterIdentifier,
-    ...MeterQuery,
-    @header accept?: "application/json" = "application/json",
-  ): {
+  queryJson(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -48,7 +44,7 @@ interface Meters {
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery, @header accept?: "text/csv"): {
+  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "text/csv";
 
     @body

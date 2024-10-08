@@ -1385,15 +1385,6 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.subject'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
-        - name: accept
-          in: header
-          required: false
-          schema:
-            type: string
-            enum:
-              - application/json
-              - text/csv
-            default: application/json
       description: Query meter for usage. Query meter for usage.
       responses:
         '200':
@@ -2516,15 +2507,6 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
-        - name: accept
-          in: header
-          required: false
-          schema:
-            type: string
-            enum:
-              - application/json
-              - text/csv
-            default: application/json
       description: Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
       responses:
         '200':
