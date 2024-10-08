@@ -207,7 +207,6 @@ model CheckoutSessionCustomTextParams {
   name: "Stripe",
   status: AppStatus.Ready,
   listing: #{
-    key: "stripe",
     type: AppType.Stripe,
     name: "Stripe",
     description: "Stripe interation allows you to collect payments with Stripe.",

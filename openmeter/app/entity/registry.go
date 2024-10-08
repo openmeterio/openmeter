@@ -16,6 +16,7 @@ type AppFactory interface {
 type AppFactoryInstallAppWithAPIKeyInput struct {
 	Namespace string
 	APIKey    string `json:"-"`
+	BaseURL   string `json:"-"`
 }
 
 func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
@@ -25,6 +26,10 @@ func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 
 	if i.APIKey == "" {
 		return errors.New("api key is required")
+	}
+
+	if i.BaseURL == "" {
+		return errors.New("base url is required")
 	}
 
 	return nil

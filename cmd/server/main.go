@@ -34,6 +34,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
+	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
+	appstripeservice "github.com/openmeterio/openmeter/openmeter/appstripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -54,6 +60,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/registry/startup"
+	"github.com/openmeterio/openmeter/openmeter/secret"
+	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
+	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -396,6 +405,77 @@ func main() {
 		}
 	}
 
+	// Initialize Marketplace
+	// TODO: create marketplace service
+	marketplaceAdapter := appadapter.NewMarketplaceAdapter(appadapter.MarketplaceConfig{
+		// TODO: move to config
+		BaseURL: "https://play.svix.com/in/e_d6S0hqLLJ14QNg9WyUEsja39y7n",
+	})
+
+	// Initialize Secret
+	var secretService secret.Service
+
+	var secretAdapter secret.Adapter
+	secretAdapter = secretadapter.New()
+
+	secretService, err = secretservice.New(secretservice.Config{
+		Adapter: secretAdapter,
+	})
+	if err != nil {
+		logger.Error("failed to initialize secret service", "error", err)
+		os.Exit(1)
+	}
+
+	// Initialize App
+	var appService app.Service
+
+	if entClient != nil {
+		var appAdapter app.Adapter
+		appAdapter, err = appadapter.New(appadapter.Config{
+			Client:      entClient,
+			Marketplace: marketplaceAdapter,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app repository", "error", err)
+			os.Exit(1)
+		}
+
+		appService, err = appservice.New(appservice.Config{
+			Adapter:     appAdapter,
+			Marketplace: marketplaceAdapter,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app service", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	// Initialize AppStripe
+	var appStripeService appstripe.Service
+
+	if entClient != nil {
+		var appStripeAdapter appstripe.Adapter
+		appStripeAdapter, err = appstripeadapter.New(appstripeadapter.Config{
+			Client:          entClient,
+			AppService:      appService,
+			CustomerService: customerService,
+			Marketplace:     marketplaceAdapter,
+			SecretService:   secretService,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app stripe repository", "error", err)
+			os.Exit(1)
+		}
+
+		appStripeService, err = appstripeservice.New(appstripeservice.Config{
+			Adapter: appStripeAdapter,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app stripe service", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	// Initialize Notification
 	var notificationService notification.Service
 
@@ -460,6 +540,8 @@ func main() {
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
+			App:                         appService,
+			AppStripe:                   appStripeService,
 			Customer:                    customerService,
 			DebugConnector:              debugConnector,
 			FeatureConnector:            entitlementConnRegistry.Feature,
