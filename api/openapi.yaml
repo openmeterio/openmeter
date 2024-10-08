@@ -4851,7 +4851,6 @@ components:
             - static
         config:
           type: string
-          format: json
           example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
         createdAt:
@@ -4949,7 +4948,6 @@ components:
             - static
         config:
           type: string
-          format: json
           example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
       description: Create inputs for static entitlement

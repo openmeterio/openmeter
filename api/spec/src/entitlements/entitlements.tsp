@@ -194,7 +194,7 @@ model EntitlementStaticCreateInputs {
    * The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
    */
   @example("{ \"integrations\": [\"github\"] }")
-  @encode("json")
+  // @encode("json")
   config: string;
 }
 
