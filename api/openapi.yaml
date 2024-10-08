@@ -6665,8 +6665,6 @@ servers:
   - url: https://openmeter.cloud
     description: Cloud
     variables: {}
-  - url: https://127.0.0.1:{port}
+  - url: https://127.0.0.1:8888
     description: Local
-    variables:
-      port:
-        default: '8888'
+    variables: {}
