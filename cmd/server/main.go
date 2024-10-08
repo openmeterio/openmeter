@@ -196,8 +196,7 @@ func main() {
 	// Initialize Marketplace
 	// TODO: create marketplace service
 	marketplaceAdapter := appadapter.NewMarketplaceAdapter(appadapter.MarketplaceConfig{
-		// TODO: move to config
-		BaseURL: "https://play.svix.com/in/e_d6S0hqLLJ14QNg9WyUEsja39y7n",
+		BaseURL: conf.Stripe.Webhook.BaseURL,
 	})
 
 	// Initialize Secret
