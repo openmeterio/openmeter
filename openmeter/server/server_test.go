@@ -17,6 +17,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
+	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -29,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var mockEvent = event.New()
@@ -137,6 +146,9 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			PortalTokenStrategy: portalTokenStrategy,
 			ErrorHandler:        errorsx.NopHandler{},
 			Notification:        &NoopNotificationService{},
+			App:                 &NoopAppService{},
+			AppStripe:           &NoopAppStripeService{},
+			Customer:            &NoopCustomerService{},
 		},
 		RouterHook: func(r chi.Router) {},
 	})
@@ -610,5 +622,105 @@ func (n NoopNotificationService) UpdateEventDeliveryStatus(_ context.Context, _ 
 }
 
 func (n NoopNotificationService) Close() error {
+	return nil
+}
+
+var _ app.Service = (*NoopAppService)(nil)
+
+type NoopAppService struct{}
+
+func (n NoopAppService) RegisterMarketplaceListing(input appentity.RegisterMarketplaceListingInput) error {
+	return nil
+}
+
+func (n NoopAppService) GetMarketplaceListing(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
+	return appentity.RegistryItem{}, nil
+}
+
+func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
+	return pagination.PagedResponse[appentity.RegistryItem]{}, nil
+}
+
+func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
+	return appstripeentity.App{}, nil
+}
+
+func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
+	return appentity.GetOauth2InstallURLOutput{}, nil
+}
+
+func (n NoopAppService) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error {
+	return nil
+}
+
+func (n NoopAppService) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
+	return appentitybase.AppBase{}, nil
+}
+
+func (n NoopAppService) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
+	return appstripeentity.App{}, nil
+}
+
+func (n NoopAppService) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
+	return appstripeentity.App{}, nil
+}
+
+func (n NoopAppService) ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
+	return pagination.PagedResponse[appentity.App]{}, nil
+}
+
+func (n NoopAppService) UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error {
+	return nil
+}
+
+var _ appstripe.Service = (*NoopAppStripeService)(nil)
+
+type NoopAppStripeService struct{}
+
+func (n NoopAppStripeService) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
+	return appstripeentity.CreateCheckoutSessionOutput{}, nil
+}
+
+func (n NoopAppStripeService) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
+	return appstripeentity.GetWebhookSecretOutput{}, nil
+}
+
+func (n NoopAppStripeService) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
+	return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, nil
+}
+
+var _ customer.Service = (*NoopCustomerService)(nil)
+
+type NoopCustomerService struct{}
+
+func (n NoopCustomerService) Register(observer appobserver.Observer[customerentity.Customer]) error {
+	return nil
+}
+
+func (n NoopCustomerService) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
+	return nil
+}
+
+func (n NoopCustomerService) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
+	return pagination.PagedResponse[customerentity.Customer]{}, nil
+}
+
+func (n NoopCustomerService) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+	return &customerentity.Customer{}, nil
+}
+
+func (n NoopCustomerService) DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error {
+	return nil
+}
+
+func (n NoopCustomerService) GetCustomer(ctx context.Context, customer customerentity.GetCustomerInput) (*customerentity.Customer, error) {
+	return &customerentity.Customer{}, nil
+}
+
+func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+	return &customerentity.Customer{}, nil
+}
+
+func (n NoopCustomerService) UpsertAppCustomer(ctx context.Context, input customerentity.UpsertAppCustomerInput) error {
 	return nil
 }
