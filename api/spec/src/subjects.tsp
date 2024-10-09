@@ -34,10 +34,9 @@ model Subject {
 
   /**
    * A unique, human-readable identifier for the subject.
-   * Must consist only alphanumeric and underscore characters.
    */
   @example("customer-id")
-  key: Key;
+  key: string;
 
   /**
    * A human-readable display name for the subject.
