@@ -130,7 +130,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	// Environment used for identifying the service environment
 	v.SetDefault("environment", "unknown")
 
-	configureTelemetry(v, flags)
+	ConfigureTelemetry(v, flags)
 
 	ConfigurePostgres(v)
 	ConfigureNamespace(v)

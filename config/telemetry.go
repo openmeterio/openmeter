@@ -369,8 +369,8 @@ func (c LogTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
 	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
 }
 
-// configureTelemetry configures some defaults in the Viper instance.
-func configureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
+// ConfigureTelemetry configures some defaults in the Viper instance.
+func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
 	v.SetDefault("telemetry.address", ":10000")
