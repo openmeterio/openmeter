@@ -9,7 +9,8 @@ export type Entitlement =
 export type EntitlementMetered = components['schemas']['EntitlementMetered']
 export type EntitlementStatic = components['schemas']['EntitlementStatic']
 export type EntitlementBoolean = components['schemas']['EntitlementBoolean']
-export type RecurringPeriodEnum = components['schemas']['RecurringPeriodEnum']
+export type RecurringPeriodInterval =
+  components['schemas']['RecurringPeriodInterval']
 export type EntitlementValue = components['schemas']['EntitlementValue']
 export type WindowedBalanceHistory =
   components['schemas']['WindowedBalanceHistory']
