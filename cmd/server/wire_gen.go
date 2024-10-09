@@ -86,7 +86,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		return Application{}, nil, err
 	}
 	watermillClientID := _wireWatermillClientIDValue
-	publisher, cleanup6, err := app.NewPublisher(ctx, conf, watermillClientID, logger, meter)
+	ingestConfiguration := conf.Ingest
+	topicProvisioner, err := app.NewKafkaTopicProvisioner(ingestConfiguration, logger, meter)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	publisher, cleanup6, err := app.NewPublisher(ctx, conf, watermillClientID, logger, meter, topicProvisioner)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -135,7 +145,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespaceHandler, err := app.NewKafkaNamespaceHandler(producer, namespacedTopicResolver, conf, logger)
+	namespaceHandler, err := app.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, conf)
 	if err != nil {
 		cleanup7()
 		cleanup6()

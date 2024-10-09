@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	confluentkafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/oklog/run"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -26,6 +27,7 @@ import (
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 const (
@@ -123,8 +125,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize Kafka Topic Provisioner
+	topicProvisioner, err := initTopicProvisioner(conf, logger, app.Meter)
+	if err != nil {
+		logger.Error("failed to initialize kafka topic provisioner", "error", err)
+		os.Exit(1)
+	}
+
 	// Create publisher
-	eventPublisherDriver, err := initEventPublisherDriver(ctx, wmBrokerConfig, conf)
+	eventPublisherDriver, err := initEventPublisherDriver(ctx, wmBrokerConfig, conf, topicProvisioner)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -225,18 +234,44 @@ func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metri
 	}
 }
 
-func initEventPublisherDriver(ctx context.Context, broker watermillkafka.BrokerOptions, conf config.Configuration) (message.Publisher, error) {
-	provisionTopics := []watermillkafka.AutoProvisionTopic{}
+func initEventPublisherDriver(ctx context.Context, broker watermillkafka.BrokerOptions, conf config.Configuration, topicProvisioner pkgkafka.TopicProvisioner) (message.Publisher, error) {
+	var provisionTopics []pkgkafka.TopicConfig
 	if conf.BalanceWorker.DLQ.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
-			Topic:         conf.BalanceWorker.DLQ.Topic,
-			NumPartitions: int32(conf.BalanceWorker.DLQ.AutoProvision.Partitions),
-			Retention:     conf.BalanceWorker.DLQ.AutoProvision.Retention,
+		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
+			Name:          conf.BalanceWorker.DLQ.Topic,
+			Partitions:    conf.BalanceWorker.DLQ.AutoProvision.Partitions,
+			RetentionTime: pkgkafka.TimeDurationMilliSeconds(conf.BalanceWorker.DLQ.AutoProvision.Retention),
 		})
 	}
 
 	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		Broker:          broker,
-		ProvisionTopics: provisionTopics,
+		Broker:           broker,
+		ProvisionTopics:  provisionTopics,
+		TopicProvisioner: topicProvisioner,
 	})
+}
+
+func initTopicProvisioner(conf config.Configuration, logger *slog.Logger, meter metric.Meter) (pkgkafka.TopicProvisioner, error) {
+	kafkaConfigMap := conf.Ingest.Kafka.CreateKafkaConfig()
+	// NOTE(chrisgacsal): remove 'go.logs.channel.enable' configuration parameter as it is not supported by AdminClient
+	// and initializing the client fails if this parameter is set.
+	delete(kafkaConfigMap, "go.logs.channel.enable")
+
+	adminClient, err := confluentkafka.NewAdminClient(&kafkaConfigMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
+	}
+
+	topicProvisioner, err := pkgkafka.NewTopicProvisioner(pkgkafka.TopicProvisionerConfig{
+		AdminClient: adminClient,
+		Logger:      logger,
+		Meter:       meter,
+		CacheSize:   conf.Ingest.CacheSize,
+		CacheTTL:    conf.Ingest.CacheTTL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
+	}
+
+	return topicProvisioner, nil
 }

@@ -59,6 +59,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		wire.Value(app.WatermillClientID(otelName)),
 		wire.Struct(new(Application), "*"),
 	)
+
 	return Application{}, nil, nil
 }
 

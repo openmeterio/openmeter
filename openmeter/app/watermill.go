@@ -12,6 +12,7 @@ import (
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 // TODO: make this global? or more generic?
@@ -23,16 +24,17 @@ func NewPublisher(
 	clientID WatermillClientID,
 	logger *slog.Logger,
 	metricMeter metric.Meter,
+	topicProvisioner pkgkafka.TopicProvisioner,
 ) (message.Publisher, func(), error) {
 	if !conf.Events.Enabled {
 		return &noop.Publisher{}, func() {}, nil
 	}
 
-	provisionTopics := []watermillkafka.AutoProvisionTopic{}
+	var provisionTopics []pkgkafka.TopicConfig
 	if conf.Events.SystemEvents.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
-			Topic:         conf.Events.SystemEvents.Topic,
-			NumPartitions: int32(conf.Events.SystemEvents.AutoProvision.Partitions),
+		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
+			Name:       conf.Events.SystemEvents.Topic,
+			Partitions: conf.Events.SystemEvents.AutoProvision.Partitions,
 		})
 	}
 
@@ -44,7 +46,8 @@ func NewPublisher(
 			MetricMeter:  metricMeter,
 			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
 		},
-		ProvisionTopics: provisionTopics,
+		ProvisionTopics:  provisionTopics,
+		TopicProvisioner: topicProvisioner,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize event publisher: %w", err)

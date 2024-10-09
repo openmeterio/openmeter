@@ -42,3 +42,28 @@ func NewKafkaMetrics(meter metric.Meter) (*kafkametrics.Metrics, error) {
 
 	return metrics, nil
 }
+
+func NewKafkaTopicProvisioner(conf config.IngestConfiguration, logger *slog.Logger, meter metric.Meter) (pkgkafka.TopicProvisioner, error) {
+	kafkaConfigMap := conf.Kafka.CreateKafkaConfig()
+	// NOTE(chrisgacsal): remove 'go.logs.channel.enable' configuration parameter as it is not supported by AdminClient
+	// and initializing the client fails if this parameter is set.
+	delete(kafkaConfigMap, "go.logs.channel.enable")
+
+	adminClient, err := kafka.NewAdminClient(&kafkaConfigMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
+	}
+
+	topicProvisioner, err := pkgkafka.NewTopicProvisioner(pkgkafka.TopicProvisionerConfig{
+		AdminClient: adminClient,
+		Logger:      logger,
+		Meter:       meter,
+		CacheSize:   conf.CacheSize,
+		CacheTTL:    conf.CacheTTL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
+	}
+
+	return topicProvisioner, nil
+}

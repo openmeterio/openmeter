@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -106,21 +107,14 @@ func NewIngestCollector(
 }
 
 func NewKafkaNamespaceHandler(
-	producer *kafka.Producer,
 	topicResolver topicresolver.Resolver,
+	topicProvisioner pkgkafka.TopicProvisioner,
 	conf config.Configuration,
-	logger *slog.Logger,
 ) (*kafkaingest.NamespaceHandler, error) {
-	kafkaAdminClient, err := kafka.NewAdminClientFromProducer(producer)
-	if err != nil {
-		return nil, err
-	}
-
 	return &kafkaingest.NamespaceHandler{
-		AdminClient:   kafkaAdminClient,
-		TopicResolver: topicResolver,
-		Partitions:    conf.Ingest.Kafka.Partitions,
-		Logger:        logger,
+		TopicResolver:    topicResolver,
+		TopicProvisioner: topicProvisioner,
+		Partitions:       conf.Ingest.Kafka.Partitions,
 	}, nil
 }
 

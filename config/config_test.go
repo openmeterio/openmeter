@@ -102,6 +102,8 @@ func TestComplete(t *testing.T) {
 				Partitions:          1,
 				EventsTopicTemplate: "om_%s_events",
 			},
+			CacheSize: 200,
+			CacheTTL:  15 * time.Minute,
 		},
 		Aggregation: AggregationConfiguration{
 			ClickHouse: ClickHouseAggregationConfiguration{

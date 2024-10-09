@@ -14,6 +14,13 @@ import (
 
 type IngestConfiguration struct {
 	Kafka KafkaIngestConfiguration
+
+	// The maximum number of entries stored in topic cache at a time which after the least recently used is evicted.
+	// Setting size to 0 makes it unlimited
+	CacheSize int
+
+	// The maximum time an entries is kept in cache before being evicted
+	CacheTTL time.Duration
 }
 
 // Validate validates the configuration.
@@ -160,4 +167,6 @@ func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.saslPassword", "")
 	v.SetDefault("ingest.kafka.partitions", 1)
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
+	v.SetDefault("ingest.cacheSize", 250)
+	v.SetDefault("ingest.cacheTTL", "5m")
 }
