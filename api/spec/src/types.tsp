@@ -52,13 +52,6 @@ model Metadata {
 scalar DateTime extends utcDateTime;
 
 /**
- * The monetary amount as a string to preserve decimal precision.
- */
-@pattern("^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$")
-@example("0.0015")
-scalar Money extends string;
-
-/**
  * Represents a resource with a unique key.
  */
 @friendlyName("UniqueResource")
@@ -292,6 +285,7 @@ model Annotations {
 @pattern("^\\-?[0-9]+(\\.[0-9]+)?$")
 @friendlyName("Numeric")
 scalar Numeric extends string;
+alias Money = Numeric;
 
 /**
  * Numeric representation of a percentage
