@@ -310,8 +310,8 @@ func initTopicProvisioner(conf config.Configuration, logger *slog.Logger, meter 
 		AdminClient: adminClient,
 		Logger:      logger,
 		Meter:       meter,
-		CacheSize:   conf.Ingest.CacheSize,
-		CacheTTL:    conf.Ingest.CacheTTL,
+		CacheSize:   conf.Ingest.Kafka.CacheSize,
+		CacheTTL:    conf.Ingest.Kafka.CacheTTL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
