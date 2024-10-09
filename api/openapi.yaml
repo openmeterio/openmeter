@@ -6436,13 +6436,8 @@ components:
           readOnly: true
         key:
           type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: |-
-            A unique, human-readable identifier for the subject.
-            Must consist only alphanumeric and underscore characters.
           example: customer-id
+          description: A unique, human-readable identifier for the subject.
         displayName:
           type: string
           example: Customer Name
@@ -6482,13 +6477,8 @@ components:
       properties:
         key:
           type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: |-
-            A unique, human-readable identifier for the subject.
-            Must consist only alphanumeric and underscore characters.
           example: customer-id
+          description: A unique, human-readable identifier for the subject.
         displayName:
           type: string
           example: Customer Name
