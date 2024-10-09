@@ -98,6 +98,7 @@ func main() {
 	app, cleanup, err := initializeApplication(ctx, conf, logger)
 	if err != nil {
 		logger.Error("failed to initialize application", "error", err)
+		os.Exit(1)
 	}
 	defer cleanup()
 
