@@ -8,7 +8,7 @@ import (
 	"github.com/invopop/gobl/cbc"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -127,7 +127,7 @@ type InvoiceWithValidation struct {
 	ValidationErrors []error
 }
 
-type InvoiceCustomer customer.Customer
+type InvoiceCustomer customerentity.Customer
 
 func (i *InvoiceCustomer) Validate() error {
 	if i.Name == "" {

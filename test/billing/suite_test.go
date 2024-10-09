@@ -12,7 +12,8 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/tools/migrate"
@@ -47,15 +48,15 @@ func (s *BaseSuite) SetupSuite() {
 
 	// setup invoicing stack
 
-	customerRepo, err := customerrepository.New(customerrepository.Config{
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: dbClient,
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	s.CustomerService = customer.Service(customerRepo)
+	s.CustomerService = customer.Service(customerAdapter)
 
-	customerService, err := customer.NewService(customer.ServiceConfig{
-		Repository: customerRepo,
+	customerService, err := customerservice.New(customerservice.Config{
+		Adapter: customerAdapter,
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService

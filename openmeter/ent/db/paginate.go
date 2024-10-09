@@ -11,6 +11,198 @@ import (
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (a *AppQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*App], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	a.ctx.Offset = &zero
+	a.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := a.Clone()
+	pagedQuery := a
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*App]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*App] = (*AppQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (ac *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomer], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	ac.ctx.Offset = &zero
+	ac.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := ac.Clone()
+	pagedQuery := ac
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*AppCustomer]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*AppCustomer] = (*AppCustomerQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (as *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripe], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	as.ctx.Offset = &zero
+	as.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := as.Clone()
+	pagedQuery := as
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*AppStripe]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*AppStripe] = (*AppStripeQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (asc *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripeCustomer], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	asc.ctx.Offset = &zero
+	asc.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := asc.Clone()
+	pagedQuery := asc
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*AppStripeCustomer]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*AppStripeCustomer] = (*AppStripeCustomerQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (bs *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BalanceSnapshot], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

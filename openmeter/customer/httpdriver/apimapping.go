@@ -4,38 +4,38 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // newCreateCustomerInput creates a new customer.CreateCustomerInput.
-func newCreateCustomerInput(namespace string, apiCustomer api.Customer) customer.CreateCustomerInput {
-	return customer.CreateCustomerInput{
+func newCreateCustomerInput(namespace string, apiCustomer api.Customer) customerentity.CreateCustomerInput {
+	return customerentity.CreateCustomerInput{
 		Namespace: namespace,
 		Customer:  newFromAPICustomer(namespace, apiCustomer),
 	}
 }
 
 // newUpdateCustomerInput creates a new customer.UpdateCustomerInput.
-func newUpdateCustomerInput(namespace string, apiCustomer api.Customer) customer.UpdateCustomerInput {
-	return customer.UpdateCustomerInput{
+func newUpdateCustomerInput(namespace string, apiCustomer api.Customer) customerentity.UpdateCustomerInput {
+	return customerentity.UpdateCustomerInput{
 		Namespace: namespace,
 		Customer:  newFromAPICustomer(namespace, apiCustomer),
 	}
 }
 
 // newFromAPICustomer creates a new customer.Customer from an api.Customer.
-func newFromAPICustomer(namespace string, apiCustomer api.Customer) customer.Customer {
-	customerModel := customer.Customer{
+func newFromAPICustomer(namespace string, apiCustomer api.Customer) customerentity.Customer {
+	customerModel := customerentity.Customer{
 		ManagedResource: models.ManagedResource{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: namespace,
 			},
 		},
 		Name:             apiCustomer.Name,
-		UsageAttribution: customer.CustomerUsageAttribution(apiCustomer.UsageAttribution),
+		UsageAttribution: customerentity.CustomerUsageAttribution(apiCustomer.UsageAttribution),
 		PrimaryEmail:     apiCustomer.PrimaryEmail,
 	}
 
@@ -54,16 +54,6 @@ func newFromAPICustomer(namespace string, apiCustomer api.Customer) customer.Cus
 		}
 
 		customerModel.BillingAddress = &address
-	}
-
-	if apiCustomer.External != nil {
-		external := &customer.CustomerExternalMapping{}
-
-		if apiCustomer.External.StripeCustomerId != nil {
-			customerModel.External.StripeCustomerID = apiCustomer.External.StripeCustomerId
-		}
-
-		customerModel.External = external
 	}
 
 	if apiCustomer.Currency != nil {

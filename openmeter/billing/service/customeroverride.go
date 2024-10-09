@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 var _ billing.CustomerOverrideService = (*Service)(nil)
@@ -165,7 +165,7 @@ func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter bi
 	}
 
 	// TODO[later]: We need cross service transactions to include this in the same transaction as the calculation itself
-	customer, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+	customer, err := s.customerService.GetCustomer(ctx, customerentity.GetCustomerInput{
 		Namespace: input.Namespace,
 		ID:        input.CustomerID,
 	})

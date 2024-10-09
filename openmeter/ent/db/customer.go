@@ -54,8 +54,6 @@ type Customer struct {
 	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency *currencyx.Code `json:"currency,omitempty"`
-	// ExternalMappingStripeCustomerID holds the value of the "external_mapping_stripe_customer_id" field.
-	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges        CustomerEdges `json:"edges"`
@@ -64,19 +62,30 @@ type Customer struct {
 
 // CustomerEdges holds the relations/edges for other nodes in the graph.
 type CustomerEdges struct {
+	// Apps holds the value of the apps edge.
+	Apps []*AppCustomer `json:"apps,omitempty"`
 	// Subjects holds the value of the subjects edge.
 	Subjects []*CustomerSubjects `json:"subjects,omitempty"`
 	// BillingCustomerOverride holds the value of the billing_customer_override edge.
 	BillingCustomerOverride *BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
+}
+
+// AppsOrErr returns the Apps value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) AppsOrErr() ([]*AppCustomer, error) {
+	if e.loadedTypes[0] {
+		return e.Apps, nil
+	}
+	return nil, &NotLoadedError{edge: "apps"}
 }
 
 // SubjectsOrErr returns the Subjects value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) SubjectsOrErr() ([]*CustomerSubjects, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		return e.Subjects, nil
 	}
 	return nil, &NotLoadedError{edge: "subjects"}
@@ -87,7 +96,7 @@ func (e CustomerEdges) SubjectsOrErr() ([]*CustomerSubjects, error) {
 func (e CustomerEdges) BillingCustomerOverrideOrErr() (*BillingCustomerOverride, error) {
 	if e.BillingCustomerOverride != nil {
 		return e.BillingCustomerOverride, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: billingcustomeroverride.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_customer_override"}
@@ -100,7 +109,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldName, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency, customer.FieldExternalMappingStripeCustomerID:
+		case customer.FieldID, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldName, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -234,13 +243,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.Currency = new(currencyx.Code)
 				*c.Currency = currencyx.Code(value.String)
 			}
-		case customer.FieldExternalMappingStripeCustomerID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field external_mapping_stripe_customer_id", values[i])
-			} else if value.Valid {
-				c.ExternalMappingStripeCustomerID = new(string)
-				*c.ExternalMappingStripeCustomerID = value.String
-			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
 		}
@@ -252,6 +254,11 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (c *Customer) Value(name string) (ent.Value, error) {
 	return c.selectValues.Get(name)
+}
+
+// QueryApps queries the "apps" edge of the Customer entity.
+func (c *Customer) QueryApps() *AppCustomerQuery {
+	return NewCustomerClient(c.config).QueryApps(c)
 }
 
 // QuerySubjects queries the "subjects" edge of the Customer entity.
@@ -355,11 +362,6 @@ func (c *Customer) String() string {
 	if v := c.Currency; v != nil {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := c.ExternalMappingStripeCustomerID; v != nil {
-		builder.WriteString("external_mapping_stripe_customer_id=")
-		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

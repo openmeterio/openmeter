@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -237,8 +237,8 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 }
 
 type ProfileWithCustomerDetails struct {
-	Profile  Profile           `json:"profile"`
-	Customer customer.Customer `json:"customer"`
+	Profile  Profile                 `json:"profile"`
+	Customer customerentity.Customer `json:"customer"`
 }
 
 func (p ProfileWithCustomerDetails) Validate() error {

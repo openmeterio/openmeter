@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -148,7 +148,7 @@ func (r adapter) DeleteCustomerOverride(ctx context.Context, input billing.Delet
 	return nil
 }
 
-func (r adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error) {
+func (r adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error) {
 	dbCustomerOverrides, err := r.client().BillingCustomerOverride.Query().
 		Where(billingcustomeroverride.Namespace(input.Namespace)).
 		Where(billingcustomeroverride.BillingProfileID(input.ID)).
@@ -159,9 +159,9 @@ func (r adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inpu
 		return nil, err
 	}
 
-	var customerIDs []customer.CustomerID
+	var customerIDs []customerentity.CustomerID
 	for _, dbCustomerOverride := range dbCustomerOverrides {
-		customerIDs = append(customerIDs, customer.CustomerID{
+		customerIDs = append(customerIDs, customerentity.CustomerID{
 			Namespace: input.Namespace,
 			ID:        dbCustomerOverride.CustomerID,
 		})

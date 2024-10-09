@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -228,20 +229,6 @@ func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate
 	return cc
 }
 
-// SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
-func (cc *CustomerCreate) SetExternalMappingStripeCustomerID(s string) *CustomerCreate {
-	cc.mutation.SetExternalMappingStripeCustomerID(s)
-	return cc
-}
-
-// SetNillableExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableExternalMappingStripeCustomerID(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetExternalMappingStripeCustomerID(*s)
-	}
-	return cc
-}
-
 // SetID sets the "id" field.
 func (cc *CustomerCreate) SetID(s string) *CustomerCreate {
 	cc.mutation.SetID(s)
@@ -254,6 +241,21 @@ func (cc *CustomerCreate) SetNillableID(s *string) *CustomerCreate {
 		cc.SetID(*s)
 	}
 	return cc
+}
+
+// AddAppIDs adds the "apps" edge to the AppCustomer entity by IDs.
+func (cc *CustomerCreate) AddAppIDs(ids ...int) *CustomerCreate {
+	cc.mutation.AddAppIDs(ids...)
+	return cc
+}
+
+// AddApps adds the "apps" edges to the AppCustomer entity.
+func (cc *CustomerCreate) AddApps(a ...*AppCustomer) *CustomerCreate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return cc.AddAppIDs(ids...)
 }
 
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by IDs.
@@ -468,9 +470,21 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
 		_node.Currency = &value
 	}
-	if value, ok := cc.mutation.ExternalMappingStripeCustomerID(); ok {
-		_spec.SetField(customer.FieldExternalMappingStripeCustomerID, field.TypeString, value)
-		_node.ExternalMappingStripeCustomerID = &value
+	if nodes := cc.mutation.AppsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.AppsTable,
+			Columns: []string{customer.AppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := cc.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -793,24 +807,6 @@ func (u *CustomerUpsert) UpdateCurrency() *CustomerUpsert {
 // ClearCurrency clears the value of the "currency" field.
 func (u *CustomerUpsert) ClearCurrency() *CustomerUpsert {
 	u.SetNull(customer.FieldCurrency)
-	return u
-}
-
-// SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
-func (u *CustomerUpsert) SetExternalMappingStripeCustomerID(v string) *CustomerUpsert {
-	u.Set(customer.FieldExternalMappingStripeCustomerID, v)
-	return u
-}
-
-// UpdateExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateExternalMappingStripeCustomerID() *CustomerUpsert {
-	u.SetExcluded(customer.FieldExternalMappingStripeCustomerID)
-	return u
-}
-
-// ClearExternalMappingStripeCustomerID clears the value of the "external_mapping_stripe_customer_id" field.
-func (u *CustomerUpsert) ClearExternalMappingStripeCustomerID() *CustomerUpsert {
-	u.SetNull(customer.FieldExternalMappingStripeCustomerID)
 	return u
 }
 
@@ -1145,27 +1141,6 @@ func (u *CustomerUpsertOne) UpdateCurrency() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearCurrency() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
-	})
-}
-
-// SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
-func (u *CustomerUpsertOne) SetExternalMappingStripeCustomerID(v string) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetExternalMappingStripeCustomerID(v)
-	})
-}
-
-// UpdateExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateExternalMappingStripeCustomerID() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateExternalMappingStripeCustomerID()
-	})
-}
-
-// ClearExternalMappingStripeCustomerID clears the value of the "external_mapping_stripe_customer_id" field.
-func (u *CustomerUpsertOne) ClearExternalMappingStripeCustomerID() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearExternalMappingStripeCustomerID()
 	})
 }
 
@@ -1667,27 +1642,6 @@ func (u *CustomerUpsertBulk) UpdateCurrency() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearCurrency() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
-	})
-}
-
-// SetExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field.
-func (u *CustomerUpsertBulk) SetExternalMappingStripeCustomerID(v string) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetExternalMappingStripeCustomerID(v)
-	})
-}
-
-// UpdateExternalMappingStripeCustomerID sets the "external_mapping_stripe_customer_id" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateExternalMappingStripeCustomerID() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateExternalMappingStripeCustomerID()
-	})
-}
-
-// ClearExternalMappingStripeCustomerID clears the value of the "external_mapping_stripe_customer_id" field.
-func (u *CustomerUpsertBulk) ClearExternalMappingStripeCustomerID() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearExternalMappingStripeCustomerID()
 	})
 }
 
