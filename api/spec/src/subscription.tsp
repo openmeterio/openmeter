@@ -123,9 +123,9 @@ interface Subscriptions {
    * Cancels the scheduled cancelation.
    */
   @post
-  @operationId("cancelScheduledCancelation")
-  @route("/{subscriptionId}/cancel-scheduled-cancelation")
-  cancelScheduledCancelation(@path subscriptionId: ULID):
+  @operationId("unscheduleCancelation")
+  @route("/{subscriptionId}/unschedule-cancelation")
+  unscheduleCancelation(@path subscriptionId: ULID):
     | Subscription
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
