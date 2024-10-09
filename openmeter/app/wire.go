@@ -14,16 +14,30 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
 )
 
-var ClickHouse = wire.NewSet(
+var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Aggregation"),
 	wire.FieldsOf(new(config.AggregationConfiguration), "ClickHouse"),
 
+	wire.FieldsOf(new(config.Configuration), "Postgres"),
+
+	wire.FieldsOf(new(config.Configuration), "Telemetry"),
+	TelemetryConfig,
+
+	wire.FieldsOf(new(config.Configuration), "Meters"),
+	wire.FieldsOf(new(config.Configuration), "Namespace"),
+)
+
+var TelemetryConfig = wire.NewSet(
+	wire.FieldsOf(new(config.TelemetryConfig), "Metrics"),
+	wire.FieldsOf(new(config.TelemetryConfig), "Trace"),
+	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
+)
+
+var ClickHouse = wire.NewSet(
 	NewClickHouse,
 )
 
 var Database = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Postgres"),
-
 	NewPostgresDriver,
 	NewDB,
 	NewEntPostgresDriver,
@@ -39,10 +53,6 @@ var Kafka = wire.NewSet(
 )
 
 var Telemetry = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Telemetry"),
-	wire.FieldsOf(new(config.TelemetryConfig), "Metrics"),
-	wire.FieldsOf(new(config.TelemetryConfig), "Trace"),
-
 	NewMeterProvider,
 	wire.Bind(new(metric.MeterProvider), new(*sdkmetric.MeterProvider)),
 	NewTracerProvider,
@@ -55,15 +65,10 @@ var Telemetry = wire.NewSet(
 )
 
 var Logger = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Telemetry"),
-	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
-
 	NewLogger,
 )
 
 var OpenMeter = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Meters"),
-
 	NewMeterRepository,
 	wire.Bind(new(meter.Repository), new(*meter.InMemoryRepository)),
 
@@ -77,7 +82,6 @@ var OpenMeter = wire.NewSet(
 	NewKafkaNamespaceHandler,
 	NewIngestCollector,
 
-	wire.FieldsOf(new(config.Configuration), "Namespace"),
 	NewNamespaceHandlers,
 	NewNamespaceManager,
 )

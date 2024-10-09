@@ -48,6 +48,7 @@ type Application struct {
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	wire.Build(
+		app.Config,
 		NewOtelResource,
 		app.Telemetry,
 		NewMeter,
@@ -65,7 +66,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 
 // TODO: is this necessary? Do we need a logger first?
 func initializeLogger(conf config.Configuration) *slog.Logger {
-	wire.Build(NewOtelResource, app.Logger)
+	wire.Build(app.Config, NewOtelResource, app.Logger)
 
 	return new(slog.Logger)
 }
