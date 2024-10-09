@@ -9,6 +9,7 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Billing;
 
 @route("/api/v1/billing/profile")
+@tag("Billing (Experimental)")
 interface Profiles {
   /**
    * List all billing profiles
@@ -32,7 +33,7 @@ interface Profiles {
    */
   @post
   @operationId("createBillingProfile")
-  create(@body profile: Profile): {
+  create(@body profile: ProfileCreateInput): {
     @statusCode _: 201;
     @body profile: Profile;
   } | OpenMeter.CommonErrors;
@@ -44,7 +45,7 @@ interface Profiles {
   @delete
   @operationId("archiveBillingProfile")
   archive(@path id: string): {
-    @statusCode _: 204;
+    @statusCode _: 200;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**
@@ -59,7 +60,7 @@ interface Profiles {
    * Update a billing profile
    */
   @route("/:id")
-  @post // TODO: align it with notifications
+  @put
   @operationId("updateBillingProfile")
   update(@path id: string, @body profile: Profile): {
     @statusCode _: 200;
@@ -95,6 +96,12 @@ model Profile {
 @friendlyName("Supplier")
 model Supplier {
   ...BillingAddress;
+
+  /**
+   * The name of the supplier
+   *
+   * Should be the legal entity's name
+   */
   name: string;
 }
 
@@ -104,6 +111,7 @@ model Supplier {
 @friendlyName("Workflow")
 model Workflow {
   ...ResourceTimestamps;
+  ...WorkflowSettings;
 
   /**
    * A unique identifier for the resource.
@@ -112,22 +120,73 @@ model Workflow {
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   @summary("ID")
   id: ULID;
+}
 
-  collectionAlignment: CollectionAlignment;
-  itemCollectionPeriod: Period; // TODO: type
-  invoice: WorkflowInvoice;
+model WorkflowSettings {
+  /**
+   * When to collect the pending line items into an invoice.
+   *
+   * default: subscription
+   */
+  collectionAlignment?: CollectionAlignment;
+
+  /**
+   * The period for collecting the pending line items into an invoice.
+   *
+   * default: 1 hour
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1D"))
+  itemCollectionPeriod?: duration;
+
+  invoice?: WorkflowInvoice;
+
+  @summary("The tax app used for this workflow")
+  taxApp: OpenMeter.App.App;
+
+  @summary("The invoicing app used for this workflow")
+  invoicingApp: OpenMeter.App.App;
+
+  @summary("The payment app used for this workflow")
+  paymentApp: OpenMeter.App.App;
+}
+
+/**
+ * AppReference can be used to reference an app during creation only.
+ */
+model AppReference {
+  @summary("The ID of the app, if not specified the type is used to find the default app")
+  id?: ULID;
+
+  @summary("The type of the app, if specified the default app is used")
+  type?: OpenMeter.App.AppType;
+}
+
+/**
+ * ProfileCreateInput represents the input for creating a billing profile
+ */
+@friendlyName("ProfileCreateInput")
+model ProfileCreateInput {
+  ...OmitProperties<Profile, "workflow">;
+  workflow: WorkflowCreateInput;
+}
+
+/**
+ * WorkflowCreate represents the workflow settings for creation of a billing profile
+ */
+@friendlyName("WorkflowCreate")
+model WorkflowCreateInput {
+  ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
 
   // provider settings for creation (update is not supported)
   @visibility("create")
-  taxAppID?: ULID;
+  taxApp?: AppReference;
 
   @visibility("create")
-  invoicingAppID?: ULID;
+  invoicingApp?: AppReference;
 
   @visibility("create")
-  paymentAppID?: ULID;
-
-  // TODO: let's add the APP references here for get etc.
+  paymentApp?: AppReference;
 }
 
 /**
@@ -149,12 +208,51 @@ enum CollectionAlignment {
 @summary("Workflow invoice settings")
 @friendlyName("WorkflowInvoice")
 model WorkflowInvoice {
-  autoAdvance: boolean;
-  draftPeriod: Period;
-  dueAfter: Period;
-  collectionMethod: CollectionMethod;
-  itemResolution: ItemResolution;
-  itemPerSubject: boolean;
+  /**
+   * Whether to automatically issue the invoice after the draftPeriod has passed.
+   *
+   * default: true
+   */
+  autoAdvance?: boolean;
+
+  /**
+   * The period for the invoice to be kept in draft status for manual reviews.
+   *
+   * default: 1 day
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1D"))
+  draftPeriod?: duration;
+
+  /**
+   * The period after which the invoice is due.
+   *
+   * default: 7 days
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1D"))
+  dueAfter?: duration;
+
+  /**
+   * The method to collect the invoice.
+   *
+   * default: chargeAutomatically
+   */
+  collectionMethod?: CollectionMethod;
+
+  /**
+   * The resolution of the line items in the invoice.
+   *
+   * default: period
+   */
+  itemResolution?: ItemResolution;
+
+  /**
+   * Whether to create one line item per subject in the invoice.
+   *
+   * default: true
+   */
+  itemPerSubject?: boolean;
 }
 
 /**
@@ -163,8 +261,8 @@ model WorkflowInvoice {
 @friendlyName("CollectionMethod")
 @summary("Collection method")
 enum CollectionMethod {
-  chargeAutomatically: "charge_automatically",
-  sendInvoice: "send_invoice",
+  charge_automatically: "charge_automatically",
+  send_invoice: "send_invoice",
 }
 
 /**

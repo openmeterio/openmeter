@@ -3,7 +3,6 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 
 import "./errors.tsp";
-import "./billing.tsp";
 import "./pagination.tsp";
 import "./types.tsp";
 

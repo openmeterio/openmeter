@@ -9,16 +9,19 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Billing;
 
 @route("/api/v1/billing/pending")
+@tag("Billing (Experimental)")
 interface PendingCharges {
   /**
    * List pending charges
    */
   @get
   @summary("List pending charges")
-  get(): GOBL.Bill.Invoice[] | OpenMeter.CommonErrors;
+  getPendingCharges(): GOBL.Bill.Invoice[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Create a new pending charge
+   *
+   * Note: Manually added charges can only be static, one-time charges. They cannot be based on a meter.
    */
   @post
   @route("/item")
@@ -29,15 +32,20 @@ interface PendingCharges {
   } | OpenMeter.CommonErrors;
 
   /**
+   * Get a pending charge by ID
+   */
+  @get
+  @route("/item/:id")
+  @summary("Get a pending charge")
+  getItem(@path id: ULID): GOBL.Bill.InvoiceItem | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
    * Delete a pending charge
    */
   @delete
   @route("/item/:id")
   @summary("Delete a pending charge")
   delete(@path id: ULID): {
-    @statusCode _: 204;
-
-    // TODO: align delete repsonse!!
-    @body body: GOBL.Bill.InvoiceItem;
+    @statusCode _: 200;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
