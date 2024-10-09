@@ -9,13 +9,14 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Billing;
 
 @route("/api/v1/billing/customer")
+@tag("Billing (Experimental)")
 interface Customers {
   /**
    * List customer overrides
    */
   @get
   @summary("List customer overrides")
-  // TODO: tags
+  @operationId("listCustomerOverrides")
   list(
     @query
     billingProfile?: Array<ULID>,
@@ -29,14 +30,15 @@ interface Customers {
    * Create/update a new customer override.
    */
   @post
-  @route("/:id")
+  @route("/:customerIdOrKey")
   @summary("Create/update a customer override")
+  @operationId("createCustomerOverride")
   create(
     @path
-    customerID: ULID,
+    customerIdOrKey: ULIDOrKey,
 
     @body
-    request: CustomerOverrideCreateRequest,
+    request: CustomerWorkflowOverride,
   ): {
     @statusCode _: 200;
     @body body: CustomerOverride;
@@ -46,24 +48,26 @@ interface Customers {
    * Get a customer override by id.
    */
   @get
-  @route("/:id")
+  @route("/:customerIdOrKey")
   @summary("Get a customer override")
+  @operationId("getCustomerOverrideById")
   get(
     @path
-    customerID: ULID,
+    customerIdOrKey: ULIDOrKey,
   ): CustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete a customer override by id.
    */
   @delete
-  @route("/:id")
+  @route("/:customerIdOrKey")
   @summary("Delete a customer override")
+  @operationId("deleteCustomerOverride")
   delete(
     @path
-    customerID: ULID,
+    customerIdOrKey: ULIDOrKey,
   ): {
-    @statusCode _: 204;
+    @statusCode _: 200;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
@@ -77,44 +81,29 @@ enum CustomerOverrideOrderBy {
   updated: "updated",
 }
 
-model CustomerOverrideCreateRequest {
-  billingProfileID: ULID;
-}
-
 model CustomerOverride {
   ...ResourceTimestamps;
-
+  workflow: CustomerWorkflowOverride;
   /**
-   * A unique identifier for the resource.
+   * The billing profile this override is associated with.
+   *
+   * If not provided, the default billing profile is chosen if available.
    */
-  @visibility("read")
-  @example("01G65Z755AFWAKHE12NY0CQ9FH")
-  @summary("ID")
-  id: ULID;
-
-  workflow: WorkflowOverride;
+  billingProfile?: ULID;
 }
 
-/**
- * Workflow represents a billing workflow
- */
-@friendlyName("WorkflowOverride")
-model WorkflowOverride {
-  collectionAlignment: CollectionAlignment;
-  itemCollectionPeriod: Period; // TODO: type
-  invoice: WorkflowInvoice;
-}
+model CustomerWorkflowOverride {
+  ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
 
-/**
- * WorkflowInvoice represents the invoice settings for a billing workflow
- */
-@summary("Workflow invoice settings")
-@friendlyName("WorkflowOverrideInvoice")
-model WorkflowOverrideInvoice {
-  autoAdvance: boolean;
-  draftPeriod: Period;
-  dueAfter: Period;
-  collectionMethod: CollectionMethod;
-  itemResolution: ItemResolution;
-  itemPerSubject: boolean;
+  @summary("The tax app used for this workflow")
+  @visibility("read", "query")
+  taxApp: OpenMeter.App.App;
+
+  @summary("The invoicing app used for this workflow")
+  @visibility("read", "query")
+  invoicingApp: OpenMeter.App.App;
+
+  @summary("The payment app used for this workflow")
+  @visibility("read", "query")
+  paymentApp: OpenMeter.App.App;
 }
