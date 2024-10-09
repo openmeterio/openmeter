@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	confluentkafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/oklog/run"
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/pflag"
@@ -107,8 +107,15 @@ func main() {
 
 	var group run.Group
 
+	// Initialize Kafka Topic Provisioner
+	topicProvisioner, err := initTopicProvisioner(conf, logger, app.Meter)
+	if err != nil {
+		logger.Error("failed to initialize kafka topic provisioner", "error", err)
+		os.Exit(1)
+	}
+
 	// initialize system event producer
-	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter)
+	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter, topicProvisioner)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
@@ -154,7 +161,7 @@ func main() {
 	}
 }
 
-func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (flushhandler.FlushEventHandler, error) {
+func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner) (flushhandler.FlushEventHandler, error) {
 	if !conf.Events.Enabled {
 		return nil, nil
 	}
@@ -167,13 +174,13 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
 			MetricMeter:  metricMeter,
 		},
-
-		ProvisionTopics: []watermillkafka.AutoProvisionTopic{
+		ProvisionTopics: []pkgkafka.TopicConfig{
 			{
-				Topic:         conf.Events.IngestEvents.Topic,
-				NumPartitions: int32(conf.Events.IngestEvents.AutoProvision.Partitions),
+				Name:       conf.Events.IngestEvents.Topic,
+				Partitions: conf.Events.IngestEvents.AutoProvision.Partitions,
 			},
 		},
+		TopicProvisioner: topicProvisioner,
 	})
 	if err != nil {
 		return nil, err
@@ -259,7 +266,7 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 		return nil, fmt.Errorf("failed to generate Kafka configuration map: %w", err)
 	}
 
-	consumer, err := kafka.NewConsumer(&consumerConfigMap)
+	consumer, err := confluentkafka.NewConsumer(&consumerConfigMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kafka consumer: %s", err)
 	}
@@ -288,4 +295,27 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	}
 
 	return sink.NewSink(sinkConfig)
+}
+
+func initTopicProvisioner(conf config.Configuration, logger *slog.Logger, meter metric.Meter) (pkgkafka.TopicProvisioner, error) {
+	kafkaConfigMap := conf.Ingest.Kafka.CreateKafkaConfig()
+	delete(kafkaConfigMap, "go.logs.channel.enable")
+
+	adminClient, err := confluentkafka.NewAdminClient(&kafkaConfigMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
+	}
+
+	topicProvisioner, err := pkgkafka.NewTopicProvisioner(pkgkafka.TopicProvisionerConfig{
+		AdminClient: adminClient,
+		Logger:      logger,
+		Meter:       meter,
+		CacheSize:   conf.Ingest.CacheSize,
+		CacheTTL:    conf.Ingest.CacheTTL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
+	}
+
+	return topicProvisioner, nil
 }

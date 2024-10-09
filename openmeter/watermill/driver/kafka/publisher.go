@@ -6,11 +6,14 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
+
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type PublisherOptions struct {
-	Broker          BrokerOptions
-	ProvisionTopics []AutoProvisionTopic
+	Broker           BrokerOptions
+	ProvisionTopics  []pkgkafka.TopicConfig
+	TopicProvisioner pkgkafka.TopicProvisioner
 }
 
 func (o *PublisherOptions) Validate() error {
@@ -43,7 +46,7 @@ func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, e
 		return nil, err
 	}
 
-	if err := provisionTopics(ctx, in.Broker.Logger, in.Broker.KafkaConfig.CreateKafkaConfig(), in.ProvisionTopics); err != nil {
+	if err = in.TopicProvisioner.Provision(ctx, in.ProvisionTopics...); err != nil {
 		return nil, err
 	}
 

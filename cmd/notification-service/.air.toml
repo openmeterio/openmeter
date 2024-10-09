@@ -3,7 +3,7 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  args_bin = ["--config", "./config.yaml", "--telemetry-address", ":10002"]
+  args_bin = ["--config", "./config.yaml", "--telemetry-address", ":10003"]
   bin = "./tmp/openmeter-notification-service"
   cmd = "go build -tags dynamic -o ./tmp/openmeter-notification-service ./cmd/notification-service"
   delay = 0

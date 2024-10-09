@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
@@ -14,12 +11,10 @@ import (
 
 // NamespaceHandler is a namespace handler for Kafka ingest topics.
 type NamespaceHandler struct {
-	AdminClient   *kafka.AdminClient
-	TopicResolver topicresolver.Resolver
+	TopicResolver    topicresolver.Resolver
+	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Partitions int
-
-	Logger *slog.Logger
 }
 
 // CreateNamespace implements the namespace handler interface.
@@ -30,15 +25,15 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 
 	topicName, err := h.TopicResolver.Resolve(ctx, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to resolve namespace to topic name: %w", err)
+		return fmt.Errorf("failed to resolve namespace %q to topic name: %w", namespace, err)
 	}
 
-	err = pkgkafka.ProvisionTopics(ctx, h.AdminClient, pkgkafka.TopicConfig{
+	err = h.TopicProvisioner.Provision(ctx, pkgkafka.TopicConfig{
 		Name:       topicName,
 		Partitions: h.Partitions,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to provision topic %s: %s", topicName, err)
+		return fmt.Errorf("failed to provision topic %q: %s", topicName, err)
 	}
 
 	return nil
@@ -55,14 +50,9 @@ func (h NamespaceHandler) DeleteNamespace(ctx context.Context, namespace string)
 		return fmt.Errorf("failed to resolve namespace to topic name: %w", err)
 	}
 
-	result, err := h.AdminClient.DeleteTopics(ctx, []string{topicName})
+	err = h.TopicProvisioner.DeProvision(ctx, topicName)
 	if err != nil {
-		return err
-	}
-	for _, r := range result {
-		if r.Error.Code() != kafka.ErrNoError {
-			return r.Error
-		}
+		return fmt.Errorf("failed to deprovision kafka topic %q: %w", topicName, err)
 	}
 
 	return nil

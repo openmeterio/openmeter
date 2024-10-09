@@ -33,6 +33,9 @@ var Database = wire.NewSet(
 var Kafka = wire.NewSet(
 	NewKafkaProducer,
 	NewKafkaMetrics,
+
+	wire.FieldsOf(new(config.Configuration), "Ingest"),
+	NewKafkaTopicProvisioner,
 )
 
 var Telemetry = wire.NewSet(
