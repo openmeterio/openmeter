@@ -60,8 +60,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 
 // TODO: is this necessary? Do we need a logger first?
 func initializeLogger(conf config.Configuration) *slog.Logger {
+	telemetryConfig := conf.Telemetry
+	logTelemetryConfiguration := telemetryConfig.Log
 	resource := NewOtelResource(conf)
-	logger := NewLogger(conf, resource)
+	logger := app.NewLogger(logTelemetryConfiguration, resource)
 	return logger
 }
 
