@@ -98,10 +98,27 @@ union AppliedDiscount {
   amount: AppliedDiscountAmount,
 }
 
+alias RateCardKey = Key;
+
 /**
  * Percentage discount on plan.
  */
-@friendlyName("PlanDiscountPercentage")
+@friendlyName("AppliedDiscountUsage")
+model AppliedDiscountUsage {
+  ...DiscountUsage;
+
+  /**
+   * The rate cards that the discount applies to.
+   * When not specified, the discount applies to all rate cards.
+   */
+  @summary("Applies To")
+  appliesTo?: RateCardKey[];
+}
+
+/**
+ * Percentage discount on plan.
+ */
+@friendlyName("AppliedDiscountPercentage")
 model AppliedDiscountPercentage {
   ...DiscountPercentage;
 
@@ -110,13 +127,13 @@ model AppliedDiscountPercentage {
    * When not specified, the discount applies to all rate cards.
    */
   @summary("Applies To")
-  appliesTo?: Key[];
+  appliesTo?: RateCardKey[];
 }
 
 /**
  * Amount discount on plan.
  */
-@friendlyName("PlanDiscountAmount")
+@friendlyName("AppliedDiscountAmount")
 model AppliedDiscountAmount {
   ...DiscountAmount;
 
@@ -125,5 +142,5 @@ model AppliedDiscountAmount {
    * When not specified, the discount applies to all rate cards.
    */
   @summary("Applies To")
-  appliesTo?: Key[];
+  appliesTo?: RateCardKey[];
 }

@@ -6,11 +6,11 @@ namespace OpenMeter;
 using TypeSpec.Http;
 
 enum JSONPatchValueOperation {
-  ADD: "add",
+  add: "add",
 }
 
 enum JSONPatchValuelessOperation {
-  REMOVE: "remove",
+  remove: "remove",
 }
 
 model JSONPatchAdd<T, K extends string> {

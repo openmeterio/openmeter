@@ -51,9 +51,9 @@ interface Subscriptions {
   create(
     @body body: {
       customerId: ULID;
-      templatingPlan: {
-        planKey: Key;
-        planVersion: integer;
+      plan: {
+        key: Key;
+        version: integer;
       };
       currency: CurrencyCode;
       activeFrom: DateTime;
@@ -66,7 +66,7 @@ interface Subscriptions {
        * 2. The provided value for ADD operation doesn't match the target type. It is the creation input type for the SubscriptionItem.
        */
       @maxItems(100)
-      overrides: SubscriptionItemOverride[];
+      customizations: SubscriptionItemPatch[];
     },
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
@@ -86,7 +86,7 @@ interface Subscriptions {
 
     @body
     @maxItems(100)
-    body: SubscriptionItemOverride[],
+    body: SubscriptionItemPatch[],
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -239,9 +239,9 @@ model Subscription {
   customerId: ULID;
 
   /**
-   * The templating plan of the subscription.
+   * The base plan of the subscription.
    */
-  templatingPlan: {
+  plan: {
     /**
      * The plan Key of the subscription.
      */
@@ -315,8 +315,6 @@ model SubscriptionItem {
   ...OmitProperties<VirtualResource, "key">;
 
   /**
-   * Copied from product doc:
-   *
    * The identifier of the RateCard.
    * SubscriptionItem/RateCard can be identified, it has a reference:
    *
@@ -327,8 +325,6 @@ model SubscriptionItem {
    * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
    *
    * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”
-   *
-   * In practice this will need an ID being generated
    */
   key: Key;
 
@@ -382,9 +378,9 @@ model SubscriptionItem {
 @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+\\/items\\/[a-zA-Z0-9\\-]+$")
 scalar SubscriptionItemPatchKey extends string;
 
-alias SubscriptionOverride = SubscriptionItemOverride;
+alias SubscriptionOverride = SubscriptionItemPatch;
 
-alias SubscriptionItemOverride = JSONPatchAdd<
+alias SubscriptionItemPatch = JSONPatchAdd<
   RateCard,
   SubscriptionItemPatchKey
 > | JSONPatchRemove<SubscriptionItemPatchKey>;
