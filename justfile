@@ -2,6 +2,11 @@
 default:
   @just --list
 
+generate:
+    dagger call generate server export --path api
+    GOWORK=off go generate ./cmd/... # TODO: move this to dagger?
+    # TODO: generate clients
+
 # tag and release a new version
 release:
     #!/usr/bin/env bash
