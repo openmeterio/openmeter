@@ -18,10 +18,37 @@ enum RateCardType {
 }
 
 /**
- * Common fields of the rate card.
+ * A rate card defines the pricing and entitlement of a feature or service.
  */
-@friendlyName("RateCardBase")
-model RateCardBase extends Resource {
+@friendlyName("RateCardResource")
+model RateCardResource {
+  ...Resource;
+  ...RateCard;
+}
+
+/**
+ * A rate card defines the pricing and entitlement of a feature or service.
+ */
+@friendlyName("RateCard")
+model RateCard {
+  /**
+   * Copied from product doc:
+   *
+   * The identifier of the RateCard.
+   * SubscriptionItem/RateCard can be identified, it has a reference:
+   *
+   * 1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
+   *  1.1 It can be an ID reference, for an exact version of the Feature (Features can change across versions)
+   *  1.2 It can be a Key reference, which always refers to the latest (active or inactive) version of a Feature
+   *
+   * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
+   *
+   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”
+   *
+   * In practice this will need an ID being generated
+   */
+  key: Key;
+
   /**
    * The feature the customer is entitled to use.
    */
@@ -41,24 +68,6 @@ model RateCardBase extends Resource {
    */
   @summary("Tax config")
   taxConfig?: TaxConfig;
-}
-
-/**
- * A rate card defines the pricing and entitlement of a feature or service.
- */
-@friendlyName("RateCard")
-@discriminator("type")
-union RateCard {
-  flatFee: RateCardFlatFee,
-  usageBased: RateCardUsageBased,
-}
-
-/**
- * A flat fee rate card defines a one-time purchase or a recurring fee.
- */
-@friendlyName("RateCardFlatFee")
-model RateCardFlatFee extends RateCardBase {
-  type: RateCardType.flatFee;
 
   /**
    * The billing cadence of the rate card.
@@ -74,69 +83,12 @@ model RateCardFlatFee extends RateCardBase {
    */
   @summary("Price")
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
-  price: FlatPriceWithPaymentTerm | null;
-
-  /**
-   * The discount of the rate card. Either a percentage or an amount.
-   * Only available when price is set.
-   */
-  @summary("Discount")
-  discount?: DiscountPercentage | DiscountAmount;
-}
-
-/**
- * A usage-based rate card defines a price based on usage.
- */
-@friendlyName("RateCardUsageBased")
-model RateCardUsageBased extends RateCardBase {
-  type: RateCardType.usageBased;
-
-  /**
-   * The billing cadence of the rate card.
-   */
-  @summary("Billing cadence")
-  @encode(DurationKnownEncoding.ISO8601)
-  billingCandence: duration;
-
-  /**
-   * The price of the rate card.
-   * When null, the feature or service is free.
-   */
-  @summary("Price")
-  @example(#{ type: PriceType.unit, amount: "0.01", minimumAmount: "100" })
-  price: UnitPriceWithCommitments | TieredPriceWithCommitments | FlatPriceWithPaymentTerm | null;
-
-  /**
-   * The discount of the rate card.
-   */
-  @summary("Discount")
-  discount?: Discount;
-}
-
-/**
- * Rate card override.
- */
-@friendlyName("RateCardOverride")
-@discriminator("type")
-union RateCardOverride {
-  flatFee: RateCardOverrideFlatFee,
-  usageBased: RateCardOverrideUsageBased,
-}
-
-/**
- * Flat fee rate card override.
- */
-@friendlyName("RateCardOverrideFlatFee")
-model RateCardOverrideFlatFee {
-  ...PickProperties<RateCardFlatFee, "type" | "price" | "discount">;
-}
-
-/**
- * Usage-based rate card override.
- */
-@friendlyName("RateCardOverrideUsageBased")
-model RateCardOverrideUsageBased {
-  ...PickProperties<RateCardUsageBased, "type" | "price" | "discount">;
+  price:
+    | FlatPriceWithPaymentTerm
+    | UnitPriceWithCommitments
+    | TieredPriceWithCommitments
+    | FlatPriceWithPaymentTerm
+    | null;
 }
 
 /**
