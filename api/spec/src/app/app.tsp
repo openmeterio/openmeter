@@ -1,5 +1,6 @@
 import "@typespec/http";
 import "@typespec/rest";
+import "@typespec/openapi";
 import "@typespec/openapi3";
 
 import "./app.tsp";
@@ -22,14 +23,14 @@ namespace OpenMeter.App;
  */
 @route("/api/v1/apps")
 @tag("Apps")
-interface Installed {
+interface Apps {
   /**
    * List apps.
    */
   @get
   @route("/")
   @operationId("listApps")
-  listApps(...ListAppsRequest): Paginated<App>[] | CommonErrors;
+  list(...ListAppsRequest): Paginated<App>[] | CommonErrors;
 
   /**
    * Get the app.
@@ -37,7 +38,7 @@ interface Installed {
   @get
   @route("/{id}")
   @operationId("getApp")
-  getApp(@path id: ULID): App | CommonErrors;
+  get(@path id: ULID): App | CommonErrors;
 
   /**
    * Uninstall an app.
@@ -45,7 +46,7 @@ interface Installed {
   @delete
   @route("/{id}")
   @operationId("uninstallApp")
-  uninstallApp(@path id: ULID): App | NotFoundError | CommonErrors;
+  uninstall(@path id: ULID): App | NotFoundError | CommonErrors;
 }
 
 /**
@@ -68,7 +69,6 @@ enum AppType {
 @friendlyName("App")
 @discriminator("type")
 union App {
-  @summary("Stripe")
   stripe: StripeApp,
 }
 

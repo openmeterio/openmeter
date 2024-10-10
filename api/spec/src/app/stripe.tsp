@@ -1,5 +1,6 @@
 import "@typespec/http";
 import "@typespec/rest";
+import "@typespec/openapi";
 import "@typespec/openapi3";
 
 import "./app.tsp";
@@ -28,7 +29,7 @@ interface AppStripe {
   @post
   @route("/webhook")
   @operationId("appStripeWebhook")
-  appStripeWebhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
+  webhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
 
   /**
    * Create checkout session.
@@ -36,7 +37,7 @@ interface AppStripe {
   @post
   @route("/checkout/sessions")
   @operationId("createAppStripeCheckoutSession")
-  createAppStripeCheckoutSession(@path id: ULID, @body body: CreateStripeCheckoutSessionRequest): {
+  createCheckoutSession(@path id: ULID, @body body: CreateStripeCheckoutSessionRequest): {
     @statusCode _: 201;
     @body body: CreateStripeCheckoutSessionResponse;
   } | CommonErrors;
