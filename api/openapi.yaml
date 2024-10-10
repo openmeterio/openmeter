@@ -194,75 +194,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/apps/{id}/stripe/checkout/sessions:
-    post:
-      operationId: createAppStripeCheckoutSession
-      description: Create checkout session.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-      responses:
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateStripeCheckoutSessionResponse'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '404':
-          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Apps
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
   /api/v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
@@ -1456,6 +1387,68 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements (Experimental)
+  /api/v1/integration/stripe/checkout/sessions:
+    post:
+      operationId: createStripeCheckoutSession
+      description: Create checkout session.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateStripeCheckoutSessionResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
   /api/v1/marketplace/listings:
     get:
       operationId: marketplaceListListings
@@ -4850,19 +4843,27 @@ components:
     CreateStripeCheckoutSessionRequest:
       type: object
       required:
-        - customerId
+        - customer
         - options
       properties:
-        customerId:
+        appId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The customer ID.
+          description: If not provided, the default Stripe app is used if any.
+        customer:
+          anyOf:
+            - $ref: '#/components/schemas/CustomerId'
+            - $ref: '#/components/schemas/Customer'
+          description: |-
+            Provide a customer ID to use an existing OpenMeter customer.
+            or provide a customer object to create a new customer.
         stripeCustomerId:
           type: string
           description: |-
             Stripe customer ID.
-            If not provided OpenMeter creates a new Stripe customer.
+            If not provided OpenMeter creates a new Stripe customer or
+            uses the OpenMeter customer's default Stripe customer ID.
         options:
           allOf:
             - $ref: '#/components/schemas/CreateStripeCheckoutSessionRequestOptions'
@@ -5053,6 +5054,17 @@ components:
             Required to use Stripe as an invocing provider.
           title: Stripe Customer
       description: External mappings for the customer.
+    CustomerId:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Create Stripe checkout session customer ID.
     CustomerIdentifier:
       anyOf:
         - type: string

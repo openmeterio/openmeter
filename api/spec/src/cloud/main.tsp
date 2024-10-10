@@ -110,7 +110,6 @@ namespace OpenMeterCloud.App {
   @tag("Apps")
   interface Apps extends OpenMeter.App.Apps {}
 
-  @route("/api/v1/apps/{id}/stripe")
   @tag("Apps")
   interface AppStripe extends OpenMeter.App.AppStripe {}
 }

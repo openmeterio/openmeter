@@ -10,9 +10,11 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -20,13 +22,13 @@ import (
 type (
 	CreateAppStripeCheckoutSessionRequest  = appstripeentity.CreateCheckoutSessionInput
 	CreateAppStripeCheckoutSessionResponse = api.CreateStripeCheckoutSessionResponse
-	CreateAppStripeCheckoutSessionHandler  httptransport.HandlerWithArgs[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse, string]
+	CreateAppStripeCheckoutSessionHandler  httptransport.Handler[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse]
 )
 
 // CreateAppStripeCheckoutSession returns a handler for creating a checkout session.
 func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessionHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appID string) (CreateAppStripeCheckoutSessionRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (CreateAppStripeCheckoutSessionRequest, error) {
 			body := api.CreateStripeCheckoutSessionRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("field to decode create app stripe checkout session request: %w", err)
@@ -37,10 +39,33 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
+			var createCustomerInput *customerentity.CreateCustomerInput
+			var customerId *customerentity.CustomerID
+
+			// Try to parse customer field as customer ID first
+			apiCustomerId, err := body.Customer.AsCustomerId()
+			if err == nil && apiCustomerId.Id != "" {
+				customerId = &customerentity.CustomerID{
+					Namespace: namespace,
+					ID:        apiCustomerId.Id,
+				}
+			} else {
+				// If err try to parse customer field as customer input
+				apiCustomer, err := body.Customer.AsCustomer()
+				if err != nil {
+					return CreateAppStripeCheckoutSessionRequest{}, appstripe.ValidationError{
+						Err: fmt.Errorf("failed to decode customer: %w", err),
+					}
+				}
+
+				createCustomerInput = lo.ToPtr(customerhttpdriver.NewCreateCustomerInput(namespace, apiCustomer))
+			}
+
 			req := CreateAppStripeCheckoutSessionRequest{
-				AppID:            appentitybase.AppID{Namespace: namespace, ID: appID},
-				CustomerID:       customerentity.CustomerID{Namespace: namespace, ID: body.CustomerId},
-				StripeCustomerID: body.StripeCustomerId,
+				Namespace:           namespace,
+				CustomerID:          customerId,
+				CreateCustomerInput: createCustomerInput,
+				StripeCustomerID:    body.StripeCustomerId,
 				Options: stripeclient.StripeCheckoutSessionOptions{
 					Currency:          body.Options.Currency,
 					CancelURL:         body.Options.CancelURL,
@@ -48,6 +73,10 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 					ReturnURL:         body.Options.ReturnURL,
 					SuccessURL:        body.Options.SuccessURL,
 				},
+			}
+
+			if body.AppId != nil {
+				req.AppID = &appentitybase.AppID{Namespace: namespace, ID: *body.AppId}
 			}
 
 			if body.Options.UiMode != nil {

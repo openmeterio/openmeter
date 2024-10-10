@@ -191,46 +191,76 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 	}
 
 	return transaction.Run(ctx, a, func(ctx context.Context) (appstripeentity.CreateCheckoutSessionOutput, error) {
+		var appID appentitybase.AppID
+
+		// Use the provided app ID or get the default Stripe app
+		if input.AppID != nil {
+			appID = *input.AppID
+		} else {
+			app, err := a.appService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+				Namespace: input.Namespace,
+				Type:      appentitybase.AppTypeStripe,
+			})
+			if err != nil {
+				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get default app: %w", err)
+			}
+
+			appID = app.GetID()
+		}
+
 		// Get the stripe app
 		stripeApp, err := a.db.AppStripe.
 			Query().
-			Where(appstripedb.ID(input.AppID.ID)).
-			Where(appstripedb.Namespace(input.AppID.Namespace)).
+			Where(appstripedb.ID(appID.ID)).
+			Where(appstripedb.Namespace(appID.Namespace)).
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
 				return appstripeentity.CreateCheckoutSessionOutput{}, appstripe.AppNotFoundError{
-					AppID: input.AppID,
+					AppID: appID,
 				}
 			}
 
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe app: %w", err)
 		}
 
-		// Get customer
-		// if input.CustomerID != nil {
-		_, err = a.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(input.CustomerID))
-		if err != nil {
-			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get customer: %w", err)
+		// Get or create customer
+		var customerID customerentity.CustomerID
+
+		if input.CustomerID != nil {
+			customer, err := a.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(*input.CustomerID))
+			if err != nil {
+				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get customer: %w", err)
+			}
+
+			customerID = customer.GetID()
 		}
-		// }
+
+		if input.CreateCustomerInput != nil {
+			customer, err := a.customerService.CreateCustomer(ctx, customerentity.CreateCustomerInput(*input.CreateCustomerInput))
+			if err != nil {
+				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create customer: %w", err)
+			}
+
+			customerID = customer.GetID()
+		}
 
 		// Get the stripe app customer
 		var stripeCustomerId string
 		{
 			stripeAppCustomer, err := a.db.AppStripeCustomer.
 				Query().
-				Where(appstripecustomerdb.AppID(input.AppID.ID)).
-				Where(appstripecustomerdb.Namespace(input.AppID.Namespace)).
-				Where(appstripecustomerdb.CustomerID(input.CustomerID.ID)).
+				Where(appstripecustomerdb.AppID(appID.ID)).
+				Where(appstripecustomerdb.Namespace(appID.Namespace)).
+				Where(appstripecustomerdb.CustomerID(customerID.ID)).
 				Only(ctx)
 			if err != nil {
 				if entdb.IsNotFound(err) {
 					// If Stripe Customer ID is provided we need to upsert it
 					if input.StripeCustomerID != nil {
 						err = a.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
-							AppID:            input.AppID,
-							CustomerID:       input.CustomerID,
+							AppID:            appID,
+							CustomerID:       customerID,
 							StripeCustomerID: *input.StripeCustomerID,
 						})
 						if err != nil {
@@ -241,8 +271,8 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 					} else {
 						// Otherwise we create a new Stripe Customer
 						out, err := a.createStripeCustomer(ctx, appstripeentity.CreateStripeCustomerInput{
-							AppID:      input.AppID,
-							CustomerID: input.CustomerID,
+							AppID:      appID,
+							CustomerID: customerID,
 						})
 						if err != nil {
 							return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)
@@ -274,7 +304,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 				Namespace: stripeApp.Namespace,
 				ID:        stripeApp.APIKey,
 			},
-			AppID: input.AppID,
+			AppID: appID,
 			Key:   appstripeentity.APIKeySecretKey,
 		})
 		if err != nil {
@@ -293,8 +323,8 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		// Create the checkout session
 		checkoutSession, err := stripeClient.CreateCheckoutSession(ctx, stripeclient.CreateCheckoutSessionInput{
 			StripeCustomerID: stripeCustomerId,
-			AppID:            input.AppID,
-			CustomerID:       input.CustomerID,
+			AppID:            appID,
+			CustomerID:       customerID,
 			Options:          input.Options,
 		})
 		if err != nil {
@@ -306,7 +336,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		}
 
 		return appstripeentity.CreateCheckoutSessionOutput{
-			CustomerID:       input.CustomerID,
+			CustomerID:       customerID,
 			StripeCustomerID: stripeCustomerId,
 
 			SessionID:     checkoutSession.SessionID,

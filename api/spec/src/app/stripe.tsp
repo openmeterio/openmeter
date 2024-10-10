@@ -6,6 +6,7 @@ import "@typespec/openapi3";
 import "./app.tsp";
 import "./capability.tsp";
 import "../errors.tsp";
+import "../customer.tsp";
 import "../oauth.tsp";
 import "../pagination.tsp";
 import "../types.tsp";
@@ -18,16 +19,15 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.App;
 
 /**
- * Installed Apps API.
+ * Stripe specific APIs.
  */
-@route("/api/v1/apps/{id}/stripe")
-@tag("AppsStripe")
+@tag("Stripe")
 interface AppStripe {
   /**
    * Stripe webhook.
    */
   @post
-  @route("/webhook")
+  @route("/api/v1/apps/{id}/stripe/webhook")
   @operationId("appStripeWebhook")
   webhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | NotFoundError | CommonErrors;
 
@@ -35,9 +35,9 @@ interface AppStripe {
    * Create checkout session.
    */
   @post
-  @route("/checkout/sessions")
-  @operationId("createAppStripeCheckoutSession")
-  createCheckoutSession(@path id: ULID, @body body: CreateStripeCheckoutSessionRequest): {
+  @route("/api/v1/integration/stripe/checkout/sessions")
+  @operationId("createStripeCheckoutSession")
+  createCheckoutSession(@body body: CreateStripeCheckoutSessionRequest): {
     @statusCode _: 201;
     @body body: CreateStripeCheckoutSessionResponse;
   } | NotFoundError | CommonErrors;
@@ -54,18 +54,33 @@ model StripeWebhookResponse {
 }
 
 /**
+ * Create Stripe checkout session customer ID.
+ */
+@friendlyName("CustomerId")
+model CustomerId {
+  id: ULID;
+}
+
+/**
  * Create Stripe checkout session request.
  */
 @friendlyName("CreateStripeCheckoutSessionRequest")
 model CreateStripeCheckoutSessionRequest {
   /**
-   * The customer ID.
+   * If not provided, the default Stripe app is used if any.
    */
-  customerId: ULID;
+  appId?: ULID;
+
+  /**
+   * Provide a customer ID to use an existing OpenMeter customer.
+   * or provide a customer object to create a new customer.
+   */
+  customer: CustomerId | Customer;
 
   /**
    * Stripe customer ID.
-   * If not provided OpenMeter creates a new Stripe customer.
+   * If not provided OpenMeter creates a new Stripe customer or
+   * uses the OpenMeter customer's default Stripe customer ID.
    */
   stripeCustomerId?: string;
 

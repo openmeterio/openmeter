@@ -30,7 +30,7 @@ func (a *Router) AppStripeWebhook(w http.ResponseWriter, r *http.Request, appID 
 }
 
 // Handle create app stripe checkout session
-// (POST /api/v1/apps/{appId}/stripe/checkout-session)
-func (a *Router) CreateAppStripeCheckoutSession(w http.ResponseWriter, r *http.Request, appID string) {
-	a.appStripeHandler.CreateAppStripeCheckoutSession().With(appID).ServeHTTP(w, r)
+// (POST /api/v1/integration/stripe/checkout/sessions)
+func (a *Router) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	a.appStripeHandler.CreateAppStripeCheckoutSession().ServeHTTP(w, r)
 }

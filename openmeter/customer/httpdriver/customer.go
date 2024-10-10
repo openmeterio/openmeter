@@ -99,7 +99,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			req := newCreateCustomerInput(ns, body)
+			req := NewCreateCustomerInput(ns, body)
 
 			return req, nil
 		},

@@ -188,12 +188,16 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		},
 	})
 
+	appID := app.GetID()
+	customerID := customer.GetID()
+
 	require.NoError(t, err, "Create customer must not return error")
 	require.NotNil(t, customer, "Create customer must return customer")
 
 	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
-		AppID:      app.GetID(),
-		CustomerID: customer.GetID(),
+		Namespace:  s.namespace,
+		AppID:      &appID,
+		CustomerID: &customerID,
 		Options:    stripeclient.StripeCheckoutSessionOptions{},
 	})
 
@@ -215,8 +219,9 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	}
 
 	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
-		AppID:      appIdNotFound,
-		CustomerID: customer.GetID(),
+		Namespace:  s.namespace,
+		AppID:      &appIdNotFound,
+		CustomerID: &customerID,
 		Options:    stripeclient.StripeCheckoutSessionOptions{},
 	})
 
@@ -229,8 +234,9 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	}
 
 	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
-		AppID:      app.GetID(),
-		CustomerID: customerIdNotFound,
+		Namespace:  s.namespace,
+		AppID:      &appID,
+		CustomerID: &customerIdNotFound,
 		Options:    stripeclient.StripeCheckoutSessionOptions{},
 	})
 

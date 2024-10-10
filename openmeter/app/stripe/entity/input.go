@@ -176,22 +176,48 @@ func (i GetWebhookSecretInput) Validate() error {
 type GetWebhookSecretOutput = secretentity.Secret
 
 type CreateCheckoutSessionInput struct {
-	AppID            appentitybase.AppID
-	CustomerID       customerentity.CustomerID
-	StripeCustomerID *string
-	Options          stripeclient.StripeCheckoutSessionOptions
+	Namespace           string
+	AppID               *appentitybase.AppID
+	CreateCustomerInput *customerentity.CreateCustomerInput
+	CustomerID          *customerentity.CustomerID
+	StripeCustomerID    *string
+	Options             stripeclient.StripeCheckoutSessionOptions
 }
 
 func (i CreateCheckoutSessionInput) Validate() error {
-	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
 	}
 
-	if err := i.CustomerID.Validate(); err != nil {
-		return fmt.Errorf("error validating customer id: %w", err)
+	if i.AppID != nil {
+		if err := i.AppID.Validate(); err != nil {
+			return fmt.Errorf("error validating app id: %w", err)
+		}
 	}
 
-	if i.AppID.Namespace != i.CustomerID.Namespace {
+	// Least one of customer or customer id is required
+	if i.CreateCustomerInput == nil && i.CustomerID == nil {
+		return errors.New("create customer input or customer id is required")
+	}
+
+	// Mutually exclusive
+	if i.CreateCustomerInput != nil && i.CustomerID != nil {
+		return errors.New("create customer input and customer id cannot be provided at the same time")
+	}
+
+	if i.CreateCustomerInput != nil {
+		if err := i.CreateCustomerInput.Validate(); err != nil {
+			return fmt.Errorf("error validating create customer input: %w", err)
+		}
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			return fmt.Errorf("error validating customer id: %w", err)
+		}
+	}
+
+	if i.CustomerID != nil && i.Namespace != i.CustomerID.Namespace {
 		return errors.New("app and customer must be in the same namespace")
 	}
 

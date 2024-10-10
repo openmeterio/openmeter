@@ -10,8 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
-// newCreateCustomerInput creates a new customer.CreateCustomerInput.
-func newCreateCustomerInput(namespace string, apiCustomer api.Customer) customerentity.CreateCustomerInput {
+// NewCreateCustomerInput creates a new customer.CreateCustomerInput.
+func NewCreateCustomerInput(namespace string, apiCustomer api.Customer) customerentity.CreateCustomerInput {
 	return customerentity.CreateCustomerInput{
 		Namespace: namespace,
 		Customer:  newFromAPICustomer(namespace, apiCustomer),
