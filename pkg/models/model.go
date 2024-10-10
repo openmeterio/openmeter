@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	modelref "github.com/openmeterio/openmeter/pkg/models/ref"
 )
 
 type ManagedUniqueResource struct {
@@ -146,13 +144,6 @@ type VersionedModel struct {
 	Key string `json:"key,omitempty"`
 	// Version is the integer sequential version of the entity, starting from 1.
 	Version int `json:"version,omitempty"`
-}
-
-func (v VersionedModel) AsRef() modelref.VersionedKeyRef {
-	return modelref.VersionedKeyRef{
-		Key:     v.Key,
-		Version: v.Version,
-	}
 }
 
 // CadencedModel represents a model with active from and to dates.
