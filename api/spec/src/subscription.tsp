@@ -8,7 +8,6 @@ import "./types.tsp";
 import "./errors.tsp";
 import "./prices.tsp";
 import "./ratecards.tsp";
-import "./jsonpatch.tsp";
 import "./discounts.tsp";
 import "./entitlements/main.tsp";
 
@@ -59,11 +58,13 @@ interface Subscriptions {
       activeFrom: DateTime;
 
       /**
-       * JSON Patch (RFC6902).
+       * Batch processing commands for customizing the susbcription.
+       * The key format is `/phases/{phaseKey}/items/{itemKey}`.
        *
-       * It is a partial implementation of the JSON Patch standard:
-       * 1. It only respecting the `add` and `remove` operations. All other operations defined in RFC6902 are ignored during execution.
-       * 2. The provided value for ADD operation doesn't match the target type. It is the creation input type for the SubscriptionItem.
+       * Add operations insert a new member based on the creation input without altering the existing members.
+       *
+       * Remove operations remove the member from the document.
+       *
        */
       @maxItems(100)
       customizations: SubscriptionItemPatch[];
@@ -71,11 +72,14 @@ interface Subscriptions {
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
   /**
-   * Applies the JSON Patch (RFC6902) atomically (RFC5789).
+   * Batch processing commands for manipulating running subscriptions.
+   * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
    *
-   * It is a partial implementation of the JSON Patch standard:
-   * 1. It only respecting the `add` and `remove` operations. All other operations defined in RFC6902 are ignored during execution.
-   * 2. The provided value for ADD operation doesn't match the target type. It is the creation input type for the SubscriptionItem and SubscriptionPhase.
+   * Add operations insert a new member based on the creation input without altering the existing members.
+   *
+   * Remove operations remove the member from the collection / document.
+   *
+   * The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
    */
   @patch
   @operationId("editSubscription")
@@ -86,7 +90,7 @@ interface Subscriptions {
 
     @body
     @maxItems(100)
-    body: SubscriptionItemPatch[],
+    body: SubscriptionPatch[],
   ): Subscription | OpenMeter.ConflictError | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -130,91 +134,6 @@ interface Subscriptions {
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
-
-  @get
-  @operationId("getPhases")
-  @summary("Get the phases of a subscription")
-  @route("/{subscriptionId}/phases")
-  getPhases(@path subscriptionId: ULID): SubscriptionPhase[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  // We have separate APIs for manipulating phases (adding and removing) to limit what aspects of RFC6902 we implement.
-  // This decision can later be overturned.
-
-  @delete
-  @operationId("deleteSubscriptionPhase")
-  @route("/{subscriptionId}/phases/{phaseKey}")
-  deletePhase(@path subscriptionId: ULID, @path phaseKey: Key):
-    | {
-        @statusCode _: 204;
-      }
-    | OpenMeter.NotFoundError
-    | OpenMeter.ConflictError
-    | OpenMeter.CommonErrors;
-
-  @post
-  @operationId("addSubscriptionPhase")
-  @route("/{subscriptionId}/phases")
-  addPhase(
-    @path subscriptionId: ULID,
-    @body phase: {
-      key: Key;
-      rateCards: RateCard[];
-      activeFrom: DateTime;
-    },
-  ): SubscriptionPhase | OpenMeter.NotFoundError | OpenMeter.ConflictError | OpenMeter.CommonErrors;
-
-  /**
-   * Extend has to delay both the current and all subsequent phases by the provided duration.
-   */
-  @post
-  @operationId("extendSubscriptionPhase")
-  @route("/{subscriptionId}/phases/{phaseKey}/extend")
-  extendPhase(
-    @path subscriptionId: ULID,
-    @path phaseKey: Key,
-    @body body: {
-      @encode(DurationKnownEncoding.ISO8601)
-      extendBy: duration;
-    },
-  ): SubscriptionPhase[] | OpenMeter.ConflictError | OpenMeter.CommonErrors;
-
-  // Direct management of a SubscriptionPhase's SubscriptionItems would be possible via these APIs.
-  // Its unclear if we'll need them.
-
-  @get
-  @operationId("getSubscriptionPhaseItemsAt")
-  @route("/{subscriptionId}/phases/{phaseKey}/items")
-  @tag("Proposal")
-  getItems(
-    @path subscriptionId: ULID,
-    @path phaseKey: Key,
-
-    /**
-     * The time at which the items should be queried. If not provided the current time is used.
-     */
-    @query at?: DateTime,
-  ): {
-    items: SubscriptionItem[];
-    at: DateTime;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  @post
-  @operationId("addSubscriptionPhaseItem")
-  @route("/{subscriptionId}/phases/{phaseKey}/items")
-  @tag("Proposal")
-  addPhaseItem(
-    @path subscriptionId: ULID,
-    @path phaseKey: Key,
-    @body rateCard: RateCard,
-  ): SubscriptionItem | OpenMeter.ConflictError | OpenMeter.CommonErrors;
-
-  @delete
-  @operationId("deleteSubscriptionPhaseItem")
-  @route("/{subscriptionId}/phases/{phaseKey}/items/{itemKey}")
-  @tag("Proposal")
-  deletePhaseItem(@path subscriptionId: ULID, @path phaseKey: Key, @path itemKey: Key): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 /**
@@ -365,22 +284,43 @@ model SubscriptionItem {
   };
 }
 
-// SubscriptionPhaseOverride is not possible via a patch endpoint
+@pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
+scalar SubscriptionPhasePatchKey extends string;
 
-// @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
-// scalar SubscriptionPhasePatchKey extends string;
-
-// alias SubscriptionPhaseOverride = JSONPatchAdd<
-//   SubscriptionPhaseCreateInput,
-//   SubscriptionPhasePatchKey
-// > | JSONPatchRemove<SubscriptionPhasePatchKey>;
+alias SubscriptionPhasePatch = SubscriptionEditAdd<
+  SubscriptionPhaseCreateInput,
+  SubscriptionPhasePatchKey
+> | SubscriptionPhaseExtend<
+  {
+    @encode(DurationKnownEncoding.ISO8601)
+    extendBy: duration;
+  },
+  SubscriptionPhasePatchKey
+> | SubscriptionEditRemove<SubscriptionPhasePatchKey>;
 
 @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+\\/items\\/[a-zA-Z0-9\\-]+$")
 scalar SubscriptionItemPatchKey extends string;
 
-alias SubscriptionOverride = SubscriptionItemPatch;
+alias SubscriptionPatch = SubscriptionItemPatch | SubscriptionPhasePatch;
 
-alias SubscriptionItemPatch = JSONPatchAdd<
+alias SubscriptionItemPatch = SubscriptionEditAdd<
   RateCard,
   SubscriptionItemPatchKey
-> | JSONPatchRemove<SubscriptionItemPatchKey>;
+> | SubscriptionEditRemove<SubscriptionItemPatchKey>;
+
+model SubscriptionEditAdd<T, K extends string> {
+  `op`: "add";
+  path: K;
+  value: T;
+}
+
+model SubscriptionPhaseExtend<T, K extends string> {
+  `op`: "extend";
+  path: K;
+  value: T;
+}
+
+model SubscriptionEditRemove<K extends string> {
+  `op`: "remove";
+  path: K;
+}
