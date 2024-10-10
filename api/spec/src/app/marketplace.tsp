@@ -25,7 +25,7 @@ interface Marketplace {
   @get
   @route("/listings")
   @operationId("marketplaceListListings")
-  marketplaceListings(...PaginatedQuery): Paginated<Listing> | CommonErrors;
+  list(...PaginatedQuery): Paginated<Listing> | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
 
@@ -34,18 +34,18 @@ interface Marketplace {
    * Returns a URL to start the OAuth 2.0 flow.
    */
   @get
-  @route("/install/oauth2")
+  @route("/listings/{type}/install/oauth2")
   @operationId("marketplaceOAuth2InstallGetURL")
-  marketplaceOAuth2InstallGetURL(@query appKey: Key): OAuth2.ClientAppStartResponse | CommonErrors;
+  getOAuth2InstallURL(@path type: AppType): OAuth2.ClientAppStartResponse | CommonErrors;
 
   /**
    * Authorize OAuth2 code.
    * Verifies the OAuth code and exchanges it for a token and refresh token
    */
   @get
-  @route("/install/oauth2/authorize")
+  @route("/listings/{type}/install/oauth2/authorize")
   @operationId("marketplaceOAuth2InstallAuthorize")
-  marketplaceOAuth2InstallAuthorize(
+  authorizeOAuth2Install(
     ...MarketplaceOAuth2InstallAuthorizeRequest,
   ): MarketplaceOAuth2InstallAuthorizeResponse | CommonErrors;
 
@@ -55,9 +55,9 @@ interface Marketplace {
    * Install an marketplace via API Key.
    */
   @post
-  @route("/install/apikey")
+  @route("/listings/{type}/install/apikey")
   @operationId("marketplaceAppAPIKeyInstall")
-  marketplaceAppAPIKeyInstall(...MarketplaceApiKeyInstallRequest): AppBase | CommonErrors;
+  installWithAPIKey(...MarketplaceApiKeyInstallRequest): AppBase | CommonErrors;
 }
 
 /**
@@ -68,9 +68,9 @@ model MarketplaceOAuth2InstallAuthorizeRequest {
   ...OAuth2.AuthorizationCodeGrantParams;
 
   /**
-   * The key of the app to install.
+   * The type of the app to install.
    */
-  @query appKey: Key;
+  @path type: AppType;
 }
 
 /**
@@ -86,13 +86,12 @@ model MarketplaceOAuth2InstallAuthorizeResponse {
  */
 @friendlyName("MarketplaceApiKeyInstallRequest")
 model MarketplaceApiKeyInstallRequest {
-  @body _: {
-    /**
-     * The type of the app to install.
-     * For example `stripe`.
-     */
-    type: AppType;
+  /**
+   * The type of the app to install.
+   */
+  @path type: AppType;
 
+  @body _: {
     /**
      * The API key for the provider.
      * For example, the Stripe API key.

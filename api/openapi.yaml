@@ -110,6 +110,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -142,12 +148,8 @@ paths:
             example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/App'
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -229,6 +231,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -292,6 +300,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1442,11 +1456,64 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements (Experimental)
-  /api/v1/marketplace/install/apikey:
+  /api/v1/marketplace/listings:
+    get:
+      operationId: marketplaceListListings
+      description: List available apps of the app marketplace.
+      parameters:
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingList'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+  /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
       description: Install an marketplace via API Key.
-      parameters: []
+      parameters:
+        - $ref: '#/components/parameters/MarketplaceApiKeyInstallRequest.type'
       responses:
         '200':
           description: The request has succeeded.
@@ -1499,36 +1566,25 @@ paths:
             schema:
               type: object
               properties:
-                type:
-                  allOf:
-                    - $ref: '#/components/schemas/OpenMeter.App.AppType'
-                  description: |-
-                    The type of the app to install.
-                    For example `stripe`.
                 apiKey:
                   type: string
                   description: |-
                     The API key for the provider.
                     For example, the Stripe API key.
               required:
-                - type
                 - apiKey
-  /api/v1/marketplace/install/oauth2:
+  /api/v1/marketplace/listings/{type}/install/oauth2:
     get:
       operationId: marketplaceOAuth2InstallGetURL
       description: |-
         Install an app via OAuth.
         Returns a URL to start the OAuth 2.0 flow.
       parameters:
-        - name: appKey
-          in: query
+        - name: type
+          in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          explode: false
+            $ref: '#/components/schemas/OpenMeter.App.AppType'
       responses:
         '200':
           description: The request has succeeded.
@@ -1574,7 +1630,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/marketplace/install/oauth2/authorize:
+  /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
     get:
       operationId: marketplaceOAuth2InstallAuthorize
       description: |-
@@ -1586,62 +1642,10 @@ paths:
         - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantErrorParams.error'
         - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantErrorParams.error_description'
         - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantErrorParams.error_uri'
-        - $ref: '#/components/parameters/MarketplaceOAuth2InstallAuthorizeRequest.appKey'
+        - $ref: '#/components/parameters/MarketplaceOAuth2InstallAuthorizeRequest.type'
       responses:
         '303':
           description: Marketplace OAuth2 install response.
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Apps
-  /api/v1/marketplace/listings:
-    get:
-      operationId: marketplaceListListings
-      description: List available apps of the app marketplace.
-      parameters:
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListingList'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -4342,17 +4346,20 @@ components:
         minimum: 0
         default: 0
       explode: false
-    MarketplaceOAuth2InstallAuthorizeRequest.appKey:
-      name: appKey
-      in: query
+    MarketplaceApiKeyInstallRequest.type:
+      name: type
+      in: path
       required: true
-      description: The key of the app to install.
+      description: The type of the app to install.
       schema:
-        type: string
-        minLength: 1
-        maxLength: 64
-        pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-      explode: false
+        $ref: '#/components/schemas/OpenMeter.App.AppType'
+    MarketplaceOAuth2InstallAuthorizeRequest.type:
+      name: type
+      in: path
+      required: true
+      description: The type of the app to install.
+      schema:
+        $ref: '#/components/schemas/OpenMeter.App.AppType'
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query

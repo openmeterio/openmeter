@@ -38,7 +38,7 @@ interface Apps {
   @get
   @route("/{id}")
   @operationId("getApp")
-  get(@path id: ULID): App | CommonErrors;
+  get(@path id: ULID): App | NotFoundError | CommonErrors;
 
   /**
    * Uninstall an app.
@@ -46,7 +46,9 @@ interface Apps {
   @delete
   @route("/{id}")
   @operationId("uninstallApp")
-  uninstall(@path id: ULID): App | NotFoundError | CommonErrors;
+  uninstall(@path id: ULID): {
+    @statusCode _: 204;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
