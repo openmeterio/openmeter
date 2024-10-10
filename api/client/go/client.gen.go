@@ -31,30 +31,14 @@ const (
 	PortalTokenAuthScopes      = "PortalTokenAuth.Scopes"
 )
 
-// Defines values for AppCapabilityType.
+// Defines values for EntitlementBooleanType.
 const (
-	CalculateTax     AppCapabilityType = "calculateTax"
-	CollectPayments  AppCapabilityType = "collectPayments"
-	InvoiceCustomers AppCapabilityType = "invoiceCustomers"
-	ReportEvents     AppCapabilityType = "reportEvents"
-	ReportUsage      AppCapabilityType = "reportUsage"
-)
-
-// Defines values for AppRequirements.
-const (
-	CustomerCountryCode              AppRequirements = "customer.countryCode"
-	CustomerExternalStripeCustomerId AppRequirements = "customer.external.stripeCustomerId"
-)
-
-// Defines values for CheckoutSessionUIMode.
-const (
-	Embedded CheckoutSessionUIMode = "embedded"
-	Hosted   CheckoutSessionUIMode = "hosted"
+	EntitlementBooleanTypeBoolean EntitlementBooleanType = "boolean"
 )
 
 // Defines values for EntitlementBooleanCreateInputsType.
 const (
-	Boolean EntitlementBooleanCreateInputsType = "boolean"
+	EntitlementBooleanCreateInputsTypeBoolean EntitlementBooleanCreateInputsType = "boolean"
 )
 
 // Defines values for EntitlementMeteredType.
@@ -67,12 +51,6 @@ const (
 	EntitlementMeteredCreateInputsTypeMetered EntitlementMeteredCreateInputsType = "metered"
 )
 
-// Defines values for EntitlementOrderBy.
-const (
-	EntitlementOrderByCreatedAt EntitlementOrderBy = "createdAt"
-	EntitlementOrderByUpdatedAt EntitlementOrderBy = "updatedAt"
-)
-
 // Defines values for EntitlementStaticType.
 const (
 	EntitlementStaticTypeStatic EntitlementStaticType = "static"
@@ -83,27 +61,13 @@ const (
 	EntitlementStaticCreateInputsTypeStatic EntitlementStaticCreateInputsType = "static"
 )
 
-// Defines values for ExpirationDuration.
+// Defines values for ExpirationPeriodDuration.
 const (
-	ExpirationDurationDAY   ExpirationDuration = "DAY"
-	ExpirationDurationHOUR  ExpirationDuration = "HOUR"
-	ExpirationDurationMONTH ExpirationDuration = "MONTH"
-	ExpirationDurationWEEK  ExpirationDuration = "WEEK"
-	ExpirationDurationYEAR  ExpirationDuration = "YEAR"
-)
-
-// Defines values for FeatureOrderBy.
-const (
-	FeatureOrderByCreatedAt FeatureOrderBy = "createdAt"
-	FeatureOrderById        FeatureOrderBy = "id"
-	FeatureOrderByUpdatedAt FeatureOrderBy = "updatedAt"
-)
-
-// Defines values for GrantOrderBy.
-const (
-	GrantOrderByCreatedAt GrantOrderBy = "createdAt"
-	GrantOrderById        GrantOrderBy = "id"
-	GrantOrderByUpdatedAt GrantOrderBy = "updatedAt"
+	ExpirationPeriodDurationDAY   ExpirationPeriodDuration = "DAY"
+	ExpirationPeriodDurationHOUR  ExpirationPeriodDuration = "HOUR"
+	ExpirationPeriodDurationMONTH ExpirationPeriodDuration = "MONTH"
+	ExpirationPeriodDurationWEEK  ExpirationPeriodDuration = "WEEK"
+	ExpirationPeriodDurationYEAR  ExpirationPeriodDuration = "YEAR"
 )
 
 // Defines values for MeasureUsageFromEnum.
@@ -112,32 +76,9 @@ const (
 	NOW                MeasureUsageFromEnum = "NOW"
 )
 
-// Defines values for NotificationChannelOrderBy.
-const (
-	NotificationChannelOrderByCreatedAt NotificationChannelOrderBy = "createdAt"
-	NotificationChannelOrderById        NotificationChannelOrderBy = "id"
-	NotificationChannelOrderByType      NotificationChannelOrderBy = "type"
-	NotificationChannelOrderByUpdatedAt NotificationChannelOrderBy = "updatedAt"
-)
-
 // Defines values for NotificationChannelType.
 const (
-	NotificationChannelTypeWEBHOOK NotificationChannelType = "WEBHOOK"
-)
-
-// Defines values for NotificationChannelWebhookType.
-const (
-	NotificationChannelWebhookTypeWEBHOOK NotificationChannelWebhookType = "WEBHOOK"
-)
-
-// Defines values for NotificationChannelWebhookCreateRequestType.
-const (
-	WEBHOOK NotificationChannelWebhookCreateRequestType = "WEBHOOK"
-)
-
-// Defines values for NotificationEventBalanceThresholdPayloadType.
-const (
-	NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold NotificationEventBalanceThresholdPayloadType = "entitlements.balance.threshold"
+	WEBHOOK NotificationChannelType = "WEBHOOK"
 )
 
 // Defines values for NotificationEventDeliveryStatusState.
@@ -148,25 +89,9 @@ const (
 	SUCCESS NotificationEventDeliveryStatusState = "SUCCESS"
 )
 
-// Defines values for NotificationEventOrderBy.
-const (
-	NotificationEventOrderByCreatedAt NotificationEventOrderBy = "createdAt"
-	NotificationEventOrderById        NotificationEventOrderBy = "id"
-)
-
 // Defines values for NotificationEventType.
 const (
-	NotificationEventTypeEntitlementsBalanceThreshold NotificationEventType = "entitlements.balance.threshold"
-)
-
-// Defines values for NotificationRuleBalanceThresholdType.
-const (
-	NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold NotificationRuleBalanceThresholdType = "entitlements.balance.threshold"
-)
-
-// Defines values for NotificationRuleBalanceThresholdCreateRequestType.
-const (
-	NotificationRuleBalanceThresholdCreateRequestTypeEntitlementsBalanceThreshold NotificationRuleBalanceThresholdCreateRequestType = "entitlements.balance.threshold"
+	EntitlementsBalanceThreshold NotificationEventType = "entitlements.balance.threshold"
 )
 
 // Defines values for NotificationRuleBalanceThresholdValueType.
@@ -175,63 +100,12 @@ const (
 	PERCENT NotificationRuleBalanceThresholdValueType = "PERCENT"
 )
 
-// Defines values for NotificationRuleOrderBy.
+// Defines values for RecurringPeriodEnum.
 const (
-	NotificationRuleOrderByCreatedAt NotificationRuleOrderBy = "createdAt"
-	NotificationRuleOrderById        NotificationRuleOrderBy = "id"
-	NotificationRuleOrderByType      NotificationRuleOrderBy = "type"
-	NotificationRuleOrderByUpdatedAt NotificationRuleOrderBy = "updatedAt"
-)
-
-// Defines values for OAuth2AuthorizationCodeGrantErrorType.
-const (
-	AccessDenied            OAuth2AuthorizationCodeGrantErrorType = "access_denied"
-	InvalidRequest          OAuth2AuthorizationCodeGrantErrorType = "invalid_request"
-	InvalidScope            OAuth2AuthorizationCodeGrantErrorType = "invalid_scope"
-	ServerError             OAuth2AuthorizationCodeGrantErrorType = "server_error"
-	TemporarilyUnavailable  OAuth2AuthorizationCodeGrantErrorType = "temporarily_unavailable"
-	UnauthorizedClient      OAuth2AuthorizationCodeGrantErrorType = "unauthorized_client"
-	UnsupportedResponseType OAuth2AuthorizationCodeGrantErrorType = "unsupported_response_type"
-)
-
-// Defines values for OpenMeterAppAppStatus.
-const (
-	Ready        OpenMeterAppAppStatus = "ready"
-	Unauthorized OpenMeterAppAppStatus = "unauthorized"
-)
-
-// Defines values for OpenMeterAppAppType.
-const (
-	OpenMeterAppAppTypeStripe OpenMeterAppAppType = "stripe"
-)
-
-// Defines values for OpenMeterAppStripePaymentIntentStatus.
-const (
-	Canceled              OpenMeterAppStripePaymentIntentStatus = "canceled"
-	Processing            OpenMeterAppStripePaymentIntentStatus = "processing"
-	RequiresAction        OpenMeterAppStripePaymentIntentStatus = "requires_action"
-	RequiresConfirmation  OpenMeterAppStripePaymentIntentStatus = "requires_confirmation"
-	RequiresPaymentMethod OpenMeterAppStripePaymentIntentStatus = "requires_payment_method"
-	Succeeded             OpenMeterAppStripePaymentIntentStatus = "succeeded"
-)
-
-// Defines values for Order.
-const (
-	SortOrderASC  Order = "ASC"
-	SortOrderDESC Order = "DESC"
-)
-
-// Defines values for RecurringPeriodInterval.
-const (
-	RecurringPeriodIntervalDAY   RecurringPeriodInterval = "DAY"
-	RecurringPeriodIntervalMONTH RecurringPeriodInterval = "MONTH"
-	RecurringPeriodIntervalWEEK  RecurringPeriodInterval = "WEEK"
-	RecurringPeriodIntervalYEAR  RecurringPeriodInterval = "YEAR"
-)
-
-// Defines values for StripeAppType.
-const (
-	StripeAppTypeStripe StripeAppType = "stripe"
+	RecurringPeriodEnumDAY   RecurringPeriodEnum = "DAY"
+	RecurringPeriodEnumMONTH RecurringPeriodEnum = "MONTH"
+	RecurringPeriodEnumWEEK  RecurringPeriodEnum = "WEEK"
+	RecurringPeriodEnumYEAR  RecurringPeriodEnum = "YEAR"
 )
 
 // Defines values for SvixOperationalWebhookRequestType.
@@ -243,6 +117,104 @@ const (
 	MessageAttemptExhausted SvixOperationalWebhookRequestType = "message.attempt.exhausted"
 	MessageAttemptFailing   SvixOperationalWebhookRequestType = "message.attempt.failing"
 	MessageAttemptRecovered SvixOperationalWebhookRequestType = "message.attempt.recovered"
+)
+
+// Defines values for Order.
+const (
+	OrderSortOrderASC  Order = "ASC"
+	OrderSortOrderDESC Order = "DESC"
+)
+
+// Defines values for ListEntitlementsParamsOrder.
+const (
+	ListEntitlementsParamsOrderSortOrderASC  ListEntitlementsParamsOrder = "ASC"
+	ListEntitlementsParamsOrderSortOrderDESC ListEntitlementsParamsOrder = "DESC"
+)
+
+// Defines values for ListEntitlementsParamsOrderBy.
+const (
+	ListEntitlementsParamsOrderByCreatedAt ListEntitlementsParamsOrderBy = "createdAt"
+	ListEntitlementsParamsOrderByUpdatedAt ListEntitlementsParamsOrderBy = "updatedAt"
+)
+
+// Defines values for ListFeaturesParamsOrder.
+const (
+	ListFeaturesParamsOrderSortOrderASC  ListFeaturesParamsOrder = "ASC"
+	ListFeaturesParamsOrderSortOrderDESC ListFeaturesParamsOrder = "DESC"
+)
+
+// Defines values for ListFeaturesParamsOrderBy.
+const (
+	ListFeaturesParamsOrderByCreatedAt ListFeaturesParamsOrderBy = "createdAt"
+	ListFeaturesParamsOrderById        ListFeaturesParamsOrderBy = "id"
+	ListFeaturesParamsOrderByUpdatedAt ListFeaturesParamsOrderBy = "updatedAt"
+)
+
+// Defines values for ListGrantsParamsOrder.
+const (
+	ListGrantsParamsOrderSortOrderASC  ListGrantsParamsOrder = "ASC"
+	ListGrantsParamsOrderSortOrderDESC ListGrantsParamsOrder = "DESC"
+)
+
+// Defines values for ListGrantsParamsOrderBy.
+const (
+	ListGrantsParamsOrderByCreatedAt ListGrantsParamsOrderBy = "createdAt"
+	ListGrantsParamsOrderById        ListGrantsParamsOrderBy = "id"
+	ListGrantsParamsOrderByUpdatedAt ListGrantsParamsOrderBy = "updatedAt"
+)
+
+// Defines values for ListNotificationChannelsParamsOrderBy.
+const (
+	ListNotificationChannelsParamsOrderByCreatedAt ListNotificationChannelsParamsOrderBy = "createdAt"
+	ListNotificationChannelsParamsOrderById        ListNotificationChannelsParamsOrderBy = "id"
+	ListNotificationChannelsParamsOrderByType      ListNotificationChannelsParamsOrderBy = "type"
+	ListNotificationChannelsParamsOrderByUpdatedAt ListNotificationChannelsParamsOrderBy = "updatedAt"
+)
+
+// Defines values for ListNotificationChannelsParamsOrder.
+const (
+	ListNotificationChannelsParamsOrderSortOrderASC  ListNotificationChannelsParamsOrder = "ASC"
+	ListNotificationChannelsParamsOrderSortOrderDESC ListNotificationChannelsParamsOrder = "DESC"
+)
+
+// Defines values for ListNotificationEventsParamsOrderBy.
+const (
+	ListNotificationEventsParamsOrderByCreatedAt ListNotificationEventsParamsOrderBy = "createdAt"
+	ListNotificationEventsParamsOrderById        ListNotificationEventsParamsOrderBy = "id"
+)
+
+// Defines values for ListNotificationEventsParamsOrder.
+const (
+	ListNotificationEventsParamsOrderSortOrderASC  ListNotificationEventsParamsOrder = "ASC"
+	ListNotificationEventsParamsOrderSortOrderDESC ListNotificationEventsParamsOrder = "DESC"
+)
+
+// Defines values for ListNotificationRulesParamsOrderBy.
+const (
+	ListNotificationRulesParamsOrderByCreatedAt ListNotificationRulesParamsOrderBy = "createdAt"
+	ListNotificationRulesParamsOrderById        ListNotificationRulesParamsOrderBy = "id"
+	ListNotificationRulesParamsOrderByType      ListNotificationRulesParamsOrderBy = "type"
+	ListNotificationRulesParamsOrderByUpdatedAt ListNotificationRulesParamsOrderBy = "updatedAt"
+)
+
+// Defines values for ListNotificationRulesParamsOrder.
+const (
+	SortOrderASC  ListNotificationRulesParamsOrder = "ASC"
+	SortOrderDESC ListNotificationRulesParamsOrder = "DESC"
+)
+
+// Defines values for ListEntitlementGrantsParamsOrderBy.
+const (
+	CreatedAt ListEntitlementGrantsParamsOrderBy = "createdAt"
+	Id        ListEntitlementGrantsParamsOrderBy = "id"
+	UpdatedAt ListEntitlementGrantsParamsOrderBy = "updatedAt"
+)
+
+// Defines values for GetEntitlementHistoryParamsWindowSize.
+const (
+	DAY    GetEntitlementHistoryParamsWindowSize = "DAY"
+	HOUR   GetEntitlementHistoryParamsWindowSize = "HOUR"
+	MINUTE GetEntitlementHistoryParamsWindowSize = "MINUTE"
 )
 
 // Address Address
@@ -259,130 +231,40 @@ type Address struct {
 	State       *string      `json:"state,omitempty"`
 }
 
-// Annotations Set of key-value pairs managed by the system. Cannot be modified by user.
-type Annotations map[string]interface{}
-
-// App A installed Stripe app object.
-type App = StripeApp
-
-// AppBase Abstract base model for installed apps.
-//
-// Represent an app installed to the organization.
-// This is an actual instance, with its own configuration and credentials.
-type AppBase struct {
-	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
-	// DeletedAt Timestamp of when the resource was permanently deleted.
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
-
-	// Description Optional description of the resource. Maximum 1024 characters.
-	Description *string `json:"description,omitempty"`
-
-	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
-
-	// Listing The marketplace listing that this installed app is based on.
-	Listing *MarketplaceListing `json:"listing,omitempty"`
-
-	// Metadata Additional metadata for the resource.
-	Metadata *Metadata `json:"metadata,omitempty"`
-
-	// Name Human-readable name for the resource. Between 1 and 256 characters.
-	Name string `json:"name"`
-
-	// Status Status of the app connection.
-	Status *OpenMeterAppAppStatus `json:"status,omitempty"`
-
-	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-}
-
-// AppCapability App capability.
-//
-// Capabilities only exist in config so they don't extend the Resource model.
-type AppCapability struct {
-	// Description The capability description.
-	Description string `json:"description"`
-
-	// Key Key
-	Key string `json:"key"`
-
-	// Name The capability name.
-	Name string `json:"name"`
-
-	// Requirements The capability requirements.
-	Requirements *[]AppRequirements `json:"requirements,omitempty"`
-
-	// Type The capability type.
-	Type AppCapabilityType `json:"type"`
-}
-
-// AppCapabilityType App capability type.
-type AppCapabilityType string
-
-// AppList A page of results.
-type AppList struct {
-	// Items The items in the page.
-	Items []App `json:"items"`
-
-	// Page The page number.
-	Page int `json:"page"`
-
-	// PageSize The number of items in the page.
-	PageSize int `json:"pageSize"`
-
-	// TotalCount The total number of items.
-	TotalCount int `json:"totalCount"`
-}
-
-// AppRequirements App requirements.
-type AppRequirements string
-
-// BadRequestProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type BadRequestProblemResponse = UnexpectedProblemResponse
-
-// BalanceHistoryWindow The balance history window.
+// BalanceHistoryWindow Windowed usage and balance information.
 type BalanceHistoryWindow struct {
 	// BalanceAtStart The entitlement balance at the start of the period.
 	BalanceAtStart *float64 `json:"balanceAtStart,omitempty"`
 
-	// Period A period with a start and end time.
-	Period Period `json:"period"`
+	// Period A time period
+	Period *Period `json:"period,omitempty"`
 
 	// Usage The total usage of the feature in the period.
 	Usage *float64 `json:"usage,omitempty"`
 }
 
-// CheckoutSessionCustomTextAfterSubmitParams Stripe CheckoutSession.custom_text
-type CheckoutSessionCustomTextAfterSubmitParams struct {
-	AfterSubmit *struct {
-		Message *string `json:"message,omitempty"`
-	} `json:"afterSubmit,omitempty"`
-	ShippingAddress *struct {
-		Message *string `json:"message,omitempty"`
-	} `json:"shippingAddress,omitempty"`
-	Submit *struct {
-		Message *string `json:"message,omitempty"`
-	} `json:"submit,omitempty"`
-	TermsOfServiceAcceptance *struct {
-		Message *string `json:"message,omitempty"`
-	} `json:"termsOfServiceAcceptance,omitempty"`
+// ConflictProblem Conflict
+type ConflictProblem struct {
+	// Detail A human-readable explanation specific to this occurrence of the problem.
+	Detail     string `json:"detail"`
+	Extensions *struct {
+		// ConflictingEntityId The id of the conflicting entity.
+		ConflictingEntityId string `json:"conflictingEntityId"`
+	} `json:"extensions,omitempty"`
+
+	// Instance A URI reference that identifies the specific occurrence of the problem.
+	Instance *string `json:"instance,omitempty"`
+
+	// Status The HTTP status code generated by the origin server for this occurrence of the problem.
+	Status int32 `json:"status"`
+
+	// Title A a short, human-readable summary of the problem type.
+	Title string `json:"title"`
+
+	// Type Type contains a URI that identifies the problem type.
+	Type                 string                 `json:"type"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
-
-// CheckoutSessionUIMode Stripe CheckoutSession.ui_mode
-type CheckoutSessionUIMode string
-
-// ClientAppStartResponse Response from the client app (OpenMeter backend) to start the OAuth2 flow.
-type ClientAppStartResponse struct {
-	// Url The URL to start the OAuth2 authorization code grant flow.
-	Url string `json:"url"`
-}
-
-// ConflictProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type ConflictProblemResponse = UnexpectedProblemResponse
 
 // CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
 // Custom two-letter country codes are also supported for convenience.
@@ -394,19 +276,22 @@ type CurrencyCode = string
 
 // Customer A customer object.
 type Customer struct {
+	// ArchivedAt Timestamp of when the resource was archived.
+	ArchivedAt *DateTime `json:"archivedAt,omitempty"`
+
 	// BillingAddress The billing address of the customer.
 	// Used for tax and invoicing.
 	BillingAddress *Address `json:"billingAddress,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt *DateTime `json:"createdAt,omitempty"`
 
 	// Currency Currency of the customer.
 	// Used for billing, tax and invoicing.
 	Currency *CurrencyCode `json:"currency,omitempty"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+	DeletedAt *DateTime `json:"deletedAt,omitempty"`
 
 	// Description Optional description of the resource. Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
@@ -414,8 +299,8 @@ type Customer struct {
 	// External External mappings for the customer.
 	External *CustomerExternalMapping `json:"external,omitempty"`
 
-	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	// Id A unique identifier for the customer.
+	Id *ULID `json:"id,omitempty"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata,omitempty"`
@@ -430,7 +315,7 @@ type Customer struct {
 	Timezone *string `json:"timezone,omitempty"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt *DateTime `json:"updatedAt,omitempty"`
 
 	// UsageAttribution Mapping to attribute metered usage to the customer
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
@@ -470,52 +355,54 @@ type CustomerUsageAttribution struct {
 	SubjectKeys []string `json:"subjectKeys"`
 }
 
-// Entitlement Entitlement templates are used to define the entitlements of a plan.
-// Features are omitted from the entitlement template, as they are defined in the rate card.
+// DateTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+type DateTime = time.Time
+
+// Entitlement defines model for Entitlement.
 type Entitlement struct {
 	union json.RawMessage
 }
 
-// EntitlementBaseTemplate Shared fields of the entitlement templates.
-type EntitlementBaseTemplate struct {
-	// CreatedAt Timestamp of when the resource was created.
+// EntitlementBoolean defines model for EntitlementBoolean.
+type EntitlementBoolean struct {
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// CurrentUsagePeriod The current usage period.
+	// CurrentUsagePeriod A time period
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// FeatureId The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
 	FeatureId string `json:"featureId"`
 
 	// FeatureKey The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
 	Id *string `json:"id,omitempty"`
 
 	// Metadata Additional metadata for the feature.
-	Metadata *Metadata `json:"metadata,omitempty"`
+	Metadata *map[string]string `json:"metadata,omitempty"`
 
 	// SubjectKey The identifier key unique to the subject
-	SubjectKey string `json:"subjectKey"`
+	SubjectKey string                 `json:"subjectKey"`
+	Type       EntitlementBooleanType `json:"type"`
 
-	// Type The type of the entitlement.
-	Type EntitlementType `json:"type"`
-
-	// UpdatedAt Timestamp of when the resource was last updated.
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 
-	// UsagePeriod The defined usage period of the entitlement
+	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
 }
 
-// EntitlementBoolean Shared fields of the entitlement templates.
-type EntitlementBoolean = EntitlementBaseTemplate
+// EntitlementBooleanType defines model for EntitlementBoolean.Type.
+type EntitlementBooleanType string
 
-// EntitlementBooleanCreateInputs Create inputs for boolean entitlement
+// EntitlementBooleanCreateInputs defines model for EntitlementBooleanCreateInputs.
 type EntitlementBooleanCreateInputs struct {
 	// FeatureId The feature the subject is entitled to use.
 	// Either featureKey or featureId is required.
@@ -526,56 +413,73 @@ type EntitlementBooleanCreateInputs struct {
 	FeatureKey *string `json:"featureKey,omitempty"`
 
 	// Metadata Additional metadata for the feature.
-	Metadata *Metadata                          `json:"metadata,omitempty"`
+	Metadata *map[string]string                 `json:"metadata,omitempty"`
 	Type     EntitlementBooleanCreateInputsType `json:"type"`
 
-	// UsagePeriod The usage period associated with the entitlement.
+	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriodCreateInput `json:"usagePeriod,omitempty"`
 }
 
 // EntitlementBooleanCreateInputsType defines model for EntitlementBooleanCreateInputs.Type.
 type EntitlementBooleanCreateInputsType string
 
-// EntitlementCreateInputs Create inputs for entitlement
+// EntitlementCreateInputs defines model for EntitlementCreateInputs.
 type EntitlementCreateInputs struct {
 	union json.RawMessage
 }
 
-// EntitlementGrant The grant.
+// EntitlementCreateSharedFields defines model for EntitlementCreateSharedFields.
+type EntitlementCreateSharedFields struct {
+	// FeatureId The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
+	FeatureId *string `json:"featureId,omitempty"`
+
+	// FeatureKey The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
+	FeatureKey *string `json:"featureKey,omitempty"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// UsagePeriod Recurring period of an entitlement.
+	UsagePeriod *RecurringPeriodCreateInput `json:"usagePeriod,omitempty"`
+}
+
+// EntitlementGrant defines model for EntitlementGrant.
 type EntitlementGrant struct {
 	// Amount The amount to grant. Should be a positive number.
 	Amount float64 `json:"amount"`
 
-	// CreatedAt Timestamp of when the resource was created.
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// EffectiveAt Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
 	EffectiveAt time.Time `json:"effectiveAt"`
 
 	// EntitlementId The unique entitlement ULID that the grant is associated with.
-	EntitlementId *string `json:"entitlementId,omitempty"`
+	EntitlementId *string          `json:"entitlementId,omitempty"`
+	Expiration    ExpirationPeriod `json:"expiration"`
 
-	// Expiration The grant expiration definition
-	Expiration ExpirationPeriod `json:"expiration"`
-
-	// ExpiresAt The time the grant expires.
+	// ExpiresAt The expiration date of the grant.
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
 	Id *string `json:"id,omitempty"`
 
 	// MaxRolloverAmount Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-	// Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
-	MaxRolloverAmount *float64 `json:"maxRolloverAmount,omitempty"`
-
-	// Metadata The grant metadata.
-	Metadata *Metadata `json:"metadata,omitempty"`
+	//
+	// Balance after the reset is calculated as:
+	// Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+	MaxRolloverAmount *float64           `json:"maxRolloverAmount,omitempty"`
+	Metadata          *map[string]string `json:"metadata,omitempty"`
 
 	// MinRolloverAmount Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-	// Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+	//
+	// Balance after the reset is calculated as:
+	// Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
 	MinRolloverAmount *float64 `json:"minRolloverAmount,omitempty"`
 
 	// NextRecurrence The next time the grant will recurr.
@@ -587,38 +491,38 @@ type EntitlementGrant struct {
 	// When there are several grants available for the same subject, the system selects the grant with the highest priority.
 	// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
 	// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
-	Priority *int8 `json:"priority,omitempty"`
+	Priority *int `json:"priority,omitempty"`
 
-	// Recurrence The recurrence period of the grant.
+	// Recurrence Recurring period of an entitlement.
 	Recurrence *RecurringPeriod `json:"recurrence,omitempty"`
 
-	// UpdatedAt Timestamp of when the resource was last updated.
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 
-	// VoidedAt The time the grant was voided.
+	// VoidedAt The date and time the grant was voided (cannot be used after that).
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
 }
 
-// EntitlementGrantCreateInput The grant creation input.
+// EntitlementGrantCreateInput Grants are used to increase balance of specific subjects.
 type EntitlementGrantCreateInput struct {
 	// Amount The amount to grant. Should be a positive number.
 	Amount float64 `json:"amount"`
 
 	// EffectiveAt Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
-	EffectiveAt time.Time `json:"effectiveAt"`
-
-	// Expiration The grant expiration definition
-	Expiration ExpirationPeriod `json:"expiration"`
+	EffectiveAt time.Time        `json:"effectiveAt"`
+	Expiration  ExpirationPeriod `json:"expiration"`
 
 	// MaxRolloverAmount Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-	// Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
-	MaxRolloverAmount *float64 `json:"maxRolloverAmount,omitempty"`
-
-	// Metadata The grant metadata.
-	Metadata *Metadata `json:"metadata,omitempty"`
+	//
+	// Balance after the reset is calculated as:
+	// Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+	MaxRolloverAmount *float64           `json:"maxRolloverAmount,omitempty"`
+	Metadata          *map[string]string `json:"metadata,omitempty"`
 
 	// MinRolloverAmount Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-	// Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+	//
+	// Balance after the reset is calculated as:
+	// Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
 	MinRolloverAmount *float64 `json:"minRolloverAmount,omitempty"`
 
 	// Priority The priority of the grant. Grants with higher priority are applied first.
@@ -627,28 +531,29 @@ type EntitlementGrantCreateInput struct {
 	// When there are several grants available for the same subject, the system selects the grant with the highest priority.
 	// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
 	// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
-	Priority *int8 `json:"priority,omitempty"`
+	Priority *int `json:"priority,omitempty"`
 
-	// Recurrence The subject of the grant.
+	// Recurrence Recurring period of an entitlement.
 	Recurrence *RecurringPeriodCreateInput `json:"recurrence,omitempty"`
 }
 
-// EntitlementMetered Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
-// Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+// EntitlementMetered defines model for EntitlementMetered.
 type EntitlementMetered struct {
-	// CreatedAt Timestamp of when the resource was created.
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// CurrentUsagePeriod The current usage period.
-	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
+	// CurrentUsagePeriod A time period
+	CurrentUsagePeriod Period `json:"currentUsagePeriod"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// FeatureId The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
 	FeatureId string `json:"featureId"`
 
 	// FeatureKey The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
@@ -658,45 +563,56 @@ type EntitlementMetered struct {
 	IsSoftLimit *bool `json:"isSoftLimit,omitempty"`
 
 	// IsUnlimited Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
-	// Deprecated:
 	IsUnlimited *bool `json:"isUnlimited,omitempty"`
 
-	// IssueAfterReset You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
-	// If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+	// IssueAfterReset You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance. If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
 	// That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+	//
 	// Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
 	IssueAfterReset *float64 `json:"issueAfterReset,omitempty"`
 
-	// IssueAfterResetPriority Defines the grant priority for the default grant.
-	IssueAfterResetPriority *uint8 `json:"issueAfterResetPriority,omitempty"`
+	// IssueAfterResetPriority Defines the grant priority for the default grant. If provided, issueAfterReset must have a value.
+	IssueAfterResetPriority *int `json:"issueAfterResetPriority,omitempty"`
 
-	// LastReset The time the last reset happened.
-	LastReset *time.Time `json:"lastReset,omitempty"`
+	// LastReset The last time a reset happened.
+	LastReset time.Time `json:"lastReset"`
 
-	// MeasureUsageFrom The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
-	MeasureUsageFrom *time.Time `json:"measureUsageFrom,omitempty"`
+	// MeasureUsageFrom The time from which usage is measured. If not specified on creation, defaults to the entitlement creation time.
+	MeasureUsageFrom time.Time `json:"measureUsageFrom"`
 
 	// Metadata Additional metadata for the feature.
-	Metadata *Metadata `json:"metadata,omitempty"`
+	Metadata *map[string]string `json:"metadata,omitempty"`
 
-	// PreserveOverageAtReset If true, the overage is preserved at reset. If false, the usage is reset to 0.
+	// PreserveOverageAtReset If true, the overage is preserved at reset. If false, the usage is forgiven.
 	PreserveOverageAtReset *bool `json:"preserveOverageAtReset,omitempty"`
 
 	// SubjectKey The identifier key unique to the subject
 	SubjectKey string                 `json:"subjectKey"`
 	Type       EntitlementMeteredType `json:"type"`
 
-	// UpdatedAt Timestamp of when the resource was last updated.
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 
-	// UsagePeriod THe usage period of the entitlement.
-	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
+	// UsagePeriod Recurring period of an entitlement.
+	UsagePeriod RecurringPeriod `json:"usagePeriod"`
 }
 
 // EntitlementMeteredType defines model for EntitlementMetered.Type.
 type EntitlementMeteredType string
 
-// EntitlementMeteredCreateInputs Create inpurs for metered entitlement
+// EntitlementMeteredCalculatedFields Calculated fields for a metered entitlement.
+type EntitlementMeteredCalculatedFields struct {
+	// CurrentUsagePeriod A time period
+	CurrentUsagePeriod Period `json:"currentUsagePeriod"`
+
+	// LastReset The last time a reset happened.
+	LastReset time.Time `json:"lastReset"`
+
+	// MeasureUsageFrom The time from which usage is measured. If not specified on creation, defaults to the entitlement creation time.
+	MeasureUsageFrom time.Time `json:"measureUsageFrom"`
+}
+
+// EntitlementMeteredCreateInputs defines model for EntitlementMeteredCreateInputs.
 type EntitlementMeteredCreateInputs struct {
 	// FeatureId The feature the subject is entitled to use.
 	// Either featureKey or featureId is required.
@@ -710,97 +626,116 @@ type EntitlementMeteredCreateInputs struct {
 	IsSoftLimit *bool `json:"isSoftLimit,omitempty"`
 
 	// IsUnlimited Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
-	// Deprecated:
 	IsUnlimited *bool `json:"isUnlimited,omitempty"`
 
-	// IssueAfterReset You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
-	// If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+	// IssueAfterReset You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance. If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
 	// That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+	//
 	// Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
 	IssueAfterReset *float64 `json:"issueAfterReset,omitempty"`
 
-	// IssueAfterResetPriority Defines the grant priority for the default grant.
-	IssueAfterResetPriority *uint8 `json:"issueAfterResetPriority,omitempty"`
+	// IssueAfterResetPriority Defines the grant priority for the default grant. If provided, issueAfterReset must have a value.
+	IssueAfterResetPriority *int `json:"issueAfterResetPriority,omitempty"`
 
-	// MeasureUsageFrom Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
+	// MeasureUsageFrom The time from which usage is measured, defaults to the entitlement creation time.
+	// The provided value is truncated to the granularity of the underlying meter.
 	MeasureUsageFrom *MeasureUsageFrom `json:"measureUsageFrom,omitempty"`
 
 	// Metadata Additional metadata for the feature.
-	Metadata *Metadata `json:"metadata,omitempty"`
+	Metadata *map[string]string `json:"metadata,omitempty"`
 
-	// PreserveOverageAtReset If true, the overage is preserved at reset. If false, the usage is reset to 0.
+	// PreserveOverageAtReset If true, the overage is preserved at reset. If false, the usage is forgiven.
 	PreserveOverageAtReset *bool                              `json:"preserveOverageAtReset,omitempty"`
 	Type                   EntitlementMeteredCreateInputsType `json:"type"`
 
-	// UsagePeriod The usage period associated with the entitlement.
+	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod RecurringPeriodCreateInput `json:"usagePeriod"`
 }
 
 // EntitlementMeteredCreateInputsType defines model for EntitlementMeteredCreateInputs.Type.
 type EntitlementMeteredCreateInputsType string
 
-// EntitlementOrderBy Order by options for entitlements.
-type EntitlementOrderBy string
-
-// EntitlementPaginatedResponse Paginated response
-type EntitlementPaginatedResponse struct {
-	// Items The items in the current page.
-	Items []Entitlement `json:"items"`
-
-	// Page The items in the current page.
-	Page int `json:"page"`
-
-	// PageSize The items in the current page.
-	PageSize int `json:"pageSize"`
-
-	// TotalCount The items in the current page.
-	TotalCount int `json:"totalCount"`
-}
-
-// EntitlementStatic A static entitlement.
-type EntitlementStatic struct {
-	// Config The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
-	Config json.RawMessage `json:"config"`
-
-	// CreatedAt Timestamp of when the resource was created.
+// EntitlementSharedFields defines model for EntitlementSharedFields.
+type EntitlementSharedFields struct {
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// CurrentUsagePeriod The current usage period.
+	// CurrentUsagePeriod A time period
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// FeatureId The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
 	FeatureId string `json:"featureId"`
 
 	// FeatureKey The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
 	Id *string `json:"id,omitempty"`
 
 	// Metadata Additional metadata for the feature.
-	Metadata *Metadata `json:"metadata,omitempty"`
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// SubjectKey The identifier key unique to the subject
+	SubjectKey string `json:"subjectKey"`
+
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+	// UsagePeriod Recurring period of an entitlement.
+	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
+}
+
+// EntitlementStatic defines model for EntitlementStatic.
+type EntitlementStatic struct {
+	// Config The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+	Config string `json:"config"`
+
+	// CreatedAt The date and time the resource was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// CurrentUsagePeriod A time period
+	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
+
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+
+	// FeatureId The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
+	FeatureId string `json:"featureId"`
+
+	// FeatureKey The feature the subject is entitled to use.
+	// Either featureKey or featureId is required.
+	FeatureKey string `json:"featureKey"`
+
+	// Id Readonly unique ULID identifier.
+	Id *string `json:"id,omitempty"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 
 	// SubjectKey The identifier key unique to the subject
 	SubjectKey string                `json:"subjectKey"`
 	Type       EntitlementStaticType `json:"type"`
 
-	// UpdatedAt Timestamp of when the resource was last updated.
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 
-	// UsagePeriod The defined usage period of the entitlement
+	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
 }
 
 // EntitlementStaticType defines model for EntitlementStatic.Type.
 type EntitlementStaticType string
 
-// EntitlementStaticCreateInputs Create inputs for static entitlement
+// EntitlementStaticCreateInputs defines model for EntitlementStaticCreateInputs.
 type EntitlementStaticCreateInputs struct {
 	// Config The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
-	Config json.RawMessage `json:"config"`
+	Config string `json:"config"`
 
 	// FeatureId The feature the subject is entitled to use.
 	// Either featureKey or featureId is required.
@@ -811,20 +746,17 @@ type EntitlementStaticCreateInputs struct {
 	FeatureKey *string `json:"featureKey,omitempty"`
 
 	// Metadata Additional metadata for the feature.
-	Metadata *Metadata                         `json:"metadata,omitempty"`
+	Metadata *map[string]string                `json:"metadata,omitempty"`
 	Type     EntitlementStaticCreateInputsType `json:"type"`
 
-	// UsagePeriod The usage period associated with the entitlement.
+	// UsagePeriod Recurring period of an entitlement.
 	UsagePeriod *RecurringPeriodCreateInput `json:"usagePeriod,omitempty"`
 }
 
 // EntitlementStaticCreateInputsType defines model for EntitlementStaticCreateInputs.Type.
 type EntitlementStaticCreateInputsType string
 
-// EntitlementType Type of the entitlement.
-type EntitlementType = string
-
-// EntitlementValue Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
+// EntitlementValue defines model for EntitlementValue.
 type EntitlementValue struct {
 	// Balance Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
 	Balance *float64 `json:"balance,omitempty"`
@@ -845,100 +777,81 @@ type EntitlementValue struct {
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
 
-// ExpirationDuration The expiration duration enum
-type ExpirationDuration string
-
-// ExpirationPeriod The grant expiration definition
+// ExpirationPeriod Expiration period of a grant.
 type ExpirationPeriod struct {
-	// Count The number of time units in the expiration period.
+	// Count The expiration period count like 12 months.
 	Count int `json:"count"`
 
-	// Duration The unit of time for the expiration period.
-	Duration ExpirationDuration `json:"duration"`
+	// Duration The expiration period duration like month.
+	Duration ExpirationPeriodDuration `json:"duration"`
 }
 
-// Feature Represents a feature that can be enabled or disabled for a plan.
-// Used both for product catalog and entitlements.
+// ExpirationPeriodDuration The expiration period duration like month.
+type ExpirationPeriodDuration string
+
+// Feature defines model for Feature.
 type Feature struct {
-	// ArchivedAt Timestamp of when the resource was archived.
+	// ArchivedAt If the feature is archived, no new entitlements can be created for it.
 	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
 
-	// CreatedAt Timestamp of when the resource was created.
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
 	Id *string `json:"id,omitempty"`
 
-	// Key A key is a unique string that is used to identify a resource.
-	Key      string    `json:"key"`
-	Metadata *Metadata `json:"metadata,omitempty"`
+	// Key The key is an immutable unique identifier of the feature used throughout the API, for example when interacting with a subject's entitlements. The key has to be unique across all active features, but archived features can share the same key. The key should consist of lowercase alphanumeric characters and dashes.
+	Key string `json:"key"`
 
-	// MeterGroupByFilters Optional meter group by filters.
-	// Useful if the meter scope is broader than what feature tracks.
-	// Example scenario would be a meter tracking all token use with groupBy fields for the model,
-	// then the feature could filter for model=gpt-4.
+	// Metadata Additional metadata for the feature, useful for syncing with external systems and annotating custom fields.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks. Example scenario would be a meter tracking all token use with groupBy fields for the model, then the feature could filter for model=gpt-4.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
-	// MeterSlug A key is a unique string that is used to identify a resource.
+	// MeterSlug The meter that the feature is associated with and and based on which usage is calculated.
+	// The meter selected must have SUM or COUNT aggregation.
 	MeterSlug *string `json:"meterSlug,omitempty"`
-	Name      string  `json:"name"`
 
-	// UpdatedAt Timestamp of when the resource was last updated.
+	// Name The name of the feature.
+	Name string `json:"name"`
+
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-// FeatureCreateInputs Represents a feature that can be enabled or disabled for a plan.
-// Used both for product catalog and entitlements.
+// FeatureCreateInputs A feature is a feature or service offered to a customer.
+// For example: CPU-Hours, Tokens, API Calls, etc.
 type FeatureCreateInputs struct {
-	// Key A key is a unique string that is used to identify a resource.
-	Key      string    `json:"key"`
-	Metadata *Metadata `json:"metadata,omitempty"`
+	// Key The key is an immutable unique identifier of the feature used throughout the API, for example when interacting with a subject's entitlements. The key has to be unique across all active features, but archived features can share the same key. The key should consist of lowercase alphanumeric characters and dashes.
+	Key string `json:"key"`
 
-	// MeterGroupByFilters Optional meter group by filters.
-	// Useful if the meter scope is broader than what feature tracks.
-	// Example scenario would be a meter tracking all token use with groupBy fields for the model,
-	// then the feature could filter for model=gpt-4.
+	// Metadata Additional metadata for the feature, useful for syncing with external systems and annotating custom fields.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks. Example scenario would be a meter tracking all token use with groupBy fields for the model, then the feature could filter for model=gpt-4.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
-	// MeterSlug A key is a unique string that is used to identify a resource.
+	// MeterSlug The meter that the feature is associated with and and based on which usage is calculated.
+	// The meter selected must have SUM or COUNT aggregation.
 	MeterSlug *string `json:"meterSlug,omitempty"`
-	Name      string  `json:"name"`
+
+	// Name The name of the feature.
+	Name string `json:"name"`
 }
 
 // FeatureMeta Limited representation of a feature resource which includes only its unique identifiers (id, key).
 type FeatureMeta struct {
-	// Id Unique identifier of a feature.
+	// Id A unique identifier for the notification rule.
 	Id string `json:"id"`
 
 	// Key The key is an immutable unique identifier of the feature used throughout the API,
 	// for example when interacting with a subject's entitlements.
 	Key string `json:"key"`
 }
-
-// FeatureOrderBy Order by options for features.
-type FeatureOrderBy string
-
-// FeaturePaginatedResponse Paginated response
-type FeaturePaginatedResponse struct {
-	// Items The items in the current page.
-	Items []Feature `json:"items"`
-
-	// Page The items in the current page.
-	Page int `json:"page"`
-
-	// PageSize The items in the current page.
-	PageSize int `json:"pageSize"`
-
-	// TotalCount The items in the current page.
-	TotalCount int `json:"totalCount"`
-}
-
-// ForbiddenProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type ForbiddenProblemResponse = UnexpectedProblemResponse
 
 // GrantBurnDownHistorySegment A segment of the grant burn down history.
 //
@@ -947,10 +860,10 @@ type GrantBurnDownHistorySegment struct {
 	// BalanceAtEnd The entitlement balance at the end of the period.
 	BalanceAtEnd *float64 `json:"balanceAtEnd,omitempty"`
 
-	// BalanceAtStart entitlement balance at the start of the period.
+	// BalanceAtStart The entitlement balance at the start of the period.
 	BalanceAtStart *float64 `json:"balanceAtStart,omitempty"`
 
-	// GrantBalancesAtEnd The balance breakdown of each active grant at the end of the period: GrantID: Balance
+	// GrantBalancesAtEnd The balance breakdown of each active grant at the start of the period: GrantID: Balance
 	GrantBalancesAtEnd *map[string]float64 `json:"grantBalancesAtEnd,omitempty"`
 
 	// GrantBalancesAtStart The balance breakdown of each active grant at the start of the period: GrantID: Balance
@@ -962,39 +875,24 @@ type GrantBurnDownHistorySegment struct {
 	// Overage Overuse that wasn't covered by grants.
 	Overage *float64 `json:"overage,omitempty"`
 
-	// Period The period of the segment.
-	Period Period `json:"period"`
+	// Period A time period
+	Period *Period `json:"period,omitempty"`
 
-	// Usage The total usage of the grant in the period.
+	// Usage The usage of the grant in the period.
 	Usage *float64 `json:"usage,omitempty"`
 }
 
-// GrantOrderBy Order by options for grants.
-type GrantOrderBy string
-
-// GrantPaginatedResponse Paginated response
-type GrantPaginatedResponse struct {
-	// Items The items in the current page.
-	Items []EntitlementGrant `json:"items"`
-
-	// Page The items in the current page.
-	Page int `json:"page"`
-
-	// PageSize The items in the current page.
-	PageSize int `json:"pageSize"`
-
-	// TotalCount The items in the current page.
-	TotalCount int `json:"totalCount"`
-}
-
-// GrantUsageRecord Usage Record
+// GrantUsageRecord defines model for GrantUsageRecord.
 type GrantUsageRecord struct {
-	// GrantId The id of the grant
-	GrantId string `json:"grantId"`
+	// GrantId The id of the grant.
+	GrantId *string `json:"grantId,omitempty"`
 
-	// Usage The usage in the period
-	Usage float64 `json:"usage"`
+	// Usage The usage of the grant.
+	Usage *float64 `json:"usage,omitempty"`
 }
+
+// IdOrSlug A unique identifier.
+type IdOrSlug = string
 
 // IngestedEvent An ingested event with optional validation error.
 type IngestedEvent struct {
@@ -1005,66 +903,97 @@ type IngestedEvent struct {
 	IngestedAt time.Time `json:"ingestedAt"`
 
 	// StoredAt The date and time the event was stored.
-	StoredAt time.Time `json:"storedAt"`
-
-	// ValidationError The validation error if the event failed validation.
-	ValidationError *string `json:"validationError,omitempty"`
+	StoredAt        time.Time `json:"storedAt"`
+	ValidationError *string   `json:"validationError,omitempty"`
 }
 
-// InternalServerErrorProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type InternalServerErrorProblemResponse = UnexpectedProblemResponse
+// Key A key is a unique string that is used to identify a resource.
+type Key = string
 
-// ListingList A page of results.
-type ListingList struct {
-	// Items The items in the page.
-	Items []MarketplaceListing `json:"items"`
+// ListEntitlementGrantPaginatedResponse defines model for ListEntitlementGrantPaginatedResponse.
+type ListEntitlementGrantPaginatedResponse struct {
+	// Items List of grants.
+	Items []EntitlementGrant `json:"items"`
 
-	// Page The page number.
+	// Page Current page number.
 	Page int `json:"page"`
 
-	// PageSize The number of items in the page.
+	// PageSize Number of items per page.
 	PageSize int `json:"pageSize"`
 
-	// TotalCount The total number of items.
+	// TotalCount Total number of items.
 	TotalCount int `json:"totalCount"`
 }
 
-// MarketplaceListing A marketplace listing.
-// Represent an available app in the app marketplace that can be installed to the organization.
-//
-// Marketplace apps only exist in config so they don't extend the Resource model.
-type MarketplaceListing struct {
-	// Capabilities The app's capabilities.
-	Capabilities []AppCapability `json:"capabilities"`
-
-	// Description The app's description.
-	Description string `json:"description"`
-
-	// IconUrl The app's icon URL.
-	IconUrl string `json:"iconUrl"`
-
-	// Name The app's name.
-	Name string `json:"name"`
-
-	// Type The app's type
-	Type OpenMeterAppAppType `json:"type"`
+// ListEntitlementGrantResponse defines model for ListEntitlementGrantResponse.
+type ListEntitlementGrantResponse struct {
+	union json.RawMessage
 }
 
-// MeasureUsageFrom Measure usage from
+// ListEntitlementGrantResponse0 defines model for .
+type ListEntitlementGrantResponse0 = []EntitlementGrant
+
+// ListEntitlementPaginatedResponse defines model for ListEntitlementPaginatedResponse.
+type ListEntitlementPaginatedResponse struct {
+	// Items List of entitlements.
+	Items []Entitlement `json:"items"`
+
+	// Page Current page number.
+	Page int `json:"page"`
+
+	// PageSize Number of items per page.
+	PageSize int `json:"pageSize"`
+
+	// TotalCount Total number of items.
+	TotalCount int `json:"totalCount"`
+}
+
+// ListEntitlementResponse defines model for ListEntitlementResponse.
+type ListEntitlementResponse struct {
+	union json.RawMessage
+}
+
+// ListEntitlementResponse0 defines model for .
+type ListEntitlementResponse0 = []Entitlement
+
+// ListFeaturePaginatedResponse defines model for ListFeaturePaginatedResponse.
+type ListFeaturePaginatedResponse struct {
+	// Items List of features.
+	Items []Feature `json:"items"`
+
+	// Page Current page number.
+	Page int `json:"page"`
+
+	// PageSize Number of items per page.
+	PageSize int `json:"pageSize"`
+
+	// TotalCount Total number of items.
+	TotalCount int `json:"totalCount"`
+}
+
+// ListFeatureResponse defines model for ListFeatureResponse.
+type ListFeatureResponse struct {
+	union json.RawMessage
+}
+
+// ListFeatureResponse0 defines model for .
+type ListFeatureResponse0 = []Feature
+
+// MeasureUsageFrom The time from which usage is measured, defaults to the entitlement creation time.
+// The provided value is truncated to the granularity of the underlying meter.
 type MeasureUsageFrom struct {
 	union json.RawMessage
 }
 
-// MeasureUsageFromEnum Start of measurement options
+// MeasureUsageFromEnum defines model for MeasureUsageFromEnum.
 type MeasureUsageFromEnum string
 
-// MeasureUsageFromTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+// MeasureUsageFromTime defines model for MeasureUsageFromTime.
 type MeasureUsageFromTime = time.Time
 
 // Metadata Set of key-value pairs.
 // Metadata can be used to store additional information about a resource.
-type Metadata = map[string]string
+type Metadata map[string]string
 
 // Meter A meter is a configuration that defines how to match and aggregate events.
 type Meter = models.Meter
@@ -1075,12 +1004,8 @@ type MeterAggregation = models.MeterAggregation
 // MeterQueryResult The result of a meter query.
 type MeterQueryResult struct {
 	Data []MeterQueryRow `json:"data"`
-
-	// From [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	From *time.Time `json:"from,omitempty"`
-
-	// To [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	To *time.Time `json:"to,omitempty"`
+	From *time.Time      `json:"from,omitempty"`
+	To   *time.Time      `json:"to,omitempty"`
 
 	// WindowSize Aggregation window size.
 	WindowSize *WindowSize `json:"windowSize,omitempty"`
@@ -1089,62 +1014,80 @@ type MeterQueryResult struct {
 // MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow = models.MeterQueryRow
 
-// NotFoundProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type NotFoundProblemResponse = UnexpectedProblemResponse
+// NotificationChannel defines model for NotificationChannel.
+type NotificationChannel struct {
+	union json.RawMessage
+}
 
-// NotificationChannel Notification channel with webhook type.
-type NotificationChannel = NotificationChannelWebhook
+// NotificationChannelCommon defines model for NotificationChannelCommon.
+type NotificationChannelCommon struct {
+	// CreatedAt Timestamp when the channel was created.
+	CreatedAt time.Time `json:"createdAt"`
 
-// NotificationChannelCreateRequest Notification channel with webhook type.
-type NotificationChannelCreateRequest = NotificationChannelWebhookCreateRequest
+	// DeletedAt Timestamp when the channel was deleted.
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-// NotificationChannelMeta Metadata only fields of a notification channel.
+	// Disabled Whether the channel is disabled or not.
+	Disabled bool `json:"disabled"`
+
+	// Id A unique identifier for the notification channel.
+	Id string `json:"id"`
+
+	// Name User friendly name of the channel.
+	Name string `json:"name"`
+
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
+
+	// UpdatedAt Timestamp when the channel was modified.
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// NotificationChannelCommonCreateRequest Common fields for create notification channel request.
+type NotificationChannelCommonCreateRequest struct {
+	// Disabled Whether the channel is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Name User friendly name of the channel.
+	Name string `json:"name"`
+
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
+}
+
+// NotificationChannelCreateRequest defines model for NotificationChannelCreateRequest.
+type NotificationChannelCreateRequest struct {
+	union json.RawMessage
+}
+
+// NotificationChannelMeta Limited representation of notification channel which includes only the channel identifier and its type.
 type NotificationChannelMeta struct {
-	// Id Identifies the notification channel.
-	Id *string `json:"id,omitempty"`
+	// Id A unique identifier for the notification channel.
+	Id string `json:"id"`
 
-	// Type Notification channel type.
-	Type *NotificationChannelType `json:"type,omitempty"`
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
 }
 
-// NotificationChannelOrderBy Order by options for notification channels.
-type NotificationChannelOrderBy string
-
-// NotificationChannelPaginatedResponse Paginated response
-type NotificationChannelPaginatedResponse struct {
-	// Items The items in the current page.
-	Items []NotificationChannel `json:"items"`
-
-	// Page The items in the current page.
-	Page int `json:"page"`
-
-	// PageSize The items in the current page.
-	PageSize int `json:"pageSize"`
-
-	// TotalCount The items in the current page.
-	TotalCount int `json:"totalCount"`
-}
-
-// NotificationChannelType Type of the notification channel.
+// NotificationChannelType The type of the notification channel.
 type NotificationChannelType string
 
-// NotificationChannelWebhook Notification channel with webhook type.
+// NotificationChannelWebhook defines model for NotificationChannelWebhook.
 type NotificationChannelWebhook struct {
-	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	// CreatedAt Timestamp when the channel was created.
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CustomHeaders Custom HTTP headers sent as part of the webhook request.
-	CustomHeaders *map[string]string `json:"customHeaders,omitempty"`
+	CustomHeaders *map[string]interface{} `json:"customHeaders"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt Timestamp when the channel was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// Disabled Whether the channel is disabled or not.
-	Disabled *bool `json:"disabled,omitempty"`
+	Disabled bool `json:"disabled"`
 
-	// Id Identifies the notification channel.
-	Id *string `json:"id,omitempty"`
+	// Id A unique identifier for the notification channel.
+	Id string `json:"id"`
 
 	// Name User friendly name of the channel.
 	Name string `json:"name"`
@@ -1152,174 +1095,186 @@ type NotificationChannelWebhook struct {
 	// SigningSecret Signing secret used for webhook request validation on the receiving end.
 	//
 	// Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
-	SigningSecret *string `json:"signingSecret,omitempty"`
+	SigningSecret string `json:"signingSecret"`
 
-	// Type Notification channel type.
-	Type NotificationChannelWebhookType `json:"type"`
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
 
-	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	// UpdatedAt Timestamp when the channel was modified.
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Url Webhook URL where the notification is sent.
 	Url string `json:"url"`
 }
 
-// NotificationChannelWebhookType Notification channel type.
-type NotificationChannelWebhookType string
-
-// NotificationChannelWebhookCreateRequest Notification channel with webhook type.
+// NotificationChannelWebhookCreateRequest defines model for NotificationChannelWebhookCreateRequest.
 type NotificationChannelWebhookCreateRequest struct {
-	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
 	// CustomHeaders Custom HTTP headers sent as part of the webhook request.
-	CustomHeaders *map[string]string `json:"customHeaders,omitempty"`
-
-	// DeletedAt Timestamp of when the resource was permanently deleted.
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+	CustomHeaders *map[string]interface{} `json:"customHeaders"`
 
 	// Disabled Whether the channel is disabled or not.
 	Disabled *bool `json:"disabled,omitempty"`
 
-	// Id Identifies the notification channel.
-	Id *string `json:"id,omitempty"`
-
 	// Name User friendly name of the channel.
 	Name string `json:"name"`
 
-	// SigningSecret Signing secret used for webhook request validation on the receiving end.
+	// SigningSecret Signing secret used for webhook request validation on the receiving end. Automatically generated if not provided.
 	//
 	// Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
-	SigningSecret *string `json:"signingSecret,omitempty"`
+	SigningSecret *string `json:"signingSecret"`
 
-	// Type Notification channel type.
-	Type NotificationChannelWebhookCreateRequestType `json:"type"`
-
-	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
 
 	// Url Webhook URL where the notification is sent.
 	Url string `json:"url"`
 }
 
-// NotificationChannelWebhookCreateRequestType Notification channel type.
-type NotificationChannelWebhookCreateRequestType string
+// NotificationChannels List of channels.
+type NotificationChannels = []NotificationChannel
 
-// NotificationEvent Type of the notification event.
-type NotificationEvent struct {
-	// Annotations Set of key-value pairs managed by the system. Cannot be modified by user.
-	Annotations *Annotations `json:"annotations,omitempty"`
+// NotificationChannelsResponse defines model for NotificationChannelsResponse.
+type NotificationChannelsResponse struct {
+	// Items List of channels.
+	Items NotificationChannels `json:"items"`
 
-	// CreatedAt Timestamp when the notification event was created in RFC 3339 format.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
-	// DeliveryStatus The delivery status of the notification event.
-	DeliveryStatus *[]NotificationEventDeliveryStatus `json:"deliveryStatus,omitempty"`
-
-	// Id A unique identifier of the notification event.
-	Id *string `json:"id,omitempty"`
-
-	// Payload Timestamp when the notification event was created in RFC 3339 format.
-	Payload *NotificationEventPayload `json:"payload,omitempty"`
-
-	// Rule The nnotification rule which generated this event.
-	Rule *NotificationRule `json:"rule,omitempty"`
-
-	// Type Type of the notification event.
-	Type *NotificationEventType `json:"type,omitempty"`
-}
-
-// NotificationEventBalanceThresholdPayload Payload for notification event with `entitlements.balance.threshold` type.
-type NotificationEventBalanceThresholdPayload struct {
-	// Data The data of the payload.
-	Data *NotificationEventBalanceThresholdPayloadData `json:"data,omitempty"`
-
-	// Id A unique identifier for the notification event the payload belongs to.
-	Id *string `json:"id,omitempty"`
-
-	// Timestamp Timestamp when the notification event was created in RFC 3339 format.
-	Timestamp *time.Time `json:"timestamp,omitempty"`
-
-	// Type Type of the notification event.
-	Type *NotificationEventBalanceThresholdPayloadType `json:"type,omitempty"`
-}
-
-// NotificationEventBalanceThresholdPayloadType Type of the notification event.
-type NotificationEventBalanceThresholdPayloadType string
-
-// NotificationEventBalanceThresholdPayloadData Data of the payload for notification event with `entitlements.balance.threshold` type.
-type NotificationEventBalanceThresholdPayloadData struct {
-	Entitlement *EntitlementMetered                    `json:"entitlement,omitempty"`
-	Feature     *Feature                               `json:"feature,omitempty"`
-	Subject     *Subject                               `json:"subject,omitempty"`
-	Threshold   *NotificationRuleBalanceThresholdValue `json:"threshold,omitempty"`
-	Value       *EntitlementValue                      `json:"value,omitempty"`
-}
-
-// NotificationEventDeliveryStatus The delivery status of the notification event.
-type NotificationEventDeliveryStatus struct {
-	// Channel Notification channel the delivery sattus associated with.
-	Channel *NotificationChannelMeta `json:"channel,omitempty"`
-
-	// Reason The reason of the last deliverry state update.
-	Reason *string `json:"reason,omitempty"`
-
-	// State Delivery state of the notification event to the channel.
-	State *NotificationEventDeliveryStatusState `json:"state,omitempty"`
-
-	// UpdatedAt Timestamp of when the status was last updated in RFC 3339 format.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-}
-
-// NotificationEventDeliveryStatusState Delivery state of the notification event to the channel.
-type NotificationEventDeliveryStatusState string
-
-// NotificationEventOrderBy Order by options for notification channels.
-type NotificationEventOrderBy string
-
-// NotificationEventPaginatedResponse Paginated response
-type NotificationEventPaginatedResponse struct {
-	// Items The items in the current page.
-	Items []NotificationEvent `json:"items"`
-
-	// Page The items in the current page.
+	// Page Current page number.
 	Page int `json:"page"`
 
-	// PageSize The items in the current page.
+	// PageSize Number of items per page.
 	PageSize int `json:"pageSize"`
 
-	// TotalCount The items in the current page.
+	// TotalCount Total number of items.
 	TotalCount int `json:"totalCount"`
 }
 
-// NotificationEventPayload Payload for notification event with `entitlements.balance.threshold` type.
-type NotificationEventPayload = NotificationEventBalanceThresholdPayload
+// NotificationEvent Notification event generated by the system based on the criteria defined in the corresponding
+// a notification rule.
+//
+// The `payload` field contains the actual message sent to the notification channel.
+type NotificationEvent struct {
+	// Annotations List of annotations managed by the system.
+	Annotations *map[string]interface{} `json:"annotations,omitempty"`
 
-// NotificationEventType Type of the notification event.
+	// CreatedAt Timestamp when the notification event was created.
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DeliveryStatus The delivery status of the notification event.
+	DeliveryStatus []NotificationEventDeliveryStatus `json:"deliveryStatus"`
+
+	// Id A unique identifier for the notification event.
+	Id string `json:"id"`
+
+	// Payload The actual payload sent to channel as part of the notification event.
+	Payload NotificationEventPayload `json:"payload"`
+	Rule    NotificationRule         `json:"rule"`
+
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
+}
+
+// NotificationEventBalanceThresholdPayload defines model for NotificationEventBalanceThresholdPayload.
+type NotificationEventBalanceThresholdPayload struct {
+	Data struct {
+		// Entitlement Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems. Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+		Entitlement EntitlementMetered `json:"entitlement"`
+
+		// Feature A feature is a feature or service offered to a customer.
+		// For example: CPU-Hours, Tokens, API Calls, etc.
+		Feature Feature `json:"feature"`
+
+		// Subject A subject is a unique identifier for a user or entity.
+		Subject Subject `json:"subject"`
+
+		// Threshold Threshold value with multiple supported types.
+		Threshold NotificationRuleBalanceThresholdValue `json:"threshold"`
+		Value     EntitlementValue                      `json:"value"`
+	} `json:"data"`
+
+	// Id A unique identifier for the notification event the payload belongs to.
+	Id string `json:"id"`
+
+	// Timestamp Timestamp when the notification event was created.
+	Timestamp time.Time `json:"timestamp"`
+
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
+}
+
+// NotificationEventCommonPayload Common fields for notification event payload.
+type NotificationEventCommonPayload struct {
+	// Id A unique identifier for the notification event the payload belongs to.
+	Id string `json:"id"`
+
+	// Timestamp Timestamp when the notification event was created.
+	Timestamp time.Time `json:"timestamp"`
+
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
+}
+
+// NotificationEventDeliveryStatus defines model for NotificationEventDeliveryStatus.
+type NotificationEventDeliveryStatus struct {
+	// Channel Limited representation of notification channel which includes only the channel identifier and its type.
+	Channel   NotificationChannelMeta              `json:"channel"`
+	Reason    *string                              `json:"reason,omitempty"`
+	State     NotificationEventDeliveryStatusState `json:"state"`
+	UpdatedAt time.Time                            `json:"updatedAt"`
+}
+
+// NotificationEventDeliveryStatusState defines model for NotificationEventDeliveryStatus.State.
+type NotificationEventDeliveryStatusState string
+
+// NotificationEventPayload The actual payload sent to channel as part of the notification event.
+type NotificationEventPayload struct {
+	union json.RawMessage
+}
+
+// NotificationEventType The type of the notification event.
 type NotificationEventType string
 
-// NotificationRule Notification rule with entitlements.balance.threshold type.
-type NotificationRule = NotificationRuleBalanceThreshold
+// NotificationEvents List of notification events.
+type NotificationEvents = []NotificationEvent
 
-// NotificationRuleBalanceThreshold Notification rule with entitlements.balance.threshold type.
+// NotificationEventsResponse defines model for NotificationEventsResponse.
+type NotificationEventsResponse struct {
+	// Items List of notification events.
+	Items NotificationEvents `json:"items"`
+
+	// Page Current page number.
+	Page int `json:"page"`
+
+	// PageSize Number of items per page.
+	PageSize int `json:"pageSize"`
+
+	// TotalCount Total number of items.
+	TotalCount int `json:"totalCount"`
+}
+
+// NotificationRule defines model for NotificationRule.
+type NotificationRule struct {
+	union json.RawMessage
+}
+
+// NotificationRuleBalanceThreshold defines model for NotificationRuleBalanceThreshold.
 type NotificationRuleBalanceThreshold struct {
 	// Channels List of notification channels the rule applies to.
 	Channels []NotificationChannelMeta `json:"channels"`
 
-	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	// CreatedAt Timestamp when the rule was created.
+	CreatedAt time.Time `json:"createdAt"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt Timestamp when the channel was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// Disabled Whether the rule is disabled or not.
-	Disabled *bool `json:"disabled,omitempty"`
+	Disabled bool `json:"disabled"`
 
 	// Features Optional field containing list of features the rule applies to.
-	Features *[]FeatureMeta `json:"features,omitempty"`
+	Features *[]FeatureMeta `json:"features"`
 
-	// Id Identifies the notification rule.
-	Id *string `json:"id,omitempty"`
+	// Id A unique identifier for the notification rule.
+	Id string `json:"id"`
 
 	// Name The user friendly name of the notification rule.
 	Name string `json:"name"`
@@ -1327,26 +1282,23 @@ type NotificationRuleBalanceThreshold struct {
 	// Thresholds List of thresholds the rule suppose to be triggered.
 	Thresholds []NotificationRuleBalanceThresholdValue `json:"thresholds"`
 
-	// Type Notification rule type.
-	Type NotificationRuleBalanceThresholdType `json:"type"`
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
 
-	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	// UpdatedAt Timestamp when the rule was modified.
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// NotificationRuleBalanceThresholdType Notification rule type.
-type NotificationRuleBalanceThresholdType string
-
-// NotificationRuleBalanceThresholdCreateRequest Request with input parameters for creating new notification rule with webhook type.
+// NotificationRuleBalanceThresholdCreateRequest defines model for NotificationRuleBalanceThresholdCreateRequest.
 type NotificationRuleBalanceThresholdCreateRequest struct {
-	// Channels List of notification channels the rule is applied to.
+	// Channels List of notification channel identifiers or names the rule applies to.
 	Channels []string `json:"channels"`
 
 	// Disabled Whether the rule is disabled or not.
 	Disabled *bool `json:"disabled,omitempty"`
 
 	// Features Optional field for defining the scope of notification by feature. It may contain features by id or key.
-	Features *[]string `json:"features,omitempty"`
+	Features *[]string `json:"features"`
 
 	// Name The user friendly name of the notification rule.
 	Name string `json:"name"`
@@ -1354,292 +1306,207 @@ type NotificationRuleBalanceThresholdCreateRequest struct {
 	// Thresholds List of thresholds the rule suppose to be triggered.
 	Thresholds []NotificationRuleBalanceThresholdValue `json:"thresholds"`
 
-	// Type Notification rule type.
-	Type NotificationRuleBalanceThresholdCreateRequestType `json:"type"`
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
 }
-
-// NotificationRuleBalanceThresholdCreateRequestType Notification rule type.
-type NotificationRuleBalanceThresholdCreateRequestType string
 
 // NotificationRuleBalanceThresholdValue Threshold value with multiple supported types.
 type NotificationRuleBalanceThresholdValue struct {
-	// Type Type of the threshold.
-	Type NotificationRuleBalanceThresholdValueType `json:"type"`
-
-	// Value Value of the threshold.
-	Value float64 `json:"value"`
+	Type  NotificationRuleBalanceThresholdValueType `json:"type"`
+	Value float64                                   `json:"value"`
 }
 
-// NotificationRuleBalanceThresholdValueType Type of the threshold.
+// NotificationRuleBalanceThresholdValueType defines model for NotificationRuleBalanceThresholdValue.Type.
 type NotificationRuleBalanceThresholdValueType string
 
-// NotificationRuleCreateRequest Request with input parameters for creating new notification rule with webhook type.
-type NotificationRuleCreateRequest = NotificationRuleBalanceThresholdCreateRequest
+// NotificationRuleCommon defines model for NotificationRuleCommon.
+type NotificationRuleCommon struct {
+	// Channels List of notification channels the rule applies to.
+	Channels []NotificationChannelMeta `json:"channels"`
 
-// NotificationRuleOrderBy Order by options for notification channels.
-type NotificationRuleOrderBy string
+	// CreatedAt Timestamp when the rule was created.
+	CreatedAt time.Time `json:"createdAt"`
 
-// NotificationRulePaginatedResponse Paginated response
-type NotificationRulePaginatedResponse struct {
-	// Items The items in the current page.
-	Items []NotificationRule `json:"items"`
+	// DeletedAt Timestamp when the channel was deleted.
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	// Page The items in the current page.
+	// Disabled Whether the rule is disabled or not.
+	Disabled bool `json:"disabled"`
+
+	// Id A unique identifier for the notification rule.
+	Id string `json:"id"`
+
+	// Name The user friendly name of the notification rule.
+	Name string `json:"name"`
+
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
+
+	// UpdatedAt Timestamp when the rule was modified.
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// NotificationRuleCommonCreateRequest Defines the common fields for create notification rule request.
+type NotificationRuleCommonCreateRequest struct {
+	// Channels List of notification channel identifiers or names the rule applies to.
+	Channels []string `json:"channels"`
+
+	// Disabled Whether the rule is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Name The user friendly name of the notification rule.
+	Name string `json:"name"`
+
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
+}
+
+// NotificationRuleCreateRequest defines model for NotificationRuleCreateRequest.
+type NotificationRuleCreateRequest struct {
+	union json.RawMessage
+}
+
+// NotificationRuleMeta Defines the common fields of a notification rule.
+type NotificationRuleMeta struct {
+	// Id A unique identifier for the notification rule.
+	Id string `json:"id"`
+
+	// Type The type of the notification event.
+	Type NotificationEventType `json:"type"`
+}
+
+// NotificationRules List of rules.
+type NotificationRules = []NotificationRule
+
+// NotificationRulesResponse defines model for NotificationRulesResponse.
+type NotificationRulesResponse struct {
+	// Items List of rules.
+	Items NotificationRules `json:"items"`
+
+	// Page Current page number.
 	Page int `json:"page"`
 
-	// PageSize The items in the current page.
+	// PageSize Number of items per page.
 	PageSize int `json:"pageSize"`
 
-	// TotalCount The items in the current page.
+	// TotalCount Total number of items.
 	TotalCount int `json:"totalCount"`
 }
 
-// OAuth2AuthorizationCodeGrantErrorType OAuth2 authorization code grant error types.
-type OAuth2AuthorizationCodeGrantErrorType string
+// PaginationInfo Pagination information.
+type PaginationInfo struct {
+	// Page Current page number.
+	Page int `json:"page"`
 
-// OpenMeterAppAppStatus App installed status.
-type OpenMeterAppAppStatus string
+	// PageSize Number of items per page.
+	PageSize int `json:"pageSize"`
 
-// OpenMeterAppAppType App type.
-type OpenMeterAppAppType string
+	// TotalCount Total number of items.
+	TotalCount int `json:"totalCount"`
+}
 
-// OpenMeterAppStripePaymentIntentStatus Stripe payment intent status.
-type OpenMeterAppStripePaymentIntentStatus string
-
-// Order The order direction.
-type Order string
-
-// Period A period with a start and end time.
+// Period A time period
 type Period struct {
-	// From Period start time.
+	// From Period start time where the amount was applied. If applicable.
 	From time.Time `json:"from"`
 
-	// To Period end time.
+	// To Period end time where the amount was applied. If applicable.
 	To time.Time `json:"to"`
 }
 
 // PortalToken A consumer portal token.
-//
-// Validator doesn't obey required for readOnly properties
-// See: https://github.com/stoplightio/spectral/issues/1274
 type PortalToken struct {
-	// AllowedMeterSlugs Optional, if defined only the specified meters will be allowed.
-	AllowedMeterSlugs *[]string `json:"allowedMeterSlugs,omitempty"`
-
-	// CreatedAt [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-	Expired   *bool      `json:"expired,omitempty"`
-
-	// ExpiresAt [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
-
-	// Id ULID (Universally Unique Lexicographically Sortable Identifier).
-	Id      *string `json:"id,omitempty"`
-	Subject string  `json:"subject"`
+	// AllowedMeterSlugs Optional, if defined only the specified meters will be allowed
+	AllowedMeterSlugs *[]string  `json:"allowedMeterSlugs,omitempty"`
+	CreatedAt         *time.Time `json:"createdAt,omitempty"`
+	Expired           *bool      `json:"expired,omitempty"`
+	ExpiresAt         *time.Time `json:"expiresAt,omitempty"`
+	Id                *string    `json:"id,omitempty"`
+	Subject           string     `json:"subject"`
 
 	// Token The token is only returned at creation.
 	Token *string `json:"token,omitempty"`
 }
 
-// RecurringPeriod Recurring period with an interval and an anchor.
+// Problem A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
+type Problem = models.StatusProblem
+
+// RecurringPeriod Recurring period of an entitlement.
 type RecurringPeriod struct {
-	// Anchor A date-time anchor to base the recurring period on.
+	// Anchor An arbitrary anchor to base the recurring period on.
 	Anchor time.Time `json:"anchor"`
 
-	// Interval The unit of time for the interval.
-	Interval RecurringPeriodInterval `json:"interval"`
+	// Interval List of pre-defined periods that can be used for recurring & scheduling.
+	//
+	// DAY:      Every day
+	// WEEK:     Every week
+	// MONTH:    Every month
+	// YEAR:     Every year
+	Interval RecurringPeriodEnum `json:"interval"`
 }
 
-// RecurringPeriodCreateInput Recurring period with an interval and an anchor.
+// RecurringPeriodCreateInput Recurring period of an entitlement.
 type RecurringPeriodCreateInput struct {
-	// Anchor A date-time anchor to base the recurring period on.
+	// Anchor An arbitrary anchor to base the recurring period on.
+	// If not provided then defaults to now truncated to the hour.
 	Anchor *time.Time `json:"anchor,omitempty"`
 
-	// Interval The unit of time for the interval.
-	Interval RecurringPeriodInterval `json:"interval"`
+	// Interval List of pre-defined periods that can be used for recurring & scheduling.
+	//
+	// DAY:      Every day
+	// WEEK:     Every week
+	// MONTH:    Every month
+	// YEAR:     Every year
+	Interval RecurringPeriodEnum `json:"interval"`
 }
 
-// RecurringPeriodInterval The unit of time for the interval.
-// One of: `day`, `week`, `month`, or `year`.
-type RecurringPeriodInterval string
+// RecurringPeriodEnum List of pre-defined periods that can be used for recurring & scheduling.
+//
+// DAY:      Every day
+// WEEK:     Every week
+// MONTH:    Every month
+// YEAR:     Every year
+type RecurringPeriodEnum string
 
-// ResetEntitlementUsageInput Reset parameters
-type ResetEntitlementUsageInput struct {
-	// EffectiveAt The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.
-	EffectiveAt *time.Time `json:"effectiveAt,omitempty"`
-
-	// PreserveOverage Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
-	// - If true, the overage is preserved.
-	// - If false, the overage is forgiven.
-	PreserveOverage *bool `json:"preserveOverage,omitempty"`
-
-	// RetainAnchor Determines whether the usage period anchor is retained or reset to the effectiveAt time.
-	// - If true, the usage period anchor is retained.
-	// - If false, the usage period anchor is reset to the effectiveAt time.
-	RetainAnchor *bool `json:"retainAnchor,omitempty"`
-}
-
-// ServiceUnavailableProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type ServiceUnavailableProblemResponse = UnexpectedProblemResponse
-
-// StripeApp A installed Stripe app object.
-type StripeApp struct {
-	// CreatedAt Timestamp of when the resource was created.
+// SharedMetaFields Metadata fields for all resources.
+// These fields are automatically populated by the system for managed entities. Their use and meaning is uniform across all resources.
+type SharedMetaFields struct {
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// DeletedAt Timestamp of when the resource was permanently deleted.
+	// DeletedAt The date and time the resource was deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	// Description Optional description of the resource. Maximum 1024 characters.
-	Description *string `json:"description,omitempty"`
-
-	// Id A unique identifier for the resource.
+	// Id Readonly unique ULID identifier.
 	Id *string `json:"id,omitempty"`
 
-	// Listing The marketplace listing that this installed app is based on.
-	Listing *MarketplaceListing `json:"listing,omitempty"`
-
-	// Livemode Livemode, true if the app is in production mode.
-	Livemode bool `json:"livemode"`
-
-	// Metadata Additional metadata for the resource.
-	Metadata *Metadata `json:"metadata,omitempty"`
-
-	// Name Human-readable name for the resource. Between 1 and 256 characters.
-	Name string `json:"name"`
-
-	// Status Status of the app connection.
-	Status *OpenMeterAppAppStatus `json:"status,omitempty"`
-
-	// StripeAccountId The Stripe account ID.
-	StripeAccountId string `json:"stripeAccountId"`
-
-	// Type The app's type is Stripe.
-	Type StripeAppType `json:"type"`
-
-	// UpdatedAt Timestamp of when the resource was last updated.
+	// UpdatedAt The date and time the resource was last updated. The initial value is the same as createdAt.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-}
-
-// StripeAppType The app's type is Stripe.
-type StripeAppType string
-
-// StripeCheckoutSessionMode Stripe CheckoutSession.mode
-type StripeCheckoutSessionMode string
-
-// StripeSetupIntent Stripe setup intent.
-type StripeSetupIntent struct {
-	// Customer The setup intent customer.
-	Customer string `json:"customer"`
-
-	// Id The setup intent id.
-	Id string `json:"id"`
-
-	// Metadata The setup intent metadata.
-	Metadata map[string]string `json:"metadata"`
-
-	// PaymentMethod The setup intent payment method.
-	PaymentMethod *string `json:"payment_method,omitempty"`
-
-	// PaymentMethodTypes The setup intent payment method types.
-	PaymentMethodTypes *[]string `json:"payment_method_types,omitempty"`
-
-	// Status The setup intent status.
-	Status OpenMeterAppStripePaymentIntentStatus `json:"status"`
-}
-
-// StripeWebhookEvent Stripe webhook event.
-type StripeWebhookEvent struct {
-	// Created The event created timestamp.
-	Created int32 `json:"created"`
-
-	// Data The event data.
-	Data struct {
-		// Object Stripe setup intent.
-		Object StripeSetupIntent `json:"object"`
-	} `json:"data"`
-
-	// Id The event ID.
-	Id string `json:"id"`
-
-	// Livemode Live mode.
-	Livemode bool `json:"livemode"`
-
-	// Type The event type.
-	Type string `json:"type"`
-}
-
-// StripeWebhookResponse Stripe webhook response.
-type StripeWebhookResponse struct {
-	// AppId ULID (Universally Unique Lexicographically Sortable Identifier).
-	AppId string `json:"appId"`
-
-	// CustomerId ULID (Universally Unique Lexicographically Sortable Identifier).
-	CustomerId *string `json:"customerId,omitempty"`
-
-	// NamespaceId ULID (Universally Unique Lexicographically Sortable Identifier).
-	NamespaceId string `json:"namespaceId"`
 }
 
 // Subject A subject is a unique identifier for a user or entity.
 type Subject struct {
-	// CurrentPeriodEnd [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	CurrentPeriodEnd *time.Time `json:"currentPeriodEnd,omitempty"`
-
-	// CurrentPeriodStart [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	CurrentPeriodStart *time.Time `json:"currentPeriodStart,omitempty"`
-
-	// DisplayName A human-readable display name for the subject.
-	DisplayName *string `json:"displayName,omitempty"`
-
-	// Id A unique identifier for the subject.
-	Id *string `json:"id,omitempty"`
-
-	// Key A unique, human-readable identifier for the subject.
-	// Must consist only alphanumeric and underscore characters.
-	Key              string                  `json:"key"`
-	Metadata         *map[string]interface{} `json:"metadata"`
-	StripeCustomerId *string                 `json:"stripeCustomerId,omitempty"`
+	CurrentPeriodEnd   *time.Time              `json:"currentPeriodEnd"`
+	CurrentPeriodStart *time.Time              `json:"currentPeriodStart"`
+	DisplayName        *string                 `json:"displayName"`
+	Id                 *string                 `json:"id,omitempty"`
+	Key                string                  `json:"key"`
+	Metadata           *map[string]interface{} `json:"metadata"`
+	StripeCustomerId   *string                 `json:"stripeCustomerId"`
 }
 
-// SubjectUpsert A subject is a unique identifier for a user or entity.
-type SubjectUpsert struct {
-	// CurrentPeriodEnd [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	CurrentPeriodEnd *time.Time `json:"currentPeriodEnd,omitempty"`
-
-	// CurrentPeriodStart [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-	CurrentPeriodStart *time.Time `json:"currentPeriodStart,omitempty"`
-
-	// DisplayName A human-readable display name for the subject.
-	DisplayName *string `json:"displayName,omitempty"`
-
-	// Key A unique, human-readable identifier for the subject.
-	// Must consist only alphanumeric and underscore characters.
-	Key              string                  `json:"key"`
-	Metadata         *map[string]interface{} `json:"metadata"`
-	StripeCustomerId *string                 `json:"stripeCustomerId,omitempty"`
-}
-
-// SvixOperationalWebhookRequest Operational webhook reqeuest sent by Svix.
+// SvixOperationalWebhookRequest defines model for SvixOperationalWebhookRequest.
 type SvixOperationalWebhookRequest struct {
-	// Data The payload of the Svix operational webhook request.
-	Data map[string]string `json:"data"`
-
-	// Type The type of the Svix operational webhook request.
+	Data map[string]interface{}            `json:"data"`
 	Type SvixOperationalWebhookRequestType `json:"type"`
 }
 
-// SvixOperationalWebhookRequestType The type of the Svix operational webhook request.
+// SvixOperationalWebhookRequestType defines model for SvixOperationalWebhookRequest.Type.
 type SvixOperationalWebhookRequestType string
 
-// UnauthorizedProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type UnauthorizedProblemResponse = UnexpectedProblemResponse
-
-// UnexpectedProblemResponse A Problem Details object (RFC 7807).
-// Additional properties specific to the problem type may be present.
-type UnexpectedProblemResponse = models.Problem
+// ULID ULID (Universally Unique Lexicographically Sortable Identifier).
+type ULID = string
 
 // WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
@@ -1647,95 +1514,14 @@ type WindowSize = models.WindowSize
 // WindowedBalanceHistory The windowed balance history.
 type WindowedBalanceHistory struct {
 	// BurndownHistory Grant burndown history.
-	BurndownHistory []GrantBurnDownHistorySegment `json:"burndownHistory"`
+	BurndownHistory *[]GrantBurnDownHistorySegment `json:"burndownHistory,omitempty"`
 
 	// WindowedHistory The windowed balance history.
 	// - It only returns rows for windows where there was usage.
 	// - The windows are inclusive at their start and exclusive at their end.
 	// - The last window may be smaller than the window size and is inclusive at both ends.
-	WindowedHistory []BalanceHistoryWindow `json:"windowedHistory"`
+	WindowedHistory *[]BalanceHistoryWindow `json:"windowedHistory,omitempty"`
 }
-
-// EntitlementOrderByOrderingOrder The order direction.
-type EntitlementOrderByOrderingOrder = Order
-
-// EntitlementOrderByOrderingOrderBy Order by options for entitlements.
-type EntitlementOrderByOrderingOrderBy = EntitlementOrderBy
-
-// FeatureOrderByOrderingOrder The order direction.
-type FeatureOrderByOrderingOrder = Order
-
-// FeatureOrderByOrderingOrderBy Order by options for features.
-type FeatureOrderByOrderingOrderBy = FeatureOrderBy
-
-// GrantOrderByOrderingOrder The order direction.
-type GrantOrderByOrderingOrder = Order
-
-// GrantOrderByOrderingOrderBy Order by options for grants.
-type GrantOrderByOrderingOrderBy = GrantOrderBy
-
-// LimitOffsetLimit defines model for LimitOffset.limit.
-type LimitOffsetLimit = int
-
-// LimitOffsetOffset defines model for LimitOffset.offset.
-type LimitOffsetOffset = int
-
-// MarketplaceOAuth2InstallAuthorizeRequestAppKey defines model for MarketplaceOAuth2InstallAuthorizeRequest.appKey.
-type MarketplaceOAuth2InstallAuthorizeRequestAppKey = string
-
-// MeterQueryFilterGroupBy defines model for MeterQuery.filterGroupBy.
-type MeterQueryFilterGroupBy map[string]string
-
-// MeterQueryFrom defines model for MeterQuery.from.
-type MeterQueryFrom = time.Time
-
-// MeterQueryGroupBy defines model for MeterQuery.groupBy.
-type MeterQueryGroupBy = []string
-
-// MeterQuerySubject defines model for MeterQuery.subject.
-type MeterQuerySubject = []string
-
-// MeterQueryTo defines model for MeterQuery.to.
-type MeterQueryTo = time.Time
-
-// MeterQueryWindowSize Aggregation window size.
-type MeterQueryWindowSize = WindowSize
-
-// MeterQueryWindowTimeZone defines model for MeterQuery.windowTimeZone.
-type MeterQueryWindowTimeZone = string
-
-// NotificationChannelOrderByOrderingOrder The order direction.
-type NotificationChannelOrderByOrderingOrder = Order
-
-// NotificationChannelOrderByOrderingOrderBy Order by options for notification channels.
-type NotificationChannelOrderByOrderingOrderBy = NotificationChannelOrderBy
-
-// NotificationEventOrderByOrderingOrder The order direction.
-type NotificationEventOrderByOrderingOrder = Order
-
-// NotificationEventOrderByOrderingOrderBy Order by options for notification channels.
-type NotificationEventOrderByOrderingOrderBy = NotificationEventOrderBy
-
-// NotificationRuleOrderByOrderingOrder The order direction.
-type NotificationRuleOrderByOrderingOrder = Order
-
-// NotificationRuleOrderByOrderingOrderBy Order by options for notification channels.
-type NotificationRuleOrderByOrderingOrderBy = NotificationRuleOrderBy
-
-// OAuth2AuthorizationCodeGrantErrorParamsError OAuth2 authorization code grant error types.
-type OAuth2AuthorizationCodeGrantErrorParamsError = OAuth2AuthorizationCodeGrantErrorType
-
-// OAuth2AuthorizationCodeGrantErrorParamsErrorDescription defines model for OAuth2AuthorizationCodeGrantErrorParams.error_description.
-type OAuth2AuthorizationCodeGrantErrorParamsErrorDescription = string
-
-// OAuth2AuthorizationCodeGrantErrorParamsErrorUri defines model for OAuth2AuthorizationCodeGrantErrorParams.error_uri.
-type OAuth2AuthorizationCodeGrantErrorParamsErrorUri = string
-
-// OAuth2AuthorizationCodeGrantSuccessParamsCode defines model for OAuth2AuthorizationCodeGrantSuccessParams.code.
-type OAuth2AuthorizationCodeGrantSuccessParamsCode = string
-
-// OAuth2AuthorizationCodeGrantSuccessParamsState defines model for OAuth2AuthorizationCodeGrantSuccessParams.state.
-type OAuth2AuthorizationCodeGrantSuccessParamsState = string
 
 // PaginatedQueryPage defines model for PaginatedQuery.page.
 type PaginatedQueryPage = int
@@ -1743,23 +1529,114 @@ type PaginatedQueryPage = int
 // PaginatedQueryPageSize defines model for PaginatedQuery.pageSize.
 type PaginatedQueryPageSize = int
 
-// PaginationPage defines model for Pagination.page.
-type PaginationPage = int
+// ChannelId defines model for channelId.
+type ChannelId = string
 
-// PaginationPageSize defines model for Pagination.pageSize.
-type PaginationPageSize = int
+// EntitlementId defines model for entitlementId.
+type EntitlementId = string
+
+// EntitlementIdOrFeatureKey defines model for entitlementIdOrFeatureKey.
+type EntitlementIdOrFeatureKey = string
+
+// EventId defines model for eventId.
+type EventId = string
+
+// FeatureId defines model for featureId.
+type FeatureId = string
+
+// GrantId defines model for grantId.
+type GrantId = string
+
+// IncludeDeleted defines model for includeDeleted.
+type IncludeDeleted = bool
+
+// MeterIdOrSlug A unique identifier.
+type MeterIdOrSlug = IdOrSlug
+
+// Order defines model for order.
+type Order string
 
 // QueryCustomerList defines model for queryCustomerList.
 type QueryCustomerList = bool
 
-// ListAppsParams defines parameters for ListApps.
-type ListAppsParams struct {
-	// Page The page number.
-	Page *PaginatedQueryPage `form:"page,omitempty" json:"page,omitempty"`
+// QueryFilterChannel defines model for queryFilterChannel.
+type QueryFilterChannel = []string
 
-	// PageSize The number of items in the page.
-	PageSize *PaginatedQueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-}
+// QueryFilterEntitlementType defines model for queryFilterEntitlementType.
+type QueryFilterEntitlementType = []string
+
+// QueryFilterFeature defines model for queryFilterFeature.
+type QueryFilterFeature = []string
+
+// QueryFilterGroupBy Simple filter for group bys with exact match.
+//
+// Usage: `?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4`
+type QueryFilterGroupBy map[string]string
+
+// QueryFilterMeterSlug defines model for queryFilterMeterSlug.
+type QueryFilterMeterSlug = []string
+
+// QueryFilterSubject defines model for queryFilterSubject.
+type QueryFilterSubject = []string
+
+// QueryFrom defines model for queryFrom.
+type QueryFrom = time.Time
+
+// QueryGroupBy defines model for queryGroupBy.
+type QueryGroupBy = []string
+
+// QueryIncludeDisabled defines model for queryIncludeDisabled.
+type QueryIncludeDisabled = bool
+
+// QueryLimit defines model for queryLimit.
+type QueryLimit = int
+
+// QueryOffset defines model for queryOffset.
+type QueryOffset = int
+
+// QueryPage defines model for queryPage.
+type QueryPage = int
+
+// QueryPageSize defines model for queryPageSize.
+type QueryPageSize = int
+
+// QueryTo defines model for queryTo.
+type QueryTo = time.Time
+
+// QueryWindowSize Aggregation window size.
+type QueryWindowSize = WindowSize
+
+// QueryWindowTimeZone defines model for queryWindowTimeZone.
+type QueryWindowTimeZone = string
+
+// RuleId defines model for ruleId.
+type RuleId = string
+
+// SubjectIdOrKey defines model for subjectIdOrKey.
+type SubjectIdOrKey = string
+
+// BadRequestProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
+type BadRequestProblemResponse = Problem
+
+// ConflictProblemResponse Conflict
+type ConflictProblemResponse = ConflictProblem
+
+// NotFoundProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
+type NotFoundProblemResponse = Problem
+
+// NotImplementedProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
+type NotImplementedProblemResponse = Problem
+
+// UnauthorizedProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
+type UnauthorizedProblemResponse = Problem
+
+// UnexpectedProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
+type UnexpectedProblemResponse = Problem
 
 // ListCustomersParams defines parameters for ListCustomers.
 type ListCustomersParams struct {
@@ -1775,88 +1652,79 @@ type ListCustomersParams struct {
 
 // ListEntitlementsParams defines parameters for ListEntitlements.
 type ListEntitlementsParams struct {
-	// Feature Filtering by multiple features.
-	//
-	// Usage: `?feature=feature-1&feature=feature-2`
-	Feature *[]string `form:"feature,omitempty" json:"feature,omitempty"`
+	// Page Page number to return
+	Page *QueryPage `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of entries to return per page
+	PageSize *QueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
 
 	// Subject Filtering by multiple subjects.
 	//
 	// Usage: `?subject=customer-1&subject=customer-2`
-	Subject *[]string `form:"subject,omitempty" json:"subject,omitempty"`
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// Feature Filtering by multiple features.
+	//
+	// Usage: `?feature=feature-1&feature=feature-2`
+	Feature *QueryFilterFeature `form:"feature,omitempty" json:"feature,omitempty"`
 
 	// EntitlementType Filtering by multiple entitlement types.
 	//
-	// Usage: `?entitlementType=metered&entitlementType=boolean`
-	EntitlementType *[]EntitlementType `form:"entitlementType,omitempty" json:"entitlementType,omitempty"`
+	// Usage: `?entitlementType=metered&entitlementType=static`
+	EntitlementType *QueryFilterEntitlementType `form:"entitlementType,omitempty" json:"entitlementType,omitempty"`
 
-	// Page Start date-time in RFC 3339 format.
+	// Order Order by field.
 	//
-	// Inclusive.
-	Page *PaginationPage `form:"page,omitempty" json:"page,omitempty"`
+	// Usage: `?order=ASC`
+	Order *ListEntitlementsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
 
-	// PageSize Number of items per page.
-	//
-	// Default is 100.
-	PageSize *PaginationPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-
-	// Offset Number of items to skip.
-	//
-	// Default is 0.
-	Offset *LimitOffsetOffset `form:"offset,omitempty" json:"offset,omitempty"`
-
-	// Limit Number of items to return.
-	//
-	// Default is 100.
-	Limit *LimitOffsetLimit `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Order The order direction.
-	Order *EntitlementOrderByOrderingOrder `form:"order,omitempty" json:"order,omitempty"`
-
-	// OrderBy The order by field.
-	OrderBy *EntitlementOrderByOrderingOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	// OrderBy Order by field
+	OrderBy *ListEntitlementsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
+
+// ListEntitlementsParamsOrder defines parameters for ListEntitlements.
+type ListEntitlementsParamsOrder string
+
+// ListEntitlementsParamsOrderBy defines parameters for ListEntitlements.
+type ListEntitlementsParamsOrderBy string
 
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
+	// From Start date-time in RFC 3339 format.
+	// Inclusive.
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End date-time in RFC 3339 format.
+	// Inclusive.
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
+
 	// IngestedAtFrom Start date-time in RFC 3339 format.
-	//
 	// Inclusive.
 	IngestedAtFrom *time.Time `form:"ingestedAtFrom,omitempty" json:"ingestedAtFrom,omitempty"`
 
 	// IngestedAtTo End date-time in RFC 3339 format.
-	//
 	// Inclusive.
 	IngestedAtTo *time.Time `form:"ingestedAtTo,omitempty" json:"ingestedAtTo,omitempty"`
 
 	// HasError If not provided lists all events.
-	//
 	// If provided with true, only list events with processing error.
-	//
 	// If provided with false, only list events without processing error.
 	HasError *bool `form:"hasError,omitempty" json:"hasError,omitempty"`
 
 	// Id The event ID.
-	//
 	// Accepts partial ID.
 	Id *string `form:"id,omitempty" json:"id,omitempty"`
 
-	// Subject The event subject.
-	//
-	// Accepts partial subject.
+	// Subject The event subject. Full match.
 	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
 
-	// From Start date-time in RFC 3339 format.
-	//
-	// Inclusive.
-	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
-
-	// To End date-time in RFC 3339 format.
-	//
-	// Inclusive.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
-
-	// Limit Number of events to return.
+	// Limit Number of events to return
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
@@ -1865,310 +1733,256 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
 
 // ListFeaturesParams defines parameters for ListFeatures.
 type ListFeaturesParams struct {
-	// MeterSlug Filter by meterSlug
-	MeterSlug *[]string `form:"meterSlug,omitempty" json:"meterSlug,omitempty"`
+	// Page Page number to return
+	Page *QueryPage `form:"page,omitempty" json:"page,omitempty"`
 
-	// IncludeArchived Filter by meterGroupByFilters
+	// PageSize Number of entries to return per page
+	PageSize *QueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// MeterSlug Filtering by multiple meterSlug.
+	//
+	// Usage: `?meterSlug=meter-1&meterSlug=meter-2`
+	MeterSlug *QueryFilterMeterSlug `form:"meterSlug,omitempty" json:"meterSlug,omitempty"`
+
+	// Order Order by field.
+	//
+	// Usage: `?order=ASC`
+	Order *ListFeaturesParamsOrder `form:"order,omitempty" json:"order,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListFeaturesParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// IncludeArchived Include archived features.
 	IncludeArchived *bool `form:"includeArchived,omitempty" json:"includeArchived,omitempty"`
-
-	// Page Start date-time in RFC 3339 format.
-	//
-	// Inclusive.
-	Page *PaginationPage `form:"page,omitempty" json:"page,omitempty"`
-
-	// PageSize Number of items per page.
-	//
-	// Default is 100.
-	PageSize *PaginationPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-
-	// Offset Number of items to skip.
-	//
-	// Default is 0.
-	Offset *LimitOffsetOffset `form:"offset,omitempty" json:"offset,omitempty"`
-
-	// Limit Number of items to return.
-	//
-	// Default is 100.
-	Limit *LimitOffsetLimit `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Order The order direction.
-	Order *FeatureOrderByOrderingOrder `form:"order,omitempty" json:"order,omitempty"`
-
-	// OrderBy The order by field.
-	OrderBy *FeatureOrderByOrderingOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
+
+// ListFeaturesParamsOrder defines parameters for ListFeatures.
+type ListFeaturesParamsOrder string
+
+// ListFeaturesParamsOrderBy defines parameters for ListFeatures.
+type ListFeaturesParamsOrderBy string
 
 // ListGrantsParams defines parameters for ListGrants.
 type ListGrantsParams struct {
-	// Feature Filtering by multiple features.
-	//
-	// Usage: `?feature=feature-1&feature=feature-2`
-	Feature *[]string `form:"feature,omitempty" json:"feature,omitempty"`
+	// Page Page number to return
+	Page *QueryPage `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of entries to return per page
+	PageSize *QueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
 
 	// Subject Filtering by multiple subjects.
 	//
 	// Usage: `?subject=customer-1&subject=customer-2`
-	Subject *[]string `form:"subject,omitempty" json:"subject,omitempty"`
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
 
-	// IncludeDeleted Include deleted
-	IncludeDeleted *bool `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
-
-	// Page Start date-time in RFC 3339 format.
+	// Feature Filtering by multiple features.
 	//
-	// Inclusive.
-	Page *PaginationPage `form:"page,omitempty" json:"page,omitempty"`
+	// Usage: `?feature=feature-1&feature=feature-2`
+	Feature *QueryFilterFeature `form:"feature,omitempty" json:"feature,omitempty"`
 
-	// PageSize Number of items per page.
+	// Order Order by field.
 	//
-	// Default is 100.
-	PageSize *PaginationPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	// Usage: `?order=ASC`
+	Order *ListGrantsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
 
-	// Offset Number of items to skip.
-	//
-	// Default is 0.
-	Offset *LimitOffsetOffset `form:"offset,omitempty" json:"offset,omitempty"`
+	// OrderBy Order by field
+	OrderBy *ListGrantsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 
-	// Limit Number of items to return.
-	//
-	// Default is 100.
-	Limit *LimitOffsetLimit `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Order The order direction.
-	Order *GrantOrderByOrderingOrder `form:"order,omitempty" json:"order,omitempty"`
-
-	// OrderBy The order by field.
-	OrderBy *GrantOrderByOrderingOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
 }
 
-// MarketplaceAppAPIKeyInstallJSONBody defines parameters for MarketplaceAppAPIKeyInstall.
-type MarketplaceAppAPIKeyInstallJSONBody struct {
-	// ApiKey The API key for the provider.
-	// For example, the Stripe API key.
-	ApiKey string `json:"apiKey"`
+// ListGrantsParamsOrder defines parameters for ListGrants.
+type ListGrantsParamsOrder string
 
-	// Type The type of the app to install.
-	// For example `stripe`.
-	Type OpenMeterAppAppType `json:"type"`
-}
-
-// MarketplaceOAuth2InstallGetURLParams defines parameters for MarketplaceOAuth2InstallGetURL.
-type MarketplaceOAuth2InstallGetURLParams struct {
-	AppKey string `form:"appKey" json:"appKey"`
-}
-
-// MarketplaceOAuth2InstallAuthorizeParams defines parameters for MarketplaceOAuth2InstallAuthorize.
-type MarketplaceOAuth2InstallAuthorizeParams struct {
-	// State Required if the "state" parameter was present in the client authorization request.
-	// The exact value received from the client:
-	//
-	// Unique, randomly generated, opaque, and non-guessable string that is sent
-	// when starting an authentication request and validated when processing the response.
-	State *OAuth2AuthorizationCodeGrantSuccessParamsState `form:"state,omitempty" json:"state,omitempty"`
-
-	// Code Authorization code which the client will later exchange for an access token.
-	// Required with the success response.
-	Code *OAuth2AuthorizationCodeGrantSuccessParamsCode `form:"code,omitempty" json:"code,omitempty"`
-
-	// Error Error code.
-	// Required with the error response.
-	Error *OAuth2AuthorizationCodeGrantErrorParamsError `form:"error,omitempty" json:"error,omitempty"`
-
-	// ErrorDescription Optional human-readable text providing additional information,
-	// used to assist the client developer in understanding the error that occurred.
-	ErrorDescription *OAuth2AuthorizationCodeGrantErrorParamsErrorDescription `form:"error_description,omitempty" json:"error_description,omitempty"`
-
-	// ErrorUri Optional uri identifying a human-readable web page with
-	// information about the error, used to provide the client
-	// developer with additional information about the error
-	ErrorUri *OAuth2AuthorizationCodeGrantErrorParamsErrorUri `form:"error_uri,omitempty" json:"error_uri,omitempty"`
-
-	// AppKey The key of the app to install.
-	AppKey MarketplaceOAuth2InstallAuthorizeRequestAppKey `form:"appKey" json:"appKey"`
-}
-
-// MarketplaceListListingsParams defines parameters for MarketplaceListListings.
-type MarketplaceListListingsParams struct {
-	// Page The page number.
-	Page *PaginatedQueryPage `form:"page,omitempty" json:"page,omitempty"`
-
-	// PageSize The number of items in the page.
-	PageSize *PaginatedQueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-}
+// ListGrantsParamsOrderBy defines parameters for ListGrants.
+type ListGrantsParamsOrderBy string
 
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
 	// From Start date-time in RFC 3339 format.
-	//
 	// Inclusive.
-	From *MeterQueryFrom `form:"from,omitempty" json:"from,omitempty"`
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End date-time in RFC 3339 format.
-	//
 	// Inclusive.
-	To *MeterQueryTo `form:"to,omitempty" json:"to,omitempty"`
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
 	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-	WindowSize *MeterQueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+	WindowSize *QueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
 
 	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
 	// If not specified, the UTC timezone will be used.
-	WindowTimeZone *MeterQueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
 
 	// Subject Filtering by multiple subjects.
-	Subject *MeterQuerySubject `form:"subject,omitempty" json:"subject,omitempty"`
-
-	// FilterGroupBy Simple filter for group bys with exact match.
-	FilterGroupBy *MeterQueryFilterGroupBy `json:"filterGroupBy,omitempty"`
+	//
+	// Usage: `?subject=customer-1&subject=customer-2`
+	Subject       *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
+	FilterGroupBy *QueryFilterGroupBy `json:"filterGroupBy,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	// `subject` is a reserved group by value.
-	GroupBy *MeterQueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
+	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
 }
 
 // ListNotificationChannelsParams defines parameters for ListNotificationChannels.
 type ListNotificationChannelsParams struct {
-	// IncludeDeleted Include deleted notification channels in response.
+	// Page Page number to return
+	Page *QueryPage `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of entries to return per page
+	PageSize *QueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListNotificationChannelsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// Order Order by field.
 	//
-	// Usage: `?includeDeleted=true`
-	IncludeDeleted *bool `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+	// Usage: `?order=ASC`
+	Order *ListNotificationChannelsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
 
-	// IncludeDisabled Include disabled notification channels in response.
-	//
-	// Usage: `?includeDisabled=false`
-	IncludeDisabled *bool `form:"includeDisabled,omitempty" json:"includeDisabled,omitempty"`
+	// IncludeDisabled Include disabled entries.
+	IncludeDisabled *QueryIncludeDisabled `form:"includeDisabled,omitempty" json:"includeDisabled,omitempty"`
 
-	// Page Start date-time in RFC 3339 format.
-	//
-	// Inclusive.
-	Page *PaginationPage `form:"page,omitempty" json:"page,omitempty"`
-
-	// PageSize Number of items per page.
-	//
-	// Default is 100.
-	PageSize *PaginationPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-
-	// Order The order direction.
-	Order *NotificationChannelOrderByOrderingOrder `form:"order,omitempty" json:"order,omitempty"`
-
-	// OrderBy The order by field.
-	OrderBy *NotificationChannelOrderByOrderingOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
 }
+
+// ListNotificationChannelsParamsOrderBy defines parameters for ListNotificationChannels.
+type ListNotificationChannelsParamsOrderBy string
+
+// ListNotificationChannelsParamsOrder defines parameters for ListNotificationChannels.
+type ListNotificationChannelsParamsOrder string
 
 // ListNotificationEventsParams defines parameters for ListNotificationEvents.
 type ListNotificationEventsParams struct {
+	// Page Page number to return
+	Page *QueryPage `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of entries to return per page
+	PageSize *QueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListNotificationEventsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// Order Order by field.
+	//
+	// Usage: `?order=ASC`
+	Order *ListNotificationEventsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
+
 	// From Start date-time in RFC 3339 format.
 	// Inclusive.
-	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End date-time in RFC 3339 format.
 	// Inclusive.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
-	// Feature Filtering by multiple feature ids or keys.
+	// Feature Filtering by multiple features.
 	//
 	// Usage: `?feature=feature-1&feature=feature-2`
-	Feature *[]string `form:"feature,omitempty" json:"feature,omitempty"`
+	Feature *QueryFilterFeature `form:"feature,omitempty" json:"feature,omitempty"`
 
-	// Subject Filtering by multiple subject ids or keys.
+	// Subject Filtering by multiple subjects.
 	//
-	// Usage: `?subject=subject-1&subject=subject-2`
-	Subject *[]string `form:"subject,omitempty" json:"subject,omitempty"`
+	// Usage: `?subject=customer-1&subject=customer-2`
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
 
-	// Rule Filtering by multiple rule ids.
+	// Rule Filtering by multiple rules.
 	//
-	// Usage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5`
+	// Usage: `?rule=ID1&rule=rule=ID2`
 	Rule *[]string `form:"rule,omitempty" json:"rule,omitempty"`
 
-	// Channel Filtering by multiple channel ids.
+	// Channel Filtering by multiple channels.
 	//
-	// Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J`
+	// Usage: `?channel=ID1&channel=ID2`
 	Channel *[]string `form:"channel,omitempty" json:"channel,omitempty"`
-
-	// Page Start date-time in RFC 3339 format.
-	//
-	// Inclusive.
-	Page *PaginationPage `form:"page,omitempty" json:"page,omitempty"`
-
-	// PageSize Number of items per page.
-	//
-	// Default is 100.
-	PageSize *PaginationPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-
-	// Order The order direction.
-	Order *NotificationEventOrderByOrderingOrder `form:"order,omitempty" json:"order,omitempty"`
-
-	// OrderBy The order by field.
-	OrderBy *NotificationEventOrderByOrderingOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
+
+// ListNotificationEventsParamsOrderBy defines parameters for ListNotificationEvents.
+type ListNotificationEventsParamsOrderBy string
+
+// ListNotificationEventsParamsOrder defines parameters for ListNotificationEvents.
+type ListNotificationEventsParamsOrder string
 
 // ListNotificationRulesParams defines parameters for ListNotificationRules.
 type ListNotificationRulesParams struct {
-	// IncludeDeleted Include deleted notification rules in response.
-	//
-	// Usage: `?includeDeleted=true`
-	IncludeDeleted *bool `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+	// Page Page number to return
+	Page *QueryPage `form:"page,omitempty" json:"page,omitempty"`
 
-	// IncludeDisabled Include disabled notification rules in response.
-	//
-	// Usage: `?includeDisabled=false`
-	IncludeDisabled *bool `form:"includeDisabled,omitempty" json:"includeDisabled,omitempty"`
+	// PageSize Number of entries to return per page
+	PageSize *QueryPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 
-	// Feature Filtering by multiple feature ids/keys.
+	// OrderBy Order by field
+	OrderBy *ListNotificationRulesParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// Order Order by field.
+	//
+	// Usage: `?order=ASC`
+	Order *ListNotificationRulesParamsOrder `form:"order,omitempty" json:"order,omitempty"`
+
+	// IncludeDisabled Include disabled entries.
+	IncludeDisabled *QueryIncludeDisabled `form:"includeDisabled,omitempty" json:"includeDisabled,omitempty"`
+
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+
+	// Feature Filtering by multiple features.
 	//
 	// Usage: `?feature=feature-1&feature=feature-2`
-	Feature *[]string `form:"feature,omitempty" json:"feature,omitempty"`
+	Feature *QueryFilterFeature `form:"feature,omitempty" json:"feature,omitempty"`
 
-	// Channel Filtering by multiple notifiaction channel ids.
+	// Channel Filtering by multiple notification channels.
 	//
-	// Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
-	Channel *[]string `form:"channel,omitempty" json:"channel,omitempty"`
-
-	// Page Start date-time in RFC 3339 format.
-	//
-	// Inclusive.
-	Page *PaginationPage `form:"page,omitempty" json:"page,omitempty"`
-
-	// PageSize Number of items per page.
-	//
-	// Default is 100.
-	PageSize *PaginationPageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-
-	// Order The order direction.
-	Order *NotificationRuleOrderByOrderingOrder `form:"order,omitempty" json:"order,omitempty"`
-
-	// OrderBy The order by field.
-	OrderBy *NotificationRuleOrderByOrderingOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	// Usage: `?channel=channel-1&channel=channel-2`
+	Channel *QueryFilterChannel `form:"channel,omitempty" json:"channel,omitempty"`
 }
+
+// ListNotificationRulesParamsOrderBy defines parameters for ListNotificationRules.
+type ListNotificationRulesParamsOrderBy string
+
+// ListNotificationRulesParamsOrder defines parameters for ListNotificationRules.
+type ListNotificationRulesParamsOrder string
 
 // QueryPortalMeterParams defines parameters for QueryPortalMeter.
 type QueryPortalMeterParams struct {
 	// From Start date-time in RFC 3339 format.
-	//
 	// Inclusive.
-	From *MeterQueryFrom `form:"from,omitempty" json:"from,omitempty"`
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End date-time in RFC 3339 format.
-	//
 	// Inclusive.
-	To *MeterQueryTo `form:"to,omitempty" json:"to,omitempty"`
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
 	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-	WindowSize *MeterQueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+	WindowSize *QueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
 
 	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
 	// If not specified, the UTC timezone will be used.
-	WindowTimeZone *MeterQueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
-
-	// FilterGroupBy Simple filter for group bys with exact match.
-	FilterGroupBy *MeterQueryFilterGroupBy `json:"filterGroupBy,omitempty"`
+	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+	FilterGroupBy  *QueryFilterGroupBy  `json:"filterGroupBy,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	// `subject` is a reserved group by value.
-	GroupBy *MeterQueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
+	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
 }
 
 // ListPortalTokensParams defines parameters for ListPortalTokens.
 type ListPortalTokensParams struct {
+	// Limit Number of portal tokens to return. Default is 25.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
@@ -2182,38 +1996,68 @@ type InvalidatePortalTokensJSONBody struct {
 }
 
 // UpsertSubjectJSONBody defines parameters for UpsertSubject.
-type UpsertSubjectJSONBody = []SubjectUpsert
+type UpsertSubjectJSONBody = []Subject
 
 // ListSubjectEntitlementsParams defines parameters for ListSubjectEntitlements.
 type ListSubjectEntitlementsParams struct {
-	IncludeDeleted *bool `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
 }
 
 // ListEntitlementGrantsParams defines parameters for ListEntitlementGrants.
 type ListEntitlementGrantsParams struct {
-	IncludeDeleted *bool         `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
-	OrderBy        *GrantOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListEntitlementGrantsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
+
+// ListEntitlementGrantsParamsOrderBy defines parameters for ListEntitlementGrants.
+type ListEntitlementGrantsParamsOrderBy string
 
 // GetEntitlementValueParams defines parameters for GetEntitlementValue.
 type GetEntitlementValueParams struct {
+	// Time Point of time to check value: date-time in RFC 3339 format. Defaults to now.
 	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
 }
 
 // GetEntitlementHistoryParams defines parameters for GetEntitlementHistory.
 type GetEntitlementHistoryParams struct {
-	// From Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.
+	// From Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to
+	// the last reset.
+	// Gets truncated to the granularity of the underlying meter.
 	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
 	// If not now then gets truncated to the granularity of the underlying meter.
 	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
 
-	// WindowSize Windowsize
-	WindowSize WindowSize `form:"windowSize" json:"windowSize"`
+	// WindowSize Size of the time window to group the history by. Cannot be shorter than meter granularity.
+	WindowSize GetEntitlementHistoryParamsWindowSize `form:"windowSize" json:"windowSize"`
 
-	// WindowTimeZone The timezone used when calculating the windows.
-	WindowTimeZone *string `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+	// If not specified, the UTC timezone will be used.
+	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+}
+
+// GetEntitlementHistoryParamsWindowSize defines parameters for GetEntitlementHistory.
+type GetEntitlementHistoryParamsWindowSize string
+
+// ResetEntitlementUsageJSONBody defines parameters for ResetEntitlementUsage.
+type ResetEntitlementUsageJSONBody struct {
+	// EffectiveAt The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.
+	EffectiveAt *time.Time `json:"effectiveAt,omitempty"`
+
+	// PreserveOverage Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
+	// - If true, the overage is preserved.
+	// - If false, the overage is forgiven.
+	PreserveOverage *bool `json:"preserveOverage,omitempty"`
+
+	// RetainAnchor Determines whether the usage period anchor is retained or reset to the effectiveAt time.
+	// - If true, the usage period anchor is retained.
+	// - If false, the usage period anchor is reset to the effectiveAt time.
+	RetainAnchor *bool `json:"retainAnchor,omitempty"`
 }
 
 // CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
@@ -2230,9 +2074,6 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsAp
 
 // CreateFeatureJSONRequestBody defines body for CreateFeature for application/json ContentType.
 type CreateFeatureJSONRequestBody = FeatureCreateInputs
-
-// MarketplaceAppAPIKeyInstallJSONRequestBody defines body for MarketplaceAppAPIKeyInstall for application/json ContentType.
-type MarketplaceAppAPIKeyInstallJSONRequestBody MarketplaceAppAPIKeyInstallJSONBody
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
@@ -2271,7 +2112,142 @@ type CreateGrantJSONRequestBody = EntitlementGrantCreateInput
 type OverrideEntitlementJSONRequestBody = EntitlementCreateInputs
 
 // ResetEntitlementUsageJSONRequestBody defines body for ResetEntitlementUsage for application/json ContentType.
-type ResetEntitlementUsageJSONRequestBody = ResetEntitlementUsageInput
+type ResetEntitlementUsageJSONRequestBody ResetEntitlementUsageJSONBody
+
+// Getter for additional properties for ConflictProblem. Returns the specified
+// element and whether it was found
+func (a ConflictProblem) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConflictProblem
+func (a *ConflictProblem) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConflictProblem to handle AdditionalProperties
+func (a *ConflictProblem) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["detail"]; found {
+		err = json.Unmarshal(raw, &a.Detail)
+		if err != nil {
+			return fmt.Errorf("error reading 'detail': %w", err)
+		}
+		delete(object, "detail")
+	}
+
+	if raw, found := object["extensions"]; found {
+		err = json.Unmarshal(raw, &a.Extensions)
+		if err != nil {
+			return fmt.Errorf("error reading 'extensions': %w", err)
+		}
+		delete(object, "extensions")
+	}
+
+	if raw, found := object["instance"]; found {
+		err = json.Unmarshal(raw, &a.Instance)
+		if err != nil {
+			return fmt.Errorf("error reading 'instance': %w", err)
+		}
+		delete(object, "instance")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["title"]; found {
+		err = json.Unmarshal(raw, &a.Title)
+		if err != nil {
+			return fmt.Errorf("error reading 'title': %w", err)
+		}
+		delete(object, "title")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConflictProblem to handle AdditionalProperties
+func (a ConflictProblem) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["detail"], err = json.Marshal(a.Detail)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'detail': %w", err)
+	}
+
+	if a.Extensions != nil {
+		object["extensions"], err = json.Marshal(a.Extensions)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'extensions': %w", err)
+		}
+	}
+
+	if a.Instance != nil {
+		object["instance"], err = json.Marshal(a.Instance)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'instance': %w", err)
+		}
+	}
+
+	object["status"], err = json.Marshal(a.Status)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'status': %w", err)
+	}
+
+	object["title"], err = json.Marshal(a.Title)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'title': %w", err)
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // AsEntitlementMetered returns the union data inside the Entitlement as a EntitlementMetered
 func (t Entitlement) AsEntitlementMetered() (EntitlementMetered, error) {
@@ -2511,6 +2487,192 @@ func (t *EntitlementCreateInputs) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsListEntitlementGrantResponse0 returns the union data inside the ListEntitlementGrantResponse as a ListEntitlementGrantResponse0
+func (t ListEntitlementGrantResponse) AsListEntitlementGrantResponse0() (ListEntitlementGrantResponse0, error) {
+	var body ListEntitlementGrantResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListEntitlementGrantResponse0 overwrites any union data inside the ListEntitlementGrantResponse as the provided ListEntitlementGrantResponse0
+func (t *ListEntitlementGrantResponse) FromListEntitlementGrantResponse0(v ListEntitlementGrantResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListEntitlementGrantResponse0 performs a merge with any union data inside the ListEntitlementGrantResponse, using the provided ListEntitlementGrantResponse0
+func (t *ListEntitlementGrantResponse) MergeListEntitlementGrantResponse0(v ListEntitlementGrantResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsListEntitlementGrantPaginatedResponse returns the union data inside the ListEntitlementGrantResponse as a ListEntitlementGrantPaginatedResponse
+func (t ListEntitlementGrantResponse) AsListEntitlementGrantPaginatedResponse() (ListEntitlementGrantPaginatedResponse, error) {
+	var body ListEntitlementGrantPaginatedResponse
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListEntitlementGrantPaginatedResponse overwrites any union data inside the ListEntitlementGrantResponse as the provided ListEntitlementGrantPaginatedResponse
+func (t *ListEntitlementGrantResponse) FromListEntitlementGrantPaginatedResponse(v ListEntitlementGrantPaginatedResponse) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListEntitlementGrantPaginatedResponse performs a merge with any union data inside the ListEntitlementGrantResponse, using the provided ListEntitlementGrantPaginatedResponse
+func (t *ListEntitlementGrantResponse) MergeListEntitlementGrantPaginatedResponse(v ListEntitlementGrantPaginatedResponse) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListEntitlementGrantResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListEntitlementGrantResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListEntitlementResponse0 returns the union data inside the ListEntitlementResponse as a ListEntitlementResponse0
+func (t ListEntitlementResponse) AsListEntitlementResponse0() (ListEntitlementResponse0, error) {
+	var body ListEntitlementResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListEntitlementResponse0 overwrites any union data inside the ListEntitlementResponse as the provided ListEntitlementResponse0
+func (t *ListEntitlementResponse) FromListEntitlementResponse0(v ListEntitlementResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListEntitlementResponse0 performs a merge with any union data inside the ListEntitlementResponse, using the provided ListEntitlementResponse0
+func (t *ListEntitlementResponse) MergeListEntitlementResponse0(v ListEntitlementResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsListEntitlementPaginatedResponse returns the union data inside the ListEntitlementResponse as a ListEntitlementPaginatedResponse
+func (t ListEntitlementResponse) AsListEntitlementPaginatedResponse() (ListEntitlementPaginatedResponse, error) {
+	var body ListEntitlementPaginatedResponse
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListEntitlementPaginatedResponse overwrites any union data inside the ListEntitlementResponse as the provided ListEntitlementPaginatedResponse
+func (t *ListEntitlementResponse) FromListEntitlementPaginatedResponse(v ListEntitlementPaginatedResponse) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListEntitlementPaginatedResponse performs a merge with any union data inside the ListEntitlementResponse, using the provided ListEntitlementPaginatedResponse
+func (t *ListEntitlementResponse) MergeListEntitlementPaginatedResponse(v ListEntitlementPaginatedResponse) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListEntitlementResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListEntitlementResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListFeatureResponse0 returns the union data inside the ListFeatureResponse as a ListFeatureResponse0
+func (t ListFeatureResponse) AsListFeatureResponse0() (ListFeatureResponse0, error) {
+	var body ListFeatureResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListFeatureResponse0 overwrites any union data inside the ListFeatureResponse as the provided ListFeatureResponse0
+func (t *ListFeatureResponse) FromListFeatureResponse0(v ListFeatureResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListFeatureResponse0 performs a merge with any union data inside the ListFeatureResponse, using the provided ListFeatureResponse0
+func (t *ListFeatureResponse) MergeListFeatureResponse0(v ListFeatureResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsListFeaturePaginatedResponse returns the union data inside the ListFeatureResponse as a ListFeaturePaginatedResponse
+func (t ListFeatureResponse) AsListFeaturePaginatedResponse() (ListFeaturePaginatedResponse, error) {
+	var body ListFeaturePaginatedResponse
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListFeaturePaginatedResponse overwrites any union data inside the ListFeatureResponse as the provided ListFeaturePaginatedResponse
+func (t *ListFeatureResponse) FromListFeaturePaginatedResponse(v ListFeaturePaginatedResponse) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListFeaturePaginatedResponse performs a merge with any union data inside the ListFeatureResponse, using the provided ListFeaturePaginatedResponse
+func (t *ListFeatureResponse) MergeListFeaturePaginatedResponse(v ListFeaturePaginatedResponse) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListFeatureResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListFeatureResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsMeasureUsageFromEnum returns the union data inside the MeasureUsageFrom as a MeasureUsageFromEnum
 func (t MeasureUsageFrom) AsMeasureUsageFromEnum() (MeasureUsageFromEnum, error) {
 	var body MeasureUsageFromEnum
@@ -2569,6 +2731,301 @@ func (t MeasureUsageFrom) MarshalJSON() ([]byte, error) {
 }
 
 func (t *MeasureUsageFrom) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationChannelWebhook returns the union data inside the NotificationChannel as a NotificationChannelWebhook
+func (t NotificationChannel) AsNotificationChannelWebhook() (NotificationChannelWebhook, error) {
+	var body NotificationChannelWebhook
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationChannelWebhook overwrites any union data inside the NotificationChannel as the provided NotificationChannelWebhook
+func (t *NotificationChannel) FromNotificationChannelWebhook(v NotificationChannelWebhook) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationChannelWebhook performs a merge with any union data inside the NotificationChannel, using the provided NotificationChannelWebhook
+func (t *NotificationChannel) MergeNotificationChannelWebhook(v NotificationChannelWebhook) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationChannel) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationChannel) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "WEBHOOK":
+		return t.AsNotificationChannelWebhook()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationChannel) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationChannel) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationChannelWebhookCreateRequest returns the union data inside the NotificationChannelCreateRequest as a NotificationChannelWebhookCreateRequest
+func (t NotificationChannelCreateRequest) AsNotificationChannelWebhookCreateRequest() (NotificationChannelWebhookCreateRequest, error) {
+	var body NotificationChannelWebhookCreateRequest
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationChannelWebhookCreateRequest overwrites any union data inside the NotificationChannelCreateRequest as the provided NotificationChannelWebhookCreateRequest
+func (t *NotificationChannelCreateRequest) FromNotificationChannelWebhookCreateRequest(v NotificationChannelWebhookCreateRequest) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationChannelWebhookCreateRequest performs a merge with any union data inside the NotificationChannelCreateRequest, using the provided NotificationChannelWebhookCreateRequest
+func (t *NotificationChannelCreateRequest) MergeNotificationChannelWebhookCreateRequest(v NotificationChannelWebhookCreateRequest) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationChannelCreateRequest) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationChannelCreateRequest) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "WEBHOOK":
+		return t.AsNotificationChannelWebhookCreateRequest()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationChannelCreateRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationChannelCreateRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationEventBalanceThresholdPayload returns the union data inside the NotificationEventPayload as a NotificationEventBalanceThresholdPayload
+func (t NotificationEventPayload) AsNotificationEventBalanceThresholdPayload() (NotificationEventBalanceThresholdPayload, error) {
+	var body NotificationEventBalanceThresholdPayload
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationEventBalanceThresholdPayload overwrites any union data inside the NotificationEventPayload as the provided NotificationEventBalanceThresholdPayload
+func (t *NotificationEventPayload) FromNotificationEventBalanceThresholdPayload(v NotificationEventBalanceThresholdPayload) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationEventBalanceThresholdPayload performs a merge with any union data inside the NotificationEventPayload, using the provided NotificationEventBalanceThresholdPayload
+func (t *NotificationEventPayload) MergeNotificationEventBalanceThresholdPayload(v NotificationEventBalanceThresholdPayload) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationEventPayload) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationEventPayload) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "entitlements.balance.threshold":
+		return t.AsNotificationEventBalanceThresholdPayload()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationEventPayload) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationEventPayload) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationRuleBalanceThreshold returns the union data inside the NotificationRule as a NotificationRuleBalanceThreshold
+func (t NotificationRule) AsNotificationRuleBalanceThreshold() (NotificationRuleBalanceThreshold, error) {
+	var body NotificationRuleBalanceThreshold
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationRuleBalanceThreshold overwrites any union data inside the NotificationRule as the provided NotificationRuleBalanceThreshold
+func (t *NotificationRule) FromNotificationRuleBalanceThreshold(v NotificationRuleBalanceThreshold) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationRuleBalanceThreshold performs a merge with any union data inside the NotificationRule, using the provided NotificationRuleBalanceThreshold
+func (t *NotificationRule) MergeNotificationRuleBalanceThreshold(v NotificationRuleBalanceThreshold) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationRule) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationRule) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "entitlements.balance.threshold":
+		return t.AsNotificationRuleBalanceThreshold()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationRule) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationRule) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationRuleBalanceThresholdCreateRequest returns the union data inside the NotificationRuleCreateRequest as a NotificationRuleBalanceThresholdCreateRequest
+func (t NotificationRuleCreateRequest) AsNotificationRuleBalanceThresholdCreateRequest() (NotificationRuleBalanceThresholdCreateRequest, error) {
+	var body NotificationRuleBalanceThresholdCreateRequest
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationRuleBalanceThresholdCreateRequest overwrites any union data inside the NotificationRuleCreateRequest as the provided NotificationRuleBalanceThresholdCreateRequest
+func (t *NotificationRuleCreateRequest) FromNotificationRuleBalanceThresholdCreateRequest(v NotificationRuleBalanceThresholdCreateRequest) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationRuleBalanceThresholdCreateRequest performs a merge with any union data inside the NotificationRuleCreateRequest, using the provided NotificationRuleBalanceThresholdCreateRequest
+func (t *NotificationRuleCreateRequest) MergeNotificationRuleBalanceThresholdCreateRequest(v NotificationRuleBalanceThresholdCreateRequest) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationRuleCreateRequest) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationRuleCreateRequest) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "entitlements.balance.threshold":
+		return t.AsNotificationRuleBalanceThresholdCreateRequest()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationRuleCreateRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationRuleCreateRequest) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -2646,25 +3103,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// ListApps request
-	ListApps(ctx context.Context, params *ListAppsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UninstallApp request
-	UninstallApp(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetApp request
-	GetApp(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateAppStripeCheckoutSessionWithBody request with any body
-	CreateAppStripeCheckoutSessionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateAppStripeCheckoutSession(ctx context.Context, id string, body CreateAppStripeCheckoutSessionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AppStripeWebhookWithBody request with any body
-	AppStripeWebhookWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	AppStripeWebhook(ctx context.Context, id string, body AppStripeWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListCustomers request
 	ListCustomers(ctx context.Context, params *ListCustomersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2691,7 +3129,7 @@ type ClientInterface interface {
 	ListEntitlements(ctx context.Context, params *ListEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetEntitlementById request
-	GetEntitlementById(ctx context.Context, entitlementId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetEntitlementById(ctx context.Context, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListEvents request
 	ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2712,30 +3150,16 @@ type ClientInterface interface {
 	CreateFeature(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteFeature request
-	DeleteFeature(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFeature request
-	GetFeature(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListGrants request
 	ListGrants(ctx context.Context, params *ListGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// VoidGrant request
-	VoidGrant(ctx context.Context, grantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MarketplaceAppAPIKeyInstallWithBody request with any body
-	MarketplaceAppAPIKeyInstallWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	MarketplaceAppAPIKeyInstall(ctx context.Context, body MarketplaceAppAPIKeyInstallJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MarketplaceOAuth2InstallGetURL request
-	MarketplaceOAuth2InstallGetURL(ctx context.Context, params *MarketplaceOAuth2InstallGetURLParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MarketplaceOAuth2InstallAuthorize request
-	MarketplaceOAuth2InstallAuthorize(ctx context.Context, params *MarketplaceOAuth2InstallAuthorizeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MarketplaceListListings request
-	MarketplaceListListings(ctx context.Context, params *MarketplaceListListingsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	VoidGrant(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMeters request
 	ListMeters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2746,16 +3170,16 @@ type ClientInterface interface {
 	CreateMeter(ctx context.Context, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteMeter request
-	DeleteMeter(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMeter request
-	GetMeter(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// QueryMeter request
-	QueryMeter(ctx context.Context, meterIdOrSlug string, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMeterSubjects request
-	ListMeterSubjects(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListNotificationChannels request
 	ListNotificationChannels(ctx context.Context, params *ListNotificationChannelsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2766,21 +3190,21 @@ type ClientInterface interface {
 	CreateNotificationChannel(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteNotificationChannel request
-	DeleteNotificationChannel(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetNotificationChannel request
-	GetNotificationChannel(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateNotificationChannelWithBody request with any body
-	UpdateNotificationChannelWithBody(ctx context.Context, channelId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateNotificationChannelWithBody(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateNotificationChannel(ctx context.Context, channelId string, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateNotificationChannel(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListNotificationEvents request
 	ListNotificationEvents(ctx context.Context, params *ListNotificationEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetNotificationEvent request
-	GetNotificationEvent(ctx context.Context, eventId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetNotificationEvent(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListNotificationRules request
 	ListNotificationRules(ctx context.Context, params *ListNotificationRulesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2791,18 +3215,18 @@ type ClientInterface interface {
 	CreateNotificationRule(ctx context.Context, body CreateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteNotificationRule request
-	DeleteNotificationRule(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetNotificationRule request
-	GetNotificationRule(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateNotificationRuleWithBody request with any body
-	UpdateNotificationRuleWithBody(ctx context.Context, ruleId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateNotificationRuleWithBody(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateNotificationRule(ctx context.Context, ruleId string, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateNotificationRule(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TestNotificationRule request
-	TestNotificationRule(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	TestNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ReceiveSvixOperationalEventWithBody request with any body
 	ReceiveSvixOperationalEventWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2834,84 +3258,48 @@ type ClientInterface interface {
 	UpsertSubject(ctx context.Context, body UpsertSubjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteSubject request
-	DeleteSubject(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetSubject request
-	GetSubject(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSubjectEntitlements request
-	ListSubjectEntitlements(ctx context.Context, subjectIdOrKey string, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListSubjectEntitlements(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateEntitlementWithBody request with any body
-	CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateEntitlement(ctx context.Context, subjectIdOrKey string, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListEntitlementGrants request
-	ListEntitlementGrants(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListEntitlementGrants(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateGrantWithBody request with any body
-	CreateGrantWithBody(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateGrantWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateGrant(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateGrant(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// OverrideEntitlementWithBody request with any body
-	OverrideEntitlementWithBody(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	OverrideEntitlementWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	OverrideEntitlement(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	OverrideEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetEntitlementValue request
-	GetEntitlementValue(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetEntitlementValue(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteEntitlement request
-	DeleteEntitlement(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetEntitlement request
-	GetEntitlement(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetEntitlementHistory request
-	GetEntitlementHistory(ctx context.Context, subjectIdOrKey string, entitlementId string, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetEntitlementHistory(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ResetEntitlementUsageWithBody request with any body
-	ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrKey string, entitlementId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	ResetEntitlementUsage(ctx context.Context, subjectIdOrKey string, entitlementId string, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) ListApps(ctx context.Context, params *ListAppsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListAppsRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UninstallApp(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUninstallAppRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetApp(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetAppRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
+	ResetEntitlementUsage(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ListCustomers(ctx context.Context, params *ListCustomersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -3022,7 +3410,7 @@ func (c *Client) ListEntitlements(ctx context.Context, params *ListEntitlementsP
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetEntitlementById(ctx context.Context, entitlementId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetEntitlementById(ctx context.Context, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetEntitlementByIdRequest(c.Server, entitlementId)
 	if err != nil {
 		return nil, err
@@ -3118,7 +3506,7 @@ func (c *Client) CreateFeature(ctx context.Context, body CreateFeatureJSONReques
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteFeature(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteFeatureRequest(c.Server, featureId)
 	if err != nil {
 		return nil, err
@@ -3130,7 +3518,7 @@ func (c *Client) DeleteFeature(ctx context.Context, featureId string, reqEditors
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetFeature(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetFeatureRequest(c.Server, featureId)
 	if err != nil {
 		return nil, err
@@ -3154,68 +3542,8 @@ func (c *Client) ListGrants(ctx context.Context, params *ListGrantsParams, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) VoidGrant(ctx context.Context, grantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) VoidGrant(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewVoidGrantRequest(c.Server, grantId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) MarketplaceAppAPIKeyInstallWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewMarketplaceAppAPIKeyInstallRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) MarketplaceAppAPIKeyInstall(ctx context.Context, body MarketplaceAppAPIKeyInstallJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewMarketplaceAppAPIKeyInstallRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) MarketplaceOAuth2InstallGetURL(ctx context.Context, params *MarketplaceOAuth2InstallGetURLParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewMarketplaceOAuth2InstallGetURLRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) MarketplaceOAuth2InstallAuthorize(ctx context.Context, params *MarketplaceOAuth2InstallAuthorizeParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewMarketplaceOAuth2InstallAuthorizeRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) MarketplaceListListings(ctx context.Context, params *MarketplaceListListingsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewMarketplaceListListingsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3262,7 +3590,7 @@ func (c *Client) CreateMeter(ctx context.Context, body CreateMeterJSONRequestBod
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteMeterRequest(c.Server, meterIdOrSlug)
 	if err != nil {
 		return nil, err
@@ -3274,7 +3602,7 @@ func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug string, reqEdito
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetMeterRequest(c.Server, meterIdOrSlug)
 	if err != nil {
 		return nil, err
@@ -3286,7 +3614,7 @@ func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug string, reqEditors 
 	return c.Client.Do(req)
 }
 
-func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug string, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewQueryMeterRequest(c.Server, meterIdOrSlug, params)
 	if err != nil {
 		return nil, err
@@ -3298,7 +3626,7 @@ func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug string, params *Q
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListMeterSubjectsRequest(c.Server, meterIdOrSlug)
 	if err != nil {
 		return nil, err
@@ -3346,7 +3674,7 @@ func (c *Client) CreateNotificationChannel(ctx context.Context, body CreateNotif
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteNotificationChannel(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteNotificationChannelRequest(c.Server, channelId)
 	if err != nil {
 		return nil, err
@@ -3358,7 +3686,7 @@ func (c *Client) DeleteNotificationChannel(ctx context.Context, channelId string
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetNotificationChannel(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetNotificationChannelRequest(c.Server, channelId)
 	if err != nil {
 		return nil, err
@@ -3370,7 +3698,7 @@ func (c *Client) GetNotificationChannel(ctx context.Context, channelId string, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateNotificationChannelWithBody(ctx context.Context, channelId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateNotificationChannelWithBody(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateNotificationChannelRequestWithBody(c.Server, channelId, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3382,7 +3710,7 @@ func (c *Client) UpdateNotificationChannelWithBody(ctx context.Context, channelI
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateNotificationChannel(ctx context.Context, channelId string, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateNotificationChannel(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateNotificationChannelRequest(c.Server, channelId, body)
 	if err != nil {
 		return nil, err
@@ -3406,7 +3734,7 @@ func (c *Client) ListNotificationEvents(ctx context.Context, params *ListNotific
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetNotificationEvent(ctx context.Context, eventId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetNotificationEvent(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetNotificationEventRequest(c.Server, eventId)
 	if err != nil {
 		return nil, err
@@ -3454,7 +3782,7 @@ func (c *Client) CreateNotificationRule(ctx context.Context, body CreateNotifica
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteNotificationRule(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteNotificationRuleRequest(c.Server, ruleId)
 	if err != nil {
 		return nil, err
@@ -3466,7 +3794,7 @@ func (c *Client) DeleteNotificationRule(ctx context.Context, ruleId string, reqE
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetNotificationRule(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetNotificationRuleRequest(c.Server, ruleId)
 	if err != nil {
 		return nil, err
@@ -3478,7 +3806,7 @@ func (c *Client) GetNotificationRule(ctx context.Context, ruleId string, reqEdit
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateNotificationRuleWithBody(ctx context.Context, ruleId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateNotificationRuleWithBody(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateNotificationRuleRequestWithBody(c.Server, ruleId, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3490,7 +3818,7 @@ func (c *Client) UpdateNotificationRuleWithBody(ctx context.Context, ruleId stri
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateNotificationRule(ctx context.Context, ruleId string, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateNotificationRule(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateNotificationRuleRequest(c.Server, ruleId, body)
 	if err != nil {
 		return nil, err
@@ -3502,7 +3830,7 @@ func (c *Client) UpdateNotificationRule(ctx context.Context, ruleId string, body
 	return c.Client.Do(req)
 }
 
-func (c *Client) TestNotificationRule(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) TestNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTestNotificationRuleRequest(c.Server, ruleId)
 	if err != nil {
 		return nil, err
@@ -3646,7 +3974,7 @@ func (c *Client) UpsertSubject(ctx context.Context, body UpsertSubjectJSONReques
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteSubject(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteSubjectRequest(c.Server, subjectIdOrKey)
 	if err != nil {
 		return nil, err
@@ -3658,7 +3986,7 @@ func (c *Client) DeleteSubject(ctx context.Context, subjectIdOrKey string, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetSubject(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSubjectRequest(c.Server, subjectIdOrKey)
 	if err != nil {
 		return nil, err
@@ -3670,7 +3998,7 @@ func (c *Client) GetSubject(ctx context.Context, subjectIdOrKey string, reqEdito
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListSubjectEntitlements(ctx context.Context, subjectIdOrKey string, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ListSubjectEntitlements(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListSubjectEntitlementsRequest(c.Server, subjectIdOrKey, params)
 	if err != nil {
 		return nil, err
@@ -3682,7 +4010,7 @@ func (c *Client) ListSubjectEntitlements(ctx context.Context, subjectIdOrKey str
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateEntitlementRequestWithBody(c.Server, subjectIdOrKey, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3694,7 +4022,7 @@ func (c *Client) CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey s
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateEntitlement(ctx context.Context, subjectIdOrKey string, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateEntitlementRequest(c.Server, subjectIdOrKey, body)
 	if err != nil {
 		return nil, err
@@ -3706,7 +4034,7 @@ func (c *Client) CreateEntitlement(ctx context.Context, subjectIdOrKey string, b
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListEntitlementGrants(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ListEntitlementGrants(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListEntitlementGrantsRequest(c.Server, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 	if err != nil {
 		return nil, err
@@ -3718,7 +4046,7 @@ func (c *Client) ListEntitlementGrants(ctx context.Context, subjectIdOrKey strin
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateGrantWithBody(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateGrantWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateGrantRequestWithBody(c.Server, subjectIdOrKey, entitlementIdOrFeatureKey, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3730,7 +4058,7 @@ func (c *Client) CreateGrantWithBody(ctx context.Context, subjectIdOrKey string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateGrant(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateGrant(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateGrantRequest(c.Server, subjectIdOrKey, entitlementIdOrFeatureKey, body)
 	if err != nil {
 		return nil, err
@@ -3742,7 +4070,7 @@ func (c *Client) CreateGrant(ctx context.Context, subjectIdOrKey string, entitle
 	return c.Client.Do(req)
 }
 
-func (c *Client) OverrideEntitlementWithBody(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) OverrideEntitlementWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewOverrideEntitlementRequestWithBody(c.Server, subjectIdOrKey, entitlementIdOrFeatureKey, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3754,7 +4082,7 @@ func (c *Client) OverrideEntitlementWithBody(ctx context.Context, subjectIdOrKey
 	return c.Client.Do(req)
 }
 
-func (c *Client) OverrideEntitlement(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) OverrideEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewOverrideEntitlementRequest(c.Server, subjectIdOrKey, entitlementIdOrFeatureKey, body)
 	if err != nil {
 		return nil, err
@@ -3766,7 +4094,7 @@ func (c *Client) OverrideEntitlement(ctx context.Context, subjectIdOrKey string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetEntitlementValue(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetEntitlementValue(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetEntitlementValueRequest(c.Server, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 	if err != nil {
 		return nil, err
@@ -3778,7 +4106,7 @@ func (c *Client) GetEntitlementValue(ctx context.Context, subjectIdOrKey string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteEntitlement(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteEntitlementRequest(c.Server, subjectIdOrKey, entitlementId)
 	if err != nil {
 		return nil, err
@@ -3790,7 +4118,7 @@ func (c *Client) DeleteEntitlement(ctx context.Context, subjectIdOrKey string, e
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetEntitlement(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetEntitlementRequest(c.Server, subjectIdOrKey, entitlementId)
 	if err != nil {
 		return nil, err
@@ -3802,7 +4130,7 @@ func (c *Client) GetEntitlement(ctx context.Context, subjectIdOrKey string, enti
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetEntitlementHistory(ctx context.Context, subjectIdOrKey string, entitlementId string, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetEntitlementHistory(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetEntitlementHistoryRequest(c.Server, subjectIdOrKey, entitlementId, params)
 	if err != nil {
 		return nil, err
@@ -3814,7 +4142,7 @@ func (c *Client) GetEntitlementHistory(ctx context.Context, subjectIdOrKey strin
 	return c.Client.Do(req)
 }
 
-func (c *Client) ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrKey string, entitlementId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResetEntitlementUsageRequestWithBody(c.Server, subjectIdOrKey, entitlementId, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3826,7 +4154,7 @@ func (c *Client) ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrK
 	return c.Client.Do(req)
 }
 
-func (c *Client) ResetEntitlementUsage(ctx context.Context, subjectIdOrKey string, entitlementId string, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ResetEntitlementUsage(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResetEntitlementUsageRequest(c.Server, subjectIdOrKey, entitlementId, body)
 	if err != nil {
 		return nil, err
@@ -3836,233 +4164,6 @@ func (c *Client) ResetEntitlementUsage(ctx context.Context, subjectIdOrKey strin
 		return nil, err
 	}
 	return c.Client.Do(req)
-}
-
-// NewListAppsRequest generates requests for ListApps
-func NewListAppsRequest(server string, params *ListAppsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/apps/")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewUninstallAppRequest generates requests for UninstallApp
-func NewUninstallAppRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/apps/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetAppRequest generates requests for GetApp
-func NewGetAppRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/apps/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateAppStripeCheckoutSessionRequest calls the generic CreateAppStripeCheckoutSession builder with application/json body
-func NewCreateAppStripeCheckoutSessionRequest(server string, id string, body CreateAppStripeCheckoutSessionJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateAppStripeCheckoutSessionRequestWithBody(server, id, "application/json", bodyReader)
-}
-
-// NewCreateAppStripeCheckoutSessionRequestWithBody generates requests for CreateAppStripeCheckoutSession with any type of body
-func NewCreateAppStripeCheckoutSessionRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/apps/%s/stripe/checkout/sessions", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewAppStripeWebhookRequest calls the generic AppStripeWebhook builder with application/json body
-func NewAppStripeWebhookRequest(server string, id string, body AppStripeWebhookJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewAppStripeWebhookRequestWithBody(server, id, "application/json", bodyReader)
-}
-
-// NewAppStripeWebhookRequestWithBody generates requests for AppStripeWebhook with any type of body
-func NewAppStripeWebhookRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/apps/%s/stripe/webhook", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
 }
 
 // NewListCustomersRequest generates requests for ListCustomers
@@ -4121,7 +4222,7 @@ func NewListCustomersRequest(server string, params *ListCustomersParams) (*http.
 
 		if params.PageSize != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4350,9 +4451,57 @@ func NewListEntitlementsRequest(server string, params *ListEntitlementsParams) (
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.Feature != nil {
+		if params.Page != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "feature", runtime.ParamLocationQuery, *params.Feature); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4382,6 +4531,22 @@ func NewListEntitlementsRequest(server string, params *ListEntitlementsParams) (
 
 		}
 
+		if params.Feature != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "feature", runtime.ParamLocationQuery, *params.Feature); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.EntitlementType != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "entitlementType", runtime.ParamLocationQuery, *params.EntitlementType); err != nil {
@@ -4398,73 +4563,9 @@ func NewListEntitlementsRequest(server string, params *ListEntitlementsParams) (
 
 		}
 
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Offset != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
 		if params.Order != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4480,7 +4581,7 @@ func NewListEntitlementsRequest(server string, params *ListEntitlementsParams) (
 
 		if params.OrderBy != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4506,7 +4607,7 @@ func NewListEntitlementsRequest(server string, params *ListEntitlementsParams) (
 }
 
 // NewGetEntitlementByIdRequest generates requests for GetEntitlementById
-func NewGetEntitlementByIdRequest(server string, entitlementId string) (*http.Request, error) {
+func NewGetEntitlementByIdRequest(server string, entitlementId EntitlementId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -4560,6 +4661,38 @@ func NewListEventsRequest(server string, params *ListEventsParams) (*http.Reques
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.IngestedAtFrom != nil {
 
@@ -4628,38 +4761,6 @@ func NewListEventsRequest(server string, params *ListEventsParams) (*http.Reques
 		if params.Subject != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.From != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.To != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4773,6 +4874,70 @@ func NewListFeaturesRequest(server string, params *ListFeaturesParams) (*http.Re
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Page != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.MeterSlug != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "meterSlug", runtime.ParamLocationQuery, *params.MeterSlug); err != nil {
@@ -4789,89 +4954,9 @@ func NewListFeaturesRequest(server string, params *ListFeaturesParams) (*http.Re
 
 		}
 
-		if params.IncludeArchived != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeArchived", runtime.ParamLocationQuery, *params.IncludeArchived); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Offset != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
 		if params.Order != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4887,7 +4972,23 @@ func NewListFeaturesRequest(server string, params *ListFeaturesParams) (*http.Re
 
 		if params.OrderBy != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeArchived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeArchived", runtime.ParamLocationQuery, *params.IncludeArchived); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -4953,7 +5054,7 @@ func NewCreateFeatureRequestWithBody(server string, contentType string, body io.
 }
 
 // NewDeleteFeatureRequest generates requests for DeleteFeature
-func NewDeleteFeatureRequest(server string, featureId string) (*http.Request, error) {
+func NewDeleteFeatureRequest(server string, featureId FeatureId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -4987,7 +5088,7 @@ func NewDeleteFeatureRequest(server string, featureId string) (*http.Request, er
 }
 
 // NewGetFeatureRequest generates requests for GetFeature
-func NewGetFeatureRequest(server string, featureId string) (*http.Request, error) {
+func NewGetFeatureRequest(server string, featureId FeatureId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5042,9 +5143,57 @@ func NewListGrantsRequest(server string, params *ListGrantsParams) (*http.Reques
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.Feature != nil {
+		if params.Page != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "feature", runtime.ParamLocationQuery, *params.Feature); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5074,73 +5223,9 @@ func NewListGrantsRequest(server string, params *ListGrantsParams) (*http.Reques
 
 		}
 
-		if params.IncludeDeleted != nil {
+		if params.Feature != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Offset != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "feature", runtime.ParamLocationQuery, *params.Feature); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5156,7 +5241,7 @@ func NewListGrantsRequest(server string, params *ListGrantsParams) (*http.Reques
 
 		if params.Order != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5172,7 +5257,23 @@ func NewListGrantsRequest(server string, params *ListGrantsParams) (*http.Reques
 
 		if params.OrderBy != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeDeleted != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5198,7 +5299,7 @@ func NewListGrantsRequest(server string, params *ListGrantsParams) (*http.Reques
 }
 
 // NewVoidGrantRequest generates requests for VoidGrant
-func NewVoidGrantRequest(server string, grantId string) (*http.Request, error) {
+func NewVoidGrantRequest(server string, grantId GrantId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5224,281 +5325,6 @@ func NewVoidGrantRequest(server string, grantId string) (*http.Request, error) {
 	}
 
 	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMarketplaceAppAPIKeyInstallRequest calls the generic MarketplaceAppAPIKeyInstall builder with application/json body
-func NewMarketplaceAppAPIKeyInstallRequest(server string, body MarketplaceAppAPIKeyInstallJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewMarketplaceAppAPIKeyInstallRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewMarketplaceAppAPIKeyInstallRequestWithBody generates requests for MarketplaceAppAPIKeyInstall with any type of body
-func NewMarketplaceAppAPIKeyInstallRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/marketplace/install/apikey")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewMarketplaceOAuth2InstallGetURLRequest generates requests for MarketplaceOAuth2InstallGetURL
-func NewMarketplaceOAuth2InstallGetURLRequest(server string, params *MarketplaceOAuth2InstallGetURLParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/marketplace/install/oauth2")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "appKey", runtime.ParamLocationQuery, params.AppKey); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMarketplaceOAuth2InstallAuthorizeRequest generates requests for MarketplaceOAuth2InstallAuthorize
-func NewMarketplaceOAuth2InstallAuthorizeRequest(server string, params *MarketplaceOAuth2InstallAuthorizeParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/marketplace/install/oauth2/authorize")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.State != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "state", runtime.ParamLocationQuery, *params.State); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Code != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "code", runtime.ParamLocationQuery, *params.Code); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Error != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "error", runtime.ParamLocationQuery, *params.Error); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.ErrorDescription != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "error_description", runtime.ParamLocationQuery, *params.ErrorDescription); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.ErrorUri != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "error_uri", runtime.ParamLocationQuery, *params.ErrorUri); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "appKey", runtime.ParamLocationQuery, params.AppKey); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMarketplaceListListingsRequest generates requests for MarketplaceListListings
-func NewMarketplaceListListingsRequest(server string, params *MarketplaceListListingsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/marketplace/listings")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5574,7 +5400,7 @@ func NewCreateMeterRequestWithBody(server string, contentType string, body io.Re
 }
 
 // NewDeleteMeterRequest generates requests for DeleteMeter
-func NewDeleteMeterRequest(server string, meterIdOrSlug string) (*http.Request, error) {
+func NewDeleteMeterRequest(server string, meterIdOrSlug MeterIdOrSlug) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5608,7 +5434,7 @@ func NewDeleteMeterRequest(server string, meterIdOrSlug string) (*http.Request, 
 }
 
 // NewGetMeterRequest generates requests for GetMeter
-func NewGetMeterRequest(server string, meterIdOrSlug string) (*http.Request, error) {
+func NewGetMeterRequest(server string, meterIdOrSlug MeterIdOrSlug) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5642,7 +5468,7 @@ func NewGetMeterRequest(server string, meterIdOrSlug string) (*http.Request, err
 }
 
 // NewQueryMeterRequest generates requests for QueryMeter
-func NewQueryMeterRequest(server string, meterIdOrSlug string, params *QueryMeterParams) (*http.Request, error) {
+func NewQueryMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5794,7 +5620,7 @@ func NewQueryMeterRequest(server string, meterIdOrSlug string, params *QueryMete
 }
 
 // NewListMeterSubjectsRequest generates requests for ListMeterSubjects
-func NewListMeterSubjectsRequest(server string, meterIdOrSlug string) (*http.Request, error) {
+func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5849,41 +5675,9 @@ func NewListNotificationChannelsRequest(server string, params *ListNotificationC
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.IncludeDeleted != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.IncludeDisabled != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDisabled", runtime.ParamLocationQuery, *params.IncludeDisabled); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
 		if params.Page != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5899,23 +5693,7 @@ func NewListNotificationChannelsRequest(server string, params *ListNotificationC
 
 		if params.PageSize != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Order != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5931,7 +5709,55 @@ func NewListNotificationChannelsRequest(server string, params *ListNotificationC
 
 		if params.OrderBy != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Order != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeDisabled != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDisabled", runtime.ParamLocationQuery, *params.IncludeDisabled); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeDeleted != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5997,7 +5823,7 @@ func NewCreateNotificationChannelRequestWithBody(server string, contentType stri
 }
 
 // NewDeleteNotificationChannelRequest generates requests for DeleteNotificationChannel
-func NewDeleteNotificationChannelRequest(server string, channelId string) (*http.Request, error) {
+func NewDeleteNotificationChannelRequest(server string, channelId ChannelId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6031,7 +5857,7 @@ func NewDeleteNotificationChannelRequest(server string, channelId string) (*http
 }
 
 // NewGetNotificationChannelRequest generates requests for GetNotificationChannel
-func NewGetNotificationChannelRequest(server string, channelId string) (*http.Request, error) {
+func NewGetNotificationChannelRequest(server string, channelId ChannelId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6065,7 +5891,7 @@ func NewGetNotificationChannelRequest(server string, channelId string) (*http.Re
 }
 
 // NewUpdateNotificationChannelRequest calls the generic UpdateNotificationChannel builder with application/json body
-func NewUpdateNotificationChannelRequest(server string, channelId string, body UpdateNotificationChannelJSONRequestBody) (*http.Request, error) {
+func NewUpdateNotificationChannelRequest(server string, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -6076,7 +5902,7 @@ func NewUpdateNotificationChannelRequest(server string, channelId string, body U
 }
 
 // NewUpdateNotificationChannelRequestWithBody generates requests for UpdateNotificationChannel with any type of body
-func NewUpdateNotificationChannelRequestWithBody(server string, channelId string, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateNotificationChannelRequestWithBody(server string, channelId ChannelId, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6132,6 +5958,70 @@ func NewListNotificationEventsRequest(server string, params *ListNotificationEve
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.Page != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Order != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.From != nil {
 
@@ -6229,70 +6119,6 @@ func NewListNotificationEventsRequest(server string, params *ListNotificationEve
 
 		}
 
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Order != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.OrderBy != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -6305,7 +6131,7 @@ func NewListNotificationEventsRequest(server string, params *ListNotificationEve
 }
 
 // NewGetNotificationEventRequest generates requests for GetNotificationEvent
-func NewGetNotificationEventRequest(server string, eventId string) (*http.Request, error) {
+func NewGetNotificationEventRequest(server string, eventId EventId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6360,9 +6186,57 @@ func NewListNotificationRulesRequest(server string, params *ListNotificationRule
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.IncludeDeleted != nil {
+		if params.Page != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Order != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -6378,7 +6252,23 @@ func NewListNotificationRulesRequest(server string, params *ListNotificationRule
 
 		if params.IncludeDisabled != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDisabled", runtime.ParamLocationQuery, *params.IncludeDisabled); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDisabled", runtime.ParamLocationQuery, *params.IncludeDisabled); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeDeleted != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -6411,70 +6301,6 @@ func NewListNotificationRulesRequest(server string, params *ListNotificationRule
 		if params.Channel != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "channel", runtime.ParamLocationQuery, *params.Channel); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Page != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Order != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "order", runtime.ParamLocationQuery, *params.Order); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.OrderBy != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -6540,7 +6366,7 @@ func NewCreateNotificationRuleRequestWithBody(server string, contentType string,
 }
 
 // NewDeleteNotificationRuleRequest generates requests for DeleteNotificationRule
-func NewDeleteNotificationRuleRequest(server string, ruleId string) (*http.Request, error) {
+func NewDeleteNotificationRuleRequest(server string, ruleId RuleId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6574,7 +6400,7 @@ func NewDeleteNotificationRuleRequest(server string, ruleId string) (*http.Reque
 }
 
 // NewGetNotificationRuleRequest generates requests for GetNotificationRule
-func NewGetNotificationRuleRequest(server string, ruleId string) (*http.Request, error) {
+func NewGetNotificationRuleRequest(server string, ruleId RuleId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6608,7 +6434,7 @@ func NewGetNotificationRuleRequest(server string, ruleId string) (*http.Request,
 }
 
 // NewUpdateNotificationRuleRequest calls the generic UpdateNotificationRule builder with application/json body
-func NewUpdateNotificationRuleRequest(server string, ruleId string, body UpdateNotificationRuleJSONRequestBody) (*http.Request, error) {
+func NewUpdateNotificationRuleRequest(server string, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -6619,7 +6445,7 @@ func NewUpdateNotificationRuleRequest(server string, ruleId string, body UpdateN
 }
 
 // NewUpdateNotificationRuleRequestWithBody generates requests for UpdateNotificationRule with any type of body
-func NewUpdateNotificationRuleRequestWithBody(server string, ruleId string, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateNotificationRuleRequestWithBody(server string, ruleId RuleId, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6655,7 +6481,7 @@ func NewUpdateNotificationRuleRequestWithBody(server string, ruleId string, cont
 }
 
 // NewTestNotificationRuleRequest generates requests for TestNotificationRule
-func NewTestNotificationRuleRequest(server string, ruleId string) (*http.Request, error) {
+func NewTestNotificationRuleRequest(server string, ruleId RuleId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6888,7 +6714,7 @@ func NewListPortalTokensRequest(server string, params *ListPortalTokensParams) (
 
 		if params.Limit != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -7061,7 +6887,7 @@ func NewUpsertSubjectRequestWithBody(server string, contentType string, body io.
 }
 
 // NewDeleteSubjectRequest generates requests for DeleteSubject
-func NewDeleteSubjectRequest(server string, subjectIdOrKey string) (*http.Request, error) {
+func NewDeleteSubjectRequest(server string, subjectIdOrKey SubjectIdOrKey) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7095,7 +6921,7 @@ func NewDeleteSubjectRequest(server string, subjectIdOrKey string) (*http.Reques
 }
 
 // NewGetSubjectRequest generates requests for GetSubject
-func NewGetSubjectRequest(server string, subjectIdOrKey string) (*http.Request, error) {
+func NewGetSubjectRequest(server string, subjectIdOrKey SubjectIdOrKey) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7129,7 +6955,7 @@ func NewGetSubjectRequest(server string, subjectIdOrKey string) (*http.Request, 
 }
 
 // NewListSubjectEntitlementsRequest generates requests for ListSubjectEntitlements
-func NewListSubjectEntitlementsRequest(server string, subjectIdOrKey string, params *ListSubjectEntitlementsParams) (*http.Request, error) {
+func NewListSubjectEntitlementsRequest(server string, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7159,7 +6985,7 @@ func NewListSubjectEntitlementsRequest(server string, subjectIdOrKey string, par
 
 		if params.IncludeDeleted != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -7185,7 +7011,7 @@ func NewListSubjectEntitlementsRequest(server string, subjectIdOrKey string, par
 }
 
 // NewCreateEntitlementRequest calls the generic CreateEntitlement builder with application/json body
-func NewCreateEntitlementRequest(server string, subjectIdOrKey string, body CreateEntitlementJSONRequestBody) (*http.Request, error) {
+func NewCreateEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -7196,7 +7022,7 @@ func NewCreateEntitlementRequest(server string, subjectIdOrKey string, body Crea
 }
 
 // NewCreateEntitlementRequestWithBody generates requests for CreateEntitlement with any type of body
-func NewCreateEntitlementRequestWithBody(server string, subjectIdOrKey string, contentType string, body io.Reader) (*http.Request, error) {
+func NewCreateEntitlementRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7232,7 +7058,7 @@ func NewCreateEntitlementRequestWithBody(server string, subjectIdOrKey string, c
 }
 
 // NewListEntitlementGrantsRequest generates requests for ListEntitlementGrants
-func NewListEntitlementGrantsRequest(server string, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *ListEntitlementGrantsParams) (*http.Request, error) {
+func NewListEntitlementGrantsRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *ListEntitlementGrantsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7269,7 +7095,7 @@ func NewListEntitlementGrantsRequest(server string, subjectIdOrKey string, entit
 
 		if params.IncludeDeleted != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -7285,7 +7111,7 @@ func NewListEntitlementGrantsRequest(server string, subjectIdOrKey string, entit
 
 		if params.OrderBy != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -7311,7 +7137,7 @@ func NewListEntitlementGrantsRequest(server string, subjectIdOrKey string, entit
 }
 
 // NewCreateGrantRequest calls the generic CreateGrant builder with application/json body
-func NewCreateGrantRequest(server string, subjectIdOrKey string, entitlementIdOrFeatureKey string, body CreateGrantJSONRequestBody) (*http.Request, error) {
+func NewCreateGrantRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body CreateGrantJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -7322,7 +7148,7 @@ func NewCreateGrantRequest(server string, subjectIdOrKey string, entitlementIdOr
 }
 
 // NewCreateGrantRequestWithBody generates requests for CreateGrant with any type of body
-func NewCreateGrantRequestWithBody(server string, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader) (*http.Request, error) {
+func NewCreateGrantRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7365,7 +7191,7 @@ func NewCreateGrantRequestWithBody(server string, subjectIdOrKey string, entitle
 }
 
 // NewOverrideEntitlementRequest calls the generic OverrideEntitlement builder with application/json body
-func NewOverrideEntitlementRequest(server string, subjectIdOrKey string, entitlementIdOrFeatureKey string, body OverrideEntitlementJSONRequestBody) (*http.Request, error) {
+func NewOverrideEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body OverrideEntitlementJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -7376,7 +7202,7 @@ func NewOverrideEntitlementRequest(server string, subjectIdOrKey string, entitle
 }
 
 // NewOverrideEntitlementRequestWithBody generates requests for OverrideEntitlement with any type of body
-func NewOverrideEntitlementRequestWithBody(server string, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader) (*http.Request, error) {
+func NewOverrideEntitlementRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7419,7 +7245,7 @@ func NewOverrideEntitlementRequestWithBody(server string, subjectIdOrKey string,
 }
 
 // NewGetEntitlementValueRequest generates requests for GetEntitlementValue
-func NewGetEntitlementValueRequest(server string, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *GetEntitlementValueParams) (*http.Request, error) {
+func NewGetEntitlementValueRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *GetEntitlementValueParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7482,7 +7308,7 @@ func NewGetEntitlementValueRequest(server string, subjectIdOrKey string, entitle
 }
 
 // NewDeleteEntitlementRequest generates requests for DeleteEntitlement
-func NewDeleteEntitlementRequest(server string, subjectIdOrKey string, entitlementId string) (*http.Request, error) {
+func NewDeleteEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7523,7 +7349,7 @@ func NewDeleteEntitlementRequest(server string, subjectIdOrKey string, entitleme
 }
 
 // NewGetEntitlementRequest generates requests for GetEntitlement
-func NewGetEntitlementRequest(server string, subjectIdOrKey string, entitlementId string) (*http.Request, error) {
+func NewGetEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7564,7 +7390,7 @@ func NewGetEntitlementRequest(server string, subjectIdOrKey string, entitlementI
 }
 
 // NewGetEntitlementHistoryRequest generates requests for GetEntitlementHistory
-func NewGetEntitlementHistoryRequest(server string, subjectIdOrKey string, entitlementId string, params *GetEntitlementHistoryParams) (*http.Request, error) {
+func NewGetEntitlementHistoryRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7671,7 +7497,7 @@ func NewGetEntitlementHistoryRequest(server string, subjectIdOrKey string, entit
 }
 
 // NewResetEntitlementUsageRequest calls the generic ResetEntitlementUsage builder with application/json body
-func NewResetEntitlementUsageRequest(server string, subjectIdOrKey string, entitlementId string, body ResetEntitlementUsageJSONRequestBody) (*http.Request, error) {
+func NewResetEntitlementUsageRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -7682,7 +7508,7 @@ func NewResetEntitlementUsageRequest(server string, subjectIdOrKey string, entit
 }
 
 // NewResetEntitlementUsageRequestWithBody generates requests for ResetEntitlementUsage with any type of body
-func NewResetEntitlementUsageRequestWithBody(server string, subjectIdOrKey string, entitlementId string, contentType string, body io.Reader) (*http.Request, error) {
+func NewResetEntitlementUsageRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7767,25 +7593,6 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// ListAppsWithResponse request
-	ListAppsWithResponse(ctx context.Context, params *ListAppsParams, reqEditors ...RequestEditorFn) (*ListAppsResponse, error)
-
-	// UninstallAppWithResponse request
-	UninstallAppWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*UninstallAppResponse, error)
-
-	// GetAppWithResponse request
-	GetAppWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetAppResponse, error)
-
-	// CreateAppStripeCheckoutSessionWithBodyWithResponse request with any body
-	CreateAppStripeCheckoutSessionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAppStripeCheckoutSessionResponse, error)
-
-	CreateAppStripeCheckoutSessionWithResponse(ctx context.Context, id string, body CreateAppStripeCheckoutSessionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAppStripeCheckoutSessionResponse, error)
-
-	// AppStripeWebhookWithBodyWithResponse request with any body
-	AppStripeWebhookWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppStripeWebhookResponse, error)
-
-	AppStripeWebhookWithResponse(ctx context.Context, id string, body AppStripeWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*AppStripeWebhookResponse, error)
-
 	// ListCustomersWithResponse request
 	ListCustomersWithResponse(ctx context.Context, params *ListCustomersParams, reqEditors ...RequestEditorFn) (*ListCustomersResponse, error)
 
@@ -7812,7 +7619,7 @@ type ClientWithResponsesInterface interface {
 	ListEntitlementsWithResponse(ctx context.Context, params *ListEntitlementsParams, reqEditors ...RequestEditorFn) (*ListEntitlementsResponse, error)
 
 	// GetEntitlementByIdWithResponse request
-	GetEntitlementByIdWithResponse(ctx context.Context, entitlementId string, reqEditors ...RequestEditorFn) (*GetEntitlementByIdResponse, error)
+	GetEntitlementByIdWithResponse(ctx context.Context, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*GetEntitlementByIdResponse, error)
 
 	// ListEventsWithResponse request
 	ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error)
@@ -7833,30 +7640,16 @@ type ClientWithResponsesInterface interface {
 	CreateFeatureWithResponse(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateFeatureResponse, error)
 
 	// DeleteFeatureWithResponse request
-	DeleteFeatureWithResponse(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error)
+	DeleteFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error)
 
 	// GetFeatureWithResponse request
-	GetFeatureWithResponse(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error)
+	GetFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error)
 
 	// ListGrantsWithResponse request
 	ListGrantsWithResponse(ctx context.Context, params *ListGrantsParams, reqEditors ...RequestEditorFn) (*ListGrantsResponse, error)
 
 	// VoidGrantWithResponse request
-	VoidGrantWithResponse(ctx context.Context, grantId string, reqEditors ...RequestEditorFn) (*VoidGrantResponse, error)
-
-	// MarketplaceAppAPIKeyInstallWithBodyWithResponse request with any body
-	MarketplaceAppAPIKeyInstallWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MarketplaceAppAPIKeyInstallResponse, error)
-
-	MarketplaceAppAPIKeyInstallWithResponse(ctx context.Context, body MarketplaceAppAPIKeyInstallJSONRequestBody, reqEditors ...RequestEditorFn) (*MarketplaceAppAPIKeyInstallResponse, error)
-
-	// MarketplaceOAuth2InstallGetURLWithResponse request
-	MarketplaceOAuth2InstallGetURLWithResponse(ctx context.Context, params *MarketplaceOAuth2InstallGetURLParams, reqEditors ...RequestEditorFn) (*MarketplaceOAuth2InstallGetURLResponse, error)
-
-	// MarketplaceOAuth2InstallAuthorizeWithResponse request
-	MarketplaceOAuth2InstallAuthorizeWithResponse(ctx context.Context, params *MarketplaceOAuth2InstallAuthorizeParams, reqEditors ...RequestEditorFn) (*MarketplaceOAuth2InstallAuthorizeResponse, error)
-
-	// MarketplaceListListingsWithResponse request
-	MarketplaceListListingsWithResponse(ctx context.Context, params *MarketplaceListListingsParams, reqEditors ...RequestEditorFn) (*MarketplaceListListingsResponse, error)
+	VoidGrantWithResponse(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*VoidGrantResponse, error)
 
 	// ListMetersWithResponse request
 	ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error)
@@ -7867,16 +7660,16 @@ type ClientWithResponsesInterface interface {
 	CreateMeterWithResponse(ctx context.Context, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error)
 
 	// DeleteMeterWithResponse request
-	DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error)
+	DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error)
 
 	// GetMeterWithResponse request
-	GetMeterWithResponse(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*GetMeterResponse, error)
+	GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*GetMeterResponse, error)
 
 	// QueryMeterWithResponse request
-	QueryMeterWithResponse(ctx context.Context, meterIdOrSlug string, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*QueryMeterResponse, error)
+	QueryMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*QueryMeterResponse, error)
 
 	// ListMeterSubjectsWithResponse request
-	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
+	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
 
 	// ListNotificationChannelsWithResponse request
 	ListNotificationChannelsWithResponse(ctx context.Context, params *ListNotificationChannelsParams, reqEditors ...RequestEditorFn) (*ListNotificationChannelsResponse, error)
@@ -7887,21 +7680,21 @@ type ClientWithResponsesInterface interface {
 	CreateNotificationChannelWithResponse(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error)
 
 	// DeleteNotificationChannelWithResponse request
-	DeleteNotificationChannelWithResponse(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error)
+	DeleteNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error)
 
 	// GetNotificationChannelWithResponse request
-	GetNotificationChannelWithResponse(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*GetNotificationChannelResponse, error)
+	GetNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*GetNotificationChannelResponse, error)
 
 	// UpdateNotificationChannelWithBodyWithResponse request with any body
-	UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
+	UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
 
-	UpdateNotificationChannelWithResponse(ctx context.Context, channelId string, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
+	UpdateNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
 
 	// ListNotificationEventsWithResponse request
 	ListNotificationEventsWithResponse(ctx context.Context, params *ListNotificationEventsParams, reqEditors ...RequestEditorFn) (*ListNotificationEventsResponse, error)
 
 	// GetNotificationEventWithResponse request
-	GetNotificationEventWithResponse(ctx context.Context, eventId string, reqEditors ...RequestEditorFn) (*GetNotificationEventResponse, error)
+	GetNotificationEventWithResponse(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*GetNotificationEventResponse, error)
 
 	// ListNotificationRulesWithResponse request
 	ListNotificationRulesWithResponse(ctx context.Context, params *ListNotificationRulesParams, reqEditors ...RequestEditorFn) (*ListNotificationRulesResponse, error)
@@ -7912,18 +7705,18 @@ type ClientWithResponsesInterface interface {
 	CreateNotificationRuleWithResponse(ctx context.Context, body CreateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationRuleResponse, error)
 
 	// DeleteNotificationRuleWithResponse request
-	DeleteNotificationRuleWithResponse(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*DeleteNotificationRuleResponse, error)
+	DeleteNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*DeleteNotificationRuleResponse, error)
 
 	// GetNotificationRuleWithResponse request
-	GetNotificationRuleWithResponse(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*GetNotificationRuleResponse, error)
+	GetNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*GetNotificationRuleResponse, error)
 
 	// UpdateNotificationRuleWithBodyWithResponse request with any body
-	UpdateNotificationRuleWithBodyWithResponse(ctx context.Context, ruleId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error)
+	UpdateNotificationRuleWithBodyWithResponse(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error)
 
-	UpdateNotificationRuleWithResponse(ctx context.Context, ruleId string, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error)
+	UpdateNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error)
 
 	// TestNotificationRuleWithResponse request
-	TestNotificationRuleWithResponse(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*TestNotificationRuleResponse, error)
+	TestNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*TestNotificationRuleResponse, error)
 
 	// ReceiveSvixOperationalEventWithBodyWithResponse request with any body
 	ReceiveSvixOperationalEventWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReceiveSvixOperationalEventResponse, error)
@@ -7955,189 +7748,48 @@ type ClientWithResponsesInterface interface {
 	UpsertSubjectWithResponse(ctx context.Context, body UpsertSubjectJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertSubjectResponse, error)
 
 	// DeleteSubjectWithResponse request
-	DeleteSubjectWithResponse(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*DeleteSubjectResponse, error)
+	DeleteSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*DeleteSubjectResponse, error)
 
 	// GetSubjectWithResponse request
-	GetSubjectWithResponse(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error)
+	GetSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error)
 
 	// ListSubjectEntitlementsWithResponse request
-	ListSubjectEntitlementsWithResponse(ctx context.Context, subjectIdOrKey string, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*ListSubjectEntitlementsResponse, error)
+	ListSubjectEntitlementsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*ListSubjectEntitlementsResponse, error)
 
 	// CreateEntitlementWithBodyWithResponse request with any body
-	CreateEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error)
+	CreateEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error)
 
-	CreateEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error)
+	CreateEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error)
 
 	// ListEntitlementGrantsWithResponse request
-	ListEntitlementGrantsWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*ListEntitlementGrantsResponse, error)
+	ListEntitlementGrantsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*ListEntitlementGrantsResponse, error)
 
 	// CreateGrantWithBodyWithResponse request with any body
-	CreateGrantWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error)
+	CreateGrantWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error)
 
-	CreateGrantWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error)
+	CreateGrantWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error)
 
 	// OverrideEntitlementWithBodyWithResponse request with any body
-	OverrideEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error)
+	OverrideEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error)
 
-	OverrideEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error)
+	OverrideEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error)
 
 	// GetEntitlementValueWithResponse request
-	GetEntitlementValueWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*GetEntitlementValueResponse, error)
+	GetEntitlementValueWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*GetEntitlementValueResponse, error)
 
 	// DeleteEntitlementWithResponse request
-	DeleteEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*DeleteEntitlementResponse, error)
+	DeleteEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*DeleteEntitlementResponse, error)
 
 	// GetEntitlementWithResponse request
-	GetEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error)
+	GetEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error)
 
 	// GetEntitlementHistoryWithResponse request
-	GetEntitlementHistoryWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*GetEntitlementHistoryResponse, error)
+	GetEntitlementHistoryWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*GetEntitlementHistoryResponse, error)
 
 	// ResetEntitlementUsageWithBodyWithResponse request with any body
-	ResetEntitlementUsageWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error)
+	ResetEntitlementUsageWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error)
 
-	ResetEntitlementUsageWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error)
-}
-
-type ListAppsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]AppList
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r ListAppsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListAppsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type UninstallAppResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *App
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r UninstallAppResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UninstallAppResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetAppResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *App
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetAppResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetAppResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateAppStripeCheckoutSessionResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON201                       *CreateStripeCheckoutSessionResponse
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateAppStripeCheckoutSessionResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateAppStripeCheckoutSessionResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type AppStripeWebhookResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *StripeWebhookResponse
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r AppStripeWebhookResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r AppStripeWebhookResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
+	ResetEntitlementUsageWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error)
 }
 
 type ListCustomersResponse struct {
@@ -8146,9 +7798,6 @@ type ListCustomersResponse struct {
 	JSON200                       *[]CustomerList
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8174,9 +7823,6 @@ type CreateCustomerResponse struct {
 	JSON200                       *Customer
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8202,10 +7848,6 @@ type DeleteCustomerResponse struct {
 	JSON200                       *Customer
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8231,10 +7873,6 @@ type GetCustomerResponse struct {
 	JSON200                       *Customer
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8260,10 +7898,6 @@ type UpdateCustomerResponse struct {
 	JSON200                       *Customer
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8286,11 +7920,7 @@ func (r UpdateCustomerResponse) StatusCode() int {
 type GetDebugMetricsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8311,16 +7941,11 @@ func (r GetDebugMetricsResponse) StatusCode() int {
 }
 
 type ListEntitlementsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		union json.RawMessage
-	}
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *ListEntitlementResponse
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8341,15 +7966,15 @@ func (r ListEntitlementsResponse) StatusCode() int {
 }
 
 type GetEntitlementByIdResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *Entitlement
-	ApplicationproblemJSON400     *BadRequestProblemResponse
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// LastReset The last time usage was reset.
+		LastReset *time.Time `json:"lastReset,omitempty"`
+		union     json.RawMessage
+	}
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8375,9 +8000,6 @@ type ListEventsResponse struct {
 	JSON200                       *[]IngestedEvent
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8398,16 +8020,11 @@ func (r ListEventsResponse) StatusCode() int {
 }
 
 type IngestEventsResponse struct {
-	Body                               []byte
-	HTTPResponse                       *http.Response
-	ApplicationcloudeventsJSON200      *Event
-	ApplicationcloudeventsBatchJSON200 *[]Event
-	ApplicationproblemJSON400          *BadRequestProblemResponse
-	ApplicationproblemJSON401          *UnauthorizedProblemResponse
-	ApplicationproblemJSON403          *ForbiddenProblemResponse
-	ApplicationproblemJSON500          *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503          *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault      *UnexpectedProblemResponse
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -8427,16 +8044,11 @@ func (r IngestEventsResponse) StatusCode() int {
 }
 
 type ListFeaturesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		union json.RawMessage
-	}
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *ListFeatureResponse
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8462,9 +8074,7 @@ type CreateFeatureResponse struct {
 	JSON201                       *Feature
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8487,12 +8097,8 @@ func (r CreateFeatureResponse) StatusCode() int {
 type DeleteFeatureResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8516,12 +8122,8 @@ type GetFeatureResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *Feature
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8542,16 +8144,10 @@ func (r GetFeatureResponse) StatusCode() int {
 }
 
 type ListGrantsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		union json.RawMessage
-	}
-	ApplicationproblemJSON400     *BadRequestProblemResponse
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *ListEntitlementGrantResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8576,11 +8172,8 @@ type VoidGrantResponse struct {
 	HTTPResponse                  *http.Response
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
 	ApplicationproblemJSON409     *ConflictProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8600,126 +8193,11 @@ func (r VoidGrantResponse) StatusCode() int {
 	return 0
 }
 
-type MarketplaceAppAPIKeyInstallResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *AppBase
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r MarketplaceAppAPIKeyInstallResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MarketplaceAppAPIKeyInstallResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MarketplaceOAuth2InstallGetURLResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *ClientAppStartResponse
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r MarketplaceOAuth2InstallGetURLResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MarketplaceOAuth2InstallGetURLResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MarketplaceOAuth2InstallAuthorizeResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r MarketplaceOAuth2InstallAuthorizeResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MarketplaceOAuth2InstallAuthorizeResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MarketplaceListListingsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *ListingList
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r MarketplaceListListingsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MarketplaceListListingsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type ListMetersResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *[]Meter
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8745,9 +8223,7 @@ type CreateMeterResponse struct {
 	JSON201                       *Meter
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8770,11 +8246,8 @@ func (r CreateMeterResponse) StatusCode() int {
 type DeleteMeterResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8798,12 +8271,7 @@ type GetMeterResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *Meter
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8829,10 +8297,6 @@ type QueryMeterResponse struct {
 	JSON200                       *MeterQueryResult
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8857,10 +8321,6 @@ type ListMeterSubjectsResponse struct {
 	HTTPResponse                  *http.Response
 	JSON200                       *[]string
 	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8883,12 +8343,9 @@ func (r ListMeterSubjectsResponse) StatusCode() int {
 type ListNotificationChannelsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON200                       *NotificationChannelPaginatedResponse
+	JSON200                       *NotificationChannelsResponse
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8914,9 +8371,7 @@ type CreateNotificationChannelResponse struct {
 	JSON201                       *NotificationChannel
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON409     *ConflictProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8939,12 +8394,8 @@ func (r CreateNotificationChannelResponse) StatusCode() int {
 type DeleteNotificationChannelResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8968,12 +8419,8 @@ type GetNotificationChannelResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *NotificationChannel
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -8997,12 +8444,8 @@ type UpdateNotificationChannelResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *NotificationChannel
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9025,12 +8468,9 @@ func (r UpdateNotificationChannelResponse) StatusCode() int {
 type ListNotificationEventsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON200                       *NotificationEventPaginatedResponse
+	JSON200                       *NotificationEventsResponse
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9051,15 +8491,13 @@ func (r ListNotificationEventsResponse) StatusCode() int {
 }
 
 type GetNotificationEventResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *Event
-	ApplicationproblemJSON400     *BadRequestProblemResponse
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		union json.RawMessage
+	}
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9082,12 +8520,9 @@ func (r GetNotificationEventResponse) StatusCode() int {
 type ListNotificationRulesResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON200                       *NotificationRulePaginatedResponse
+	JSON200                       *NotificationRulesResponse
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9113,9 +8548,7 @@ type CreateNotificationRuleResponse struct {
 	JSON201                       *NotificationRule
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON409     *ConflictProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9138,12 +8571,8 @@ func (r CreateNotificationRuleResponse) StatusCode() int {
 type DeleteNotificationRuleResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9167,12 +8596,8 @@ type GetNotificationRuleResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *NotificationRule
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9196,12 +8621,8 @@ type UpdateNotificationRuleResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *NotificationRule
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9222,15 +8643,15 @@ func (r UpdateNotificationRuleResponse) StatusCode() int {
 }
 
 type TestNotificationRuleResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON201                       *Event
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *struct {
+		union json.RawMessage
+	}
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON409     *ConflictProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9255,9 +8676,7 @@ type ReceiveSvixOperationalEventResponse struct {
 	HTTPResponse                  *http.Response
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9283,10 +8702,6 @@ type QueryPortalMeterResponse struct {
 	JSON200                       *MeterQueryResult
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9312,9 +8727,7 @@ type ListPortalTokensResponse struct {
 	JSON200                       *[]PortalToken
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9340,9 +8753,6 @@ type CreatePortalTokenResponse struct {
 	JSON200                       *PortalToken
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9367,9 +8777,7 @@ type InvalidatePortalTokensResponse struct {
 	HTTPResponse                  *http.Response
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9393,11 +8801,7 @@ type ListSubjectsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *[]Subject
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9423,9 +8827,7 @@ type UpsertSubjectResponse struct {
 	JSON200                       *[]Subject
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9450,9 +8852,8 @@ type DeleteSubjectResponse struct {
 	HTTPResponse                  *http.Response
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9476,12 +8877,8 @@ type GetSubjectResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *Subject
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9505,11 +8902,7 @@ type ListSubjectEntitlementsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *[]Entitlement
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9532,13 +8925,11 @@ func (r ListSubjectEntitlementsResponse) StatusCode() int {
 type CreateEntitlementResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON201                       *EntitlementCreateInputs
+	JSON201                       *Entitlement
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON409     *ConflictProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9562,11 +8953,7 @@ type ListEntitlementGrantsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
 	JSON200                       *[]EntitlementGrant
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9592,10 +8979,7 @@ type CreateGrantResponse struct {
 	JSON201                       *EntitlementGrant
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
-	ApplicationproblemJSON409     *ConflictProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9621,11 +9005,9 @@ type OverrideEntitlementResponse struct {
 	JSON201                       *Entitlement
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
 	ApplicationproblemJSON409     *ConflictProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9651,10 +9033,7 @@ type GetEntitlementValueResponse struct {
 	JSON200                       *EntitlementValue
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9677,12 +9056,8 @@ func (r GetEntitlementValueResponse) StatusCode() int {
 type DeleteEntitlementResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9703,15 +9078,15 @@ func (r DeleteEntitlementResponse) StatusCode() int {
 }
 
 type GetEntitlementResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *Entitlement
-	ApplicationproblemJSON400     *BadRequestProblemResponse
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// LastReset The last time usage was reset.
+		LastReset *time.Time `json:"lastReset,omitempty"`
+		union     json.RawMessage
+	}
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9737,10 +9112,7 @@ type GetEntitlementHistoryResponse struct {
 	JSON200                       *WindowedBalanceHistory
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9765,10 +9137,7 @@ type ResetEntitlementUsageResponse struct {
 	HTTPResponse                  *http.Response
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON403     *ForbiddenProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
-	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
@@ -9786,67 +9155,6 @@ func (r ResetEntitlementUsageResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
-}
-
-// ListAppsWithResponse request returning *ListAppsResponse
-func (c *ClientWithResponses) ListAppsWithResponse(ctx context.Context, params *ListAppsParams, reqEditors ...RequestEditorFn) (*ListAppsResponse, error) {
-	rsp, err := c.ListApps(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListAppsResponse(rsp)
-}
-
-// UninstallAppWithResponse request returning *UninstallAppResponse
-func (c *ClientWithResponses) UninstallAppWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*UninstallAppResponse, error) {
-	rsp, err := c.UninstallApp(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUninstallAppResponse(rsp)
-}
-
-// GetAppWithResponse request returning *GetAppResponse
-func (c *ClientWithResponses) GetAppWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetAppResponse, error) {
-	rsp, err := c.GetApp(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetAppResponse(rsp)
-}
-
-// CreateAppStripeCheckoutSessionWithBodyWithResponse request with arbitrary body returning *CreateAppStripeCheckoutSessionResponse
-func (c *ClientWithResponses) CreateAppStripeCheckoutSessionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAppStripeCheckoutSessionResponse, error) {
-	rsp, err := c.CreateAppStripeCheckoutSessionWithBody(ctx, id, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateAppStripeCheckoutSessionResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateAppStripeCheckoutSessionWithResponse(ctx context.Context, id string, body CreateAppStripeCheckoutSessionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAppStripeCheckoutSessionResponse, error) {
-	rsp, err := c.CreateAppStripeCheckoutSession(ctx, id, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateAppStripeCheckoutSessionResponse(rsp)
-}
-
-// AppStripeWebhookWithBodyWithResponse request with arbitrary body returning *AppStripeWebhookResponse
-func (c *ClientWithResponses) AppStripeWebhookWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppStripeWebhookResponse, error) {
-	rsp, err := c.AppStripeWebhookWithBody(ctx, id, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAppStripeWebhookResponse(rsp)
-}
-
-func (c *ClientWithResponses) AppStripeWebhookWithResponse(ctx context.Context, id string, body AppStripeWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*AppStripeWebhookResponse, error) {
-	rsp, err := c.AppStripeWebhook(ctx, id, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAppStripeWebhookResponse(rsp)
 }
 
 // ListCustomersWithResponse request returning *ListCustomersResponse
@@ -9929,7 +9237,7 @@ func (c *ClientWithResponses) ListEntitlementsWithResponse(ctx context.Context, 
 }
 
 // GetEntitlementByIdWithResponse request returning *GetEntitlementByIdResponse
-func (c *ClientWithResponses) GetEntitlementByIdWithResponse(ctx context.Context, entitlementId string, reqEditors ...RequestEditorFn) (*GetEntitlementByIdResponse, error) {
+func (c *ClientWithResponses) GetEntitlementByIdWithResponse(ctx context.Context, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*GetEntitlementByIdResponse, error) {
 	rsp, err := c.GetEntitlementById(ctx, entitlementId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -9998,7 +9306,7 @@ func (c *ClientWithResponses) CreateFeatureWithResponse(ctx context.Context, bod
 }
 
 // DeleteFeatureWithResponse request returning *DeleteFeatureResponse
-func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error) {
+func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error) {
 	rsp, err := c.DeleteFeature(ctx, featureId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10007,7 +9315,7 @@ func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, fea
 }
 
 // GetFeatureWithResponse request returning *GetFeatureResponse
-func (c *ClientWithResponses) GetFeatureWithResponse(ctx context.Context, featureId string, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error) {
+func (c *ClientWithResponses) GetFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error) {
 	rsp, err := c.GetFeature(ctx, featureId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10025,56 +9333,12 @@ func (c *ClientWithResponses) ListGrantsWithResponse(ctx context.Context, params
 }
 
 // VoidGrantWithResponse request returning *VoidGrantResponse
-func (c *ClientWithResponses) VoidGrantWithResponse(ctx context.Context, grantId string, reqEditors ...RequestEditorFn) (*VoidGrantResponse, error) {
+func (c *ClientWithResponses) VoidGrantWithResponse(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*VoidGrantResponse, error) {
 	rsp, err := c.VoidGrant(ctx, grantId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseVoidGrantResponse(rsp)
-}
-
-// MarketplaceAppAPIKeyInstallWithBodyWithResponse request with arbitrary body returning *MarketplaceAppAPIKeyInstallResponse
-func (c *ClientWithResponses) MarketplaceAppAPIKeyInstallWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MarketplaceAppAPIKeyInstallResponse, error) {
-	rsp, err := c.MarketplaceAppAPIKeyInstallWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMarketplaceAppAPIKeyInstallResponse(rsp)
-}
-
-func (c *ClientWithResponses) MarketplaceAppAPIKeyInstallWithResponse(ctx context.Context, body MarketplaceAppAPIKeyInstallJSONRequestBody, reqEditors ...RequestEditorFn) (*MarketplaceAppAPIKeyInstallResponse, error) {
-	rsp, err := c.MarketplaceAppAPIKeyInstall(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMarketplaceAppAPIKeyInstallResponse(rsp)
-}
-
-// MarketplaceOAuth2InstallGetURLWithResponse request returning *MarketplaceOAuth2InstallGetURLResponse
-func (c *ClientWithResponses) MarketplaceOAuth2InstallGetURLWithResponse(ctx context.Context, params *MarketplaceOAuth2InstallGetURLParams, reqEditors ...RequestEditorFn) (*MarketplaceOAuth2InstallGetURLResponse, error) {
-	rsp, err := c.MarketplaceOAuth2InstallGetURL(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMarketplaceOAuth2InstallGetURLResponse(rsp)
-}
-
-// MarketplaceOAuth2InstallAuthorizeWithResponse request returning *MarketplaceOAuth2InstallAuthorizeResponse
-func (c *ClientWithResponses) MarketplaceOAuth2InstallAuthorizeWithResponse(ctx context.Context, params *MarketplaceOAuth2InstallAuthorizeParams, reqEditors ...RequestEditorFn) (*MarketplaceOAuth2InstallAuthorizeResponse, error) {
-	rsp, err := c.MarketplaceOAuth2InstallAuthorize(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMarketplaceOAuth2InstallAuthorizeResponse(rsp)
-}
-
-// MarketplaceListListingsWithResponse request returning *MarketplaceListListingsResponse
-func (c *ClientWithResponses) MarketplaceListListingsWithResponse(ctx context.Context, params *MarketplaceListListingsParams, reqEditors ...RequestEditorFn) (*MarketplaceListListingsResponse, error) {
-	rsp, err := c.MarketplaceListListings(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMarketplaceListListingsResponse(rsp)
 }
 
 // ListMetersWithResponse request returning *ListMetersResponse
@@ -10104,7 +9368,7 @@ func (c *ClientWithResponses) CreateMeterWithResponse(ctx context.Context, body 
 }
 
 // DeleteMeterWithResponse request returning *DeleteMeterResponse
-func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error) {
+func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error) {
 	rsp, err := c.DeleteMeter(ctx, meterIdOrSlug, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10113,7 +9377,7 @@ func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meter
 }
 
 // GetMeterWithResponse request returning *GetMeterResponse
-func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*GetMeterResponse, error) {
+func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*GetMeterResponse, error) {
 	rsp, err := c.GetMeter(ctx, meterIdOrSlug, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10122,7 +9386,7 @@ func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdO
 }
 
 // QueryMeterWithResponse request returning *QueryMeterResponse
-func (c *ClientWithResponses) QueryMeterWithResponse(ctx context.Context, meterIdOrSlug string, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*QueryMeterResponse, error) {
+func (c *ClientWithResponses) QueryMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*QueryMeterResponse, error) {
 	rsp, err := c.QueryMeter(ctx, meterIdOrSlug, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10131,7 +9395,7 @@ func (c *ClientWithResponses) QueryMeterWithResponse(ctx context.Context, meterI
 }
 
 // ListMeterSubjectsWithResponse request returning *ListMeterSubjectsResponse
-func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug string, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error) {
+func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error) {
 	rsp, err := c.ListMeterSubjects(ctx, meterIdOrSlug, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10166,7 +9430,7 @@ func (c *ClientWithResponses) CreateNotificationChannelWithResponse(ctx context.
 }
 
 // DeleteNotificationChannelWithResponse request returning *DeleteNotificationChannelResponse
-func (c *ClientWithResponses) DeleteNotificationChannelWithResponse(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error) {
+func (c *ClientWithResponses) DeleteNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error) {
 	rsp, err := c.DeleteNotificationChannel(ctx, channelId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10175,7 +9439,7 @@ func (c *ClientWithResponses) DeleteNotificationChannelWithResponse(ctx context.
 }
 
 // GetNotificationChannelWithResponse request returning *GetNotificationChannelResponse
-func (c *ClientWithResponses) GetNotificationChannelWithResponse(ctx context.Context, channelId string, reqEditors ...RequestEditorFn) (*GetNotificationChannelResponse, error) {
+func (c *ClientWithResponses) GetNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*GetNotificationChannelResponse, error) {
 	rsp, err := c.GetNotificationChannel(ctx, channelId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10184,7 +9448,7 @@ func (c *ClientWithResponses) GetNotificationChannelWithResponse(ctx context.Con
 }
 
 // UpdateNotificationChannelWithBodyWithResponse request with arbitrary body returning *UpdateNotificationChannelResponse
-func (c *ClientWithResponses) UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
+func (c *ClientWithResponses) UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
 	rsp, err := c.UpdateNotificationChannelWithBody(ctx, channelId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10192,7 +9456,7 @@ func (c *ClientWithResponses) UpdateNotificationChannelWithBodyWithResponse(ctx 
 	return ParseUpdateNotificationChannelResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateNotificationChannelWithResponse(ctx context.Context, channelId string, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
+func (c *ClientWithResponses) UpdateNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
 	rsp, err := c.UpdateNotificationChannel(ctx, channelId, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10210,7 +9474,7 @@ func (c *ClientWithResponses) ListNotificationEventsWithResponse(ctx context.Con
 }
 
 // GetNotificationEventWithResponse request returning *GetNotificationEventResponse
-func (c *ClientWithResponses) GetNotificationEventWithResponse(ctx context.Context, eventId string, reqEditors ...RequestEditorFn) (*GetNotificationEventResponse, error) {
+func (c *ClientWithResponses) GetNotificationEventWithResponse(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*GetNotificationEventResponse, error) {
 	rsp, err := c.GetNotificationEvent(ctx, eventId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10245,7 +9509,7 @@ func (c *ClientWithResponses) CreateNotificationRuleWithResponse(ctx context.Con
 }
 
 // DeleteNotificationRuleWithResponse request returning *DeleteNotificationRuleResponse
-func (c *ClientWithResponses) DeleteNotificationRuleWithResponse(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*DeleteNotificationRuleResponse, error) {
+func (c *ClientWithResponses) DeleteNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*DeleteNotificationRuleResponse, error) {
 	rsp, err := c.DeleteNotificationRule(ctx, ruleId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10254,7 +9518,7 @@ func (c *ClientWithResponses) DeleteNotificationRuleWithResponse(ctx context.Con
 }
 
 // GetNotificationRuleWithResponse request returning *GetNotificationRuleResponse
-func (c *ClientWithResponses) GetNotificationRuleWithResponse(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*GetNotificationRuleResponse, error) {
+func (c *ClientWithResponses) GetNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*GetNotificationRuleResponse, error) {
 	rsp, err := c.GetNotificationRule(ctx, ruleId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10263,7 +9527,7 @@ func (c *ClientWithResponses) GetNotificationRuleWithResponse(ctx context.Contex
 }
 
 // UpdateNotificationRuleWithBodyWithResponse request with arbitrary body returning *UpdateNotificationRuleResponse
-func (c *ClientWithResponses) UpdateNotificationRuleWithBodyWithResponse(ctx context.Context, ruleId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error) {
+func (c *ClientWithResponses) UpdateNotificationRuleWithBodyWithResponse(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error) {
 	rsp, err := c.UpdateNotificationRuleWithBody(ctx, ruleId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10271,7 +9535,7 @@ func (c *ClientWithResponses) UpdateNotificationRuleWithBodyWithResponse(ctx con
 	return ParseUpdateNotificationRuleResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateNotificationRuleWithResponse(ctx context.Context, ruleId string, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error) {
+func (c *ClientWithResponses) UpdateNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error) {
 	rsp, err := c.UpdateNotificationRule(ctx, ruleId, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10280,7 +9544,7 @@ func (c *ClientWithResponses) UpdateNotificationRuleWithResponse(ctx context.Con
 }
 
 // TestNotificationRuleWithResponse request returning *TestNotificationRuleResponse
-func (c *ClientWithResponses) TestNotificationRuleWithResponse(ctx context.Context, ruleId string, reqEditors ...RequestEditorFn) (*TestNotificationRuleResponse, error) {
+func (c *ClientWithResponses) TestNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*TestNotificationRuleResponse, error) {
 	rsp, err := c.TestNotificationRule(ctx, ruleId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10384,7 +9648,7 @@ func (c *ClientWithResponses) UpsertSubjectWithResponse(ctx context.Context, bod
 }
 
 // DeleteSubjectWithResponse request returning *DeleteSubjectResponse
-func (c *ClientWithResponses) DeleteSubjectWithResponse(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*DeleteSubjectResponse, error) {
+func (c *ClientWithResponses) DeleteSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*DeleteSubjectResponse, error) {
 	rsp, err := c.DeleteSubject(ctx, subjectIdOrKey, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10393,7 +9657,7 @@ func (c *ClientWithResponses) DeleteSubjectWithResponse(ctx context.Context, sub
 }
 
 // GetSubjectWithResponse request returning *GetSubjectResponse
-func (c *ClientWithResponses) GetSubjectWithResponse(ctx context.Context, subjectIdOrKey string, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error) {
+func (c *ClientWithResponses) GetSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error) {
 	rsp, err := c.GetSubject(ctx, subjectIdOrKey, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10402,7 +9666,7 @@ func (c *ClientWithResponses) GetSubjectWithResponse(ctx context.Context, subjec
 }
 
 // ListSubjectEntitlementsWithResponse request returning *ListSubjectEntitlementsResponse
-func (c *ClientWithResponses) ListSubjectEntitlementsWithResponse(ctx context.Context, subjectIdOrKey string, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*ListSubjectEntitlementsResponse, error) {
+func (c *ClientWithResponses) ListSubjectEntitlementsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*ListSubjectEntitlementsResponse, error) {
 	rsp, err := c.ListSubjectEntitlements(ctx, subjectIdOrKey, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10411,7 +9675,7 @@ func (c *ClientWithResponses) ListSubjectEntitlementsWithResponse(ctx context.Co
 }
 
 // CreateEntitlementWithBodyWithResponse request with arbitrary body returning *CreateEntitlementResponse
-func (c *ClientWithResponses) CreateEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error) {
+func (c *ClientWithResponses) CreateEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error) {
 	rsp, err := c.CreateEntitlementWithBody(ctx, subjectIdOrKey, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10419,7 +9683,7 @@ func (c *ClientWithResponses) CreateEntitlementWithBodyWithResponse(ctx context.
 	return ParseCreateEntitlementResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error) {
+func (c *ClientWithResponses) CreateEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error) {
 	rsp, err := c.CreateEntitlement(ctx, subjectIdOrKey, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10428,7 +9692,7 @@ func (c *ClientWithResponses) CreateEntitlementWithResponse(ctx context.Context,
 }
 
 // ListEntitlementGrantsWithResponse request returning *ListEntitlementGrantsResponse
-func (c *ClientWithResponses) ListEntitlementGrantsWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*ListEntitlementGrantsResponse, error) {
+func (c *ClientWithResponses) ListEntitlementGrantsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*ListEntitlementGrantsResponse, error) {
 	rsp, err := c.ListEntitlementGrants(ctx, subjectIdOrKey, entitlementIdOrFeatureKey, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10437,7 +9701,7 @@ func (c *ClientWithResponses) ListEntitlementGrantsWithResponse(ctx context.Cont
 }
 
 // CreateGrantWithBodyWithResponse request with arbitrary body returning *CreateGrantResponse
-func (c *ClientWithResponses) CreateGrantWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error) {
+func (c *ClientWithResponses) CreateGrantWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error) {
 	rsp, err := c.CreateGrantWithBody(ctx, subjectIdOrKey, entitlementIdOrFeatureKey, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10445,7 +9709,7 @@ func (c *ClientWithResponses) CreateGrantWithBodyWithResponse(ctx context.Contex
 	return ParseCreateGrantResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateGrantWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error) {
+func (c *ClientWithResponses) CreateGrantWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error) {
 	rsp, err := c.CreateGrant(ctx, subjectIdOrKey, entitlementIdOrFeatureKey, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10454,7 +9718,7 @@ func (c *ClientWithResponses) CreateGrantWithResponse(ctx context.Context, subje
 }
 
 // OverrideEntitlementWithBodyWithResponse request with arbitrary body returning *OverrideEntitlementResponse
-func (c *ClientWithResponses) OverrideEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error) {
+func (c *ClientWithResponses) OverrideEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error) {
 	rsp, err := c.OverrideEntitlementWithBody(ctx, subjectIdOrKey, entitlementIdOrFeatureKey, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10462,7 +9726,7 @@ func (c *ClientWithResponses) OverrideEntitlementWithBodyWithResponse(ctx contex
 	return ParseOverrideEntitlementResponse(rsp)
 }
 
-func (c *ClientWithResponses) OverrideEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error) {
+func (c *ClientWithResponses) OverrideEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, body OverrideEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*OverrideEntitlementResponse, error) {
 	rsp, err := c.OverrideEntitlement(ctx, subjectIdOrKey, entitlementIdOrFeatureKey, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10471,7 +9735,7 @@ func (c *ClientWithResponses) OverrideEntitlementWithResponse(ctx context.Contex
 }
 
 // GetEntitlementValueWithResponse request returning *GetEntitlementValueResponse
-func (c *ClientWithResponses) GetEntitlementValueWithResponse(ctx context.Context, subjectIdOrKey string, entitlementIdOrFeatureKey string, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*GetEntitlementValueResponse, error) {
+func (c *ClientWithResponses) GetEntitlementValueWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementIdOrFeatureKey EntitlementIdOrFeatureKey, params *GetEntitlementValueParams, reqEditors ...RequestEditorFn) (*GetEntitlementValueResponse, error) {
 	rsp, err := c.GetEntitlementValue(ctx, subjectIdOrKey, entitlementIdOrFeatureKey, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10480,7 +9744,7 @@ func (c *ClientWithResponses) GetEntitlementValueWithResponse(ctx context.Contex
 }
 
 // DeleteEntitlementWithResponse request returning *DeleteEntitlementResponse
-func (c *ClientWithResponses) DeleteEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*DeleteEntitlementResponse, error) {
+func (c *ClientWithResponses) DeleteEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*DeleteEntitlementResponse, error) {
 	rsp, err := c.DeleteEntitlement(ctx, subjectIdOrKey, entitlementId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10489,7 +9753,7 @@ func (c *ClientWithResponses) DeleteEntitlementWithResponse(ctx context.Context,
 }
 
 // GetEntitlementWithResponse request returning *GetEntitlementResponse
-func (c *ClientWithResponses) GetEntitlementWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error) {
+func (c *ClientWithResponses) GetEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error) {
 	rsp, err := c.GetEntitlement(ctx, subjectIdOrKey, entitlementId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10498,7 +9762,7 @@ func (c *ClientWithResponses) GetEntitlementWithResponse(ctx context.Context, su
 }
 
 // GetEntitlementHistoryWithResponse request returning *GetEntitlementHistoryResponse
-func (c *ClientWithResponses) GetEntitlementHistoryWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*GetEntitlementHistoryResponse, error) {
+func (c *ClientWithResponses) GetEntitlementHistoryWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*GetEntitlementHistoryResponse, error) {
 	rsp, err := c.GetEntitlementHistory(ctx, subjectIdOrKey, entitlementId, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10507,7 +9771,7 @@ func (c *ClientWithResponses) GetEntitlementHistoryWithResponse(ctx context.Cont
 }
 
 // ResetEntitlementUsageWithBodyWithResponse request with arbitrary body returning *ResetEntitlementUsageResponse
-func (c *ClientWithResponses) ResetEntitlementUsageWithBodyWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error) {
+func (c *ClientWithResponses) ResetEntitlementUsageWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error) {
 	rsp, err := c.ResetEntitlementUsageWithBody(ctx, subjectIdOrKey, entitlementId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -10515,359 +9779,12 @@ func (c *ClientWithResponses) ResetEntitlementUsageWithBodyWithResponse(ctx cont
 	return ParseResetEntitlementUsageResponse(rsp)
 }
 
-func (c *ClientWithResponses) ResetEntitlementUsageWithResponse(ctx context.Context, subjectIdOrKey string, entitlementId string, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error) {
+func (c *ClientWithResponses) ResetEntitlementUsageWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error) {
 	rsp, err := c.ResetEntitlementUsage(ctx, subjectIdOrKey, entitlementId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseResetEntitlementUsageResponse(rsp)
-}
-
-// ParseListAppsResponse parses an HTTP response from a ListAppsWithResponse call
-func ParseListAppsResponse(rsp *http.Response) (*ListAppsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListAppsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []AppList
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseUninstallAppResponse parses an HTTP response from a UninstallAppWithResponse call
-func ParseUninstallAppResponse(rsp *http.Response) (*UninstallAppResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UninstallAppResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest App
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetAppResponse parses an HTTP response from a GetAppWithResponse call
-func ParseGetAppResponse(rsp *http.Response) (*GetAppResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetAppResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest App
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateAppStripeCheckoutSessionResponse parses an HTTP response from a CreateAppStripeCheckoutSessionWithResponse call
-func ParseCreateAppStripeCheckoutSessionResponse(rsp *http.Response) (*CreateAppStripeCheckoutSessionResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateAppStripeCheckoutSessionResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest CreateStripeCheckoutSessionResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseAppStripeWebhookResponse parses an HTTP response from a AppStripeWebhookWithResponse call
-func ParseAppStripeWebhookResponse(rsp *http.Response) (*AppStripeWebhookResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &AppStripeWebhookResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest StripeWebhookResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
 }
 
 // ParseListCustomersResponse parses an HTTP response from a ListCustomersWithResponse call
@@ -10904,27 +9821,6 @@ func ParseListCustomersResponse(rsp *http.Response) (*ListCustomersResponse, err
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -10973,27 +9869,6 @@ func ParseCreateCustomerResponse(rsp *http.Response) (*CreateCustomerResponse, e
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11040,34 +9915,6 @@ func ParseDeleteCustomerResponse(rsp *http.Response) (*DeleteCustomerResponse, e
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11116,34 +9963,6 @@ func ParseGetCustomerResponse(rsp *http.Response) (*GetCustomerResponse, error) 
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11191,34 +10010,6 @@ func ParseUpdateCustomerResponse(rsp *http.Response) (*UpdateCustomerResponse, e
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11245,40 +10036,12 @@ func ParseGetDebugMetricsResponse(rsp *http.Response) (*GetDebugMetricsResponse,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11307,9 +10070,7 @@ func ParseListEntitlementsResponse(rsp *http.Response) (*ListEntitlementsRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			union json.RawMessage
-		}
+		var dest ListEntitlementResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11328,27 +10089,6 @@ func ParseListEntitlementsResponse(rsp *http.Response) (*ListEntitlementsRespons
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11377,18 +10117,15 @@ func ParseGetEntitlementByIdResponse(rsp *http.Response) (*GetEntitlementByIdRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Entitlement
+		var dest struct {
+			// LastReset The last time usage was reset.
+			LastReset *time.Time `json:"lastReset,omitempty"`
+			union     json.RawMessage
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
@@ -11397,33 +10134,12 @@ func ParseGetEntitlementByIdResponse(rsp *http.Response) (*GetEntitlementByIdRes
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11472,27 +10188,6 @@ func ParseListEventsResponse(rsp *http.Response) (*ListEventsResponse, error) {
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11519,20 +10214,6 @@ func ParseIngestEventsResponse(rsp *http.Response) (*IngestEventsResponse, error
 	}
 
 	switch {
-	case rsp.Header.Get("Content-Type") == "application/cloudevents+json" && rsp.StatusCode == 200:
-		var dest Event
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationcloudeventsJSON200 = &dest
-
-	case rsp.Header.Get("Content-Type") == "application/cloudevents-batch+json" && rsp.StatusCode == 200:
-		var dest []Event
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationcloudeventsBatchJSON200 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest BadRequestProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11546,27 +10227,6 @@ func ParseIngestEventsResponse(rsp *http.Response) (*IngestEventsResponse, error
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11595,9 +10255,7 @@ func ParseListFeaturesResponse(rsp *http.Response) (*ListFeaturesResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			union json.RawMessage
-		}
+		var dest ListFeatureResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11616,27 +10274,6 @@ func ParseListFeaturesResponse(rsp *http.Response) (*ListFeaturesResponse, error
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11685,26 +10322,12 @@ func ParseCreateFeatureResponse(rsp *http.Response) (*CreateFeatureResponse, err
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11732,13 +10355,6 @@ func ParseDeleteFeatureResponse(rsp *http.Response) (*DeleteFeatureResponse, err
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11746,33 +10362,12 @@ func ParseDeleteFeatureResponse(rsp *http.Response) (*DeleteFeatureResponse, err
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11807,13 +10402,6 @@ func ParseGetFeatureResponse(rsp *http.Response) (*GetFeatureResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11821,33 +10409,12 @@ func ParseGetFeatureResponse(rsp *http.Response) (*GetFeatureResponse, error) {
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11876,20 +10443,11 @@ func ParseListGrantsResponse(rsp *http.Response) (*ListGrantsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			union json.RawMessage
-		}
+		var dest ListEntitlementGrantResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
@@ -11897,27 +10455,6 @@ func ParseListGrantsResponse(rsp *http.Response) (*ListGrantsResponse, error) {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -11959,13 +10496,6 @@ func ParseVoidGrantResponse(rsp *http.Response) (*VoidGrantResponse, error) {
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -11979,285 +10509,6 @@ func ParseVoidGrantResponse(rsp *http.Response) (*VoidGrantResponse, error) {
 			return nil, err
 		}
 		response.ApplicationproblemJSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMarketplaceAppAPIKeyInstallResponse parses an HTTP response from a MarketplaceAppAPIKeyInstallWithResponse call
-func ParseMarketplaceAppAPIKeyInstallResponse(rsp *http.Response) (*MarketplaceAppAPIKeyInstallResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MarketplaceAppAPIKeyInstallResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest AppBase
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMarketplaceOAuth2InstallGetURLResponse parses an HTTP response from a MarketplaceOAuth2InstallGetURLWithResponse call
-func ParseMarketplaceOAuth2InstallGetURLResponse(rsp *http.Response) (*MarketplaceOAuth2InstallGetURLResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MarketplaceOAuth2InstallGetURLResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ClientAppStartResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMarketplaceOAuth2InstallAuthorizeResponse parses an HTTP response from a MarketplaceOAuth2InstallAuthorizeWithResponse call
-func ParseMarketplaceOAuth2InstallAuthorizeResponse(rsp *http.Response) (*MarketplaceOAuth2InstallAuthorizeResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MarketplaceOAuth2InstallAuthorizeResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMarketplaceListListingsResponse parses an HTTP response from a MarketplaceListListingsWithResponse call
-func ParseMarketplaceListListingsResponse(rsp *http.Response) (*MarketplaceListListingsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MarketplaceListListingsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListingList
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12292,40 +10543,12 @@ func ParseListMetersResponse(rsp *http.Response) (*ListMetersResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12374,26 +10597,12 @@ func ParseCreateMeterResponse(rsp *http.Response) (*CreateMeterResponse, error) 
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12421,40 +10630,19 @@ func ParseDeleteMeterResponse(rsp *http.Response) (*DeleteMeterResponse, error) 
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON400 = &dest
+		response.ApplicationproblemJSON404 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12489,47 +10677,12 @@ func ParseGetMeterResponse(rsp *http.Response) (*GetMeterResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12578,34 +10731,6 @@ func ParseQueryMeterResponse(rsp *http.Response) (*QueryMeterResponse, error) {
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -12649,34 +10774,6 @@ func ParseListMeterSubjectsResponse(rsp *http.Response) (*ListMeterSubjectsRespo
 		}
 		response.ApplicationproblemJSON400 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -12704,7 +10801,7 @@ func ParseListNotificationChannelsResponse(rsp *http.Response) (*ListNotificatio
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest NotificationChannelPaginatedResponse
+		var dest NotificationChannelsResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -12723,27 +10820,6 @@ func ParseListNotificationChannelsResponse(rsp *http.Response) (*ListNotificatio
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12792,26 +10868,12 @@ func ParseCreateNotificationChannelResponse(rsp *http.Response) (*CreateNotifica
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ConflictProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12839,13 +10901,6 @@ func ParseDeleteNotificationChannelResponse(rsp *http.Response) (*DeleteNotifica
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -12853,33 +10908,12 @@ func ParseDeleteNotificationChannelResponse(rsp *http.Response) (*DeleteNotifica
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12914,13 +10948,6 @@ func ParseGetNotificationChannelResponse(rsp *http.Response) (*GetNotificationCh
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -12928,33 +10955,12 @@ func ParseGetNotificationChannelResponse(rsp *http.Response) (*GetNotificationCh
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -12989,13 +10995,6 @@ func ParseUpdateNotificationChannelResponse(rsp *http.Response) (*UpdateNotifica
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -13003,33 +11002,12 @@ func ParseUpdateNotificationChannelResponse(rsp *http.Response) (*UpdateNotifica
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13058,7 +11036,7 @@ func ParseListNotificationEventsResponse(rsp *http.Response) (*ListNotificationE
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest NotificationEventPaginatedResponse
+		var dest NotificationEventsResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -13077,27 +11055,6 @@ func ParseListNotificationEventsResponse(rsp *http.Response) (*ListNotificationE
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13126,18 +11083,13 @@ func ParseGetNotificationEventResponse(rsp *http.Response) (*GetNotificationEven
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Event
+		var dest struct {
+			union json.RawMessage
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
@@ -13146,33 +11098,12 @@ func ParseGetNotificationEventResponse(rsp *http.Response) (*GetNotificationEven
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13201,7 +11132,7 @@ func ParseListNotificationRulesResponse(rsp *http.Response) (*ListNotificationRu
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest NotificationRulePaginatedResponse
+		var dest NotificationRulesResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -13220,27 +11151,6 @@ func ParseListNotificationRulesResponse(rsp *http.Response) (*ListNotificationRu
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13289,26 +11199,12 @@ func ParseCreateNotificationRuleResponse(rsp *http.Response) (*CreateNotificatio
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ConflictProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13336,13 +11232,6 @@ func ParseDeleteNotificationRuleResponse(rsp *http.Response) (*DeleteNotificatio
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -13350,33 +11239,12 @@ func ParseDeleteNotificationRuleResponse(rsp *http.Response) (*DeleteNotificatio
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13411,13 +11279,6 @@ func ParseGetNotificationRuleResponse(rsp *http.Response) (*GetNotificationRuleR
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -13425,33 +11286,12 @@ func ParseGetNotificationRuleResponse(rsp *http.Response) (*GetNotificationRuleR
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13486,13 +11326,6 @@ func ParseUpdateNotificationRuleResponse(rsp *http.Response) (*UpdateNotificatio
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -13500,33 +11333,12 @@ func ParseUpdateNotificationRuleResponse(rsp *http.Response) (*UpdateNotificatio
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13555,7 +11367,9 @@ func ParseTestNotificationRuleResponse(rsp *http.Response) (*TestNotificationRul
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Event
+		var dest struct {
+			union json.RawMessage
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -13575,33 +11389,19 @@ func ParseTestNotificationRuleResponse(rsp *http.Response) (*TestNotificationRul
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ConflictProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
+		response.ApplicationproblemJSON409 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13643,26 +11443,12 @@ func ParseReceiveSvixOperationalEventResponse(rsp *http.Response) (*ReceiveSvixO
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13710,34 +11496,6 @@ func ParseQueryPortalMeterResponse(rsp *http.Response) (*QueryPortalMeterRespons
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13789,26 +11547,12 @@ func ParseListPortalTokensResponse(rsp *http.Response) (*ListPortalTokensRespons
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13857,27 +11601,6 @@ func ParseCreatePortalTokenResponse(rsp *http.Response) (*CreatePortalTokenRespo
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -13918,26 +11641,12 @@ func ParseInvalidatePortalTokensResponse(rsp *http.Response) (*InvalidatePortalT
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -13972,40 +11681,12 @@ func ParseListSubjectsResponse(rsp *http.Response) (*ListSubjectsResponse, error
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14054,26 +11735,12 @@ func ParseUpsertSubjectResponse(rsp *http.Response) (*UpsertSubjectResponse, err
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14115,26 +11782,19 @@ func ParseDeleteSubjectResponse(rsp *http.Response) (*DeleteSubjectResponse, err
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
+		response.ApplicationproblemJSON404 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14169,13 +11829,6 @@ func ParseGetSubjectResponse(rsp *http.Response) (*GetSubjectResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -14183,33 +11836,12 @@ func ParseGetSubjectResponse(rsp *http.Response) (*GetSubjectResponse, error) {
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14244,40 +11876,12 @@ func ParseListSubjectEntitlementsResponse(rsp *http.Response) (*ListSubjectEntit
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14306,7 +11910,7 @@ func ParseCreateEntitlementResponse(rsp *http.Response) (*CreateEntitlementRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest EntitlementCreateInputs
+		var dest Entitlement
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -14326,13 +11930,6 @@ func ParseCreateEntitlementResponse(rsp *http.Response) (*CreateEntitlementRespo
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest ConflictProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -14340,19 +11937,12 @@ func ParseCreateEntitlementResponse(rsp *http.Response) (*CreateEntitlementRespo
 		}
 		response.ApplicationproblemJSON409 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14387,40 +11977,12 @@ func ParseListEntitlementGrantsResponse(rsp *http.Response) (*ListEntitlementGra
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14469,33 +12031,12 @@ func ParseCreateGrantResponse(rsp *http.Response) (*CreateGrantResponse, error) 
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest ConflictProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14544,13 +12085,6 @@ func ParseOverrideEntitlementResponse(rsp *http.Response) (*OverrideEntitlementR
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -14565,19 +12099,12 @@ func ParseOverrideEntitlementResponse(rsp *http.Response) (*OverrideEntitlementR
 		}
 		response.ApplicationproblemJSON409 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
+		response.ApplicationproblemJSON501 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14626,33 +12153,12 @@ func ParseGetEntitlementValueResponse(rsp *http.Response) (*GetEntitlementValueR
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14680,13 +12186,6 @@ func ParseDeleteEntitlementResponse(rsp *http.Response) (*DeleteEntitlementRespo
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -14694,33 +12193,12 @@ func ParseDeleteEntitlementResponse(rsp *http.Response) (*DeleteEntitlementRespo
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14749,18 +12227,15 @@ func ParseGetEntitlementResponse(rsp *http.Response) (*GetEntitlementResponse, e
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Entitlement
+		var dest struct {
+			// LastReset The last time usage was reset.
+			LastReset *time.Time `json:"lastReset,omitempty"`
+			union     json.RawMessage
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
@@ -14769,33 +12244,12 @@ func ParseGetEntitlementResponse(rsp *http.Response) (*GetEntitlementResponse, e
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14844,33 +12298,12 @@ func ParseGetEntitlementHistoryResponse(rsp *http.Response) (*GetEntitlementHist
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14912,33 +12345,12 @@ func ParseResetEntitlementUsageResponse(rsp *http.Response) (*ResetEntitlementUs
 		}
 		response.ApplicationproblemJSON401 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest ForbiddenProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFoundProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON503 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -14955,403 +12367,335 @@ func ParseResetEntitlementUsageResponse(rsp *http.Response) (*ResetEntitlementUs
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"p/8vAAD//zIaoFvbxgEA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

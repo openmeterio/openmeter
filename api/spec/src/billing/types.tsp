@@ -13,16 +13,14 @@ model BillingAddress {
   country: CountryCode;
 }
 
-enum InvoiceStatus {
-  pending_creation: "pending_creation",
-  created: "created",
-  draft: "draft",
-  draft_sync: "draft_sync",
-  draft_sync_failed: "draft_sync_failed",
-  issuing: "issuing",
-  issued: "issued",
-  issuing_failed: "issuing_failed",
-  manual_approval_needed: "manual_approval_needed",
-  deleted: "deleted",
-  validation_failed: "validation_failed",
+/**
+ * InvoiceID is the ID of an invoice.
+ *
+ * This model is used instead of a simple ULID to allow for extending the brief response with additional fields.
+ */
+model InvoiceSummary {
+  /**
+   * The invoice ID.
+   */
+  id: ULID;
 }
