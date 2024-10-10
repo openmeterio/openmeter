@@ -3,7 +3,7 @@ package appstripe
 import (
 	"context"
 
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 

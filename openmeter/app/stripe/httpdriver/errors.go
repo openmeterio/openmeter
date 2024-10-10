@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
