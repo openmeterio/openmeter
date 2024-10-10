@@ -78,6 +78,8 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		UsagePeriod:        model.UsagePeriod,
 		CurrentUsagePeriod: currentUsagePeriod,
 		Config:             model.Config,
+		ActiveFrom:         model.ActiveFrom,
+		ActiveTo:           model.ActiveTo,
 	}, nil
 }
 

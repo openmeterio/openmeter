@@ -31,6 +31,8 @@ func (Entitlement) Fields() []ent.Field {
 		field.String("feature_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
+		field.Time("active_from").Optional().Nillable().Immutable(),
+		field.Time("active_to").Optional().Nillable(),
 		field.String("feature_key").NotEmpty().Immutable(),
 		field.String("subject_key").NotEmpty().Immutable(),
 		field.Time("measure_usage_from").Optional().Nillable().Immutable(),

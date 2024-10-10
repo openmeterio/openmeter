@@ -10407,6 +10407,8 @@ type EntitlementMutation struct {
 	updated_at                    *time.Time
 	deleted_at                    *time.Time
 	entitlement_type              *entitlement.EntitlementType
+	active_from                   *time.Time
+	active_to                     *time.Time
 	feature_key                   *string
 	subject_key                   *string
 	measure_usage_from            *time.Time
@@ -10819,6 +10821,104 @@ func (m *EntitlementMutation) OldFeatureID(ctx context.Context) (v string, err e
 // ResetFeatureID resets all changes to the "feature_id" field.
 func (m *EntitlementMutation) ResetFeatureID() {
 	m.feature = nil
+}
+
+// SetActiveFrom sets the "active_from" field.
+func (m *EntitlementMutation) SetActiveFrom(t time.Time) {
+	m.active_from = &t
+}
+
+// ActiveFrom returns the value of the "active_from" field in the mutation.
+func (m *EntitlementMutation) ActiveFrom() (r time.Time, exists bool) {
+	v := m.active_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActiveFrom returns the old "active_from" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldActiveFrom(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActiveFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActiveFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActiveFrom: %w", err)
+	}
+	return oldValue.ActiveFrom, nil
+}
+
+// ClearActiveFrom clears the value of the "active_from" field.
+func (m *EntitlementMutation) ClearActiveFrom() {
+	m.active_from = nil
+	m.clearedFields[entitlement.FieldActiveFrom] = struct{}{}
+}
+
+// ActiveFromCleared returns if the "active_from" field was cleared in this mutation.
+func (m *EntitlementMutation) ActiveFromCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldActiveFrom]
+	return ok
+}
+
+// ResetActiveFrom resets all changes to the "active_from" field.
+func (m *EntitlementMutation) ResetActiveFrom() {
+	m.active_from = nil
+	delete(m.clearedFields, entitlement.FieldActiveFrom)
+}
+
+// SetActiveTo sets the "active_to" field.
+func (m *EntitlementMutation) SetActiveTo(t time.Time) {
+	m.active_to = &t
+}
+
+// ActiveTo returns the value of the "active_to" field in the mutation.
+func (m *EntitlementMutation) ActiveTo() (r time.Time, exists bool) {
+	v := m.active_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActiveTo returns the old "active_to" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldActiveTo(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActiveTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActiveTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActiveTo: %w", err)
+	}
+	return oldValue.ActiveTo, nil
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (m *EntitlementMutation) ClearActiveTo() {
+	m.active_to = nil
+	m.clearedFields[entitlement.FieldActiveTo] = struct{}{}
+}
+
+// ActiveToCleared returns if the "active_to" field was cleared in this mutation.
+func (m *EntitlementMutation) ActiveToCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldActiveTo]
+	return ok
+}
+
+// ResetActiveTo resets all changes to the "active_to" field.
+func (m *EntitlementMutation) ResetActiveTo() {
+	m.active_to = nil
+	delete(m.clearedFields, entitlement.FieldActiveTo)
 }
 
 // SetFeatureKey sets the "feature_key" field.
@@ -11664,7 +11764,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -11685,6 +11785,12 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m.feature != nil {
 		fields = append(fields, entitlement.FieldFeatureID)
+	}
+	if m.active_from != nil {
+		fields = append(fields, entitlement.FieldActiveFrom)
+	}
+	if m.active_to != nil {
+		fields = append(fields, entitlement.FieldActiveTo)
 	}
 	if m.feature_key != nil {
 		fields = append(fields, entitlement.FieldFeatureKey)
@@ -11744,6 +11850,10 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.EntitlementType()
 	case entitlement.FieldFeatureID:
 		return m.FeatureID()
+	case entitlement.FieldActiveFrom:
+		return m.ActiveFrom()
+	case entitlement.FieldActiveTo:
+		return m.ActiveTo()
 	case entitlement.FieldFeatureKey:
 		return m.FeatureKey()
 	case entitlement.FieldSubjectKey:
@@ -11791,6 +11901,10 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldEntitlementType(ctx)
 	case entitlement.FieldFeatureID:
 		return m.OldFeatureID(ctx)
+	case entitlement.FieldActiveFrom:
+		return m.OldActiveFrom(ctx)
+	case entitlement.FieldActiveTo:
+		return m.OldActiveTo(ctx)
 	case entitlement.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
 	case entitlement.FieldSubjectKey:
@@ -11872,6 +11986,20 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeatureID(v)
+		return nil
+	case entitlement.FieldActiveFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActiveFrom(v)
+		return nil
+	case entitlement.FieldActiveTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActiveTo(v)
 		return nil
 	case entitlement.FieldFeatureKey:
 		v, ok := value.(string)
@@ -12020,6 +12148,12 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldDeletedAt) {
 		fields = append(fields, entitlement.FieldDeletedAt)
 	}
+	if m.FieldCleared(entitlement.FieldActiveFrom) {
+		fields = append(fields, entitlement.FieldActiveFrom)
+	}
+	if m.FieldCleared(entitlement.FieldActiveTo) {
+		fields = append(fields, entitlement.FieldActiveTo)
+	}
 	if m.FieldCleared(entitlement.FieldMeasureUsageFrom) {
 		fields = append(fields, entitlement.FieldMeasureUsageFrom)
 	}
@@ -12069,6 +12203,12 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case entitlement.FieldActiveFrom:
+		m.ClearActiveFrom()
+		return nil
+	case entitlement.FieldActiveTo:
+		m.ClearActiveTo()
 		return nil
 	case entitlement.FieldMeasureUsageFrom:
 		m.ClearMeasureUsageFrom()
@@ -12128,6 +12268,12 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldFeatureID:
 		m.ResetFeatureID()
+		return nil
+	case entitlement.FieldActiveFrom:
+		m.ResetActiveFrom()
+		return nil
+	case entitlement.FieldActiveTo:
+		m.ResetActiveTo()
 		return nil
 	case entitlement.FieldFeatureKey:
 		m.ResetFeatureKey()

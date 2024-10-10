@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -12,8 +14,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// CreateGrant creates a grant for a given entitlement
+//
+// You can issue grants for inactive entitlements by passing the entitlement ID
 func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
-	ent, err := e.entitlementRepo.GetEntitlementOfSubject(ctx, namespace, subjectKey, entitlementIdOrFeatureKey)
+	// First we attempt to find the entitlement by ID, then by featureKey
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: entitlementIdOrFeatureKey})
+	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+		ent, err = e.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, entitlementIdOrFeatureKey, clock.Now())
+	}
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
@@ -46,18 +55,17 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 	return *eg, err
 }
 
+// ListEntitlementGrants lists all grants for a given entitlement
+//
+// You can list grants for inactive entitlements by passing the entitlement ID
 func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error) {
-	// find the matching entitlement, first by ID, then by feature key
+	// Find the matching entitlement, first by ID, then by feature key
 	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: entitlementIdOrFeatureKey})
+	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+		ent, err = e.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, entitlementIdOrFeatureKey, clock.Now())
+	}
 	if err != nil {
-		if _, ok := err.(*entitlement.NotFoundError); !ok {
-			return nil, err
-		} else {
-			ent, err = e.entitlementRepo.GetEntitlementOfSubject(ctx, namespace, subjectKey, entitlementIdOrFeatureKey)
-			if err != nil {
-				return nil, err
-			}
-		}
+		return nil, err
 	}
 
 	// check that we own the grant

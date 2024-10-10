@@ -33,6 +33,10 @@ type Entitlement struct {
 	EntitlementType entitlement.EntitlementType `json:"entitlement_type,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID string `json:"feature_id,omitempty"`
+	// ActiveFrom holds the value of the "active_from" field.
+	ActiveFrom *time.Time `json:"active_from,omitempty"`
+	// ActiveTo holds the value of the "active_to" field.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// SubjectKey holds the value of the "subject_key" field.
@@ -131,7 +135,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
-		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
+		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -198,6 +202,20 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
 				e.FeatureID = value.String
+			}
+		case entitlement.FieldActiveFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field active_from", values[i])
+			} else if value.Valid {
+				e.ActiveFrom = new(time.Time)
+				*e.ActiveFrom = value.Time
+			}
+		case entitlement.FieldActiveTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field active_to", values[i])
+			} else if value.Valid {
+				e.ActiveTo = new(time.Time)
+				*e.ActiveTo = value.Time
 			}
 		case entitlement.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -360,6 +378,16 @@ func (e *Entitlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("feature_id=")
 	builder.WriteString(e.FeatureID)
+	builder.WriteString(", ")
+	if v := e.ActiveFrom; v != nil {
+		builder.WriteString("active_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := e.ActiveTo; v != nil {
+		builder.WriteString("active_to=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("feature_key=")
 	builder.WriteString(e.FeatureKey)
