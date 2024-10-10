@@ -5,13 +5,12 @@ import "@typespec/openapi3";
 import "@typespec/versioning";
 
 import "..";
-import "./gobl/main.tsp";
+import "./invoice/main.tsp";
 
 // Package Contents
 import "./types.tsp";
 import "./profile.tsp";
 import "./customer.tsp";
-import "./pending.tsp";
 import "./invoices.tsp";
 
 using TypeSpec.Http;

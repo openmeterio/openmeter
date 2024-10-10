@@ -41,17 +41,17 @@ interface Profiles {
   /**
    * Archive a billing profile
    */
-  @route("/:id")
+  @route("/{id}")
   @delete
   @operationId("archiveBillingProfile")
   archive(@path id: string): {
-    @statusCode _: 200;
+    @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**
    * Get a billing profile by ID
    */
-  @route("/:id")
+  @route("/{id}")
   @get
   @operationId("getBillingProfile")
   get(@path id: string): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -59,7 +59,7 @@ interface Profiles {
   /**
    * Update a billing profile
    */
-  @route("/:id")
+  @route("/{id}")
   @put
   @operationId("updateBillingProfile")
   update(@path id: string, @body profile: Profile): {
@@ -85,8 +85,14 @@ enum ProfileOrderBy {
 @friendlyName("Profile")
 model Profile {
   ...global.Resource;
+
+  @summary("The name and contact information for the supplier this billing profile represents")
   supplier: Supplier;
+
+  @summary("The billing workflow settings for this profile")
   workflow: Workflow;
+
+  @summary("Is this the default profile?")
   default: boolean;
 }
 

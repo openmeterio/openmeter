@@ -8,6 +8,10 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Billing;
 
+/**
+ * InvoicesAllCustomers is a collection of endpoints that allow invoice operations without prior
+ * knowledge of the customer ID.
+ */
 @route("/api/v1/billing/invoices")
 @tag("Billing (Experimental)")
 interface InvoicesAllCustomers {
@@ -16,6 +20,7 @@ interface InvoicesAllCustomers {
    */
   @get
   @summary("List invoices")
+  @operationId("billingListInvoices")
   listInvoices(
     @query
     @summary("Filter by the customer ID or key")
@@ -25,12 +30,16 @@ interface InvoicesAllCustomers {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<ProfileOrderBy>,
-  ): OpenMeter.PaginatedResponse<GOBL.Bill.Invoice> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoice.Bill.InvoiceSummary> | OpenMeter.CommonErrors;
 }
 
-@route("/api/v1/billing/invoices/:customerIdOrKey/invoices")
+/**
+ * CustomerAllInvoices is a collection of endpoints that allow invoice operations without prior
+ * knowledge of the invoice ID.
+ */
+@route("/api/v1/billing/invoices/{customerIdOrKey}")
 @tag("Billing (Experimental)")
-interface CustomerInvoices {
+interface CustomerAllInvoices {
   /**
    * Create a new invoice from the pending items.
    *
@@ -42,6 +51,7 @@ interface CustomerInvoices {
    */
   @post
   @summary("Create an invoice")
+  @operationId("billingCreateInvoice")
   create(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -50,34 +60,62 @@ interface CustomerInvoices {
     request: InvoiceCreateRequest,
   ): {
     @statusCode _: 201;
-    @body body: GOBL.Bill.Invoice;
-  } | OpenMeter.CommonErrors;
+    @body body: Invoice.Bill.Invoice;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * List invoices
+   * List invoices for a specific customer
    */
   @get
   @summary("List invoices")
-  listInvoicesByCustomerID(
+  @operationId("billingListInvoicesByCustomer")
+  listInvoicesByCustomer(
+    @path customerIdOrKey: ULIDOrKey,
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<ProfileOrderBy>,
-  ): OpenMeter.PaginatedResponse<GOBL.Bill.Invoice> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoice.Bill.InvoiceSummary> | OpenMeter.CommonErrors;
 
+  /**
+   * Create a new (pending line item) charge.
+   *
+   * This call is used to create a new pending charge for the customer without explicitly
+   * assigning it to an invoice.
+   *
+   * The item will be either allocated to an existing invoice in gathering state or a new invoice is
+   * created for the item.
+   *
+   * A new invoice will be created if:
+   * - there is no invoice in gathering state
+   * - the currency of the item doesn't match the currency of any invoices in gathering state
+   */
+  @post
+  @route("/items")
+  @summary("Create a new pending charge")
+  @operationId("billingCreatePendingChargeByCustomer")
+  createPendingCharge(@path customerIdOrKey: ULIDOrKey, @body request: Invoice.Bill.InvoiceLine): {
+    @statusCode _: 201;
+    @body body: CreatePendingChargeResponse;
+  } | OpenMeter.CommonErrors;
+}
+
+@route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
+@tag("Billing (Experimental)")
+interface CustomerInvoices {
   /**
    * Get an invoice by ID.
    */
   @get
-  @route("/:invoiceId")
   @summary("Get an invoice")
+  @operationId("billingGetInvoiceByID")
   getInvoiceByID(
     @path
     customerIdOrKey: ULIDOrKey,
 
     @path
     invoiceId: ULID,
-  ): GOBL.Bill.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Bill.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete an invoice
@@ -85,8 +123,8 @@ interface CustomerInvoices {
    * Only invoices that are in the draft (or earlier) status can be deleted.
    */
   @delete
-  @route("/:invoiceId")
   @summary("Delete an invoice")
+  @operationId("billingDeleteInvoice")
   deleteInvoice(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -104,8 +142,9 @@ interface CustomerInvoices {
    *
    */
   @post
-  @route("/:invoiceId/tax/recalculate")
+  @route("/tax/recalculate")
   @summary("Recalculate an invoice's tax amounts")
+  @operationId("billingRecalculateInvoiceTax")
   recalculateTax(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -114,7 +153,7 @@ interface CustomerInvoices {
     invoiceId: ULID,
   ): {
     @statusCode _: 200;
-    @body body: GOBL.Bill.Invoice;
+    @body body: Invoice.Bill.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -127,8 +166,9 @@ interface CustomerInvoices {
    * - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
    */
   @post
-  @route("/:invoiceId/approve")
+  @route("/approve")
   @summary("Send the invoice to the customer")
+  @operationId("billingApproveInvoice")
   approve(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -137,7 +177,56 @@ interface CustomerInvoices {
     invoiceId: ULID,
   ): {
     @statusCode _: 200;
-    @body body: GOBL.Bill.Invoice;
+    @body body: Invoice.Bill.Invoice;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Void an invoice
+   *
+   * Only invoices that have been alread issued can be voided.
+   *
+   * Voiding an invoice will mark it as voided, the user can specify how to handle the voided items.
+   */
+  @post
+  @route("/void")
+  @summary("Void an invoice")
+  @operationId("billingVoidInvoice")
+  voidInvoice(
+    @path
+    customerIdOrKey: ULIDOrKey,
+
+    @path
+    invoiceId: ULID,
+
+    @body
+    request: InvoiceVoidRequest,
+  ): {
+    @statusCode _: 200;
+    @body body: Invoice.Bill.Invoice;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Update invoice workflow
+   *
+   * This call can be used to update the invoice workflow, only those settings are adjustable
+   * that are not referring to past activities (such as collection).
+   */
+  @put
+  @route("/workflow")
+  @summary("Update invoice workflow")
+  @operationId("billingUpdateInvoiceWorkflow")
+  updateWorkflow(
+    @path
+    customerIdOrKey: ULIDOrKey,
+
+    @path
+    invoiceId: ULID,
+
+    @body
+    request: Invoice.OpenMeterCBC.ExistingInvoiceWorkflow,
+  ): {
+    @statusCode _: 200;
+    @body body: Invoice.Bill.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -153,9 +242,10 @@ interface CustomerInvoices {
    * - `validation_failed`
    */
   @post
-  @route("/:invoiceId/retry")
-  @summary("Retry advancing the invoice's state to the next status")
-  retryStateTransitions(
+  @route("/workflow/advance")
+  @summary("Advance the invoice's state to the next status")
+  @operationId("billingInvoiceWorkflowAdvance")
+  advanceWorkflow(
     @path
     customerIdOrKey: ULIDOrKey,
 
@@ -163,43 +253,21 @@ interface CustomerInvoices {
     invoiceId: ULID,
   ): {
     @statusCode _: 200;
-    @body body: GOBL.Bill.Invoice;
+    @body body: Invoice.Bill.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
-  /**
-   * Void an invoice
-   *
-   * Only invoices that have been alread issued can be voided.
-   *
-   * Voiding an invoice will mark it as voided, the user can specify how to handle the voided items.
-   */
-  @post
-  @route("/:invoiceId/void")
-  @summary("Void an invoice")
-  voidInvoice(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-
-    @body
-    request: InvoiceVoidRequest,
-  ): {
-    @statusCode _: 200;
-    @body body: GOBL.Bill.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  // Contact management
 
   /**
-   * Update invoice workflow
+   * Update/override the supplier information for the invoice
    *
-   * This call can be used to update the invoice workflow, only those settings are adjustable
-   * that are not referring to past activities (such as collection).
+   * Can be called only on invoices in the draft status.
    */
   @put
-  @route("/:invoiceId/workflow")
-  @summary("Update invoice workflow")
-  updateWorkflow(
+  @route("/supplier")
+  @summary("Update the supplier information for the invoice")
+  @operationId("billingUpdateInvoiceSupplier")
+  updateInvoiceSupplier(
     @path
     customerIdOrKey: ULIDOrKey,
 
@@ -207,25 +275,80 @@ interface CustomerInvoices {
     invoiceId: ULID,
 
     @body
-    request: ExistingInvoiceWorkflow,
+    request: Invoice.Org.Party,
   ): {
     @statusCode _: 200;
-    @body body: GOBL.Bill.Invoice;
+    @body body: Invoice.Org.Party;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Get the invoice workflow
+   * Update/override the customer information for the invoice
+   *
+   * Can be called only on invoices in the draft status.
    */
-  @get
-  @route("/:invoiceId/workflow")
-  @summary("Get the invoice workflow")
-  getWorkflow(
+  @put
+  @route("/customer")
+  @summary("Update the customer information for the invoice")
+  updateCustomer(
     @path
     customerIdOrKey: ULIDOrKey,
 
     @path
     invoiceId: ULID,
-  ): ExistingInvoiceWorkflow | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+    @body
+    request: Invoice.Org.Party,
+  ): {
+    @statusCode _: 200;
+    @body body: Invoice.Org.Party;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  // Line management
+
+  /**
+   * Delete an invoice line
+   */
+  @delete
+  @route("/lines/{lineId}")
+  @summary("Delete an invoice line")
+  @operationId("billingDeleteInvoiceLine")
+  deleteInvoiceLine(@path customerIdOrKey: ULIDOrKey, @path invoiceId: ULID, @path lineId: ULID): {
+    @statusCode _: 204;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Update an invoice line
+   */
+  @put
+  @route("/lines/{lineId}")
+  @summary("Update an invoice line")
+  @operationId("billingUpdateInvoiceLine")
+  updateInvoiceLine(
+    @path customerIdOrKey: ULIDOrKey,
+    @path invoiceId: ULID,
+    @path lineId: ULID,
+    @body request: Invoice.Bill.InvoiceLine,
+  ): {
+    @statusCode _: 200;
+    @body body: Invoice.Bill.InvoiceLine;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * TODOs:
+   * - min/max spend support
+   * - discounts
+   * - tax support (detailed)
+   */
+}
+
+/**
+ * Response for creating a pending charge
+ */
+model CreatePendingChargeResponse {
+  @summary("The created pending charge")
+  item: Invoice.Bill.InvoiceLine;
+
+  @summary("The invoice the item was added to")
+  invoice: Invoice.Bill.InvoiceSummary;
 }
 
 /**
@@ -250,35 +373,6 @@ model InvoiceVoidRequest {
    * If not specified, the `action` will be applied to all items.
    */
   itemOverrides: InvoiceVoidItemOverride[];
-}
-
-model ExistingInvoiceWorkflow {
-  /**
-   * updatedAt is the time when the invoice workflow was last updated.
-   *
-   * This field is updated when the invoice workflow is updated, during put requests we
-   * are validating the update time to ensure there is no parallel updates happening.
-   */
-  updatedAt: DateTime;
-
-  @summary("Should the invoice auto advance to the next status?")
-  autoAdvance: boolean;
-
-  /**
-   * The invoice stays in the draft status until this time.
-   *
-   * If auto advance is disabled the value will be empty.
-   */
-  draftUtil?: DateTime;
-
-  /**
-   * The period after which the invoice is due.
-   *
-   * default: 7 days
-   */
-  @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1D"))
-  dueAfter?: duration;
 }
 
 /**
@@ -315,173 +409,12 @@ model InvoiceVoidItemOverride {
 }
 
 /**
- * List/get is expeced to be perfomed on the main invoice object
- */
-@route("/api/v1/billing/invoices/:customerIdOrKey/invoices/:invoiceId/items")
-@tag("Billing (Experimental)")
-interface InvoiceItems {
-  /**
-   * Delete an invoice item
-   */
-  @delete
-  @route("/:itemId")
-  @summary("Delete an invoice item")
-  @operationId("deleteInvoiceItem")
-  delete(@path customerIdOrKey: ULIDOrKey, @path invoiceId: ULID, @path itemId: ULID): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Update an invoice item
-   */
-  @put
-  @route("/:itemId")
-  @summary("Update an invoice item")
-  @operationId("updateInvoiceItem")
-  update(
-    @path customerIdOrKey: ULIDOrKey,
-    @path invoiceId: ULID,
-    @path itemId: ULID,
-    @body request: GOBL.Bill.InvoiceItem,
-  ): {
-    @statusCode _: 200;
-    @body body: GOBL.Bill.InvoiceItem;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-}
-
-@route("/api/v1/billing/invoices/:customerIdOrKey/invoices/:invoiceId/supplier")
-@tag("Billing (Experimental)")
-interface InvoiceSupplier {
-  /**
-   * Update/override the supplier information for the invoice
-   *
-   * Can be called only on invoices in the draft status.
-   */
-  @put
-  @summary("Update the supplier information for the invoice")
-  @operationId("updateInvoiceSupplier")
-  update(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-
-    @body
-    request: InvoiceSupplierUpdateRequest,
-  ): {
-    @statusCode _: 200;
-    // TODO: When we have gobl objects we should return an org.Party object
-    // @body body: GOBL.Bill.InvoiceSupplier;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Syncronize the supplier from the billing profile
-   */
-  @post
-  @route("/sync")
-  @summary("Syncronize the supplier from the billing profile")
-  @operationId("syncInvoiceSupplier")
-  sync(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    // TODO: When we have gobl objects we should return an org.Party object
-    // @body body: GOBL.Bill.InvoiceSupplier;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-}
-
-model InvoiceSupplierUpdateRequest {
-  @summary("The supplier information to update")
-  supplier: Supplier;
-}
-
-@route("/api/v1/billing/invoices/:customerIdOrKey/invoices/:invoiceId/customer")
-@tag("Billing (Experimental)")
-interface InvoiceCustomer {
-  /**
-   * Update/override the customer information for the invoice
-   *
-   * Can be called only on invoices in the draft status.
-   */
-  @put
-  @summary("Update the customer information for the invoice")
-  update(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-
-    @body
-    request: InvoiceCustomerUpdateRequest,
-  ): {
-    @statusCode _: 200;
-    // TODO: when we have gobl types, we should return an org.Party object
-    // @body body: GOBL.Bill.InvoiceCustomer;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Syncronize the customer from the customer entity
-   */
-  @post
-  @route("/sync")
-  @summary("Syncronize the customer from the billing profile")
-  sync(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    // TODO: When we have gobl objects we should return an org.Party object
-    // @body body: GOBL.Bill.InvoiceCustomer;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-}
-
-model InvoiceCustomerUpdateRequest {
-  /**
-   * The billing address of the customer.
-   * Used for tax and invoicing.
-   */
-  @summary("The customer information to update")
-  billingAddress?: Address;
-
-  /**
-   * The customer's name.
-   */
-  name?: string;
-
-  /**
-   * The customer's email.
-   */
-  primaryEmail?: string;
-}
-
-/**
- * TODO: discounts
- *  When we have that in the db let's add a similar api to the items' discunts
- */
-@route("/api/v1/billing/invoices/:customerIdOrKey/invoices/:invoiceId/discounts")
-@tag("Billing (Experimental)")
-interface InvoiceDiscounts {}
-
-/**
  * Common parameters for listing invoices
  */
 model InvoiceListParams {
   @query
-  @summary("Include the line item details into the response, or just the invoice header and totals")
-  expandItems?: boolean;
-
-  @query
   @summary("Filter by the invoice status")
-  statuses?: Array<InvoiceStatus>;
+  statuses?: Array<Invoice.Bill.InvoiceStatus>;
 
   @query
   @summary("Filter by invoice creation time")

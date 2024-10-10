@@ -16,7 +16,7 @@ interface Customers {
    */
   @get
   @summary("List customer overrides")
-  @operationId("listCustomerOverrides")
+  @operationId("billingListCustomerOverrides")
   list(
     @query
     billingProfile?: Array<ULID>,
@@ -30,9 +30,9 @@ interface Customers {
    * Create/update a new customer override.
    */
   @post
-  @route("/:customerIdOrKey")
+  @route("/{customerIdOrKey}")
   @summary("Create/update a customer override")
-  @operationId("createCustomerOverride")
+  @operationId("billingCreateCustomerOverride")
   create(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -48,9 +48,9 @@ interface Customers {
    * Get a customer override by id.
    */
   @get
-  @route("/:customerIdOrKey")
+  @route("/{customerIdOrKey}")
   @summary("Get a customer override")
-  @operationId("getCustomerOverrideById")
+  @operationId("billingGetCustomerOverrideById")
   get(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -60,14 +60,14 @@ interface Customers {
    * Delete a customer override by id.
    */
   @delete
-  @route("/:customerIdOrKey")
+  @route("/{customerIdOrKey}")
   @summary("Delete a customer override")
-  @operationId("deleteCustomerOverride")
+  @operationId("billdingDeleteCustomerOverride")
   delete(
     @path
     customerIdOrKey: ULIDOrKey,
   ): {
-    @statusCode _: 200;
+    @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
@@ -84,6 +84,7 @@ enum CustomerOverrideOrderBy {
 model CustomerOverride {
   ...ResourceTimestamps;
   workflow: CustomerWorkflowOverride;
+
   /**
    * The billing profile this override is associated with.
    *
