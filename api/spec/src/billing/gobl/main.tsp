@@ -11,6 +11,9 @@ import "./bill.tsp";
 import "./tax.tsp";
 import "./cbc.tsp";
 import "./l10n.tsp";
+import "./org.tsp";
+import "./currency.tsp";
+import "./pay.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

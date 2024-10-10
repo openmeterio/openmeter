@@ -64,3 +64,8 @@ scalar MetaKey extends string;
 model Meta {
   ...Record<MetaKey>;
 }
+
+@pattern("^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$")
+@minLength(1)
+@maxLength(32)
+scalar Code extends string;

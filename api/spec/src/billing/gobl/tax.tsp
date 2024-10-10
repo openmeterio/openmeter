@@ -29,3 +29,15 @@ model Combo {
   @encodedName("application/json", "ext")
   extensions: GOBL.CBC.Meta;
 }
+
+@summary("Identity stores the details required to identify an entity for tax purposes in a specific country.")
+model Identity {
+  @summary("Tax country code for Where the tax identity was issued.")
+  country: L10n.TaxCountryCode;
+
+  @summary("Normalized code shown on the original identity document.")
+  code?: CBC.Code;
+
+  @summary("Type is set according to the requirements of each regime, some have a single tax document type code, others require a choice to be made. Deprecated: Tax Identities should only be used for VAT or similar codes for companies. Use the identities array for other types of identification.")
+  type?: CBC.Key;
+}
