@@ -17,13 +17,13 @@ import (
 type (
 	MarketplaceAppAPIKeyInstallRequest  = appentity.InstallAppWithAPIKeyInput
 	MarketplaceAppAPIKeyInstallResponse = api.AppBase
-	MarketplaceAppAPIKeyInstallHandler  httptransport.Handler[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse]
+	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.OpenMeterAppAppType]
 )
 
 // MarketplaceAppAPIKeyInstall returns a handler for installing an app type with an API key
 func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler {
-	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (MarketplaceAppAPIKeyInstallRequest, error) {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, appType api.OpenMeterAppAppType) (MarketplaceAppAPIKeyInstallRequest, error) {
 			body := api.MarketplaceAppAPIKeyInstallJSONBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
@@ -35,7 +35,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			req := MarketplaceAppAPIKeyInstallRequest{
-				MarketplaceListingID: appentity.MarketplaceListingID{Type: appentitybase.AppType(body.Type)},
+				MarketplaceListingID: appentity.MarketplaceListingID{Type: appentitybase.AppType(appType)},
 				Namespace:            namespace,
 				APIKey:               body.ApiKey,
 			}

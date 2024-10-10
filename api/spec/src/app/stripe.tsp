@@ -29,7 +29,7 @@ interface AppStripe {
   @post
   @route("/webhook")
   @operationId("appStripeWebhook")
-  webhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | CommonErrors;
+  webhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | NotFoundError | CommonErrors;
 
   /**
    * Create checkout session.
@@ -40,7 +40,7 @@ interface AppStripe {
   createCheckoutSession(@path id: ULID, @body body: CreateStripeCheckoutSessionRequest): {
     @statusCode _: 201;
     @body body: CreateStripeCheckoutSessionResponse;
-  } | CommonErrors;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
