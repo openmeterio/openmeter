@@ -10,6 +10,7 @@ import (
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/appstripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -205,4 +206,32 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Mode:             stripe.CheckoutSessionModeSetup,
 		URL:              "https://checkout.stripe.com/cs_123/test",
 	}, checkoutSession, "Create checkout session must match")
+
+	// Test app 404 error
+	appIdNotFound := appentitybase.AppID{
+		Namespace: s.namespace,
+		ID:        "not_found",
+	}
+
+	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+		AppID:      appIdNotFound,
+		CustomerID: customer.GetID(),
+		Options:    stripeclient.StripeCheckoutSessionOptions{},
+	})
+
+	require.ErrorIs(t, err, appstripe.AppNotFoundError{AppID: appIdNotFound}, "Create checkout session must return app not found error")
+
+	// Test customer 404 error
+	customerIdNotFound := customerentity.CustomerID{
+		Namespace: s.namespace,
+		ID:        "not_found",
+	}
+
+	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+		AppID:      app.GetID(),
+		CustomerID: customerIdNotFound,
+		Options:    stripeclient.StripeCheckoutSessionOptions{},
+	})
+
+	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
 }

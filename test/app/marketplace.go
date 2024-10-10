@@ -7,6 +7,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
@@ -54,6 +55,17 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.Equal(t, expectedListing.Description, listing.Description, "Listing description must match")
 	require.Equal(t, expectedListing.IconURL, listing.IconURL, "Listing icon url must match")
 	require.ElementsMatch(t, expectedListing.Capabilities, listing.Capabilities, "Listing capabilities must match")
+
+	// Test type not found
+	_, err = service.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
+		Type: appentitybase.AppType("unknown"),
+	})
+
+	require.ErrorIs(t, err, app.MarketplaceListingNotFoundError{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppType("unknown"),
+		},
+	}, "Fetching listing must return not found error")
 }
 
 // TestList tests the listing of apps
