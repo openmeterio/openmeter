@@ -19,11 +19,21 @@ var _ app.AppAdapter = (*adapter)(nil)
 // CreateApp creates an app
 func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
 	return transaction.Run(ctx, a, func(ctx context.Context) (appentitybase.AppBase, error) {
+		count, err := a.db.App.Query().
+			Where(appdb.Namespace(input.Namespace)).
+			Where(appdb.Type(input.Type)).
+			Count(ctx)
+		if err != nil {
+			return appentitybase.AppBase{}, fmt.Errorf("failed to count apps from same type: %w", err)
+		}
+
 		appCreateQuery := a.db.App.Create().
 			SetNamespace(input.Namespace).
 			SetName(input.Name).
 			SetDescription(input.Description).
 			SetType(input.Type).
+			// Set the app as default if it is the first app of its type
+			SetIsDefault(count == 0).
 			SetStatus(appentitybase.AppStatusReady)
 
 		dbApp, err := appCreateQuery.Save(ctx)
@@ -129,6 +139,7 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 	dbApp, err := a.db.App.Query().
 		Where(appdb.Namespace(input.Namespace)).
 		Where(appdb.Type(input.Type)).
+		Where(appdb.IsDefault(true)).
 		Where(appdb.DeletedAtIsNil()).
 		First(ctx)
 	if err != nil {
