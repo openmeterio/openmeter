@@ -17,13 +17,13 @@ import (
 type (
 	MarketplaceAppAPIKeyInstallRequest  = appentity.InstallAppWithAPIKeyInput
 	MarketplaceAppAPIKeyInstallResponse = api.AppBase
-	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.OpenMeterAppAppType]
+	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.OpenMeterAppType]
 )
 
 // MarketplaceAppAPIKeyInstall returns a handler for installing an app type with an API key
 func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appType api.OpenMeterAppAppType) (MarketplaceAppAPIKeyInstallRequest, error) {
+		func(ctx context.Context, r *http.Request, appType api.OpenMeterAppType) (MarketplaceAppAPIKeyInstallRequest, error) {
 			body := api.MarketplaceAppAPIKeyInstallJSONBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
@@ -57,7 +57,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				// TODO(pmarton): adapter to implement metadata
 				// Metadata: appBase.Metadata,
 				Listing: api.MarketplaceListing{
-					Type:        api.OpenMeterAppAppType(appBase.Listing.Type),
+					Type:        api.OpenMeterAppType(appBase.Listing.Type),
 					Name:        appBase.Listing.Name,
 					Description: appBase.Listing.Description,
 					IconUrl:     appBase.Listing.IconURL,

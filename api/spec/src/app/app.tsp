@@ -58,9 +58,9 @@ interface Apps {
 model ListAppsRequest extends PaginatedQuery {}
 
 /**
- * App type.
+ * Type of the app.
  */
-enum AppType {
+enum Type {
   Stripe: "stripe",
 }
 
