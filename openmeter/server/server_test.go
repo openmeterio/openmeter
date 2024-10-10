@@ -689,6 +689,14 @@ func (n NoopAppStripeService) SetCustomerDefaultPaymentMethod(ctx context.Contex
 	return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, nil
 }
 
+func (n NoopAppStripeService) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+	return nil
+}
+
+func (n NoopAppStripeService) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+	return nil
+}
+
 var _ customer.Service = (*NoopCustomerService)(nil)
 
 type NoopCustomerService struct{}

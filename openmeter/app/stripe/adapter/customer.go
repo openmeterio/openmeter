@@ -81,8 +81,8 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 	})
 }
 
-// CreateStripeCustomer creates a new stripe customer
-func (a adapter) CreateStripeCustomer(ctx context.Context, input appstripeentity.CreateStripeCustomerInput) (appstripeentity.CreateStripeCustomerOutput, error) {
+// createStripeCustomer creates a new stripe customer
+func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity.CreateStripeCustomerInput) (appstripeentity.CreateStripeCustomerOutput, error) {
 	// Get the stripe app
 	stripeApp, err := a.db.AppStripe.
 		Query().

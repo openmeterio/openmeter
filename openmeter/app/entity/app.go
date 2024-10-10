@@ -1,12 +1,10 @@
 package appentity
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -21,9 +19,6 @@ type App interface {
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities []appentitybase.CapabilityType) error
-
-	// // ValidateCustomer validates if the app can run for the given customer
-	ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error
 }
 
 // GetAppInput is the input for getting an installed app

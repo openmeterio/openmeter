@@ -137,20 +137,21 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	require.NoError(t, err, "Get app must not return error")
 
-	// Generic app should validate the customer
-	err = getApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
-	require.NoError(t, err, "Validate customer must not return error")
+	// App should implement Customer App
+	customerApp, err := customerentity.GetApp(getApp)
 
-	// Stripe app should validate the customer
-	err = app.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
+	require.NoError(t, err, "Get app must not return error")
+
+	// App should validate the customer
+	err = customerApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
 	require.NoError(t, err, "Validate customer must not return error")
 
 	// Validate the customer with an invalid capability
-	err = getApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeReportEvents})
+	err = customerApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeReportEvents})
 	require.ErrorContains(t, err, "capability reportEvents is not supported", "Validate customer must return error")
 
 	// Validate the customer without stripe data
-	err = getApp.ValidateCustomer(ctx, customerWithoutStripeData, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
+	err = customerApp.ValidateCustomer(ctx, customerWithoutStripeData, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
 	require.ErrorContains(t, err, "customer has no data", "Validate customer must return error")
 }
 

@@ -18,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+var _ customerentity.App = (*App)(nil)
+
 // App represents an installed Stripe app
 type App struct {
 	appentitybase.AppBase

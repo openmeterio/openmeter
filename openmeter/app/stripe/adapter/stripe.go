@@ -67,20 +67,6 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 	})
 }
 
-// GetStripeApp gets an app
-func (a adapter) GetStripeApp(ctx context.Context, input appstripeentity.GetAppInput) (appstripeentity.App, error) {
-	app, err := a.appService.GetApp(ctx, input)
-	if err != nil {
-		return appstripeentity.App{}, err
-	}
-
-	if stripeApp, ok := app.(appstripeentity.App); ok {
-		return stripeApp, nil
-	}
-
-	return appstripeentity.App{}, fmt.Errorf("app is not a stripe app")
-}
-
 // GetWebhookSecret gets the webhook secret
 func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
 	if err := input.Validate(); err != nil {
@@ -254,7 +240,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 						stripeCustomerId = *input.StripeCustomerID
 					} else {
 						// Otherwise we create a new Stripe Customer
-						out, err := a.CreateStripeCustomer(ctx, appstripeentity.CreateStripeCustomerInput{
+						out, err := a.createStripeCustomer(ctx, appstripeentity.CreateStripeCustomerInput{
 							AppID:      input.AppID,
 							CustomerID: input.CustomerID,
 						})

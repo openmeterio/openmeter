@@ -18,12 +18,12 @@ var _ appobserver.Observer[customerentity.Customer] = (*CustomerObserver)(nil)
 
 type CustomerObserver struct {
 	appService       app.Service
-	appStripeAdapter appstripe.Adapter
+	appStripeService appstripe.Service
 }
 
 type CustomerObserverConfig struct {
 	AppService       app.Service
-	AppStripeAdapter appstripe.Adapter
+	AppStripeService appstripe.Service
 }
 
 func (c CustomerObserverConfig) Validate() error {
@@ -31,7 +31,7 @@ func (c CustomerObserverConfig) Validate() error {
 		return errors.New("app service cannot be null")
 	}
 
-	if c.AppStripeAdapter == nil {
+	if c.AppStripeService == nil {
 		return errors.New("app stripe adapter cannot be null")
 	}
 
@@ -44,7 +44,7 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 	}
 	return &CustomerObserver{
 		appService:       config.AppService,
-		appStripeAdapter: config.AppStripeAdapter,
+		appStripeService: config.AppStripeService,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (c CustomerObserver) PostUpdate(ctx context.Context, customer *customerenti
 
 func (c CustomerObserver) PostDelete(ctx context.Context, customer *customerentity.Customer) error {
 	// Delete stripe customer data for all Stripe apps for the customer in the namespace
-	err := c.appStripeAdapter.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+	err := c.appStripeService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 	if err != nil {
@@ -120,7 +120,7 @@ func (c CustomerObserver) upsert(ctx context.Context, customer *customerentity.C
 			return fmt.Errorf("failed to validate upsert stripe customer data input: %w", err)
 		}
 
-		err := c.appStripeAdapter.UpsertStripeCustomerData(ctx, upsertStripeCustomerInput)
+		err := c.appStripeService.UpsertStripeCustomerData(ctx, upsertStripeCustomerInput)
 		if err != nil {
 			return fmt.Errorf("failed to upsert stripe customer data: %w", err)
 		}

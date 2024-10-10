@@ -17,6 +17,14 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeenti
 	return s.adapter.CreateCheckoutSession(ctx, input)
 }
 
+func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+	return s.adapter.UpsertStripeCustomerData(ctx, input)
+}
+
+func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+	return s.adapter.DeleteStripeCustomerData(ctx, input)
+}
+
 func (s *Service) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 	return s.adapter.SetCustomerDefaultPaymentMethod(ctx, input)
 }

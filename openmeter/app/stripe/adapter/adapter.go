@@ -70,7 +70,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	// Create app stripe customer observer
 	appStripeObserver, err := appstripeobserver.NewCustomerObserver(appstripeobserver.CustomerObserverConfig{
 		AppService:       config.AppService,
-		AppStripeAdapter: adapter,
+		AppStripeService: adapter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app stripe observer: %w", err)
