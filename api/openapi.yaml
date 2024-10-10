@@ -6459,6 +6459,7 @@ components:
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
         stripeCustomerId:
           type: string
+          nullable: true
           example: cus_JMOlctsKV8
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -6500,6 +6501,7 @@ components:
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
         stripeCustomerId:
           type: string
+          nullable: true
           example: cus_JMOlctsKV8
       example:
         key: customer-id

@@ -56,5 +56,5 @@ model Subject {
   currentPeriodEnd?: DateTime;
 
   @example("cus_JMOlctsKV8")
-  stripeCustomerId?: string;
+  stripeCustomerId?: string | null;
 }
