@@ -159,7 +159,7 @@ union NotificationRuleCreateRequest {
 }
 
 /**
- * Request with input parameters for creating new notification rule with webhook type.
+ * Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
  */
 @withVisibility("create", "update")
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")

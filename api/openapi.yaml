@@ -5785,41 +5785,10 @@ components:
     NotificationChannelWebhookCreateRequest:
       type: object
       required:
-        - createdAt
-        - updatedAt
-        - id
         - type
         - name
         - url
       properties:
-        createdAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was created.
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was last updated.
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was permanently deleted.
-          title: Deletion Time
-          readOnly: true
-        id:
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: Identifies the notification channel.
-          title: Channel Unique Identifier
-          readOnly: true
         type:
           type: string
           enum:
@@ -5857,7 +5826,7 @@ components:
 
             Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
           title: Signing Secret
-      description: Notification channel with webhook type.
+      description: Request with input parameters for creating new notification channel with webhook type.
     NotificationEvent:
       type: object
       required:
@@ -6207,7 +6176,7 @@ components:
           minItems: 1
           description: Optional field for defining the scope of notification by feature. It may contain features by id or key.
           title: Features
-      description: Request with input parameters for creating new notification rule with webhook type.
+      description: Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
     NotificationRuleBalanceThresholdValue:
       type: object
       required:

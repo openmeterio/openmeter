@@ -124,6 +124,10 @@ union NotificationChannelCreateRequest {
   webhook: NotificationChannelWebhookCreateRequest,
 }
 
+/**
+ * Request with input parameters for creating new notification channel with webhook type.
+ */
+@withVisibility("create", "update")
 @friendlyName("NotificationChannelWebhookCreateRequest")
 model NotificationChannelWebhookCreateRequest is NotificationChannelWebhook;
 
