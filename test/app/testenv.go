@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
-	appstripeadapter "github.com/openmeterio/openmeter/openmeter/appstripe/adapter"
+	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"

@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"

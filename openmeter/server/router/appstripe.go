@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/appstripe/httpdriver"
+	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

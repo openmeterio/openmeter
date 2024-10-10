@@ -3,8 +3,8 @@ package appservice
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/appstripe"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 )
 
 var _ appstripe.AppService = (*Service)(nil)

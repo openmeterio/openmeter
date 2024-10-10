@@ -8,7 +8,7 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )

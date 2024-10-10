@@ -10,8 +10,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"

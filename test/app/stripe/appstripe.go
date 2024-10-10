@@ -10,9 +10,9 @@ import (
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	"github.com/openmeterio/openmeter/openmeter/appstripe"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/appstripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/appstripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 

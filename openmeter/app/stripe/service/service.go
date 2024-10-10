@@ -3,7 +3,7 @@ package appservice
 import (
 	"errors"
 
-	"github.com/openmeterio/openmeter/openmeter/appstripe"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 )
 
 var _ appstripe.Service = (*Service)(nil)
