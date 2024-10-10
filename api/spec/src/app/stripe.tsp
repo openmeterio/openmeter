@@ -205,11 +205,11 @@ model CheckoutSessionCustomTextParams {
 @friendlyName("StripeApp")
 @example(#{
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
-  type: AppType.Stripe,
+  type: Type.Stripe,
   name: "Stripe",
   status: AppStatus.Ready,
   listing: #{
-    type: AppType.Stripe,
+    type: Type.Stripe,
     name: "Stripe",
     description: "Stripe interation allows you to collect payments with Stripe.",
     iconUrl: "/images/stripe.png",
@@ -251,7 +251,7 @@ model StripeApp {
   /**
    * The app's type is Stripe.
    */
-  type: AppType.Stripe;
+  type: Type.Stripe;
 
   /**
    * The Stripe account ID.

@@ -36,7 +36,7 @@ interface Marketplace {
   @get
   @route("/listings/{type}/install/oauth2")
   @operationId("marketplaceOAuth2InstallGetURL")
-  getOAuth2InstallURL(@path type: AppType): OAuth2.ClientAppStartResponse | CommonErrors;
+  getOAuth2InstallURL(@path type: Type): OAuth2.ClientAppStartResponse | CommonErrors;
 
   /**
    * Authorize OAuth2 code.
@@ -70,7 +70,7 @@ model MarketplaceOAuth2InstallAuthorizeRequest {
   /**
    * The type of the app to install.
    */
-  @path type: AppType;
+  @path type: Type;
 }
 
 /**
@@ -89,7 +89,7 @@ model MarketplaceApiKeyInstallRequest {
   /**
    * The type of the app to install.
    */
-  @path type: AppType;
+  @path type: Type;
 
   @body _: {
     /**
@@ -108,7 +108,7 @@ model MarketplaceApiKeyInstallRequest {
  */
 @friendlyName("MarketplaceListing")
 @example(#{
-  type: AppType.Stripe,
+  type: Type.Stripe,
   name: "Stripe",
   description: "Stripe interation allows you to collect payments with Stripe.",
   iconUrl: "/images/stripe.png",
@@ -140,7 +140,7 @@ model Listing {
   /**
    * The app's type
    */
-  type: AppType;
+  type: Type;
 
   /**
    * The app's name.

@@ -1584,7 +1584,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/OpenMeter.App.AppType'
+            $ref: '#/components/schemas/OpenMeter.App.Type'
       responses:
         '200':
           description: The request has succeeded.
@@ -4352,14 +4352,14 @@ components:
       required: true
       description: The type of the app to install.
       schema:
-        $ref: '#/components/schemas/OpenMeter.App.AppType'
+        $ref: '#/components/schemas/OpenMeter.App.Type'
     MarketplaceOAuth2InstallAuthorizeRequest.type:
       name: type
       in: path
       required: true
       description: The type of the app to install.
       schema:
-        $ref: '#/components/schemas/OpenMeter.App.AppType'
+        $ref: '#/components/schemas/OpenMeter.App.Type'
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -6368,7 +6368,7 @@ components:
       properties:
         type:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.AppType'
+            - $ref: '#/components/schemas/OpenMeter.App.Type'
           description: The app's type
         name:
           type: string
@@ -7230,11 +7230,6 @@ components:
         - ready
         - unauthorized
       description: App installed status.
-    OpenMeter.App.AppType:
-      type: string
-      enum:
-        - stripe
-      description: App type.
     OpenMeter.App.StripePaymentIntentStatus:
       type: string
       enum:
@@ -7245,6 +7240,11 @@ components:
         - requires_payment_method
         - succeeded
       description: Stripe payment intent status.
+    OpenMeter.App.Type:
+      type: string
+      enum:
+        - stripe
+      description: Type of the app.
     Order:
       type: string
       enum:
