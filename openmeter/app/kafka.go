@@ -58,8 +58,8 @@ func NewKafkaTopicProvisioner(conf config.IngestConfiguration, logger *slog.Logg
 		AdminClient: adminClient,
 		Logger:      logger,
 		Meter:       meter,
-		CacheSize:   conf.CacheSize,
-		CacheTTL:    conf.CacheTTL,
+		CacheSize:   conf.Kafka.CacheSize,
+		CacheTTL:    conf.Kafka.CacheTTL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)

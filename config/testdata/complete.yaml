@@ -43,8 +43,8 @@ ingest:
       - broker
       - topic
       - consumer
-  cacheSize: 200
-  cacheTTL: 15m
+    cacheSize: 200
+    cacheTTL: 15m
 
 aggregation:
   clickhouse:
