@@ -88,7 +88,7 @@ model AppBase {
    * The marketplace listing that this installed app is based on.
    */
   @visibility("read")
-  listing: Listing;
+  listing: MarketplaceListing;
 
   /**
    * Status of the app connection.

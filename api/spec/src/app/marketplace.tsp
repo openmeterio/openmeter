@@ -24,7 +24,7 @@ interface Marketplace {
   @get
   @route("/listings")
   @operationId("marketplaceListListings")
-  list(...PaginatedQuery): Paginated<Listing> | CommonErrors;
+  list(...PaginatedQuery): Paginated<MarketplaceListing> | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
 
@@ -46,7 +46,7 @@ interface Marketplace {
   @operationId("marketplaceOAuth2InstallAuthorize")
   authorizeOAuth2Install(
     ...MarketplaceOAuth2InstallAuthorizeRequest,
-  ): MarketplaceOAuth2InstallAuthorizeResponse | CommonErrors;
+  ): { @statusCode _: 303; } | CommonErrors;
 
   /* **************** Install App via API Key **************** */
 
@@ -70,14 +70,6 @@ model MarketplaceOAuth2InstallAuthorizeRequest {
    * The type of the app to install.
    */
   @path type: Type;
-}
-
-/**
- * Marketplace OAuth2 install response.
- */
-@friendlyName("MarketplaceOAuth2InstallAuthorizeResponse")
-model MarketplaceOAuth2InstallAuthorizeResponse {
-  @statusCode _: 303;
 }
 
 /**
@@ -135,7 +127,7 @@ model MarketplaceApiKeyInstallRequest {
     }
   ],
 })
-model Listing {
+model MarketplaceListing {
   /**
    * The app's type
    */

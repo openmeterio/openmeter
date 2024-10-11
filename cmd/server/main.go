@@ -209,7 +209,7 @@ func main() {
 		var appAdapter apppkg.Adapter
 		appAdapter, err = appadapter.New(appadapter.Config{
 			Client:  entClient,
-			BaseURL: conf.StripeApp.Webhook.BaseURL,
+			BaseURL: conf.StripeApp.IncomingWebhook.BaseURL,
 		})
 		if err != nil {
 			logger.Error("failed to initialize app repository", "error", err)

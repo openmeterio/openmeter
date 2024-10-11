@@ -1462,7 +1462,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListingList'
+                $ref: '#/components/schemas/MarketplaceListingList'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -1638,7 +1638,7 @@ paths:
         - $ref: '#/components/parameters/MarketplaceOAuth2InstallAuthorizeRequest.type'
       responses:
         '303':
-          description: Marketplace OAuth2 install response.
+          description: Redirection
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -6343,32 +6343,6 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-    ListingList:
-      type: object
-      required:
-        - page
-        - pageSize
-        - totalCount
-        - items
-      properties:
-        page:
-          type: integer
-          description: The page number.
-        pageSize:
-          type: integer
-          minimum: 1
-          maximum: 1000
-          description: The number of items in the page.
-        totalCount:
-          type: integer
-          description: The total number of items.
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/MarketplaceListing'
-          maxItems: 1000
-          description: The items in the page.
-      description: A page of results.
     MarketplaceListing:
       type: object
       required:
@@ -6425,6 +6399,32 @@ components:
         Represent an available app in the app marketplace that can be installed to the organization.
 
         Marketplace apps only exist in config so they don't extend the Resource model.
+    MarketplaceListingList:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - items
+      properties:
+        page:
+          type: integer
+          description: The page number.
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: The number of items in the page.
+        totalCount:
+          type: integer
+          description: The total number of items.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketplaceListing'
+          maxItems: 1000
+          description: The items in the page.
+      description: A page of results.
     MeasureUsageFrom:
       oneOf:
         - $ref: '#/components/schemas/MeasureUsageFromEnum'
