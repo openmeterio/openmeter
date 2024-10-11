@@ -75,7 +75,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	v3, cleanup5 := app.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
-	adminClient, err := app.NewKafkaAdminClient(kafkaIngestConfiguration)
+	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
+	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
 		cleanup4()
