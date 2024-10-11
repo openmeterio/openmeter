@@ -15,9 +15,14 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	slogmulti "github.com/samber/slog-multi"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/pkg/contextx"
@@ -77,6 +82,10 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 	}, nil
 }
 
+func NewDefaultTextMapPropagator() propagation.TextMapPropagator {
+	return propagation.TraceContext{}
+}
+
 func NewHealthChecker(logger *slog.Logger) health.Health {
 	return health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
 }
@@ -115,4 +124,30 @@ func NewTelemetryServer(conf config.TelemetryConfig, handler TelemetryHandler) (
 	}
 
 	return server, func() { server.Close() }
+}
+
+func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider trace.TracerProvider) func(chi.Router) {
+	return func(r chi.Router) {
+		r.Use(func(h http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					h.ServeHTTP(w, r)
+
+					routePattern := chi.RouteContext(r.Context()).RoutePattern()
+
+					span := trace.SpanFromContext(r.Context())
+					span.SetName(routePattern)
+					span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
+
+					labeler, ok := otelhttp.LabelerFromContext(r.Context())
+					if ok {
+						labeler.Add(semconv.HTTPRoute(routePattern))
+					}
+				}),
+				"",
+				otelhttp.WithMeterProvider(meterProvider),
+				otelhttp.WithTracerProvider(tracerProvider),
+			)
+		})
+	}
 }

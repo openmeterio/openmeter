@@ -14,9 +14,7 @@ import (
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
@@ -90,13 +88,7 @@ func main() {
 	}
 	defer cleanup()
 
-	// TODO: move to global initializer
-	slog.SetDefault(logger)
-
-	// TODO: move to global initializer
-	otel.SetMeterProvider(app.MeterProvider)
-	otel.SetTracerProvider(app.TracerProvider)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	app.SetGlobals()
 
 	tracer := app.TracerProvider.Tracer(otelName)
 
@@ -107,15 +99,8 @@ func main() {
 
 	var group run.Group
 
-	// Initialize Kafka Topic Provisioner
-	topicProvisioner, err := initTopicProvisioner(conf, logger, app.Meter)
-	if err != nil {
-		logger.Error("failed to initialize kafka topic provisioner", "error", err)
-		os.Exit(1)
-	}
-
 	// initialize system event producer
-	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter, topicProvisioner)
+	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter, app.TopicProvisioner)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
@@ -295,27 +280,4 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	}
 
 	return sink.NewSink(sinkConfig)
-}
-
-func initTopicProvisioner(conf config.Configuration, logger *slog.Logger, meter metric.Meter) (pkgkafka.TopicProvisioner, error) {
-	kafkaConfigMap := conf.Ingest.Kafka.CreateKafkaConfig()
-	delete(kafkaConfigMap, "go.logs.channel.enable")
-
-	adminClient, err := confluentkafka.NewAdminClient(&kafkaConfigMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
-	}
-
-	topicProvisioner, err := pkgkafka.NewTopicProvisioner(pkgkafka.TopicProvisionerConfig{
-		AdminClient: adminClient,
-		Logger:      logger,
-		Meter:       meter,
-		CacheSize:   conf.Ingest.Kafka.CacheSize,
-		CacheTTL:    conf.Ingest.Kafka.CacheTTL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
-	}
-
-	return topicProvisioner, nil
 }

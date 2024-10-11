@@ -18,25 +18,31 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type Application struct {
-	MeterRepository meter.Repository
-	TelemetryServer app.TelemetryServer
+	app.GlobalInitializer
+
+	MeterRepository  meter.Repository
+	TelemetryServer  app.TelemetryServer
+	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Meter metric.Meter
 
 	// TODO: move to global setter
 	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	wire.Build(
 		app.Config,
+		app.Framework,
 		NewOtelResource,
 		app.Telemetry,
 		NewMeter,
+		app.NewDefaultTextMapPropagator,
+		app.KafkaTopic,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)

@@ -12,15 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/oklog/run"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -102,13 +96,7 @@ func main() {
 	}
 	defer cleanup()
 
-	// TODO: move to global initializer
-	slog.SetDefault(logger)
-
-	// TODO: move to global initializer
-	otel.SetMeterProvider(app.MeterProvider)
-	otel.SetTracerProvider(app.TracerProvider)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	app.SetGlobals()
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
 		"address":             conf.Address,
@@ -272,29 +260,7 @@ func main() {
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 			NotificationEnabled: conf.Notification.Enabled,
 		},
-		RouterHook: func(r chi.Router) {
-			r.Use(func(h http.Handler) http.Handler {
-				return otelhttp.NewHandler(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						h.ServeHTTP(w, r)
-
-						routePattern := chi.RouteContext(r.Context()).RoutePattern()
-
-						span := trace.SpanFromContext(r.Context())
-						span.SetName(routePattern)
-						span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
-
-						labeler, ok := otelhttp.LabelerFromContext(r.Context())
-						if ok {
-							labeler.Add(semconv.HTTPRoute(routePattern))
-						}
-					}),
-					"",
-					otelhttp.WithMeterProvider(app.MeterProvider),
-					otelhttp.WithTracerProvider(app.TracerProvider),
-				)
-			})
-		},
+		RouterHook: app.RouterHook,
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)

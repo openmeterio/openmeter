@@ -13,29 +13,16 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 )
 
 // Injectors from wire.go:
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v, err := app.NewClickHouse(clickHouseAggregationConfiguration)
-	if err != nil {
-		return Application{}, nil, err
-	}
-	v2 := conf.Meters
-	inMemoryRepository := app.NewMeterRepository(v2)
-	clickhouseConnector, err := app.NewClickHouseStreamingConnector(aggregationConfiguration, v, inMemoryRepository, logger)
-	if err != nil {
-		return Application{}, nil, err
-	}
-	postgresConfig := conf.Postgres
 	telemetryConfig := conf.Telemetry
 	metricsTelemetryConfig := telemetryConfig.Metrics
 	resource := NewOtelResource(conf)
@@ -43,13 +30,37 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	if err != nil {
 		return Application{}, nil, err
 	}
-	meter := NewMeter(meterProvider)
 	traceTelemetryConfig := telemetryConfig.Trace
 	tracerProvider, cleanup2, err := app.NewTracerProvider(ctx, traceTelemetryConfig, resource, logger)
 	if err != nil {
 		cleanup()
 		return Application{}, nil, err
 	}
+	textMapPropagator := app.NewDefaultTextMapPropagator()
+	globalInitializer := app.GlobalInitializer{
+		Logger:            logger,
+		MeterProvider:     meterProvider,
+		TracerProvider:    tracerProvider,
+		TextMapPropagator: textMapPropagator,
+	}
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	v, err := app.NewClickHouse(clickHouseAggregationConfiguration)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v2 := conf.Meters
+	inMemoryRepository := app.NewMeterRepository(v2)
+	clickhouseConnector, err := app.NewClickHouseStreamingConnector(aggregationConfiguration, v, inMemoryRepository, logger)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	postgresConfig := conf.Postgres
+	meter := NewMeter(meterProvider)
 	driver, cleanup3, err := app.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
 	if err != nil {
 		cleanup2()
@@ -62,14 +73,36 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	health := app.NewHealthChecker(logger)
 	telemetryHandler := app.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v3, cleanup5 := app.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	ingestConfiguration := conf.Ingest
+	kafkaIngestConfiguration := ingestConfiguration.Kafka
+	adminClient, err := app.NewKafkaAdminClient(kafkaIngestConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
+	kafkaTopicProvisionerConfig := app.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
+	topicProvisioner, err := app.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
+		GlobalInitializer:  globalInitializer,
 		StreamingConnector: clickhouseConnector,
 		MeterRepository:    inMemoryRepository,
 		EntClient:          client,
 		TelemetryServer:    v3,
+		TopicProvisioner:   topicProvisioner,
 		Meter:              meter,
-		TracerProvider:     tracerProvider,
-		MeterProvider:      meterProvider,
 	}
 	return application, func() {
 		cleanup5()
@@ -92,16 +125,16 @@ func initializeLogger(conf config.Configuration) *slog.Logger {
 // wire.go:
 
 type Application struct {
+	app.GlobalInitializer
+
 	StreamingConnector streaming.Connector
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
+	// EventPublisher     eventbus.Publisher
+	TopicProvisioner kafka.TopicProvisioner
 
 	Meter metric.Meter
-
-	// TODO: move to global setter
-	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 // TODO: consider moving this to a separate package

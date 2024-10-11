@@ -11,38 +11,39 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type Application struct {
+	app.GlobalInitializer
+
 	StreamingConnector streaming.Connector
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
 	// EventPublisher     eventbus.Publisher
+	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Meter metric.Meter
-
-	// TODO: move to global setter
-	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	wire.Build(
 		app.Config,
+		app.Framework,
 		NewOtelResource,
 		app.Telemetry,
 		NewMeter,
+		app.NewDefaultTextMapPropagator,
 		app.Database,
 		app.ClickHouse,
-		// app.Kafka,
+		app.KafkaTopic,
 		// app.Watermill,
 		app.OpenMeter,
 		// wire.Value(app.WatermillClientID(otelName)),
