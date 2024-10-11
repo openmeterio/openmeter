@@ -11,38 +11,125 @@ namespace Invoice.Bill;
 @summary("Invoice summary represents an extract of the invoice object")
 @friendlyName("BillingInvoiceSummary")
 model InvoiceSummary {
-  id: ULID;
+  ...OpenMeter.InvoiceSummary; // OpenMeter schema extensions
   type?: InvoiceType;
 
-  @summary("The status of the invoice.")
-  status: InvoiceStatus;
-
   @summary("Used as a prefix to group codes.")
+  @visibility("read", "query")
   series?: CBC.Code;
 
   @summary("Sequential code used to identify this invoice in tax declarations.")
   // NOTE: This is required in the original schema, but we can't enforce it here as we will only know this when the
   // invoice is issued.
+  @visibility("read", "query")
   code?: CBC.Code;
 
-  @summary("The time the invoice was issued.")
-  // NOTE: This replaces the issueDate in the gobl schema, as date only is a bad practice and should be avoided.
-  issuedAt?: DateTime;
-
-  @summary("Currency fot all invoice totals.")
+  @summary("Currency for all invoice totals.")
   currency?: Currency.Code;
 
   @summary("Key information regarding previous invoices and potentially details as to why they were corrected.")
+  @visibility("read", "query") // We only populate this for voided invoices
   preceding?: Org.DocumentRef;
 
   @summary("Summary of all the invoice totals, including taxes (calculated).")
+  @visibility("read", "query")
   totals?: Totals;
 
   @summary("Unstructured information that is relevant to the invoice, such as correction or additional legal details.")
-  notes?: OpenMeterCBC.InvoiceNotes[];
+  @visibility("read", "query")
+  notes?: CBC.Note[];
 
   @summary("Additional semi-structured data that doesn’t fit into the body of the invoice.")
+  @visibility("read", "query")
   meta?: CBC.Meta;
+}
+
+namespace OpenMeter {
+  @friendlyName("BillingInvoiceSummaryOpenMeter")
+  @summary("Invoice summary represents the invoice object's OpenMeter extensions.")
+  model InvoiceSummary {
+    @visibility("read", "query", "update")
+    id: ULID;
+
+    @visibility("read", "query")
+    @summary("The status of the invoice.")
+    status: InvoiceStatus;
+
+    @summary("The time the invoice was issued.")
+    @visibility("read", "query")
+    // NOTE: This replaces the issueDate in the gobl schema, as date only is a bad practice and should be avoided.
+    issuedAt?: DateTime;
+
+    @summary("The workflow settings associated with this invoice")
+    @visibility("read", "query") // Seperate API endpoint is available for updating
+    workflow?: InvoiceWorkflowSettings;
+  }
+
+  @friendlyName("BillingInvoiceWorkflowSettings")
+  model InvoiceWorkflowSettings {
+    /**
+     * updatedAt is the time when the invoice workflow was last updated.
+     *
+     * This field is updated when the invoice workflow is updated, during put requests we
+     * are validating the update time to ensure there is no parallel updates happening.
+     */
+    updatedAt: DateTime;
+
+    @summary("Should the invoice auto advance to the next status?")
+    autoAdvance: boolean;
+
+    /**
+     * The invoice stays in the draft status until this time.
+     *
+     * If auto advance is disabled the value will be empty.
+     */
+    draftUtil?: DateTime;
+
+    /**
+     * The period after which the invoice is due.
+     *
+     * default: 7 days
+     */
+    @encode(DurationKnownEncoding.ISO8601)
+    @example(duration.fromISO("P1D"))
+    dueAfter?: duration;
+  }
+
+  /**
+   * InvoiceStatus describes the status of an invoice.
+   */
+  @friendlyName("BillingInvoiceStatus")
+  enum InvoiceStatus {
+    /**
+     * The list of line items for the next invoice is being gathered.
+     */
+    gathering: "gathering",
+
+    /**
+     * The invoice is waiting for review by our partner.
+     */
+    review: "review",
+
+    /**
+     * The invoice has been issued to the customer.
+     */
+    issued: "issued",
+
+    /**
+     * The invoice has been paid by the customer.
+     */
+    payment_received: "payment_received",
+
+    /**
+     * A manual approval is required before the invoice can be issued.
+     */
+    manual_approval_required: "manual_approval_required",
+
+    /**
+     * There's a validation issue with the invoice.
+     */
+    validation_failed: "validation_failed",
+  }
 }
 
 /* Omitted fields (not required yet):
@@ -67,55 +154,24 @@ model Invoice {
   ...InvoiceSummary;
 
   @summary("The taxable entity supplying the goods or services.")
+  @visibility("read", "query") // Seperate API endpoint is available for updating
   supplier: Org.Party;
 
   @summary("Legal entity receiving the goods or services.")
+  @visibility("read", "query") // Seperate API endpoint is available for updating
   customer: Org.Party;
 
   @summary("List of invoice lines representing each of the items sold to the customer.")
+  @visibility("read", "query") // Seperate API endpoint is available for updating
   lines?: Line[];
 
   @summary("Discounts or allowances applied to the complete invoice.")
+  @visibility("read", "query") // Seperate API endpoint is available for updating
   discounts?: Discount[];
 
   @summary("Information on when, how, and to whom the invoice should be paid.")
+  @visibility("read", "query") // Seperate API endpoint is available for updating
   payment?: Payment;
-}
-
-/**
- * InvoiceStatus describes the status of an invoice.
- */
-@friendlyName("BillingInvoiceStatus")
-enum InvoiceStatus {
-  /**
-   * The list of line items for the next invoice is being gathered.
-   */
-  gathering: "gathering",
-
-  /**
-   * The invoice is waiting for review by our partner.
-   */
-  review: "review",
-
-  /**
-   * The invoice has been issued to the customer.
-   */
-  issued: "issued",
-
-  /**
-   * The invoice has been paid by the customer.
-   */
-  payment_received: "payment_received",
-
-  /**
-   * A manual approval is required before the invoice can be issued.
-   */
-  manual_approval_required: "manual_approval_required",
-
-  /**
-   * There's a validation issue with the invoice.
-   */
-  validation_failed: "validation_failed",
 }
 
 @friendlyName("BillingInvoceType")
@@ -195,9 +251,7 @@ enum LineTypes {
 @discriminator("type")
 @friendlyName("BillingLine")
 model Line {
-  @visibility("read", "query", "update")
-  id: ULID;
-
+  ...OpenMeter.Line; // OpenMeter schema extensions
   type: LineTypes;
 
   @summary("Line number inside the parent (calculated)")
@@ -212,28 +266,33 @@ model Line {
   charges?: LineCharge[];
 
   @summary("Map of taxes to be applied and used in the invoice totals.")
+  @visibility("read", "query") // Tax is handled by the tax provider, we only need to show the output of that here
   taxes?: Tax.Combo[];
 
   @visibility("read")
   @summary("Total sum of the line, including discounts and charges.")
   total: Numeric;
-
-  @summary("Set of specific notes for this line that may be required for clarification.")
-  notes?: OpenMeterCBC.LineNotes[];
-
-  // Additional fields for OpenMeter
-  @summary("Period of the line item applies to for revenue recognition pruposes.")
-  period: Period;
 }
 
-@summary("Period represents a time range.")
-@friendlyName("BillingPeriod")
-model Period {
-  @summary("Start of the period.")
-  start: DateTime;
+namespace OpenMeter {
+  @friendlyName("BillingLineOpenMeter")
+  model Line {
+    @visibility("read", "query", "update")
+    id: ULID;
 
-  @summary("End of the period.")
-  end: DateTime;
+    @summary("Period of the line item applies to for revenue recognition pruposes.")
+    period: Period;
+  }
+
+  @summary("Period represents a time range.")
+  @friendlyName("BillingPeriod")
+  model Period {
+    @summary("Start of the period.")
+    start: DateTime;
+
+    @summary("End of the period.")
+    end: DateTime;
+  }
 }
 
 /**
@@ -246,54 +305,10 @@ model UnitPriceLine extends Line {
   type: LineTypes.UnitPrice;
 
   @summary("Details about what is being sold.")
-  item: UnitPriceItem;
+  item: Org.UnitPriceItem;
 
   @summary("Quantity of the item being sold.")
   quantity: Numeric;
-}
-
-/**
- * UnitPriceItem represents a product or service that is sold to the customer based on a unit price.
- */
-/* Omitted fields:
- * - alt_prices: 	AltPrices defines a list of prices with their currencies that may be used as an alternative to the item’s base price.
- * - origin: Country code of where this item was from originally.
- * - ext: 	Extension code map for any additional regime specific codes that may be required.
- */
-@friendlyName("BillingUnitPriceItem")
-model UnitPriceItem {
-  @visibility("read", "query", "update")
-  id?: ULID;
-
-  @summary("Primary reference code that identifies this item. Additional codes can be provided in the ‘identities’ property.")
-  ref?: string;
-
-  @summary("Special key used to classify the item sometimes required by some regimes.")
-  key?: CBC.Key;
-
-  @summary("Human readable name of the item.")
-  name: string;
-
-  @summary("List of additional codes, IDs, or SKUs which can be used to identify the item. They should be agreed upon between supplier and customer.")
-  identities?: Org.Identity[];
-
-  @summary("Description of the item.")
-  description?: string;
-
-  @summary("Currency used for the item’s price. Currency is mandatory for all items, so that we can support multi-currency setups.")
-  currency: Currency.Code;
-
-  @summary("Base price of a single unit to be sold.")
-  price: Numeric;
-
-  @summary("Unit of measure")
-  unit?: Org.Unit;
-
-  @summary("Additional metadata information that may be useful.")
-  meta?: CBC.Meta;
-
-  @summary("Set of specific notes for this item that may be required for clarification.")
-  notes?: OpenMeterCBC.LineItemNotes[];
 }
 
 @summary("GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.")

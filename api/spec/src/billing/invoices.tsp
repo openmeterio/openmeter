@@ -218,7 +218,7 @@ interface CustomerInvoices {
     invoiceId: ULID,
 
     @body
-    request: Invoice.OpenMeterCBC.ExistingInvoiceWorkflow,
+    request: Invoice.Bill.OpenMeter.InvoiceWorkflowSettings,
   ): {
     @statusCode _: 200;
     @body body: Invoice.Bill.Invoice;
@@ -429,7 +429,7 @@ model VoidInvoiceItemOverride {
 model InvoiceListParams {
   @query
   @summary("Filter by the invoice status")
-  statuses?: Array<Invoice.Bill.InvoiceStatus>;
+  statuses?: Array<Invoice.Bill.OpenMeter.InvoiceStatus>;
 
   @query
   @summary("Filter by invoice creation time")
