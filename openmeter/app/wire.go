@@ -33,6 +33,10 @@ var TelemetryConfig = wire.NewSet(
 	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
 )
 
+var Framework = wire.NewSet(
+	wire.Struct(new(GlobalInitializer), "*"),
+)
+
 var ClickHouse = wire.NewSet(
 	NewClickHouse,
 )
