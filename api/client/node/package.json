@@ -32,7 +32,7 @@
     "lint": "eslint . --ext .ts --format=pretty",
     "format": "prettier --write .",
     "build": "duel",
-    "generate": "rimraf ./schemas && openapi-typescript '../../openapi.yaml' --output schemas/openapi.ts && prettier --write schemas/",
+    "generate": "rimraf ./schemas && openapi-typescript '../../openapi.yaml' --default-non-nullable=false --output schemas/openapi.ts && prettier --write schemas/",
     "pretest": "pnpm run build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@knighted/duel": "1.0.8",
-    "@types/node": "22.7.4",
+    "@types/node": "22.7.5",
     "@types/node-fetch": "2.6.11",
     "@typescript-eslint/eslint-plugin": "7.16.1",
     "@typescript-eslint/parser": "7.16.1",
@@ -49,17 +49,17 @@
     "eslint-formatter-pretty": "6.0.1",
     "eslint-import-resolver-typescript": "3.6.3",
     "eslint-plugin-compat": "4.2.0",
-    "eslint-plugin-import": "2.30.0",
+    "eslint-plugin-import": "2.31.0",
     "eslint-plugin-require-extensions": "0.1.3",
     "eslint-plugin-unused-imports": "3.1.0",
     "eslint-plugin-vitest": "0.5.4",
-    "openapi-typescript": "6.7.6",
+    "openapi-typescript": "7.4.1",
     "prettier": "3.3.3",
     "rimraf": "6.0.1",
-    "rollup": "4.22.5",
+    "rollup": "4.24.0",
     "tslib": "2.7.0",
     "typescript": "5.6.2",
-    "vitest": "2.1.1"
+    "vitest": "2.1.2"
   },
   "browserslist": [
     "current node"

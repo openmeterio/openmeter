@@ -7,7 +7,7 @@ export type NotificationChannelCreateRequest =
 export type ListNotificationChannelsQueryParams =
   operations['listNotificationChannels']['parameters']['query']
 export type NotificationChannelsResponse =
-  components['schemas']['NotificationChannelsResponse']
+  components['schemas']['NotificationChannelPaginatedResponse']
 
 export type NotificationRule = components['schemas']['NotificationRule']
 export type NotificationRuleCreateRequest =
@@ -15,13 +15,13 @@ export type NotificationRuleCreateRequest =
 export type ListNotificationRulesQueryParams =
   operations['listNotificationRules']['parameters']['query']
 export type NotificationRulesResponse =
-  components['schemas']['NotificationRulesResponse']
+  components['schemas']['NotificationRulePaginatedResponse']
 
 export type NotificationEvent = components['schemas']['NotificationEvent']
 export type ListNotificationEventsQueryParams =
   operations['listNotificationEvents']['parameters']['query']
 export type NotificationEventsResponse =
-  components['schemas']['NotificationEventsResponse']
+  components['schemas']['NotificationEventPaginatedResponse']
 
 export class NotificationClient extends BaseClient {
   public channels: NotificationChannelsClient
