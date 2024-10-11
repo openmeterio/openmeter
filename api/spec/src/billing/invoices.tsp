@@ -302,6 +302,7 @@ interface CustomerInvoices {
     @statusCode _: 200;
     @body body: Invoice.Org.Party;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
   // Line management
 
   /**

@@ -147,6 +147,9 @@ model WorkflowSettings {
 
   invoice?: WorkflowInvoice;
 
+  /*
+  TODO: Once PR-1637 is merged, uncomment the following fields
+
   @summary("The tax app used for this workflow")
   taxApp: OpenMeter.App.App;
 
@@ -155,6 +158,7 @@ model WorkflowSettings {
 
   @summary("The payment app used for this workflow")
   paymentApp: OpenMeter.App.App;
+  */
 }
 
 /**
@@ -164,8 +168,12 @@ model AppReference {
   @summary("The ID of the app, if not specified the type is used to find the default app")
   id?: ULID;
 
+  /*
+  TODO: Once PR-1637 is merged, uncomment the following field
+
   @summary("The type of the app, if specified the default app is used")
   type?: OpenMeter.App.AppType;
+  */
 }
 
 /**

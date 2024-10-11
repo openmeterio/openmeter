@@ -96,6 +96,9 @@ model CustomerOverride {
 model CustomerWorkflowOverride {
   ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
 
+  /**
+   TODO: Once PR-#1637 is merged, uncomment the following fields.
+
   @summary("The tax app used for this workflow")
   @visibility("read", "query")
   taxApp: OpenMeter.App.App;
@@ -107,4 +110,5 @@ model CustomerWorkflowOverride {
   @summary("The payment app used for this workflow")
   @visibility("read", "query")
   paymentApp: OpenMeter.App.App;
+  */
 }
