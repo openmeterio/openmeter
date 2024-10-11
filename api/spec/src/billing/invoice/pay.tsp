@@ -11,9 +11,7 @@ namespace Invoice.Pay;
 @summary("DueDate contains an amount that should be paid by the given date.")
 @friendlyName("BillingDueDate")
 model DueDate {
-  @summary("When the payment is due.")
-  // Note: This is a date-time, but we should use a date-time string to be more specific. (original schema has a Date field)
-  when: DateTime;
+  ...OpenMeter.DueDate;
 
   @summary("Other details to take into account for the due date.")
   notes?: string;
@@ -26,6 +24,15 @@ model DueDate {
 
   @summary("If different from the parent document's base currency.")
   currency?: Currency.Code;
+}
+
+namespace OpenMeter {
+  @friendlyName("BillingDueDateOpenMeter")
+  model DueDate {
+    @summary("When the payment is due.")
+    // Note: This is a date-time, but we should use a date-time string to be more specific. (original schema has a Date field)
+    when: DateTime;
+  }
 }
 
 @summary("PaymentTermKey defines the type of terms to be applied.")

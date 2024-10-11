@@ -26,8 +26,6 @@ namespace Invoice.Org;
 @summary("Party represents a person or business entity.")
 @friendlyName("BillingParty")
 model Party {
-  id?: ULID;
-
   @summary("Legal name or representation of the organization.")
   name?: string;
 
@@ -49,8 +47,6 @@ model Party {
 @summary("Email describes the electronic mailing details.")
 @friendlyName("BillingEmail")
 model Email {
-  id?: ULID;
-
   @summary("Identifier for the email.")
   label?: string;
 
@@ -73,8 +69,6 @@ model Email {
 @summary("Address describes the physical location of a party.")
 @friendlyName("BillingAddress")
 model Address {
-  id?: ULID;
-
   @summary("Identifier for the address.")
   label?: string;
 
@@ -109,8 +103,6 @@ model Address {
 @summary("DocumentRef is used to describe an existing document or a specific part of it’s contents.")
 @friendlyName("BillingDocumentRef")
 model DocumentRef {
-  id?: ULID;
-
   @summary("Type of the document referenced.")
   type?: CBC.Key;
 
@@ -146,8 +138,6 @@ model DocumentRef {
 @summary("Identity is used to define a code for a specific context.")
 @friendlyName("BillingIdentity")
 model Identity {
-  id?: ULID;
-
   @summary("Optional label useful for non-standard identities to give a bit more context.")
   label?: string;
 
@@ -170,3 +160,41 @@ model Identity {
 // TODO: we need to have a unit database
 @summary("Unit describes how the quantity of the product should be interpreted either using a GOBL key, or UN/ECE code.")
 scalar Unit extends string;
+
+/**
+ * UnitPriceItem represents a product or service that is sold to the customer based on a unit price.
+ */
+/* Omitted fields:
+ * - alt_prices: 	AltPrices defines a list of prices with their currencies that may be used as an alternative to the item’s base price.
+ * - origin: Country code of where this item was from originally.
+ * - ext: 	Extension code map for any additional regime specific codes that may be required.
+ */
+@friendlyName("BillingUnitPriceItem")
+model UnitPriceItem {
+  @summary("Primary reference code that identifies this item. Additional codes can be provided in the ‘identities’ property.")
+  ref?: string;
+
+  @summary("Special key used to classify the item sometimes required by some regimes.")
+  key?: CBC.Key;
+
+  @summary("Human readable name of the item.")
+  name: string;
+
+  @summary("List of additional codes, IDs, or SKUs which can be used to identify the item. They should be agreed upon between supplier and customer.")
+  identities?: Org.Identity[];
+
+  @summary("Description of the item.")
+  description?: string;
+
+  @summary("Currency used for the item’s price. Currency is mandatory for all items, so that we can support multi-currency setups.")
+  currency: Currency.Code;
+
+  @summary("Base price of a single unit to be sold.")
+  price: Numeric;
+
+  @summary("Unit of measure")
+  unit?: Org.Unit;
+
+  @summary("Additional metadata information that may be useful.")
+  meta?: CBC.Meta;
+}
