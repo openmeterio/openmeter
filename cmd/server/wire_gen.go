@@ -22,7 +22,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 )
 
@@ -208,8 +207,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		NamespaceManager:   manager,
 		Meter:              meter,
 		RouterHook:         v5,
-		TracerProvider:     tracerProvider,
-		MeterProvider:      meterProvider,
 	}
 	return application, func() {
 		cleanup7()
@@ -256,10 +253,6 @@ type Application struct {
 	Meter metric.Meter
 
 	RouterHook func(chi.Router)
-
-	// TODO: move to global setter
-	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 // TODO: consider moving this to a separate package

@@ -11,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -32,10 +31,6 @@ type Application struct {
 	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Meter metric.Meter
-
-	// TODO: move to global setter
-	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {

@@ -17,7 +17,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 )
 
@@ -104,8 +103,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		TelemetryServer:    v3,
 		TopicProvisioner:   topicProvisioner,
 		Meter:              meter,
-		TracerProvider:     tracerProvider,
-		MeterProvider:      meterProvider,
 	}
 	return application, func() {
 		cleanup5()
@@ -138,10 +135,6 @@ type Application struct {
 	TopicProvisioner kafka.TopicProvisioner
 
 	Meter metric.Meter
-
-	// TODO: move to global setter
-	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 // TODO: consider moving this to a separate package

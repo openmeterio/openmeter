@@ -32,7 +32,6 @@ type Application struct {
 
 	// TODO: move to global setter
 	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {

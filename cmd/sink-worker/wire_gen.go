@@ -75,7 +75,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		TopicProvisioner:  topicProvisioner,
 		Meter:             meter,
 		TracerProvider:    tracerProvider,
-		MeterProvider:     meterProvider,
 	}
 	return application, func() {
 		cleanup3()
@@ -106,7 +105,6 @@ type Application struct {
 
 	// TODO: move to global setter
 	TracerProvider trace.TracerProvider
-	MeterProvider  metric.MeterProvider
 }
 
 // TODO: use the primary logger
