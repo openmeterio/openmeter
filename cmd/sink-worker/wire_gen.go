@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
@@ -23,33 +24,39 @@ import (
 // Injectors from wire.go:
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
-	v := conf.Meters
-	inMemoryRepository := app.NewMeterRepository(v)
 	telemetryConfig := conf.Telemetry
 	metricsTelemetryConfig := telemetryConfig.Metrics
+	resource := NewOtelResource(conf)
+	meterProvider, cleanup, err := app.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
+	if err != nil {
+		return Application{}, nil, err
+	}
+	traceTelemetryConfig := telemetryConfig.Trace
+	tracerProvider, cleanup2, err := app.NewTracerProvider(ctx, traceTelemetryConfig, resource, logger)
+	if err != nil {
+		cleanup()
+		return Application{}, nil, err
+	}
+	textMapPropagator := NewTextMapPropagator()
+	globalInitializer := app.GlobalInitializer{
+		Logger:            logger,
+		MeterProvider:     meterProvider,
+		TracerProvider:    tracerProvider,
+		TextMapPropagator: textMapPropagator,
+	}
+	v := conf.Meters
+	inMemoryRepository := app.NewMeterRepository(v)
 	health := app.NewHealthChecker(logger)
 	telemetryHandler := app.NewTelemetryHandler(metricsTelemetryConfig, health)
-	v2, cleanup := app.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	resource := NewOtelResource(conf)
-	meterProvider, cleanup2, err := app.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
-	if err != nil {
-		cleanup()
-		return Application{}, nil, err
-	}
+	v2, cleanup3 := app.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	meter := NewMeter(meterProvider)
-	traceTelemetryConfig := telemetryConfig.Trace
-	tracerProvider, cleanup3, err := app.NewTracerProvider(ctx, traceTelemetryConfig, resource, logger)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	application := Application{
-		MeterRepository: inMemoryRepository,
-		TelemetryServer: v2,
-		Meter:           meter,
-		TracerProvider:  tracerProvider,
-		MeterProvider:   meterProvider,
+		GlobalInitializer: globalInitializer,
+		MeterRepository:   inMemoryRepository,
+		TelemetryServer:   v2,
+		Meter:             meter,
+		TracerProvider:    tracerProvider,
+		MeterProvider:     meterProvider,
 	}
 	return application, func() {
 		cleanup3()
@@ -70,6 +77,8 @@ func initializeLogger(conf config.Configuration) *slog.Logger {
 // wire.go:
 
 type Application struct {
+	app.GlobalInitializer
+
 	MeterRepository meter.Repository
 	TelemetryServer app.TelemetryServer
 
@@ -102,4 +111,9 @@ func NewOtelResource(conf config.Configuration) *resource.Resource {
 // TODO: consider moving this to a separate package
 func NewMeter(meterProvider metric.MeterProvider) metric.Meter {
 	return meterProvider.Meter(otelName)
+}
+
+// TODO: consider moving this to a separate package
+func NewTextMapPropagator() propagation.TextMapPropagator {
+	return propagation.TraceContext{}
 }

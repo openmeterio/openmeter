@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
@@ -21,6 +22,8 @@ import (
 )
 
 type Application struct {
+	app.GlobalInitializer
+
 	StreamingConnector streaming.Connector
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
@@ -37,9 +40,11 @@ type Application struct {
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	wire.Build(
 		app.Config,
+		app.Framework,
 		NewOtelResource,
 		app.Telemetry,
 		NewMeter,
+		NewTextMapPropagator,
 		app.Database,
 		app.ClickHouse,
 		// app.Kafka,
@@ -82,4 +87,9 @@ func NewOtelResource(conf config.Configuration) *resource.Resource {
 // TODO: consider moving this to a separate package
 func NewMeter(meterProvider metric.MeterProvider) metric.Meter {
 	return meterProvider.Meter(otelName)
+}
+
+// TODO: consider moving this to a separate package
+func NewTextMapPropagator() propagation.TextMapPropagator {
+	return propagation.TraceContext{}
 }

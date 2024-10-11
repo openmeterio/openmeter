@@ -14,9 +14,7 @@ import (
 	"github.com/oklog/run"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
@@ -89,13 +87,7 @@ func main() {
 	}
 	defer cleanup()
 
-	// TODO: move to global initializer
-	slog.SetDefault(logger)
-
-	// TODO: move to global initializer
-	otel.SetMeterProvider(app.MeterProvider)
-	otel.SetTracerProvider(app.TracerProvider)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	app.SetGlobals()
 
 	// Validate service prerequisites
 

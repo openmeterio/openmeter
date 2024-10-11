@@ -14,9 +14,7 @@ import (
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
@@ -90,13 +88,7 @@ func main() {
 	}
 	defer cleanup()
 
-	// TODO: move to global initializer
-	slog.SetDefault(logger)
-
-	// TODO: move to global initializer
-	otel.SetMeterProvider(app.MeterProvider)
-	otel.SetTracerProvider(app.TracerProvider)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	app.SetGlobals()
 
 	tracer := app.TracerProvider.Tracer(otelName)
 
