@@ -23,6 +23,11 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Telemetry"),
 	TelemetryConfig,
 
+	wire.FieldsOf(new(config.Configuration), "Ingest"),
+	wire.FieldsOf(new(config.IngestConfiguration), "Kafka"),
+	wire.FieldsOf(new(config.KafkaIngestConfiguration), "KafkaConfiguration"),
+	wire.FieldsOf(new(config.KafkaIngestConfiguration), "TopicProvisionerConfig"),
+
 	wire.FieldsOf(new(config.Configuration), "Meters"),
 	wire.FieldsOf(new(config.Configuration), "Namespace"),
 )
@@ -52,7 +57,13 @@ var Kafka = wire.NewSet(
 	NewKafkaProducer,
 	NewKafkaMetrics,
 
-	wire.FieldsOf(new(config.Configuration), "Ingest"),
+	KafkaTopic,
+)
+
+var KafkaTopic = wire.NewSet(
+	NewKafkaAdminClient,
+
+	NewKafkaTopicProvisionerConfig,
 	NewKafkaTopicProvisioner,
 )
 

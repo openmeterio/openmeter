@@ -43,8 +43,8 @@ func NewKafkaMetrics(meter metric.Meter) (*kafkametrics.Metrics, error) {
 	return metrics, nil
 }
 
-func NewKafkaTopicProvisioner(conf config.IngestConfiguration, logger *slog.Logger, meter metric.Meter) (pkgkafka.TopicProvisioner, error) {
-	kafkaConfigMap := conf.Kafka.CreateKafkaConfig()
+func NewKafkaAdminClient(conf config.KafkaIngestConfiguration) (*kafka.AdminClient, error) {
+	kafkaConfigMap := conf.CreateKafkaConfig()
 	// NOTE(chrisgacsal): remove 'go.logs.channel.enable' configuration parameter as it is not supported by AdminClient
 	// and initializing the client fails if this parameter is set.
 	delete(kafkaConfigMap, "go.logs.channel.enable")
@@ -54,13 +54,28 @@ func NewKafkaTopicProvisioner(conf config.IngestConfiguration, logger *slog.Logg
 		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
 	}
 
-	topicProvisioner, err := pkgkafka.NewTopicProvisioner(pkgkafka.TopicProvisionerConfig{
+	return adminClient, nil
+}
+
+// TODO: fill struct fields automatically?
+func NewKafkaTopicProvisionerConfig(
+	adminClient *kafka.AdminClient,
+	logger *slog.Logger,
+	meter metric.Meter,
+	settings config.TopicProvisionerConfig,
+) pkgkafka.TopicProvisionerConfig {
+	return pkgkafka.TopicProvisionerConfig{
 		AdminClient: adminClient,
 		Logger:      logger,
 		Meter:       meter,
-		CacheSize:   conf.Kafka.CacheSize,
-		CacheTTL:    conf.Kafka.CacheTTL,
-	})
+		CacheSize:   settings.CacheSize,
+		CacheTTL:    settings.CacheTTL,
+	}
+}
+
+// TODO: do we need a separate constructor for the sake of a custom error message?
+func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.TopicProvisioner, error) {
+	topicProvisioner, err := pkgkafka.NewTopicProvisioner(conf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
 	}

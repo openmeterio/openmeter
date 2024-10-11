@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.20.0"
@@ -48,11 +49,30 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	health := app.NewHealthChecker(logger)
 	telemetryHandler := app.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v2, cleanup3 := app.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	ingestConfiguration := conf.Ingest
+	kafkaIngestConfiguration := ingestConfiguration.Kafka
+	adminClient, err := app.NewKafkaAdminClient(kafkaIngestConfiguration)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	meter := NewMeter(meterProvider)
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
+	kafkaTopicProvisionerConfig := app.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
+	topicProvisioner, err := app.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer: globalInitializer,
 		MeterRepository:   inMemoryRepository,
 		TelemetryServer:   v2,
+		TopicProvisioner:  topicProvisioner,
 		Meter:             meter,
 		TracerProvider:    tracerProvider,
 		MeterProvider:     meterProvider,
@@ -78,8 +98,9 @@ func initializeLogger(conf config.Configuration) *slog.Logger {
 type Application struct {
 	app.GlobalInitializer
 
-	MeterRepository meter.Repository
-	TelemetryServer app.TelemetryServer
+	MeterRepository  meter.Repository
+	TelemetryServer  app.TelemetryServer
+	TopicProvisioner kafka.TopicProvisioner
 
 	Meter metric.Meter
 

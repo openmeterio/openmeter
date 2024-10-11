@@ -99,7 +99,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	watermillClientID := _wireWatermillClientIDValue
 	ingestConfiguration := conf.Ingest
-	topicProvisioner, err := app.NewKafkaTopicProvisioner(ingestConfiguration, logger, meter)
+	kafkaIngestConfiguration := ingestConfiguration.Kafka
+	adminClient, err := app.NewKafkaAdminClient(kafkaIngestConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
+	kafkaTopicProvisionerConfig := app.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
+	topicProvisioner, err := app.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
 	if err != nil {
 		cleanup5()
 		cleanup4()

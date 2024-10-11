@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	confluentkafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/oklog/run"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -117,15 +116,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize Kafka Topic Provisioner
-	topicProvisioner, err := initTopicProvisioner(conf, logger, app.Meter)
-	if err != nil {
-		logger.Error("failed to initialize kafka topic provisioner", "error", err)
-		os.Exit(1)
-	}
-
 	// Create publisher
-	eventPublisherDriver, err := initEventPublisherDriver(ctx, wmBrokerConfig, conf, topicProvisioner)
+	eventPublisherDriver, err := initEventPublisherDriver(ctx, wmBrokerConfig, conf, app.TopicProvisioner)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -241,29 +233,4 @@ func initEventPublisherDriver(ctx context.Context, broker watermillkafka.BrokerO
 		ProvisionTopics:  provisionTopics,
 		TopicProvisioner: topicProvisioner,
 	})
-}
-
-func initTopicProvisioner(conf config.Configuration, logger *slog.Logger, meter metric.Meter) (pkgkafka.TopicProvisioner, error) {
-	kafkaConfigMap := conf.Ingest.Kafka.CreateKafkaConfig()
-	// NOTE(chrisgacsal): remove 'go.logs.channel.enable' configuration parameter as it is not supported by AdminClient
-	// and initializing the client fails if this parameter is set.
-	delete(kafkaConfigMap, "go.logs.channel.enable")
-
-	adminClient, err := confluentkafka.NewAdminClient(&kafkaConfigMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
-	}
-
-	topicProvisioner, err := pkgkafka.NewTopicProvisioner(pkgkafka.TopicProvisionerConfig{
-		AdminClient: adminClient,
-		Logger:      logger,
-		Meter:       meter,
-		CacheSize:   conf.Ingest.Kafka.CacheSize,
-		CacheTTL:    conf.Ingest.Kafka.CacheTTL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
-	}
-
-	return topicProvisioner, nil
 }

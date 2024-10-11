@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type Application struct {
@@ -28,6 +29,7 @@ type Application struct {
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
 	// EventPublisher     eventbus.Publisher
+	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Meter metric.Meter
 
@@ -46,7 +48,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.NewDefaultTextMapPropagator,
 		app.Database,
 		app.ClickHouse,
-		// app.Kafka,
+		app.KafkaTopic,
 		// app.Watermill,
 		app.OpenMeter,
 		// wire.Value(app.WatermillClientID(otelName)),
