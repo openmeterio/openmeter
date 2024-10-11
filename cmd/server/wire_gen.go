@@ -9,6 +9,7 @@ package main
 import (
 	"context"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/go-chi/chi/v5"
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -180,6 +181,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
+	v5 := app.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		StreamingConnector: clickhouseConnector,
@@ -193,6 +195,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		NamespaceHandlers:  v4,
 		NamespaceManager:   manager,
 		Meter:              meter,
+		RouterHook:         v5,
 		TracerProvider:     tracerProvider,
 		MeterProvider:      meterProvider,
 	}
@@ -239,6 +242,8 @@ type Application struct {
 	NamespaceManager  *namespace.Manager
 
 	Meter metric.Meter
+
+	RouterHook func(chi.Router)
 
 	// TODO: move to global setter
 	TracerProvider trace.TracerProvider

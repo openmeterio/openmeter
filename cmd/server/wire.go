@@ -8,6 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -43,6 +44,8 @@ type Application struct {
 
 	Meter metric.Meter
 
+	RouterHook func(chi.Router)
+
 	// TODO: move to global setter
 	TracerProvider trace.TracerProvider
 	MeterProvider  metric.MeterProvider
@@ -56,6 +59,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Telemetry,
 		NewMeter,
 		app.NewDefaultTextMapPropagator,
+		app.NewTelemetryRouterHook,
 		app.Database,
 		app.ClickHouse,
 		app.Kafka,
