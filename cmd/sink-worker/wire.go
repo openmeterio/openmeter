@@ -11,7 +11,6 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
@@ -41,7 +40,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		NewOtelResource,
 		app.Telemetry,
 		NewMeter,
-		NewTextMapPropagator,
+		app.NewDefaultTextMapPropagator,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)
@@ -87,9 +86,4 @@ func NewOtelResource(conf config.Configuration) *resource.Resource {
 // TODO: consider moving this to a separate package
 func NewMeter(meterProvider metric.MeterProvider) metric.Meter {
 	return meterProvider.Meter(otelName)
-}
-
-// TODO: consider moving this to a separate package
-func NewTextMapPropagator() propagation.TextMapPropagator {
-	return propagation.TraceContext{}
 }

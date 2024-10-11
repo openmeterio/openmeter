@@ -15,6 +15,7 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	slogmulti "github.com/samber/slog-multi"
+	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -75,6 +76,10 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}, nil
+}
+
+func NewDefaultTextMapPropagator() propagation.TextMapPropagator {
+	return propagation.TraceContext{}
 }
 
 func NewHealthChecker(logger *slog.Logger) health.Health {

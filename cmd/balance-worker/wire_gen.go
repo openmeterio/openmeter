@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
@@ -37,7 +36,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	textMapPropagator := NewTextMapPropagator()
+	textMapPropagator := app.NewDefaultTextMapPropagator()
 	globalInitializer := app.GlobalInitializer{
 		Logger:            logger,
 		MeterProvider:     meterProvider,
@@ -133,9 +132,4 @@ func NewOtelResource(conf config.Configuration) *resource.Resource {
 // TODO: consider moving this to a separate package
 func NewMeter(meterProvider metric.MeterProvider) metric.Meter {
 	return meterProvider.Meter(otelName)
-}
-
-// TODO: consider moving this to a separate package
-func NewTextMapPropagator() propagation.TextMapPropagator {
-	return propagation.TraceContext{}
 }
