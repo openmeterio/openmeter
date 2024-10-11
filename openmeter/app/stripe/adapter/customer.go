@@ -125,6 +125,7 @@ func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity
 	stripeCustomer, err := stripeClient.CreateCustomer(ctx, stripeclient.CreateStripeCustomerInput{
 		AppID:      input.AppID,
 		CustomerID: input.CustomerID,
+		Name:       input.Name,
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)

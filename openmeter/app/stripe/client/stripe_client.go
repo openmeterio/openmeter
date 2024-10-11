@@ -214,9 +214,13 @@ func (c *stripeClient) CreateCustomer(ctx context.Context, input CreateStripeCus
 	}
 
 	// Create customer
-	params := &stripe.CustomerParams{}
-
-	stripeCustomer, err := c.client.Customers.New(params)
+	stripeCustomer, err := c.client.Customers.New(&stripe.CustomerParams{
+		Name: input.Name,
+		Metadata: map[string]string{
+			SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
+			SetupIntentDataMetadataCustomerID: input.CustomerID.ID,
+		},
+	})
 	if err != nil {
 		return StripeCustomer{}, c.providerError(err)
 	}

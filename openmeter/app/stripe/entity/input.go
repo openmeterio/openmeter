@@ -72,6 +72,8 @@ func (i CreateAppStripeInput) Validate() error {
 type CreateStripeCustomerInput struct {
 	AppID      appentitybase.AppID
 	CustomerID customerentity.CustomerID
+
+	Name *string
 }
 
 func (i CreateStripeCustomerInput) Validate() error {
@@ -85,6 +87,10 @@ func (i CreateStripeCustomerInput) Validate() error {
 
 	if i.AppID.Namespace != i.CustomerID.Namespace {
 		return errors.New("app and customer must be in the same namespace")
+	}
+
+	if i.Name != nil && *i.Name == "" {
+		return errors.New("name cannot be empty if provided")
 	}
 
 	return nil

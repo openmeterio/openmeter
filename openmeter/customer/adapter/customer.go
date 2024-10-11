@@ -44,14 +44,20 @@ func (r *adapter) Deregister(observer appobserver.Observer[customerentity.Custom
 }
 
 // ListCustomers lists customers
-func (a *adapter) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
+func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.PagedResponse[customerentity.Customer]{}, customerentity.ValidationError{
+			Err: err,
+		}
+	}
+
 	query := a.db.Customer.
 		Query().
 		WithSubjects().
-		Where(customerdb.Namespace(params.Namespace))
+		Where(customerdb.Namespace(input.Namespace))
 
 	// Do not return deleted customers by default
-	if !params.IncludeDeleted {
+	if !input.IncludeDeleted {
 		query = query.Where(customerdb.DeletedAtIsNil())
 	}
 
@@ -72,10 +78,10 @@ func (a *adapter) ListCustomers(ctx context.Context, params customerentity.ListC
 	// }
 
 	response := pagination.PagedResponse[customerentity.Customer]{
-		Page: params.Page,
+		Page: input.Page,
 	}
 
-	paged, err := query.Paginate(ctx, params.Page)
+	paged, err := query.Paginate(ctx, input.Page)
 	if err != nil {
 		return response, err
 	}
@@ -97,25 +103,31 @@ func (a *adapter) ListCustomers(ctx context.Context, params customerentity.ListC
 }
 
 // CreateCustomer creates a new customer
-func (a *adapter) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+	if err := input.Validate(); err != nil {
+		return nil, customerentity.ValidationError{
+			Err: fmt.Errorf("error creating customer: %w", err),
+		}
+	}
+
 	return transaction.Run(ctx, a, func(ctx context.Context) (*customerentity.Customer, error) {
 		// Create the customer in the database
 		query := a.db.Customer.Create().
-			SetNamespace(params.Namespace).
-			SetName(params.Name).
-			SetNillablePrimaryEmail(params.PrimaryEmail).
-			SetNillableCurrency(params.Currency).
-			SetNillableTimezone(params.Timezone)
+			SetNamespace(input.Namespace).
+			SetName(input.Name).
+			SetNillablePrimaryEmail(input.PrimaryEmail).
+			SetNillableCurrency(input.Currency).
+			SetNillableTimezone(input.Timezone)
 
-		if params.BillingAddress != nil {
+		if input.BillingAddress != nil {
 			query = query.
-				SetNillableBillingAddressCity(params.BillingAddress.City).
-				SetNillableBillingAddressCountry(params.BillingAddress.Country).
-				SetNillableBillingAddressLine1(params.BillingAddress.Line1).
-				SetNillableBillingAddressLine2(params.BillingAddress.Line2).
-				SetNillableBillingAddressPhoneNumber(params.BillingAddress.PhoneNumber).
-				SetNillableBillingAddressPostalCode(params.BillingAddress.PostalCode).
-				SetNillableBillingAddressState(params.BillingAddress.State)
+				SetNillableBillingAddressCity(input.BillingAddress.City).
+				SetNillableBillingAddressCountry(input.BillingAddress.Country).
+				SetNillableBillingAddressLine1(input.BillingAddress.Line1).
+				SetNillableBillingAddressLine2(input.BillingAddress.Line2).
+				SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
+				SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
+				SetNillableBillingAddressState(input.BillingAddress.State)
 		}
 
 		customerEntity, err := query.Save(ctx)
@@ -129,7 +141,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 		customerSubjects, err := a.db.CustomerSubjects.
 			CreateBulk(
 				lo.Map(
-					params.UsageAttribution.SubjectKeys,
+					input.UsageAttribution.SubjectKeys,
 					func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
 						return a.db.CustomerSubjects.Create().
 							SetNamespace(customerEntity.Namespace).
@@ -142,8 +154,8 @@ func (a *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 		if err != nil {
 			if entdb.IsConstraintError(err) {
 				return nil, customerentity.SubjectKeyConflictError{
-					Namespace:   params.Namespace,
-					SubjectKeys: params.UsageAttribution.SubjectKeys,
+					Namespace:   input.Namespace,
+					SubjectKeys: input.UsageAttribution.SubjectKeys,
 				}
 			}
 
@@ -158,7 +170,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 		customer := CustomerFromDBEntity(*customerEntity)
 
 		// TODO: support mapping for apps
-		customer.Apps = params.Apps
+		customer.Apps = input.Apps
 
 		// Post-create hook
 		for _, observer := range *a.observers {
@@ -174,6 +186,12 @@ func (a *adapter) CreateCustomer(ctx context.Context, params customerentity.Crea
 
 // DeleteCustomer deletes a customer
 func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
+	if err := input.Validate(); err != nil {
+		return customerentity.ValidationError{
+			Err: fmt.Errorf("error deleting customer: %w", err),
+		}
+	}
+
 	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
 		// Soft delete the customer
 		query := a.db.Customer.Update().
@@ -212,6 +230,12 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 
 // GetCustomer gets a customer
 func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
+	if err := input.Validate(); err != nil {
+		return nil, customerentity.ValidationError{
+			Err: fmt.Errorf("error getting customer: %w", err),
+		}
+	}
+
 	query := a.db.Customer.Query().
 		WithSubjects().
 		Where(customerdb.ID(input.ID)).
@@ -237,6 +261,12 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 
 // UpdateCustomer updates a customer
 func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+	if err := input.Validate(); err != nil {
+		return nil, customerentity.ValidationError{
+			Err: fmt.Errorf("error updating customer: %w", err),
+		}
+	}
+
 	return transaction.Run(ctx, a, func(ctx context.Context) (*customerentity.Customer, error) {
 		getCustomerInput := customerentity.GetCustomerInput{
 			Namespace: input.Namespace,

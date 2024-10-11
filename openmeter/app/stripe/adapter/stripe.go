@@ -225,25 +225,23 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		}
 
 		// Get or create customer
-		var customerID customerentity.CustomerID
+		var customer *customerentity.Customer
 
 		if input.CustomerID != nil {
-			customer, err := a.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(*input.CustomerID))
+			customer, err = a.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(*input.CustomerID))
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get customer: %w", err)
 			}
-
-			customerID = customer.GetID()
 		}
 
 		if input.CreateCustomerInput != nil {
-			customer, err := a.customerService.CreateCustomer(ctx, customerentity.CreateCustomerInput(*input.CreateCustomerInput))
+			customer, err = a.customerService.CreateCustomer(ctx, *input.CreateCustomerInput)
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create customer: %w", err)
 			}
-
-			customerID = customer.GetID()
 		}
+
+		customerID := customer.GetID()
 
 		// Get the stripe app customer
 		var stripeCustomerId string
@@ -270,10 +268,13 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 						stripeCustomerId = *input.StripeCustomerID
 					} else {
 						// Otherwise we create a new Stripe Customer
-						out, err := a.createStripeCustomer(ctx, appstripeentity.CreateStripeCustomerInput{
+						params := appstripeentity.CreateStripeCustomerInput{
 							AppID:      appID,
 							CustomerID: customerID,
-						})
+							Name:       &customer.Name,
+						}
+
+						out, err := a.createStripeCustomer(ctx, params)
 						if err != nil {
 							return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)
 						}
