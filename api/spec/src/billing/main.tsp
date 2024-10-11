@@ -8,7 +8,6 @@ import "..";
 import "./invoice/main.tsp";
 
 // Package Contents
-import "./types.tsp";
 import "./profile.tsp";
 import "./customer.tsp";
 import "./invoices.tsp";

@@ -8,6 +8,7 @@ using TypeSpec.OpenAPI;
 
 namespace Invoice.Tax;
 
+@friendlyName("BillingTaxCombo")
 model Combo {
   @encodedName("application/json", "cat")
   @summary("Tax category code from those available inside a region.")
@@ -30,6 +31,7 @@ model Combo {
   extensions: Invoice.CBC.Meta;
 }
 
+@friendlyName("BillingTaxIdentity")
 @summary("Identity stores the details required to identify an entity for tax purposes in a specific country.")
 model Identity {
   @summary("Tax country code for Where the tax identity was issued.")

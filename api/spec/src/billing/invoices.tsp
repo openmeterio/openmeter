@@ -1,9 +1,4 @@
-import "@typespec/http";
-import "@typespec/rest";
-import "@typespec/openapi3";
-
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Billing;
@@ -29,7 +24,7 @@ interface InvoicesAllCustomers {
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<ProfileOrderBy>,
+    ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
   ): OpenMeter.PaginatedResponse<Invoice.Bill.InvoiceSummary> | OpenMeter.CommonErrors;
 }
 
@@ -57,7 +52,7 @@ interface CustomerAllInvoices {
     customerIdOrKey: ULIDOrKey,
 
     @body
-    request: InvoiceCreateRequest,
+    request: InvoiceCreateInput,
   ): {
     @statusCode _: 201;
     @body body: Invoice.Bill.Invoice;
@@ -74,7 +69,7 @@ interface CustomerAllInvoices {
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<ProfileOrderBy>,
+    ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
   ): OpenMeter.PaginatedResponse<Invoice.Bill.InvoiceSummary> | OpenMeter.CommonErrors;
 
   /**
@@ -199,7 +194,7 @@ interface CustomerInvoices {
     invoiceId: ULID,
 
     @body
-    request: InvoiceVoidRequest,
+    request: VoidInvoiceInput,
   ): {
     @statusCode _: 200;
     @body body: Invoice.Bill.Invoice;
@@ -342,8 +337,21 @@ interface CustomerInvoices {
 }
 
 /**
+ * InvoiceOrderBy specifies the ordering options for invoice listing.
+ */
+@friendlyName("BillingInvoiceOrderBy")
+enum InvoiceOrderBy {
+  customer_name: "customer_name",
+  issued_at: "issued_at",
+  status: "status",
+  created: "created",
+  updated: "updated",
+}
+
+/**
  * Response for creating a pending charge
  */
+@friendlyName("BillingCreatePendingChargeResponse")
 model CreatePendingChargeResponse {
   @summary("The created pending charge")
   item: Invoice.Bill.InvoiceLine;
@@ -355,12 +363,13 @@ model CreatePendingChargeResponse {
 /**
  * Request to void an invoice
  */
-model InvoiceVoidRequest {
+@friendlyName("BillingVoidInvoiceInput")
+model VoidInvoiceInput {
   /**
    * The action to take on the voided items.
    */
   @summary("The action to take on the voided items")
-  action: InvoiceVoidAction;
+  action: VoidInvoiceItemAction;
 
   /**
    * The reason for voiding the invoice.
@@ -373,21 +382,24 @@ model InvoiceVoidRequest {
    *
    * If not specified, the `action` will be applied to all items.
    */
-  itemOverrides: InvoiceVoidItemOverride[];
+  itemOverrides: VoidInvoiceItemOverride[];
 }
 
 /**
  * InvoiceVoidAction describes how to handle the voided items.
  */
-model InvoiceVoidAction {
+@friendlyName("BillingVoidInvoiceAction")
+model VoidInvoiceAction {
   @summary("How much of the total items to be voided? (e.g. 100% means all charges are voided)")
   percentage: Percentage;
 
   @summary("How to handle the voided items, default: pending")
-  action: InvoiceVoidItemAction;
+  action: VoidInvoiceItemAction;
 }
 
-enum InvoiceVoidItemAction {
+@summary("VoidInvoiceItemAction describes how to handle the voidied item in the invoice.")
+@friendlyName("BillingVoidInvoiceItemAction")
+enum VoidInvoiceItemAction {
   @summary("The items will never be charged for again")
   discard: "discard",
 
@@ -399,19 +411,21 @@ enum InvoiceVoidItemAction {
 }
 
 /**
- * InvoiceVoidItemOverride describes how to handle a specific item in the invoice when voiding.
+ * VoidInvoiceItemOverride describes how to handle a specific item in the invoice when voiding.
  */
-model InvoiceVoidItemOverride {
+@friendlyName("BillingVoidInvoiceItemOverride")
+model VoidInvoiceItemOverride {
   @summary("The item ID to override")
   itemId: ULID;
 
   @summary("The action to take on the item")
-  action: InvoiceVoidItemAction;
+  action: VoidInvoiceAction;
 }
 
 /**
  * Common parameters for listing invoices
  */
+@friendlyName("BillingInvoiceListParams")
 model InvoiceListParams {
   @query
   @summary("Filter by the invoice status")
@@ -426,7 +440,8 @@ model InvoiceListParams {
   issuedBefore?: DateTime;
 }
 
-model InvoiceCreateRequest {
+@friendlyName("BillingInvoiceCreateInput")
+model InvoiceCreateInput {
   /**
    * The pending items to include in the invoice, if not provided all pending items will be included.
    */

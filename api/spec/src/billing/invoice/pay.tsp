@@ -9,6 +9,7 @@ using TypeSpec.OpenAPI;
 namespace Invoice.Pay;
 
 @summary("DueDate contains an amount that should be paid by the given date.")
+@friendlyName("BillingDueDate")
 model DueDate {
   @summary("When the payment is due.")
   // Note: This is a date-time, but we should use a date-time string to be more specific. (original schema has a Date field)
@@ -27,7 +28,8 @@ model DueDate {
   currency?: Currency.Code;
 }
 
-/// PaymentTermKey defines the type of terms to be applied.
+@summary("PaymentTermKey defines the type of terms to be applied.")
+@friendlyName("BillingPaymentTermKey")
 enum PaymentTermKey {
   @summary("Not yet defined")
   na: "",
@@ -60,7 +62,8 @@ enum PaymentTermKey {
   delivery: "delivery",
 }
 
-/// Terms defines when we expect the customer to pay, or have paid, for the contents of the document.
+@summary("Terms defines when we expect the customer to pay, or have paid, for the contents of the document.")
+@friendlyName("BillingPaymentTerms")
 model Terms {
   @summary("Type of terms to be applied.")
   key?: PaymentTermKey;

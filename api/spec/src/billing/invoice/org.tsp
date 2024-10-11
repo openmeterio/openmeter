@@ -8,7 +8,7 @@ using TypeSpec.OpenAPI;
 
 namespace Invoice.Org;
 
-/**
+/*
  * Omitted fields
  *
  *  identities: Set of codes used to identify the party in other systems.
@@ -24,6 +24,7 @@ namespace Invoice.Org;
  *  ext: (tax) Extension code map for any additional regime specific codes that may be required.
  */
 @summary("Party represents a person or business entity.")
+@friendlyName("BillingParty")
 model Party {
   id?: ULID;
 
@@ -46,6 +47,7 @@ model Party {
 }
 
 @summary("Email describes the electronic mailing details.")
+@friendlyName("BillingEmail")
 model Email {
   id?: ULID;
 
@@ -59,7 +61,7 @@ model Email {
   meta?: CBC.Meta;
 }
 
-/**
+/*
  * Omitted fields:
  * po_box: Post office box number for the address.
  * num: Number of the building in the street.
@@ -69,6 +71,7 @@ model Email {
  * coordinates: When the postal address is not sufficient, coordinates help locate the address more precisely.
  */
 @summary("Address describes the physical location of a party.")
+@friendlyName("BillingAddress")
 model Address {
   id?: ULID;
 
@@ -104,6 +107,7 @@ model Address {
  *  ext: 	Extensions for additional codes that may be required.
  */
 @summary("DocumentRef is used to describe an existing document or a specific part of it’s contents.")
+@friendlyName("BillingDocumentRef")
 model DocumentRef {
   id?: ULID;
 
@@ -140,6 +144,7 @@ model DocumentRef {
 }
 
 @summary("Identity is used to define a code for a specific context.")
+@friendlyName("BillingIdentity")
 model Identity {
   id?: ULID;
 

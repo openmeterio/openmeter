@@ -1,9 +1,4 @@
-import "@typespec/http";
-import "@typespec/rest";
-import "@typespec/openapi3";
-
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Billing;
@@ -73,7 +68,7 @@ interface Profiles {
 /**
  * ProfileOrderBy specifies the ordering options for profiles
  */
-@friendlyName("ProfileOrderBy")
+@friendlyName("BillingProfileOrderBy")
 enum ProfileOrderBy {
   created: "created",
   updated: "updated",
@@ -82,12 +77,12 @@ enum ProfileOrderBy {
 /**
  * Profile represents a billing profile
  */
-@friendlyName("Profile")
+@friendlyName("BillingProfile")
 model Profile {
   ...global.Resource;
 
   @summary("The name and contact information for the supplier this billing profile represents")
-  supplier: Supplier;
+  supplier: Invoice.Org.Party;
 
   @summary("The billing workflow settings for this profile")
   workflow: Workflow;
@@ -97,24 +92,9 @@ model Profile {
 }
 
 /**
- * Supplier represents a supplier
- */
-@friendlyName("Supplier")
-model Supplier {
-  ...BillingAddress;
-
-  /**
-   * The name of the supplier
-   *
-   * Should be the legal entity's name
-   */
-  name: string;
-}
-
-/**
  * Workflow represents a billing workflow
  */
-@friendlyName("Workflow")
+@friendlyName("BillingWorkflow")
 model Workflow {
   ...ResourceTimestamps;
   ...WorkflowSettings;
@@ -128,6 +108,7 @@ model Workflow {
   id: ULID;
 }
 
+@friendlyName("BillingWorkflowSettings")
 model WorkflowSettings {
   /**
    * When to collect the pending line items into an invoice.
@@ -164,6 +145,7 @@ model WorkflowSettings {
 /**
  * AppReference can be used to reference an app during creation only.
  */
+@friendlyName("BillingWorkflowAppReference")
 model AppReference {
   @summary("The ID of the app, if not specified the type is used to find the default app")
   id?: ULID;
@@ -179,7 +161,7 @@ model AppReference {
 /**
  * ProfileCreateInput represents the input for creating a billing profile
  */
-@friendlyName("ProfileCreateInput")
+@friendlyName("BillingProfileCreateInput")
 model ProfileCreateInput {
   ...OmitProperties<Profile, "workflow">;
   workflow: WorkflowCreateInput;
@@ -188,7 +170,7 @@ model ProfileCreateInput {
 /**
  * WorkflowCreate represents the workflow settings for creation of a billing profile
  */
-@friendlyName("WorkflowCreate")
+@friendlyName("BillingWorkflowCreateInput")
 model WorkflowCreateInput {
   ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
 
@@ -207,7 +189,7 @@ model WorkflowCreateInput {
  * CollectionAlignment specifies when the pending line items should be collected into
  * an invoice.
  */
-@friendlyName("CollectionAlignment")
+@friendlyName("BillingWorkflowCollectionAlignment")
 @summary("Collection alignment")
 enum CollectionAlignment {
   /**
@@ -220,7 +202,7 @@ enum CollectionAlignment {
  * WorkflowInvoice represents the invoice settings for a billing workflow
  */
 @summary("Workflow invoice settings")
-@friendlyName("WorkflowInvoice")
+@friendlyName("BillingWorkflowInvoice")
 model WorkflowInvoice {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
@@ -272,7 +254,7 @@ model WorkflowInvoice {
 /**
  * CollectionMethod specifies how the invoice should be collected (automatic vs manual)
  */
-@friendlyName("CollectionMethod")
+@friendlyName("BillingWorkflowCollectionMethod")
 @summary("Collection method")
 enum CollectionMethod {
   charge_automatically: "charge_automatically",
@@ -282,7 +264,7 @@ enum CollectionMethod {
 /**
  * ItemResolution specifies how the line items should be resolved in the invoice
  */
-@friendlyName("ItemResolution")
+@friendlyName("BillingWorkflowItemResolution")
 @summary("Item resolution")
 enum ItemResolution {
   /**

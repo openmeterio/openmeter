@@ -9,6 +9,7 @@ using TypeSpec.OpenAPI;
 // OpenMeterCBC is the namespace for the OpenMeter CBC extensions.
 namespace Invoice.OpenMeterCBC;
 
+@friendlyName("BillingNoteKey")
 enum NoteKey {
   goods: "goods",
   payment: "payment",
@@ -41,6 +42,7 @@ enum NoteKey {
 }
 
 @discriminator("key")
+@friendlyName("BillingBaseNote")
 model BaseNote {
   @summary("Key specifying subject of the text")
   key?: NoteKey;
@@ -63,6 +65,7 @@ model BaseNote {
  *
  * Can be used for unstructured information about the reason.
  */
+@friendlyName("BillingReasonNote")
 model ReasonNote extends BaseNote {
   key: NoteKey.reason;
 }
@@ -70,6 +73,8 @@ model ReasonNote extends BaseNote {
 /**
  * InvoiceWorkflowNote is a note that contains information about the invoice workflow.
  */
+@friendlyName("BillingInvoiceWorkflowNote")
+// TODO: we should rather represent this as static members!
 model InvoiceWorkflowNote extends BaseNote {
   key: NoteKey.invoice_workflow;
 
@@ -89,6 +94,7 @@ alias LineNotes = ReasonNote;
  */
 alias LineItemNotes = ReasonNote;
 
+@friendlyName("BillingExistingInvoiceWorkflow")
 model ExistingInvoiceWorkflow {
   /**
    * updatedAt is the time when the invoice workflow was last updated.
