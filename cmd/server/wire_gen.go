@@ -99,7 +99,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	watermillClientID := _wireWatermillClientIDValue
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
-	adminClient, err := app.NewKafkaAdminClient(kafkaIngestConfiguration)
+	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
+	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
 		cleanup4()

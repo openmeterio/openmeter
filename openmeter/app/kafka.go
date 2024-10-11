@@ -43,7 +43,7 @@ func NewKafkaMetrics(meter metric.Meter) (*kafkametrics.Metrics, error) {
 	return metrics, nil
 }
 
-func NewKafkaAdminClient(conf config.KafkaIngestConfiguration) (*kafka.AdminClient, error) {
+func NewKafkaAdminClient(conf config.KafkaConfiguration) (*kafka.AdminClient, error) {
 	kafkaConfigMap := conf.CreateKafkaConfig()
 	// NOTE(chrisgacsal): remove 'go.logs.channel.enable' configuration parameter as it is not supported by AdminClient
 	// and initializing the client fails if this parameter is set.
