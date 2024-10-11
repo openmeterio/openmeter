@@ -3,7 +3,7 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 
 import "../errors.tsp";
-import "../oauth.tsp";
+import "./oauth.tsp";
 import "../pagination.tsp";
 import "../types.tsp";
 
@@ -44,9 +44,9 @@ interface Marketplace {
   @get
   @route("/listings/{type}/install/oauth2/authorize")
   @operationId("marketplaceOAuth2InstallAuthorize")
-  authorizeOAuth2Install(
-    ...MarketplaceOAuth2InstallAuthorizeRequest,
-  ): { @statusCode _: 303; } | CommonErrors;
+  authorizeOAuth2Install(...MarketplaceOAuth2InstallAuthorizeRequest): {
+    @statusCode _: 303;
+  } | CommonErrors;
 
   /* **************** Install App via API Key **************** */
 

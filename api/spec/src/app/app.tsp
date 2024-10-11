@@ -6,7 +6,6 @@ import "@typespec/openapi3";
 import "./app.tsp";
 import "./capability.tsp";
 import "../errors.tsp";
-import "../oauth.tsp";
 import "../pagination.tsp";
 import "./stripe.tsp";
 import "../types.tsp";

@@ -7,7 +7,6 @@ import "./app.tsp";
 import "./capability.tsp";
 import "../errors.tsp";
 import "../customer.tsp";
-import "../oauth.tsp";
 import "../pagination.tsp";
 import "../types.tsp";
 
