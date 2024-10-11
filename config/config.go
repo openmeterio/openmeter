@@ -32,7 +32,7 @@ type Configuration struct {
 	Sink          SinkConfiguration
 	BalanceWorker BalanceWorkerConfiguration
 	Notification  NotificationConfiguration
-	Stripe        StripeConfig
+	StripeApp     StripeAppConfig
 	Svix          SvixConfig
 }
 
@@ -108,8 +108,8 @@ func (c Configuration) Validate() error {
 		}
 	}
 
-	if err := c.Stripe.Validate(); err != nil {
-		errs = append(errs, errorsx.WithPrefix(err, "stripe"))
+	if err := c.StripeApp.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "stripe app"))
 	}
 
 	return errors.Join(errs...)

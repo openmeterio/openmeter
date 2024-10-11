@@ -17,7 +17,8 @@ func errorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[appstripe.WebhookAppNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[appstripe.ValidationError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[appstripe.StripeCustomerPreConditionError](ctx, http.StatusPreconditionFailed, err, w) ||
-			// We need to add this customer error because Stripe Checkout Session creation can create a customer and fail with this error
+			// TODO (pmarton): We need to add this customer error because Stripe Checkout Session creation can create a customer and fail with this error
+			// On the long term all errors should implement a common interface that controls the HTTP status code.
 			commonhttp.HandleErrorIfTypeMatches[customerentity.SubjectKeyConflictError](ctx, http.StatusPreconditionFailed, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w)
 	}

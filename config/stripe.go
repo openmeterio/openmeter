@@ -2,37 +2,38 @@ package config
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/viper"
 )
 
-// StripeConfig is the configuration for Stripe.
-type StripeConfig struct {
-	Webhook StripeWebhookConfig `yaml:"webhook"`
+// StripeAppConfig is the configuration for Stripe.
+type StripeAppConfig struct {
+	IncomingWebhook StripeAppIncomingWebhookConfig `yaml:"incomingWebhook"`
 }
 
 // Validate validates the configuration.
-func (c StripeConfig) Validate() error {
+func (c StripeAppConfig) Validate() error {
 	var errs []error
 
-	if err := c.Webhook.Validate(); err != nil {
-		errs = append(errs, err)
+	if err := c.IncomingWebhook.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("incoming webhook: %w", err))
 	}
 
 	return errors.Join(errs...)
 }
 
-// StripeWebhookConfig is the configuration for the Stripe webhook.
-type StripeWebhookConfig struct {
+// StripeAppIncomingWebhookConfig is the configuration for the Stripe webhook.
+type StripeAppIncomingWebhookConfig struct {
 	// BaseURL is the base URL for the Stripe webhook.
 	BaseURL string `yaml:"baseURL"`
 }
 
-func (c StripeWebhookConfig) Validate() error {
+func (c StripeAppIncomingWebhookConfig) Validate() error {
 	var errs []error
 
 	if c.BaseURL == "" {
-		errs = append(errs, errors.New("webhook base URL is required"))
+		errs = append(errs, errors.New("base URL is required"))
 	}
 
 	return errors.Join(errs...)
@@ -40,5 +41,5 @@ func (c StripeWebhookConfig) Validate() error {
 
 // ConfigureStripe configures the default values for Stripe.
 func ConfigureStripe(v *viper.Viper) {
-	v.SetDefault("stripe.webhook.baseURL", "https://example.com")
+	v.SetDefault("stripeApp.incomingWebhook.baseURL", "https://example.com")
 }

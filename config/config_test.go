@@ -287,8 +287,8 @@ func TestComplete(t *testing.T) {
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
 		},
-		Stripe: StripeConfig{
-			Webhook: StripeWebhookConfig{
+		StripeApp: StripeAppConfig{
+			IncomingWebhook: StripeAppIncomingWebhookConfig{
 				BaseURL: "https://example.com",
 			},
 		},
