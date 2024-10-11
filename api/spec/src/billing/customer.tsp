@@ -1,9 +1,4 @@
-import "@typespec/http";
-import "@typespec/rest";
-import "@typespec/openapi3";
-
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Billing;
@@ -74,13 +69,17 @@ interface Customers {
 /**
  * Order by options for customers.
  */
-@friendlyName("CustomerOrderBy")
+@friendlyName("BillingCustomerOverrideOrderBy")
 enum CustomerOverrideOrderBy {
   id: "id",
   created: "created",
   updated: "updated",
 }
 
+/**
+ * Customer specific workflow overrides.
+ */
+@friendlyName("BillingCustomerOverride")
 model CustomerOverride {
   ...ResourceTimestamps;
   workflow: CustomerWorkflowOverride;
@@ -93,11 +92,15 @@ model CustomerOverride {
   billingProfile?: ULID;
 }
 
+@friendlyName("BillingCustomerWorkflowOverride")
 model CustomerWorkflowOverride {
   ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
 
   /**
    TODO: Once PR-#1637 is merged, uncomment the following fields.
+
+   // Note: these are only available for read, as provider override is not supported via the customer override.
+   // to do that the customer should be assocatied with a new billing profile instead.
 
   @summary("The tax app used for this workflow")
   @visibility("read", "query")

@@ -9,6 +9,7 @@ using TypeSpec.OpenAPI;
 namespace Invoice.Bill;
 
 @summary("Invoice summary represents an extract of the invoice object")
+@friendlyName("BillingInvoiceSummary")
 model InvoiceSummary {
   id: ULID;
   type?: InvoiceType;
@@ -28,22 +29,6 @@ model InvoiceSummary {
   // NOTE: This replaces the issueDate in the gobl schema, as date only is a bad practice and should be avoided.
   issuedAt?: DateTime;
 
-  // Omitted fields (not required yet):
-  //  op_date: Date when the operation defined by the invoice became effective.
-  //  value_date: When the taxes of this invoice become accountable, if none set, the issue date is used.
-  //  exchange_rates: Exchange rates to be used when converting the invoices monetary values into other currencies.
-  //     -> We are not supporting multi-currency invoices yet, so this is not supported.
-  //  charges: 	Charges or surcharges applied to the complete invoice.
-  //     -> We are not supporting this yet.
-  //  outlays: 	Expenses paid for by the supplier but invoiced directly to the customer.
-  //     -> We are not supporting this yet.
-  //  ordering: Ordering details including document references and buyer or seller parties.
-  //     -> We are not supporting this yet (e.g. order handled by seperate entity, physical goods delivery details, etc.)
-  //  delivery: Specific details on delivery of the goods referenced in the invoice.
-  //     -> We are not supporting physical goods delivery yet.
-  //  tax: Special tax configuration for billing.
-  //     -> The prices include is the meaningful part, but we should make that an array, let's see if we need this as we implement more features.
-
   @summary("Currency fot all invoice totals.")
   currency?: Currency.Code;
 
@@ -60,25 +45,26 @@ model InvoiceSummary {
   meta?: CBC.Meta;
 }
 
+/* Omitted fields (not required yet):
+ * op_date: Date when the operation defined by the invoice became effective.
+ * value_date: When the taxes of this invoice become accountable, if none set, the issue date is used.
+ * exchange_rates: Exchange rates to be used when converting the invoices monetary values into other currencies.
+ *    -> We are not supporting multi-currency invoices yet, so this is not supported.
+ * charges: 	Charges or surcharges applied to the complete invoice.
+ *    -> We are not supporting this yet.
+ * outlays: 	Expenses paid for by the supplier but invoiced directly to the customer.
+ *    -> We are not supporting this yet.
+ * ordering: Ordering details including document references and buyer or seller parties.
+ *    -> We are not supporting this yet (e.g. order handled by seperate entity, physical goods delivery details, etc.)
+ * delivery: Specific details on delivery of the goods referenced in the invoice.
+ *    -> We are not supporting physical goods delivery yet.
+ * tax: Special tax configuration for billing.
+ *    -> The prices include is the meaningful part, but we should make that an array, let's see if we need this as we implement more features.
+ */
 @summary("Invoice represents a document that is sent to a customer to request payment for goods or services.")
+@friendlyName("BillingInvoice")
 model Invoice {
   ...InvoiceSummary;
-
-  // Omitted fields (not required yet):
-  //  op_date: Date when the operation defined by the invoice became effective.
-  //  value_date: When the taxes of this invoice become accountable, if none set, the issue date is used.
-  //  exchange_rates: Exchange rates to be used when converting the invoices monetary values into other currencies.
-  //     -> We are not supporting multi-currency invoices yet, so this is not supported.
-  //  charges: 	Charges or surcharges applied to the complete invoice.
-  //     -> We are not supporting this yet.
-  //  outlays: 	Expenses paid for by the supplier but invoiced directly to the customer.
-  //     -> We are not supporting this yet.
-  //  ordering: Ordering details including document references and buyer or seller parties.
-  //     -> We are not supporting this yet (e.g. order handled by seperate entity, physical goods delivery details, etc.)
-  //  delivery: Specific details on delivery of the goods referenced in the invoice.
-  //     -> We are not supporting physical goods delivery yet.
-  //  tax: Special tax configuration for billing.
-  //     -> The prices include is the meaningful part, but we should make that an array, let's see if we need this as we implement more features.
 
   @summary("The taxable entity supplying the goods or services.")
   supplier: Org.Party;
@@ -99,6 +85,7 @@ model Invoice {
 /**
  * InvoiceStatus describes the status of an invoice.
  */
+@friendlyName("BillingInvoiceStatus")
 enum InvoiceStatus {
   /**
    * The list of line items for the next invoice is being gathered.
@@ -131,6 +118,7 @@ enum InvoiceStatus {
   validation_failed: "validation_failed",
 }
 
+@friendlyName("BillingInvoceType")
 enum InvoiceType {
   @summary("A regular commercial invoice document between a supplier and customer.")
   standard: "standard",
@@ -151,6 +139,7 @@ enum InvoiceType {
   other: "other",
 }
 
+@friendlyName("BillingInvoiceDiscount")
 @summary("Discount represents an allowance applied to the complete document independent from the individual lines.")
 model Discount {
   @summary("Universally Unique Identifier.")
@@ -185,9 +174,10 @@ model Discount {
   meta?: CBC.Meta;
 }
 
-// TODO: Add the other possible line item types
 alias InvoiceLine = UnitPriceLine;
 
+@summary("LineTypes represents the different types of lines that can be used in an invoice.")
+@friendlyName("BillingLineTypes")
 enum LineTypes {
   /*
    * The line represents a product or service that is sold to the customer.
@@ -203,6 +193,7 @@ enum LineTypes {
  * This is a base class for all line types, and should not be used directly.
  * */
 @discriminator("type")
+@friendlyName("BillingLine")
 model Line {
   @visibility("read", "query", "update")
   id: ULID;
@@ -236,6 +227,7 @@ model Line {
 }
 
 @summary("Period represents a time range.")
+@friendlyName("BillingPeriod")
 model Period {
   @summary("Start of the period.")
   start: DateTime;
@@ -249,7 +241,7 @@ model Period {
  *
  * This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
  */
-// TODO: check code for other union types
+@friendlyName("BillingUnitPriceLine")
 model UnitPriceLine extends Line {
   type: LineTypes.UnitPrice;
 
@@ -262,12 +254,13 @@ model UnitPriceLine extends Line {
 
 /**
  * UnitPriceItem represents a product or service that is sold to the customer based on a unit price.
- *
- * Omitted fields:
+ */
+/* Omitted fields:
  * - alt_prices: 	AltPrices defines a list of prices with their currencies that may be used as an alternative to the item’s base price.
  * - origin: Country code of where this item was from originally.
  * - ext: 	Extension code map for any additional regime specific codes that may be required.
  */
+@friendlyName("BillingUnitPriceItem")
 model UnitPriceItem {
   @visibility("read", "query", "update")
   id?: ULID;
@@ -303,6 +296,8 @@ model UnitPriceItem {
   notes?: OpenMeterCBC.LineItemNotes[];
 }
 
+@summary("GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.")
+@friendlyName("BillingGenericCharge")
 model GenericCharge {
   /**
    * Percentage if fixed amount not applied
@@ -324,21 +319,24 @@ model GenericCharge {
 }
 
 @summary("LineDiscount represents an amount deducted from the line, and will be applied before taxes.")
+@friendlyName("BillingLineDiscount")
 model LineDiscount {
   ...GenericCharge;
 }
 
 @summary("LineCharge represents an amount added to the line, and will be applied before taxes.")
+@friendlyName("BillingLineCharge")
 model LineCharge {
   ...GenericCharge;
 }
 
-/**
+/*
  * Omitted fields:
  * - taxes: Summary of all the taxes included in the invoice.
  *    We don't need that detailed information here, as we only need the total tax amount.
  */
 @summary("Totals contains the summaries of all calculations for the invoice.")
+@friendlyName("BillingInvoiceTotals")
 model Totals {
   @summary("Sum of all line item sums")
   sum: Numeric;
@@ -377,7 +375,7 @@ model Totals {
   due?: Numeric;
 }
 
-/**
+/*
  * Omitted fields:
  * - payee: The party responsible for receiving payment of the invoice, if not the supplier.
  *    We don't need this information here, as we only need the payment terms.
@@ -388,6 +386,7 @@ model Totals {
  *    we might need this information.
  */
 @summary("Payment contains details as to how the invoice should be paid.")
+@friendlyName("BillingInvoicePayment")
 model Payment {
   terms?: Pay.Terms;
 }
