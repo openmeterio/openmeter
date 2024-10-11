@@ -284,6 +284,7 @@ interface CustomerInvoices {
   @put
   @route("/customer")
   @summary("Update the customer information for the invoice")
+  @operationId("billingUpdateInvoiceCustomer")
   updateCustomer(
     @path
     customerIdOrKey: ULIDOrKey,
