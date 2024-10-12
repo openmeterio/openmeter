@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// ListAppsHandler is a handler for listing marketplace listings
+// ListAppsHandler is a handler for listing apps
 type (
 	ListAppsRequest  = appentity.ListAppInput
 	ListAppsResponse = api.AppList
@@ -25,7 +25,7 @@ type (
 	ListAppsHandler  httptransport.HandlerWithArgs[ListAppsRequest, ListAppsResponse, ListAppsParams]
 )
 
-// ListApps returns a handler for listing marketplace listings
+// ListApps returns a handler for listing apps
 func (h *handler) ListApps() ListAppsHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListAppsParams) (ListAppsRequest, error) {
@@ -62,6 +62,45 @@ func (h *handler) ListApps() ListAppsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listApps"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+// GetAppHandler is a handler to get an app by id
+type (
+	GetAppRequest  = appentity.GetAppInput
+	GetAppResponse = api.App
+	GetAppHandler  httptransport.HandlerWithArgs[GetAppRequest, GetAppResponse, string]
+)
+
+// GetApp returns an app handler
+func (h *handler) GetApp() GetAppHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, appId string) (GetAppRequest, error) {
+			// Resolve namespace
+			namespace, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetAppRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			return GetAppRequest{
+				Namespace: namespace,
+				ID:        appId,
+			}, nil
+		},
+		func(ctx context.Context, request GetAppRequest) (GetAppResponse, error) {
+			app, err := h.service.GetApp(ctx, request)
+			if err != nil {
+				return GetAppResponse{}, fmt.Errorf("failed to get app: %w", err)
+			}
+
+			return mapAppToAPI(app), nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetAppResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getApp"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

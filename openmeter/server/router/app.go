@@ -9,8 +9,7 @@ import (
 // Handle to get app by id
 // (GET /api/v1/apps/{appId})
 func (a *Router) GetApp(w http.ResponseWriter, r *http.Request, appID string) {
-	w.WriteHeader(http.StatusNotImplemented)
-	_, _ = w.Write([]byte("Unimplemented"))
+	a.appHandler.GetApp().With(appID).ServeHTTP(w, r)
 }
 
 // Handle to list apps
