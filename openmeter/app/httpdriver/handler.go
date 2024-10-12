@@ -16,6 +16,7 @@ type AppHandler interface {
 }
 
 type MarketplaceHandler interface {
+	MarketplaceListListings() MarketplaceListListingsHandler
 	MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler
 }
 

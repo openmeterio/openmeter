@@ -4705,11 +4705,6 @@ components:
         description:
           type: string
           description: The capability description.
-        requirements:
-          type: array
-          items:
-            $ref: '#/components/schemas/AppRequirements'
-          description: The capability requirements.
       example:
         type: collectPayments
         key: stripe_collect_payment
@@ -4754,12 +4749,6 @@ components:
           maxItems: 1000
           description: The items in the page.
       description: A page of results.
-    AppRequirements:
-      type: string
-      enum:
-        - customer.countryCode
-        - customer.external.stripeCustomerId
-      description: App requirements.
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -6380,20 +6369,14 @@ components:
             key: stripe_calculate_tax
             name: Calculate Tax
             description: Stripe Tax calculates tax portion of the invoices.
-            requirements:
-              - customer.external.stripeCustomerId
           - type: invoiceCustomers
             key: stripe_invoice_customers
             name: Invoice Customers
             description: Stripe invoices customers with due amount.
-            requirements:
-              - customer.external.stripeCustomerId
           - type: collectPayments
             key: stripe_collect_payments
             name: Collect Payments
             description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
-            requirements:
-              - customer.external.stripeCustomerId
       description: |-
         A marketplace listing.
         Represent an available app in the app marketplace that can be installed to the organization.
@@ -7504,20 +7487,14 @@ components:
               key: stripe_calculate_tax
               name: Calculate Tax
               description: Stripe Tax calculates tax portion of the invoices.
-              requirements:
-                - customer.external.stripeCustomerId
             - type: invoiceCustomers
               key: stripe_invoice_customers
               name: Invoice Customers
               description: Stripe invoices customers with due amount.
-              requirements:
-                - customer.external.stripeCustomerId
             - type: collectPayments
               key: stripe_collect_payments
               name: Collect Payments
               description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
-              requirements:
-                - customer.external.stripeCustomerId
         createdAt: 2024-01-01T01:01:01.001Z
         updatedAt: 2024-01-01T01:01:01.001Z
         stripeAccountId: acct_123456789

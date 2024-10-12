@@ -34,11 +34,6 @@ model Capability {
    * The capability description.
    */
   description: string;
-
-  /**
-   * The capability requirements.
-   */
-  requirements?: Requirements[];
 }
 
 /**
@@ -70,13 +65,4 @@ enum CapabilityType {
    * The app can collect payments.
    */
   CollectPayments: "collectPayments",
-}
-
-/**
- * App requirements.
- */
-@friendlyName("AppRequirements")
-enum Requirements {
-  CustomerCountryCode: "customer.countryCode",
-  CustomerExternalStripeCustomerId: "customer.external.stripeCustomerId",
 }

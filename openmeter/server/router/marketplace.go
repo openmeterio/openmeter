@@ -9,8 +9,7 @@ import (
 // List marketplace listings
 // (GET /api/v1/marketplace/listings)
 func (a *Router) MarketplaceListListings(w http.ResponseWriter, r *http.Request, params api.MarketplaceListListingsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-	_, _ = w.Write([]byte("Unimplemented"))
+	a.appHandler.MarketplaceListListings().With(params).ServeHTTP(w, r)
 }
 
 // Install a marketplace app by API key

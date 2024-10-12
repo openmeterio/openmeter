@@ -233,21 +233,18 @@ model CheckoutSessionCustomTextParams {
         key: "stripe_calculate_tax",
         name: "Calculate Tax",
         description: "Stripe Tax calculates tax portion of the invoices.",
-        requirements: #[Requirements.CustomerExternalStripeCustomerId],
       },
       #{
         type: CapabilityType.InvoiceCustomers,
         key: "stripe_invoice_customers",
         name: "Invoice Customers",
         description: "Stripe invoices customers with due amount.",
-        requirements: #[Requirements.CustomerExternalStripeCustomerId],
       },
       #{
         type: CapabilityType.CollectPayments,
         key: "stripe_collect_payments",
         name: "Collect Payments",
         description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
-        requirements: #[Requirements.CustomerExternalStripeCustomerId],
       }
     ],
   },

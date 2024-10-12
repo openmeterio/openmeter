@@ -8,11 +8,69 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+// MarketplaceListListingsHandler is a handler for listing marketplace listings
+type (
+	MarketplaceListListingsRequest  = appentity.MarketplaceListInput
+	MarketplaceListListingsResponse = api.MarketplaceListingList
+	MarketplaceListListingsParams   = api.MarketplaceListListingsParams
+	MarketplaceListListingsHandler  httptransport.HandlerWithArgs[MarketplaceListListingsRequest, MarketplaceListListingsResponse, MarketplaceListListingsParams]
+)
+
+// MarketplaceListListings returns a handler for listing marketplace listings
+func (h *handler) MarketplaceListListings() MarketplaceListListingsHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params MarketplaceListListingsParams) (MarketplaceListListingsRequest, error) {
+			return MarketplaceListListingsRequest{
+				Page: pagination.Page{
+					PageSize:   lo.FromPtrOr(params.PageSize, app.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, app.DefaultPageNumber),
+				},
+			}, nil
+		},
+		func(ctx context.Context, request MarketplaceListListingsRequest) (MarketplaceListListingsResponse, error) {
+			result, err := h.service.ListMarketplaceListings(ctx, request)
+			if err != nil {
+				return MarketplaceListListingsResponse{}, fmt.Errorf("failed to list marketplace listings: %w", err)
+			}
+
+			return MarketplaceListListingsResponse{
+				Page:       result.Page.PageNumber,
+				PageSize:   result.Page.PageSize,
+				TotalCount: result.TotalCount,
+				Items: lo.Map(result.Items, func(item appentity.RegistryItem, _ int) api.MarketplaceListing {
+					return api.MarketplaceListing{
+						Type:        api.OpenMeterAppType(item.Listing.Type),
+						Name:        item.Listing.Name,
+						Description: item.Listing.Description,
+						IconUrl:     item.Listing.IconURL,
+						Capabilities: lo.Map(item.Listing.Capabilities, func(v appentitybase.Capability, _ int) api.AppCapability {
+							return api.AppCapability{
+								Type:        api.AppCapabilityType(v.Type),
+								Key:         v.Key,
+								Name:        v.Name,
+								Description: v.Description,
+							}
+						}),
+					}
+				}),
+			}, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[MarketplaceListListingsResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("marketplaceListListings"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
 
 type (
 	MarketplaceAppAPIKeyInstallRequest  = appentity.InstallAppWithAPIKeyInput
@@ -67,14 +125,6 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 							Key:         v.Key,
 							Name:        v.Name,
 							Description: v.Description,
-							// TODO(pmarton): adapter to return requirements
-							// Requirements: lo.Map(v.Requements, func(v appentitybase.Requirement, _ int) api.AppRequirement {
-							// 	return api.AppRequirement{
-							// 		Key:         v.Key,
-							// 		Name:        v.Name,
-							// 		Description: v.Description,
-							// 	}
-							// }),
 						}
 					}),
 				},
