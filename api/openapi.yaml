@@ -19,7 +19,7 @@ tags:
   - name: Customers
   - name: Subjects
 paths:
-  /api/v1/apps/:
+  /api/v1/apps:
     get:
       operationId: listApps
       description: List apps.

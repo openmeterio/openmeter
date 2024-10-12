@@ -325,7 +325,7 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 // AppData represents the Stripe associated data for an app
 type AppData struct {
 	StripeAccountID string
-	Livemove        bool
+	Livemode        bool
 	APIKey          secretentity.SecretID
 	WebhookSecret   secretentity.SecretID
 }

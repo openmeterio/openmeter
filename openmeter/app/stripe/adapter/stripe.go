@@ -92,7 +92,7 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 
 	return appstripeentity.AppData{
 		StripeAccountID: stripeCustomerDBEntity.StripeAccountID,
-		Livemove:        stripeCustomerDBEntity.StripeLivemode,
+		Livemode:        stripeCustomerDBEntity.StripeLivemode,
 		APIKey:          secretentity.NewSecretID(input.AppID, stripeCustomerDBEntity.APIKey, appstripeentity.APIKeySecretKey),
 		WebhookSecret:   secretentity.NewSecretID(input.AppID, stripeCustomerDBEntity.WebhookSecret, appstripeentity.WebhookSecretKey),
 	}, nil
@@ -374,7 +374,7 @@ func (a adapter) mapAppStripeFromDB(
 		AppBase: appBase,
 		AppData: appstripeentity.AppData{
 			StripeAccountID: dbAppStripe.StripeAccountID,
-			Livemove:        dbAppStripe.StripeLivemode,
+			Livemode:        dbAppStripe.StripeLivemode,
 		},
 
 		// TODO: fixme, it should be a service not an adapter

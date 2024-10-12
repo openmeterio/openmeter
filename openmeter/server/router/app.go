@@ -16,8 +16,7 @@ func (a *Router) GetApp(w http.ResponseWriter, r *http.Request, appID string) {
 // Handle to list apps
 // (GET /api/v1/apps)
 func (a *Router) ListApps(w http.ResponseWriter, r *http.Request, params api.ListAppsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-	_, _ = w.Write([]byte("Unimplemented"))
+	a.appHandler.ListApps().With(params).ServeHTTP(w, r)
 }
 
 // Uninstall an app by id

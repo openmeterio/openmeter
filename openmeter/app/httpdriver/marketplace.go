@@ -46,20 +46,7 @@ func (h *handler) MarketplaceListListings() MarketplaceListListingsHandler {
 				PageSize:   result.Page.PageSize,
 				TotalCount: result.TotalCount,
 				Items: lo.Map(result.Items, func(item appentity.RegistryItem, _ int) api.MarketplaceListing {
-					return api.MarketplaceListing{
-						Type:        api.OpenMeterAppType(item.Listing.Type),
-						Name:        item.Listing.Name,
-						Description: item.Listing.Description,
-						IconUrl:     item.Listing.IconURL,
-						Capabilities: lo.Map(item.Listing.Capabilities, func(v appentitybase.Capability, _ int) api.AppCapability {
-							return api.AppCapability{
-								Type:        api.AppCapabilityType(v.Type),
-								Key:         v.Key,
-								Name:        v.Name,
-								Description: v.Description,
-							}
-						}),
-					}
+					return mapMarketplaceListing(item.Listing)
 				}),
 			}, nil
 		},
@@ -87,6 +74,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
 			}
 
+			// Resolve namespace
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -114,20 +102,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				Status: api.OpenMeterAppAppStatus(appBase.Status),
 				// TODO(pmarton): adapter to implement metadata
 				// Metadata: appBase.Metadata,
-				Listing: api.MarketplaceListing{
-					Type:        api.OpenMeterAppType(appBase.Listing.Type),
-					Name:        appBase.Listing.Name,
-					Description: appBase.Listing.Description,
-					IconUrl:     appBase.Listing.IconURL,
-					Capabilities: lo.Map(appBase.Listing.Capabilities, func(v appentitybase.Capability, _ int) api.AppCapability {
-						return api.AppCapability{
-							Type:        api.AppCapabilityType(v.Type),
-							Key:         v.Key,
-							Name:        v.Name,
-							Description: v.Description,
-						}
-					}),
-				},
+				Listing:   mapMarketplaceListing(appBase.Listing),
 				CreatedAt: appBase.CreatedAt,
 				UpdatedAt: appBase.UpdatedAt,
 				DeletedAt: appBase.DeletedAt,
@@ -140,4 +115,21 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func mapMarketplaceListing(listing appentitybase.MarketplaceListing) api.MarketplaceListing {
+	return api.MarketplaceListing{
+		Type:        api.OpenMeterAppType(listing.Type),
+		Name:        listing.Name,
+		Description: listing.Description,
+		IconUrl:     listing.IconURL,
+		Capabilities: lo.Map(listing.Capabilities, func(v appentitybase.Capability, _ int) api.AppCapability {
+			return api.AppCapability{
+				Type:        api.AppCapabilityType(v.Type),
+				Key:         v.Key,
+				Name:        v.Name,
+				Description: v.Description,
+			}
+		}),
+	}
 }
