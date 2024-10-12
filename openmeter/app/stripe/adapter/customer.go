@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
@@ -16,6 +17,39 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// GetStripeCustomerData gets stripe customer data
+func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerAppData, error) {
+	if err := input.Validate(); err != nil {
+		return appstripeentity.CustomerAppData{}, appstripe.ValidationError{
+			Err: fmt.Errorf("error getting stripe customer data: %w", err),
+		}
+	}
+
+	stripeCustomerDBEntity, err := a.db.AppStripeCustomer.
+		Query().
+		Where(appstripecustomerdb.Namespace(input.AppID.Namespace)).
+		Where(appstripecustomerdb.AppID(input.AppID.ID)).
+		Where(appstripecustomerdb.CustomerID(input.CustomerID.ID)).
+		Only(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return appstripeentity.CustomerAppData{}, app.CustomerPreConditionError{
+				AppID:      input.AppID,
+				AppType:    appentitybase.AppTypeStripe,
+				CustomerID: input.CustomerID,
+				Condition:  "customer has no data for stripe app",
+			}
+		}
+
+		return appstripeentity.CustomerAppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
+	}
+
+	return appstripeentity.CustomerAppData{
+		StripeCustomerID:             *stripeCustomerDBEntity.StripeCustomerID,
+		StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
+	}, nil
+}
 
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
@@ -105,8 +139,6 @@ func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.APIKey,
 		},
-		AppID: input.AppID,
-		Key:   appstripeentity.APIKeySecretKey,
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)

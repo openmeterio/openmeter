@@ -17,6 +17,14 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeenti
 	return s.adapter.CreateCheckoutSession(ctx, input)
 }
 
+func (s *Service) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
+	return s.adapter.GetStripeAppData(ctx, input)
+}
+
+func (s *Service) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerAppData, error) {
+	return s.adapter.GetStripeCustomerData(ctx, input)
+}
+
 func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
 	return s.adapter.UpsertStripeCustomerData(ctx, input)
 }

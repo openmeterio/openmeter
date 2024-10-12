@@ -66,7 +66,7 @@ func (AppStripeCustomer) Fields() []ent.Field {
 		field.String("customer_id").NotEmpty().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.String("stripe_customer_id").Optional().Nillable(),
+		field.String("stripe_customer_id").NotEmpty(),
 		field.String("stripe_default_payment_method_id").Optional().Nillable(),
 	}
 }

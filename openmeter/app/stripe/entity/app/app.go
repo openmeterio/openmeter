@@ -1,4 +1,4 @@
-package appstripeentity
+package appstripeentityapp
 
 import (
 	"context"
@@ -8,14 +8,17 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
-	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+const (
+	APIKeySecretKey = "stripe_api_key"
 )
 
 var _ customerentity.App = (*App)(nil)
@@ -23,12 +26,12 @@ var _ customerentity.App = (*App)(nil)
 // App represents an installed Stripe app
 type App struct {
 	appentitybase.AppBase
-	StripeAccountId string `json:"stripeAccountId"`
-	Livemode        bool   `json:"livemode"`
+	appstripeentity.AppData
 
-	Client              *entdb.Client                    `json:"-"`
 	StripeClientFactory stripeclient.StripeClientFactory `json:"-"`
-	SecretService       secret.Service                   `json:"-"`
+	// TODO: can this be a service? The factory is is in the adapter that the service depends on
+	StripeAppService stripeapp.Adapter `json:"-"`
+	SecretService    secret.Service    `json:"-"`
 }
 
 func (a App) Validate() error {
@@ -40,16 +43,16 @@ func (a App) Validate() error {
 		return errors.New("app type must be stripe")
 	}
 
-	if a.Client == nil {
-		return errors.New("client is required")
-	}
-
-	if a.StripeAccountId == "" {
-		return errors.New("stripe account id is required")
+	if err := a.AppData.Validate(); err != nil {
+		return fmt.Errorf("error validating stripe app data: %w", err)
 	}
 
 	if a.StripeClientFactory == nil {
 		return errors.New("stripe client factory is required")
+	}
+
+	if a.StripeAppService == nil {
+		return errors.New("stripe app service is required")
 	}
 
 	if a.SecretService == nil {
@@ -66,60 +69,29 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 
-	// Get Stripe Customer
-	stripeCustomerDBEntity, err := a.Client.AppStripeCustomer.
-		Query().
-		Where(appstripecustomerdb.Namespace(a.Namespace)).
-		Where(appstripecustomerdb.AppID(a.ID)).
-		Where(appstripecustomerdb.CustomerID(customer.ID)).
-		Only(ctx)
-	if err != nil {
-		if entdb.IsNotFound(err) {
-			return app.CustomerPreConditionError{
-				AppID:      a.GetID(),
-				AppType:    a.GetType(),
-				CustomerID: customer.GetID(),
-				Condition:  "customer has no data for stripe app",
-			}
-		}
-
-		return fmt.Errorf("error getting stripe customer: %w", err)
-	}
-
-	// Check if the customer has a Stripe customer ID
-	if stripeCustomerDBEntity.StripeCustomerID == nil || *stripeCustomerDBEntity.StripeCustomerID == "" {
-		return app.CustomerPreConditionError{
-			AppID:      a.GetID(),
-			AppType:    a.GetType(),
-			CustomerID: customer.GetID(),
-			Condition:  "customer must have a stripe customer id",
-		}
-	}
-
 	// Get Stripe App
-	stripeApp, err := a.Client.AppStripe.
-		Query().
-		Where(appstripedb.Namespace(a.Namespace)).
-		Where(appstripedb.ID(a.ID)).
-		First(ctx)
+	stripeAppData, err := a.StripeAppService.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: a.GetID(),
+	})
 	if err != nil {
-		if entdb.IsNotFound(err) {
-			return app.AppNotFoundError{
-				AppID: a.GetID(),
-			}
-		}
+		return fmt.Errorf("failed to get stripe app data: %w", err)
+	}
 
-		return fmt.Errorf("failed to get stripe app: %w", err)
+	// Get Stripe Customer
+	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+		AppID:      a.GetID(),
+		CustomerID: customer.GetID(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
 	// Get Stripe API Key
 	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
 		NamespacedID: models.NamespacedID{
-			Namespace: stripeApp.Namespace,
-			ID:        stripeApp.APIKey,
+			Namespace: stripeAppData.APIKey.Namespace,
+			ID:        stripeAppData.APIKey.ID,
 		},
-		AppID: a.GetID(),
-		Key:   APIKeySecretKey,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get stripe api key secret: %w", err)
@@ -127,7 +99,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 	// Stripe Client
 	stripeClient, err := a.StripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: stripeApp.Namespace,
+		Namespace: apiKeySecret.SecretID.Namespace,
 		APIKey:    apiKeySecret.Value,
 	})
 	if err != nil {
@@ -135,14 +107,14 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	}
 
 	// Check if the customer exists in Stripe
-	stripeCustomer, err := stripeClient.GetCustomer(ctx, *stripeCustomerDBEntity.StripeCustomerID)
+	stripeCustomer, err := stripeClient.GetCustomer(ctx, stripeCustomerData.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
 				CustomerID: customer.GetID(),
-				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", *stripeCustomerDBEntity.StripeCustomerID, stripeApp.StripeAccountID),
+				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
 			}
 		}
 
@@ -155,16 +127,16 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 		// Check if the customer has a default payment method in OpenMeter
 		// If not try to use the Stripe Customer's default payment method
-		if stripeCustomerDBEntity.StripeDefaultPaymentMethodID != nil {
+		if stripeCustomerData.StripeDefaultPaymentMethodID != nil {
 			// Get the default payment method
-			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerDBEntity.StripeDefaultPaymentMethodID)
+			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
 			if err != nil {
 				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
 					return app.CustomerPreConditionError{
 						AppID:      a.GetID(),
 						AppType:    a.GetType(),
 						CustomerID: customer.GetID(),
-						Condition:  fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerDBEntity.StripeDefaultPaymentMethodID, stripeApp.StripeAccountID),
+						Condition:  fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
 					}
 				}
 

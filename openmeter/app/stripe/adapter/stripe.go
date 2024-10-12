@@ -10,12 +10,12 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
-	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,14 +24,14 @@ import (
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 
 // CreateApp creates a new app
-func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.App, error) {
+func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentityapp.App, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.App{}, appstripe.ValidationError{
+		return appstripeentityapp.App{}, appstripe.ValidationError{
 			Err: fmt.Errorf("error create stripe app: %w", err),
 		}
 	}
 
-	return transaction.Run(ctx, a, func(ctx context.Context) (appstripeentity.App, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (appstripeentityapp.App, error) {
 		// Create the base app
 		appBase, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
 			Namespace:   input.Namespace,
@@ -40,7 +40,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			Type:        appentitybase.AppTypeStripe,
 		})
 		if err != nil {
-			return appstripeentity.App{}, fmt.Errorf("failed to create app: %w", err)
+			return appstripeentityapp.App{}, fmt.Errorf("failed to create app: %w", err)
 		}
 
 		// Create the stripe app in the database
@@ -54,17 +54,48 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 		dbAppStripe, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
-			return appstripeentity.App{}, fmt.Errorf("failed to create stripe app: %w", err)
+			return appstripeentityapp.App{}, fmt.Errorf("failed to create stripe app: %w", err)
 		}
 
 		// Map the database stripe app to an app entity
-		app, err := mapAppStripeFromDB(appBase, dbAppStripe, a.db, a.secretService, a.stripeClientFactory)
+		app, err := a.mapAppStripeFromDB(appBase, dbAppStripe)
 		if err != nil {
-			return appstripeentity.App{}, err
+			return appstripeentityapp.App{}, err
 		}
 
 		return app, nil
 	})
+}
+
+// GetStripeAppData gets stripe customer data
+func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
+	if err := input.Validate(); err != nil {
+		return appstripeentity.AppData{}, appstripe.ValidationError{
+			Err: fmt.Errorf("error getting stripe customer data: %w", err),
+		}
+	}
+
+	stripeCustomerDBEntity, err := a.db.AppStripe.
+		Query().
+		Where(appstripedb.Namespace(input.AppID.Namespace)).
+		Where(appstripedb.ID(input.AppID.ID)).
+		Only(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return appstripeentity.AppData{}, app.AppNotFoundError{
+				AppID: input.AppID,
+			}
+		}
+
+		return appstripeentity.AppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
+	}
+
+	return appstripeentity.AppData{
+		StripeAccountID: stripeCustomerDBEntity.StripeAccountID,
+		Livemove:        stripeCustomerDBEntity.StripeLivemode,
+		APIKey:          secretentity.NewSecretID(input.AppID, stripeCustomerDBEntity.APIKey, appstripeentity.APIKeySecretKey),
+		WebhookSecret:   secretentity.NewSecretID(input.AppID, stripeCustomerDBEntity.WebhookSecret, appstripeentity.WebhookSecretKey),
+	}, nil
 }
 
 // GetWebhookSecret gets the webhook secret
@@ -78,6 +109,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 	// Get the stripe app
 	stripeApp, err := a.db.AppStripe.
 		Query().
+		// We intentionally do not filter by namespace as the webhook payload is signed with the secret
 		Where(appstripedb.ID(input.AppID)).
 		Only(ctx)
 	if err != nil {
@@ -90,19 +122,12 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 		return secretentity.Secret{}, fmt.Errorf("failed to get stripe app: %w", err)
 	}
 
-	appID := appentitybase.AppID{
-		Namespace: stripeApp.Namespace,
-		ID:        stripeApp.ID,
-	}
-
 	// Get the webhook secret
 	secret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.WebhookSecret,
 		},
-		AppID: appID,
-		Key:   appstripeentity.WebhookSecretKey,
 	})
 	if err != nil {
 		return secretentity.Secret{}, fmt.Errorf("failed to get webhook secret: %w", err)
@@ -305,8 +330,6 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 				Namespace: stripeApp.Namespace,
 				ID:        stripeApp.APIKey,
 			},
-			AppID: appID,
-			Key:   appstripeentity.APIKeySecretKey,
 		})
 		if err != nil {
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
@@ -352,25 +375,26 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 }
 
 // mapAppStripeFromDB maps a database stripe app to an app entity
-func mapAppStripeFromDB(
+func (a adapter) mapAppStripeFromDB(
 	appBase appentitybase.AppBase,
 	dbAppStripe *db.AppStripe,
-	client *entdb.Client,
-	secretService secret.Service,
-	stripeClientFactory stripeclient.StripeClientFactory,
-) (appstripeentity.App, error) {
-	app := appstripeentity.App{
-		AppBase:         appBase,
-		Livemode:        dbAppStripe.StripeLivemode,
-		StripeAccountId: dbAppStripe.StripeAccountID,
+) (appstripeentityapp.App, error) {
+	app := appstripeentityapp.App{
+		AppBase: appBase,
+		AppData: appstripeentity.AppData{
+			StripeAccountID: dbAppStripe.StripeAccountID,
+			Livemove:        dbAppStripe.StripeLivemode,
+		},
 
-		Client:              client,
-		SecretService:       secretService,
-		StripeClientFactory: stripeClientFactory,
+		// TODO: fixme, it should be a service not an adapter
+		// But the factory (this) is is in the adapter that the service depends on
+		StripeAppService:    a,
+		SecretService:       a.secretService,
+		StripeClientFactory: a.stripeClientFactory,
 	}
 
 	if err := app.Validate(); err != nil {
-		return appstripeentity.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
+		return appstripeentityapp.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
 
 	return app, nil

@@ -23,6 +23,7 @@ import (
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -642,7 +643,7 @@ func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input appen
 }
 
 func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
-	return appstripeentity.App{}, nil
+	return appstripeentityapp.App{}, nil
 }
 
 func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
@@ -658,11 +659,11 @@ func (n NoopAppService) CreateApp(ctx context.Context, input appentity.CreateApp
 }
 
 func (n NoopAppService) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
-	return appstripeentity.App{}, nil
+	return appstripeentityapp.App{}, nil
 }
 
 func (n NoopAppService) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
-	return appstripeentity.App{}, nil
+	return appstripeentityapp.App{}, nil
 }
 
 func (n NoopAppService) ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
@@ -685,8 +686,16 @@ func (n NoopAppStripeService) GetWebhookSecret(ctx context.Context, input appstr
 	return appstripeentity.GetWebhookSecretOutput{}, nil
 }
 
+func (n NoopAppStripeService) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
+	return appstripeentity.AppData{}, nil
+}
+
 func (n NoopAppStripeService) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 	return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, nil
+}
+
+func (n NoopAppStripeService) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerAppData, error) {
+	return appstripeentity.CustomerAppData{}, nil
 }
 
 func (n NoopAppStripeService) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {

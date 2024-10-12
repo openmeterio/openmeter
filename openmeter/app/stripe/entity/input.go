@@ -69,6 +69,39 @@ func (i CreateAppStripeInput) Validate() error {
 	return nil
 }
 
+type GetStripeAppDataInput struct {
+	AppID appentitybase.AppID
+}
+
+func (i GetStripeAppDataInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	return nil
+}
+
+type GetStripeCustomerDataInput struct {
+	AppID      appentitybase.AppID
+	CustomerID customerentity.CustomerID
+}
+
+func (i GetStripeCustomerDataInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("error validating customer id: %w", err)
+	}
+
+	if i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
+	}
+
+	return nil
+}
+
 type CreateStripeCustomerInput struct {
 	AppID      appentitybase.AppID
 	CustomerID customerentity.CustomerID
@@ -289,14 +322,35 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 	return nil
 }
 
+// AppData represents the Stripe associated data for an app
+type AppData struct {
+	StripeAccountID string
+	Livemove        bool
+	APIKey          secretentity.SecretID
+	WebhookSecret   secretentity.SecretID
+}
+
+func (d AppData) Validate() error {
+	if d.StripeAccountID == "" {
+		return errors.New("stripe account id is required")
+	}
+
+	return nil
+}
+
 // CustomerAppData represents the Stripe associated data for an app used by a customer
 type CustomerAppData struct {
-	StripeCustomerID string `json:"stripeCustomerId"`
+	StripeCustomerID             string
+	StripeDefaultPaymentMethodID *string
 }
 
 func (d CustomerAppData) Validate() error {
 	if d.StripeCustomerID == "" {
 		return errors.New("stripe customer id is required")
+	}
+
+	if d.StripeDefaultPaymentMethodID != nil && *d.StripeDefaultPaymentMethodID == "" {
+		return errors.New("stripe default payment method id cannot be empty if provided")
 	}
 
 	return nil

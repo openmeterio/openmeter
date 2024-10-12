@@ -37,7 +37,7 @@ func (a adapter) NewApp(ctx context.Context, appBase appentitybase.AppBase) (app
 		return nil, fmt.Errorf("failed to get stripe app: %w", err)
 	}
 
-	app, err := mapAppStripeFromDB(appBase, stripeApp, a.db, a.secretService, a.stripeClientFactory)
+	app, err := a.mapAppStripeFromDB(appBase, stripeApp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
