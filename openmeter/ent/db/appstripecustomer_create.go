@@ -90,14 +90,6 @@ func (ascc *AppStripeCustomerCreate) SetStripeCustomerID(s string) *AppStripeCus
 	return ascc
 }
 
-// SetNillableStripeCustomerID sets the "stripe_customer_id" field if the given value is not nil.
-func (ascc *AppStripeCustomerCreate) SetNillableStripeCustomerID(s *string) *AppStripeCustomerCreate {
-	if s != nil {
-		ascc.SetStripeCustomerID(*s)
-	}
-	return ascc
-}
-
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
 func (ascc *AppStripeCustomerCreate) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerCreate {
 	ascc.mutation.SetStripeDefaultPaymentMethodID(s)
@@ -205,6 +197,14 @@ func (ascc *AppStripeCustomerCreate) check() error {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.customer_id": %w`, err)}
 		}
 	}
+	if _, ok := ascc.mutation.StripeCustomerID(); !ok {
+		return &ValidationError{Name: "stripe_customer_id", err: errors.New(`db: missing required field "AppStripeCustomer.stripe_customer_id"`)}
+	}
+	if v, ok := ascc.mutation.StripeCustomerID(); ok {
+		if err := appstripecustomer.StripeCustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "stripe_customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.stripe_customer_id": %w`, err)}
+		}
+	}
 	if len(ascc.mutation.StripeAppIDs()) == 0 {
 		return &ValidationError{Name: "stripe_app", err: errors.New(`db: missing required edge "AppStripeCustomer.stripe_app"`)}
 	}
@@ -256,7 +256,7 @@ func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph
 	}
 	if value, ok := ascc.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
-		_node.StripeCustomerID = &value
+		_node.StripeCustomerID = value
 	}
 	if value, ok := ascc.mutation.StripeDefaultPaymentMethodID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
@@ -390,12 +390,6 @@ func (u *AppStripeCustomerUpsert) UpdateStripeCustomerID() *AppStripeCustomerUps
 	return u
 }
 
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (u *AppStripeCustomerUpsert) ClearStripeCustomerID() *AppStripeCustomerUpsert {
-	u.SetNull(appstripecustomer.FieldStripeCustomerID)
-	return u
-}
-
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
 func (u *AppStripeCustomerUpsert) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerUpsert {
 	u.Set(appstripecustomer.FieldStripeDefaultPaymentMethodID, v)
@@ -514,13 +508,6 @@ func (u *AppStripeCustomerUpsertOne) SetStripeCustomerID(v string) *AppStripeCus
 func (u *AppStripeCustomerUpsertOne) UpdateStripeCustomerID() *AppStripeCustomerUpsertOne {
 	return u.Update(func(s *AppStripeCustomerUpsert) {
 		s.UpdateStripeCustomerID()
-	})
-}
-
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (u *AppStripeCustomerUpsertOne) ClearStripeCustomerID() *AppStripeCustomerUpsertOne {
-	return u.Update(func(s *AppStripeCustomerUpsert) {
-		s.ClearStripeCustomerID()
 	})
 }
 
@@ -811,13 +798,6 @@ func (u *AppStripeCustomerUpsertBulk) SetStripeCustomerID(v string) *AppStripeCu
 func (u *AppStripeCustomerUpsertBulk) UpdateStripeCustomerID() *AppStripeCustomerUpsertBulk {
 	return u.Update(func(s *AppStripeCustomerUpsert) {
 		s.UpdateStripeCustomerID()
-	})
-}
-
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (u *AppStripeCustomerUpsertBulk) ClearStripeCustomerID() *AppStripeCustomerUpsertBulk {
-	return u.Update(func(s *AppStripeCustomerUpsert) {
-		s.ClearStripeCustomerID()
 	})
 }
 

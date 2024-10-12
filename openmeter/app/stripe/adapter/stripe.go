@@ -168,17 +168,8 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 		ID:        appCustomer.CustomerID,
 	}
 
-	// Should not happen as we filter in database query for stripe customer id
-	if appCustomer.StripeCustomerID == nil {
-		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, appstripe.StripeCustomerPreConditionError{
-			AppID:            input.AppID,
-			StripeCustomerID: input.StripeCustomerID,
-			Condition:        "stripe customer id is not set",
-		}
-	}
-
 	// Check if the stripe customer id matches with the input
-	if *appCustomer.StripeCustomerID != input.StripeCustomerID {
+	if appCustomer.StripeCustomerID != input.StripeCustomerID {
 		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.CustomerPreConditionError{
 			AppID:      input.AppID,
 			CustomerID: customerID,
@@ -313,11 +304,11 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 
 			// If the stripe app customer exists we check if the Stripe Customer ID matches with the input
 			if stripeAppCustomer != nil {
-				if input.StripeCustomerID != nil && input.StripeCustomerID != stripeAppCustomer.StripeCustomerID {
-					return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("stripe customer id mismatch the one stored for customer: %s != %s", *input.StripeCustomerID, *stripeAppCustomer.StripeCustomerID)
+				if input.StripeCustomerID != nil && *input.StripeCustomerID != stripeAppCustomer.StripeCustomerID {
+					return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("stripe customer id mismatch the one stored for customer: %s != %s", *input.StripeCustomerID, stripeAppCustomer.StripeCustomerID)
 				}
 
-				stripeCustomerId = *stripeAppCustomer.StripeCustomerID
+				stripeCustomerId = stripeAppCustomer.StripeCustomerID
 			}
 		}
 

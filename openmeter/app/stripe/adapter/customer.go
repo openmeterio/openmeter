@@ -46,7 +46,7 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 	}
 
 	return appstripeentity.CustomerAppData{
-		StripeCustomerID:             *stripeCustomerDBEntity.StripeCustomerID,
+		StripeCustomerID:             stripeCustomerDBEntity.StripeCustomerID,
 		StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
 	}, nil
 }

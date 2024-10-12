@@ -2996,7 +2996,7 @@ func (m *AppStripeCustomerMutation) StripeCustomerID() (r string, exists bool) {
 // OldStripeCustomerID returns the old "stripe_customer_id" field's value of the AppStripeCustomer entity.
 // If the AppStripeCustomer object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppStripeCustomerMutation) OldStripeCustomerID(ctx context.Context) (v *string, err error) {
+func (m *AppStripeCustomerMutation) OldStripeCustomerID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStripeCustomerID is only allowed on UpdateOne operations")
 	}
@@ -3010,22 +3010,9 @@ func (m *AppStripeCustomerMutation) OldStripeCustomerID(ctx context.Context) (v 
 	return oldValue.StripeCustomerID, nil
 }
 
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (m *AppStripeCustomerMutation) ClearStripeCustomerID() {
-	m.stripe_customer_id = nil
-	m.clearedFields[appstripecustomer.FieldStripeCustomerID] = struct{}{}
-}
-
-// StripeCustomerIDCleared returns if the "stripe_customer_id" field was cleared in this mutation.
-func (m *AppStripeCustomerMutation) StripeCustomerIDCleared() bool {
-	_, ok := m.clearedFields[appstripecustomer.FieldStripeCustomerID]
-	return ok
-}
-
 // ResetStripeCustomerID resets all changes to the "stripe_customer_id" field.
 func (m *AppStripeCustomerMutation) ResetStripeCustomerID() {
 	m.stripe_customer_id = nil
-	delete(m.clearedFields, appstripecustomer.FieldStripeCustomerID)
 }
 
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
@@ -3350,9 +3337,6 @@ func (m *AppStripeCustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(appstripecustomer.FieldDeletedAt) {
 		fields = append(fields, appstripecustomer.FieldDeletedAt)
 	}
-	if m.FieldCleared(appstripecustomer.FieldStripeCustomerID) {
-		fields = append(fields, appstripecustomer.FieldStripeCustomerID)
-	}
 	if m.FieldCleared(appstripecustomer.FieldStripeDefaultPaymentMethodID) {
 		fields = append(fields, appstripecustomer.FieldStripeDefaultPaymentMethodID)
 	}
@@ -3372,9 +3356,6 @@ func (m *AppStripeCustomerMutation) ClearField(name string) error {
 	switch name {
 	case appstripecustomer.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case appstripecustomer.FieldStripeCustomerID:
-		m.ClearStripeCustomerID()
 		return nil
 	case appstripecustomer.FieldStripeDefaultPaymentMethodID:
 		m.ClearStripeDefaultPaymentMethodID()

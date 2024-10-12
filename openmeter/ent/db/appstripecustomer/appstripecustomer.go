@@ -88,6 +88,8 @@ var (
 	AppIDValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
+	// StripeCustomerIDValidator is a validator for the "stripe_customer_id" field. It is called by the builders before save.
+	StripeCustomerIDValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the AppStripeCustomer queries.

@@ -3244,13 +3244,16 @@ type MiddlewareFunc func(http.Handler) http.Handler
 
 // ListApps operation middleware
 func (siw *ServerInterfaceWrapper) ListApps(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
+
+	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListAppsParams
@@ -3279,12 +3282,11 @@ func (siw *ServerInterfaceWrapper) ListApps(w http.ResponseWriter, r *http.Reque
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // UninstallApp operation middleware
 func (siw *ServerInterfaceWrapper) UninstallApp(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
 
@@ -3297,9 +3299,13 @@ func (siw *ServerInterfaceWrapper) UninstallApp(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	ctx := r.Context()
+
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UninstallApp(w, r, id)
@@ -3309,12 +3315,11 @@ func (siw *ServerInterfaceWrapper) UninstallApp(w http.ResponseWriter, r *http.R
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // GetApp operation middleware
 func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
 
@@ -3327,9 +3332,13 @@ func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	ctx := r.Context()
+
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetApp(w, r, id)
@@ -3339,12 +3348,11 @@ func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // AppStripeWebhook operation middleware
 func (siw *ServerInterfaceWrapper) AppStripeWebhook(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
 
@@ -3357,9 +3365,13 @@ func (siw *ServerInterfaceWrapper) AppStripeWebhook(w http.ResponseWriter, r *ht
 		return
 	}
 
+	ctx := r.Context()
+
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AppStripeWebhook(w, r, id)
@@ -3369,7 +3381,7 @@ func (siw *ServerInterfaceWrapper) AppStripeWebhook(w http.ResponseWriter, r *ht
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // ListCustomers operation middleware
@@ -4124,11 +4136,14 @@ func (siw *ServerInterfaceWrapper) VoidGrant(w http.ResponseWriter, r *http.Requ
 
 // CreateStripeCheckoutSession operation middleware
 func (siw *ServerInterfaceWrapper) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
+
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateStripeCheckoutSession(w, r)
@@ -4138,18 +4153,21 @@ func (siw *ServerInterfaceWrapper) CreateStripeCheckoutSession(w http.ResponseWr
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // MarketplaceListListings operation middleware
 func (siw *ServerInterfaceWrapper) MarketplaceListListings(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
+
+	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params MarketplaceListListingsParams
@@ -4178,12 +4196,11 @@ func (siw *ServerInterfaceWrapper) MarketplaceListListings(w http.ResponseWriter
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // MarketplaceAppAPIKeyInstall operation middleware
 func (siw *ServerInterfaceWrapper) MarketplaceAppAPIKeyInstall(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
 
@@ -4196,9 +4213,13 @@ func (siw *ServerInterfaceWrapper) MarketplaceAppAPIKeyInstall(w http.ResponseWr
 		return
 	}
 
+	ctx := r.Context()
+
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.MarketplaceAppAPIKeyInstall(w, r, pType)
@@ -4208,12 +4229,11 @@ func (siw *ServerInterfaceWrapper) MarketplaceAppAPIKeyInstall(w http.ResponseWr
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // MarketplaceOAuth2InstallGetURL operation middleware
 func (siw *ServerInterfaceWrapper) MarketplaceOAuth2InstallGetURL(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
 
@@ -4226,9 +4246,13 @@ func (siw *ServerInterfaceWrapper) MarketplaceOAuth2InstallGetURL(w http.Respons
 		return
 	}
 
+	ctx := r.Context()
+
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.MarketplaceOAuth2InstallGetURL(w, r, pType)
@@ -4238,12 +4262,11 @@ func (siw *ServerInterfaceWrapper) MarketplaceOAuth2InstallGetURL(w http.Respons
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // MarketplaceOAuth2InstallAuthorize operation middleware
 func (siw *ServerInterfaceWrapper) MarketplaceOAuth2InstallAuthorize(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	var err error
 
@@ -4256,9 +4279,13 @@ func (siw *ServerInterfaceWrapper) MarketplaceOAuth2InstallAuthorize(w http.Resp
 		return
 	}
 
+	ctx := r.Context()
+
 	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
 
 	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params MarketplaceOAuth2InstallAuthorizeParams
@@ -4311,7 +4338,7 @@ func (siw *ServerInterfaceWrapper) MarketplaceOAuth2InstallAuthorize(w http.Resp
 		handler = siw.HandlerMiddlewares[i](handler)
 	}
 
-	handler.ServeHTTP(w, r.WithContext(ctx))
+	handler.ServeHTTP(w, r)
 }
 
 // ListMeters operation middleware

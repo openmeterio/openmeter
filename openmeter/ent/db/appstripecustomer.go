@@ -32,7 +32,7 @@ type AppStripeCustomer struct {
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// StripeCustomerID holds the value of the "stripe_customer_id" field.
-	StripeCustomerID *string `json:"stripe_customer_id,omitempty"`
+	StripeCustomerID string `json:"stripe_customer_id,omitempty"`
 	// StripeDefaultPaymentMethodID holds the value of the "stripe_default_payment_method_id" field.
 	StripeDefaultPaymentMethodID *string `json:"stripe_default_payment_method_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -147,8 +147,7 @@ func (asc *AppStripeCustomer) assignValues(columns []string, values []any) error
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_customer_id", values[i])
 			} else if value.Valid {
-				asc.StripeCustomerID = new(string)
-				*asc.StripeCustomerID = value.String
+				asc.StripeCustomerID = value.String
 			}
 		case appstripecustomer.FieldStripeDefaultPaymentMethodID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -223,10 +222,8 @@ func (asc *AppStripeCustomer) String() string {
 	builder.WriteString("customer_id=")
 	builder.WriteString(asc.CustomerID)
 	builder.WriteString(", ")
-	if v := asc.StripeCustomerID; v != nil {
-		builder.WriteString("stripe_customer_id=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("stripe_customer_id=")
+	builder.WriteString(asc.StripeCustomerID)
 	builder.WriteString(", ")
 	if v := asc.StripeDefaultPaymentMethodID; v != nil {
 		builder.WriteString("stripe_default_payment_method_id=")

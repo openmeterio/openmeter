@@ -146,7 +146,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "stripe_customer_id", Type: field.TypeString},
 		{Name: "stripe_default_payment_method_id", Type: field.TypeString, Nullable: true},
 		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},

@@ -83,20 +83,6 @@ func (u *AppStripeCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppS
 	return u.SetDeletedAt(*value)
 }
 
-func (u *AppStripeCustomerUpdate) SetOrClearStripeCustomerID(value *string) *AppStripeCustomerUpdate {
-	if value == nil {
-		return u.ClearStripeCustomerID()
-	}
-	return u.SetStripeCustomerID(*value)
-}
-
-func (u *AppStripeCustomerUpdateOne) SetOrClearStripeCustomerID(value *string) *AppStripeCustomerUpdateOne {
-	if value == nil {
-		return u.ClearStripeCustomerID()
-	}
-	return u.SetStripeCustomerID(*value)
-}
-
 func (u *AppStripeCustomerUpdate) SetOrClearStripeDefaultPaymentMethodID(value *string) *AppStripeCustomerUpdate {
 	if value == nil {
 		return u.ClearStripeDefaultPaymentMethodID()

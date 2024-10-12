@@ -155,6 +155,10 @@ func init() {
 	appstripecustomerDescCustomerID := appstripecustomerFields[1].Descriptor()
 	// appstripecustomer.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	appstripecustomer.CustomerIDValidator = appstripecustomerDescCustomerID.Validators[0].(func(string) error)
+	// appstripecustomerDescStripeCustomerID is the schema descriptor for stripe_customer_id field.
+	appstripecustomerDescStripeCustomerID := appstripecustomerFields[2].Descriptor()
+	// appstripecustomer.StripeCustomerIDValidator is a validator for the "stripe_customer_id" field. It is called by the builders before save.
+	appstripecustomer.StripeCustomerIDValidator = appstripecustomerDescStripeCustomerID.Validators[0].(func(string) error)
 	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
 	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
 	_ = balancesnapshotMixinFields0

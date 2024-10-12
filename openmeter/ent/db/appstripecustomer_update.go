@@ -68,12 +68,6 @@ func (ascu *AppStripeCustomerUpdate) SetNillableStripeCustomerID(s *string) *App
 	return ascu
 }
 
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (ascu *AppStripeCustomerUpdate) ClearStripeCustomerID() *AppStripeCustomerUpdate {
-	ascu.mutation.ClearStripeCustomerID()
-	return ascu
-}
-
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
 func (ascu *AppStripeCustomerUpdate) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerUpdate {
 	ascu.mutation.SetStripeDefaultPaymentMethodID(s)
@@ -137,6 +131,11 @@ func (ascu *AppStripeCustomerUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ascu *AppStripeCustomerUpdate) check() error {
+	if v, ok := ascu.mutation.StripeCustomerID(); ok {
+		if err := appstripecustomer.StripeCustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "stripe_customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.stripe_customer_id": %w`, err)}
+		}
+	}
 	if ascu.mutation.StripeAppCleared() && len(ascu.mutation.StripeAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.stripe_app"`)
 	}
@@ -169,9 +168,6 @@ func (ascu *AppStripeCustomerUpdate) sqlSave(ctx context.Context) (n int, err er
 	}
 	if value, ok := ascu.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
-	}
-	if ascu.mutation.StripeCustomerIDCleared() {
-		_spec.ClearField(appstripecustomer.FieldStripeCustomerID, field.TypeString)
 	}
 	if value, ok := ascu.mutation.StripeDefaultPaymentMethodID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
@@ -236,12 +232,6 @@ func (ascuo *AppStripeCustomerUpdateOne) SetNillableStripeCustomerID(s *string) 
 	if s != nil {
 		ascuo.SetStripeCustomerID(*s)
 	}
-	return ascuo
-}
-
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (ascuo *AppStripeCustomerUpdateOne) ClearStripeCustomerID() *AppStripeCustomerUpdateOne {
-	ascuo.mutation.ClearStripeCustomerID()
 	return ascuo
 }
 
@@ -321,6 +311,11 @@ func (ascuo *AppStripeCustomerUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ascuo *AppStripeCustomerUpdateOne) check() error {
+	if v, ok := ascuo.mutation.StripeCustomerID(); ok {
+		if err := appstripecustomer.StripeCustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "stripe_customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.stripe_customer_id": %w`, err)}
+		}
+	}
 	if ascuo.mutation.StripeAppCleared() && len(ascuo.mutation.StripeAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.stripe_app"`)
 	}
@@ -370,9 +365,6 @@ func (ascuo *AppStripeCustomerUpdateOne) sqlSave(ctx context.Context) (_node *Ap
 	}
 	if value, ok := ascuo.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
-	}
-	if ascuo.mutation.StripeCustomerIDCleared() {
-		_spec.ClearField(appstripecustomer.FieldStripeCustomerID, field.TypeString)
 	}
 	if value, ok := ascuo.mutation.StripeDefaultPaymentMethodID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)

@@ -475,16 +475,6 @@ func StripeCustomerIDHasSuffix(v string) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(sql.FieldHasSuffix(FieldStripeCustomerID, v))
 }
 
-// StripeCustomerIDIsNil applies the IsNil predicate on the "stripe_customer_id" field.
-func StripeCustomerIDIsNil() predicate.AppStripeCustomer {
-	return predicate.AppStripeCustomer(sql.FieldIsNull(FieldStripeCustomerID))
-}
-
-// StripeCustomerIDNotNil applies the NotNil predicate on the "stripe_customer_id" field.
-func StripeCustomerIDNotNil() predicate.AppStripeCustomer {
-	return predicate.AppStripeCustomer(sql.FieldNotNull(FieldStripeCustomerID))
-}
-
 // StripeCustomerIDEqualFold applies the EqualFold predicate on the "stripe_customer_id" field.
 func StripeCustomerIDEqualFold(v string) predicate.AppStripeCustomer {
 	return predicate.AppStripeCustomer(sql.FieldEqualFold(FieldStripeCustomerID, v))
