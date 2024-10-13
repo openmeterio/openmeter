@@ -337,7 +337,7 @@ jobs:
         with:
           verb: call
           args: ci
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
