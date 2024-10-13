@@ -16,32 +16,32 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// MarketplaceListListingsHandler is a handler for listing marketplace listings
+// ListMarketplaceListingsHandler is a handler for listing marketplace listings
 type (
-	MarketplaceListListingsRequest  = appentity.MarketplaceListInput
-	MarketplaceListListingsResponse = api.MarketplaceListingList
-	MarketplaceListListingsParams   = api.MarketplaceListListingsParams
-	MarketplaceListListingsHandler  httptransport.HandlerWithArgs[MarketplaceListListingsRequest, MarketplaceListListingsResponse, MarketplaceListListingsParams]
+	ListMarketplaceListingsRequest  = appentity.MarketplaceListInput
+	ListMarketplaceListingsResponse = api.MarketplaceListingList
+	ListMarketplaceListingsParams   = api.ListMarketplaceListingsParams
+	ListMarketplaceListingsHandler  httptransport.HandlerWithArgs[ListMarketplaceListingsRequest, ListMarketplaceListingsResponse, ListMarketplaceListingsParams]
 )
 
-// MarketplaceListListings returns a handler for listing marketplace listings
-func (h *handler) MarketplaceListListings() MarketplaceListListingsHandler {
+// ListMarketplaceListings returns a handler for listing marketplace listings
+func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params MarketplaceListListingsParams) (MarketplaceListListingsRequest, error) {
-			return MarketplaceListListingsRequest{
+		func(ctx context.Context, r *http.Request, params ListMarketplaceListingsParams) (ListMarketplaceListingsRequest, error) {
+			return ListMarketplaceListingsRequest{
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, app.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, app.DefaultPageNumber),
 				},
 			}, nil
 		},
-		func(ctx context.Context, request MarketplaceListListingsRequest) (MarketplaceListListingsResponse, error) {
+		func(ctx context.Context, request ListMarketplaceListingsRequest) (ListMarketplaceListingsResponse, error) {
 			result, err := h.service.ListMarketplaceListings(ctx, request)
 			if err != nil {
-				return MarketplaceListListingsResponse{}, fmt.Errorf("failed to list marketplace listings: %w", err)
+				return ListMarketplaceListingsResponse{}, fmt.Errorf("failed to list marketplace listings: %w", err)
 			}
 
-			return MarketplaceListListingsResponse{
+			return ListMarketplaceListingsResponse{
 				Page:       result.Page.PageNumber,
 				PageSize:   result.Page.PageSize,
 				TotalCount: result.TotalCount,
@@ -50,10 +50,10 @@ func (h *handler) MarketplaceListListings() MarketplaceListListingsHandler {
 				}),
 			}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[MarketplaceListListingsResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[ListMarketplaceListingsResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("marketplaceListListings"),
+			httptransport.WithOperationName("listMarketplaceListings"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

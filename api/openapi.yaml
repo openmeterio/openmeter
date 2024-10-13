@@ -1451,7 +1451,7 @@ paths:
               $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
   /api/v1/marketplace/listings:
     get:
-      operationId: marketplaceListListings
+      operationId: listMarketplaceListings
       description: List available apps of the app marketplace.
       parameters:
         - $ref: '#/components/parameters/PaginatedQuery.page'

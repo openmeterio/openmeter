@@ -23,7 +23,7 @@ interface Marketplace {
    */
   @get
   @route("/listings")
-  @operationId("marketplaceListListings")
+  @operationId("listMarketplaceListings")
   list(...PaginatedQuery): Paginated<MarketplaceListing> | CommonErrors;
 
   /**

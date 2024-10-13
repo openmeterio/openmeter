@@ -8,8 +8,8 @@ import (
 
 // List marketplace listings
 // (GET /api/v1/marketplace/listings)
-func (a *Router) MarketplaceListListings(w http.ResponseWriter, r *http.Request, params api.MarketplaceListListingsParams) {
-	a.appHandler.MarketplaceListListings().With(params).ServeHTTP(w, r)
+func (a *Router) ListMarketplaceListings(w http.ResponseWriter, r *http.Request, params api.ListMarketplaceListingsParams) {
+	a.appHandler.ListMarketplaceListings().With(params).ServeHTTP(w, r)
 }
 
 // Get a marketplace listing

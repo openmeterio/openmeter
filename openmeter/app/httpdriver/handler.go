@@ -22,7 +22,7 @@ type AppHandler interface {
 	UninstallApp() UninstallAppHandler
 
 	// Marketplace handlers
-	MarketplaceListListings() MarketplaceListListingsHandler
+	ListMarketplaceListings() ListMarketplaceListingsHandler
 	GetMarketplaceListing() GetMarketplaceListingHandler
 	MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler
 }
