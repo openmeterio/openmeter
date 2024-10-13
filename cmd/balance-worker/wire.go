@@ -7,6 +7,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -27,8 +30,9 @@ type Application struct {
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
-	// EventPublisher     eventbus.Publisher
-	TopicProvisioner pkgkafka.TopicProvisioner
+	BrokerOptions      watermillkafka.BrokerOptions
+	MessagePublisher   message.Publisher
+	EventPublisher     eventbus.Publisher
 
 	Meter metric.Meter
 }
@@ -43,7 +47,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Database,
 		app.ClickHouse,
 		app.KafkaTopic,
-		// app.Watermill,
+		provisionTopics,
+		app.Watermill,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)
@@ -64,4 +69,18 @@ func metadata(conf config.Configuration) app.Metadata {
 		Environment:       conf.Environment,
 		OpenTelemetryName: "openmeter.io/balance-worker",
 	}
+}
+
+func provisionTopics(conf config.BalanceWorkerConfiguration) []pkgkafka.TopicConfig {
+	var provisionTopics []pkgkafka.TopicConfig
+
+	if conf.DLQ.AutoProvision.Enabled {
+		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
+			Name:          conf.DLQ.Topic,
+			Partitions:    conf.DLQ.AutoProvision.Partitions,
+			RetentionTime: pkgkafka.TimeDurationMilliSeconds(conf.DLQ.AutoProvision.Retention),
+		})
+	}
+
+	return provisionTopics
 }

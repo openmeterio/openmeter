@@ -51,7 +51,7 @@ func NewPublisher(
 
 func NewEventBusPublisher(
 	publisher message.Publisher,
-	conf config.EventsConfiguration, // TODO: limit configuration
+	conf config.EventsConfiguration,
 	logger *slog.Logger,
 ) (eventbus.Publisher, error) {
 	eventBusPublisher, err := eventbus.New(eventbus.Options{
