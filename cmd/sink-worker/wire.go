@@ -47,7 +47,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Telemetry,
 		app.NewDefaultTextMapPropagator,
 		app.KafkaTopic,
-		provisionTopics,
+		app.SinkWorkerProvisionTopics,
 		app.WatermillNoPublisher,
 		newPublisher,
 		app.OpenMeter,
@@ -79,15 +79,6 @@ func NewLogger(conf config.Configuration, res *resource.Resource) *slog.Logger {
 	logger = otelslog.WithResource(logger, res)
 
 	return logger
-}
-
-func provisionTopics(conf config.EventsConfiguration) []pkgkafka.TopicConfig {
-	return []pkgkafka.TopicConfig{
-		{
-			Name:       conf.IngestEvents.Topic,
-			Partitions: conf.IngestEvents.AutoProvision.Partitions,
-		},
-	}
 }
 
 // the sink-worker requires control over how the publisher is closed

@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	kafka2 "github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
 	"log/slog"
 )
@@ -81,7 +80,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	logTelemetryConfig := telemetryConfig.Log
 	brokerOptions := app.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, appMetadata, logger, meter)
 	notificationConfiguration := conf.Notification
-	v4 := provisionTopics(notificationConfiguration)
+	v4 := app.NotificationServiceProvisionTopics(notificationConfiguration)
 	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -184,18 +183,4 @@ func metadata(conf config.Configuration) app.Metadata {
 		Environment:       conf.Environment,
 		OpenTelemetryName: "openmeter.io/notification-service",
 	}
-}
-
-func provisionTopics(conf config.NotificationConfiguration) []kafka2.TopicConfig {
-	var provisionTopics2 []kafka2.TopicConfig
-
-	if conf.Consumer.DLQ.AutoProvision.Enabled {
-		provisionTopics2 = append(provisionTopics2, kafka2.TopicConfig{
-			Name:          conf.Consumer.DLQ.Topic,
-			Partitions:    conf.Consumer.DLQ.AutoProvision.Partitions,
-			RetentionTime: kafka2.TimeDurationMilliSeconds(conf.Consumer.DLQ.AutoProvision.Retention),
-		})
-	}
-
-	return provisionTopics2
 }

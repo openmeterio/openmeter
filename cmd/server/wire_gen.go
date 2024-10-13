@@ -21,7 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	kafka3 "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
 	"log/slog"
@@ -105,7 +104,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	logTelemetryConfig := telemetryConfig.Log
 	brokerOptions := app.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, appMetadata, logger, meter)
-	v4 := provisionTopics(eventsConfiguration)
+	v4 := app.ServerProvisionTopics(eventsConfiguration)
 	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -284,17 +283,4 @@ func newPublisher(
 	}
 
 	return app.NewPublisher(ctx, options, logger)
-}
-
-func provisionTopics(conf config.EventsConfiguration) []kafka3.TopicConfig {
-	var provisionTopics2 []kafka3.TopicConfig
-
-	if conf.SystemEvents.AutoProvision.Enabled {
-		provisionTopics2 = append(provisionTopics2, kafka3.TopicConfig{
-			Name:       conf.SystemEvents.Topic,
-			Partitions: conf.SystemEvents.AutoProvision.Partitions,
-		})
-	}
-
-	return provisionTopics2
 }

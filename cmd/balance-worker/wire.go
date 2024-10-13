@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type Application struct {
@@ -47,7 +46,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Database,
 		app.ClickHouse,
 		app.KafkaTopic,
-		provisionTopics,
+		app.BalanceWorkerProvisionTopics,
 		app.Watermill,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
@@ -69,18 +68,4 @@ func metadata(conf config.Configuration) app.Metadata {
 		Environment:       conf.Environment,
 		OpenTelemetryName: "openmeter.io/balance-worker",
 	}
-}
-
-func provisionTopics(conf config.BalanceWorkerConfiguration) []pkgkafka.TopicConfig {
-	var provisionTopics []pkgkafka.TopicConfig
-
-	if conf.DLQ.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
-			Name:          conf.DLQ.Topic,
-			Partitions:    conf.DLQ.AutoProvision.Partitions,
-			RetentionTime: pkgkafka.TimeDurationMilliSeconds(conf.DLQ.AutoProvision.Retention),
-		})
-	}
-
-	return provisionTopics
 }

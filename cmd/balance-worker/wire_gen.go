@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	kafka2 "github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
 	"log/slog"
 )
@@ -81,7 +80,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	logTelemetryConfig := telemetryConfig.Log
 	brokerOptions := app.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, appMetadata, logger, meter)
 	balanceWorkerConfiguration := conf.BalanceWorker
-	v4 := provisionTopics(balanceWorkerConfiguration)
+	v4 := app.BalanceWorkerProvisionTopics(balanceWorkerConfiguration)
 	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -184,18 +183,4 @@ func metadata(conf config.Configuration) app.Metadata {
 		Environment:       conf.Environment,
 		OpenTelemetryName: "openmeter.io/balance-worker",
 	}
-}
-
-func provisionTopics(conf config.BalanceWorkerConfiguration) []kafka2.TopicConfig {
-	var provisionTopics2 []kafka2.TopicConfig
-
-	if conf.DLQ.AutoProvision.Enabled {
-		provisionTopics2 = append(provisionTopics2, kafka2.TopicConfig{
-			Name:          conf.DLQ.Topic,
-			Partitions:    conf.DLQ.AutoProvision.Partitions,
-			RetentionTime: kafka2.TimeDurationMilliSeconds(conf.DLQ.AutoProvision.Retention),
-		})
-	}
-
-	return provisionTopics2
 }

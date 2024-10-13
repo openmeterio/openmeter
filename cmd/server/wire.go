@@ -23,7 +23,6 @@ import (
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
 
@@ -59,7 +58,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Database,
 		app.ClickHouse,
 		app.Kafka,
-		provisionTopics,
+		app.ServerProvisionTopics,
 		app.WatermillNoPublisher,
 		newPublisher,
 		app.OpenMeter,
@@ -96,17 +95,4 @@ func newPublisher(
 	}
 
 	return app.NewPublisher(ctx, options, logger)
-}
-
-func provisionTopics(conf config.EventsConfiguration) []pkgkafka.TopicConfig {
-	var provisionTopics []pkgkafka.TopicConfig
-
-	if conf.SystemEvents.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
-			Name:       conf.SystemEvents.Topic,
-			Partitions: conf.SystemEvents.AutoProvision.Partitions,
-		})
-	}
-
-	return provisionTopics
 }
