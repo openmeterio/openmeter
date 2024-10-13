@@ -63,7 +63,7 @@ type TelemetryConfig struct {
 
 	Metrics MetricsTelemetryConfig
 
-	Log LogTelemetryConfiguration
+	Log LogTelemetryConfig
 }
 
 // Validate validates the configuration.
@@ -318,7 +318,7 @@ func (c OTLPExportersMetricsTelemetryConfig) NewExporter(ctx context.Context) (s
 	return sdkmetric.NewPeriodicReader(exporter), nil
 }
 
-type LogTelemetryConfiguration struct {
+type LogTelemetryConfig struct {
 	// Format specifies the output log format.
 	// Accepted values are: json, text
 	Format string
@@ -330,7 +330,7 @@ type LogTelemetryConfiguration struct {
 }
 
 // Validate validates the configuration.
-func (c LogTelemetryConfiguration) Validate() error {
+func (c LogTelemetryConfig) Validate() error {
 	var errs []error
 
 	if !slices.Contains([]string{"json", "text", "tint", "prettydev"}, c.Format) {
@@ -345,7 +345,7 @@ func (c LogTelemetryConfiguration) Validate() error {
 }
 
 // NewHandler creates a new [slog.Handler].
-func (c LogTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
+func (c LogTelemetryConfig) NewHandler(w io.Writer) slog.Handler {
 	switch c.Format {
 	case "json":
 		return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
