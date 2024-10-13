@@ -152,11 +152,11 @@ func mapAppToAPI(item appentity.App) api.App {
 		return mapStripeAppToAPI(stripeApp)
 	default:
 		apiApp := api.App{
-			Id:        item.GetAppBase().ID,
+			Id:        item.GetID().ID,
 			Type:      api.StripeAppType(item.GetType()),
 			Name:      item.GetName(),
-			Status:    api.OpenMeterAppAppStatus(item.GetAppBase().Status),
-			Listing:   mapMarketplaceListing(item.GetAppBase().Listing),
+			Status:    api.OpenMeterAppAppStatus(item.GetStatus()),
+			Listing:   mapMarketplaceListing(item.GetListing()),
 			CreatedAt: item.GetAppBase().CreatedAt,
 			UpdatedAt: item.GetAppBase().UpdatedAt,
 			DeletedAt: item.GetAppBase().DeletedAt,
@@ -176,11 +176,11 @@ func mapAppToAPI(item appentity.App) api.App {
 
 func mapStripeAppToAPI(stripeApp appstripeentityapp.App) api.StripeApp {
 	apiStripeApp := api.StripeApp{
-		Id:              stripeApp.ID,
-		Type:            api.StripeAppType(stripeApp.Type),
+		Id:              stripeApp.GetID().ID,
+		Type:            api.StripeAppType(stripeApp.GetType()),
 		Name:            stripeApp.Name,
-		Status:          api.OpenMeterAppAppStatus(stripeApp.Status),
-		Listing:         mapMarketplaceListing(stripeApp.Listing),
+		Status:          api.OpenMeterAppAppStatus(stripeApp.GetStatus()),
+		Listing:         mapMarketplaceListing(stripeApp.GetListing()),
 		CreatedAt:       stripeApp.CreatedAt,
 		UpdatedAt:       stripeApp.UpdatedAt,
 		DeletedAt:       stripeApp.DeletedAt,

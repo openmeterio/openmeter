@@ -7,13 +7,10 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
@@ -22,19 +19,9 @@ var _ appentity.AppFactory = (*adapter)(nil)
 
 // NewApp implement the app.AppFactory interface and returns a Stripe App by extending the AppBase
 func (a adapter) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
-	stripeApp, err := a.db.AppStripe.
-		Query().
-		Where(appstripedb.ID(appBase.GetID().ID)).
-		Where(appstripedb.Namespace(appBase.GetID().Namespace)).
-		First(ctx)
+	stripeApp, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: appBase.GetID()})
 	if err != nil {
-		if entdb.IsNotFound(err) {
-			return nil, app.AppNotFoundError{
-				AppID: appBase.GetID(),
-			}
-		}
-
-		return nil, fmt.Errorf("failed to get stripe app: %w", err)
+		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
 
 	app, err := a.mapAppStripeFromDB(appBase, stripeApp)

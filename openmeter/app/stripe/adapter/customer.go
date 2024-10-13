@@ -11,11 +11,8 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
-	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // GetStripeCustomerData gets stripe customer data
@@ -118,35 +115,22 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 // createStripeCustomer creates a new stripe customer
 func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity.CreateStripeCustomerInput) (appstripeentity.CreateStripeCustomerOutput, error) {
 	// Get the stripe app
-	stripeApp, err := a.db.AppStripe.
-		Query().
-		Where(appstripedb.ID(input.AppID.ID)).
-		Where(appstripedb.Namespace(input.AppID.Namespace)).
-		Only(ctx)
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: input.AppID,
+	})
 	if err != nil {
-		if entdb.IsNotFound(err) {
-			return appstripeentity.CreateStripeCustomerOutput{}, app.AppNotFoundError{
-				AppID: input.AppID,
-			}
-		}
-
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe app: %w", err)
+		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
 
 	// Get Stripe API Key
-	apiKeySecret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
-		NamespacedID: models.NamespacedID{
-			Namespace: stripeApp.Namespace,
-			ID:        stripeApp.APIKey,
-		},
-	})
+	apiKeySecret, err := a.secretService.GetAppSecret(ctx, stripeAppData.APIKey)
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}
 
 	// Stripe Client
 	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: stripeApp.Namespace,
+		Namespace: input.AppID.Namespace,
 		APIKey:    apiKeySecret.Value,
 	})
 	if err != nil {

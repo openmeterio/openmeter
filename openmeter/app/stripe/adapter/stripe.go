@@ -12,7 +12,6 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
@@ -53,13 +52,16 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			SetStripeWebhookID(input.StripeWebhookID).
 			SetWebhookSecret(input.WebhookSecret.ID)
 
-		dbAppStripe, err := appStripeCreateQuery.Save(ctx)
+		dbApp, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
 			return appstripeentityapp.App{}, fmt.Errorf("failed to create stripe app: %w", err)
 		}
 
 		// Map the database stripe app to an app entity
-		app, err := a.mapAppStripeFromDB(appBase, dbAppStripe)
+		appData := mapAppStripeData(appBase.GetID(), dbApp)
+
+		// Map the database stripe app to an app entity
+		app, err := a.mapAppStripeFromDB(appBase, appData)
 		if err != nil {
 			return appstripeentityapp.App{}, err
 		}
@@ -91,14 +93,8 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 		return appstripeentity.AppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
 	}
 
-	appData := appstripeentity.AppData{
-		StripeAccountID: dbApp.StripeAccountID,
-		Livemode:        dbApp.StripeLivemode,
-		APIKey:          secretentity.NewSecretID(input.AppID, dbApp.APIKey, appstripeentity.APIKeySecretKey),
-		StripeWebhookID: dbApp.StripeWebhookID,
-		WebhookSecret:   secretentity.NewSecretID(input.AppID, dbApp.WebhookSecret, appstripeentity.WebhookSecretKey),
-	}
-
+	// Map the database stripe app to an app entity
+	appData := mapAppStripeData(input.AppID, dbApp)
 	if err := appData.Validate(); err != nil {
 		return appstripeentity.AppData{}, fmt.Errorf("error validating stripe app data: %w", err)
 	}
@@ -376,17 +372,11 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 // mapAppStripeFromDB maps a database stripe app to an app entity
 func (a adapter) mapAppStripeFromDB(
 	appBase appentitybase.AppBase,
-	dbAppStripe *db.AppStripe,
+	stripeApp appstripeentity.AppData,
 ) (appstripeentityapp.App, error) {
 	app := appstripeentityapp.App{
 		AppBase: appBase,
-		AppData: appstripeentity.AppData{
-			StripeAccountID: dbAppStripe.StripeAccountID,
-			Livemode:        dbAppStripe.StripeLivemode,
-			APIKey:          secretentity.NewSecretID(appBase.GetID(), dbAppStripe.APIKey, appstripeentity.APIKeySecretKey),
-			StripeWebhookID: dbAppStripe.StripeWebhookID,
-			WebhookSecret:   secretentity.NewSecretID(appBase.GetID(), dbAppStripe.WebhookSecret, appstripeentity.WebhookSecretKey),
-		},
+		AppData: stripeApp,
 
 		// TODO: fixme, it should be a service not an adapter
 		// But the factory (this) is is in the adapter that the service depends on
@@ -400,4 +390,15 @@ func (a adapter) mapAppStripeFromDB(
 	}
 
 	return app, nil
+}
+
+// mapAppStripeData maps stripe app data from the database
+func mapAppStripeData(appID appentitybase.AppID, dbApp *entdb.AppStripe) appstripeentity.AppData {
+	return appstripeentity.AppData{
+		StripeAccountID: dbApp.StripeAccountID,
+		Livemode:        dbApp.StripeLivemode,
+		APIKey:          secretentity.NewSecretID(appID, dbApp.APIKey, appstripeentity.APIKeySecretKey),
+		StripeWebhookID: dbApp.StripeWebhookID,
+		WebhookSecret:   secretentity.NewSecretID(appID, dbApp.WebhookSecret, appstripeentity.WebhookSecretKey),
+	}
 }
