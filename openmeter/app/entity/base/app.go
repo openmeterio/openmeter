@@ -36,10 +36,12 @@ const (
 type AppBase struct {
 	models.ManagedResource
 
-	Type    AppType            `json:"type"`
-	Name    string             `json:"name"`
-	Status  AppStatus          `json:"status"`
-	Listing MarketplaceListing `json:"listing"`
+	Type        AppType            `json:"type"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Status      AppStatus          `json:"status"`
+	Listing     MarketplaceListing `json:"listing"`
+	Metadata    map[string]string  `json:"metadata"`
 }
 
 func (a AppBase) GetAppBase() AppBase {
@@ -61,12 +63,20 @@ func (a AppBase) GetName() string {
 	return a.Name
 }
 
+func (a AppBase) GetDescription() string {
+	return a.Description
+}
+
 func (a AppBase) GetStatus() AppStatus {
 	return a.Status
 }
 
-func (a AppBase) Get() MarketplaceListing {
+func (a AppBase) GetListing() MarketplaceListing {
 	return a.Listing
+}
+
+func (a AppBase) GetMetadata() map[string]string {
+	return a.Metadata
 }
 
 // ValidateCapabilities validates if the app can run for the given capabilities

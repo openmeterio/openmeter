@@ -327,7 +327,7 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 	return nil
 }
 
-// AppData represents the Stripe associated data for an app
+// AppData represents the Stripe associated data for the app
 type AppData struct {
 	StripeAccountID string
 	Livemode        bool
@@ -339,6 +339,18 @@ type AppData struct {
 func (d AppData) Validate() error {
 	if d.StripeAccountID == "" {
 		return errors.New("stripe account id is required")
+	}
+
+	if err := d.APIKey.Validate(); err != nil {
+		return fmt.Errorf("error validating api key: %w", err)
+	}
+
+	if d.StripeWebhookID == "" {
+		return errors.New("stripe webhook id is required")
+	}
+
+	if err := d.WebhookSecret.Validate(); err != nil {
+		return fmt.Errorf("error validating webhook secret: %w", err)
 	}
 
 	return nil

@@ -67,10 +67,10 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, createApp, "Create stripe app must return app")
 
-	// Uninstall the app
+	// Get the app
 	getApp, err := s.Env.App().GetApp(ctx, createApp.GetID())
 
-	require.NoError(t, err, "Uninstall stripe app must not return error")
+	require.NoError(t, err, "Get stripe app must not return error")
 	require.Equal(t, createApp.GetAppBase(), getApp.GetAppBase(), "apps must be equal")
 
 	// Get should return 404
@@ -81,6 +81,45 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 
 	_, err = s.Env.App().GetApp(ctx, appIdNotFound)
 	require.ErrorIs(t, err, app.AppNotFoundError{AppID: appIdNotFound}, "must return app not found error")
+}
+
+// TestGetDefault tests getting the default stripe app
+func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Create a stripe app first
+	createApp1, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, createApp1, "Create stripe app must return app")
+
+	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, createApp2, "Create stripe app must return app")
+
+	// Get the app
+	getApp, err := s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: s.namespace,
+		Type:      appentitybase.AppTypeStripe,
+	})
+
+	require.NoError(t, err, "Get default stripe app must not return error")
+	require.Equal(t, createApp1.GetAppBase(), getApp.GetAppBase(), "apps must be equal with first")
 }
 
 // TestUninstall tests uninstalling a stripe app

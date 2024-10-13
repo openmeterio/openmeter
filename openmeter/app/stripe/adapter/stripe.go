@@ -91,13 +91,19 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 		return appstripeentity.AppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
 	}
 
-	return appstripeentity.AppData{
+	appData := appstripeentity.AppData{
 		StripeAccountID: dbApp.StripeAccountID,
 		Livemode:        dbApp.StripeLivemode,
 		APIKey:          secretentity.NewSecretID(input.AppID, dbApp.APIKey, appstripeentity.APIKeySecretKey),
 		StripeWebhookID: dbApp.StripeWebhookID,
 		WebhookSecret:   secretentity.NewSecretID(input.AppID, dbApp.WebhookSecret, appstripeentity.WebhookSecretKey),
-	}, nil
+	}
+
+	if err := appData.Validate(); err != nil {
+		return appstripeentity.AppData{}, fmt.Errorf("error validating stripe app data: %w", err)
+	}
+
+	return appData, nil
 }
 
 // GetWebhookSecret gets the webhook secret
@@ -377,6 +383,9 @@ func (a adapter) mapAppStripeFromDB(
 		AppData: appstripeentity.AppData{
 			StripeAccountID: dbAppStripe.StripeAccountID,
 			Livemode:        dbAppStripe.StripeLivemode,
+			APIKey:          secretentity.NewSecretID(appBase.GetID(), dbAppStripe.APIKey, appstripeentity.APIKeySecretKey),
+			StripeWebhookID: dbAppStripe.StripeWebhookID,
+			WebhookSecret:   secretentity.NewSecretID(appBase.GetID(), dbAppStripe.WebhookSecret, appstripeentity.WebhookSecretKey),
 		},
 
 		// TODO: fixme, it should be a service not an adapter

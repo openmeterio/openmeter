@@ -39,6 +39,10 @@ func (a App) Validate() error {
 		return fmt.Errorf("error validating app: %w", err)
 	}
 
+	if err := a.AppData.Validate(); err != nil {
+		return fmt.Errorf("error validating stripe app data: %w", err)
+	}
+
 	if a.Type != appentitybase.AppTypeStripe {
 		return errors.New("app type must be stripe")
 	}

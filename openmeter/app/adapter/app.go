@@ -226,10 +226,12 @@ func mapAppBaseFromDB(dbApp *db.App, registryItem appentity.RegistryItem) appent
 			UpdatedAt: dbApp.UpdatedAt,
 			DeletedAt: dbApp.DeletedAt,
 		}),
-		Type:    dbApp.Type,
-		Name:    dbApp.Name,
-		Status:  dbApp.Status,
-		Listing: registryItem.Listing,
+		Type:        dbApp.Type,
+		Name:        dbApp.Name,
+		Description: dbApp.Description,
+		Status:      dbApp.Status,
+		Listing:     registryItem.Listing,
+		Metadata:    dbApp.Metadata,
 	}
 }
 

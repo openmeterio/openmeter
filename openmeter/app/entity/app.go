@@ -14,8 +14,10 @@ type App interface {
 	GetID() appentitybase.AppID
 	GetType() appentitybase.AppType
 	GetName() string
+	GetDescription() string
 	GetStatus() appentitybase.AppStatus
-	Get() appentitybase.MarketplaceListing
+	GetMetadata() map[string]string
+	GetListing() appentitybase.MarketplaceListing
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities []appentitybase.CapabilityType) error

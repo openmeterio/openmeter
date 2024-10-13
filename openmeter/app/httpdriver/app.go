@@ -151,7 +151,7 @@ func mapAppToAPI(item appentity.App) api.App {
 		stripeApp := item.(appstripeentityapp.App)
 		return mapStripeAppToAPI(stripeApp)
 	default:
-		return api.App{
+		apiApp := api.App{
 			Id:        item.GetAppBase().ID,
 			Type:      api.StripeAppType(item.GetType()),
 			Name:      item.GetName(),
@@ -160,15 +160,22 @@ func mapAppToAPI(item appentity.App) api.App {
 			CreatedAt: item.GetAppBase().CreatedAt,
 			UpdatedAt: item.GetAppBase().UpdatedAt,
 			DeletedAt: item.GetAppBase().DeletedAt,
-			// TODO
-			// Description: "TODO",
-			// Metadata:  &map[string]string{},
 		}
+
+		if item.GetDescription() != "" {
+			apiApp.Description = lo.ToPtr(item.GetDescription())
+		}
+
+		if item.GetMetadata() != nil {
+			apiApp.Metadata = lo.ToPtr(item.GetMetadata())
+		}
+
+		return apiApp
 	}
 }
 
 func mapStripeAppToAPI(stripeApp appstripeentityapp.App) api.StripeApp {
-	return api.StripeApp{
+	apiStripeApp := api.StripeApp{
 		Id:              stripeApp.ID,
 		Type:            api.StripeAppType(stripeApp.Type),
 		Name:            stripeApp.Name,
@@ -179,8 +186,15 @@ func mapStripeAppToAPI(stripeApp appstripeentityapp.App) api.StripeApp {
 		DeletedAt:       stripeApp.DeletedAt,
 		StripeAccountId: stripeApp.StripeAccountID,
 		Livemode:        stripeApp.Livemode,
-		// TODO
-		// Description: "TODO",
-		// Metadata:  &map[string]string{},
 	}
+
+	if stripeApp.GetDescription() != "" {
+		apiStripeApp.Description = lo.ToPtr(stripeApp.GetDescription())
+	}
+
+	if stripeApp.GetMetadata() != nil {
+		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())
+	}
+
+	return apiStripeApp
 }
