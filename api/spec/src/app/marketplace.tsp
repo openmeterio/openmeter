@@ -26,6 +26,14 @@ interface Marketplace {
   @operationId("marketplaceListListings")
   list(...PaginatedQuery): Paginated<MarketplaceListing> | CommonErrors;
 
+  /**
+   * Get a marketplace listing by type.
+   */
+  @get
+  @route("/listings/{type}")
+  @operationId("getMarketplaceListing")
+  get(type: Type): MarketplaceListing | CommonErrors;
+
   /* **************** Install App via OAuth2 **************** */
 
   /**

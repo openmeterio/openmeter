@@ -59,6 +59,38 @@ func (h *handler) MarketplaceListListings() MarketplaceListListingsHandler {
 	)
 }
 
+// GetMarketplaceListingHandler is a handler to get a marketplace listing
+type (
+	GetMarketplaceListingRequest  = appentity.MarketplaceGetInput
+	GetMarketplaceListingResponse = api.MarketplaceListing
+	GetMarketplaceListingHandler  httptransport.HandlerWithArgs[GetMarketplaceListingRequest, GetMarketplaceListingResponse, api.OpenMeterAppType]
+)
+
+// GetMarketplaceListing returns a handler for listing marketplace listings
+func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, appType api.OpenMeterAppType) (GetMarketplaceListingRequest, error) {
+			return GetMarketplaceListingRequest{
+				Type: appentitybase.AppType(appType),
+			}, nil
+		},
+		func(ctx context.Context, request GetMarketplaceListingRequest) (GetMarketplaceListingResponse, error) {
+			result, err := h.service.GetMarketplaceListing(ctx, request)
+			if err != nil {
+				return GetMarketplaceListingResponse{}, fmt.Errorf("failed to get marketplace listing: %w", err)
+			}
+
+			return mapMarketplaceListing(result.Listing), nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetMarketplaceListingResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getMarketplaceListing"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
 type (
 	MarketplaceAppAPIKeyInstallRequest  = appentity.InstallAppWithAPIKeyInput
 	MarketplaceAppAPIKeyInstallResponse = api.AppBase

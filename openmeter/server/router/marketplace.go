@@ -12,6 +12,12 @@ func (a *Router) MarketplaceListListings(w http.ResponseWriter, r *http.Request,
 	a.appHandler.MarketplaceListListings().With(params).ServeHTTP(w, r)
 }
 
+// Get a marketplace listing
+// (GET /api/v1/marketplace/listings/{appType})
+func (a *Router) GetMarketplaceListing(w http.ResponseWriter, r *http.Request, appType api.OpenMeterAppType) {
+	a.appHandler.GetMarketplaceListing().With(appType).ServeHTTP(w, r)
+}
+
 // Install a marketplace app by API key
 // (POST /api/v1/marketplace/install/apikey)
 func (a *Router) MarketplaceAppAPIKeyInstall(w http.ResponseWriter, r *http.Request, appType api.OpenMeterAppType) {
