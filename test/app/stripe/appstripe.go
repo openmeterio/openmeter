@@ -71,7 +71,7 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	getApp, err := s.Env.App().GetApp(ctx, createApp.GetID())
 
 	require.NoError(t, err, "Get stripe app must not return error")
-	require.Equal(t, createApp.GetAppBase(), getApp.GetAppBase(), "apps must be equal")
+	require.Equal(t, createApp.GetID(), getApp.GetID(), "apps must be equal")
 
 	// Get should return 404
 	appIdNotFound := appentitybase.AppID{
@@ -119,7 +119,7 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 	})
 
 	require.NoError(t, err, "Get default stripe app must not return error")
-	require.Equal(t, createApp1.GetAppBase(), getApp.GetAppBase(), "apps must be equal with first")
+	require.Equal(t, createApp1.GetID(), getApp.GetID(), "apps must be equal with first")
 }
 
 // TestUninstall tests uninstalling a stripe app
