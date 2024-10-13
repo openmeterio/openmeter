@@ -68,10 +68,14 @@ var KafkaTopic = wire.NewSet(
 )
 
 var Telemetry = wire.NewSet(
+	NewTelemetryResource,
+
 	NewMeterProvider,
 	wire.Bind(new(metric.MeterProvider), new(*sdkmetric.MeterProvider)),
+	NewMeter,
 	NewTracerProvider,
 	wire.Bind(new(trace.TracerProvider), new(*sdktrace.TracerProvider)),
+	NewTracer,
 
 	NewHealthChecker,
 
@@ -80,6 +84,7 @@ var Telemetry = wire.NewSet(
 )
 
 var Logger = wire.NewSet(
+	NewTelemetryResource,
 	NewLogger,
 )
 

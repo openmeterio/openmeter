@@ -29,10 +29,6 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
-const (
-	otelName = "openmeter.io/notification-service"
-)
-
 func main() {
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
@@ -109,7 +105,7 @@ func main() {
 
 	// Create  subscriber
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
-		Broker:            wmBrokerConfiguration(conf, logger, app.Meter),
+		Broker:            wmBrokerConfiguration(conf, logger, app.Meter, app.Metadata.OpenTelemetryName),
 		ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName,
 	})
 	if err != nil {
@@ -118,7 +114,7 @@ func main() {
 	}
 
 	// Create publisher
-	eventPublisherDriver, err := initEventPublisherDriver(ctx, logger, conf, app.Meter, app.TopicProvisioner)
+	eventPublisherDriver, err := initEventPublisherDriver(ctx, logger, conf, app.Meter, app.TopicProvisioner, app.Metadata.OpenTelemetryName)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -237,17 +233,17 @@ func main() {
 	}
 }
 
-func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter) kafka.BrokerOptions {
+func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, otelName string) kafka.BrokerOptions {
 	return kafka.BrokerOptions{
 		KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-		ClientID:     otelName,
+		ClientID:     otelName, // TODO: use a better name or rename otel name
 		Logger:       logger,
 		MetricMeter:  metricMeter,
 		DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
 	}
 }
 
-func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner) (message.Publisher, error) {
+func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner, otelName string) (message.Publisher, error) {
 	var provisionTopics []pkgkafka.TopicConfig
 	if conf.Notification.Consumer.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
@@ -258,7 +254,7 @@ func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf con
 	}
 
 	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		Broker:           wmBrokerConfiguration(conf, logger, metricMeter),
+		Broker:           wmBrokerConfiguration(conf, logger, metricMeter, otelName),
 		ProvisionTopics:  provisionTopics,
 		TopicProvisioner: topicProvisioner,
 	})

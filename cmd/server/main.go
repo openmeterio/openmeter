@@ -10,7 +10,6 @@ import (
 	"os"
 	"runtime"
 	"syscall"
-	"time"
 
 	"github.com/oklog/run"
 	"github.com/spf13/pflag"
@@ -36,11 +35,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-)
-
-const (
-	defaultShutdownTimeout = 5 * time.Second
-	otelName               = "openmeter.io/backend"
 )
 
 func main() {

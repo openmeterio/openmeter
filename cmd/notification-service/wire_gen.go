@@ -15,8 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/semconv/v1.20.0"
 	"log/slog"
 )
 
@@ -25,7 +23,8 @@ import (
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
 	metricsTelemetryConfig := telemetryConfig.Metrics
-	resource := NewOtelResource(conf)
+	appMetadata := metadata(conf)
+	resource := app.NewTelemetryResource(appMetadata)
 	meterProvider, cleanup, err := app.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
 		return Application{}, nil, err
@@ -60,7 +59,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		return Application{}, nil, err
 	}
 	postgresConfig := conf.Postgres
-	meter := NewMeter(meterProvider)
+	meter := app.NewMeter(meterProvider, appMetadata)
 	driver, cleanup3, err := app.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
 	if err != nil {
 		cleanup2()
@@ -98,6 +97,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	application := Application{
 		GlobalInitializer:  globalInitializer,
+		Metadata:           appMetadata,
 		StreamingConnector: clickhouseConnector,
 		MeterRepository:    inMemoryRepository,
 		EntClient:          client,
@@ -118,7 +118,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 func initializeLogger(conf config.Configuration) *slog.Logger {
 	telemetryConfig := conf.Telemetry
 	logTelemetryConfiguration := telemetryConfig.Log
-	resource := NewOtelResource(conf)
+	appMetadata := metadata(conf)
+	resource := app.NewTelemetryResource(appMetadata)
 	logger := app.NewLogger(logTelemetryConfiguration, resource)
 	return logger
 }
@@ -127,6 +128,8 @@ func initializeLogger(conf config.Configuration) *slog.Logger {
 
 type Application struct {
 	app.GlobalInitializer
+
+	Metadata app.Metadata
 
 	StreamingConnector streaming.Connector
 	MeterRepository    meter.Repository
@@ -138,18 +141,11 @@ type Application struct {
 	Meter metric.Meter
 }
 
-// TODO: consider moving this to a separate package
-// TODO: make sure this doesn't generate any random IDs, because it is called twice
-func NewOtelResource(conf config.Configuration) *resource.Resource {
-	extraResources, _ := resource.New(context.Background(), resource.WithContainer(), resource.WithAttributes(semconv.ServiceName("openmeter"), semconv.ServiceVersion(version), semconv.DeploymentEnvironment(conf.Environment)),
-	)
-
-	res, _ := resource.Merge(resource.Default(), extraResources)
-
-	return res
-}
-
-// TODO: consider moving this to a separate package
-func NewMeter(meterProvider metric.MeterProvider) metric.Meter {
-	return meterProvider.Meter(otelName)
+func metadata(conf config.Configuration) app.Metadata {
+	return app.Metadata{
+		ServiceName:       "openmeter",
+		Version:           version,
+		Environment:       conf.Environment,
+		OpenTelemetryName: "openmeter.io/notification-service",
+	}
 }

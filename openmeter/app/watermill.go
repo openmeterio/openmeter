@@ -15,13 +15,10 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
-// TODO: make this global? or more generic?
-type WatermillClientID string
-
 func NewPublisher(
 	ctx context.Context,
 	conf config.Configuration,
-	clientID WatermillClientID,
+	metadata Metadata,
 	logger *slog.Logger,
 	metricMeter metric.Meter,
 	topicProvisioner pkgkafka.TopicProvisioner,
@@ -41,7 +38,7 @@ func NewPublisher(
 	publisher, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
 		Broker: watermillkafka.BrokerOptions{
 			KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-			ClientID:     string(clientID),
+			ClientID:     metadata.OpenTelemetryName, // TODO: use a better name or rename otel name
 			Logger:       logger,
 			MetricMeter:  metricMeter,
 			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
