@@ -9,11 +9,9 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/oklog/run"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
@@ -22,11 +20,8 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/registry/startup"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 func main() {
@@ -105,36 +100,11 @@ func main() {
 
 	// Create  subscriber
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
-		Broker:            wmBrokerConfiguration(conf, logger, app.Meter, app.Metadata.OpenTelemetryName),
+		Broker:            app.BrokerOptions,
 		ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName,
 	})
 	if err != nil {
 		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	// Create publisher
-	eventPublisherDriver, err := initEventPublisherDriver(ctx, logger, conf, app.Meter, app.TopicProvisioner, app.Metadata.OpenTelemetryName)
-	if err != nil {
-		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	defer func() {
-		// We are using sync producer, so it is fine to close this as a last step
-		if err := eventPublisherDriver.Close(); err != nil {
-			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
-		}
-	}()
-
-	eventPublisher, err := eventbus.New(eventbus.Options{
-		Publisher:              eventPublisherDriver,
-		Config:                 conf.Events,
-		Logger:                 logger,
-		MarshalerTransformFunc: kafka.AddPartitionKeyFromSubject,
-	})
-	if err != nil {
-		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -144,7 +114,7 @@ func main() {
 		StreamingConnector: app.StreamingConnector,
 		MeterRepository:    app.MeterRepository,
 		Logger:             logger,
-		Publisher:          eventPublisher,
+		Publisher:          app.EventPublisher,
 	})
 
 	// Dependencies: notification
@@ -184,13 +154,13 @@ func main() {
 		SystemEventsTopic: conf.Events.SystemEvents.Topic,
 		Router: router.Options{
 			Subscriber:  wmSubscriber,
-			Publisher:   eventPublisherDriver,
+			Publisher:   app.MessagePublisher,
 			Logger:      logger,
 			MetricMeter: app.Meter,
 
 			Config: conf.Notification.Consumer,
 		},
-		Marshaler: eventPublisher.Marshaler(),
+		Marshaler: app.EventPublisher.Marshaler(),
 
 		Notification: notificationService,
 
@@ -231,31 +201,4 @@ func main() {
 	} else if !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("application stopped due to error", slog.String("error", err.Error()))
 	}
-}
-
-func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, otelName string) kafka.BrokerOptions {
-	return kafka.BrokerOptions{
-		KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-		ClientID:     otelName, // TODO: use a better name or rename otel name
-		Logger:       logger,
-		MetricMeter:  metricMeter,
-		DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
-	}
-}
-
-func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner, otelName string) (message.Publisher, error) {
-	var provisionTopics []pkgkafka.TopicConfig
-	if conf.Notification.Consumer.DLQ.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
-			Name:          conf.Notification.Consumer.DLQ.Topic,
-			Partitions:    conf.Notification.Consumer.DLQ.AutoProvision.Partitions,
-			RetentionTime: pkgkafka.TimeDurationMilliSeconds(conf.Notification.Consumer.DLQ.AutoProvision.Retention),
-		})
-	}
-
-	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		Broker:           wmBrokerConfiguration(conf, logger, metricMeter, otelName),
-		ProvisionTopics:  provisionTopics,
-		TopicProvisioner: topicProvisioner,
-	})
 }

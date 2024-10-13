@@ -33,6 +33,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Namespace"),
 	wire.FieldsOf(new(config.Configuration), "Events"),
 	wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
+	wire.FieldsOf(new(config.Configuration), "Notification"),
 )
 
 var TelemetryConfig = wire.NewSet(
