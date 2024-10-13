@@ -29,8 +29,6 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
-var otelName string = "openmeter.io/sink-worker"
-
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -90,8 +88,6 @@ func main() {
 
 	app.SetGlobals()
 
-	tracer := app.TracerProvider.Tracer(otelName)
-
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
 		"telemetry.address":   conf.Telemetry.Address,
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
@@ -100,14 +96,14 @@ func main() {
 	var group run.Group
 
 	// initialize system event producer
-	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter, app.TopicProvisioner)
+	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter, app.TopicProvisioner, app.Metadata.OpenTelemetryName)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
 	}
 
 	// Initialize sink worker
-	sink, err := initSink(conf, logger, app.Meter, tracer, app.MeterRepository, ingestEventFlushHandler)
+	sink, err := initSink(conf, logger, app.Meter, app.Tracer, app.MeterRepository, ingestEventFlushHandler)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -146,7 +142,7 @@ func main() {
 	}
 }
 
-func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner) (flushhandler.FlushEventHandler, error) {
+func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner, otelName string) (flushhandler.FlushEventHandler, error) {
 	if !conf.Events.Enabled {
 		return nil, nil
 	}
@@ -154,7 +150,7 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
 		Broker: watermillkafka.BrokerOptions{
 			KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-			ClientID:     otelName,
+			ClientID:     otelName, // TODO: use a better name or rename otel name
 			Logger:       logger,
 			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
 			MetricMeter:  metricMeter,

@@ -27,10 +27,6 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
-const (
-	otelName = "openmeter.io/balance-worker"
-)
-
 func main() {
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
@@ -105,7 +101,7 @@ func main() {
 	logger.Info("Postgres client initialized")
 
 	// Create  subscriber
-	wmBrokerConfig := wmBrokerConfiguration(conf, logger, app.Meter)
+	wmBrokerConfig := wmBrokerConfiguration(conf, logger, app.Meter, app.Metadata.OpenTelemetryName)
 
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
 		Broker:            wmBrokerConfig,
@@ -208,10 +204,10 @@ func main() {
 	}
 }
 
-func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter) watermillkafka.BrokerOptions {
+func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, otelName string) watermillkafka.BrokerOptions {
 	return watermillkafka.BrokerOptions{
 		KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-		ClientID:     otelName,
+		ClientID:     otelName, // TODO: use a better name or rename otel name
 		Logger:       logger,
 		MetricMeter:  metricMeter,
 		DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,

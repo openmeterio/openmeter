@@ -34,6 +34,26 @@ const (
 	DefaultShutdownTimeout = 5 * time.Second
 )
 
+func NewTelemetryResource(metadata Metadata) *resource.Resource {
+	extraResources, _ := resource.New(
+		// TODO: use the globally available context here?
+		context.Background(),
+		resource.WithContainer(),
+		resource.WithAttributes(
+			semconv.ServiceName(metadata.ServiceName),
+			semconv.ServiceVersion(metadata.Version),
+			semconv.DeploymentEnvironment(metadata.Environment),
+		),
+	)
+
+	res, _ := resource.Merge(
+		resource.Default(),
+		extraResources,
+	)
+
+	return res
+}
+
 func NewLogger(conf config.LogTelemetryConfiguration, res *resource.Resource) *slog.Logger {
 	logger := slog.New(slogmulti.Pipe(
 		otelslog.NewHandler,
@@ -64,6 +84,10 @@ func NewMeterProvider(ctx context.Context, conf config.MetricsTelemetryConfig, r
 	}, nil
 }
 
+func NewMeter(meterProvider metric.MeterProvider, metadata Metadata) metric.Meter {
+	return meterProvider.Meter(metadata.OpenTelemetryName)
+}
+
 func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, res *resource.Resource, logger *slog.Logger) (*sdktrace.TracerProvider, func(), error) {
 	tracerProvider, err := conf.NewTracerProvider(ctx, res)
 	if err != nil {
@@ -80,6 +104,10 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}, nil
+}
+
+func NewTracer(tracerProvider trace.TracerProvider, metadata Metadata) trace.Tracer {
+	return tracerProvider.Tracer(metadata.OpenTelemetryName)
 }
 
 func NewDefaultTextMapPropagator() propagation.TextMapPropagator {

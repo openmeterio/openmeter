@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"os"
@@ -26,7 +25,8 @@ import (
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
 	metricsTelemetryConfig := telemetryConfig.Metrics
-	resource := NewOtelResource(conf)
+	appMetadata := metadata(conf)
+	resource := app.NewTelemetryResource(appMetadata)
 	meterProvider, cleanup, err := app.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
 		return Application{}, nil, err
@@ -59,7 +59,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	meter := NewMeter(meterProvider)
+	meter := app.NewMeter(meterProvider, appMetadata)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
 	kafkaTopicProvisionerConfig := app.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
 	topicProvisioner, err := app.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
@@ -69,13 +69,15 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := app.NewTracer(tracerProvider, appMetadata)
 	application := Application{
 		GlobalInitializer: globalInitializer,
+		Metadata:          appMetadata,
 		MeterRepository:   inMemoryRepository,
 		TelemetryServer:   v2,
 		TopicProvisioner:  topicProvisioner,
 		Meter:             meter,
-		TracerProvider:    tracerProvider,
+		Tracer:            tracer,
 	}
 	return application, func() {
 		cleanup3()
@@ -88,7 +90,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 func initializeLogger(conf config.Configuration) *slog.Logger {
 	telemetryConfig := conf.Telemetry
 	logTelemetryConfiguration := telemetryConfig.Log
-	resource := NewOtelResource(conf)
+	appMetadata := metadata(conf)
+	resource := app.NewTelemetryResource(appMetadata)
 	logger := app.NewLogger(logTelemetryConfiguration, resource)
 	return logger
 }
@@ -98,14 +101,23 @@ func initializeLogger(conf config.Configuration) *slog.Logger {
 type Application struct {
 	app.GlobalInitializer
 
+	Metadata app.Metadata
+
 	MeterRepository  meter.Repository
 	TelemetryServer  app.TelemetryServer
 	TopicProvisioner kafka.TopicProvisioner
 
-	Meter metric.Meter
+	Meter  metric.Meter
+	Tracer trace.Tracer
+}
 
-	// TODO: move to global setter
-	TracerProvider trace.TracerProvider
+func metadata(conf config.Configuration) app.Metadata {
+	return app.Metadata{
+		ServiceName:       "openmeter",
+		Version:           version,
+		Environment:       conf.Environment,
+		OpenTelemetryName: "openmeter.io/sink-worker",
+	}
 }
 
 // TODO: use the primary logger
@@ -114,20 +126,4 @@ func NewLogger(conf config.Configuration, res *resource.Resource) *slog.Logger {
 	logger = otelslog.WithResource(logger, res)
 
 	return logger
-}
-
-// TODO: consider moving this to a separate package
-// TODO: make sure this doesn't generate any random IDs, because it is called twice
-func NewOtelResource(conf config.Configuration) *resource.Resource {
-	extraResources, _ := resource.New(context.Background(), resource.WithContainer(), resource.WithAttributes(semconv.ServiceName("openmeter"), semconv.ServiceVersion(version), semconv.DeploymentEnvironment(conf.Environment)),
-	)
-
-	res, _ := resource.Merge(resource.Default(), extraResources)
-
-	return res
-}
-
-// TODO: consider moving this to a separate package
-func NewMeter(meterProvider metric.MeterProvider) metric.Meter {
-	return meterProvider.Meter(otelName)
 }
