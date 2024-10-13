@@ -51,7 +51,7 @@ func (s *Service) ListApps(ctx context.Context, input appentity.ListAppInput) (p
 	return s.adapter.ListApps(ctx, input)
 }
 
-func (s *Service) UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error {
+func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
 	if err := input.Validate(); err != nil {
 		return app.ValidationError{
 			Err: err,

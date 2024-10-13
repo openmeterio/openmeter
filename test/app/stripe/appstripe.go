@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -47,6 +48,66 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, app, "Create stripe app must return app")
+}
+
+// TestGet tests getting a stripe app
+func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Create a stripe app first
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, createApp, "Create stripe app must return app")
+
+	// Uninstall the app
+	getApp, err := s.Env.App().GetApp(ctx, createApp.GetID())
+
+	require.NoError(t, err, "Uninstall stripe app must not return error")
+	require.Equal(t, createApp.GetAppBase(), getApp.GetAppBase(), "apps must be equal")
+
+	// Get should return 404
+	appIdNotFound := appentitybase.AppID{
+		Namespace: s.namespace,
+		ID:        "not_found",
+	}
+
+	_, err = s.Env.App().GetApp(ctx, appIdNotFound)
+	require.ErrorIs(t, err, app.AppNotFoundError{AppID: appIdNotFound}, "must return app not found error")
+}
+
+// TestUninstall tests uninstalling a stripe app
+func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Create a stripe app first
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, createApp, "Create stripe app must return app")
+
+	// Uninstall the app
+	err = s.Env.App().UninstallApp(ctx, createApp.GetID())
+
+	require.NoError(t, err, "Uninstall stripe app must not return error")
+
+	// Get should return 404
+	_, err = s.Env.App().GetApp(ctx, createApp.GetID())
+	require.ErrorIs(t, err, app.AppNotFoundError{AppID: createApp.GetID()}, "get after uninstall must return app not found error")
 }
 
 // TestCustomerCreate tests stripe app behavior when creating a new customer

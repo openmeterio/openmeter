@@ -26,6 +26,7 @@ type CreateAppStripeInput struct {
 	StripeAccountID string
 	Livemode        bool
 	APIKey          secretentity.SecretID
+	StripeWebhookID string
 	WebhookSecret   secretentity.SecretID
 }
 
@@ -60,6 +61,10 @@ func (i CreateAppStripeInput) Validate() error {
 
 	if err := i.WebhookSecret.Validate(); err != nil {
 		return fmt.Errorf("error validating webhook secret: %w", err)
+	}
+
+	if i.StripeWebhookID == "" {
+		return errors.New("stripe webhook id is required")
 	}
 
 	if i.WebhookSecret.Namespace != i.Namespace {
@@ -327,6 +332,7 @@ type AppData struct {
 	StripeAccountID string
 	Livemode        bool
 	APIKey          secretentity.SecretID
+	StripeWebhookID string
 	WebhookSecret   secretentity.SecretID
 }
 

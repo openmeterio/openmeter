@@ -108,10 +108,11 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "api_key", Type: field.TypeString},
-		{Name: "webhook_secret", Type: field.TypeString},
 		{Name: "stripe_account_id", Type: field.TypeString},
 		{Name: "stripe_livemode", Type: field.TypeBool},
+		{Name: "api_key", Type: field.TypeString},
+		{Name: "stripe_webhook_id", Type: field.TypeString},
+		{Name: "webhook_secret", Type: field.TypeString},
 	}
 	// AppStripesTable holds the schema information for the "app_stripes" table.
 	AppStripesTable = &schema.Table{

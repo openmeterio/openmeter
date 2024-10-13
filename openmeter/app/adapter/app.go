@@ -171,10 +171,48 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 }
 
 // UninstallApp uninstalls an app
-func (a adapter) UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error {
+func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
 	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		// TODO: Implement uninstall logic
-		return fmt.Errorf("uninstall not implemented")
+		app, err := a.GetApp(ctx, input)
+		if err != nil {
+			return fmt.Errorf("failed to get app: %w", err)
+		}
+
+		// Get app factory through registry
+		registryItem, err := a.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
+			Type: app.GetType(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get listing for app: %w", err)
+		}
+
+		// Uninstall app through factory
+		err = registryItem.Factory.UninstallApp(ctx, app.GetID())
+		if err != nil {
+			return fmt.Errorf("failed to uninstall app: %w", err)
+		}
+
+		// Delete app, app types and customer app data is a cascading delete
+		// we don't need to clean them up specifically
+		deleteCount, err := a.db.App.Delete().
+			Where(appdb.Namespace(input.Namespace)).
+			Where(appdb.ID(input.ID)).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app from database: %w", err)
+		}
+
+		// Should be exactly one
+		if deleteCount != 1 {
+			return fmt.Errorf(
+				"inconsistent app delete for %s in namespace %s, count: %d",
+				app.GetID().ID,
+				app.GetID().Namespace,
+				deleteCount,
+			)
+		}
+
+		return nil
 	})
 }
 

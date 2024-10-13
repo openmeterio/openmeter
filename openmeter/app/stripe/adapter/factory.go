@@ -118,6 +118,7 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 		StripeAccountID: stripeAccount.StripeAccountID,
 		Livemode:        livemode,
 		APIKey:          apiKeySecretID,
+		StripeWebhookID: stripeWebhookEndpoint.EndpointID,
 		WebhookSecret:   webhookSecretID,
 	}
 
@@ -131,4 +132,43 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 	}
 
 	return app, nil
+}
+
+// UninstallApp uninstalls an app by id
+func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+	// Get Stripe App
+	app, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: input,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get stripe app: %w", err)
+	}
+
+	// Get Stripe API Key
+	apiKeySecret, err := a.secretService.GetAppSecret(ctx, app.APIKey)
+	if err != nil {
+		return fmt.Errorf("failed to get stripe api key secret: %w", err)
+	}
+
+	// Create Stripe Client
+	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
+		Namespace: app.APIKey.Namespace,
+		APIKey:    apiKeySecret.Value,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create stripe client")
+	}
+
+	// Delete Webhook
+	err = stripeClient.DeleteWebhook(ctx, stripeclient.DeleteWebhookInput{
+		AppID:           input,
+		StripeWebhookID: app.StripeWebhookID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete stripe webhook")
+	}
+
+	// We don't need to delete Stripe specific rows from DB because of cascade delete in app.
+
+	return nil
 }

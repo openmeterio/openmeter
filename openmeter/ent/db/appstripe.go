@@ -26,14 +26,16 @@ type AppStripe struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// APIKey holds the value of the "api_key" field.
-	APIKey string `json:"-"`
-	// WebhookSecret holds the value of the "webhook_secret" field.
-	WebhookSecret string `json:"-"`
 	// StripeAccountID holds the value of the "stripe_account_id" field.
 	StripeAccountID string `json:"stripe_account_id,omitempty"`
 	// StripeLivemode holds the value of the "stripe_livemode" field.
 	StripeLivemode bool `json:"stripe_livemode,omitempty"`
+	// APIKey holds the value of the "api_key" field.
+	APIKey string `json:"-"`
+	// StripeWebhookID holds the value of the "stripe_webhook_id" field.
+	StripeWebhookID string `json:"stripe_webhook_id,omitempty"`
+	// WebhookSecret holds the value of the "webhook_secret" field.
+	WebhookSecret string `json:"-"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppStripeQuery when eager-loading is set.
 	Edges        AppStripeEdges `json:"edges"`
@@ -78,7 +80,7 @@ func (*AppStripe) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appstripe.FieldStripeLivemode:
 			values[i] = new(sql.NullBool)
-		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldAPIKey, appstripe.FieldWebhookSecret, appstripe.FieldStripeAccountID:
+		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldStripeAccountID, appstripe.FieldAPIKey, appstripe.FieldStripeWebhookID, appstripe.FieldWebhookSecret:
 			values[i] = new(sql.NullString)
 		case appstripe.FieldCreatedAt, appstripe.FieldUpdatedAt, appstripe.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -128,18 +130,6 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 				as.DeletedAt = new(time.Time)
 				*as.DeletedAt = value.Time
 			}
-		case appstripe.FieldAPIKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field api_key", values[i])
-			} else if value.Valid {
-				as.APIKey = value.String
-			}
-		case appstripe.FieldWebhookSecret:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field webhook_secret", values[i])
-			} else if value.Valid {
-				as.WebhookSecret = value.String
-			}
 		case appstripe.FieldStripeAccountID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_account_id", values[i])
@@ -151,6 +141,24 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field stripe_livemode", values[i])
 			} else if value.Valid {
 				as.StripeLivemode = value.Bool
+			}
+		case appstripe.FieldAPIKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field api_key", values[i])
+			} else if value.Valid {
+				as.APIKey = value.String
+			}
+		case appstripe.FieldStripeWebhookID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field stripe_webhook_id", values[i])
+			} else if value.Valid {
+				as.StripeWebhookID = value.String
+			}
+		case appstripe.FieldWebhookSecret:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field webhook_secret", values[i])
+			} else if value.Valid {
+				as.WebhookSecret = value.String
 			}
 		default:
 			as.selectValues.Set(columns[i], values[i])
@@ -212,15 +220,18 @@ func (as *AppStripe) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("api_key=<sensitive>")
-	builder.WriteString(", ")
-	builder.WriteString("webhook_secret=<sensitive>")
-	builder.WriteString(", ")
 	builder.WriteString("stripe_account_id=")
 	builder.WriteString(as.StripeAccountID)
 	builder.WriteString(", ")
 	builder.WriteString("stripe_livemode=")
 	builder.WriteString(fmt.Sprintf("%v", as.StripeLivemode))
+	builder.WriteString(", ")
+	builder.WriteString("api_key=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("stripe_webhook_id=")
+	builder.WriteString(as.StripeWebhookID)
+	builder.WriteString(", ")
+	builder.WriteString("webhook_secret=<sensitive>")
 	builder.WriteByte(')')
 	return builder.String()
 }

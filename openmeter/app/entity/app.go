@@ -85,5 +85,3 @@ func (i ListAppInput) Validate() error {
 
 	return nil
 }
-
-type DeleteAppInput = appentitybase.AppID

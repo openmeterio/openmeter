@@ -670,7 +670,7 @@ func (n NoopAppService) ListApps(ctx context.Context, input appentity.ListAppInp
 	return pagination.PagedResponse[appentity.App]{}, nil
 }
 
-func (n NoopAppService) UninstallApp(ctx context.Context, input appentity.DeleteAppInput) error {
+func (n NoopAppService) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
 	return nil
 }
 

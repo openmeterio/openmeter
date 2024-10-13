@@ -182,7 +182,11 @@ func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.
 	return stripeclient.StripeWebhookEndpoint{
 		EndpointID: "we_123",
 		Secret:     "whsec_123",
-	}, nil
+	}, input.Validate()
+}
+
+func (c *StripeClientMock) DeleteWebhook(ctx context.Context, input stripeclient.DeleteWebhookInput) error {
+	return input.Validate()
 }
 
 func (c *StripeClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
@@ -216,7 +220,7 @@ func (c *StripeClientMock) CreateCustomer(ctx context.Context, input stripeclien
 
 	return stripeclient.StripeCustomer{
 		StripeCustomerID: "cus_123",
-	}, nil
+	}, input.Validate()
 }
 
 func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input stripeclient.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error) {
@@ -229,7 +233,7 @@ func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input stri
 		SetupIntentID: "seti_123",
 		Mode:          stripe.CheckoutSessionModeSetup,
 		URL:           "https://checkout.stripe.com/cs_123/test",
-	}, nil
+	}, input.Validate()
 }
 
 func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (stripeclient.StripePaymentMethod, error) {

@@ -141,6 +141,23 @@ func (i SetupWebhookInput) Validate() error {
 	return nil
 }
 
+type DeleteWebhookInput struct {
+	AppID           appentitybase.AppID
+	StripeWebhookID string
+}
+
+func (i DeleteWebhookInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.StripeWebhookID == "" {
+		return errors.New("stripe webhook id is required")
+	}
+
+	return nil
+}
+
 type CreateStripeCustomerInput struct {
 	AppID      appentitybase.AppID
 	CustomerID customerentity.CustomerID

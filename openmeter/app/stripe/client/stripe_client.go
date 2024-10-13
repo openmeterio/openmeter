@@ -29,6 +29,7 @@ type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 
 type StripeClient interface {
 	SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error)
+	DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
 	CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error)
@@ -137,6 +138,27 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 	}
 
 	return out, nil
+}
+
+// DeleteWebhook setups a stripe webhook to handle setup intents and save the payment method
+func (c *stripeClient) DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error {
+	_, err := c.client.WebhookEndpoints.Del(input.StripeWebhookID, nil)
+	if err != nil {
+		if stripeErr, ok := err.(*stripe.Error); ok {
+			// Ignore error if user already removed the webhook
+			if stripeErr.HTTPStatusCode == http.StatusNotFound {
+				return nil
+			}
+
+			// Ignore error if user already revoked access
+			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
+				return nil
+			}
+		}
+
+		return c.providerError(err)
+	}
+	return nil
 }
 
 // GetAccount returns the authorized stripe account

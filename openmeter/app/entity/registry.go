@@ -11,7 +11,10 @@ import (
 type AppFactory interface {
 	NewApp(context.Context, appentitybase.AppBase) (App, error)
 	InstallAppWithAPIKey(ctx context.Context, input AppFactoryInstallAppWithAPIKeyInput) (App, error)
+	UninstallApp(ctx context.Context, input UninstallAppInput) error
 }
+
+type UninstallAppInput = appentitybase.AppID
 
 type AppFactoryInstallAppWithAPIKeyInput struct {
 	Namespace string

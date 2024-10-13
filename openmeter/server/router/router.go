@@ -151,7 +151,7 @@ func (c Config) Validate() error {
 type Router struct {
 	config Config
 
-	appHandler                apphttpdriver.AppHandler
+	appHandler                apphttpdriver.Handler
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             creditdriver.GrantHandler

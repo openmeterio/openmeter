@@ -106,6 +106,45 @@ func (h *handler) GetApp() GetAppHandler {
 	)
 }
 
+// UninstallAppHandler is a handler to uninstalls an app by id
+type (
+	UninstallAppRequest  = appentity.UninstallAppInput
+	UninstallAppResponse = interface{}
+	UninstallAppHandler  httptransport.HandlerWithArgs[UninstallAppRequest, UninstallAppResponse, string]
+)
+
+// UninstallApp uninstalls an app
+func (h *handler) UninstallApp() UninstallAppHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, appId string) (UninstallAppRequest, error) {
+			// Resolve namespace
+			namespace, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return UninstallAppRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			return UninstallAppRequest{
+				Namespace: namespace,
+				ID:        appId,
+			}, nil
+		},
+		func(ctx context.Context, request UninstallAppRequest) (UninstallAppResponse, error) {
+			err := h.service.UninstallApp(ctx, request)
+			if err != nil {
+				return nil, fmt.Errorf("failed to uninstall app: %w", err)
+			}
+
+			return nil, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[UninstallAppResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("uninstallApp"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
 func mapAppToAPI(item appentity.App) api.App {
 	switch item.GetType() {
 	case appentitybase.AppTypeStripe:

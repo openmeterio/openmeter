@@ -50,6 +50,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			SetStripeAccountID(input.StripeAccountID).
 			SetStripeLivemode(input.Livemode).
 			SetAPIKey(input.APIKey.ID).
+			SetStripeWebhookID(input.StripeWebhookID).
 			SetWebhookSecret(input.WebhookSecret.ID)
 
 		dbAppStripe, err := appStripeCreateQuery.Save(ctx)
@@ -75,7 +76,7 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 		}
 	}
 
-	stripeCustomerDBEntity, err := a.db.AppStripe.
+	dbApp, err := a.db.AppStripe.
 		Query().
 		Where(appstripedb.Namespace(input.AppID.Namespace)).
 		Where(appstripedb.ID(input.AppID.ID)).
@@ -91,10 +92,11 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 	}
 
 	return appstripeentity.AppData{
-		StripeAccountID: stripeCustomerDBEntity.StripeAccountID,
-		Livemode:        stripeCustomerDBEntity.StripeLivemode,
-		APIKey:          secretentity.NewSecretID(input.AppID, stripeCustomerDBEntity.APIKey, appstripeentity.APIKeySecretKey),
-		WebhookSecret:   secretentity.NewSecretID(input.AppID, stripeCustomerDBEntity.WebhookSecret, appstripeentity.WebhookSecretKey),
+		StripeAccountID: dbApp.StripeAccountID,
+		Livemode:        dbApp.StripeLivemode,
+		APIKey:          secretentity.NewSecretID(input.AppID, dbApp.APIKey, appstripeentity.APIKeySecretKey),
+		StripeWebhookID: dbApp.StripeWebhookID,
+		WebhookSecret:   secretentity.NewSecretID(input.AppID, dbApp.WebhookSecret, appstripeentity.WebhookSecretKey),
 	}, nil
 }
 

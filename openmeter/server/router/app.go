@@ -20,7 +20,6 @@ func (a *Router) ListApps(w http.ResponseWriter, r *http.Request, params api.Lis
 
 // Uninstall an app by id
 // (DELETE /api/v1/apps/{id})
-func (a *Router) UninstallApp(w http.ResponseWriter, r *http.Request, id string) {
-	w.WriteHeader(http.StatusNotImplemented)
-	_, _ = w.Write([]byte("Unimplemented"))
+func (a *Router) UninstallApp(w http.ResponseWriter, r *http.Request, appID string) {
+	a.appHandler.UninstallApp().With(appID).ServeHTTP(w, r)
 }

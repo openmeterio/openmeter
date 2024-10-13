@@ -22,14 +22,16 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldAPIKey holds the string denoting the api_key field in the database.
-	FieldAPIKey = "api_key"
-	// FieldWebhookSecret holds the string denoting the webhook_secret field in the database.
-	FieldWebhookSecret = "webhook_secret"
 	// FieldStripeAccountID holds the string denoting the stripe_account_id field in the database.
 	FieldStripeAccountID = "stripe_account_id"
 	// FieldStripeLivemode holds the string denoting the stripe_livemode field in the database.
 	FieldStripeLivemode = "stripe_livemode"
+	// FieldAPIKey holds the string denoting the api_key field in the database.
+	FieldAPIKey = "api_key"
+	// FieldStripeWebhookID holds the string denoting the stripe_webhook_id field in the database.
+	FieldStripeWebhookID = "stripe_webhook_id"
+	// FieldWebhookSecret holds the string denoting the webhook_secret field in the database.
+	FieldWebhookSecret = "webhook_secret"
 	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
 	EdgeCustomerApps = "customer_apps"
 	// EdgeApp holds the string denoting the app edge name in mutations.
@@ -59,10 +61,11 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldAPIKey,
-	FieldWebhookSecret,
 	FieldStripeAccountID,
 	FieldStripeLivemode,
+	FieldAPIKey,
+	FieldStripeWebhookID,
+	FieldWebhookSecret,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -86,6 +89,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// APIKeyValidator is a validator for the "api_key" field. It is called by the builders before save.
 	APIKeyValidator func(string) error
+	// StripeWebhookIDValidator is a validator for the "stripe_webhook_id" field. It is called by the builders before save.
+	StripeWebhookIDValidator func(string) error
 	// WebhookSecretValidator is a validator for the "webhook_secret" field. It is called by the builders before save.
 	WebhookSecretValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -120,16 +125,6 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByAPIKey orders the results by the api_key field.
-func ByAPIKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAPIKey, opts...).ToFunc()
-}
-
-// ByWebhookSecret orders the results by the webhook_secret field.
-func ByWebhookSecret(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWebhookSecret, opts...).ToFunc()
-}
-
 // ByStripeAccountID orders the results by the stripe_account_id field.
 func ByStripeAccountID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeAccountID, opts...).ToFunc()
@@ -138,6 +133,21 @@ func ByStripeAccountID(opts ...sql.OrderTermOption) OrderOption {
 // ByStripeLivemode orders the results by the stripe_livemode field.
 func ByStripeLivemode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeLivemode, opts...).ToFunc()
+}
+
+// ByAPIKey orders the results by the api_key field.
+func ByAPIKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAPIKey, opts...).ToFunc()
+}
+
+// ByStripeWebhookID orders the results by the stripe_webhook_id field.
+func ByStripeWebhookID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStripeWebhookID, opts...).ToFunc()
+}
+
+// ByWebhookSecret orders the results by the webhook_secret field.
+func ByWebhookSecret(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebhookSecret, opts...).ToFunc()
 }
 
 // ByCustomerAppsCount orders the results by customer_apps count.

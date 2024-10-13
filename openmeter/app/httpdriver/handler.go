@@ -11,18 +11,22 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type AppHandler interface {
-	MarketplaceHandler
+type Handler interface {
+	AppHandler
 }
 
-type MarketplaceHandler interface {
+type AppHandler interface {
+	// App handlers
 	ListApps() ListAppsHandler
 	GetApp() GetAppHandler
+	UninstallApp() UninstallAppHandler
+
+	// Marketplace handlers
 	MarketplaceListListings() MarketplaceListListingsHandler
 	MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler
 }
 
-var _ AppHandler = (*handler)(nil)
+var _ Handler = (*handler)(nil)
 
 type handler struct {
 	service          app.Service
@@ -43,7 +47,7 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service app.Service,
 	options ...httptransport.HandlerOption,
-) AppHandler {
+) Handler {
 	return &handler{
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
