@@ -10,42 +10,31 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
+
+func NewBrokerConfiguration(
+	kafkaConfig config.KafkaConfiguration,
+	logConfig config.LogTelemetryConfig,
+	appMetadata Metadata,
+	logger *slog.Logger,
+	meter metric.Meter,
+) watermillkafka.BrokerOptions {
+	return watermillkafka.BrokerOptions{
+		KafkaConfig:  kafkaConfig,
+		ClientID:     appMetadata.OpenTelemetryName, // TODO: use a better name or rename otel name
+		Logger:       logger,
+		MetricMeter:  meter,
+		DebugLogging: logConfig.Level == slog.LevelDebug,
+	}
+}
 
 func NewPublisher(
 	ctx context.Context,
-	conf config.Configuration,
-	metadata Metadata,
+	options watermillkafka.PublisherOptions,
 	logger *slog.Logger,
-	metricMeter metric.Meter,
-	topicProvisioner pkgkafka.TopicProvisioner,
 ) (message.Publisher, func(), error) {
-	if !conf.Events.Enabled {
-		return &noop.Publisher{}, func() {}, nil
-	}
-
-	var provisionTopics []pkgkafka.TopicConfig
-	if conf.Events.SystemEvents.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
-			Name:       conf.Events.SystemEvents.Topic,
-			Partitions: conf.Events.SystemEvents.AutoProvision.Partitions,
-		})
-	}
-
-	publisher, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		Broker: watermillkafka.BrokerOptions{
-			KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-			ClientID:     metadata.OpenTelemetryName, // TODO: use a better name or rename otel name
-			Logger:       logger,
-			MetricMeter:  metricMeter,
-			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
-		},
-		ProvisionTopics:  provisionTopics,
-		TopicProvisioner: topicProvisioner,
-	})
+	publisher, err := watermillkafka.NewPublisher(ctx, options)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize event publisher: %w", err)
 	}
@@ -62,12 +51,12 @@ func NewPublisher(
 
 func NewEventBusPublisher(
 	publisher message.Publisher,
-	conf config.Configuration, // TODO: limit configuration
+	conf config.EventsConfiguration, // TODO: limit configuration
 	logger *slog.Logger,
 ) (eventbus.Publisher, error) {
 	eventBusPublisher, err := eventbus.New(eventbus.Options{
 		Publisher:              publisher,
-		Config:                 conf.Events,
+		Config:                 conf,
 		Logger:                 logger,
 		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
 	})
