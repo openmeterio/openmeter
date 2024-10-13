@@ -34,6 +34,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Events"),
 	wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
 	wire.FieldsOf(new(config.Configuration), "Notification"),
+	wire.FieldsOf(new(config.Configuration), "Sink"),
 )
 
 var TelemetryConfig = wire.NewSet(
@@ -121,6 +122,7 @@ var Watermill = wire.NewSet(
 )
 
 // TODO: move this back to [Watermill]
+// NOTE: this is also used by the sink-worker that requires control over how the publisher is closed
 var WatermillNoPublisher = wire.NewSet(
 	NewBrokerConfiguration,
 	wire.Struct(new(watermillkafka.PublisherOptions), "*"),

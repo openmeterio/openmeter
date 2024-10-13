@@ -29,6 +29,7 @@ func NewBrokerConfiguration(
 	}
 }
 
+// NOTE: this is also used by the sink-worker that requires control over how the publisher is closed
 func NewPublisher(
 	ctx context.Context,
 	options watermillkafka.PublisherOptions,
