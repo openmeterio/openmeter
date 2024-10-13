@@ -8,7 +8,6 @@ package main
 
 import (
 	"context"
-	"github.com/ThreeDotsLabs/watermill/message"
 	kafka2 "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/openmeterio/openmeter/config"
@@ -19,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
@@ -130,7 +128,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		ProvisionTopics:  v4,
 		TopicProvisioner: topicProvisioner,
 	}
-	publisher, cleanup6, err := newPublisher(ctx, eventsConfiguration, publisherOptions, logger)
+	publisher, cleanup6, err := app.NewServerPublisher(ctx, eventsConfiguration, publisherOptions, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -270,17 +268,4 @@ func metadata(conf config.Configuration) app.Metadata {
 		Environment:       conf.Environment,
 		OpenTelemetryName: "openmeter.io/backend",
 	}
-}
-
-func newPublisher(
-	ctx context.Context,
-	conf config.EventsConfiguration,
-	options kafka.PublisherOptions,
-	logger *slog.Logger,
-) (message.Publisher, func(), error) {
-	if !conf.Enabled {
-		return &noop.Publisher{}, func() {}, nil
-	}
-
-	return app.NewPublisher(ctx, options, logger)
 }

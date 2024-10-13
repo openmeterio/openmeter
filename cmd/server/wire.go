@@ -7,7 +7,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/wire"
@@ -20,8 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -60,7 +57,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Kafka,
 		app.ServerProvisionTopics,
 		app.WatermillNoPublisher,
-		newPublisher,
+		app.NewServerPublisher,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)
@@ -82,17 +79,4 @@ func metadata(conf config.Configuration) app.Metadata {
 		Environment:       conf.Environment,
 		OpenTelemetryName: "openmeter.io/backend",
 	}
-}
-
-func newPublisher(
-	ctx context.Context,
-	conf config.EventsConfiguration,
-	options watermillkafka.PublisherOptions,
-	logger *slog.Logger,
-) (message.Publisher, func(), error) {
-	if !conf.Enabled {
-		return &noop.Publisher{}, func() {}, nil
-	}
-
-	return app.NewPublisher(ctx, options, logger)
 }

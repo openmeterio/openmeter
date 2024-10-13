@@ -8,15 +8,12 @@ package main
 
 import (
 	"context"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-slog/otelslog"
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
-	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafka2 "github.com/openmeterio/openmeter/pkg/kafka"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -84,7 +81,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		ProvisionTopics:  v3,
 		TopicProvisioner: topicProvisioner,
 	}
-	publisher, cleanup4, err := newPublisher(ctx, publisherOptions, logger)
+	publisher, cleanup4, err := app.NewSinkWorkerPublisher(ctx, publisherOptions, logger)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -99,7 +96,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	flushEventHandler, err := newFlushHandler(eventsConfiguration, sinkConfiguration, publisher, eventbusPublisher, logger, meter)
+	flushEventHandler, err := app.NewFlushHandler(eventsConfiguration, sinkConfiguration, publisher, eventbusPublisher, logger, meter)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -167,50 +164,4 @@ func NewLogger(conf config.Configuration, res *resource.Resource) *slog.Logger {
 	logger = otelslog.WithResource(logger, res)
 
 	return logger
-}
-
-// the sink-worker requires control over how the publisher is closed
-func newPublisher(
-	ctx context.Context,
-	options kafka.PublisherOptions,
-	logger *slog.Logger,
-) (message.Publisher, func(), error) {
-	publisher, closer, err := app.NewPublisher(ctx, options, logger)
-
-	closer = func() {}
-
-	return publisher, closer, err
-}
-
-func newFlushHandler(
-	eventsConfig config.EventsConfiguration,
-	sinkConfig config.SinkConfiguration,
-	messagePublisher message.Publisher,
-	eventPublisher eventbus.Publisher,
-	logger *slog.Logger, meter2 metric.Meter,
-
-) (flushhandler.FlushEventHandler, error) {
-	if !eventsConfig.Enabled {
-		return nil, nil
-	}
-
-	flushHandlerMux := flushhandler.NewFlushEventHandlers()
-
-	flushHandlerMux.OnDrainComplete(func() {
-		logger.Info("shutting down kafka producer")
-		if err := messagePublisher.Close(); err != nil {
-			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
-		}
-	})
-
-	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, meter2, eventPublisher, ingestnotification.HandlerConfig{
-		MaxEventsInBatch: sinkConfig.IngestNotifications.MaxEventsInBatch,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	flushHandlerMux.AddHandler(ingestNotificationHandler)
-
-	return flushHandlerMux, nil
 }
