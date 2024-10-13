@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
-    dagger.url = "github:dagger/nix";
+    dagger.url = "github:dagger/nix/a46ddf2e3f69a62f49cea83e8f7a66979197eff4";
     dagger.inputs.nixpkgs.follows = "nixpkgs";
   };
 

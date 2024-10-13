@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  DAGGER_VERSION: 0.13.5
+  DAGGER_VERSION: 0.13.3
 
 jobs:
   build:
@@ -313,7 +313,7 @@ jobs:
     name: E2E2
     runs-on:
       - depot-ubuntu-latest-16
-      - dagger-0.13.5
+      - dagger-0.13.3
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
@@ -360,7 +360,7 @@ jobs:
     name: CI2
     runs-on:
       - depot-ubuntu-latest-16
-      - dagger-0.13.5
+      - dagger-0.13.3
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
