@@ -9,8 +9,8 @@ package main
 import (
 	"context"
 	"github.com/go-slog/otelslog"
-	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/app/common"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -27,40 +27,40 @@ import (
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
 	metricsTelemetryConfig := telemetryConfig.Metrics
-	appMetadata := metadata(conf)
-	resource := app.NewTelemetryResource(appMetadata)
-	meterProvider, cleanup, err := app.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
+	commonMetadata := metadata(conf)
+	resource := common.NewTelemetryResource(commonMetadata)
+	meterProvider, cleanup, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
 		return Application{}, nil, err
 	}
 	traceTelemetryConfig := telemetryConfig.Trace
-	tracerProvider, cleanup2, err := app.NewTracerProvider(ctx, traceTelemetryConfig, resource, logger)
+	tracerProvider, cleanup2, err := common.NewTracerProvider(ctx, traceTelemetryConfig, resource, logger)
 	if err != nil {
 		cleanup()
 		return Application{}, nil, err
 	}
-	textMapPropagator := app.NewDefaultTextMapPropagator()
-	globalInitializer := app.GlobalInitializer{
+	textMapPropagator := common.NewDefaultTextMapPropagator()
+	globalInitializer := common.GlobalInitializer{
 		Logger:            logger,
 		MeterProvider:     meterProvider,
 		TracerProvider:    tracerProvider,
 		TextMapPropagator: textMapPropagator,
 	}
 	v := conf.Meters
-	inMemoryRepository := app.NewMeterRepository(v)
-	health := app.NewHealthChecker(logger)
-	telemetryHandler := app.NewTelemetryHandler(metricsTelemetryConfig, health)
-	v2, cleanup3 := app.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	inMemoryRepository := common.NewMeterRepository(v)
+	health := common.NewHealthChecker(logger)
+	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
+	v2, cleanup3 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	eventsConfiguration := conf.Events
 	sinkConfiguration := conf.Sink
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	logTelemetryConfig := telemetryConfig.Log
-	meter := app.NewMeter(meterProvider, appMetadata)
-	brokerOptions := app.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, appMetadata, logger, meter)
-	v3 := app.SinkWorkerProvisionTopics(eventsConfiguration)
-	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
+	meter := common.NewMeter(meterProvider, commonMetadata)
+	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
+	v3 := common.SinkWorkerProvisionTopics(eventsConfiguration)
+	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -68,8 +68,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		return Application{}, nil, err
 	}
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := app.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := app.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -81,22 +81,14 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		ProvisionTopics:  v3,
 		TopicProvisioner: topicProvisioner,
 	}
-	publisher, cleanup4, err := app.NewSinkWorkerPublisher(ctx, publisherOptions, logger)
+	publisher, cleanup4, err := common.NewSinkWorkerPublisher(ctx, publisherOptions, logger)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventbusPublisher, err := app.NewEventBusPublisher(publisher, eventsConfiguration, logger)
-	if err != nil {
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	flushEventHandler, err := app.NewFlushHandler(eventsConfiguration, sinkConfiguration, publisher, eventbusPublisher, logger, meter)
+	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -104,10 +96,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := app.NewTracer(tracerProvider, appMetadata)
+	flushEventHandler, err := common.NewFlushHandler(eventsConfiguration, sinkConfiguration, publisher, eventbusPublisher, logger, meter)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	application := Application{
 		GlobalInitializer: globalInitializer,
-		Metadata:          appMetadata,
+		Metadata:          commonMetadata,
 		MeterRepository:   inMemoryRepository,
 		TelemetryServer:   v2,
 		FlushHandler:      flushEventHandler,
@@ -127,21 +127,21 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 func initializeLogger(conf config.Configuration) *slog.Logger {
 	telemetryConfig := conf.Telemetry
 	logTelemetryConfig := telemetryConfig.Log
-	appMetadata := metadata(conf)
-	resource := app.NewTelemetryResource(appMetadata)
-	logger := app.NewLogger(logTelemetryConfig, resource)
+	commonMetadata := metadata(conf)
+	resource := common.NewTelemetryResource(commonMetadata)
+	logger := common.NewLogger(logTelemetryConfig, resource)
 	return logger
 }
 
 // wire.go:
 
 type Application struct {
-	app.GlobalInitializer
+	common.GlobalInitializer
 
-	Metadata app.Metadata
+	Metadata common.Metadata
 
 	MeterRepository  meter.Repository
-	TelemetryServer  app.TelemetryServer
+	TelemetryServer  common.TelemetryServer
 	FlushHandler     flushhandler.FlushEventHandler
 	TopicProvisioner kafka2.TopicProvisioner
 
@@ -149,8 +149,8 @@ type Application struct {
 	Tracer trace.Tracer
 }
 
-func metadata(conf config.Configuration) app.Metadata {
-	return app.Metadata{
+func metadata(conf config.Configuration) common.Metadata {
+	return common.Metadata{
 		ServiceName:       "openmeter",
 		Version:           version,
 		Environment:       conf.Environment,

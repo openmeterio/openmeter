@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )

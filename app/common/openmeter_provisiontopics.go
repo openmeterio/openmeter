@@ -1,7 +1,7 @@
-package app
+package common
 
 import (
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
