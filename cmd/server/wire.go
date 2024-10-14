@@ -25,6 +25,7 @@ import (
 
 type Application struct {
 	common.GlobalInitializer
+	common.Migrator
 
 	StreamingConnector streaming.Connector
 	MeterRepository    meter.Repository

@@ -13,7 +13,40 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
+
+// Migrator executes database migrations.
+type Migrator struct {
+	Config config.PostgresConfig
+	Client *db.Client
+	Logger *slog.Logger
+}
+
+func (m Migrator) Migrate(ctx context.Context) error {
+	if !m.Config.AutoMigrate.Enabled() {
+		m.Logger.Debug("auto migration is disabled")
+
+		return nil
+	}
+
+	m.Logger.Debug("running migrations", slog.String("strategy", string(config.AutoMigrateEnt)))
+
+	switch m.Config.AutoMigrate {
+	case config.AutoMigrateEnt:
+		if err := m.Client.Schema.Create(ctx); err != nil {
+			return fmt.Errorf("failed to migrate db: %w", err)
+		}
+	case config.AutoMigrateMigration:
+		if err := migrate.Up(m.Config.URL); err != nil {
+			return fmt.Errorf("failed to migrate db: %w", err)
+		}
+	}
+
+	m.Logger.Info("database initialized")
+
+	return nil
+}
 
 func NewPostgresDriver(
 	ctx context.Context,

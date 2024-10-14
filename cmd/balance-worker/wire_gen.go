@@ -44,22 +44,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		TracerProvider:    tracerProvider,
 		TextMapPropagator: textMapPropagator,
 	}
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v, err := common.NewClickHouse(clickHouseAggregationConfiguration)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	v2 := conf.Meters
-	inMemoryRepository := common.NewMeterRepository(v2)
-	clickhouseConnector, err := common.NewClickHouseStreamingConnector(aggregationConfiguration, v, inMemoryRepository, logger)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	postgresConfig := conf.Postgres
 	meter := common.NewMeter(meterProvider, commonMetadata)
 	driver, cleanup3, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
@@ -71,6 +55,31 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	db := common.NewDB(driver)
 	entPostgresDriver, cleanup4 := common.NewEntPostgresDriver(db, logger)
 	client := common.NewEntClient(entPostgresDriver)
+	migrator := common.Migrator{
+		Config: postgresConfig,
+		Client: client,
+		Logger: logger,
+	}
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	v, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v2 := conf.Meters
+	inMemoryRepository := common.NewMeterRepository(v2)
+	clickhouseConnector, err := common.NewClickHouseStreamingConnector(aggregationConfiguration, v, inMemoryRepository, logger)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v3, cleanup5 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
@@ -128,6 +137,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	application := Application{
 		GlobalInitializer:  globalInitializer,
+		Migrator:           migrator,
 		Metadata:           commonMetadata,
 		StreamingConnector: clickhouseConnector,
 		MeterRepository:    inMemoryRepository,
@@ -162,6 +172,7 @@ func initializeLogger(conf config.Configuration) *slog.Logger {
 
 type Application struct {
 	common.GlobalInitializer
+	common.Migrator
 
 	Metadata common.Metadata
 

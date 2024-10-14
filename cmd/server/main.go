@@ -30,7 +30,6 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	"github.com/openmeterio/openmeter/openmeter/registry/startup"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -136,14 +135,10 @@ func main() {
 	debugConnector := debug.NewDebugConnector(app.StreamingConnector)
 	entitlementConnRegistry := &registry.Entitlement{}
 
-	entClient := app.EntClient
-
-	if err := startup.DB(ctx, conf.Postgres, entClient); err != nil {
+	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
-
-	logger.Info("Postgres client initialized")
 
 	if conf.Entitlements.Enabled {
 		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
@@ -158,10 +153,10 @@ func main() {
 	// Initialize Customer
 	var customerService customer.CustomerService
 
-	if entClient != nil {
+	if app.EntClient != nil {
 		var customerRepo customer.Repository
 		customerRepo, err = customerrepository.New(customerrepository.Config{
-			Client: entClient,
+			Client: app.EntClient,
 			Logger: logger.WithGroup("customer.postgres"),
 		})
 		if err != nil {
@@ -188,14 +183,14 @@ func main() {
 		}
 
 		// CreatingPG client is done as part of entitlements initialization
-		if entClient == nil {
+		if app.EntClient == nil {
 			logger.Error("failed to initialize notification service: postgres client is not initialized")
 			os.Exit(1)
 		}
 
 		var notificationRepo notification.Repository
 		notificationRepo, err = notificationrepository.New(notificationrepository.Config{
-			Client: entClient,
+			Client: app.EntClient,
 			Logger: logger.WithGroup("notification.postgres"),
 		})
 		if err != nil {
