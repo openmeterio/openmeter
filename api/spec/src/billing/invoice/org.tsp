@@ -17,6 +17,8 @@ namespace Invoice.Org;
  *    -> We don't need this level of detail for now, the name is enough if we deal with a person.
  *  inboxes: 	Digital inboxes used for forwarding electronic versions of documents
  *    -> We don't support this.
+ *  emails:
+ *   -> We don't need this on the invoice.
  *  websites: 	Public websites that provide further information about the party.
  *  telephones:   Telephone numbers for contacting the party.
  *  registration: Additional registration details about the company that may need to be included in a document.
@@ -36,24 +38,7 @@ model Party {
   @maxItems(1)
   addresses?: Array<Org.Address>;
 
-  @summary("Electronic mail addresses")
-  @maxItems(1)
-  emails?: Array<Org.Email>;
-
   @summary("Any additional semi-structured information that does not fit into the rest of the party.")
-  meta?: CBC.Meta;
-}
-
-@summary("Email describes the electronic mailing details.")
-@friendlyName("BillingEmail")
-model Email {
-  @summary("Identifier for the email.")
-  label?: string;
-
-  @summary("The email address.")
-  addr: string;
-
-  @summary("Additional fields.")
   meta?: CBC.Meta;
 }
 
