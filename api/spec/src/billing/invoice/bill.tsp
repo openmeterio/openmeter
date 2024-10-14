@@ -188,13 +188,6 @@ enum InvoiceType {
 @friendlyName("BillingInvoiceDiscount")
 @summary("Discount represents an allowance applied to the complete document independent from the individual lines.")
 model Discount {
-  @summary("Universally Unique Identifier.")
-  @format("uuid")
-  uuid?: string;
-
-  @summary("Line number inside the list of discounts (calculated)")
-  i?: int32;
-
   @summary("Reference or ID for this Discount")
   ref?: string;
 
@@ -243,11 +236,6 @@ enum LineTypes {
 model Line {
   ...OpenMeter.Line; // OpenMeter schema extensions
   type: LineTypes;
-
-  @summary("Line number inside the parent (calculated)")
-  @visibility("read")
-  @encodedName("application/json", "i")
-  index: int32;
 
   @summary("Discounts applied to this line.")
   discounts?: LineDiscount[];
