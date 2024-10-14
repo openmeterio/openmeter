@@ -1,4 +1,4 @@
-package app
+package common
 
 // Metadata provides information about the service to components that need it (eg. telemetry).
 type Metadata struct {

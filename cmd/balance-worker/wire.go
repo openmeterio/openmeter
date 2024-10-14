@@ -11,8 +11,8 @@ import (
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -21,14 +21,14 @@ import (
 )
 
 type Application struct {
-	app.GlobalInitializer
+	common.GlobalInitializer
 
-	Metadata app.Metadata
+	Metadata common.Metadata
 
 	StreamingConnector streaming.Connector
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
-	TelemetryServer    app.TelemetryServer
+	TelemetryServer    common.TelemetryServer
 	BrokerOptions      watermillkafka.BrokerOptions
 	MessagePublisher   message.Publisher
 	EventPublisher     eventbus.Publisher
@@ -39,16 +39,16 @@ type Application struct {
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
 	wire.Build(
 		metadata,
-		app.Config,
-		app.Framework,
-		app.Telemetry,
-		app.NewDefaultTextMapPropagator,
-		app.Database,
-		app.ClickHouse,
-		app.KafkaTopic,
-		app.BalanceWorkerProvisionTopics,
-		app.Watermill,
-		app.OpenMeter,
+		common.Config,
+		common.Framework,
+		common.Telemetry,
+		common.NewDefaultTextMapPropagator,
+		common.Database,
+		common.ClickHouse,
+		common.KafkaTopic,
+		common.BalanceWorkerProvisionTopics,
+		common.Watermill,
+		common.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil
@@ -56,13 +56,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 
 // TODO: is this necessary? Do we need a logger first?
 func initializeLogger(conf config.Configuration) *slog.Logger {
-	wire.Build(metadata, app.Config, app.Logger)
+	wire.Build(metadata, common.Config, common.Logger)
 
 	return new(slog.Logger)
 }
 
-func metadata(conf config.Configuration) app.Metadata {
-	return app.Metadata{
+func metadata(conf config.Configuration) common.Metadata {
+	return common.Metadata{
 		ServiceName:       "openmeter",
 		Version:           version,
 		Environment:       conf.Environment,

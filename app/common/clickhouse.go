@@ -1,4 +1,4 @@
-package app
+package common
 
 import (
 	"fmt"
