@@ -172,6 +172,17 @@ func (TimeMixin) Fields() []ent.Field {
 	}
 }
 
+type CadencedMixin struct {
+	mixin.Schema
+}
+
+func (CadencedMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.Time("active_from").Immutable(),
+		field.Time("active_to").Optional().Nillable(),
+	}
+}
+
 // CustomerAddressMixin adds address fields to a customer, used by billing to snapshot addresses for invoices
 type CustomerAddressMixin struct {
 	ent.Schema

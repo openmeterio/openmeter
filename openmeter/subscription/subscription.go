@@ -1,45 +1,32 @@
 package subscription
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type PlanRef struct {
-	Key     string
-	Version int
+	Key     string `json:"key"`
+	Version int    `json:"version"`
+}
+
+type CreateSubscriptionInput struct {
+	Plan PlanRef
+
+	CustomerId string `json:"customerId,omitempty"`
+	Currency   models.CurrencyCode
+	models.CadencedModel
 }
 
 type Subscription struct {
 	models.NamespacedModel
 	models.ManagedModel
-	models.CadencedModel
+	CreateSubscriptionInput
 
-	ID         string `json:"id,omitempty"`
-	CustomerId string `json:"customerId,omitempty"`
-
-	Plan     PlanRef
-	Currency models.CurrencyCode
-}
-
-type CreateSubscriptionItemInput struct {
-	PhaseKey string
-	ItemKey  string
-
-	FeatureKey             *string
-	CreateEntitlementInput *entitlement.CreateEntitlementInputs
-	CreatePriceInput       *price.CreateInput
-}
-
-type CreateSubscriptionPhaseInput struct {
-	PhaseKey string
-
-	StartAfter          time.Duration
-	CreateDiscountInput *applieddiscount.CreateInput
+	ID string `json:"id,omitempty"`
 }
 
 type SubscriptionPatch struct {
@@ -49,13 +36,30 @@ type SubscriptionPatch struct {
 	ID             string `json:"id,omitempty"`
 	SubscriptionId string `json:"subscriptionId,omitempty"`
 
-	// Primary ordering happens via activation time
-	ActiveFrom time.Time `json:"activeFrom,omitempty"`
-	// Secondary ordering can be used as a tie-breaker
-	SecondaryOrdering int `json:"secondaryOrdering,omitempty"`
+	// Primary ordering happens via when the patch was applied
+	AppliedAt time.Time `json:"appliedAt,omitempty"`
+	// BatchIndex can be used as a tie-breaker secondary ordering
+	BatchIndex int `json:"batchIndex,omitempty"`
 
 	// Patch info
 	Operation string `json:"operation,omitempty"`
 	Path      string `json:"path,omitempty"`
-	Value     string `json:"value,omitempty"`
+	Value     any    `json:"value,omitempty"`
+}
+
+func (s *SubscriptionPatch) AsPatch() (any, error) {
+	p := &AnyPatch{
+		Op:    s.Operation,
+		Path:  s.Path,
+		Value: s.Value,
+	}
+
+	// FIXME: This is a bit of a hack, parsing and deserialization are too coupled
+
+	ser, err := json.Marshal(p)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pre-serialize patch: %w", err)
+	}
+
+	return Deserialize(ser)
 }
