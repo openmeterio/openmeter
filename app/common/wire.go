@@ -51,6 +51,7 @@ var TelemetryConfig = wire.NewSet(
 
 var Framework = wire.NewSet(
 	wire.Struct(new(GlobalInitializer), "*"),
+	wire.Struct(new(Runner), "*"),
 )
 
 var ClickHouse = wire.NewSet(
@@ -176,4 +177,5 @@ var BalanceWorker = wire.NewSet(
 
 	NewBalanceWorkerOptions,
 	NewBalanceWorker,
+	BalanceWorkerGroup,
 )

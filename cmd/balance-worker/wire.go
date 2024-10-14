@@ -11,15 +11,12 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 )
 
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
-
-	TelemetryServer common.TelemetryServer
-	Worker          *balanceworker.Worker
+	common.Runner
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {

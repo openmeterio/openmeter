@@ -4,12 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-	"net/http"
 	"os"
-	"syscall"
 
-	"github.com/oklog/run"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
@@ -83,34 +79,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	var group run.Group
-
-	// Run worker components
-
-	// Set up telemetry server
-	{
-		server := app.TelemetryServer
-
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) },
-		)
-	}
-
-	// Balance worker
-	group.Add(
-		func() error { return app.Worker.Run(ctx) },
-		func(err error) { _ = app.Worker.Close() },
-	)
-
-	// Handle shutdown
-	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
-
-	// Run the group
-	err = group.Run()
-	if e := (run.SignalError{}); errors.As(err, &e) {
-		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
-	} else if !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("application stopped due to error", slog.String("error", err.Error()))
-	}
+	app.Run()
 }

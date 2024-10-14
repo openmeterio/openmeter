@@ -1,10 +1,13 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"syscall"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/oklog/run"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -68,4 +71,26 @@ func NewBalanceWorker(workerOptions balanceworker.WorkerOptions) (*balanceworker
 	}
 
 	return worker, nil
+}
+
+func BalanceWorkerGroup(
+	ctx context.Context,
+	worker *balanceworker.Worker,
+	telemetryServer TelemetryServer,
+) run.Group {
+	var group run.Group
+
+	group.Add(
+		func() error { return telemetryServer.ListenAndServe() },
+		func(err error) { _ = telemetryServer.Shutdown(ctx) },
+	)
+
+	group.Add(
+		func() error { return worker.Run(ctx) },
+		func(err error) { _ = worker.Close() },
+	)
+
+	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
+
+	return group
 }
