@@ -5,7 +5,7 @@ namespace OpenMeter.Billing;
 
 @route("/api/v1/billing/customer")
 @tag("Billing (Experimental)")
-interface Customers {
+interface CustomerOverrides {
   /**
    * List customer overrides
    */
@@ -27,17 +27,28 @@ interface Customers {
   @post
   @route("/{customerIdOrKey}")
   @summary("Create/update a customer override")
-  @operationId("billingCreateCustomerOverride")
-  create(
+  @operationId("billingUpsertCustomerOverride")
+  upsert(
     @path
     customerIdOrKey: ULIDOrKey,
 
     @body
     request: CustomerWorkflowOverride,
-  ): {
-    @statusCode _: 200;
-    @body body: CustomerOverride;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ):
+    | {
+        // Updated
+        @statusCode _: 200;
+
+        @body body: CustomerOverride;
+      }
+    | {
+        // Created
+        @statusCode _: 201;
+
+        @body body: CustomerOverride;
+      }
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
 
   /**
    * Get a customer override by id.
@@ -72,8 +83,8 @@ interface Customers {
 @friendlyName("BillingCustomerOverrideOrderBy")
 enum CustomerOverrideOrderBy {
   id: "id",
-  created: "created",
-  updated: "updated",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
 }
 
 /**
