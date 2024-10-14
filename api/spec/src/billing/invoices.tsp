@@ -9,7 +9,7 @@ namespace OpenMeter.Billing;
  */
 @route("/api/v1/billing/invoices")
 @tag("Billing (Experimental)")
-interface Invoices {
+interface InvoicesEndpoints {
   /**
    * List invoices
    */
@@ -25,7 +25,7 @@ interface Invoices {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoice.Bill.InvoiceSummary> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoices.InvoiceSummary> | OpenMeter.CommonErrors;
 }
 
 /**
@@ -34,7 +34,7 @@ interface Invoices {
  */
 @route("/api/v1/billing/invoices/{customerIdOrKey}")
 @tag("Billing (Experimental)")
-interface CustomerInvoices {
+interface CustomerInvoicesEndpoints {
   /**
    * Create a new invoice from the pending items.
    *
@@ -55,7 +55,7 @@ interface CustomerInvoices {
     request: InvoiceCreateInput,
   ): {
     @statusCode _: 201;
-    @body body: Invoice.Bill.Invoice;
+    @body body: Invoices.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -70,7 +70,7 @@ interface CustomerInvoices {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoice.Bill.InvoiceSummary> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoices.InvoiceSummary> | OpenMeter.CommonErrors;
 
   /**
    * Create a new (pending line item) charge.
@@ -89,7 +89,7 @@ interface CustomerInvoices {
   @route("/items")
   @summary("Create a new pending charge")
   @operationId("billingCreatePendingChargeByCustomer")
-  createPendingCharge(@path customerIdOrKey: ULIDOrKey, @body request: Invoice.Bill.InvoiceLine): {
+  createPendingCharge(@path customerIdOrKey: ULIDOrKey, @body request: Invoices.InvoiceLine): {
     @statusCode _: 201;
     @body body: CreatePendingChargeResponse;
   } | OpenMeter.CommonErrors;
@@ -100,7 +100,7 @@ interface CustomerInvoices {
  */
 @route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
 @tag("Billing (Experimental)")
-interface CustomerInvoice {
+interface CustomerInvoicesEndpoint {
   /**
    * Get an invoice by ID.
    */
@@ -113,7 +113,7 @@ interface CustomerInvoice {
 
     @path
     invoiceId: ULID,
-  ): Invoice.Bill.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete an invoice
@@ -151,7 +151,7 @@ interface CustomerInvoice {
     invoiceId: ULID,
   ): {
     @statusCode _: 200;
-    @body body: Invoice.Bill.Invoice;
+    @body body: Invoices.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -175,7 +175,7 @@ interface CustomerInvoice {
     invoiceId: ULID,
   ): {
     @statusCode _: 200;
-    @body body: Invoice.Bill.Invoice;
+    @body body: Invoices.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -200,31 +200,7 @@ interface CustomerInvoice {
     request: VoidInvoiceInput,
   ): {
     @statusCode _: 200;
-    @body body: Invoice.Bill.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Update invoice workflow
-   *
-   * This call can be used to update the invoice workflow, only those settings are adjustable
-   * that are not referring to past activities (such as collection).
-   */
-  @put
-  @route("/workflow")
-  @summary("Update invoice workflow")
-  @operationId("billingUpdateInvoiceWorkflow")
-  updateWorkflow(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-
-    @body
-    request: Invoice.Bill.OpenMeter.InvoiceWorkflowSettings,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoice.Bill.Invoice;
+    @body body: Invoices.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -251,55 +227,7 @@ interface CustomerInvoice {
     invoiceId: ULID,
   ): {
     @statusCode _: 200;
-    @body body: Invoice.Bill.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  // Contact management
-
-  /**
-   * Update/override the supplier information for the invoice
-   *
-   * Can be called only on invoices in the draft status.
-   */
-  @put
-  @route("/supplier")
-  @summary("Update the supplier information for the invoice")
-  @operationId("billingUpdateInvoiceSupplier")
-  updateInvoiceSupplier(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-
-    @body
-    request: Invoice.Org.Party,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoice.Org.Party;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Update/override the customer information for the invoice
-   *
-   * Can be called only on invoices in the draft status.
-   */
-  @put
-  @route("/customer")
-  @summary("Update the customer information for the invoice")
-  @operationId("billingUpdateInvoiceCustomer")
-  updateCustomer(
-    @path
-    customerIdOrKey: ULIDOrKey,
-
-    @path
-    invoiceId: ULID,
-
-    @body
-    request: Invoice.Org.Party,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoice.Org.Party;
+    @body body: Invoices.Invoice;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   // Line management
@@ -326,10 +254,10 @@ interface CustomerInvoice {
     @path customerIdOrKey: ULIDOrKey,
     @path invoiceId: ULID,
     @path lineId: ULID,
-    @body request: Invoice.Bill.InvoiceLine,
+    @body request: Invoices.InvoiceLine,
   ): {
     @statusCode _: 200;
-    @body body: Invoice.Bill.InvoiceLine;
+    @body body: Invoices.InvoiceLine;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -358,10 +286,10 @@ enum InvoiceOrderBy {
 @friendlyName("BillingCreatePendingChargeResponse")
 model CreatePendingChargeResponse {
   @summary("The created pending charge")
-  item: Invoice.Bill.InvoiceLine;
+  item: Invoices.InvoiceLine;
 
   @summary("The invoice the item was added to")
-  invoice: Invoice.Bill.InvoiceSummary;
+  invoice: Invoices.InvoiceSummary;
 }
 
 /**
@@ -433,7 +361,7 @@ model VoidInvoiceItemOverride {
 model InvoiceListParams {
   @query
   @summary("Filter by the invoice status")
-  statuses?: Array<Invoice.Bill.OpenMeter.InvoiceStatus>;
+  statuses?: Array<Invoices.InvoiceStatus>;
 
   @query
   @summary("Filter by invoice creation time")

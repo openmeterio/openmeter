@@ -5,11 +5,11 @@ import "@typespec/openapi3";
 import "@typespec/versioning";
 
 import "..";
-import "./invoice/main.tsp";
+import "./invoices/main.tsp";
 
 // Package Contents
 import "./profile.tsp";
-import "./customer.tsp";
+import "./customeroverride.tsp";
 import "./invoices.tsp";
 
 using TypeSpec.Http;

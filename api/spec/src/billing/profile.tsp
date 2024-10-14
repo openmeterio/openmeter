@@ -82,7 +82,7 @@ model Profile {
   ...global.Resource;
 
   @summary("The name and contact information for the supplier this billing profile represents")
-  supplier: Invoice.Org.Party;
+  supplier: Invoices.Party;
 
   @summary("The billing workflow settings for this profile")
   workflow: Workflow;

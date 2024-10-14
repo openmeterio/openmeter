@@ -7,13 +7,13 @@ import "@typespec/versioning";
 import "../..";
 
 // Package Contents
-import "./bill.tsp";
+import "./invoice.tsp";
 import "./tax.tsp";
-import "./cbc.tsp";
-import "./l10n.tsp";
+import "./codes.tsp";
 import "./org.tsp";
-import "./currency.tsp";
 import "./pay.tsp";
+import "./product.tsp";
+import "./docref.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

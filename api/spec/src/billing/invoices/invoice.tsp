@@ -6,130 +6,64 @@ using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
-namespace Invoice.Bill;
+namespace Invoices;
 
 @summary("Invoice summary represents an extract of the invoice object")
 @friendlyName("BillingInvoiceSummary")
 model InvoiceSummary {
-  ...OpenMeter.InvoiceSummary; // OpenMeter schema extensions
+  @visibility("read", "query", "update")
+  id: ULID;
+
+  @visibility("read", "query")
   type?: InvoiceType;
+
+  @summary("The taxable entity supplying the goods or services.")
+  @visibility("read", "query", "update")
+  supplier: Party;
+
+  @summary("Legal entity receiving the goods or services.")
+  @visibility("read", "query", "update")
+  customer: Party;
 
   @summary("Used as a prefix to group codes.")
   @visibility("read", "query")
-  series?: CBC.Code;
+  series?: Code;
 
   @summary("Sequential code used to identify this invoice in tax declarations.")
   // NOTE: This is required in the original schema, but we can't enforce it here as we will only know this when the
   // invoice is issued.
   @visibility("read", "query")
-  code?: CBC.Code;
+  code?: Code;
 
   @summary("Currency for all invoice totals.")
-  currency?: Currency.Code;
+  currency?: CurrencyCode;
 
   @summary("Key information regarding previous invoices and potentially details as to why they were corrected.")
   @visibility("read", "query") // We only populate this for voided invoices
-  preceding?: Org.DocumentRef;
+  preceding?: DocumentRef;
 
   @summary("Summary of all the invoice totals, including taxes (calculated).")
   @visibility("read", "query")
   totals?: Totals;
 
-  @summary("Unstructured information that is relevant to the invoice, such as correction or additional legal details.")
   @visibility("read", "query")
-  notes?: CBC.Note[];
-
-  @summary("Additional semi-structured data that doesn’t fit into the body of the invoice.")
-  @visibility("read", "query")
-  meta?: CBC.Meta;
-}
-
-namespace OpenMeter {
-  @friendlyName("BillingInvoiceSummaryOpenMeter")
-  @summary("Invoice summary represents the invoice object's OpenMeter extensions.")
-  model InvoiceSummary {
-    @visibility("read", "query", "update")
-    id: ULID;
-
-    @visibility("read", "query")
-    @summary("The status of the invoice.")
-    status: InvoiceStatus;
-
-    @summary("The time the invoice was issued.")
-    @visibility("read", "query")
-    // NOTE: This replaces the issueDate in the gobl schema, as date only is a bad practice and should be avoided.
-    issuedAt?: DateTime;
-
-    @summary("The workflow settings associated with this invoice")
-    @visibility("read", "query") // Seperate API endpoint is available for updating
-    workflow?: InvoiceWorkflowSettings;
-  }
-
-  @friendlyName("BillingInvoiceWorkflowSettings")
-  model InvoiceWorkflowSettings {
-    /**
-     * updatedAt is the time when the invoice workflow was last updated.
-     *
-     * This field is updated when the invoice workflow is updated, during put requests we
-     * are validating the update time to ensure there is no parallel updates happening.
-     */
-    updatedAt: DateTime;
-
-    @summary("Should the invoice auto advance to the next status?")
-    autoAdvance: boolean;
-
-    /**
-     * The invoice stays in the draft status until this time.
-     *
-     * If auto advance is disabled the value will be empty.
-     */
-    draftUtil?: DateTime;
-
-    /**
-     * The period after which the invoice is due.
-     *
-     * default: 7 days
-     */
-    @encode(DurationKnownEncoding.ISO8601)
-    @example(duration.fromISO("P1D"))
-    dueAfter?: duration;
-  }
+  @summary("The status of the invoice.")
+  status: InvoiceStatus;
 
   /**
-   * InvoiceStatus describes the status of an invoice.
+   * The time the invoice was issued.
+   *
+   * Depending on the status of the invoice this can mean multiple things:
+   * - draft, gathering: The time the invoice will be issued based on the workflow settings.
+   * - issued: The time the invoice was issued.
    */
-  @friendlyName("BillingInvoiceStatus")
-  enum InvoiceStatus {
-    /**
-     * The list of line items for the next invoice is being gathered.
-     */
-    gathering: "gathering",
+  @summary("The time the invoice was issued.")
+  @visibility("read", "query")
+  issuedAt?: DateTime;
 
-    /**
-     * The invoice is waiting for review by our partner.
-     */
-    review: "review",
-
-    /**
-     * The invoice has been issued to the customer.
-     */
-    issued: "issued",
-
-    /**
-     * The invoice has been paid by the customer.
-     */
-    paymentReceived: "payment_received",
-
-    /**
-     * A manual approval is required before the invoice can be issued.
-     */
-    manualApprovalRequired: "manual_approval_required",
-
-    /**
-     * There's a validation issue with the invoice.
-     */
-    validationFailed: "validation_failed",
-  }
+  @summary("The workflow settings associated with this invoice")
+  @visibility("read", "query", "update")
+  workflow?: InvoiceWorkflowSettings;
 }
 
 /* Omitted fields (not required yet):
@@ -153,14 +87,6 @@ namespace OpenMeter {
 model Invoice {
   ...InvoiceSummary;
 
-  @summary("The taxable entity supplying the goods or services.")
-  @visibility("read", "query") // Seperate API endpoint is available for updating
-  supplier: Org.Party;
-
-  @summary("Legal entity receiving the goods or services.")
-  @visibility("read", "query") // Seperate API endpoint is available for updating
-  customer: Org.Party;
-
   @summary("List of invoice lines representing each of the items sold to the customer.")
   @visibility("read", "query") // Seperate API endpoint is available for updating
   lines?: Line[];
@@ -173,6 +99,68 @@ model Invoice {
   @visibility("read", "query") // Seperate API endpoint is available for updating
   payment?: Payment;
 }
+
+@friendlyName("BillingInvoiceWorkflowSettings")
+model InvoiceWorkflowSettings {
+  /**
+   * updatedAt is the time when the invoice workflow was last updated.
+   */
+  @summary("Should the invoice auto advance to the next status?")
+  autoAdvance: boolean;
+
+  /**
+   * The invoice stays in the draft status until this time.
+   *
+   * If auto advance is disabled the value will be empty.
+   */
+  draftUtil?: DateTime;
+
+  /**
+   * The period after which the invoice is due.
+   *
+   * default: 7 days
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1D"))
+  dueAfter?: duration;
+}
+
+/**
+ * InvoiceStatus describes the status of an invoice.
+ */
+@friendlyName("BillingInvoiceStatus")
+enum InvoiceStatus {
+  /**
+   * The list of line items for the next invoice is being gathered.
+   */
+  gathering: "gathering",
+
+  /**
+   * The invoice is waiting for review by our partner.
+   */
+  review: "review",
+
+  /**
+   * The invoice has been issued to the customer.
+   */
+  issued: "issued",
+
+  /**
+   * The invoice has been paid by the customer.
+   */
+  paymentReceived: "payment_received",
+
+  /**
+   * A manual approval is required before the invoice can be issued.
+   */
+  manualApprovalRequired: "manual_approval_required",
+
+  /**
+   * There's a validation issue with the invoice.
+   */
+  validationFailed: "validation_failed",
+}
+
 /*
  * Omitted types: proforma, corrected, debit-note, other
  */
@@ -188,9 +176,6 @@ enum InvoiceType {
 @friendlyName("BillingInvoiceDiscount")
 @summary("Discount represents an allowance applied to the complete document independent from the individual lines.")
 model Discount {
-  @summary("Reference or ID for this Discount")
-  ref?: string;
-
   @summary("Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.")
   base?: Numeric;
 
@@ -200,17 +185,13 @@ model Discount {
   @summary("Amount to apply (calculated if percent present).")
   amount: Numeric;
 
-  @summary("List of taxes to apply to the discount")
-  taxes?: Tax.Combo[];
-
   @summary("Code for the reason this discount applied")
   code?: string;
 
   @summary("Text description as to why the discount was applied")
   reason?: string;
 
-  @summary("Additional semi-structured information.")
-  meta?: CBC.Meta;
+  // TODO: Add reference fields to plan/subscriptions if the discount is coming from there.
 }
 
 alias InvoiceLine = UnitPriceLine;
@@ -234,7 +215,9 @@ enum LineTypes {
 @discriminator("type")
 @friendlyName("BillingLine")
 model Line {
-  ...OpenMeter.Line; // OpenMeter schema extensions
+  @visibility("read", "query", "update")
+  id: ULID;
+
   type: LineTypes;
 
   @summary("Discounts applied to this line.")
@@ -245,32 +228,24 @@ model Line {
 
   @summary("Map of taxes to be applied and used in the invoice totals.")
   @visibility("read", "query") // Tax is handled by the tax provider, we only need to show the output of that here
-  taxes?: Tax.Combo[];
+  taxes?: TaxItem[];
 
   @visibility("read")
   @summary("Total sum of the line, including discounts and charges.")
   total: Numeric;
+
+  @summary("Period of the line item applies to for revenue recognition pruposes.")
+  period: Period;
 }
 
-namespace OpenMeter {
-  @friendlyName("BillingLineOpenMeter")
-  model Line {
-    @visibility("read", "query", "update")
-    id: ULID;
+@summary("Period represents a time range.")
+@friendlyName("BillingPeriod")
+model Period {
+  @summary("Start of the period.")
+  start: DateTime;
 
-    @summary("Period of the line item applies to for revenue recognition pruposes.")
-    period: Period;
-  }
-
-  @summary("Period represents a time range.")
-  @friendlyName("BillingPeriod")
-  model Period {
-    @summary("Start of the period.")
-    start: DateTime;
-
-    @summary("End of the period.")
-    end: DateTime;
-  }
+  @summary("End of the period.")
+  end: DateTime;
 }
 
 /**
@@ -280,10 +255,10 @@ namespace OpenMeter {
  */
 @friendlyName("BillingUnitPriceLine")
 model UnitPriceLine extends Line {
-  type: LineTypes.UnitPrice;
+  type: LineTypes.unitPrice;
 
   @summary("Details about what is being sold.")
-  item: Org.UnitPriceItem;
+  item: UnitPriceItem;
 
   @summary("Quantity of the item being sold.")
   quantity: Numeric;
@@ -309,6 +284,9 @@ model GenericCharge {
 
   @summary("Text description as to why the discount was applied.")
   reason?: string;
+
+  // TODO: Add fields required for referencing the charge/discount in the plan if it is coming from
+  // there.
 }
 
 @summary("LineDiscount represents an amount deducted from the line, and will be applied before taxes.")
@@ -355,9 +333,6 @@ model Totals {
   @summary("Rounding amount to apply to the invoice in case the total and payable amounts don't quite match.")
   rounding?: Numeric;
 
-  @summary("Total paid in outlays that need to be reimbursed")
-  outlays?: Numeric;
-
   @summary("Total amount to be paid after applying taxes and outlays.")
   payable: Numeric;
 
@@ -381,5 +356,5 @@ model Totals {
 @summary("Payment contains details as to how the invoice should be paid.")
 @friendlyName("BillingInvoicePayment")
 model Payment {
-  terms?: Pay.Terms;
+  terms?: PaymentTerms;
 }
