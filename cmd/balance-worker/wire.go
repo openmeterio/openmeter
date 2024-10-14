@@ -7,34 +7,16 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/wire"
-	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
-	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
-
-	Metadata common.Metadata
-
-	StreamingConnector streaming.Connector
-	MeterRepository    meter.Repository
-	EntClient          *db.Client
-	TelemetryServer    common.TelemetryServer
-	BrokerOptions      watermillkafka.BrokerOptions
-	MessagePublisher   message.Publisher
-	EventPublisher     eventbus.Publisher
-
-	Meter metric.Meter
+	common.Runner
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
@@ -47,9 +29,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		common.Database,
 		common.ClickHouse,
 		common.KafkaTopic,
-		common.BalanceWorkerProvisionTopics,
 		common.Watermill,
+		common.WatermillRouter,
 		common.OpenMeter,
+		common.BalanceWorkerAdapter,
+		common.BalanceWorker,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil
