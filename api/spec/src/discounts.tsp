@@ -96,6 +96,9 @@ union AppliedDiscount {
 
   @summary("Amount discount")
   amount: AppliedDiscountAmount,
+
+  @summary("Usage discount")
+  usage: AppliedDiscountUsage,
 }
 
 alias RateCardKey = Key;

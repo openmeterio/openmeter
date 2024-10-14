@@ -85,7 +85,6 @@ interface Subscriptions {
   @operationId("editSubscription")
   @route("/{subscriptionId}")
   edit(
-    @header accept: "json-patch+json",
     @path subscriptionId: ULID,
 
     @body
@@ -243,7 +242,7 @@ model SubscriptionItem {
    *
    * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
    *
-   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”
+   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item.
    */
   key: Key;
 

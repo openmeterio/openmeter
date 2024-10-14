@@ -32,8 +32,6 @@ model RateCardResource {
 @friendlyName("RateCard")
 model RateCard {
   /**
-   * Copied from product doc:
-   *
    * The identifier of the RateCard.
    * SubscriptionItem/RateCard can be identified, it has a reference:
    *
@@ -43,9 +41,7 @@ model RateCard {
    *
    * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
    *
-   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”
-   *
-   * In practice this will need an ID being generated
+   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item.
    */
   key: Key;
 
