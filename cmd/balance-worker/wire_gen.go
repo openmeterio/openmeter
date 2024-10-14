@@ -151,7 +151,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)
 	entitlementRepo := common.NewEntitlementRepo(client)
-	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, entitlementRepo, logger)
+	subjectResolver := common.SubjectResolver()
+	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, entitlementRepo, subjectResolver, logger)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
 		cleanup5()

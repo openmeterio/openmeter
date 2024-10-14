@@ -8,6 +8,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/oklog/run"
+
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -50,17 +51,19 @@ func NewBalanceWorkerOptions(
 	eventBus eventbus.Publisher,
 	entitlements *registry.Entitlement,
 	repo balanceworker.BalanceWorkerRepository,
+	subjectResolver balanceworker.SubjectResolver,
 	logger *slog.Logger,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
 		IngestEventsTopic: eventConfig.IngestEvents.Topic,
 
-		Router:      routerOptions,
-		EventBus:    eventBus,
-		Entitlement: entitlements,
-		Repo:        repo,
-		Logger:      logger,
+		Router:          routerOptions,
+		EventBus:        eventBus,
+		Entitlement:     entitlements,
+		Repo:            repo,
+		SubjectResolver: subjectResolver,
+		Logger:          logger,
 	}
 }
 

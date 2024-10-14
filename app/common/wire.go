@@ -165,7 +165,12 @@ var BalanceWorkerAdapter = wire.NewSet(
 	EntitlementsAdapter,
 
 	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(EntitlementRepo)),
+	SubjectResolver,
 )
+
+func SubjectResolver() balanceworker.SubjectResolver {
+	return nil
+}
 
 var BalanceWorker = wire.NewSet(
 	wire.FieldsOf(new(config.BalanceWorkerConfiguration), "ConsumerConfiguration"),
