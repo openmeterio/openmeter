@@ -8,7 +8,7 @@ package main
 
 import (
 	"context"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	kafka2 "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
@@ -95,9 +96,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
+	eventsConfiguration := conf.Events
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
+	logTelemetryConfig := telemetryConfig.Log
+	brokerOptions := app.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, appMetadata, logger, meter)
+	v4 := app.ServerProvisionTopics(eventsConfiguration)
 	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -118,7 +123,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	publisher, cleanup6, err := app.NewPublisher(ctx, conf, appMetadata, logger, meter, topicProvisioner)
+	publisherOptions := kafka.PublisherOptions{
+		Broker:           brokerOptions,
+		ProvisionTopics:  v4,
+		TopicProvisioner: topicProvisioner,
+	}
+	publisher, cleanup6, err := app.NewServerPublisher(ctx, eventsConfiguration, publisherOptions, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -127,7 +137,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventbusPublisher, err := app.NewEventBusPublisher(publisher, conf, logger)
+	eventbusPublisher, err := app.NewEventBusPublisher(publisher, eventsConfiguration, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -178,9 +188,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	v4 := app.NewNamespaceHandlers(namespaceHandler, clickhouseConnector)
+	v5 := app.NewNamespaceHandlers(namespaceHandler, clickhouseConnector)
 	namespaceConfiguration := conf.Namespace
-	manager, err := app.NewNamespaceManager(v4, namespaceConfiguration)
+	manager, err := app.NewNamespaceManager(v5, namespaceConfiguration)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -191,7 +201,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	v5 := app.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	v6 := app.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		StreamingConnector: clickhouseConnector,
@@ -202,10 +212,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		KafkaMetrics:       metrics,
 		EventPublisher:     eventbusPublisher,
 		IngestCollector:    ingestCollector,
-		NamespaceHandlers:  v4,
+		NamespaceHandlers:  v5,
 		NamespaceManager:   manager,
 		Meter:              meter,
-		RouterHook:         v5,
+		RouterHook:         v6,
 	}
 	return application, func() {
 		cleanup7()
@@ -221,10 +231,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 // TODO: is this necessary? Do we need a logger first?
 func initializeLogger(conf config.Configuration) *slog.Logger {
 	telemetryConfig := conf.Telemetry
-	logTelemetryConfiguration := telemetryConfig.Log
+	logTelemetryConfig := telemetryConfig.Log
 	appMetadata := metadata(conf)
 	resource := app.NewTelemetryResource(appMetadata)
-	logger := app.NewLogger(logTelemetryConfiguration, resource)
+	logger := app.NewLogger(logTelemetryConfig, resource)
 	return logger
 }
 
@@ -237,7 +247,7 @@ type Application struct {
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
-	KafkaProducer      *kafka.Producer
+	KafkaProducer      *kafka2.Producer
 	KafkaMetrics       *metrics.Metrics
 	EventPublisher     eventbus.Publisher
 

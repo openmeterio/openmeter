@@ -23,9 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
-	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
-	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -95,15 +92,8 @@ func main() {
 
 	var group run.Group
 
-	// initialize system event producer
-	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, app.Meter, app.TopicProvisioner, app.Metadata.OpenTelemetryName)
-	if err != nil {
-		logger.Error("failed to initialize event publisher", "error", err)
-		os.Exit(1)
-	}
-
 	// Initialize sink worker
-	sink, err := initSink(conf, logger, app.Meter, app.Tracer, app.MeterRepository, ingestEventFlushHandler)
+	sink, err := initSink(conf, logger, app.Meter, app.Tracer, app.MeterRepository, app.FlushHandler)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -140,61 +130,6 @@ func main() {
 		logger.Error("application stopped due to error", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-}
-
-func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter, topicProvisioner pkgkafka.TopicProvisioner, otelName string) (flushhandler.FlushEventHandler, error) {
-	if !conf.Events.Enabled {
-		return nil, nil
-	}
-
-	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		Broker: watermillkafka.BrokerOptions{
-			KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-			ClientID:     otelName, // TODO: use a better name or rename otel name
-			Logger:       logger,
-			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
-			MetricMeter:  metricMeter,
-		},
-		ProvisionTopics: []pkgkafka.TopicConfig{
-			{
-				Name:       conf.Events.IngestEvents.Topic,
-				Partitions: conf.Events.IngestEvents.AutoProvision.Partitions,
-			},
-		},
-		TopicProvisioner: topicProvisioner,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	eventPublisher, err := eventbus.New(eventbus.Options{
-		Publisher:              eventDriver,
-		Config:                 conf.Events,
-		Logger:                 logger,
-		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	flushHandlerMux := flushhandler.NewFlushEventHandlers()
-	// We should only close the producer once the ingest events are fully processed
-	flushHandlerMux.OnDrainComplete(func() {
-		logger.Info("shutting down kafka producer")
-		if err := eventDriver.Close(); err != nil {
-			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
-		}
-	})
-
-	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, eventPublisher, ingestnotification.HandlerConfig{
-		MaxEventsInBatch: conf.Sink.IngestNotifications.MaxEventsInBatch,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	flushHandlerMux.AddHandler(ingestNotificationHandler)
-	return flushHandlerMux, nil
 }
 
 func initSink(config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {

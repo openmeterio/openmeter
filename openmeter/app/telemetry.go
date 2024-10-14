@@ -54,7 +54,7 @@ func NewTelemetryResource(metadata Metadata) *resource.Resource {
 	return res
 }
 
-func NewLogger(conf config.LogTelemetryConfiguration, res *resource.Resource) *slog.Logger {
+func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource) *slog.Logger {
 	logger := slog.New(slogmulti.Pipe(
 		otelslog.NewHandler,
 		contextx.NewLogHandler,

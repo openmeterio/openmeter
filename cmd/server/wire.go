@@ -55,7 +55,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Database,
 		app.ClickHouse,
 		app.Kafka,
-		app.Watermill,
+		app.ServerProvisionTopics,
+		app.WatermillNoPublisher,
+		app.NewServerPublisher,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)

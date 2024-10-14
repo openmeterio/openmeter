@@ -7,6 +7,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 
@@ -15,7 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
+	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type Application struct {
@@ -27,8 +29,9 @@ type Application struct {
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
-	// EventPublisher     eventbus.Publisher
-	TopicProvisioner pkgkafka.TopicProvisioner
+	BrokerOptions      watermillkafka.BrokerOptions
+	MessagePublisher   message.Publisher
+	EventPublisher     eventbus.Publisher
 
 	Meter metric.Meter
 }
@@ -43,7 +46,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Database,
 		app.ClickHouse,
 		app.KafkaTopic,
-		// app.Watermill,
+		app.BalanceWorkerProvisionTopics,
+		app.Watermill,
 		app.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)

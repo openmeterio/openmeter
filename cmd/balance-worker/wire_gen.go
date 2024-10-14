@@ -8,12 +8,14 @@ package main
 
 import (
 	"context"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"go.opentelemetry.io/otel/metric"
 	"log/slog"
 )
@@ -75,6 +77,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
+	logTelemetryConfig := telemetryConfig.Log
+	brokerOptions := app.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, appMetadata, logger, meter)
+	balanceWorkerConfiguration := conf.BalanceWorker
+	v4 := app.BalanceWorkerProvisionTopics(balanceWorkerConfiguration)
 	adminClient, err := app.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -95,6 +101,31 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
+	publisherOptions := kafka.PublisherOptions{
+		Broker:           brokerOptions,
+		ProvisionTopics:  v4,
+		TopicProvisioner: topicProvisioner,
+	}
+	publisher, cleanup6, err := app.NewPublisher(ctx, publisherOptions, logger)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	eventsConfiguration := conf.Events
+	eventbusPublisher, err := app.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		Metadata:           appMetadata,
@@ -102,10 +133,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		MeterRepository:    inMemoryRepository,
 		EntClient:          client,
 		TelemetryServer:    v3,
-		TopicProvisioner:   topicProvisioner,
+		BrokerOptions:      brokerOptions,
+		MessagePublisher:   publisher,
+		EventPublisher:     eventbusPublisher,
 		Meter:              meter,
 	}
 	return application, func() {
+		cleanup6()
 		cleanup5()
 		cleanup4()
 		cleanup3()
@@ -117,10 +151,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 // TODO: is this necessary? Do we need a logger first?
 func initializeLogger(conf config.Configuration) *slog.Logger {
 	telemetryConfig := conf.Telemetry
-	logTelemetryConfiguration := telemetryConfig.Log
+	logTelemetryConfig := telemetryConfig.Log
 	appMetadata := metadata(conf)
 	resource := app.NewTelemetryResource(appMetadata)
-	logger := app.NewLogger(logTelemetryConfiguration, resource)
+	logger := app.NewLogger(logTelemetryConfig, resource)
 	return logger
 }
 
@@ -135,8 +169,9 @@ type Application struct {
 	MeterRepository    meter.Repository
 	EntClient          *db.Client
 	TelemetryServer    app.TelemetryServer
-	// EventPublisher     eventbus.Publisher
-	TopicProvisioner kafka.TopicProvisioner
+	BrokerOptions      kafka.BrokerOptions
+	MessagePublisher   message.Publisher
+	EventPublisher     eventbus.Publisher
 
 	Meter metric.Meter
 }

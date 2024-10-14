@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -27,6 +28,7 @@ type Application struct {
 
 	MeterRepository  meter.Repository
 	TelemetryServer  app.TelemetryServer
+	FlushHandler     flushhandler.FlushEventHandler
 	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Meter  metric.Meter
@@ -41,7 +43,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		app.Telemetry,
 		app.NewDefaultTextMapPropagator,
 		app.KafkaTopic,
+		app.SinkWorkerProvisionTopics,
+		app.WatermillNoPublisher,
+		app.NewSinkWorkerPublisher,
 		app.OpenMeter,
+		app.NewFlushHandler,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil

@@ -71,7 +71,7 @@ func TestComplete(t *testing.T) {
 					},
 				},
 			},
-			Log: LogTelemetryConfiguration{
+			Log: LogTelemetryConfig{
 				Format: "json",
 				Level:  slog.LevelInfo,
 			},

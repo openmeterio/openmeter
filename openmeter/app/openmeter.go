@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
@@ -17,7 +19,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
+	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -142,4 +149,64 @@ func NewNamespaceManager(
 	}
 
 	return manager, nil
+}
+
+// TODO: create a separate file or package for each application instead
+
+func NewServerPublisher(
+	ctx context.Context,
+	conf config.EventsConfiguration,
+	options watermillkafka.PublisherOptions,
+	logger *slog.Logger,
+) (message.Publisher, func(), error) {
+	if !conf.Enabled {
+		return &noop.Publisher{}, func() {}, nil
+	}
+
+	return NewPublisher(ctx, options, logger)
+}
+
+// the sink-worker requires control over how the publisher is closed
+func NewSinkWorkerPublisher(
+	ctx context.Context,
+	options watermillkafka.PublisherOptions,
+	logger *slog.Logger,
+) (message.Publisher, func(), error) {
+	publisher, _, err := NewPublisher(ctx, options, logger)
+
+	return publisher, func() {}, err
+}
+
+func NewFlushHandler(
+	eventsConfig config.EventsConfiguration,
+	sinkConfig config.SinkConfiguration,
+	messagePublisher message.Publisher,
+	eventPublisher eventbus.Publisher,
+	logger *slog.Logger,
+	meter metric.Meter,
+) (flushhandler.FlushEventHandler, error) {
+	if !eventsConfig.Enabled {
+		return nil, nil
+	}
+
+	flushHandlerMux := flushhandler.NewFlushEventHandlers()
+
+	// We should only close the producer once the ingest events are fully processed
+	flushHandlerMux.OnDrainComplete(func() {
+		logger.Info("shutting down kafka producer")
+		if err := messagePublisher.Close(); err != nil {
+			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
+		}
+	})
+
+	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, meter, eventPublisher, ingestnotification.HandlerConfig{
+		MaxEventsInBatch: sinkConfig.IngestNotifications.MaxEventsInBatch,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	flushHandlerMux.AddHandler(ingestNotificationHandler)
+
+	return flushHandlerMux, nil
 }

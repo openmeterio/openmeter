@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 )
 
 var Config = wire.NewSet(
@@ -30,6 +31,10 @@ var Config = wire.NewSet(
 
 	wire.FieldsOf(new(config.Configuration), "Meters"),
 	wire.FieldsOf(new(config.Configuration), "Namespace"),
+	wire.FieldsOf(new(config.Configuration), "Events"),
+	wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
+	wire.FieldsOf(new(config.Configuration), "Notification"),
+	wire.FieldsOf(new(config.Configuration), "Sink"),
 )
 
 var TelemetryConfig = wire.NewSet(
@@ -107,6 +112,20 @@ var OpenMeter = wire.NewSet(
 )
 
 var Watermill = wire.NewSet(
+	WatermillNoPublisher,
+
+	// NewBrokerConfiguration,
+	// wire.Struct(new(watermillkafka.PublisherOptions), "*"),
+
 	NewPublisher,
+	// NewEventBusPublisher,
+)
+
+// TODO: move this back to [Watermill]
+// NOTE: this is also used by the sink-worker that requires control over how the publisher is closed
+var WatermillNoPublisher = wire.NewSet(
+	NewBrokerConfiguration,
+	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
+
 	NewEventBusPublisher,
 )
