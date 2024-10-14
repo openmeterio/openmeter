@@ -11,6 +11,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -62,6 +66,8 @@ type Config struct {
 	ErrorHandler        errorsx.Handler
 
 	// deps
+	App                         app.Service
+	AppStripe                   appstripe.Service
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
@@ -127,12 +133,26 @@ func (c Config) Validate() error {
 		}
 	}
 
+	if c.App == nil {
+		return errors.New("app service is required")
+	}
+
+	if c.AppStripe == nil {
+		return errors.New("app stripe service is required")
+	}
+
+	if c.Customer == nil {
+		return errors.New("customer service is required")
+	}
+
 	return nil
 }
 
 type Router struct {
 	config Config
 
+	appHandler                apphttpdriver.Handler
+	appStripeHandler          appstripehttpdriver.AppStripeHandler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
@@ -202,6 +222,20 @@ func NewRouter(config Config) (*Router, error) {
 	router.customerHandler = customerhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Customer,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// App
+	router.appHandler = apphttpdriver.New(
+		staticNamespaceDecoder,
+		config.App,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// App Stripe
+	router.appStripeHandler = appstripehttpdriver.New(
+		staticNamespaceDecoder,
+		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

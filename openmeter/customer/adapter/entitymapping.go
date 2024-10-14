@@ -1,16 +1,14 @@
-package repository
+package adapter
 
 import (
-	"time"
-
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func CustomerFromDBEntity(e db.Customer) *customer.Customer {
+func CustomerFromDBEntity(e db.Customer) *customerentity.Customer {
 	var subjectKeys []string
 
 	if e.Edges.Subjects != nil {
@@ -22,46 +20,21 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 		)
 	}
 
-	result := &customer.Customer{
-		// TODO: create common function to convert managed resource entity to model
-		ManagedResource: models.ManagedResource{
-			ID: e.ID,
-			NamespacedModel: models.NamespacedModel{
-				Namespace: e.Namespace,
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: e.CreatedAt.UTC(),
-				UpdatedAt: e.UpdatedAt.UTC(),
-				DeletedAt: func() *time.Time {
-					if e.DeletedAt == nil {
-						return nil
-					}
-
-					deletedAt := e.DeletedAt.UTC()
-
-					return &deletedAt
-				}(),
-			},
-		},
+	result := &customerentity.Customer{
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			ID:        e.ID,
+			Namespace: e.Namespace,
+			CreatedAt: e.CreatedAt,
+			UpdatedAt: e.UpdatedAt,
+			DeletedAt: e.DeletedAt,
+		}),
 		Name: e.Name,
-		UsageAttribution: customer.CustomerUsageAttribution{
+		UsageAttribution: customerentity.CustomerUsageAttribution{
 			SubjectKeys: subjectKeys,
 		},
 		PrimaryEmail: e.PrimaryEmail,
 		Currency:     e.Currency,
 		Timezone:     e.Timezone,
-	}
-
-	if e.ExternalMappingStripeCustomerID != nil {
-		result.External = &customer.CustomerExternalMapping{
-			StripeCustomerID: e.ExternalMappingStripeCustomerID,
-		}
-	}
-
-	if e.ExternalMappingStripeCustomerID != nil {
-		result.External = &customer.CustomerExternalMapping{
-			StripeCustomerID: e.ExternalMappingStripeCustomerID,
-		}
 	}
 
 	if e.BillingAddressCity != nil || e.BillingAddressCountry != nil || e.BillingAddressLine1 != nil || e.BillingAddressLine2 != nil || e.BillingAddressPhoneNumber != nil || e.BillingAddressPostalCode != nil || e.BillingAddressState != nil {

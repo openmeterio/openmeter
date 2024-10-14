@@ -9,13 +9,14 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type (
-	ListCustomersRequest  = customer.ListCustomersInput
+	ListCustomersRequest  = customerentity.ListCustomersInput
 	ListCustomersResponse = api.CustomerList
 	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
@@ -27,7 +28,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 		func(ctx context.Context, r *http.Request, params ListCustomersParams) (ListCustomersRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListCustomersRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return ListCustomersRequest{}, err
 			}
 
 			req := ListCustomersRequest{
@@ -79,7 +80,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 }
 
 type (
-	CreateCustomerRequest  = customer.CreateCustomerInput
+	CreateCustomerRequest  = customerentity.CreateCustomerInput
 	CreateCustomerResponse = api.Customer
 	CreateCustomerHandler  httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse]
 )
@@ -95,17 +96,17 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreateCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return CreateCustomerRequest{}, err
 			}
 
-			req := newCreateCustomerInput(ns, body)
+			req := NewCreateCustomerInput(ns, body)
 
 			return req, nil
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
 			customer, err := h.service.CreateCustomer(ctx, request)
 			if err != nil {
-				return CreateCustomerResponse{}, fmt.Errorf("failed to create customer: %w", err)
+				return CreateCustomerResponse{}, err
 			}
 
 			return customer.AsAPICustomer()
@@ -120,7 +121,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 }
 
 type (
-	UpdateCustomerRequest  = customer.UpdateCustomerInput
+	UpdateCustomerRequest  = customerentity.UpdateCustomerInput
 	UpdateCustomerResponse = api.Customer
 	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, string]
 )
@@ -136,7 +137,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return UpdateCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return UpdateCustomerRequest{}, err
 			}
 
 			req := newUpdateCustomerInput(ns, body)
@@ -147,7 +148,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 		func(ctx context.Context, request UpdateCustomerRequest) (UpdateCustomerResponse, error) {
 			customer, err := h.service.UpdateCustomer(ctx, request)
 			if err != nil {
-				return UpdateCustomerResponse{}, fmt.Errorf("failed to update customer: %w", err)
+				return UpdateCustomerResponse{}, err
 			}
 
 			return customer.AsAPICustomer()
@@ -162,7 +163,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 }
 
 type (
-	DeleteCustomerRequest  = customer.DeleteCustomerInput
+	DeleteCustomerRequest  = customerentity.DeleteCustomerInput
 	DeleteCustomerResponse = interface{}
 	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, api.CustomerIdentifier]
 )
@@ -173,7 +174,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 		func(ctx context.Context, r *http.Request, customerID api.CustomerIdentifier) (DeleteCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return DeleteCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return DeleteCustomerRequest{}, err
 			}
 
 			return DeleteCustomerRequest{
@@ -184,7 +185,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
 			err := h.service.DeleteCustomer(ctx, request)
 			if err != nil {
-				return nil, fmt.Errorf("failed to delete customer: %w", err)
+				return nil, err
 			}
 
 			return nil, nil
@@ -199,7 +200,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 }
 
 type (
-	GetCustomerRequest  = customer.GetCustomerInput
+	GetCustomerRequest  = customerentity.GetCustomerInput
 	GetCustomerResponse = api.Customer
 	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, api.CustomerIdentifier]
 )
@@ -210,7 +211,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 		func(ctx context.Context, r *http.Request, customerID api.CustomerIdentifier) (GetCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return GetCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return GetCustomerRequest{}, err
 			}
 
 			return GetCustomerRequest{
@@ -221,7 +222,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 		func(ctx context.Context, request GetCustomerRequest) (GetCustomerResponse, error) {
 			customer, err := h.service.GetCustomer(ctx, request)
 			if err != nil {
-				return GetCustomerResponse{}, fmt.Errorf("failed to get customer: %w", err)
+				return GetCustomerResponse{}, err
 			}
 
 			return customer.AsAPICustomer()

@@ -287,6 +287,11 @@ func TestComplete(t *testing.T) {
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
 		},
+		StripeApp: StripeAppConfig{
+			IncomingWebhook: StripeAppIncomingWebhookConfig{
+				BaseURL: "https://example.com",
+			},
+		},
 	}
 
 	assert.Equal(t, expected, actual)

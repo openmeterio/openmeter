@@ -15,7 +15,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/gobldriver"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -39,10 +39,10 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: namespace,
 
-		Customer: customer.Customer{
+		Customer: customerentity.Customer{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
@@ -158,7 +158,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 	s.T().Run("Pending invoices", func(t *testing.T) {
 		// When we get the pending invoices
-		pendingInvoices, err = s.BillingService.GetPendingInvoiceItems(ctx, customer.CustomerID{
+		pendingInvoices, err = s.BillingService.GetPendingInvoiceItems(ctx, customerentity.CustomerID{
 			Namespace: namespace,
 			ID:        customerEntity.ID,
 		})

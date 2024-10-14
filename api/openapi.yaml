@@ -10,6 +10,7 @@ info:
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
   - name: Portal
+  - name: Apps
   - name: Notification (Experimental)
   - name: Entitlements (Experimental)
   - name: Events
@@ -18,6 +19,250 @@ tags:
   - name: Customers
   - name: Subjects
 paths:
+  /api/v1/apps:
+    get:
+      operationId: listApps
+      description: List apps.
+      parameters:
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppList'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+  /api/v1/apps/{id}:
+    get:
+      operationId: getApp
+      description: Get the app.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/App'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+    delete:
+      operationId: uninstallApp
+      description: Uninstall an app.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+  /api/v1/apps/{id}/stripe/webhook:
+    post:
+      operationId: appStripeWebhook
+      description: Stripe webhook.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeWebhookResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeWebhookEvent'
   /api/v1/customers:
     post:
       operationId: createCustomer
@@ -1142,6 +1387,351 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements (Experimental)
+  /api/v1/integration/stripe/checkout/sessions:
+    post:
+      operationId: createStripeCheckoutSession
+      description: Create checkout session.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateStripeCheckoutSessionResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
+  /api/v1/marketplace/listings:
+    get:
+      operationId: listMarketplaceListings
+      description: List available apps of the app marketplace.
+      parameters:
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketplaceListingList'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+  /api/v1/marketplace/listings/{type}:
+    get:
+      operationId: getMarketplaceListing
+      description: Get a marketplace listing by type.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/OpenMeter.App.Type'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketplaceListing'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+  /api/v1/marketplace/listings/{type}/install/apikey:
+    post:
+      operationId: marketplaceAppAPIKeyInstall
+      description: Install an marketplace via API Key.
+      parameters:
+        - $ref: '#/components/parameters/MarketplaceApiKeyInstallRequest.type'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppBase'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                apiKey:
+                  type: string
+                  description: |-
+                    The API key for the provider.
+                    For example, the Stripe API key.
+              required:
+                - apiKey
+  /api/v1/marketplace/listings/{type}/install/oauth2:
+    get:
+      operationId: marketplaceOAuth2InstallGetURL
+      description: |-
+        Install an app via OAuth.
+        Returns a URL to start the OAuth 2.0 flow.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/OpenMeter.App.Type'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientAppStartResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+  /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
+    get:
+      operationId: marketplaceOAuth2InstallAuthorize
+      description: |-
+        Authorize OAuth2 code.
+        Verifies the OAuth code and exchanges it for a token and refresh token
+      parameters:
+        - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantSuccessParams.state'
+        - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantSuccessParams.code'
+        - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantErrorParams.error'
+        - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantErrorParams.error_description'
+        - $ref: '#/components/parameters/OAuth2AuthorizationCodeGrantErrorParams.error_uri'
+        - $ref: '#/components/parameters/MarketplaceOAuth2InstallAuthorizeRequest.type'
+      responses:
+        '303':
+          description: Redirection
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
   /api/v1/meters:
     get:
       operationId: listMeters
@@ -3804,6 +4394,20 @@ components:
         minimum: 0
         default: 0
       explode: false
+    MarketplaceApiKeyInstallRequest.type:
+      name: type
+      in: path
+      required: true
+      description: The type of the app to install.
+      schema:
+        $ref: '#/components/schemas/OpenMeter.App.Type'
+    MarketplaceOAuth2InstallAuthorizeRequest.type:
+      name: type
+      in: path
+      required: true
+      description: The type of the app to install.
+      schema:
+        $ref: '#/components/schemas/OpenMeter.App.Type'
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -3923,6 +4527,60 @@ components:
       schema:
         $ref: '#/components/schemas/NotificationRuleOrderBy'
       explode: false
+    OAuth2AuthorizationCodeGrantErrorParams.error:
+      name: error
+      in: query
+      required: false
+      description: |-
+        Error code.
+        Required with the error response.
+      schema:
+        $ref: '#/components/schemas/OAuth2AuthorizationCodeGrantErrorType'
+      explode: false
+    OAuth2AuthorizationCodeGrantErrorParams.error_description:
+      name: error_description
+      in: query
+      required: false
+      description: |-
+        Optional human-readable text providing additional information,
+        used to assist the client developer in understanding the error that occurred.
+      schema:
+        type: string
+      explode: false
+    OAuth2AuthorizationCodeGrantErrorParams.error_uri:
+      name: error_uri
+      in: query
+      required: false
+      description: |-
+        Optional uri identifying a human-readable web page with
+        information about the error, used to provide the client
+        developer with additional information about the error
+      schema:
+        type: string
+      explode: false
+    OAuth2AuthorizationCodeGrantSuccessParams.code:
+      name: code
+      in: query
+      required: false
+      description: |-
+        Authorization code which the client will later exchange for an access token.
+        Required with the success response.
+      schema:
+        type: string
+      explode: false
+    OAuth2AuthorizationCodeGrantSuccessParams.state:
+      name: state
+      in: query
+      required: false
+      description: |-
+        Required if the "state" parameter was present in the client authorization request.
+        The exact value received from the client:
+
+        Unique, randomly generated, opaque, and non-guessable string that is sent
+        when starting an authentication request and validated when processing the response.
+      schema:
+        type: string
+      explode: false
     PaginatedQuery.page:
       name: page
       in: query
@@ -4002,6 +4660,150 @@ components:
       example:
         externalId: 019142cc-a016-796a-8113-1a942fecd26d
       description: Set of key-value pairs managed by the system. Cannot be modified by user.
+    App:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/StripeApp'
+      description: |-
+        App.
+        One of: stripe
+    AppBase:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - listing
+        - status
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/OpenMeter.App.AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+      description: |-
+        Abstract base model for installed apps.
+
+        Represent an app installed to the organization.
+        This is an actual instance, with its own configuration and credentials.
+    AppCapability:
+      type: object
+      required:
+        - type
+        - key
+        - name
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/AppCapabilityType'
+          description: The capability type.
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: Key
+        name:
+          type: string
+          description: The capability name.
+        description:
+          type: string
+          description: The capability description.
+      example:
+        type: collectPayments
+        key: stripe_collect_payment
+        name: Collect Payments
+        description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+      description: |-
+        App capability.
+
+        Capabilities only exist in config so they don't extend the Resource model.
+    AppCapabilityType:
+      type: string
+      enum:
+        - reportUsage
+        - reportEvents
+        - calculateTax
+        - invoiceCustomers
+        - collectPayments
+      description: App capability type.
+    AppList:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - items
+      properties:
+        page:
+          type: integer
+          description: The page number.
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: The number of items in the page.
+        totalCount:
+          type: integer
+          description: The total number of items.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/App'
+          maxItems: 1000
+          description: The items in the page.
+      description: A page of results.
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -4029,6 +4831,45 @@ components:
           description: The entitlement balance at the start of the period.
           readOnly: true
       description: The balance history window.
+    CheckoutSessionCustomTextAfterSubmitParams:
+      type: object
+      properties:
+        afterSubmit:
+          type: object
+          properties:
+            message:
+              type: string
+        shippingAddress:
+          type: object
+          properties:
+            message:
+              type: string
+        submit:
+          type: object
+          properties:
+            message:
+              type: string
+        termsOfServiceAcceptance:
+          type: object
+          properties:
+            message:
+              type: string
+      description: Stripe CheckoutSession.custom_text
+    CheckoutSessionUIMode:
+      type: string
+      enum:
+        - embedded
+        - hosted
+      description: Stripe CheckoutSession.ui_mode
+    ClientAppStartResponse:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: The URL to start the OAuth2 authorization code grant flow.
+      description: Response from the client app (OpenMeter backend) to start the OAuth2 flow.
     ConflictProblemResponse:
       type: object
       allOf:
@@ -4043,6 +4884,104 @@ components:
       description: |-
         [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
         Custom two-letter country codes are also supported for convenience.
+    CreateStripeCheckoutSessionRequest:
+      type: object
+      required:
+        - customer
+        - options
+      properties:
+        appId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: If not provided, the default Stripe app is used if any.
+        customer:
+          anyOf:
+            - $ref: '#/components/schemas/CustomerId'
+            - $ref: '#/components/schemas/Customer'
+          description: |-
+            Provide a customer ID to use an existing OpenMeter customer.
+            or provide a customer object to create a new customer.
+        stripeCustomerId:
+          type: string
+          description: |-
+            Stripe customer ID.
+            If not provided OpenMeter creates a new Stripe customer or
+            uses the OpenMeter customer's default Stripe customer ID.
+        options:
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionRequestOptions'
+          description: Options passed to Stripe when creating the checkout session.
+      description: Create Stripe checkout session request.
+    CreateStripeCheckoutSessionRequestOptions:
+      type: object
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        cancelURL:
+          type: string
+        clientReferenceID:
+          type: string
+        customText:
+          $ref: '#/components/schemas/CheckoutSessionCustomTextAfterSubmitParams'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        returnURL:
+          type: string
+        successURL:
+          type: string
+        uiMode:
+          $ref: '#/components/schemas/CheckoutSessionUIMode'
+        paymentMethodTypes:
+          type: array
+          items:
+            type: string
+      description: Create Stripe checkout session options
+    CreateStripeCheckoutSessionResponse:
+      type: object
+      required:
+        - customerId
+        - stripeCustomerId
+        - sessionId
+        - setupIntentId
+        - url
+        - mode
+      properties:
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The OpenMeter customer ID.
+        stripeCustomerId:
+          type: string
+          description: The Stripe customer ID.
+        sessionId:
+          type: string
+          description: The checkout session ID.
+        setupIntentId:
+          type: string
+          description: The checkout session setup intent ID.
+        url:
+          type: string
+          description: URL to show the checkout session.
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/StripeCheckoutSessionMode'
+          description: |-
+            Mode
+            Always `setup` for now.
+        cancelURL:
+          type: string
+          description: Cancel URL.
+        successURL:
+          type: string
+          description: Success URL.
+        returnURL:
+          type: string
+          description: Return URL.
+      description: Create Stripe Checkout Session response.
     CurrencyCode:
       type: string
       example: USD
@@ -4159,6 +5098,17 @@ components:
             Required to use Stripe as an invocing provider.
           title: Stripe Customer
       description: External mappings for the customer.
+    CustomerId:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Create Stripe checkout session customer ID.
     CustomerIdentifier:
       anyOf:
         - type: string
@@ -5437,6 +6387,82 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+    MarketplaceListing:
+      type: object
+      required:
+        - type
+        - name
+        - description
+        - iconUrl
+        - capabilities
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/OpenMeter.App.Type'
+          description: The app's type
+        name:
+          type: string
+          description: The app's name.
+        description:
+          type: string
+          description: The app's description.
+        iconUrl:
+          type: string
+          description: The app's icon URL.
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppCapability'
+          description: The app's capabilities.
+      example:
+        type: stripe
+        name: Stripe
+        description: Stripe interation allows you to collect payments with Stripe.
+        iconUrl: /images/stripe.png
+        capabilities:
+          - type: calculateTax
+            key: stripe_calculate_tax
+            name: Calculate Tax
+            description: Stripe Tax calculates tax portion of the invoices.
+          - type: invoiceCustomers
+            key: stripe_invoice_customers
+            name: Invoice Customers
+            description: Stripe invoices customers with due amount.
+          - type: collectPayments
+            key: stripe_collect_payments
+            name: Collect Payments
+            description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+      description: |-
+        A marketplace listing.
+        Represent an available app in the app marketplace that can be installed to the organization.
+
+        Marketplace apps only exist in config so they don't extend the Resource model.
+    MarketplaceListingList:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - items
+      properties:
+        page:
+          type: integer
+          description: The page number.
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: The number of items in the page.
+        totalCount:
+          type: integer
+          description: The total number of items.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketplaceListing'
+          maxItems: 1000
+          description: The items in the page.
+      description: A page of results.
     MeasureUsageFrom:
       oneOf:
         - $ref: '#/components/schemas/MeasureUsageFromEnum'
@@ -6237,6 +7263,38 @@ components:
             $ref: '#/components/schemas/NotificationRule'
           description: The items in the current page.
       description: Paginated response
+    OAuth2AuthorizationCodeGrantErrorType:
+      type: string
+      enum:
+        - invalid_request
+        - unauthorized_client
+        - access_denied
+        - unsupported_response_type
+        - invalid_scope
+        - server_error
+        - temporarily_unavailable
+      description: OAuth2 authorization code grant error types.
+    OpenMeter.App.AppStatus:
+      type: string
+      enum:
+        - ready
+        - unauthorized
+      description: App installed status.
+    OpenMeter.App.StripePaymentIntentStatus:
+      type: string
+      enum:
+        - canceled
+        - processing
+        - requires_action
+        - requires_confirmation
+        - requires_payment_method
+        - succeeded
+      description: Stripe payment intent status.
+    OpenMeter.App.Type:
+      type: string
+      enum:
+        - stripe
+      description: Type of the app.
     Order:
       type: string
       enum:
@@ -6391,6 +7449,202 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+    StripeApp:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - listing
+        - status
+        - type
+        - stripeAccountId
+        - livemode
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/OpenMeter.App.AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app's type is Stripe.
+        stripeAccountId:
+          type: string
+          description: The Stripe account ID.
+        livemode:
+          type: boolean
+          description: Livemode, true if the app is in production mode.
+      example:
+        id: 01G65Z755AFWAKHE12NY0CQ9FH
+        type: stripe
+        name: Stripe
+        status: ready
+        listing:
+          type: stripe
+          name: Stripe
+          description: Stripe interation allows you to collect payments with Stripe.
+          iconUrl: /images/stripe.png
+          capabilities:
+            - type: calculateTax
+              key: stripe_calculate_tax
+              name: Calculate Tax
+              description: Stripe Tax calculates tax portion of the invoices.
+            - type: invoiceCustomers
+              key: stripe_invoice_customers
+              name: Invoice Customers
+              description: Stripe invoices customers with due amount.
+            - type: collectPayments
+              key: stripe_collect_payments
+              name: Collect Payments
+              description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+        createdAt: 2024-01-01T01:01:01.001Z
+        updatedAt: 2024-01-01T01:01:01.001Z
+        stripeAccountId: acct_123456789
+        livemode: true
+      description: A installed Stripe app object.
+    StripeCheckoutSessionMode:
+      type: string
+      enum:
+        - setup
+      description: Stripe CheckoutSession.mode
+    StripeSetupIntent:
+      type: object
+      required:
+        - id
+        - status
+        - customer
+        - metadata
+      properties:
+        id:
+          type: string
+          description: The setup intent id.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/OpenMeter.App.StripePaymentIntentStatus'
+          description: The setup intent status.
+        payment_method:
+          type: string
+          description: The setup intent payment method.
+        payment_method_types:
+          type: array
+          items:
+            type: string
+          description: The setup intent payment method types.
+        customer:
+          type: string
+          description: The setup intent customer.
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: The setup intent metadata.
+      description: Stripe setup intent.
+    StripeWebhookEvent:
+      type: object
+      required:
+        - id
+        - type
+        - livemode
+        - created
+        - data
+      properties:
+        id:
+          type: string
+          description: The event ID.
+        type:
+          type: string
+          description: The event type.
+        livemode:
+          type: boolean
+          description: Live mode.
+        created:
+          type: integer
+          format: int32
+          description: The event created timestamp.
+        data:
+          type: object
+          properties:
+            object:
+              $ref: '#/components/schemas/StripeSetupIntent'
+          required:
+            - object
+          description: The event data.
+      description: Stripe webhook event.
+    StripeWebhookResponse:
+      type: object
+      required:
+        - namespaceId
+        - appId
+      properties:
+        namespaceId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        appId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Stripe webhook response.
     Subject:
       type: object
       required:

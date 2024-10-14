@@ -8,6 +8,7 @@ import "./auth.tsp";
 import "./errors.tsp";
 import "./types.tsp";
 
+import "./app";
 import "./query.tsp";
 import "./customer.tsp";
 import "./events.tsp";

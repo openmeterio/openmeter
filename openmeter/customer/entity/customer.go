@@ -1,7 +1,6 @@
-package customer
+package customerentity
 
 import (
-	"context"
 	"errors"
 
 	"github.com/samber/lo"
@@ -23,12 +22,16 @@ type Customer struct {
 	PrimaryEmail     *string                  `json:"primaryEmail"`
 	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
-	External         *CustomerExternalMapping `json:"external"`
+	Apps             []CustomerApp            `json:"apps"`
+}
+
+func (c Customer) GetID() CustomerID {
+	return CustomerID{c.Namespace, c.ID}
 }
 
 // AsAPICustomer converts a Customer to an API Customer
 func (c Customer) AsAPICustomer() (api.Customer, error) {
-	customer := api.Customer{
+	apiCustomer := api.Customer{
 		Id:               c.ManagedResource.ID,
 		Name:             c.Name,
 		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
@@ -49,20 +52,14 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 			address.Country = lo.ToPtr(string(*c.BillingAddress.Country))
 		}
 
-		customer.BillingAddress = &address
-	}
-
-	if c.External != nil {
-		customer.External = &api.CustomerExternalMapping{
-			StripeCustomerId: c.External.StripeCustomerID,
-		}
+		apiCustomer.BillingAddress = &address
 	}
 
 	if c.Currency != nil {
-		customer.Currency = lo.ToPtr(string(*c.Currency))
+		apiCustomer.Currency = lo.ToPtr(string(*c.Currency))
 	}
 
-	return customer, nil
+	return apiCustomer, nil
 }
 
 type CustomerID models.NamespacedID
@@ -107,7 +104,7 @@ type CreateCustomerInput struct {
 	Customer
 }
 
-func (i CreateCustomerInput) Validate(_ context.Context, _ Service) error {
+func (i CreateCustomerInput) Validate() error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -130,7 +127,7 @@ type UpdateCustomerInput struct {
 	Customer
 }
 
-func (i UpdateCustomerInput) Validate(_ context.Context, _ Service) error {
+func (i UpdateCustomerInput) Validate() error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
