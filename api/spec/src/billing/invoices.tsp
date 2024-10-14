@@ -342,11 +342,11 @@ interface CustomerInvoices {
  */
 @friendlyName("BillingInvoiceOrderBy")
 enum InvoiceOrderBy {
-  customer_name: "customer_name",
-  issued_at: "issued_at",
+  customerName: "customer_name",
+  issuedAt: "issued_at",
   status: "status",
-  created: "created",
-  updated: "updated",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
 }
 
 /**
@@ -408,7 +408,7 @@ enum VoidInvoiceItemAction {
   pending: "pending",
 
   @summary("Queue the items into the pending state, they will be included in the next invoice, but not in the current one")
-  pending_next_cycle: "pending_next_cycle",
+  pendingNextCycle: "pending_next_cycle",
 }
 
 /**

@@ -70,8 +70,8 @@ interface Profiles {
  */
 @friendlyName("BillingProfileOrderBy")
 enum ProfileOrderBy {
-  created: "created",
-  updated: "updated",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
 }
 
 /**
@@ -257,8 +257,8 @@ model WorkflowInvoice {
 @friendlyName("BillingWorkflowCollectionMethod")
 @summary("Collection method")
 enum CollectionMethod {
-  charge_automatically: "charge_automatically",
-  send_invoice: "send_invoice",
+  chargeAutomatically: "charge_automatically",
+  sendInvoice: "send_invoice",
 }
 
 /**

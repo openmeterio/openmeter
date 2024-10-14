@@ -11,6 +11,7 @@ GOBL can express way more things that we need for now: by removing the unsupport
 ## Adding to the schema
 
 Given that GOBL is evolving, and we might want to add more parts from the schema the following precautions were taken:
+
 - The file structure and object names are matching gobl's package and file name structure (see [here](https://github.com/invopop/gobl/tree/main/data/schemas))
 - OpenMeter extensions are wrapped into an inline OpenMeter namespace for better visibility.
 - Where fields are omitted it's explicitly noted as a comment.
