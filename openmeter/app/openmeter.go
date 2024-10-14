@@ -172,11 +172,9 @@ func NewSinkWorkerPublisher(
 	options watermillkafka.PublisherOptions,
 	logger *slog.Logger,
 ) (message.Publisher, func(), error) {
-	publisher, closer, err := NewPublisher(ctx, options, logger)
+	publisher, _, err := NewPublisher(ctx, options, logger)
 
-	closer = func() {}
-
-	return publisher, closer, err
+	return publisher, func() {}, err
 }
 
 func NewFlushHandler(
