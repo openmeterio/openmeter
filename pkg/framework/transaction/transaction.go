@@ -19,6 +19,14 @@ type Creator interface {
 	Tx(ctx context.Context) (context.Context, Driver, error)
 }
 
+// RunWithNoValue the callback inside a transaction with no return value
+func RunWithNoValue(ctx context.Context, creator Creator, cb func(ctx context.Context) error) error {
+	_, err := Run(ctx, creator, func(ctx context.Context) (interface{}, error) {
+		return nil, cb(ctx)
+	})
+	return err
+}
+
 // Runs the callback inside a transaction
 func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Context) (R, error)) (R, error) {
 	var def R

@@ -16,8 +16,15 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/app/config"
+	apppkg "github.com/openmeterio/openmeter/openmeter/app"
+	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
+	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
@@ -30,6 +37,8 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
+	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -154,8 +163,8 @@ func main() {
 	var customerService customer.CustomerService
 
 	if app.EntClient != nil {
-		var customerRepo customer.Repository
-		customerRepo, err = customerrepository.New(customerrepository.Config{
+		var customerAdapter customer.Adapter
+		customerAdapter, err = customeradapter.New(customeradapter.Config{
 			Client: app.EntClient,
 			Logger: logger.WithGroup("customer.postgres"),
 		})
@@ -164,11 +173,68 @@ func main() {
 			os.Exit(1)
 		}
 
-		customerService, err = customer.NewService(customer.ServiceConfig{
-			Repository: customerRepo,
+		customerService, err = customerservice.New(customerservice.Config{
+			Adapter: customerAdapter,
 		})
 		if err != nil {
 			logger.Error("failed to initialize customer service", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	// Initialize Secret
+	secretService, err := secretservice.New(secretservice.Config{
+		Adapter: secretadapter.New(),
+	})
+	if err != nil {
+		logger.Error("failed to initialize secret service", "error", err)
+		os.Exit(1)
+	}
+
+	// Initialize App
+	var appService apppkg.Service
+
+	if app.EntClient != nil {
+		var appAdapter apppkg.Adapter
+		appAdapter, err = appadapter.New(appadapter.Config{
+			Client:  app.EntClient,
+			BaseURL: conf.StripeApp.IncomingWebhook.BaseURL,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app repository", "error", err)
+			os.Exit(1)
+		}
+
+		appService, err = appservice.New(appservice.Config{
+			Adapter: appAdapter,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app service", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	// Initialize AppStripe
+	var appStripeService appstripe.Service
+
+	if app.EntClient != nil {
+		var appStripeAdapter appstripe.Adapter
+		appStripeAdapter, err = appstripeadapter.New(appstripeadapter.Config{
+			Client:          app.EntClient,
+			AppService:      appService,
+			CustomerService: customerService,
+			SecretService:   secretService,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app stripe repository", "error", err)
+			os.Exit(1)
+		}
+
+		appStripeService, err = appstripeservice.New(appstripeservice.Config{
+			Adapter: appStripeAdapter,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app stripe service", "error", err)
 			os.Exit(1)
 		}
 	}
@@ -237,6 +303,8 @@ func main() {
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
+			App:                         appService,
+			AppStripe:                   appStripeService,
 			Customer:                    customerService,
 			DebugConnector:              debugConnector,
 			FeatureConnector:            entitlementConnRegistry.Feature,

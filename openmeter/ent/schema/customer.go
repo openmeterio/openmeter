@@ -34,12 +34,13 @@ func (Customer) Fields() []ent.Field {
 		field.String("primary_email").Optional().Nillable(),
 		field.String("timezone").GoType(timezone.Timezone("")).Optional().Nillable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).Optional().Nillable(),
-		field.String("external_mapping_stripe_customer_id").Optional().Nillable(),
 	}
 }
 
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("apps", AppCustomer.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("subjects", CustomerSubjects.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_customer_override", BillingCustomerOverride.Type).

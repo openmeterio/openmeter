@@ -9,6 +9,186 @@ import (
 )
 
 var (
+	// AppsColumns holds the columns for the "apps" table.
+	AppsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString},
+		{Name: "is_default", Type: field.TypeBool, Default: false},
+	}
+	// AppsTable holds the schema information for the "apps" table.
+	AppsTable = &schema.Table{
+		Name:       "apps",
+		Columns:    AppsColumns,
+		PrimaryKey: []*schema.Column{AppsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "app_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppsColumns[0]},
+			},
+			{
+				Name:    "app_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppsColumns[1]},
+			},
+			{
+				Name:    "app_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppsColumns[1], AppsColumns[0]},
+			},
+			{
+				Name:    "app_namespace_type",
+				Unique:  false,
+				Columns: []*schema.Column{AppsColumns[1], AppsColumns[8]},
+			},
+			{
+				Name:    "app_namespace_type_is_default",
+				Unique:  true,
+				Columns: []*schema.Column{AppsColumns[1], AppsColumns[8], AppsColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "is_default = true",
+				},
+			},
+		},
+	}
+	// AppCustomersColumns holds the columns for the "app_customers" table.
+	AppCustomersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppCustomersTable holds the schema information for the "app_customers" table.
+	AppCustomersTable = &schema.Table{
+		Name:       "app_customers",
+		Columns:    AppCustomersColumns,
+		PrimaryKey: []*schema.Column{AppCustomersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_customers_apps_customer_apps",
+				Columns:    []*schema.Column{AppCustomersColumns[5]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "app_customers_customers_apps",
+				Columns:    []*schema.Column{AppCustomersColumns[6]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appcustomer_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppCustomersColumns[1]},
+			},
+			{
+				Name:    "appcustomer_namespace_app_id_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppCustomersColumns[1], AppCustomersColumns[5], AppCustomersColumns[6]},
+			},
+		},
+	}
+	// AppStripesColumns holds the columns for the "app_stripes" table.
+	AppStripesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "stripe_account_id", Type: field.TypeString},
+		{Name: "stripe_livemode", Type: field.TypeBool},
+		{Name: "api_key", Type: field.TypeString},
+		{Name: "stripe_webhook_id", Type: field.TypeString},
+		{Name: "webhook_secret", Type: field.TypeString},
+	}
+	// AppStripesTable holds the schema information for the "app_stripes" table.
+	AppStripesTable = &schema.Table{
+		Name:       "app_stripes",
+		Columns:    AppStripesColumns,
+		PrimaryKey: []*schema.Column{AppStripesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripes_apps_app",
+				Columns:    []*schema.Column{AppStripesColumns[0]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripe_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripesColumns[0]},
+			},
+			{
+				Name:    "appstripe_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripesColumns[1]},
+			},
+		},
+	}
+	// AppStripeCustomersColumns holds the columns for the "app_stripe_customers" table.
+	AppStripeCustomersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "stripe_customer_id", Type: field.TypeString},
+		{Name: "stripe_default_payment_method_id", Type: field.TypeString, Nullable: true},
+		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppStripeCustomersTable holds the schema information for the "app_stripe_customers" table.
+	AppStripeCustomersTable = &schema.Table{
+		Name:       "app_stripe_customers",
+		Columns:    AppStripeCustomersColumns,
+		PrimaryKey: []*schema.Column{AppStripeCustomersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripe_customers_app_stripes_customer_apps",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[7]},
+				RefColumns: []*schema.Column{AppStripesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "app_stripe_customers_customers_customer",
+				Columns:    []*schema.Column{AppStripeCustomersColumns[8]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripecustomer_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripeCustomersColumns[1]},
+			},
+			{
+				Name:    "appstripecustomer_namespace_app_id_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[7], AppStripeCustomersColumns[8]},
+			},
+			{
+				Name:    "appstripecustomer_app_id_stripe_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeCustomersColumns[7], AppStripeCustomersColumns[5]},
+			},
+		},
+	}
 	// BalanceSnapshotsColumns holds the columns for the "balance_snapshots" table.
 	BalanceSnapshotsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -376,7 +556,6 @@ var (
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "timezone", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
-		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -885,6 +1064,10 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AppsTable,
+		AppCustomersTable,
+		AppStripesTable,
+		AppStripeCustomersTable,
 		BalanceSnapshotsTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
@@ -907,6 +1090,11 @@ var (
 )
 
 func init() {
+	AppCustomersTable.ForeignKeys[0].RefTable = AppsTable
+	AppCustomersTable.ForeignKeys[1].RefTable = CustomersTable
+	AppStripesTable.ForeignKeys[0].RefTable = AppsTable
+	AppStripeCustomersTable.ForeignKeys[0].RefTable = AppStripesTable
+	AppStripeCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable

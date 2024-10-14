@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 var _ billing.ProfileService = (*Service)(nil)
@@ -109,7 +109,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 				Err: fmt.Errorf("%w [profile_id=%s, customer_ids=%v]",
 					billing.ErrProfileReferencedByOverrides,
 					input.ID,
-					lo.Map(referringCustomerIDs, func(item customer.CustomerID, _ int) string {
+					lo.Map(referringCustomerIDs, func(item customerentity.CustomerID, _ int) string {
 						return item.ID
 					}),
 				),

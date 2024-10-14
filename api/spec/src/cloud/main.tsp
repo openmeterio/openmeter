@@ -101,6 +101,19 @@ namespace OpenMeterCloud.Portal {
 @tag("Debug")
 interface Debug extends OpenMeter.Debug {}
 
+namespace OpenMeterCloud.App {
+  @route("/api/v1/marketplace")
+  @tag("Apps")
+  interface Marketplace extends OpenMeter.App.Marketplace {}
+
+  @route("/api/v1/apps")
+  @tag("Apps")
+  interface Apps extends OpenMeter.App.Apps {}
+
+  @tag("Apps")
+  interface AppStripe extends OpenMeter.App.AppStripe {}
+}
+
 namespace OpenMeterCloud.Notification {
   @route("/api/v1/notification/channels")
   @tag("Notification (Experimental)")

@@ -89,6 +89,14 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		config: config,
 		// Clients templated from defined schemas
 
+		App: NewAppClient(config),
+
+		AppCustomer: NewAppCustomerClient(config),
+
+		AppStripe: NewAppStripeClient(config),
+
+		AppStripeCustomer: NewAppStripeCustomerClient(config),
+
 		BalanceSnapshot: NewBalanceSnapshotClient(config),
 
 		BillingCustomerOverride: NewBillingCustomerOverrideClient(config),

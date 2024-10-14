@@ -13,6 +13,90 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
+func (u *AppUpdate) SetOrClearMetadata(value *map[string]string) *AppUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AppUpdateOne) SetOrClearMetadata(value *map[string]string) *AppUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AppUpdate) SetOrClearDeletedAt(value *time.Time) *AppUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppCustomerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppCustomerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeCustomerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeCustomerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeCustomerUpdate) SetOrClearStripeDefaultPaymentMethodID(value *string) *AppStripeCustomerUpdate {
+	if value == nil {
+		return u.ClearStripeDefaultPaymentMethodID()
+	}
+	return u.SetStripeDefaultPaymentMethodID(*value)
+}
+
+func (u *AppStripeCustomerUpdateOne) SetOrClearStripeDefaultPaymentMethodID(value *string) *AppStripeCustomerUpdateOne {
+	if value == nil {
+		return u.ClearStripeDefaultPaymentMethodID()
+	}
+	return u.SetStripeDefaultPaymentMethodID(*value)
+}
+
 func (u *BalanceSnapshotUpdate) SetOrClearDeletedAt(value *time.Time) *BalanceSnapshotUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -655,20 +739,6 @@ func (u *CustomerUpdateOne) SetOrClearCurrency(value *currencyx.Code) *CustomerU
 		return u.ClearCurrency()
 	}
 	return u.SetCurrency(*value)
-}
-
-func (u *CustomerUpdate) SetOrClearExternalMappingStripeCustomerID(value *string) *CustomerUpdate {
-	if value == nil {
-		return u.ClearExternalMappingStripeCustomerID()
-	}
-	return u.SetExternalMappingStripeCustomerID(*value)
-}
-
-func (u *CustomerUpdateOne) SetOrClearExternalMappingStripeCustomerID(value *string) *CustomerUpdateOne {
-	if value == nil {
-		return u.ClearExternalMappingStripeCustomerID()
-	}
-	return u.SetExternalMappingStripeCustomerID(*value)
 }
 
 func (u *EntitlementUpdate) SetOrClearMetadata(value *map[string]string) *EntitlementUpdate {
