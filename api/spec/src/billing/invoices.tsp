@@ -9,7 +9,7 @@ namespace OpenMeter.Billing;
  */
 @route("/api/v1/billing/invoices")
 @tag("Billing (Experimental)")
-interface InvoicesEndpoints {
+interface InvoiceEndpoints {
   /**
    * List invoices
    */
@@ -100,7 +100,7 @@ interface CustomerInvoicesEndpoints {
  */
 @route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
 @tag("Billing (Experimental)")
-interface CustomerInvoicesEndpoint {
+interface CustomerInvoiceEndpoints {
   /**
    * Get an invoice by ID.
    */
@@ -155,7 +155,7 @@ interface CustomerInvoicesEndpoint {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Send the invoice to the customer.
+   * Approve an invoice and start executing the payment workflow.
    *
    * This call instantly sends the invoice to the customer using the configured billing profile app.
    *
