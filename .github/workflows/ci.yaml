@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
+        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
         with:
           verb: call
           args: test
@@ -83,7 +83,7 @@ jobs:
           fetch-depth: 0 # Needed to compare against base branch
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
+        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
         with:
           verb: call
           args: migrate check
@@ -116,7 +116,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
+        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
         with:
           verb: call
           args: lint all
@@ -248,7 +248,7 @@ jobs:
         run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
 
       - name: Run tests
-        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
+        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
         with:
           verb: call
           args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
@@ -286,7 +286,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
+        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
         with:
           verb: call
           args: etoe
@@ -333,7 +333,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@fc945fa66fc7bfa72bc80f85b1a1ef4bd1d30cbb # v6.11.0
+        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
         with:
           verb: call
           args: ci
