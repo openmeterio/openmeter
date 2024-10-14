@@ -14,11 +14,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/app/config"
-	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
-	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
 
 func main() {
@@ -88,52 +83,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
-		Broker:            app.BrokerOptions,
-		ConsumerGroupName: conf.BalanceWorker.ConsumerGroupName,
-	})
-	if err != nil {
-		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	// Dependencies: entitlement
-	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     app.EntClient,
-		StreamingConnector: app.StreamingConnector,
-		MeterRepository:    app.MeterRepository,
-		Logger:             logger,
-		Publisher:          app.EventPublisher,
-	})
-
-	// Initialize worker
-	workerOptions := balanceworker.WorkerOptions{
-		SystemEventsTopic: conf.Events.SystemEvents.Topic,
-		IngestEventsTopic: conf.Events.IngestEvents.Topic,
-
-		Router: router.Options{
-			Subscriber:  wmSubscriber,
-			Publisher:   app.MessagePublisher,
-			Logger:      logger,
-			MetricMeter: app.Meter,
-
-			Config: conf.BalanceWorker.ConsumerConfiguration,
-		},
-
-		EventBus: app.EventPublisher,
-
-		Entitlement: entitlementConnectors,
-		Repo:        entitlementpgadapter.NewPostgresEntitlementRepo(app.EntClient),
-
-		Logger: logger,
-	}
-
-	worker, err := balanceworker.New(workerOptions)
-	if err != nil {
-		logger.Error("failed to initialize worker", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
 	var group run.Group
 
 	// Run worker components
@@ -150,8 +99,8 @@ func main() {
 
 	// Balance worker
 	group.Add(
-		func() error { return worker.Run(ctx) },
-		func(err error) { _ = worker.Close() },
+		func() error { return app.Worker.Run(ctx) },
+		func(err error) { _ = app.Worker.Close() },
 	)
 
 	// Handle shutdown

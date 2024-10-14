@@ -8,11 +8,17 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
 
 var Config = wire.NewSet(
@@ -112,6 +118,25 @@ var OpenMeter = wire.NewSet(
 	NewNamespaceManager,
 )
 
+var Entitlements = wire.NewSet(
+	wire.Struct(new(registrybuilder.EntitlementOptions), "*"),
+	registrybuilder.GetEntitlementRegistry,
+)
+
+var EntitlementsAdapter = wire.NewSet(
+	NewEntitlementRepo,
+)
+
+type EntitlementRepo interface {
+	entitlement.EntitlementRepo
+	balanceworker.BalanceWorkerRepository
+}
+
+// TODO: export the underlying type
+func NewEntitlementRepo(db *db.Client) EntitlementRepo {
+	return entitlementadapter.NewPostgresEntitlementRepo(db)
+}
+
 var Watermill = wire.NewSet(
 	WatermillNoPublisher,
 
@@ -129,4 +154,26 @@ var WatermillNoPublisher = wire.NewSet(
 	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
 
 	NewEventBusPublisher,
+)
+
+var WatermillRouter = wire.NewSet(
+	wire.Struct(new(router.Options), "*"),
+)
+
+var BalanceWorkerAdapter = wire.NewSet(
+	EntitlementsAdapter,
+
+	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(EntitlementRepo)),
+)
+
+var BalanceWorker = wire.NewSet(
+	wire.FieldsOf(new(config.BalanceWorkerConfiguration), "ConsumerConfiguration"),
+
+	BalanceWorkerProvisionTopics,
+	BalanceWorkerSubscriber,
+
+	Entitlements,
+
+	NewBalanceWorkerOptions,
+	NewBalanceWorker,
 )

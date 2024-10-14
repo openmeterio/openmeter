@@ -7,20 +7,6 @@ import (
 
 // TODO: create a separate file or package for each application instead
 
-func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration) []pkgkafka.TopicConfig {
-	var provisionTopics []pkgkafka.TopicConfig
-
-	if conf.DLQ.AutoProvision.Enabled {
-		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
-			Name:          conf.DLQ.Topic,
-			Partitions:    conf.DLQ.AutoProvision.Partitions,
-			RetentionTime: pkgkafka.TimeDurationMilliSeconds(conf.DLQ.AutoProvision.Retention),
-		})
-	}
-
-	return provisionTopics
-}
-
 func NotificationServiceProvisionTopics(conf config.NotificationConfiguration) []pkgkafka.TopicConfig {
 	var provisionTopics []pkgkafka.TopicConfig
 
