@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"

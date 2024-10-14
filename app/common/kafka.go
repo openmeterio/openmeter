@@ -7,7 +7,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )

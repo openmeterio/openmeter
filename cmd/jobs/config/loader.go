@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 )
 
 func LoadConfig(fileName string) (config.Configuration, error) {

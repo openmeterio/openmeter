@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"

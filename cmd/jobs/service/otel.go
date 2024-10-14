@@ -15,7 +15,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 )

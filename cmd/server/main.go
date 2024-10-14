@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerrepository "github.com/openmeterio/openmeter/openmeter/customer/repository"
 	"github.com/openmeterio/openmeter/openmeter/debug"

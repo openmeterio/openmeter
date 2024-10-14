@@ -11,7 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"

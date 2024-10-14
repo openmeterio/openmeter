@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestadapter"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"

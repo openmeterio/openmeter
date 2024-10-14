@@ -10,7 +10,7 @@ import (
 	"context"
 	"github.com/go-slog/otelslog"
 	"github.com/openmeterio/openmeter/app/common"
-	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
