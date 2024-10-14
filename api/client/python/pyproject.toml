@@ -25,7 +25,7 @@ keywords = [
 python = "^3.9"
 aiohttp = { version = ">=3.0", optional = true }
 azure-core = "^1.29.4"
-isodate = "^0.6.1"
+isodate = ">=0.6.1,<0.8.0"
 cloudevents = "^1.10.0"
 
 [tool.poetry.group.dev.dependencies]
