@@ -35,6 +35,9 @@ namespace OpenMeter {
   }
 }
 
+/*
+ * Most of the allowed values are omited, please see https://docs.gobl.org/draft-0/pay/terms
+ */
 @summary("PaymentTermKey defines the type of terms to be applied.")
 @friendlyName("BillingPaymentTermKey")
 enum PaymentTermKey {
@@ -42,31 +45,13 @@ enum PaymentTermKey {
   na: "",
 
   @summary("End of month")
-  end_of_month: "end-of-month",
+  endOfMonth: "end_of_month",
 
   @summary("Due on a specific date")
-  due_date: "due-date",
-
-  @summary("Deferred until after the due date")
-  deferred: "deferred",
-
-  @summary("Month after the present")
-  proximo: "proximo",
+  dueDate: "due_date",
 
   @summary("On receipt of invoice")
   instant: "instant",
-
-  @summary("Chosen by the buyer")
-  elective: "elective",
-
-  @summary("Seller to advise buyer in separate transaction")
-  pending: "pending",
-
-  @summary("Payment made in advance")
-  advanced: "advanced",
-
-  @summary("Payment on Delivery")
-  delivery: "delivery",
 }
 
 @summary("Terms defines when we expect the customer to pay, or have paid, for the contents of the document.")

@@ -118,17 +118,17 @@ namespace OpenMeter {
     /**
      * The invoice has been paid by the customer.
      */
-    payment_received: "payment_received",
+    paymentReceived: "payment_received",
 
     /**
      * A manual approval is required before the invoice can be issued.
      */
-    manual_approval_required: "manual_approval_required",
+    manualApprovalRequired: "manual_approval_required",
 
     /**
      * There's a validation issue with the invoice.
      */
-    validation_failed: "validation_failed",
+    validationFailed: "validation_failed",
   }
 }
 
@@ -173,26 +173,16 @@ model Invoice {
   @visibility("read", "query") // Seperate API endpoint is available for updating
   payment?: Payment;
 }
-
-@friendlyName("BillingInvoceType")
+/*
+ * Omitted types: proforma, corrected, debit-note, other
+ */
+@friendlyName("BillingInvoiceType")
 enum InvoiceType {
   @summary("A regular commercial invoice document between a supplier and customer.")
   standard: "standard",
 
-  @summary("For a clients validation before sending a final invoice.")
-  proforma: "proforma",
-
-  @summary("Corrected invoice that completely *replaces* the preceding document.")
-  corrected: "corrected",
-
   @summary("Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.")
   credit_note: "credit-note",
-
-  @summary("An additional set of charges to be added to the preceding document.")
-  debit_note: "debit-note",
-
-  @summary("Any other type of invoice that does not fit into the standard categories and implies\nthat any scenarios defined in tax regimes or addons will not be applied.\n\nThis is useful for being able to create invoices with custom types in extensions, but is not recommend for general use.")
-  other: "other",
 }
 
 @friendlyName("BillingInvoiceDiscount")
@@ -240,7 +230,7 @@ enum LineTypes {
    *
    * If the item is a single charge or based on a metered value it doesn't matter from the invoicing perspective.
    */
-  UnitPrice: "unit-price",
+  unitPrice: "unit_price",
 }
 
 /**
