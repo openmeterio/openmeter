@@ -36,6 +36,7 @@ model InvoiceSummary {
   code?: Code;
 
   @summary("Currency for all invoice totals.")
+  @visibility("read", "query")
   currency?: CurrencyCode;
 
   @summary("Key information regarding previous invoices and potentially details as to why they were corrected.")
