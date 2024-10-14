@@ -3,9 +3,6 @@ package subscription
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -19,27 +16,8 @@ type Subscription struct {
 	models.ManagedModel
 	models.CadencedModel
 
-	ID         string `json:"id,omitempty"`
-	CustomerId string `json:"customerId,omitempty"`
-
-	Plan     PlanRef
-	Currency models.CurrencyCode
-}
-
-type CreateSubscriptionItemInput struct {
-	PhaseKey string
-	ItemKey  string
-
-	FeatureKey             *string
-	CreateEntitlementInput *entitlement.CreateEntitlementInputs
-	CreatePriceInput       *price.CreateInput
-}
-
-type CreateSubscriptionPhaseInput struct {
-	PhaseKey string
-
-	StartAfter          time.Duration
-	CreateDiscountInput *applieddiscount.CreateInput
+	ID string `json:"id,omitempty"`
+	SubscriptionSpec
 }
 
 type SubscriptionPatch struct {
