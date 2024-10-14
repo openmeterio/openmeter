@@ -115,9 +115,6 @@ model DocumentRef {
   @summary("Source document's code or other identifier.")
   code: CBC.Code;
 
-  @summary("Line index number inside the document, if relevant.")
-  line?: int32;
-
   @summary("List of additional codes, IDs, or SKUs which can be used to identify the document or its contents, agreed upon by the supplier and customer.")
   identities?: Identity[];
 
