@@ -4,12 +4,12 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Billing;
 
 /**
- * InvoicesAllCustomers is a collection of endpoints that allow invoice operations without prior
+ * Invoices is a collection of endpoints that allow invoice operations without prior
  * knowledge of the customer ID.
  */
 @route("/api/v1/billing/invoices")
 @tag("Billing (Experimental)")
-interface InvoicesAllCustomers {
+interface Invoices {
   /**
    * List invoices
    */
@@ -29,12 +29,12 @@ interface InvoicesAllCustomers {
 }
 
 /**
- * CustomerAllInvoices is a collection of endpoints that allow invoice operations without prior
+ * CustomerInvoices is a collection of endpoints that allow invoice operations without prior
  * knowledge of the invoice ID.
  */
 @route("/api/v1/billing/invoices/{customerIdOrKey}")
 @tag("Billing (Experimental)")
-interface CustomerAllInvoices {
+interface CustomerInvoices {
   /**
    * Create a new invoice from the pending items.
    *
@@ -95,9 +95,12 @@ interface CustomerAllInvoices {
   } | OpenMeter.CommonErrors;
 }
 
+/**
+ * CustomerInvoice is a collection of endpoints that allow operations on a specific invoice.
+ */
 @route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
 @tag("Billing (Experimental)")
-interface CustomerInvoices {
+interface CustomerInvoice {
   /**
    * Get an invoice by ID.
    */
