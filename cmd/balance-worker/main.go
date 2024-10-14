@@ -17,7 +17,6 @@ import (
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	"github.com/openmeterio/openmeter/openmeter/registry/startup"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
@@ -84,16 +83,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	var group run.Group
-
-	entClient := app.EntClient
-
-	if err := startup.DB(ctx, conf.Postgres, entClient); err != nil {
+	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
-
-	logger.Info("Postgres client initialized")
 
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
 		Broker:            app.BrokerOptions,
@@ -106,7 +99,7 @@ func main() {
 
 	// Dependencies: entitlement
 	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     entClient,
+		DatabaseClient:     app.EntClient,
 		StreamingConnector: app.StreamingConnector,
 		MeterRepository:    app.MeterRepository,
 		Logger:             logger,
@@ -130,7 +123,7 @@ func main() {
 		EventBus: app.EventPublisher,
 
 		Entitlement: entitlementConnectors,
-		Repo:        entitlementpgadapter.NewPostgresEntitlementRepo(entClient),
+		Repo:        entitlementpgadapter.NewPostgresEntitlementRepo(app.EntClient),
 
 		Logger: logger,
 	}
@@ -140,6 +133,8 @@ func main() {
 		logger.Error("failed to initialize worker", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	var group run.Group
 
 	// Run worker components
 

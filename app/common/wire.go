@@ -56,6 +56,7 @@ var Database = wire.NewSet(
 	NewDB,
 	NewEntPostgresDriver,
 	NewEntClient,
+	wire.Struct(new(Migrator), "*"),
 )
 
 var Kafka = wire.NewSet(

@@ -22,6 +22,7 @@ import (
 
 type Application struct {
 	common.GlobalInitializer
+	common.Migrator
 
 	Metadata common.Metadata
 

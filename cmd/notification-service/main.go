@@ -19,7 +19,6 @@ import (
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	"github.com/openmeterio/openmeter/openmeter/registry/startup"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
@@ -86,17 +85,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	var group run.Group
-
-	entClient := app.EntClient
-
-	// Run database schema creation
-	if err := startup.DB(ctx, conf.Postgres, entClient); err != nil {
+	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
-
-	logger.Info("Postgres client initialized")
 
 	// Create  subscriber
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
@@ -110,7 +102,7 @@ func main() {
 
 	// Dependencies: entitlement
 	entitlementConnRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     entClient,
+		DatabaseClient:     app.EntClient,
 		StreamingConnector: app.StreamingConnector,
 		MeterRepository:    app.MeterRepository,
 		Logger:             logger,
@@ -119,7 +111,7 @@ func main() {
 
 	// Dependencies: notification
 	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
-		Client: entClient,
+		Client: app.EntClient,
 		Logger: logger.WithGroup("notification.postgres"),
 	})
 	if err != nil {
@@ -172,6 +164,8 @@ func main() {
 		logger.Error("failed to initialize worker", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	var group run.Group
 
 	// Run worker components
 
