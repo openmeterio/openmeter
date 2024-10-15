@@ -19,7 +19,7 @@ model DueDate {
   notes?: string;
 
   @summary("How much needs to be paid by the date.")
-  amount: Numeric;
+  amount: Money;
 
   @summary("Percentage of the total that should be paid by the date.")
   percent?: Percentage;

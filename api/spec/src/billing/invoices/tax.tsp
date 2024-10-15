@@ -10,12 +10,8 @@ namespace Invoices;
 
 @friendlyName("BillingTaxItem")
 model TaxItem {
-  /*
-   * TODO: This should match the description from the plan (per backend tax items).
-   * @encodedName("application/json", "cat")
-   * @summary("Tax category code from those available inside a region.")
-   * category: Invoice.CBC.Key;
-   */
+  @summary("Tax provider configuration.")
+  config?: OpenMeter.Billing.TaxConfig;
 
   @summary("Percent defines the percentage set manually or determined from the rate\nkey (calculated if rate present). A nil percent implies that this tax combo\nis **exempt** from tax.")
   percent?: Percentage;
@@ -36,12 +32,18 @@ enum TaxBehavior {
   exclusive: "exclusive",
 }
 
+@pattern("^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$")
+@minLength(1)
+@maxLength(32)
+@friendlyName("BillingTaxIdentificationCode")
+scalar TaxIdentificationCode extends string;
+
 @friendlyName("BillingTaxIdentity")
 @summary("Identity stores the details required to identify an entity for tax purposes in a specific country.")
 model TaxIdentity {
   @summary("Tax country code for Where the tax identity was issued.")
-  country: TaxCountryCode;
+  country: CountryCode;
 
-  @summary("Normalized code shown on the original identity document.")
-  code?: Code;
+  @summary("Normalized tax code shown on the original identity document.")
+  code?: TaxIdentificationCode;
 }

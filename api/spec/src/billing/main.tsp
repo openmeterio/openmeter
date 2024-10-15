@@ -11,6 +11,7 @@ import "./invoices/main.tsp";
 import "./profile.tsp";
 import "./customeroverride.tsp";
 import "./invoices.tsp";
+import "./tax.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

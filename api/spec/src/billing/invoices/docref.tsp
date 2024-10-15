@@ -40,11 +40,9 @@ model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
   @summary("IssueAt reflects the time the document was issued.")
   issuedAt?: DateTime;
 
-  @summary("Series the referenced document belongs to.")
-  series: Code;
-
-  @summary("Source document's code or other identifier.")
-  code: Code;
+  @summary("(Serial) Number of the referenced document.")
+  @visibility("read", "query")
+  number?: InvoiceNumber;
 
   @summary("Link to the source document.")
   @format("uri")

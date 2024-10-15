@@ -16,7 +16,7 @@ interface InvoiceEndpoints {
   @get
   @summary("List invoices")
   @operationId("billingListInvoices")
-  listInvoices(
+  list(
     @query
     @summary("Filter by the customer ID or key")
     customers?: Array<ULIDOrKey>,
@@ -25,7 +25,7 @@ interface InvoiceEndpoints {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoices.InvoiceSummary> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoices.Invoice> | OpenMeter.CommonErrors;
 }
 
 /**
@@ -70,12 +70,12 @@ interface CustomerInvoicesEndpoints {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoices.InvoiceSummary> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoices.Invoice> | OpenMeter.CommonErrors;
 
   /**
-   * Create a new (pending line item) charge.
+   * Create a new pending line item (charge).
    *
-   * This call is used to create a new pending charge for the customer without explicitly
+   * This call is used to create a new pending line item for the customer without explicitly
    * assigning it to an invoice.
    *
    * The item will be either allocated to an existing invoice in gathering state or a new invoice is
@@ -87,11 +87,11 @@ interface CustomerInvoicesEndpoints {
    */
   @post
   @route("/items")
-  @summary("Create a new pending charge")
-  @operationId("billingCreatePendingChargeByCustomer")
-  createPendingCharge(@path customerIdOrKey: ULIDOrKey, @body request: Invoices.InvoiceLine): {
+  @summary("Create a new pending item")
+  @operationId("billingCreatePendingItemByCustomer")
+  createPendingItem(@path customerIdOrKey: ULIDOrKey, @body request: Invoices.InvoiceLine): {
     @statusCode _: 201;
-    @body body: CreatePendingChargeResponse;
+    @body body: CreatePendingItemResponse;
   } | OpenMeter.CommonErrors;
 }
 
@@ -106,8 +106,8 @@ interface CustomerInvoiceEndpoints {
    */
   @get
   @summary("Get an invoice")
-  @operationId("billingGetInvoiceByID")
-  getInvoiceByID(
+  @operationId("billingGetInvoiceByCustomerInvoiceId")
+  getInvoice(
     @path
     customerIdOrKey: ULIDOrKey,
 
@@ -122,7 +122,7 @@ interface CustomerInvoiceEndpoints {
    */
   @delete
   @summary("Delete an invoice")
-  @operationId("billingDeleteInvoice")
+  @operationId("billingDeleteInvoiceByCustomerInvoiceId")
   deleteInvoice(
     @path
     customerIdOrKey: ULIDOrKey,
@@ -283,13 +283,13 @@ enum InvoiceOrderBy {
 /**
  * Response for creating a pending charge
  */
-@friendlyName("BillingCreatePendingChargeResponse")
-model CreatePendingChargeResponse {
+@friendlyName("BillingCreatePendingItemResponse")
+model CreatePendingItemResponse {
   @summary("The created pending charge")
   item: Invoices.InvoiceLine;
 
   @summary("The invoice the item was added to")
-  invoice: Invoices.InvoiceSummary;
+  invoice: Invoices.Invoice;
 }
 
 /**
@@ -370,6 +370,22 @@ model InvoiceListParams {
   @query
   @summary("Filter by invoice creation time")
   issuedBefore?: DateTime;
+
+  @query
+  @summary("What parts of the list output to expand in listings")
+  expand?: Array<InvoiceExpand>;
+}
+
+/**
+ * InvoiceExpand specifies the parts of the invoice to expand in the list output.
+ */
+@friendlyName("BillingInvoiceExpand")
+enum InvoiceExpand {
+  lines: "lines",
+  customer: "customer",
+  supplier: "supplier",
+  preceding: "preceding",
+  all: "*",
 }
 
 @friendlyName("BillingInvoiceCreateInput")
