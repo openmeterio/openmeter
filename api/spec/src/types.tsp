@@ -224,6 +224,7 @@ model Period {
  * Custom three-letter currency codes are also supported for convenience.
  */
 @pattern("^[A-Z]{3}$")
+// TODO: add helpers for currency database
 @friendlyName("CurrencyCode")
 @minLength(3)
 @maxLength(3)
@@ -294,3 +295,9 @@ alias Money = Numeric;
 @pattern("^\\-?[0-9]+(\\.[0-9]+)?%$")
 // TODO: let's add some default go implementation
 scalar Percentage extends Numeric;
+
+/**
+ * Unit describes how the quantity of the product should be interpreted.
+ */
+@friendlyName("Unit")
+scalar Unit extends string;

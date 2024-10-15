@@ -1,8 +1,8 @@
 import "./types.tsp";
-import "./billing.tsp";
 import "./discounts.tsp";
 import "./prices.tsp";
 import "./entitlements/main.tsp";
+import "./billing/main.tsp";
 
 namespace OpenMeter;
 
@@ -40,7 +40,7 @@ model RateCardBase extends Resource {
    * When undefined, the tax config of the feature or the default tax config of the plan is used.
    */
   @summary("Tax config")
-  taxConfig?: TaxConfig;
+  taxConfig?: OpenMeter.Billing.TaxConfig;
 }
 
 /**

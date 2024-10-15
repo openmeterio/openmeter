@@ -9,10 +9,8 @@ import "../..";
 // Package Contents
 import "./invoice.tsp";
 import "./tax.tsp";
-import "./codes.tsp";
 import "./org.tsp";
 import "./pay.tsp";
-import "./product.tsp";
 import "./docref.tsp";
 
 using TypeSpec.Http;

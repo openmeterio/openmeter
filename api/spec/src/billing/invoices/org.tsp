@@ -42,37 +42,3 @@ model Party {
   @maxItems(1)
   addresses?: Array<Address>;
 }
-
-/*
- * Omitted fields:
- * po_box: Post office box number for the address.
- * num: Number of the building in the street.
- * floor: Floor of the building.
- * door: Door number of the building.
- * block: Block number within the building.
- * coordinates: When the postal address is not sufficient, coordinates help locate the address more precisely.
- */
-@summary("Address describes the physical location of a party.")
-@friendlyName("BillingAddress")
-model Address {
-  @summary("Identifier for the address.")
-  label?: string;
-
-  @summary("The street address.")
-  street?: string;
-
-  @summary("Additional street address details.")
-  streetExtra?: string;
-
-  @summary("Village, town, district, or city, typically inside a region.")
-  locality?: string;
-
-  @summary("Province, county, or state, inside a country.")
-  region?: string;
-
-  @summary("Postal code for the address.")
-  code?: string;
-
-  @summary("The country.")
-  country?: ISOCountryCode;
-}

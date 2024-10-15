@@ -112,24 +112,17 @@ model Workflow {
 model WorkflowSettings {
   /**
    * When to collect the pending line items into an invoice.
-   *
-   * default: subscription
    */
-  collectionAlignment?: CollectionAlignment;
+  collectionAlignment?: CollectionAlignment = CollectionAlignment.subscription;
 
   /**
    * The period for collecting the pending line items into an invoice.
-   *
-   * default: 1 hour
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1D"))
-  itemCollectionPeriod?: duration;
+  itemCollectionPeriod?: duration; // = duration.fromISO("PT1H");
 
   invoice?: WorkflowInvoice;
-
-  /*
-  TODO: Once PR-1637 is merged, uncomment the following fields
 
   @summary("The tax app used for this workflow")
   taxApp: OpenMeter.App.App;
@@ -139,7 +132,6 @@ model WorkflowSettings {
 
   @summary("The payment app used for this workflow")
   paymentApp: OpenMeter.App.App;
-  */
 }
 
 /**
@@ -150,12 +142,8 @@ model AppReference {
   @summary("The ID of the app, if not specified the type is used to find the default app")
   id?: ULID;
 
-  /*
-  TODO: Once PR-1637 is merged, uncomment the following field
-
   @summary("The type of the app, if specified the default app is used")
-  type?: OpenMeter.App.AppType;
-  */
+  type?: OpenMeter.App.Type;
 }
 
 /**
@@ -198,6 +186,8 @@ enum CollectionAlignment {
   subscription: "subscription",
 }
 
+const Week = duration.fromISO("P7D");
+
 /**
  * WorkflowInvoice represents the invoice settings for a billing workflow
  */
@@ -206,49 +196,37 @@ enum CollectionAlignment {
 model WorkflowInvoice {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
-   *
-   * default: true
    */
-  autoAdvance?: boolean;
+  autoAdvance?: boolean = true;
 
   /**
    * The period for the invoice to be kept in draft status for manual reviews.
-   *
-   * default: 1 day
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1D"))
-  draftPeriod?: duration;
+  draftPeriod?: duration; // = duration.fromISO("P1D");
 
   /**
    * The period after which the invoice is due.
-   *
-   * default: 7 days
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1D"))
-  dueAfter?: duration;
+  dueAfter?: duration; // = duration.fromISO("P7W");
 
   /**
    * The method to collect the invoice.
-   *
-   * default: chargeAutomatically
    */
-  collectionMethod?: CollectionMethod;
+  collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
 
   /**
    * The resolution of the line items in the invoice.
-   *
-   * default: period
    */
-  itemResolution?: ItemResolution;
+  itemResolution?: ItemResolution = ItemResolution.period;
 
   /**
    * Whether to create one line item per subject in the invoice.
-   *
-   * default: true
    */
-  itemPerSubject?: boolean;
+  itemPerSubject?: boolean = true;
 }
 
 /**
