@@ -144,8 +144,8 @@ model InvoiceWorkflowSettings {
    * The period after which the invoice is due.
    */
   @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1D"))
-  dueAfter?: duration; // = duration.fromISO("P7D");
+  @example("P1D")
+  dueAfter?: string = "P7D";
 }
 
 /**

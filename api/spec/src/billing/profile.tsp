@@ -119,8 +119,8 @@ model WorkflowSettings {
    * The period for collecting the pending line items into an invoice.
    */
   @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1D"))
-  itemCollectionPeriod?: duration; // = duration.fromISO("PT1H");
+  @example("P1D")
+  itemCollectionPeriod?: string = "PT1H";
 
   invoice?: WorkflowInvoice;
 
@@ -186,8 +186,6 @@ enum CollectionAlignment {
   subscription: "subscription",
 }
 
-const Week = duration.fromISO("P7D");
-
 /**
  * WorkflowInvoice represents the invoice settings for a billing workflow
  */
@@ -203,15 +201,15 @@ model WorkflowInvoice {
    * The period for the invoice to be kept in draft status for manual reviews.
    */
   @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1D"))
-  draftPeriod?: duration; // = duration.fromISO("P1D");
+  @example("P1D")
+  draftPeriod?: string = "P1D";
 
   /**
    * The period after which the invoice is due.
    */
   @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1D"))
-  dueAfter?: duration; // = duration.fromISO("P7W");
+  @example("P1D")
+  dueAfter?: string = "P7D";
 
   /**
    * The method to collect the invoice.
