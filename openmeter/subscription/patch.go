@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -39,6 +40,15 @@ const (
 	PatchOperationRemove PatchOperation = "remove"
 	PatchOperationExtend PatchOperation = "extend"
 )
+
+func (o PatchOperation) Validate() error {
+	switch o {
+	case PatchOperationAdd, PatchOperationRemove, PatchOperationExtend:
+		return nil
+	default:
+		return fmt.Errorf("invalid patch operation: %s", o)
+	}
+}
 
 type PatchPath string
 
@@ -85,7 +95,7 @@ func (p PatchPath) Validate() error {
 	}
 
 	segments := p.seg()
-	if len(segments) != 2 || len(segments) != 4 {
+	if len(segments) != 2 && len(segments) != 4 {
 		return &PatchValidationError{
 			Msg: fmt.Sprintf("invalid path: %s, should have 2 or 4 segments, has %d", strVal, len(segments)),
 		}
@@ -135,18 +145,19 @@ func NewItemPath(phaseKey, itemKey string) PatchPath {
 }
 
 type Patch interface {
+	json.Marshaler
 	Applies
 	Op() PatchOperation
 	Path() PatchPath
 }
 
-func ToApplies(p Patch, _ int) Applies {
-	return p
-}
-
 type ValuePatch[T any] interface {
 	Patch
 	Value() T
+}
+
+func ToApplies(p Patch, _ int) Applies {
+	return p
 }
 
 type PatchAddItem struct {
@@ -254,7 +265,7 @@ func (r PatchRemoveItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) erro
 
 type PatchAddPhase struct {
 	PhaseKey    string
-	CreateInput SubscriptionPhaseSpec
+	CreateInput CreateSubscriptionPhaseInput
 }
 
 func (a PatchAddPhase) Op() PatchOperation {
@@ -265,11 +276,11 @@ func (a PatchAddPhase) Path() PatchPath {
 	return NewPhasePath(a.PhaseKey)
 }
 
-func (a PatchAddPhase) Value() SubscriptionPhaseSpec {
+func (a PatchAddPhase) Value() CreateSubscriptionPhaseInput {
 	return a.CreateInput
 }
 
-var _ ValuePatch[SubscriptionPhaseSpec] = PatchAddPhase{}
+var _ ValuePatch[CreateSubscriptionPhaseInput] = PatchAddPhase{}
 
 func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 	if _, exists := spec.Phases[a.PhaseKey]; exists {
@@ -296,7 +307,9 @@ func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error 
 		return &PatchForbiddenError{Msg: "cannot add phase after the subscription ends"}
 	}
 
-	spec.Phases[a.PhaseKey] = &a.CreateInput
+	spec.Phases[a.PhaseKey] = &SubscriptionPhaseSpec{
+		CreateSubscriptionPhaseInput: a.CreateInput,
+	}
 	return nil
 }
 

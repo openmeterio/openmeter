@@ -10,14 +10,14 @@ type SubscriptionView interface {
 }
 
 type SubscriptionPhaseView interface {
-	Key() PhaseKey
+	Key() string
 	ActiveFrom() time.Time
 	Items() []SubscriptionItemView
 }
 
 type SubscriptionItemView interface {
 	BillingCadence() time.Duration
-	Key() ItemKey
+	Key() string
 
 	PriceID() (string, bool)
 	FeatureKey() (string, bool)
