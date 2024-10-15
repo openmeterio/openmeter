@@ -111,7 +111,9 @@ model Invoice {
 
   @summary("List of invoice lines representing each of the items sold to the customer.")
   @visibility("read", "query") // Seperate API endpoint is available for updating
-  // TODO: group by subscription
+  // TODO: we might want to group this by subscription, so that we don't have to add individual references
+  // per line item, however that poses a problem, when a manually added line-item is added, as that should also be
+  // bound to a subscription.
   lines?: Line[];
 
   @summary("Discounts or allowances applied to the complete invoice.")
@@ -205,9 +207,6 @@ model Discount {
 
   @summary("Amount to apply (calculated if percent present).")
   amount: Numeric;
-
-  @summary("Code for the reason this discount applied")
-  code?: string;
 
   @summary("Text description as to why the discount was applied")
   reason?: string;
