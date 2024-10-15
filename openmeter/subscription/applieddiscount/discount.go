@@ -18,7 +18,11 @@ type AppliedDiscount struct {
 }
 
 type CreateInput struct {
+	Spec
 	SubscriptionId models.NamespacedID `json:"subscriptionId,omitempty"`
-	PhaseKey       string              `json:"phaseKey,omitempty"`
-	AppliesTo      []string            `json:"appliesTo,omitempty"`
+}
+
+type Spec struct {
+	PhaseKey  string   `json:"phaseKey,omitempty"`
+	AppliesTo []string `json:"appliesTo,omitempty"`
 }

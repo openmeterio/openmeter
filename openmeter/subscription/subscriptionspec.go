@@ -21,14 +21,14 @@ import (
 // Third is the final spec which is a combination of the above two, it is suffixed with Spec.
 
 type CreateSubscriptionPlanInput struct {
-	Plan PlanRef
+	Plan PlanRef `json:"plan"`
 }
 
 type CreateSubscriptionCustomerInput struct {
-	CustomerId string `json:"customerId,omitempty"`
-	Currency   models.CurrencyCode
-	ActiveFrom time.Time
-	ActiveTo   *time.Time
+	CustomerId string              `json:"customerId"`
+	Currency   models.CurrencyCode `json:"currency"`
+	ActiveFrom time.Time           `json:"activeFrom,omitempty"`
+	ActiveTo   *time.Time          `json:"activeTo,omitempty"`
 }
 
 type SubscriptionSpec struct {
@@ -36,6 +36,18 @@ type SubscriptionSpec struct {
 	CreateSubscriptionCustomerInput
 
 	Phases map[string]*SubscriptionPhaseSpec
+}
+
+func (s *SubscriptionSpec) GetCreateInput() CreateSubscriptionInput {
+	return CreateSubscriptionInput{
+		Plan:       s.Plan,
+		CustomerId: s.CustomerId,
+		Currency:   s.Currency,
+		CadencedModel: models.CadencedModel{
+			ActiveFrom: s.ActiveFrom,
+			ActiveTo:   s.ActiveTo,
+		},
+	}
 }
 
 // GetSortedPhases returns the subscription phase references time sorted order ASC.
@@ -75,37 +87,61 @@ func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpe
 
 func (s *SubscriptionSpec) Validate() error {
 	// TODO: write validation logic for Subscriptions
-	// All validatons should happen here!
+	// All consistency checks should happen here
+	for _, phase := range s.Phases {
+		if err := phase.Validate(); err != nil {
+			return fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err)
+		}
+	}
 	return nil
 }
 
 type CreateSubscriptionPhasePlanInput struct {
-	PhaseKey   string
-	StartAfter time.Duration
+	PhaseKey   string        `json:"phaseKey"`
+	StartAfter time.Duration `json:"startAfter"`
 	// TODO: add back Plan level discounts
 	// CreateDiscountInput *applieddiscount.CreateInput
 }
 
 type CreateSubscriptionPhaseCustomerInput struct {
-	CreateDiscountInput *applieddiscount.CreateInput
+	CreateDiscountInput *applieddiscount.Spec `json:"createDiscountInput,omitempty"`
+}
+
+type CreateSubscriptionPhaseInput struct {
+	CreateSubscriptionPhasePlanInput
+	CreateSubscriptionPhaseCustomerInput
 }
 
 type SubscriptionPhaseSpec struct {
-	CreateSubscriptionPhasePlanInput
-	CreateSubscriptionPhaseCustomerInput
+	CreateSubscriptionPhaseInput
 	Items map[string]*SubscriptionItemSpec
 }
 
+func (s *SubscriptionPhaseSpec) Validate() error {
+	// TODO: implement
+	for _, item := range s.Items {
+		if err := item.Validate(); err != nil {
+			return fmt.Errorf("item %s validation failed: %w", item.ItemKey, err)
+		}
+	}
+	return nil
+}
+
 type CreateSubscriptionItemPlanInput struct {
-	PhaseKey               string
-	ItemKey                string
-	FeatureKey             *string
-	CreateEntitlementInput *entitlement.CreateEntitlementInputs
-	CreatePriceInput       *price.CreateInput
+	PhaseKey               string                               `json:"phaseKey"`
+	ItemKey                string                               `json:"itemKey"`
+	FeatureKey             *string                              `json:"featureKey,omitempty"`
+	CreateEntitlementInput *entitlement.CreateEntitlementInputs `json:"createEntitlementInput,omitempty"`
+	CreatePriceInput       *price.Spec                          `json:"createPriceInput,omitempty"`
 }
 
 type SubscriptionItemSpec struct {
 	CreateSubscriptionItemPlanInput
+}
+
+func (s *SubscriptionItemSpec) Validate() error {
+	// TODO: implement
+	return nil
 }
 
 // SpecFromPlan creates a SubscriptionSpec from a Plan and a CreateSubscriptionCustomerInput.
@@ -122,7 +158,9 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 
 	for _, planPhase := range p.Phases() {
 		phase := SubscriptionPhaseSpec{
-			CreateSubscriptionPhasePlanInput: planPhase.ToCreateSubscriptionPhasePlanInput(),
+			CreateSubscriptionPhaseInput: CreateSubscriptionPhaseInput{
+				CreateSubscriptionPhasePlanInput: planPhase.ToCreateSubscriptionPhasePlanInput(),
+			},
 			// TODO: implement discounts
 			// CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{},
 			Items: make(map[string]*SubscriptionItemSpec),

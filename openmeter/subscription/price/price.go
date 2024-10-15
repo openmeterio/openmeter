@@ -20,9 +20,12 @@ type Price struct {
 }
 
 type CreateInput struct {
+	Spec
 	SubscriptionId models.NamespacedID `json:"subscriptionId,omitempty"`
-	PhaseKey       string              `json:"phaseKey,omitempty"`
-	ItemKey        string              `json:"itemKey,omitempty"`
-	Value          string              `json:"value,omitempty"`
-	Key            string              `json:"key,omitempty"`
+}
+
+type Spec struct {
+	PhaseKey string `json:"phaseKey,omitempty"`
+	ItemKey  string `json:"itemKey,omitempty"`
+	Value    string `json:"value,omitempty"`
 }
