@@ -226,7 +226,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 					return request, err
 				}
 			} else {
-				apiEnum, err := v.MeasureUsageFrom.AsMeasureUsageFromEnum()
+				apiEnum, err := v.MeasureUsageFrom.AsMeasureUsageFromPreset()
 				if err != nil {
 					return request, err
 				}

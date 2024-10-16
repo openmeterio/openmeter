@@ -12,6 +12,7 @@ namespace OpenMeter.Notification;
  * Type of the notification channel.
  */
 @friendlyName("NotificationChannelType")
+@extension("x-enum-varnames", ["Webhook"])
 enum NotificationChannelType {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   webhook: "WEBHOOK",

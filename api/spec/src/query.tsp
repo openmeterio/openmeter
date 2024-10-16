@@ -71,8 +71,8 @@ model QueryOrdering<T> {
    * The order direction.
    */
   @query
-  @example(Order.ASC)
-  order?: Order;
+  @example(SortOrder.ASC)
+  order?: SortOrder;
 
   /**
    * The order by field.
@@ -88,9 +88,8 @@ model QueryOrdering<T> {
 /**
  * The order direction.
  */
-@friendlyName("Order")
-@extension("x-enum-varnames", ["SortOrderASC", "SortOrderDESC"])
-enum Order {
+@friendlyName("SortOrder")
+enum SortOrder {
   #suppress "@openmeter/api-spec/casing" "Use existing values"
   ASC: "ASC",
   #suppress "@openmeter/api-spec/casing" "Use existing values"

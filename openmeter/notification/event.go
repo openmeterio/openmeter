@@ -321,10 +321,10 @@ func (i CreateEventInput) Validate(ctx context.Context, service Service) error {
 }
 
 const (
-	EventDeliveryStatusStateSuccess = EventDeliveryStatusState(api.SUCCESS)
-	EventDeliveryStatusStateFailed  = EventDeliveryStatusState(api.FAILED)
-	EventDeliveryStatusStateSending = EventDeliveryStatusState(api.SENDING)
-	EventDeliveryStatusStatePending = EventDeliveryStatusState(api.PENDING)
+	EventDeliveryStatusStateSuccess = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStateSuccess)
+	EventDeliveryStatusStateFailed  = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStateFailed)
+	EventDeliveryStatusStateSending = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStateSending)
+	EventDeliveryStatusStatePending = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStatePending)
 )
 
 type EventDeliveryStatusState string

@@ -14,14 +14,14 @@ import (
 func newNumericThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.NUMBER,
+		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,
 	}
 }
 
 func newPercentThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.PERCENT,
+		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
 	}
 }
 

@@ -26,9 +26,8 @@ model NotificationEventDeliveryStatus {
    * Delivery state of the notification event to the channel.
    */
   @visibility("read")
-  @summary("Delivery State")
-  @example("SUCCESS")
-  state: "SUCCESS" | "FAILED" | "SENDING" | "PENDING";
+  @example(NotificationEventDeliveryStatusState.Success)
+  state: NotificationEventDeliveryStatusState;
 
   /**
    * The reason of the last deliverry state update.
@@ -52,6 +51,19 @@ model NotificationEventDeliveryStatus {
   @visibility("read")
   @summary("Notification Channel")
   channel: NotificationChannelMeta;
+}
+
+/**
+ * The delivery state of the notification event to the channel.
+ */
+@friendlyName("NotificationEventDeliveryStatusState")
+@summary("Delivery State")
+@extension("x-enum-varnames", ["Success", "Failed", "Sending", "Pending"])
+enum NotificationEventDeliveryStatusState {
+  Success: "SUCCESS",
+  Failed: "FAILED",
+  Sending: "SENDING",
+  Pending: "PENDING",
 }
 
 /**
