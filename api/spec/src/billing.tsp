@@ -1,3 +1,11 @@
+import "@typespec/http";
+import "@typespec/rest";
+import "@typespec/openapi3";
+
+using TypeSpec.Http;
+using TypeSpec.Rest;
+using TypeSpec.OpenAPI;
+
 namespace OpenMeter;
 
 /**
@@ -76,4 +84,42 @@ union PaymentProvider {
    */
   @summary("Stripe Payments")
   stripe_payments: "stripe_payments",
+}
+
+namespace Billing {
+
+
+@route("/api/v1/billing/invoices")
+interface InvoiceEndpoints {
+  /**
+   * List invoices
+   */
+  @get
+  @summary("List invoices")
+  @operationId("billingListInvoices")
+  list(
+    @query
+    @summary("Filter by the customer ID or key")
+    customers?: Array<ULIDOrKey>,
+
+    ...OpenMeter.QueryPagination,
+    ...OpenMeter.QueryLimitOffset,
+    ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
+  ): OpenMeter.PaginatedResponse<ULIDOrKey> | OpenMeter.CommonErrors;
+}
+
+// Just to ensure that this is not due to different values, it explicitly matches the
+// NotificationRuleOrderBy enum, but the same issue happens with other names.
+@friendlyName("BillingInvoiceOrderBy")
+enum InvoiceOrderBy { // at notification this matches the friendly name but it doesn't matter
+  #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
+  id: "id",
+  #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
+  type: "type",
+  #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
+  createdAt: "createdAt",
+  #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
+  updatedAt: "updatedAt",
+}
+
 }

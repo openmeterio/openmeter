@@ -17,6 +17,7 @@ tags:
   - name: Meters
   - name: Debug
   - name: Customers
+  - name: Billing
   - name: Subjects
 paths:
   /api/v1/apps:
@@ -263,6 +264,80 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeWebhookEvent'
+  /api/v1/billing/invoices:
+    get:
+      operationId: billingListInvoices
+      summary: List invoices
+      description: List invoices
+      parameters:
+        - name: customers
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: |-
+                ULID (Universally Unique Lexicographically Sortable Identifier).
+                A key is a unique string that is used to identify a resource.
+
+                TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+            title: Filter by the customer ID or key
+          explode: false
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/LimitOffset.offset'
+        - $ref: '#/components/parameters/LimitOffset.limit'
+        - $ref: '#/components/parameters/InvoiceOrderByOrdering.order'
+        - $ref: '#/components/parameters/InvoiceOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ULIDOrKeyPaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing
   /api/v1/customers:
     post:
       operationId: createCustomer
@@ -4367,6 +4442,22 @@ components:
       schema:
         $ref: '#/components/schemas/GrantOrderBy'
       explode: false
+    InvoiceOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/Order'
+      explode: false
+    InvoiceOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/BillingInvoiceOrderBy'
+      explode: false
     LimitOffset.limit:
       name: limit
       in: query
@@ -4831,6 +4922,13 @@ components:
           description: The entitlement balance at the start of the period.
           readOnly: true
       description: The balance history window.
+    BillingInvoiceOrderBy:
+      type: string
+      enum:
+        - id
+        - type
+        - createdAt
+        - updatedAt
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
@@ -7760,6 +7858,40 @@ components:
           description: The payload of the Svix operational webhook request.
           title: Operational Webhook Payload
       description: Operational webhook reqeuest sent by Svix.
+    ULIDOrKeyPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: |-
+              ULID (Universally Unique Lexicographically Sortable Identifier).
+              A key is a unique string that is used to identify a resource.
+
+              TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+          description: The items in the current page.
+      description: Paginated response
     UnauthorizedProblemResponse:
       type: object
       allOf:
