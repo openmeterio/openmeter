@@ -366,6 +366,15 @@ func (e PatchExtendPhase) Value() time.Duration {
 
 var _ ValuePatch[time.Duration] = PatchExtendPhase{}
 
+// FIXME:
+// We can't store duration as time.Duration in the spec if it's provided as ISO8601.
+// The reason is ISO8601 => time.Duration would yield different results for the start time of each phase we're extending.
+//
+// Either
+// 1. We can store time.Duration as it gets transalted for the targe phase, then convert back and forth and reapply for all phases (quite hacky)
+// 2. We store it as ISO string
+//
+// Furthermore, we should check if go Date normalization behaves as expected (e.g. shifts in day of the month values when extending by months)
 func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 	phase, ok := spec.Phases[e.PhaseKey]
 	if !ok {

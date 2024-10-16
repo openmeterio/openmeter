@@ -29,8 +29,6 @@ type Subscription struct {
 	ID string `json:"id,omitempty"`
 }
 
-// THIS MIGHT BE A REALLY BAD IDEA
-// DUE TO SCHEMA MISMATCHES AS TIME PASSES......
 type SubscriptionPatch struct {
 	models.NamespacedModel
 	models.ManagedModel
@@ -38,25 +36,25 @@ type SubscriptionPatch struct {
 	ID             string `json:"id,omitempty"`
 	SubscriptionId string `json:"subscriptionId,omitempty"`
 
-	// Primary ordering happens via activation time
-	ActiveFrom time.Time `json:"activeFrom,omitempty"`
-	// Secondary ordering can be used as a tie-breaker
-	SecondaryOrdering int `json:"secondaryOrdering,omitempty"`
+	// Primary ordering happens via when the patch was applied
+	AppliedAt time.Time `json:"appliedAt,omitempty"`
+	// BatchIndex can be used as a tie-breaker secondary ordering
+	BatchIndex int `json:"batchIndex,omitempty"`
 
 	// Patch info
-	Operation string          `json:"operation,omitempty"`
-	Path      string          `json:"path,omitempty"`
-	Value     json.RawMessage `json:"value,omitempty"`
+	Operation string `json:"operation,omitempty"`
+	Path      string `json:"path,omitempty"`
+	Value     any    `json:"value,omitempty"`
 }
 
 func (s *SubscriptionPatch) AsPatch() (any, error) {
-	// TODO: Version validation!
-
 	p := &AnyPatch{
 		Op:    s.Operation,
 		Path:  s.Path,
 		Value: s.Value,
 	}
+
+	// FIXME: This is a bit of a hack, parsing and deserialization are too coupled
 
 	ser, err := json.Marshal(p)
 	if err != nil {

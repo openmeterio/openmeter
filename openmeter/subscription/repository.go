@@ -13,5 +13,6 @@ type Repository interface {
 	CreateSubscription(ctx context.Context, subscription CreateSubscriptionInput) (Subscription, error)
 
 	// Patches
-	GetPatches(ctx context.Context, subscriptionID string) ([]SubscriptionPatch, error)
+	// GetPatch returns the patches of a subscription
+	GetSubscriptionPatches(ctx context.Context, subscriptionID string) ([]SubscriptionPatch, error)
 }
