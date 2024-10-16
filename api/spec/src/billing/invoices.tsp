@@ -273,11 +273,11 @@ interface CustomerInvoiceEndpoints {
  */
 @friendlyName("BillingInvoiceOrderBy")
 enum InvoiceOrderBy {
-  customerName: "customer_name",
-  issuedAt: "issued_at",
+  customerName: "customer.name",
+  issuedAt: "issuedAt",
   status: "status",
-  createdAt: "created_at",
-  updatedAt: "updated_at",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
 }
 
 /**

@@ -10,7 +10,7 @@ interface Profiles {
    * List all billing profiles
    */
   @get
-  @operationId("listBillingProfiles")
+  @operationId("billingListProfiles")
   list(
     @query
     includeArchived?: boolean = false,
@@ -27,7 +27,8 @@ interface Profiles {
    * can be applied to a billing profile to customize the billing behavior for a specific customer.
    */
   @post
-  @operationId("createBillingProfile")
+  @summary("Create a new billing profile")
+  @operationId("billingCreateProfile")
   create(@body profile: ProfileCreateInput): {
     @statusCode _: 201;
     @body profile: Profile;
@@ -38,7 +39,8 @@ interface Profiles {
    */
   @route("/{id}")
   @delete
-  @operationId("archiveBillingProfile")
+  @summary("Archive a billing profile")
+  @operationId("billingArchiveProfile")
   archive(@path id: string): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
@@ -48,7 +50,8 @@ interface Profiles {
    */
   @route("/{id}")
   @get
-  @operationId("getBillingProfile")
+  @summary("Get a billing profile by ID")
+  @operationId("billingGetProfile")
   get(@path id: string): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -56,7 +59,8 @@ interface Profiles {
    */
   @route("/{id}")
   @put
-  @operationId("updateBillingProfile")
+  @summary("Update a billing profile")
+  @operationId("billingUpdateProfile")
   update(@path id: string, @body profile: Profile): {
     @statusCode _: 200;
     @body profile: Profile;
@@ -70,8 +74,8 @@ interface Profiles {
  */
 @friendlyName("BillingProfileOrderBy")
 enum ProfileOrderBy {
-  createdAt: "created_at",
-  updatedAt: "updated_at",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
 }
 
 /**
