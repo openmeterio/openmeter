@@ -135,7 +135,7 @@ model Meter {
    */
   @minLength(1)
   @example("$.tokens")
-  valueProperty: string;
+  valueProperty?: string;
 
   /**
    * Named JSONPath expressions to extract the group by values from the event data.
