@@ -83,8 +83,6 @@ interface CustomerOverrides {
 @friendlyName("BillingCustomerOverrideOrderBy")
 enum CustomerOverrideOrderBy {
   id: "id",
-  createdAt: "created_at",
-  updatedAt: "updated_at",
 }
 
 /**
