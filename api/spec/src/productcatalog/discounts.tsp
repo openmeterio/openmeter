@@ -1,6 +1,4 @@
-import "./types.tsp";
-
-namespace OpenMeter;
+namespace OpenMeter.ProductCatalog;
 
 /**
  * The type of the discount.

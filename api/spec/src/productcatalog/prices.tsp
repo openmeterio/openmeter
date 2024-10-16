@@ -1,6 +1,4 @@
-import "./types.tsp";
-
-namespace OpenMeter;
+namespace OpenMeter.ProductCatalog;
 
 /**
  * The type of the price.
@@ -68,7 +66,9 @@ model FlatPrice {
  * Flat price with payment term.
  */
 @friendlyName("FlatPriceWithPaymentTerm")
-model FlatPriceWithPaymentTerm extends FlatPrice {
+model FlatPriceWithPaymentTerm {
+  ...FlatPrice;
+
   /**
    * The payment term of the flat price.
    * Defaults to in advance.
@@ -169,7 +169,8 @@ model SpendCommitments {
  * Unit price with spend commitments.
  */
 @friendlyName("UnitPriceWithCommitments")
-model UnitPriceWithCommitments extends UnitPrice {
+model UnitPriceWithCommitments {
+  ...UnitPrice;
   ...SpendCommitments;
 }
 
@@ -177,6 +178,7 @@ model UnitPriceWithCommitments extends UnitPrice {
  * Tiered price with spend commitments.
  */
 @friendlyName("TieredPriceWithCommitments")
-model TieredPriceWithCommitments extends TieredPrice {
+model TieredPriceWithCommitments {
+  ...TieredPrice;
   ...SpendCommitments;
 }

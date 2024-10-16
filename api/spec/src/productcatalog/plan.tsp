@@ -1,14 +1,7 @@
-import "@typespec/http";
-import "./types.tsp";
-import "./ratecards.tsp";
-
-namespace OpenMeter;
+namespace OpenMeter.ProductCatalog;
 
 using TypeSpec.Http;
-
-@route("/api/v1/plans")
-@tag("Plans")
-interface Plans {}
+using TypeSpec.OpenAPI;
 
 /**
  * The status of a plan.
@@ -24,12 +17,15 @@ enum PlanStatus {
  * Plans provide a template for subscriptions.
  */
 @friendlyName("Plan")
-model Plan extends UniqueResource {
+model Plan {
+  ...UniqueResource;
+
   /**
    * Version of the plan. Incremented when the plan is updated.
    */
   @summary("Version")
   @minValue(1)
+  @visibility("read")
   version: integer = 1;
 
   /**
@@ -42,13 +38,13 @@ model Plan extends UniqueResource {
    * The date and time when the plan becomes effective. When not specified, the plan is a draft.
    */
   @summary("Effective start date")
-  effectiveStartDate?: DateTime;
+  effectiveFrom?: DateTime;
 
   /**
    * The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
    */
   @summary("Effective end date")
-  effectiveEndDate?: DateTime;
+  effectiveTo?: DateTime;
 
   /**
    * The status of the plan.
@@ -75,12 +71,16 @@ model Plan extends UniqueResource {
  */
 @friendlyName("PlanPhase")
 model PlanPhase {
+  ...OmitProperties<UniqueResource, "id">;
+
   /**
    * Interval after the subscription starts to transition to the phase.
    * When null, the phase starts immediately after the subscription starts.
    */
-  @summary("Start after")
-  startAfter: Interval | null;
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1Y1D"))
+  @summary("Interval")
+  interval: duration | null;
 
   /**
    * The rate cards of the plan.
@@ -94,11 +94,12 @@ model PlanPhase {
   @summary("Discount")
   discount?: PlanDiscount;
 
-  /**
-   * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
-   */
-  @summary("Variants")
-  variants?: PlanVariantOverridePreset[] = #[];
+  // NOTE(chrisgacsal): variants ig going to be implemented after the initial version
+  // /**
+  //  * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
+  //  */
+  // @summary("Variants")
+  // variants?: PlanVariantOverridePreset[] = #[];
 }
 
 /**
@@ -203,4 +204,20 @@ model PlanVariantOverridePreset {
    */
   @summary("Discount")
   discount?: PlanDiscount;
+}
+
+/**
+ * Order by options for plans.
+ */
+@friendlyName("PlanOrderBy")
+enum PlanOrderBy {
+  id: "id",
+}
+
+/**
+ * Order by options for plan phases.
+ */
+@friendlyName("PhasesOrderBy")
+enum PhasesOrderBy {
+  key: "key",
 }
