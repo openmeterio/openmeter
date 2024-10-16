@@ -1830,7 +1830,7 @@ export interface components {
        * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
        * @example $.tokens
        */
-      valueProperty: string
+      valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
