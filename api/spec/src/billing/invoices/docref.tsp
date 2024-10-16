@@ -20,7 +20,7 @@ enum DocumentRefType {
  *  ext: 	Extensions for additional codes that may be required.
  */
 @summary("DocumentRef is used to describe an existing document or a specific part of it's contents.")
-@friendlyName("BillingDocumentRef")
+@friendlyName("BillingGenericDocumentRef")
 model GenericDocumentRef {
   @summary("Type of the document referenced.")
   @visibility("read", "query")
@@ -49,4 +49,8 @@ model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
   url: string;
 }
 
-alias DocumentRef = CreditNoteOriginalInvoiceRef;
+@friendlyName("BillingDocumentRef")
+@summary("DocumentRef is used to describe a reference to an existing document (invoice).")
+union DocumentRef {
+  creditNoteOriginalInvoice: CreditNoteOriginalInvoiceRef,
+}

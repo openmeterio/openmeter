@@ -55,11 +55,15 @@ model GenericPaymentTerms {
   notes?: string;
 }
 
+@summary("PaymentTermInstant defines the terms for payment on receipt of invoice.")
+@friendlyName("BillingPaymentTermInstant")
 model PaymentTermInstant extends GenericPaymentTerms {
   @summary("Type of terms to be applied.")
   type: PaymentTermType.instant;
 }
 
+@summary("PaymentTermDueDate defines the terms for payment on a specific date.")
+@friendlyName("BillingPaymentTermDueDate")
 model PaymentTermDueDate extends GenericPaymentTerms {
   @summary("Type of terms to be applied.")
   type: PaymentTermType.dueDate;
@@ -72,4 +76,9 @@ model PaymentTermDueDate extends GenericPaymentTerms {
   notes?: string;
 }
 
-alias PaymentTerms = PaymentTermInstant | PaymentTermDueDate;
+@summary("PaymentTerms defines the terms for payment.")
+@friendlyName("BillingPaymentTerms")
+union PaymentTerms {
+  instant: PaymentTermInstant,
+  dueDate: PaymentTermDueDate,
+}

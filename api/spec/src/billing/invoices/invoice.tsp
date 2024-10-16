@@ -214,7 +214,11 @@ model Discount {
   // TODO: Add reference fields to plan/subscriptions if the discount is coming from there.
 }
 
-alias InvoiceLine = UnitPriceLine;
+@summary("UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.")
+@friendlyName("BillingInvoiceLine")
+union InvoiceLine {
+  unitPrice: UnitPriceLine,
+}
 
 @summary("LineTypes represents the different types of lines that can be used in an invoice.")
 @friendlyName("BillingLineTypes")

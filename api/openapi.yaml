@@ -1080,7 +1080,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingUnitPriceLine'
+                $ref: '#/components/schemas/BillingInvoiceLine'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -1130,7 +1130,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingUnitPriceLineCreateOrUpdate'
+              $ref: '#/components/schemas/BillingInvoiceLineCreateOrUpdate'
   /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/tax/recalculate:
     post:
       operationId: billingRecalculateInvoiceTax
@@ -1446,7 +1446,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingUnitPriceLineCreate'
+              $ref: '#/components/schemas/BillingInvoiceLineCreate'
   /api/v1/billing/profile:
     get:
       operationId: billingListProfiles
@@ -6426,7 +6426,7 @@ components:
       properties:
         item:
           allOf:
-            - $ref: '#/components/schemas/BillingUnitPriceLine'
+            - $ref: '#/components/schemas/BillingInvoiceLine'
           title: The created pending charge
         invoice:
           allOf:
@@ -6458,7 +6458,7 @@ components:
           format: uri
           title: Link to the source document.
       allOf:
-        - $ref: '#/components/schemas/BillingDocumentRef'
+        - $ref: '#/components/schemas/BillingGenericDocumentRef'
     BillingCustomerOverride:
       type: object
       required:
@@ -6584,25 +6584,9 @@ components:
           $ref: '#/components/schemas/BillingWorkflowInvoice'
     BillingDocumentRef:
       type: object
-      required:
-        - type
-      properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingDocumentRefType'
-          title: Type of the document referenced.
-        reason:
-          type: string
-          title: Human readable description on why this reference is here or needs to be used.
-        description:
-          type: string
-          title: Additional details about the document.
-      description: |-
-        Omitted fields:
-        period: Tax period in which the referred document had an effect required by some tax regimes and formats.
-        stamps: Seals of approval from other organisations that may need to be listed.
-        ext: 	Extensions for additional codes that may be required.
-      title: DocumentRef is used to describe an existing document or a specific part of it's contents.
+      allOf:
+        - $ref: '#/components/schemas/BillingCreditNoteOriginalInvoiceRef'
+      title: DocumentRef is used to describe a reference to an existing document (invoice).
     BillingDocumentRefType:
       type: string
       enum:
@@ -6635,6 +6619,27 @@ components:
             - $ref: '#/components/schemas/CurrencyCode'
           title: If different from the parent document's base currency.
       title: DueDate contains an amount that should be paid by the given date.
+    BillingGenericDocumentRef:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingDocumentRefType'
+          title: Type of the document referenced.
+        reason:
+          type: string
+          title: Human readable description on why this reference is here or needs to be used.
+        description:
+          type: string
+          title: Additional details about the document.
+      description: |-
+        Omitted fields:
+        period: Tax period in which the referred document had an effect required by some tax regimes and formats.
+        stamps: Seals of approval from other organisations that may need to be listed.
+        ext: 	Extensions for additional codes that may be required.
+      title: DocumentRef is used to describe an existing document or a specific part of it's contents.
     BillingGenericPaymentTerms:
       type: object
       properties:
@@ -6651,7 +6656,7 @@ components:
       discriminator:
         propertyName: type
         mapping:
-          due_date: '#/components/schemas/Invoices.PaymentTermDueDate'
+          due_date: '#/components/schemas/BillingPaymentTermDueDate'
       title: Terms defines when we expect the customer to pay, or have paid, for the contents of the document.
     BillingInvoiceCreateInput:
       type: object
@@ -6694,6 +6699,21 @@ components:
         - preceding
         - '*'
       description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
+    BillingInvoiceLine:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingUnitPriceLine'
+      title: UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLineCreate:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingUnitPriceLineCreate'
+      title: UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLineCreateOrUpdate:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingUnitPriceLineCreateOrUpdate'
+      title: UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.
     BillingInvoiceNumber:
       type: string
       example: INV-2024-01-01-01
@@ -6719,9 +6739,7 @@ components:
       type: object
       properties:
         terms:
-          anyOf:
-            - $ref: '#/components/schemas/Invoices.PaymentTermInstant'
-            - $ref: '#/components/schemas/Invoices.PaymentTermDueDate'
+          $ref: '#/components/schemas/BillingPaymentTerms'
       title: Payment contains details as to how the invoice should be paid.
     BillingInvoiceStatus:
       type: string
@@ -6821,7 +6839,7 @@ components:
         preceding:
           type: array
           items:
-            $ref: '#/components/schemas/BillingCreditNoteOriginalInvoiceRef'
+            $ref: '#/components/schemas/BillingDocumentRef'
           title: Key information regarding previous invoices and potentially details as to why they were corrected.
         totals:
           allOf:
@@ -7144,12 +7162,53 @@ components:
           maxItems: 1
           title: Regular post addresses for where information should be sent if needed.
       title: Party represents a person or business entity.
+    BillingPaymentTermDueDate:
+      type: object
+      required:
+        - type
+        - dueAt
+      properties:
+        type:
+          type: string
+          enum:
+            - due_date
+          title: Type of terms to be applied.
+        dueAt:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingDueDate'
+          minItems: 1
+          title: When the payment is due.
+        notes:
+          type: string
+          title: Other details to take into account for the payment
+      allOf:
+        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
+      title: PaymentTermDueDate defines the terms for payment on a specific date.
+    BillingPaymentTermInstant:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - instant
+          title: Type of terms to be applied.
+      allOf:
+        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
+      title: PaymentTermInstant defines the terms for payment on receipt of invoice.
     BillingPaymentTermType:
       type: string
       enum:
         - due_date
         - instant
       title: PaymentPaymentTermType defines the type of terms to be applied.
+    BillingPaymentTerms:
+      anyOf:
+        - $ref: '#/components/schemas/BillingPaymentTermInstant'
+        - $ref: '#/components/schemas/BillingPaymentTermDueDate'
+      title: PaymentTerms defines the terms for payment.
     BillingPeriod:
       type: object
       required:
@@ -9307,40 +9366,6 @@ components:
             $ref: '#/components/schemas/BillingInvoiceSummary'
           description: The items in the current page.
       description: Paginated response
-    Invoices.PaymentTermDueDate:
-      type: object
-      required:
-        - type
-        - dueAt
-      properties:
-        type:
-          type: string
-          enum:
-            - due_date
-          title: Type of terms to be applied.
-        dueAt:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingDueDate'
-          minItems: 1
-          title: When the payment is due.
-        notes:
-          type: string
-          title: Other details to take into account for the payment
-      allOf:
-        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
-    Invoices.PaymentTermInstant:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          enum:
-            - instant
-          title: Type of terms to be applied.
-      allOf:
-        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
     MarketplaceListing:
       type: object
       required:
