@@ -6497,7 +6497,6 @@ components:
         - aggregation
         - windowSize
         - eventType
-        - valueProperty
       properties:
         id:
           type: string
