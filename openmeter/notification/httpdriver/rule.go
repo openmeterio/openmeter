@@ -34,7 +34,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			req := ListRulesRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         defaultx.WithDefault(params.OrderBy, api.Id),
+				OrderBy:         defaultx.WithDefault(params.OrderBy, api.NotificationRuleOrderById),
 				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),

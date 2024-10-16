@@ -244,11 +244,10 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 type RuleOrderBy string
 
 const (
-	// TODO: This must be resolved before merging
-	RuleOrderByID        = api.Id
-	RuleOrderByType      = api.Type
-	RuleOrderByCreatedAt = api.CreatedAt
-	RuleOrderByUpdatedAt = api.UpdatedAt
+	RuleOrderByID        = api.NotificationRuleOrderById
+	RuleOrderByType      = api.NotificationRuleOrderByType
+	RuleOrderByCreatedAt = api.NotificationRuleOrderByCreatedAt
+	RuleOrderByUpdatedAt = api.NotificationRuleOrderByUpdatedAt
 )
 
 var _ validator = (*ListRulesInput)(nil)
