@@ -56,7 +56,7 @@ interface CustomerInvoicesEndpoints {
   ): {
     @statusCode _: 201;
     @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | OpenMeter.CommonErrors;
 
   /**
    * List invoices for a specific customer
@@ -314,7 +314,7 @@ model VoidInvoiceInput {
    *
    * If not specified, the `action` will be applied to all items.
    */
-  itemOverrides: VoidInvoiceItemOverride[];
+  itemOverrides: VoidInvoiceItemOverride[] | null;
 }
 
 /**
