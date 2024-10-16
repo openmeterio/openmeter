@@ -150,6 +150,28 @@ namespace OpenMeterCloud.Entitlements {
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
 }
 
-@route("/api/v1/customers")
-@tag("Customers")
-interface Customers extends OpenMeter.Customers {}
+namespace OpenMeterCloud.Billing {
+  @route("/api/v1/customers")
+  @tag("Customers")
+  interface Customers extends OpenMeter.Customers {}
+
+  @route("/api/v1/billing/customer")
+  @tag("Billing (Experimental)")
+  interface CustomerOverrides extends OpenMeter.Billing.CustomerOverrides {}
+
+  @route("/api/v1/billing/profile")
+  @tag("Billing (Experimental)")
+  interface BillingProfiles extends OpenMeter.Billing.Profiles {}
+
+  @route("/api/v1/billing/invoices")
+  @tag("Billing (Experimental)")
+  interface Invoices extends OpenMeter.Billing.InvoiceEndpoints {}
+
+  @route("/api/v1/billing/invoices/{customerIdOrKey}")
+  @tag("Billing (Experimental)")
+  interface CustomerInvoicesEndpoints extends OpenMeter.Billing.CustomerInvoicesEndpoints {}
+
+  @route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
+  @tag("Billing (Experimental)")
+  interface CustomerInvoiceEndpoints extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
+}

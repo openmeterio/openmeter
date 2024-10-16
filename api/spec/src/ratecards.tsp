@@ -21,7 +21,15 @@ enum RateCardType {
  * Common fields of the rate card.
  */
 @friendlyName("RateCardBase")
-model RateCardBase extends Resource {
+model RateCardBase {
+  ...Resource;
+
+  /**
+   * The type of the rate card
+   */
+  @summary("Type of the rate card")
+  type: RateCardType;
+
   /**
    * The feature the customer is entitled to use.
    */

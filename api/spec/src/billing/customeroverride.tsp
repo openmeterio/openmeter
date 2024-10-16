@@ -68,7 +68,7 @@ interface CustomerOverrides {
   @delete
   @route("/{customerIdOrKey}")
   @summary("Delete a customer override")
-  @operationId("billdingDeleteCustomerOverride")
+  @operationId("billingDeleteCustomerOverride")
   delete(
     @path
     customerIdOrKey: ULIDOrKey,
