@@ -97,7 +97,10 @@ func (s *SubscriptionSpec) Validate() error {
 }
 
 type CreateSubscriptionPhasePlanInput struct {
-	PhaseKey   string        `json:"phaseKey"`
+	PhaseKey string `json:"phaseKey"`
+	// We can use time.Duration for ISO8601 durations because the start time of the Subscription is known in the spec
+	// so the duration can be calculated from the start date.
+	// TODO: we should serialize as ISO8601
 	StartAfter time.Duration `json:"startAfter"`
 	// TODO: add back Plan level discounts
 	// CreateDiscountInput *applieddiscount.CreateInput
@@ -127,12 +130,43 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 	return nil
 }
 
+type CreateSubscriptionEntitlementSpec struct {
+	EntitlementType         entitlement.EntitlementType        `json:"type"`
+	MeasureUsageFrom        *entitlement.MeasureUsageFromInput `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset         *float64                           `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8                             `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool                              `json:"isSoftLimit,omitempty"`
+	Config                  []byte                             `json:"config,omitempty"`
+	UsagePeriod             *entitlement.UsagePeriod           `json:"usagePeriod,omitempty"`
+	PreserveOverageAtReset  *bool                              `json:"preserveOverageAtReset,omitempty"`
+}
+
+func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
+	namespace string,
+	featureKey string,
+	subjectKey string,
+) (*entitlement.CreateEntitlementInputs, error) {
+	return &entitlement.CreateEntitlementInputs{
+		Namespace:               namespace,
+		FeatureKey:              &featureKey,
+		SubjectKey:              subjectKey,
+		EntitlementType:         s.EntitlementType,
+		MeasureUsageFrom:        s.MeasureUsageFrom,
+		IssueAfterReset:         s.IssueAfterReset,
+		IssueAfterResetPriority: s.IssueAfterResetPriority,
+		IsSoftLimit:             s.IsSoftLimit,
+		Config:                  s.Config,
+		UsagePeriod:             s.UsagePeriod,
+		PreserveOverageAtReset:  s.PreserveOverageAtReset,
+	}, nil
+}
+
 type CreateSubscriptionItemPlanInput struct {
-	PhaseKey               string                               `json:"phaseKey"`
-	ItemKey                string                               `json:"itemKey"`
-	FeatureKey             *string                              `json:"featureKey,omitempty"`
-	CreateEntitlementInput *entitlement.CreateEntitlementInputs `json:"createEntitlementInput,omitempty"`
-	CreatePriceInput       *price.Spec                          `json:"createPriceInput,omitempty"`
+	PhaseKey               string                             `json:"phaseKey"`
+	ItemKey                string                             `json:"itemKey"`
+	FeatureKey             *string                            `json:"featureKey,omitempty"`
+	CreateEntitlementInput *CreateSubscriptionEntitlementSpec `json:"createEntitlementSpec,omitempty"`
+	CreatePriceInput       *price.Spec                        `json:"createPriceInput,omitempty"`
 }
 
 type SubscriptionItemSpec struct {
@@ -200,8 +234,9 @@ const (
 )
 
 type ApplyContext struct {
-	Operation   SpecOperation
-	CurrentTime time.Time
+	Operation             SpecOperation
+	CurrentTime           time.Time
+	SubscriptionStartTime time.Time
 }
 
 // Each Patch applies its changes to the SubscriptionSpec.
