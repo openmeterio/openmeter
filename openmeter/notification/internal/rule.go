@@ -76,7 +76,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				StripeCustomerId: convert.ToPointer("01J5AW2XS6DYHH7E9PNJSQJ341"),
 			},
 			Threshold: api.NotificationRuleBalanceThresholdValue{
-				Type:  api.PERCENT,
+				Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
 				Value: 50,
 			},
 			Value: api.EntitlementValue{

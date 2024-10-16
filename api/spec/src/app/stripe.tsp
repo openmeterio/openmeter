@@ -347,6 +347,7 @@ model StripeSetupIntent {
 /**
  * Stripe payment intent status.
  */
+@friendlyName("StripePaymentIntentStatus")
 enum StripePaymentIntentStatus {
   Canceled: "canceled",
   Processing: "processing",

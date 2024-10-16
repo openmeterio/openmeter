@@ -187,7 +187,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.NoError(t, event.Payload.BalanceThreshold.Validate(), "Event must be valid")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 95,
-		Type:  api.PERCENT,
+		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 3: Additional events hitting the same 95% threshold should not create new events
@@ -254,7 +254,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.NotEmpty(t, event.Annotations[notification.AnnotationEventDedupeHash], "Event must have a deduplication hash")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 1000,
-		Type:  api.NUMBER,
+		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 6: The user hits the 95% threshold again
@@ -281,7 +281,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 95,
-		Type:  api.PERCENT,
+		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 7: The user gets +1000 credits, given that the 95% threshold is no longer valid
@@ -311,7 +311,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 1000,
-		Type:  api.NUMBER,
+		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 8: The entitlement gets reset, no events should be created
@@ -373,7 +373,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 95,
-		Type:  api.PERCENT,
+		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
 	}, event.Payload.BalanceThreshold.Threshold)
 }
 

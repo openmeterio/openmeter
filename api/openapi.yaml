@@ -4325,7 +4325,7 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/Order'
+        $ref: '#/components/schemas/SortOrder'
       explode: false
     EntitlementOrderByOrdering.orderBy:
       name: orderBy
@@ -4341,7 +4341,7 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/Order'
+        $ref: '#/components/schemas/SortOrder'
       explode: false
     FeatureOrderByOrdering.orderBy:
       name: orderBy
@@ -4357,7 +4357,7 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/Order'
+        $ref: '#/components/schemas/SortOrder'
       explode: false
     GrantOrderByOrdering.orderBy:
       name: orderBy
@@ -4485,7 +4485,7 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/Order'
+        $ref: '#/components/schemas/SortOrder'
       explode: false
     NotificationChannelOrderByOrdering.orderBy:
       name: orderBy
@@ -4501,7 +4501,7 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/Order'
+        $ref: '#/components/schemas/SortOrder'
       explode: false
     NotificationEventOrderByOrdering.orderBy:
       name: orderBy
@@ -4517,7 +4517,7 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/Order'
+        $ref: '#/components/schemas/SortOrder'
       explode: false
     NotificationRuleOrderByOrdering.orderBy:
       name: orderBy
@@ -4728,7 +4728,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.AppStatus'
+            - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
       description: |-
@@ -4804,6 +4804,12 @@ components:
           maxItems: 1000
           description: The items in the page.
       description: A page of results.
+    AppStatus:
+      type: string
+      enum:
+        - ready
+        - unauthorized
+      description: App installed status.
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -6465,15 +6471,18 @@ components:
       description: A page of results.
     MeasureUsageFrom:
       oneOf:
-        - $ref: '#/components/schemas/MeasureUsageFromEnum'
+        - $ref: '#/components/schemas/MeasureUsageFromPreset'
         - $ref: '#/components/schemas/MeasureUsageFromTime'
       description: Measure usage from
-    MeasureUsageFromEnum:
+    MeasureUsageFromPreset:
       type: string
       enum:
         - CURRENT_PERIOD_START
         - NOW
       description: Start of measurement options
+      x-enum-varnames:
+        - CurrentPeriodStart
+        - Now
     MeasureUsageFromTime:
       type: string
       format: date-time
@@ -6732,6 +6741,8 @@ components:
       enum:
         - WEBHOOK
       description: Type of the notification channel.
+      x-enum-varnames:
+        - Webhook
     NotificationChannelWebhook:
       type: object
       required:
@@ -6989,15 +7000,10 @@ components:
         - channel
       properties:
         state:
-          type: string
-          enum:
-            - SUCCESS
-            - FAILED
-            - SENDING
-            - PENDING
+          allOf:
+            - $ref: '#/components/schemas/NotificationEventDeliveryStatusState'
           example: SUCCESS
           description: Delivery state of the notification event to the channel.
-          title: Delivery State
           readOnly: true
         reason:
           type: string
@@ -7019,6 +7025,20 @@ components:
           title: Notification Channel
           readOnly: true
       description: The delivery status of the notification event.
+    NotificationEventDeliveryStatusState:
+      type: string
+      enum:
+        - SUCCESS
+        - FAILED
+        - SENDING
+        - PENDING
+      description: The delivery state of the notification event to the channel.
+      title: Delivery State
+      x-enum-varnames:
+        - Success
+        - Failed
+        - Sending
+        - Pending
     NotificationEventOrderBy:
       type: string
       enum:
@@ -7216,14 +7236,21 @@ components:
           description: Value of the threshold.
           title: Threshold Value
         type:
-          type: string
-          enum:
-            - PERCENT
-            - NUMBER
+          allOf:
+            - $ref: '#/components/schemas/NotificationRuleBalanceThresholdValueType'
           example: NUMBER
           description: Type of the threshold.
-          title: Threshold Type
       description: Threshold value with multiple supported types.
+    NotificationRuleBalanceThresholdValueType:
+      type: string
+      enum:
+        - PERCENT
+        - NUMBER
+      description: Type of the rule in the balance threshold specification.
+      title: Notification balance threshold type
+      x-enum-varnames:
+        - Percent
+        - Number
     NotificationRuleCreateRequest:
       type: object
       allOf:
@@ -7274,36 +7301,11 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    OpenMeter.App.AppStatus:
-      type: string
-      enum:
-        - ready
-        - unauthorized
-      description: App installed status.
-    OpenMeter.App.StripePaymentIntentStatus:
-      type: string
-      enum:
-        - canceled
-        - processing
-        - requires_action
-        - requires_confirmation
-        - requires_payment_method
-        - succeeded
-      description: Stripe payment intent status.
     OpenMeter.App.Type:
       type: string
       enum:
         - stripe
       description: Type of the app.
-    Order:
-      type: string
-      enum:
-        - ASC
-        - DESC
-      description: The order direction.
-      x-enum-varnames:
-        - SortOrderASC
-        - SortOrderDESC
     Period:
       type: object
       required:
@@ -7449,6 +7451,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+    SortOrder:
+      type: string
+      enum:
+        - ASC
+        - DESC
+      description: The order direction.
     StripeApp:
       type: object
       required:
@@ -7513,7 +7521,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.AppStatus'
+            - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
         type:
@@ -7560,6 +7568,16 @@ components:
       enum:
         - setup
       description: Stripe CheckoutSession.mode
+    StripePaymentIntentStatus:
+      type: string
+      enum:
+        - canceled
+        - processing
+        - requires_action
+        - requires_confirmation
+        - requires_payment_method
+        - succeeded
+      description: Stripe payment intent status.
     StripeSetupIntent:
       type: object
       required:
@@ -7573,7 +7591,7 @@ components:
           description: The setup intent id.
         status:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.StripePaymentIntentStatus'
+            - $ref: '#/components/schemas/StripePaymentIntentStatus'
           description: The setup intent status.
         payment_method:
           type: string

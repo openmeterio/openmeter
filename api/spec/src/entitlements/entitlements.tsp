@@ -337,8 +337,9 @@ model EntitlementStatic {
 /**
  * Start of measurement options
  */
-@friendlyName("MeasureUsageFromEnum")
-enum MeasureUsageFromEnum {
+@friendlyName("MeasureUsageFromPreset")
+@extension("x-enum-varnames", ["CurrentPeriodStart", "Now"])
+enum MeasureUsageFromPreset {
   #suppress "@openmeter/api-spec/casing" "Use existing values"
   CURRENT_PERIOD_START: "CURRENT_PERIOD_START",
   #suppress "@openmeter/api-spec/casing" "Use existing values"
@@ -354,6 +355,6 @@ scalar MeasureUsageFromTime extends DateTime;
 @friendlyName("MeasureUsageFrom")
 @oneOf
 union MeasureUsageFrom {
-  `enum`: MeasureUsageFromEnum,
+  preset: MeasureUsageFromPreset,
   time: MeasureUsageFromTime,
 }

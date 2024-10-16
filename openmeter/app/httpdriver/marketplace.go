@@ -131,7 +131,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			return MarketplaceAppAPIKeyInstallResponse{
 				Id:     appBase.ID,
 				Name:   appBase.Name,
-				Status: api.OpenMeterAppAppStatus(appBase.Status),
+				Status: api.AppStatus(appBase.Status),
 				// TODO(pmarton): adapter to implement metadata
 				// Metadata: appBase.Metadata,
 				Listing:   mapMarketplaceListing(appBase.Listing),
