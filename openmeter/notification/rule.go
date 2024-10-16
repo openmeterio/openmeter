@@ -22,8 +22,8 @@ type (
 )
 
 const (
-	BalanceThresholdTypeNumber  = api.NUMBER
-	BalanceThresholdTypePercent = api.PERCENT
+	BalanceThresholdTypeNumber  = api.NotificationRuleBalanceThresholdValueTypeNumber
+	BalanceThresholdTypePercent = api.NotificationRuleBalanceThresholdValueTypePercent
 )
 
 type Rule struct {

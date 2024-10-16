@@ -98,6 +98,7 @@ model AppBase {
 /**
  * App installed status.
  */
+@friendlyName("AppStatus")
 enum AppStatus {
   /**
    * The app is ready to be used.

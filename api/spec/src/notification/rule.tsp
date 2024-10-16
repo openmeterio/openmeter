@@ -85,9 +85,19 @@ model NotificationRuleBalanceThresholdValue {
    * Type of the threshold.
    */
   @visibility("read", "create", "update")
-  @summary("Threshold Type")
-  @example("NUMBER")
-  type: "PERCENT" | "NUMBER";
+  @example(NotificationRuleBalanceThresholdValueType.NUMBER)
+  type: NotificationRuleBalanceThresholdValueType;
+}
+
+/**
+ * Type of the rule in the balance threshold specification.
+ */
+@summary("Notification balance threshold type")
+@friendlyName("NotificationRuleBalanceThresholdValueType")
+@extension("x-enum-varnames", ["Percent", "Number"])
+enum NotificationRuleBalanceThresholdValueType {
+  PERCENT,
+  NUMBER,
 }
 
 /**

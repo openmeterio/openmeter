@@ -273,12 +273,12 @@ func getTotalGrantsFromValue(value api.EntitlementValue) float64 {
 
 func getBalanceThreshold(threshold notification.BalanceThreshold, eValue api.EntitlementValue) (balanceThreshold, error) {
 	switch threshold.Type {
-	case api.NUMBER:
+	case api.NotificationRuleBalanceThresholdValueTypeNumber:
 		return balanceThreshold{
 			BalanceThreshold: threshold,
 			NumericThreshold: threshold.Value,
 		}, nil
-	case api.PERCENT:
+	case api.NotificationRuleBalanceThresholdValueTypePercent:
 		totalGrants := getTotalGrantsFromValue(eValue)
 
 		// In case there are no grants yet, we can't calculate the actual value, we are filtering out the

@@ -74,7 +74,7 @@ func (c Channel) AsNotificationChannelWebhook() api.NotificationChannelWebhook {
 }
 
 const (
-	ChannelTypeWebhook = ChannelType(api.WEBHOOK)
+	ChannelTypeWebhook = ChannelType(api.NotificationChannelTypeWebhook)
 )
 
 type ChannelType api.NotificationChannelType
