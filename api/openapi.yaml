@@ -13,10 +13,11 @@ tags:
   - name: Apps
   - name: Notification (Experimental)
   - name: Entitlements (Experimental)
+  - name: Customers
+  - name: Billing (Experimental)
   - name: Events
   - name: Meters
   - name: Debug
-  - name: Customers
   - name: Subjects
 paths:
   /api/v1/apps:
@@ -263,6 +264,1498 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeWebhookEvent'
+  /api/v1/billing/customer:
+    get:
+      operationId: billingListCustomerOverrides
+      summary: List customer overrides
+      description: List customer overrides
+      parameters:
+        - name: billingProfile
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          explode: false
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/LimitOffset.offset'
+        - $ref: '#/components/parameters/LimitOffset.limit'
+        - $ref: '#/components/parameters/CustomerOverrideOrderByOrdering.order'
+        - $ref: '#/components/parameters/CustomerOverrideOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOverridePaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/customer/{customerIdOrKey}:
+    post:
+      operationId: billingUpsertCustomerOverride
+      summary: Create/update a customer override
+      description: Create/update a new customer override.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomerOverride'
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomerOverride'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCustomerWorkflowOverrideCreate'
+    get:
+      operationId: billingGetCustomerOverrideById
+      summary: Get a customer override
+      description: Get a customer override by id.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomerOverride'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+    delete:
+      operationId: billingDeleteCustomerOverride
+      summary: Delete a customer override
+      description: Delete a customer override by id.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices:
+    get:
+      operationId: billingListInvoices
+      summary: List invoices
+      description: List invoices
+      parameters:
+        - name: customers
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: |-
+                ULID (Universally Unique Lexicographically Sortable Identifier).
+                A key is a unique string that is used to identify a resource.
+
+                TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+            title: Filter by the customer ID or key
+          explode: false
+        - $ref: '#/components/parameters/BillingInvoiceListParams.statuses'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.issuedAfter'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.issuedBefore'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.expand'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/LimitOffset.offset'
+        - $ref: '#/components/parameters/LimitOffset.limit'
+        - $ref: '#/components/parameters/InvoiceOrderByOrdering.order'
+        - $ref: '#/components/parameters/InvoiceOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerIdOrKey}:
+    post:
+      operationId: billingCreateInvoice
+      summary: Create an invoice
+      description: |-
+        Create a new invoice from the pending items.
+
+        This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
+
+        When creating an invoice, the pending items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
+
+        New pending items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingInvoiceCreateInput'
+    get:
+      operationId: billingListInvoicesByCustomer
+      summary: List invoices
+      description: List invoices for a specific customer
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - $ref: '#/components/parameters/BillingInvoiceListParams.statuses'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.issuedAfter'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.issuedBefore'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.expand'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/LimitOffset.offset'
+        - $ref: '#/components/parameters/LimitOffset.limit'
+        - $ref: '#/components/parameters/InvoiceOrderByOrdering.order'
+        - $ref: '#/components/parameters/InvoiceOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}:
+    get:
+      operationId: billingGetInvoiceByCustomerInvoiceId
+      summary: Get an invoice
+      description: Get an invoice by ID.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+    delete:
+      operationId: billingDeleteInvoiceByCustomerInvoiceId
+      summary: Delete an invoice
+      description: |-
+        Delete an invoice
+
+        Only invoices that are in the draft (or earlier) status can be deleted.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/approve:
+    post:
+      operationId: billingApproveInvoice
+      summary: Send the invoice to the customer
+      description: |-
+        Approve an invoice and start executing the payment workflow.
+
+        This call instantly sends the invoice to the customer using the configured billing profile app.
+
+        This call is valid in two invoice statuses:
+        - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
+        - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/lines/{lineId}:
+    delete:
+      operationId: billingDeleteInvoiceLine
+      summary: Delete an invoice line
+      description: Delete an invoice line
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+    put:
+      operationId: billingUpdateInvoiceLine
+      summary: Update an invoice line
+      description: Update an invoice line
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceLine'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingInvoiceLineCreateOrUpdate'
+  /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/tax/recalculate:
+    post:
+      operationId: billingRecalculateInvoiceTax
+      summary: Recalculate an invoice's tax amounts
+      description: |-
+        Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
+
+        Note: charges might apply, depending on the tax provider.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/void:
+    post:
+      operationId: billingVoidInvoice
+      summary: Void an invoice
+      description: |-
+        Void an invoice
+
+        Only invoices that have been alread issued can be voided.
+
+        Voiding an invoice will mark it as voided, the user can specify how to handle the voided items.
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingVoidInvoiceInput'
+  /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/workflow/advance:
+    post:
+      operationId: billingInvoiceWorkflowAdvance
+      summary: Advance the invoice's state to the next status
+      description: |-
+        Retry advancing the invoice's state to the next status.
+
+        The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
+
+        This call can be used to retry advancing the invoice's state to the next status if the previous attempt failed.
+
+        This call is valid in the following invoice statuses:
+        - `draft_sync_failed`
+        - `issuing_failed`
+        - `validation_failed`
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerIdOrKey}/items:
+    post:
+      operationId: billingCreatePendingItemByCustomer
+      summary: Create a new pending item
+      description: |-
+        Create a new pending line item (charge).
+
+        This call is used to create a new pending line item for the customer without explicitly
+        assigning it to an invoice.
+
+        The item will be either allocated to an existing invoice in gathering state or a new invoice is
+        created for the item.
+
+        A new invoice will be created if:
+        - there is no invoice in gathering state
+        - the currency of the item doesn't match the currency of any invoices in gathering state
+      parameters:
+        - name: customerIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreatePendingItemResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingInvoiceLineCreate'
+  /api/v1/billing/profile:
+    get:
+      operationId: billingListProfiles
+      description: List all billing profiles
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          explode: false
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/LimitOffset.offset'
+        - $ref: '#/components/parameters/LimitOffset.limit'
+        - $ref: '#/components/parameters/ProfileOrderByOrdering.order'
+        - $ref: '#/components/parameters/ProfileOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfilePaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+    post:
+      operationId: billingCreateProfile
+      summary: Create a new billing profile
+      description: |-
+        Create a new billing profile
+
+        Billing profiles are representations of a customer's billing information. Customer overrides
+        can be applied to a billing profile to customize the billing behavior for a specific customer.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingProfile'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingProfileCreateInput'
+  /api/v1/billing/profile/{id}:
+    delete:
+      operationId: billingArchiveProfile
+      summary: Archive a billing profile
+      description: Archive a billing profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+    get:
+      operationId: billingGetProfile
+      summary: Get a billing profile by ID
+      description: Get a billing profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingProfile'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+    put:
+      operationId: billingUpdateProfile
+      summary: Update a billing profile
+      description: Update a billing profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingProfile'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingProfile'
   /api/v1/customers:
     post:
       operationId: createCustomer
@@ -4325,6 +5818,62 @@ security:
   - CloudCookieAuth: []
 components:
   parameters:
+    BillingInvoiceListParams.expand:
+      name: expand
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/BillingInvoiceExpand'
+        title: What parts of the list output to expand in listings
+      explode: false
+    BillingInvoiceListParams.issuedAfter:
+      name: issuedAfter
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+        example: 2023-01-01T01:01:01.001Z
+        title: Filter by invoice creation time
+      explode: false
+    BillingInvoiceListParams.issuedBefore:
+      name: issuedBefore
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+        example: 2023-01-01T01:01:01.001Z
+        title: Filter by invoice creation time
+      explode: false
+    BillingInvoiceListParams.statuses:
+      name: statuses
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/BillingInvoiceStatus'
+        title: Filter by the invoice status
+      explode: false
+    CustomerOverrideOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+      explode: false
+    CustomerOverrideOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/BillingCustomerOverrideOrderBy'
+      explode: false
     EntitlementOrderByOrdering.order:
       name: order
       in: query
@@ -4372,6 +5921,22 @@ components:
       description: The order by field.
       schema:
         $ref: '#/components/schemas/GrantOrderBy'
+      explode: false
+    InvoiceOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+      explode: false
+    InvoiceOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/BillingInvoiceOrderBy'
       explode: false
     LimitOffset.limit:
       name: limit
@@ -4632,6 +6197,22 @@ components:
         maximum: 1000
         default: 100
       explode: false
+    ProfileOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+      explode: false
+    ProfileOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/BillingProfileOrderBy'
+      explode: false
     queryCustomerList:
       name: includeDeleted
       in: query
@@ -4843,6 +6424,1267 @@ components:
           description: The entitlement balance at the start of the period.
           readOnly: true
       description: The balance history window.
+    BillingCreatePendingItemResponse:
+      type: object
+      required:
+        - item
+        - invoice
+      properties:
+        item:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceLine'
+          title: The created pending charge
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceSummary'
+          title: The invoice the item was added to
+      description: Response for creating a pending charge
+    BillingCreditNoteOriginalInvoiceRef:
+      type: object
+      required:
+        - type
+        - url
+      properties:
+        type:
+          type: string
+          enum:
+            - credit_node_original_invoice
+        issuedAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: IssueAt reflects the time the document was issued.
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceNumber'
+          title: (Serial) Number of the referenced document.
+        url:
+          type: string
+          format: uri
+          title: Link to the source document.
+      allOf:
+        - $ref: '#/components/schemas/BillingGenericDocumentRef'
+    BillingCustomerOverride:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - workflow
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        workflow:
+          $ref: '#/components/schemas/BillingCustomerWorkflowOverride'
+        billingProfile:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The billing profile this override is associated with.
+
+            If not provided, the default billing profile is chosen if available.
+      description: Customer specific workflow overrides.
+    BillingCustomerOverrideOrderBy:
+      type: string
+      enum:
+        - id
+      description: Order by options for customers.
+    BillingCustomerWorkflowOverride:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - taxApp
+        - invoicingApp
+        - paymentApp
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        collectionAlignment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
+          description: When to collect the pending line items into an invoice.
+          default: subscription
+        itemCollectionPeriod:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period for collecting the pending line items into an invoice.
+          default: PT1H
+        invoice:
+          $ref: '#/components/schemas/BillingWorkflowInvoice'
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        taxApp:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The tax app used for this workflow
+        invoicingApp:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The invoicing app used for this workflow
+        paymentApp:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The payment app used for this workflow
+    BillingCustomerWorkflowOverrideCreate:
+      type: object
+      properties:
+        collectionAlignment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
+          description: When to collect the pending line items into an invoice.
+          default: subscription
+        itemCollectionPeriod:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period for collecting the pending line items into an invoice.
+          default: PT1H
+        invoice:
+          $ref: '#/components/schemas/BillingWorkflowInvoice'
+    BillingDocumentRef:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingCreditNoteOriginalInvoiceRef'
+      title: DocumentRef is used to describe a reference to an existing document (invoice).
+    BillingDocumentRefType:
+      type: string
+      enum:
+        - credit_node_original_invoice
+    BillingDueDate:
+      type: object
+      required:
+        - dueAt
+        - amount
+      properties:
+        dueAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: When the payment is due.
+        notes:
+          type: string
+          title: Other details to take into account for the due date.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: How much needs to be paid by the date.
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          title: Percentage of the total that should be paid by the date.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          title: If different from the parent document's base currency.
+      title: DueDate contains an amount that should be paid by the given date.
+    BillingGenericDocumentRef:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingDocumentRefType'
+          title: Type of the document referenced.
+        reason:
+          type: string
+          title: Human readable description on why this reference is here or needs to be used.
+        description:
+          type: string
+          title: Additional details about the document.
+      description: |-
+        Omitted fields:
+        period: Tax period in which the referred document had an effect required by some tax regimes and formats.
+        stamps: Seals of approval from other organisations that may need to be listed.
+        ext: 	Extensions for additional codes that may be required.
+      title: DocumentRef is used to describe an existing document or a specific part of it's contents.
+    BillingGenericPaymentTerms:
+      type: object
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingPaymentTermType'
+          title: Type of terms to be applied.
+        detail:
+          type: string
+          title: Text detail of the chosen payment terms.
+        notes:
+          type: string
+          title: Description of the conditions for payment.
+      discriminator:
+        propertyName: type
+        mapping:
+          due_date: '#/components/schemas/BillingPaymentTermDueDate'
+      title: Terms defines when we expect the customer to pay, or have paid, for the contents of the document.
+    BillingInvoiceCreateInput:
+      type: object
+      properties:
+        IncludePendingItems:
+          type: array
+          items:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          description: The pending items to include in the invoice, if not provided all pending items will be included.
+    BillingInvoiceDiscount:
+      type: object
+      required:
+        - amount
+      properties:
+        base:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          title: Percentage to apply to the base or invoice's sum.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Amount to apply (calculated if percent present).
+        reason:
+          type: string
+          title: Text description as to why the discount was applied
+      title: Discount represents an allowance applied to the complete document independent from the individual lines.
+    BillingInvoiceExpand:
+      type: string
+      enum:
+        - lines
+        - customer
+        - supplier
+        - preceding
+        - '*'
+      description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
+    BillingInvoiceLine:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingUnitPriceLine'
+      title: UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLineCreate:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingUnitPriceLineCreate'
+      title: UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLineCreateOrUpdate:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BillingUnitPriceLineCreateOrUpdate'
+      title: UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceNumber:
+      type: string
+      example: INV-2024-01-01-01
+      minLength: 1
+      maxLength: 256
+      description: |-
+        InvoiceNumber is a unique identifier for the invoice, generated by the
+        invoicing app.
+
+        The uniqueness depends on a lot of factors:
+        - app setting (unique per app or unique per customer)
+        - multiple app scenarios (multiple apps generating invoices with the same prefix)
+    BillingInvoiceOrderBy:
+      type: string
+      enum:
+        - customer.name
+        - issuedAt
+        - status
+        - createdAt
+        - updatedAt
+      description: InvoiceOrderBy specifies the ordering options for invoice listing.
+    BillingInvoicePayment:
+      type: object
+      properties:
+        terms:
+          $ref: '#/components/schemas/BillingPaymentTerms'
+      title: Payment contains details as to how the invoice should be paid.
+    BillingInvoiceStatus:
+      type: string
+      enum:
+        - gathering
+        - review
+        - issued
+        - payment_received
+        - manual_approval_required
+        - validation_failed
+      description: InvoiceStatus describes the status of an invoice.
+    BillingInvoiceSummary:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - supplier
+        - customer
+        - currency
+        - totals
+        - status
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: |-
+            Timestamp of when the resource was last updated.
+
+            For updates the updatedAt field is used to detect conflicts.
+          title: Last Update Time
+        type:
+          $ref: '#/components/schemas/BillingInvoiceType'
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingParty'
+          title: The taxable entity supplying the goods or services.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingParty'
+          title: Legal entity receiving the goods or services.
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceNumber'
+          description: |-
+            Number specifies the human readable key used to reference this Invoice.
+
+            The number only gets populated after the invoice had been issued.
+
+            Please note that the number is (depending on the upstream settings) either unique for the
+            whole organization or unique for the customer, or in multi (stripe) account setups unique for the
+            account.
+          title: (Serial) Number of the invoice
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          title: Currency for all invoice totals.
+        preceding:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingDocumentRef'
+          title: Key information regarding previous invoices and potentially details as to why they were corrected.
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceTotals'
+          title: Summary of all the invoice totals, including taxes (calculated).
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceStatus'
+          title: The status of the invoice.
+        issuedAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: |-
+            The time the invoice was issued.
+
+            Depending on the status of the invoice this can mean multiple things:
+            - draft, gathering: The time the invoice will be issued based on the workflow settings.
+            - issued: The time the invoice was issued.
+          title: The time the invoice was issued.
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowSettings'
+          title: The workflow settings associated with this invoice
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLine'
+          title: List of invoice lines representing each of the items sold to the customer.
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceDiscount'
+          title: Discounts or allowances applied to the complete invoice.
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoicePayment'
+          title: Information on when, how, and to whom the invoice should be paid.
+      title: Invoice summary represents an extract of the invoice object
+    BillingInvoiceTotals:
+      type: object
+      required:
+        - sum
+        - total
+        - totalWithTax
+        - payable
+      properties:
+        sum:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Sum of all line item sums
+        discount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Sum of all document level discounts
+        charge:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Sum of all document level charges
+        taxIncluded:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: If prices include tax, this is the total tax included in the price.
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Sum of all line sums minus the discounts, plus the charges, without tax.
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Total amount of tax to apply to the invoice.
+        totalWithTax:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Grand total after all taxes have been applied.
+        rounding:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Rounding amount to apply to the invoice in case the total and payable amounts don't quite match.
+        payable:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Total amount to be paid after applying taxes and outlays.
+        advance:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Total amount already paid in advance.
+        due:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: How much actually needs to be paid now.
+      title: Totals contains the summaries of all calculations for the invoice.
+    BillingInvoiceType:
+      type: string
+      enum:
+        - standard
+        - credit-note
+    BillingInvoiceWorkflowSettings:
+      type: object
+      required:
+        - autoAdvance
+      properties:
+        autoAdvance:
+          type: boolean
+          description: updatedAt is the time when the invoice workflow was last updated.
+          title: Should the invoice auto advance to the next status?
+        draftUtil:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: |-
+            The invoice stays in the draft status until this time.
+
+            If auto advance is disabled the value will be empty.
+        dueAfter:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period after which the invoice is due.
+          default: P7D
+    BillingLine:
+      type: object
+      required:
+        - id
+        - type
+        - total
+        - period
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        type:
+          $ref: '#/components/schemas/BillingLineTypes'
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLineDiscount'
+          title: Discounts applied to this line.
+        charges:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLineCharge'
+          title: Charges applied to this line.
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTaxItem'
+          title: Map of taxes to be applied and used in the invoice totals.
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Total sum of the line, including discounts and charges.
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+      discriminator:
+        propertyName: type
+        mapping:
+          unit_price: '#/components/schemas/BillingUnitPriceLine'
+      description: |-
+        Line represents a single item or service sold to the customer.
+
+        This is a base class for all line types, and should not be used directly.
+    BillingLineCharge:
+      type: object
+      required:
+        - amount
+      properties:
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          description: Percentage if fixed amount not applied
+          title: Percent
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fixed discount amount to apply (calculated if percent present).
+          title: Amount
+        code:
+          type: string
+          title: Reason code.
+        reason:
+          type: string
+          title: Text description as to why the discount was applied.
+      title: LineCharge represents an amount added to the line, and will be applied before taxes.
+    BillingLineCreate:
+      type: object
+      required:
+        - type
+        - period
+      properties:
+        type:
+          $ref: '#/components/schemas/BillingLineTypes'
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLineDiscount'
+          title: Discounts applied to this line.
+        charges:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLineCharge'
+          title: Charges applied to this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+      discriminator:
+        propertyName: type
+        mapping: {}
+      description: |-
+        Line represents a single item or service sold to the customer.
+
+        This is a base class for all line types, and should not be used directly.
+    BillingLineCreateOrUpdate:
+      type: object
+      required:
+        - id
+        - type
+        - period
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        type:
+          $ref: '#/components/schemas/BillingLineTypes'
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLineDiscount'
+          title: Discounts applied to this line.
+        charges:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingLineCharge'
+          title: Charges applied to this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+      discriminator:
+        propertyName: type
+        mapping: {}
+      description: |-
+        Line represents a single item or service sold to the customer.
+
+        This is a base class for all line types, and should not be used directly.
+    BillingLineDiscount:
+      type: object
+      required:
+        - amount
+      properties:
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          description: Percentage if fixed amount not applied
+          title: Percent
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fixed discount amount to apply (calculated if percent present).
+          title: Amount
+        code:
+          type: string
+          title: Reason code.
+        reason:
+          type: string
+          title: Text description as to why the discount was applied.
+      title: LineDiscount represents an amount deducted from the line, and will be applied before taxes.
+    BillingLineTypes:
+      type: string
+      enum:
+        - unit_price
+      title: LineTypes represents the different types of lines that can be used in an invoice.
+    BillingParty:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          title: ID of the party.
+        name:
+          type: string
+          title: Legal name or representation of the organization.
+        taxId:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxIdentity'
+          title: The entity's legal ID code used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes.
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+          maxItems: 1
+          title: Regular post addresses for where information should be sent if needed.
+      title: Party represents a person or business entity.
+    BillingPartyCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: Legal name or representation of the organization.
+        taxId:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxIdentity'
+          title: The entity's legal ID code used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes.
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+          maxItems: 1
+          title: Regular post addresses for where information should be sent if needed.
+      title: Party represents a person or business entity.
+    BillingPaymentTermDueDate:
+      type: object
+      required:
+        - type
+        - dueAt
+      properties:
+        type:
+          type: string
+          enum:
+            - due_date
+          title: Type of terms to be applied.
+        dueAt:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingDueDate'
+          minItems: 1
+          title: When the payment is due.
+        notes:
+          type: string
+          title: Other details to take into account for the payment
+      allOf:
+        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
+      title: PaymentTermDueDate defines the terms for payment on a specific date.
+    BillingPaymentTermInstant:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - instant
+          title: Type of terms to be applied.
+      allOf:
+        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
+      title: PaymentTermInstant defines the terms for payment on receipt of invoice.
+    BillingPaymentTermType:
+      type: string
+      enum:
+        - due_date
+        - instant
+      title: PaymentPaymentTermType defines the type of terms to be applied.
+    BillingPaymentTerms:
+      anyOf:
+        - $ref: '#/components/schemas/BillingPaymentTermInstant'
+        - $ref: '#/components/schemas/BillingPaymentTermDueDate'
+      title: PaymentTerms defines the terms for payment.
+    BillingPeriod:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: Start of the period.
+        end:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: End of the period.
+      title: Period represents a time range.
+    BillingProfile:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - supplier
+        - workflow
+        - default
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingParty'
+          title: The name and contact information for the supplier this billing profile represents
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflow'
+          title: The billing workflow settings for this profile
+        default:
+          type: boolean
+          title: Is this the default profile?
+      description: Profile represents a billing profile
+    BillingProfileCreateInput:
+      type: object
+      required:
+        - name
+        - supplier
+        - default
+        - workflow
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingPartyCreate'
+          title: The name and contact information for the supplier this billing profile represents
+        default:
+          type: boolean
+          title: Is this the default profile?
+        workflow:
+          $ref: '#/components/schemas/BillingWorkflowCreateInput'
+      description: ProfileCreateInput represents the input for creating a billing profile
+    BillingProfileOrderBy:
+      type: string
+      enum:
+        - createdAt
+        - updatedAt
+      description: ProfileOrderBy specifies the ordering options for profiles
+    BillingTaxBehavior:
+      type: string
+      enum:
+        - inclusive
+        - exclusive
+    BillingTaxIdentificationCode:
+      type: string
+      minLength: 1
+      maxLength: 32
+      pattern: ^[A-Za-z0-9]+([\.\-\/ _]?[A-Za-z0-9]+)*$
+    BillingTaxIdentity:
+      type: object
+      required:
+        - country
+      properties:
+        country:
+          allOf:
+            - $ref: '#/components/schemas/CountryCode'
+          title: Tax country code for Where the tax identity was issued.
+        code:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxIdentificationCode'
+          title: Normalized tax code shown on the original identity document.
+      title: Identity stores the details required to identify an entity for tax purposes in a specific country.
+    BillingTaxItem:
+      type: object
+      properties:
+        config:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          title: Tax provider configuration.
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          title: |-
+            Percent defines the percentage set manually or determined from the rate
+            key (calculated if rate present). A nil percent implies that this tax combo
+            is **exempt** from tax.
+        surcharge:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Some countries require an additional surcharge (calculated if rate present).
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          title: Is the tax item inclusive or exclusive of the base amount.
+    BillingUnitPriceLine:
+      type: object
+      required:
+        - type
+        - item
+        - quantity
+      properties:
+        type:
+          type: string
+          enum:
+            - unit_price
+        item:
+          allOf:
+            - $ref: '#/components/schemas/RateCard'
+          title: Details about what is being sold.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
+      allOf:
+        - $ref: '#/components/schemas/BillingLine'
+      description: |-
+        UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+
+        This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+    BillingUnitPriceLineCreate:
+      type: object
+      required:
+        - type
+        - item
+        - quantity
+      properties:
+        type:
+          type: string
+          enum:
+            - unit_price
+        item:
+          allOf:
+            - $ref: '#/components/schemas/RateCard'
+          title: Details about what is being sold.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
+      allOf:
+        - $ref: '#/components/schemas/BillingLineCreate'
+      description: |-
+        UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+
+        This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+    BillingUnitPriceLineCreateOrUpdate:
+      type: object
+      required:
+        - type
+        - item
+        - quantity
+      properties:
+        type:
+          type: string
+          enum:
+            - unit_price
+        item:
+          allOf:
+            - $ref: '#/components/schemas/RateCard'
+          title: Details about what is being sold.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
+      allOf:
+        - $ref: '#/components/schemas/BillingLineCreateOrUpdate'
+      description: |-
+        UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+
+        This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+    BillingVoidInvoiceAction:
+      type: object
+      required:
+        - percentage
+        - action
+      properties:
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          title: How much of the total items to be voided? (e.g. 100% means all charges are voided)
+        action:
+          allOf:
+            - $ref: '#/components/schemas/BillingVoidInvoiceItemAction'
+          title: 'How to handle the voided items, default: pending'
+      description: InvoiceVoidAction describes how to handle the voided items.
+    BillingVoidInvoiceInput:
+      type: object
+      required:
+        - action
+        - reason
+        - itemOverrides
+      properties:
+        action:
+          allOf:
+            - $ref: '#/components/schemas/BillingVoidInvoiceItemAction'
+          description: The action to take on the voided items.
+          title: The action to take on the voided items
+        reason:
+          type: string
+          description: The reason for voiding the invoice.
+          title: The reason for voiding the invoice
+        itemOverrides:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingVoidInvoiceItemOverride'
+          nullable: true
+          description: |-
+            Per line item overrides for the action.
+
+            If not specified, the `action` will be applied to all items.
+      description: Request to void an invoice
+    BillingVoidInvoiceItemAction:
+      type: string
+      enum:
+        - discard
+        - pending
+        - pending_next_cycle
+      title: VoidInvoiceItemAction describes how to handle the voidied item in the invoice.
+    BillingVoidInvoiceItemOverride:
+      type: object
+      required:
+        - itemId
+        - action
+      properties:
+        itemId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          title: The item ID to override
+        action:
+          allOf:
+            - $ref: '#/components/schemas/BillingVoidInvoiceAction'
+          title: The action to take on the item
+      description: VoidInvoiceItemOverride describes how to handle a specific item in the invoice when voiding.
+    BillingWorkflow:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - taxApp
+        - invoicingApp
+        - paymentApp
+        - id
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        collectionAlignment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
+          description: When to collect the pending line items into an invoice.
+          default: subscription
+        itemCollectionPeriod:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period for collecting the pending line items into an invoice.
+          default: PT1H
+        invoice:
+          $ref: '#/components/schemas/BillingWorkflowInvoice'
+        taxApp:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The tax app used for this workflow
+        invoicingApp:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The invoicing app used for this workflow
+        paymentApp:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The payment app used for this workflow
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+      description: Workflow represents a billing workflow
+    BillingWorkflowAppReference:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          title: The ID of the app, if not specified the type is used to find the default app
+        type:
+          allOf:
+            - $ref: '#/components/schemas/OpenMeter.App.Type'
+          title: The type of the app, if specified the default app is used
+      description: AppReference can be used to reference an app during creation only.
+    BillingWorkflowCollectionAlignment:
+      type: string
+      enum:
+        - subscription
+      description: |-
+        CollectionAlignment specifies when the pending line items should be collected into
+        an invoice.
+      title: Collection alignment
+    BillingWorkflowCollectionMethod:
+      type: string
+      enum:
+        - charge_automatically
+        - send_invoice
+      description: CollectionMethod specifies how the invoice should be collected (automatic vs manual)
+      title: Collection method
+    BillingWorkflowCreateInput:
+      type: object
+      properties:
+        collectionAlignment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
+          description: When to collect the pending line items into an invoice.
+          default: subscription
+        itemCollectionPeriod:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period for collecting the pending line items into an invoice.
+          default: PT1H
+        invoice:
+          $ref: '#/components/schemas/BillingWorkflowInvoice'
+        taxApp:
+          $ref: '#/components/schemas/BillingWorkflowAppReference'
+        invoicingApp:
+          $ref: '#/components/schemas/BillingWorkflowAppReference'
+        paymentApp:
+          $ref: '#/components/schemas/BillingWorkflowAppReference'
+      description: WorkflowCreate represents the workflow settings for creation of a billing profile
+    BillingWorkflowInvoice:
+      type: object
+      properties:
+        autoAdvance:
+          type: boolean
+          description: Whether to automatically issue the invoice after the draftPeriod has passed.
+          default: true
+        draftPeriod:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period for the invoice to be kept in draft status for manual reviews.
+          default: P1D
+        dueAfter:
+          type: string
+          format: ISO8601
+          example: P1D
+          description: The period after which the invoice is due.
+          default: P7D
+        collectionMethod:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionMethod'
+          description: The method to collect the invoice.
+          default: charge_automatically
+        itemResolution:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowItemResolution'
+          description: The resolution of the line items in the invoice.
+          default: period
+        itemPerSubject:
+          type: boolean
+          description: Whether to create one line item per subject in the invoice.
+          default: true
+      description: WorkflowInvoice represents the invoice settings for a billing workflow
+      title: Workflow invoice settings
+    BillingWorkflowItemResolution:
+      type: string
+      enum:
+        - day
+        - period
+      description: ItemResolution specifies how the line items should be resolved in the invoice
+      title: Item resolution
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
@@ -5160,6 +8002,32 @@ components:
           maxItems: 1000
           description: The items in the page.
       description: A page of results.
+    CustomerOverridePaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCustomerOverride'
+          description: The items in the current page.
+      description: Paginated response
     CustomerUsageAttribution:
       type: object
       required:
@@ -5177,6 +8045,57 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
+    Discount:
+      anyOf:
+        - $ref: '#/components/schemas/DiscountPercentage'
+        - $ref: '#/components/schemas/DiscountAmount'
+        - $ref: '#/components/schemas/UsageDiscount'
+      discriminator:
+        propertyName: type
+        mapping:
+          percentage: '#/components/schemas/DiscountPercentage'
+          amount: '#/components/schemas/DiscountAmount'
+          usage: '#/components/schemas/UsageDiscount'
+      description: |-
+        A discount on a price.
+        One of: percentage, amount, or usage.
+    DiscountAmount:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - amount
+          description: The type of the discount.
+          title: Type
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the discount.
+          title: Amount
+      description: Amount discount.
+    DiscountPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the discount.
+          title: Type
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+      description: Percentage discount.
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -6233,6 +9152,34 @@ components:
             $ref: '#/components/schemas/Feature'
           description: The items in the current page.
       description: Paginated response
+    FlatPrice:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - flat
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the flat price.
+      description: Flat price.
+    FlatPriceWithPaymentTerm:
+      type: object
+      properties:
+        paymentTerm:
+          allOf:
+            - $ref: '#/components/schemas/PricePaymentTerm'
+          description: |-
+            The payment term of the flat price.
+            Defaults to in advance.
+          default: in_advance
+      allOf:
+        - $ref: '#/components/schemas/FlatPrice'
+      description: Flat price with payment term.
     ForbiddenProblemResponse:
       type: object
       allOf:
@@ -6399,6 +9346,32 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+    InvoicePaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceSummary'
+          description: The items in the current page.
+      description: Paginated response
     MarketplaceListing:
       type: object
       required:
@@ -7295,6 +10268,13 @@ components:
             $ref: '#/components/schemas/NotificationRule'
           description: The items in the current page.
       description: Paginated response
+    Numeric:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?$
+      description: Numeric represents an arbitrary precision number.
+      x-go-type-import:
+        path: github.com/alpacahq/alpacadecimal
+      x-go-type: alpacadecimal.Decimal
     OAuth2AuthorizationCodeGrantErrorType:
       type: string
       enum:
@@ -7311,6 +10291,13 @@ components:
       enum:
         - stripe
       description: Type of the app.
+    Percentage:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?%$
+      description: Numeric representation of a percentage
+      x-go-type-import:
+        path: github.com/alpacahq/alpacadecimal
+      x-go-type: alpacadecimal.Decimal
     Period:
       type: object
       required:
@@ -7379,6 +10366,340 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+    PricePaymentTerm:
+      type: string
+      enum:
+        - in_advance
+        - in_arrears
+      description: |-
+        The payment term of a flat price.
+        One of: in_advance or in_arrears.
+    PriceTier:
+      type: object
+      required:
+        - upToAmount
+        - flatPrice
+        - unitPrice
+      properties:
+        upToAmount:
+          type: number
+          format: double
+          nullable: true
+          description: |-
+            Up to and including to this quantity will be contained in the tier.
+            If null, the tier is open-ended.
+          title: Up to quantity
+        flatPrice:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/FlatPrice'
+          nullable: true
+          description: The flat price component of the tier.
+          title: Flat price component
+        unitPrice:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/UnitPrice'
+          nullable: true
+          description: The unit price component of the tier.
+          title: Unit price component
+      description: |-
+        A price tier.
+        At least one price component is required in each tier.
+    ProfilePaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingProfile'
+          description: The items in the current page.
+      description: Paginated response
+    RateCard:
+      anyOf:
+        - $ref: '#/components/schemas/RateCardFlatFee'
+        - $ref: '#/components/schemas/RateCardUsageBased'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat_fee: '#/components/schemas/RateCardFlatFee'
+          usage_based: '#/components/schemas/RateCardUsageBased'
+      description: A rate card defines the pricing and entitlement of a feature or service.
+    RateCardBase:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - type
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/RateCardType'
+          description: The type of the rate card
+          title: Type of the rate card
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the customer is entitled to use.
+          title: Feature key
+        entitlementTemplate:
+          allOf:
+            - $ref: '#/components/schemas/RateCardEntitlement'
+          description: |-
+            The entitlement of the rate card.
+            Only available when featureKey is set.
+          title: Entitlement template
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the rate card.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
+      description: Common fields of the rate card.
+    RateCardBooleanEntitlement:
+      type: object
+      required:
+        - type
+      properties:
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        type:
+          type: string
+          enum:
+            - boolean
+      description: Entitlement template of a boolean entitlement.
+    RateCardEntitlement:
+      anyOf:
+        - $ref: '#/components/schemas/RateCardMeteredEntitlement'
+        - $ref: '#/components/schemas/RateCardStaticEntitlement'
+        - $ref: '#/components/schemas/RateCardBooleanEntitlement'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/RateCardMeteredEntitlement'
+          static: '#/components/schemas/RateCardStaticEntitlement'
+          boolean: '#/components/schemas/RateCardBooleanEntitlement'
+      description: |-
+        Entitlement templates are used to define the entitlements of a plan.
+        Features are omitted from the entitlement template, as they are defined in the rate card.
+    RateCardFlatFee:
+      type: object
+      required:
+        - type
+        - billingCandence
+        - price
+      properties:
+        type:
+          type: string
+          enum:
+            - flat_fee
+        billingCandence:
+          type: string
+          format: duration
+          nullable: true
+          description: |-
+            The billing cadence of the rate card.
+            When null, the rate card is a one-time purchase.
+          title: Billing cadence
+        price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+          nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+        discount:
+          anyOf:
+            - $ref: '#/components/schemas/DiscountPercentage'
+            - $ref: '#/components/schemas/DiscountAmount'
+          description: |-
+            The discount of the rate card. Either a percentage or an amount.
+            Only available when price is set.
+          title: Discount
+      allOf:
+        - $ref: '#/components/schemas/RateCardBase'
+      description: A flat fee rate card defines a one-time purchase or a recurring fee.
+    RateCardMeteredEntitlement:
+      type: object
+      required:
+        - type
+      properties:
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        type:
+          type: string
+          enum:
+            - metered
+        isSoftLimit:
+          type: boolean
+          description: If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
+          title: Soft limit
+          default: false
+        issueAfterReset:
+          type: number
+          format: double
+          minimum: 0
+          description: |-
+            You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+            If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+            That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+            Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+          title: Initial grant amount
+        issueAfterResetPriority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: Defines the grant priority for the default grant.
+          title: Issue grant after reset priority
+          default: 1
+        preserveOverageAtReset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        usagePeriod:
+          type: string
+          format: duration
+          description: |-
+            The interval of the metered entitlement.
+            Defaults to the billing cadence of the rate card.
+          title: Interval
+      description: The entitlement template with a metered entitlement.
+    RateCardStaticEntitlement:
+      type: object
+      required:
+        - type
+        - config
+      properties:
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        type:
+          type: string
+          enum:
+            - static
+        config:
+          type: string
+          format: json
+          example: '{ "integrations": ["github"] }'
+          description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+      description: Entitlement template of a static entitlement.
+    RateCardType:
+      type: string
+      enum:
+        - flat_fee
+        - usage_based
+      description: The type of the rate card.
+    RateCardUsageBased:
+      type: object
+      required:
+        - type
+        - billingCandence
+        - price
+      properties:
+        type:
+          type: string
+          enum:
+            - usage_based
+        billingCandence:
+          type: string
+          format: duration
+          description: The billing cadence of the rate card.
+          title: Billing cadence
+        price:
+          anyOf:
+            - $ref: '#/components/schemas/UnitPriceWithCommitments'
+            - $ref: '#/components/schemas/TieredPriceWithCommitments'
+            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+          nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+        discount:
+          allOf:
+            - $ref: '#/components/schemas/Discount'
+          description: The discount of the rate card.
+          title: Discount
+      allOf:
+        - $ref: '#/components/schemas/RateCardBase'
+      description: A usage-based rate card defines a price based on usage.
     RecurringPeriod:
       type: object
       required:
@@ -7783,6 +11104,71 @@ components:
           description: The payload of the Svix operational webhook request.
           title: Operational Webhook Payload
       description: Operational webhook reqeuest sent by Svix.
+    TaxConfig:
+      type: object
+      properties:
+        stripe:
+          type: object
+          properties:
+            code:
+              type: string
+              example: txcd_10000000
+              pattern: ^txcd_\d{8}$
+              title: Tax code
+          required:
+            - code
+          description: Stripe tax config.
+          title: Stripe tax config
+      description: A tax config.
+    TieredPrice:
+      type: object
+      required:
+        - type
+        - mode
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - tiered
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/TieredPriceMode'
+          description: |-
+            Defines if the tiering mode is volume-based or graduated:
+            - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+            - In `graduated` tiering, pricing can change as the quantity grows.
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceTier'
+          minItems: 1
+          description: |-
+            The tiers of the tiered price.
+            At least one price component is required in each tier.
+      description: Tiered price.
+    TieredPriceMode:
+      type: string
+      enum:
+        - volume
+        - graduated
+      description: The mode of the tiered price.
+    TieredPriceWithCommitments:
+      type: object
+      properties:
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      allOf:
+        - $ref: '#/components/schemas/TieredPrice'
+      description: Tiered price with spend commitments.
     UnauthorizedProblemResponse:
       type: object
       allOf:
@@ -7832,6 +11218,55 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.Problem
+    UnitPrice:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - unit
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the unit price.
+      description: Unit price.
+    UnitPriceWithCommitments:
+      type: object
+      properties:
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      allOf:
+        - $ref: '#/components/schemas/UnitPrice'
+      description: Unit price with spend commitments.
+    UsageDiscount:
+      type: object
+      required:
+        - type
+        - usage
+      properties:
+        type:
+          type: string
+          enum:
+            - usage
+          description: The type of the discount.
+          title: Type
+        usage:
+          type: number
+          format: double
+          description: The usage discount.
+          title: Usage
+      description: Usage discount.
     WindowSize:
       type: string
       enum:

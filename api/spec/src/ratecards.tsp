@@ -1,8 +1,8 @@
 import "./types.tsp";
-import "./billing.tsp";
 import "./discounts.tsp";
 import "./prices.tsp";
 import "./entitlements/main.tsp";
+import "./billing/main.tsp";
 
 namespace OpenMeter;
 
@@ -21,7 +21,15 @@ enum RateCardType {
  * Common fields of the rate card.
  */
 @friendlyName("RateCardBase")
-model RateCardBase extends Resource {
+model RateCardBase {
+  ...Resource;
+
+  /**
+   * The type of the rate card
+   */
+  @summary("Type of the rate card")
+  type: RateCardType;
+
   /**
    * The feature the customer is entitled to use.
    */
@@ -40,7 +48,7 @@ model RateCardBase extends Resource {
    * When undefined, the tax config of the feature or the default tax config of the plan is used.
    */
   @summary("Tax config")
-  taxConfig?: TaxConfig;
+  taxConfig?: OpenMeter.Billing.TaxConfig;
 }
 
 /**
