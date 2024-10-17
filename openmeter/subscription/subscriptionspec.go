@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -26,10 +27,10 @@ type CreateSubscriptionPlanInput struct {
 }
 
 type CreateSubscriptionCustomerInput struct {
-	CustomerId string              `json:"customerId"`
-	Currency   models.CurrencyCode `json:"currency"`
-	ActiveFrom time.Time           `json:"activeFrom,omitempty"`
-	ActiveTo   *time.Time          `json:"activeTo,omitempty"`
+	CustomerId string         `json:"customerId"`
+	Currency   currencyx.Code `json:"currency"`
+	ActiveFrom time.Time      `json:"activeFrom,omitempty"`
+	ActiveTo   *time.Time     `json:"activeTo,omitempty"`
 }
 
 type SubscriptionSpec struct {

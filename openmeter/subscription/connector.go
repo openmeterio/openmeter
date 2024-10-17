@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 )
@@ -14,7 +15,7 @@ type NewSubscriptionRequest struct {
 	Namespace  string
 	ActiveFrom time.Time
 	CustomerID string
-	Currency   models.CurrencyCode
+	Currency   currencyx.Code
 
 	Plan struct {
 		Key     string
