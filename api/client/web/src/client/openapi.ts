@@ -433,7 +433,7 @@ export interface components {
       /** @description The marketplace listing that this installed app is based on. */
       listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['OpenMeter.App.AppStatus']
+      status: components['schemas']['AppStatus']
     }
     /**
      * @description App capability.
@@ -477,6 +477,11 @@ export interface components {
       /** @description The items in the page. */
       items: components['schemas']['App'][]
     }
+    /**
+     * @description App installed status.
+     * @enum {string}
+     */
+    AppStatus: 'ready' | 'unauthorized'
     /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
     BadRequestProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The balance history window. */
@@ -1757,13 +1762,13 @@ export interface components {
     }
     /** @description Measure usage from */
     MeasureUsageFrom:
-      | components['schemas']['MeasureUsageFromEnum']
+      | components['schemas']['MeasureUsageFromPreset']
       | components['schemas']['MeasureUsageFromTime']
     /**
      * @description Start of measurement options
      * @enum {string}
      */
-    MeasureUsageFromEnum: 'CURRENT_PERIOD_START' | 'NOW'
+    MeasureUsageFromPreset: 'CURRENT_PERIOD_START' | 'NOW'
     /**
      * Format: date-time
      * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
@@ -1830,7 +1835,7 @@ export interface components {
        * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
        * @example $.tokens
        */
-      valueProperty: string
+      valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
@@ -2167,12 +2172,10 @@ export interface components {
     /** @description The delivery status of the notification event. */
     NotificationEventDeliveryStatus: {
       /**
-       * Delivery State
        * @description Delivery state of the notification event to the channel.
        * @example SUCCESS
-       * @enum {string}
        */
-      state: 'SUCCESS' | 'FAILED' | 'SENDING' | 'PENDING'
+      state: components['schemas']['NotificationEventDeliveryStatusState']
       /**
        * State Reason
        * @description The reason of the last deliverry state update.
@@ -2192,6 +2195,16 @@ export interface components {
        */
       channel: components['schemas']['NotificationChannelMeta']
     }
+    /**
+     * Delivery State
+     * @description The delivery state of the notification event to the channel.
+     * @enum {string}
+     */
+    NotificationEventDeliveryStatusState:
+      | 'SUCCESS'
+      | 'FAILED'
+      | 'SENDING'
+      | 'PENDING'
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -2337,13 +2350,17 @@ export interface components {
        */
       value: number
       /**
-       * Threshold Type
        * @description Type of the threshold.
        * @example NUMBER
-       * @enum {string}
        */
-      type: 'PERCENT' | 'NUMBER'
+      type: components['schemas']['NotificationRuleBalanceThresholdValueType']
     }
+    /**
+     * Notification balance threshold type
+     * @description Type of the rule in the balance threshold specification.
+     * @enum {string}
+     */
+    NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
     /** @description Union type for requests creating new notification rule with certain type. */
     NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
     /**
@@ -2384,31 +2401,10 @@ export interface components {
       | 'server_error'
       | 'temporarily_unavailable'
     /**
-     * @description App installed status.
-     * @enum {string}
-     */
-    'OpenMeter.App.AppStatus': 'ready' | 'unauthorized'
-    /**
-     * @description Stripe payment intent status.
-     * @enum {string}
-     */
-    'OpenMeter.App.StripePaymentIntentStatus':
-      | 'canceled'
-      | 'processing'
-      | 'requires_action'
-      | 'requires_confirmation'
-      | 'requires_payment_method'
-      | 'succeeded'
-    /**
      * @description Type of the app.
      * @enum {string}
      */
     'OpenMeter.App.Type': 'stripe'
-    /**
-     * @description The order direction.
-     * @enum {string}
-     */
-    Order: 'ASC' | 'DESC'
     /** @description A period with a start and end time. */
     Period: {
       /**
@@ -2538,6 +2534,11 @@ export interface components {
     /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
     ServiceUnavailableProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
+     * @description The order direction.
+     * @enum {string}
+     */
+    SortOrder: 'ASC' | 'DESC'
+    /**
      * @description A installed Stripe app object.
      * @example {
      *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
@@ -2622,7 +2623,7 @@ export interface components {
       /** @description The marketplace listing that this installed app is based on. */
       listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['OpenMeter.App.AppStatus']
+      status: components['schemas']['AppStatus']
       /**
        * @description The app's type is Stripe.
        * @enum {string}
@@ -2638,12 +2639,23 @@ export interface components {
      * @enum {string}
      */
     StripeCheckoutSessionMode: 'setup'
+    /**
+     * @description Stripe payment intent status.
+     * @enum {string}
+     */
+    StripePaymentIntentStatus:
+      | 'canceled'
+      | 'processing'
+      | 'requires_action'
+      | 'requires_confirmation'
+      | 'requires_payment_method'
+      | 'succeeded'
     /** @description Stripe setup intent. */
     StripeSetupIntent: {
       /** @description The setup intent id. */
       id: string
       /** @description The setup intent status. */
-      status: components['schemas']['OpenMeter.App.StripePaymentIntentStatus']
+      status: components['schemas']['StripePaymentIntentStatus']
       /** @description The setup intent payment method. */
       payment_method?: string
       /** @description The setup intent payment method types. */
@@ -2865,15 +2877,15 @@ export interface components {
   responses: never
   parameters: {
     /** @description The order direction. */
-    'EntitlementOrderByOrdering.order'?: components['schemas']['Order']
+    'EntitlementOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'EntitlementOrderByOrdering.orderBy'?: components['schemas']['EntitlementOrderBy']
     /** @description The order direction. */
-    'FeatureOrderByOrdering.order'?: components['schemas']['Order']
+    'FeatureOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'FeatureOrderByOrdering.orderBy'?: components['schemas']['FeatureOrderBy']
     /** @description The order direction. */
-    'GrantOrderByOrdering.order'?: components['schemas']['Order']
+    'GrantOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'GrantOrderByOrdering.orderBy'?: components['schemas']['GrantOrderBy']
     /**
@@ -2923,15 +2935,15 @@ export interface components {
      */
     'MeterQuery.windowTimeZone'?: string
     /** @description The order direction. */
-    'NotificationChannelOrderByOrdering.order'?: components['schemas']['Order']
+    'NotificationChannelOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationChannelOrderByOrdering.orderBy'?: components['schemas']['NotificationChannelOrderBy']
     /** @description The order direction. */
-    'NotificationEventOrderByOrdering.order'?: components['schemas']['Order']
+    'NotificationEventOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationEventOrderByOrdering.orderBy'?: components['schemas']['NotificationEventOrderBy']
     /** @description The order direction. */
-    'NotificationRuleOrderByOrdering.order'?: components['schemas']['Order']
+    'NotificationRuleOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationRuleOrderByOrdering.orderBy'?: components['schemas']['NotificationRuleOrderBy']
     /**
@@ -4414,6 +4426,12 @@ export interface operations {
            * For example, the Stripe API key.
            */
           apiKey: string
+          /**
+           * @description Name of the application to install.
+           *
+           * If not set defaults to the marketplace item's description.
+           */
+          name?: string
         }
       }
     }
