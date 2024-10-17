@@ -586,6 +586,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
 					db_entitlement.Namespace(namespace),
 					db_entitlement.SubjectKey(string(subjectKey)),
+					db_entitlement.FeatureKey(featureKey),
 				).Order(
 				func(s *sql.Selector) {
 					// order by COALESCE(ActiveFrom, CreatedAt) ASC
