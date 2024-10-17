@@ -18,8 +18,9 @@ type UninstallAppInput = appentitybase.AppID
 
 type AppFactoryInstallAppWithAPIKeyInput struct {
 	Namespace string
-	APIKey    string `json:"-"`
-	BaseURL   string `json:"-"`
+	APIKey    string
+	BaseURL   string
+	Name      string
 }
 
 func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
@@ -33,6 +34,10 @@ func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 
 	if i.BaseURL == "" {
 		return errors.New("base url is required")
+	}
+
+	if i.Name == "" {
+		return errors.New("name is required")
 	}
 
 	return nil

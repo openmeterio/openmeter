@@ -162,9 +162,7 @@ func mapAppToAPI(item appentity.App) api.App {
 			DeletedAt: item.GetAppBase().DeletedAt,
 		}
 
-		if item.GetDescription() != "" {
-			apiApp.Description = lo.ToPtr(item.GetDescription())
-		}
+		apiApp.Description = item.GetDescription()
 
 		if item.GetMetadata() != nil {
 			apiApp.Metadata = lo.ToPtr(item.GetMetadata())
@@ -188,9 +186,7 @@ func mapStripeAppToAPI(stripeApp appstripeentityapp.App) api.StripeApp {
 		Livemode:        stripeApp.Livemode,
 	}
 
-	if stripeApp.GetDescription() != "" {
-		apiStripeApp.Description = lo.ToPtr(stripeApp.GetDescription())
-	}
+	apiStripeApp.Description = stripeApp.GetDescription()
 
 	if stripeApp.GetMetadata() != nil {
 		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())

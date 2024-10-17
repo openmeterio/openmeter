@@ -83,6 +83,26 @@ func (cc *CustomerCreate) SetNillableDeletedAt(t *time.Time) *CustomerCreate {
 	return cc
 }
 
+// SetName sets the "name" field.
+func (cc *CustomerCreate) SetName(s string) *CustomerCreate {
+	cc.mutation.SetName(s)
+	return cc
+}
+
+// SetDescription sets the "description" field.
+func (cc *CustomerCreate) SetDescription(s string) *CustomerCreate {
+	cc.mutation.SetDescription(s)
+	return cc
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableDescription(s *string) *CustomerCreate {
+	if s != nil {
+		cc.SetDescription(*s)
+	}
+	return cc
+}
+
 // SetBillingAddressCountry sets the "billing_address_country" field.
 func (cc *CustomerCreate) SetBillingAddressCountry(mc models.CountryCode) *CustomerCreate {
 	cc.mutation.SetBillingAddressCountry(mc)
@@ -178,12 +198,6 @@ func (cc *CustomerCreate) SetNillableBillingAddressPhoneNumber(s *string) *Custo
 	if s != nil {
 		cc.SetBillingAddressPhoneNumber(*s)
 	}
-	return cc
-}
-
-// SetName sets the "name" field.
-func (cc *CustomerCreate) SetName(s string) *CustomerCreate {
-	cc.mutation.SetName(s)
 	return cc
 }
 
@@ -357,13 +371,13 @@ func (cc *CustomerCreate) check() error {
 	if _, ok := cc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Customer.updated_at"`)}
 	}
+	if _, ok := cc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
+	}
 	if v, ok := cc.mutation.BillingAddressCountry(); ok {
 		if err := customer.BillingAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
 		}
-	}
-	if _, ok := cc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
 	}
 	if v, ok := cc.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
@@ -426,6 +440,14 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := cc.mutation.Name(); ok {
+		_spec.SetField(customer.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := cc.mutation.Description(); ok {
+		_spec.SetField(customer.FieldDescription, field.TypeString, value)
+		_node.Description = &value
+	}
 	if value, ok := cc.mutation.BillingAddressCountry(); ok {
 		_spec.SetField(customer.FieldBillingAddressCountry, field.TypeString, value)
 		_node.BillingAddressCountry = &value
@@ -453,10 +475,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.BillingAddressPhoneNumber(); ok {
 		_spec.SetField(customer.FieldBillingAddressPhoneNumber, field.TypeString, value)
 		_node.BillingAddressPhoneNumber = &value
-	}
-	if value, ok := cc.mutation.Name(); ok {
-		_spec.SetField(customer.FieldName, field.TypeString, value)
-		_node.Name = value
 	}
 	if value, ok := cc.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
@@ -618,6 +636,36 @@ func (u *CustomerUpsert) ClearDeletedAt() *CustomerUpsert {
 	return u
 }
 
+// SetName sets the "name" field.
+func (u *CustomerUpsert) SetName(v string) *CustomerUpsert {
+	u.Set(customer.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateName() *CustomerUpsert {
+	u.SetExcluded(customer.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *CustomerUpsert) SetDescription(v string) *CustomerUpsert {
+	u.Set(customer.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateDescription() *CustomerUpsert {
+	u.SetExcluded(customer.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *CustomerUpsert) ClearDescription() *CustomerUpsert {
+	u.SetNull(customer.FieldDescription)
+	return u
+}
+
 // SetBillingAddressCountry sets the "billing_address_country" field.
 func (u *CustomerUpsert) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsert {
 	u.Set(customer.FieldBillingAddressCountry, v)
@@ -741,18 +789,6 @@ func (u *CustomerUpsert) UpdateBillingAddressPhoneNumber() *CustomerUpsert {
 // ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
 func (u *CustomerUpsert) ClearBillingAddressPhoneNumber() *CustomerUpsert {
 	u.SetNull(customer.FieldBillingAddressPhoneNumber)
-	return u
-}
-
-// SetName sets the "name" field.
-func (u *CustomerUpsert) SetName(v string) *CustomerUpsert {
-	u.Set(customer.FieldName, v)
-	return u
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateName() *CustomerUpsert {
-	u.SetExcluded(customer.FieldName)
 	return u
 }
 
@@ -920,6 +956,41 @@ func (u *CustomerUpsertOne) ClearDeletedAt() *CustomerUpsertOne {
 	})
 }
 
+// SetName sets the "name" field.
+func (u *CustomerUpsertOne) SetName(v string) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateName() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *CustomerUpsertOne) SetDescription(v string) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateDescription() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *CustomerUpsertOne) ClearDescription() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearDescription()
+	})
+}
+
 // SetBillingAddressCountry sets the "billing_address_country" field.
 func (u *CustomerUpsertOne) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
@@ -1064,20 +1135,6 @@ func (u *CustomerUpsertOne) UpdateBillingAddressPhoneNumber() *CustomerUpsertOne
 func (u *CustomerUpsertOne) ClearBillingAddressPhoneNumber() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearBillingAddressPhoneNumber()
-	})
-}
-
-// SetName sets the "name" field.
-func (u *CustomerUpsertOne) SetName(v string) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateName() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateName()
 	})
 }
 
@@ -1421,6 +1478,41 @@ func (u *CustomerUpsertBulk) ClearDeletedAt() *CustomerUpsertBulk {
 	})
 }
 
+// SetName sets the "name" field.
+func (u *CustomerUpsertBulk) SetName(v string) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateName() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *CustomerUpsertBulk) SetDescription(v string) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateDescription() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *CustomerUpsertBulk) ClearDescription() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearDescription()
+	})
+}
+
 // SetBillingAddressCountry sets the "billing_address_country" field.
 func (u *CustomerUpsertBulk) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
@@ -1565,20 +1657,6 @@ func (u *CustomerUpsertBulk) UpdateBillingAddressPhoneNumber() *CustomerUpsertBu
 func (u *CustomerUpsertBulk) ClearBillingAddressPhoneNumber() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearBillingAddressPhoneNumber()
-	})
-}
-
-// SetName sets the "name" field.
-func (u *CustomerUpsertBulk) SetName(v string) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateName() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateName()
 	})
 }
 

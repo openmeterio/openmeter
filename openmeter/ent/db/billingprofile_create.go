@@ -82,6 +82,26 @@ func (bpc *BillingProfileCreate) SetNillableDeletedAt(t *time.Time) *BillingProf
 	return bpc
 }
 
+// SetName sets the "name" field.
+func (bpc *BillingProfileCreate) SetName(s string) *BillingProfileCreate {
+	bpc.mutation.SetName(s)
+	return bpc
+}
+
+// SetDescription sets the "description" field.
+func (bpc *BillingProfileCreate) SetDescription(s string) *BillingProfileCreate {
+	bpc.mutation.SetDescription(s)
+	return bpc
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableDescription(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetDescription(*s)
+	}
+	return bpc
+}
+
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
 func (bpc *BillingProfileCreate) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileCreate {
 	bpc.mutation.SetSupplierAddressCountry(mc)
@@ -342,6 +362,9 @@ func (bpc *BillingProfileCreate) check() error {
 	if _, ok := bpc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingProfile.updated_at"`)}
 	}
+	if _, ok := bpc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingProfile.name"`)}
+	}
 	if v, ok := bpc.mutation.SupplierAddressCountry(); ok {
 		if err := billingprofile.SupplierAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
@@ -448,6 +471,14 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 	if value, ok := bpc.mutation.DeletedAt(); ok {
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := bpc.mutation.Name(); ok {
+		_spec.SetField(billingprofile.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := bpc.mutation.Description(); ok {
+		_spec.SetField(billingprofile.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := bpc.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
@@ -643,6 +674,36 @@ func (u *BillingProfileUpsert) UpdateDeletedAt() *BillingProfileUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *BillingProfileUpsert) ClearDeletedAt() *BillingProfileUpsert {
 	u.SetNull(billingprofile.FieldDeletedAt)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *BillingProfileUpsert) SetName(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateName() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *BillingProfileUpsert) SetDescription(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateDescription() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *BillingProfileUpsert) ClearDescription() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldDescription)
 	return u
 }
 
@@ -951,6 +1012,41 @@ func (u *BillingProfileUpsertOne) UpdateDeletedAt() *BillingProfileUpsertOne {
 func (u *BillingProfileUpsertOne) ClearDeletedAt() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *BillingProfileUpsertOne) SetName(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateName() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *BillingProfileUpsertOne) SetDescription(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateDescription() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *BillingProfileUpsertOne) ClearDescription() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearDescription()
 	})
 }
 
@@ -1459,6 +1555,41 @@ func (u *BillingProfileUpsertBulk) UpdateDeletedAt() *BillingProfileUpsertBulk {
 func (u *BillingProfileUpsertBulk) ClearDeletedAt() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *BillingProfileUpsertBulk) SetName(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateName() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *BillingProfileUpsertBulk) SetDescription(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateDescription() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *BillingProfileUpsertBulk) ClearDescription() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearDescription()
 	})
 }
 

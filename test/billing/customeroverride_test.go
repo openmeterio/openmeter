@@ -47,7 +47,10 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 		Customer: customerentity.Customer{
-			Name: "Johny the Doe",
+			ManagedResource: models.NewManagedResource(
+				models.ManagedResourceInput{
+					Name: "Johny the Doe",
+				}),
 		},
 	})
 	require.NoError(s.T(), err)
@@ -149,7 +152,10 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 		Customer: customerentity.Customer{
-			Name: "Johny the Doe",
+			ManagedResource: models.NewManagedResource(
+				models.ManagedResourceInput{
+					Name: "Johny the Doe",
+				}),
 		},
 	})
 	require.NoError(s.T(), err)
@@ -221,7 +227,9 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 		Customer: customerentity.Customer{
-			Name: "Johny the Doe",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Johny the Doe",
+			}),
 		},
 	})
 	require.NoError(s.T(), err)
@@ -307,7 +315,9 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 		Namespace: ns,
 
 		Customer: customerentity.Customer{
-			Name:     "Johny the Doe",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Johny the Doe",
+			}),
 			Timezone: lo.ToPtr(timezone.Timezone("Europe/Berlin")),
 			BillingAddress: &models.Address{
 				City:    lo.ToPtr("Berlin"),
@@ -351,7 +361,9 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 		Namespace: ns,
 
 		Customer: customerentity.Customer{
-			Name: "Johny the Doe",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Johny the Doe",
+			}),
 		},
 	})
 

@@ -87,6 +87,16 @@ func DeletedAt(v time.Time) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldName, v))
+}
+
+// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
+func Description(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldDescription, v))
+}
+
 // SupplierAddressCountry applies equality check predicate on the "supplier_address_country" field. It's identical to SupplierAddressCountryEQ.
 func SupplierAddressCountry(v models.CountryCode) predicate.BillingProfile {
 	vc := string(v)
@@ -341,6 +351,146 @@ func DeletedAtIsNil() predicate.BillingProfile {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldName, v))
+}
+
+// DescriptionEQ applies the EQ predicate on the "description" field.
+func DescriptionEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldDescription, v))
+}
+
+// DescriptionNEQ applies the NEQ predicate on the "description" field.
+func DescriptionNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldDescription, v))
+}
+
+// DescriptionIn applies the In predicate on the "description" field.
+func DescriptionIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldDescription, vs...))
+}
+
+// DescriptionNotIn applies the NotIn predicate on the "description" field.
+func DescriptionNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldDescription, vs...))
+}
+
+// DescriptionGT applies the GT predicate on the "description" field.
+func DescriptionGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldDescription, v))
+}
+
+// DescriptionGTE applies the GTE predicate on the "description" field.
+func DescriptionGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldDescription, v))
+}
+
+// DescriptionLT applies the LT predicate on the "description" field.
+func DescriptionLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldDescription, v))
+}
+
+// DescriptionLTE applies the LTE predicate on the "description" field.
+func DescriptionLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldDescription, v))
+}
+
+// DescriptionContains applies the Contains predicate on the "description" field.
+func DescriptionContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldDescription, v))
+}
+
+// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
+func DescriptionHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldDescription, v))
+}
+
+// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
+func DescriptionHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldDescription, v))
+}
+
+// DescriptionIsNil applies the IsNil predicate on the "description" field.
+func DescriptionIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldDescription))
+}
+
+// DescriptionNotNil applies the NotNil predicate on the "description" field.
+func DescriptionNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldDescription))
+}
+
+// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
+func DescriptionEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldDescription, v))
+}
+
+// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
+func DescriptionContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldDescription, v))
 }
 
 // SupplierAddressCountryEQ applies the EQ predicate on the "supplier_address_country" field.

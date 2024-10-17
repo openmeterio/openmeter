@@ -1619,6 +1619,12 @@ paths:
                   description: |-
                     The API key for the provider.
                     For example, the Stripe API key.
+                name:
+                  type: string
+                  description: |-
+                    Name of the application to install.
+
+                    If not set defaults to the marketplace item's description.
               required:
                 - apiKey
   /api/v1/marketplace/listings/{type}/install/oauth2:

@@ -14,7 +14,7 @@ type App interface {
 	GetID() appentitybase.AppID
 	GetType() appentitybase.AppType
 	GetName() string
-	GetDescription() string
+	GetDescription() *string
 	GetStatus() appentitybase.AppStatus
 	GetMetadata() map[string]string
 	GetListing() appentitybase.MarketplaceListing

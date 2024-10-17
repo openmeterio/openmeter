@@ -22,15 +22,19 @@ type ManagedResource struct {
 	ManagedModel
 
 	// ID is the unique identifier for Resource.
-	ID string `json:"id"`
+	ID          string  `json:"id"`
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
 }
 
 type ManagedResourceInput struct {
-	ID        string
-	Namespace string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID          string
+	Namespace   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time
+	Name        string
+	Description *string
 }
 
 func (r ManagedResourceInput) Validate() error {
@@ -72,6 +76,8 @@ func NewManagedResource(input ManagedResourceInput) ManagedResource {
 				return &deletedAt
 			}(),
 		},
+		Name:        input.Name,
+		Description: input.Description,
 	}
 }
 
@@ -86,6 +92,10 @@ func (r ManagedResource) Validate() error {
 
 	if r.ID == "" {
 		return errors.New("id is required")
+	}
+
+	if r.Name == "" {
+		return errors.New("name is required")
 	}
 
 	return nil

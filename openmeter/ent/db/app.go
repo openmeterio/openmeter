@@ -32,7 +32,7 @@ type App struct {
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 	// Type holds the value of the "type" field.
 	Type appentitybase.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
@@ -140,7 +140,8 @@ func (a *App) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				a.Description = value.String
+				a.Description = new(string)
+				*a.Description = value.String
 			}
 		case app.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -221,8 +222,10 @@ func (a *App) String() string {
 	builder.WriteString("name=")
 	builder.WriteString(a.Name)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(a.Description)
+	if v := a.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", a.Type))

@@ -65,7 +65,9 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	createdCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name:           TestName,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: TestName,
+			}),
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			Timezone:       &TestTimezone,
@@ -97,7 +99,9 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	_, err = service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: TestName,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: TestName,
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -122,7 +126,9 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: TestName,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: TestName,
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -142,7 +148,9 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 		Namespace: s.namespace,
 		ID:        originalCustomer.ID,
 		Customer: customerentity.Customer{
-			Name:           newName,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: newName,
+			}),
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			Timezone:       &TestTimezone,
@@ -180,7 +188,9 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	_, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: "Customer 1",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Customer 1",
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-1"},
 			},
@@ -193,7 +203,9 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	_, err = service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: "Customer 2",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Customer 2",
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-2"},
 			},
@@ -208,7 +220,9 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	_, err = service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: differentNamespace,
 		Customer: customerentity.Customer{
-			Name: "Customer 3",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Customer 3",
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-3"},
 			},
@@ -248,7 +262,9 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: TestName,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: TestName,
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -282,7 +298,9 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: TestName,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: TestName,
+			}),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},

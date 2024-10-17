@@ -464,7 +464,7 @@ func (m *AppMutation) Description() (r string, exists bool) {
 // OldDescription returns the old "description" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *AppMutation) OldDescription(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
 	}
@@ -478,9 +478,22 @@ func (m *AppMutation) OldDescription(ctx context.Context) (v string, err error) 
 	return oldValue.Description, nil
 }
 
+// ClearDescription clears the value of the "description" field.
+func (m *AppMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[app.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *AppMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[app.FieldDescription]
+	return ok
+}
+
 // ResetDescription resets all changes to the "description" field.
 func (m *AppMutation) ResetDescription() {
 	m.description = nil
+	delete(m.clearedFields, app.FieldDescription)
 }
 
 // SetType sets the "type" field.
@@ -882,6 +895,9 @@ func (m *AppMutation) ClearedFields() []string {
 	if m.FieldCleared(app.FieldDeletedAt) {
 		fields = append(fields, app.FieldDeletedAt)
 	}
+	if m.FieldCleared(app.FieldDescription) {
+		fields = append(fields, app.FieldDescription)
+	}
 	return fields
 }
 
@@ -901,6 +917,9 @@ func (m *AppMutation) ClearField(name string) error {
 		return nil
 	case app.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case app.FieldDescription:
+		m.ClearDescription()
 		return nil
 	}
 	return fmt.Errorf("unknown App nullable field %s", name)
@@ -8846,6 +8865,8 @@ type BillingProfileMutation struct {
 	created_at                       *time.Time
 	updated_at                       *time.Time
 	deleted_at                       *time.Time
+	name                             *string
+	description                      *string
 	supplier_address_country         *models.CountryCode
 	supplier_address_postal_code     *string
 	supplier_address_state           *string
@@ -9180,6 +9201,91 @@ func (m *BillingProfileMutation) DeletedAtCleared() bool {
 func (m *BillingProfileMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, billingprofile.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *BillingProfileMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BillingProfileMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the BillingProfile entity.
+// If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingProfileMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BillingProfileMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *BillingProfileMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *BillingProfileMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the BillingProfile entity.
+// If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingProfileMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *BillingProfileMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[billingprofile.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *BillingProfileMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[billingprofile.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *BillingProfileMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, billingprofile.FieldDescription)
 }
 
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
@@ -9910,7 +10016,7 @@ func (m *BillingProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingProfileMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, billingprofile.FieldNamespace)
 	}
@@ -9925,6 +10031,12 @@ func (m *BillingProfileMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, billingprofile.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, billingprofile.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, billingprofile.FieldDescription)
 	}
 	if m.supplier_address_country != nil {
 		fields = append(fields, billingprofile.FieldSupplierAddressCountry)
@@ -9983,6 +10095,10 @@ func (m *BillingProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingprofile.FieldDeletedAt:
 		return m.DeletedAt()
+	case billingprofile.FieldName:
+		return m.Name()
+	case billingprofile.FieldDescription:
+		return m.Description()
 	case billingprofile.FieldSupplierAddressCountry:
 		return m.SupplierAddressCountry()
 	case billingprofile.FieldSupplierAddressPostalCode:
@@ -10028,6 +10144,10 @@ func (m *BillingProfileMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldUpdatedAt(ctx)
 	case billingprofile.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billingprofile.FieldName:
+		return m.OldName(ctx)
+	case billingprofile.FieldDescription:
+		return m.OldDescription(ctx)
 	case billingprofile.FieldSupplierAddressCountry:
 		return m.OldSupplierAddressCountry(ctx)
 	case billingprofile.FieldSupplierAddressPostalCode:
@@ -10097,6 +10217,20 @@ func (m *BillingProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case billingprofile.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case billingprofile.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
 		return nil
 	case billingprofile.FieldSupplierAddressCountry:
 		v, ok := value.(models.CountryCode)
@@ -10225,6 +10359,9 @@ func (m *BillingProfileMutation) ClearedFields() []string {
 	if m.FieldCleared(billingprofile.FieldDeletedAt) {
 		fields = append(fields, billingprofile.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingprofile.FieldDescription) {
+		fields = append(fields, billingprofile.FieldDescription)
+	}
 	if m.FieldCleared(billingprofile.FieldSupplierAddressCountry) {
 		fields = append(fields, billingprofile.FieldSupplierAddressCountry)
 	}
@@ -10265,6 +10402,9 @@ func (m *BillingProfileMutation) ClearField(name string) error {
 		return nil
 	case billingprofile.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case billingprofile.FieldDescription:
+		m.ClearDescription()
 		return nil
 	case billingprofile.FieldSupplierAddressCountry:
 		m.ClearSupplierAddressCountry()
@@ -10309,6 +10449,12 @@ func (m *BillingProfileMutation) ResetField(name string) error {
 		return nil
 	case billingprofile.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case billingprofile.FieldName:
+		m.ResetName()
+		return nil
+	case billingprofile.FieldDescription:
+		m.ResetDescription()
 		return nil
 	case billingprofile.FieldSupplierAddressCountry:
 		m.ResetSupplierAddressCountry()
@@ -11741,6 +11887,8 @@ type CustomerMutation struct {
 	created_at                       *time.Time
 	updated_at                       *time.Time
 	deleted_at                       *time.Time
+	name                             *string
+	description                      *string
 	billing_address_country          *models.CountryCode
 	billing_address_postal_code      *string
 	billing_address_state            *string
@@ -11748,7 +11896,6 @@ type CustomerMutation struct {
 	billing_address_line1            *string
 	billing_address_line2            *string
 	billing_address_phone_number     *string
-	name                             *string
 	primary_email                    *string
 	timezone                         *timezone.Timezone
 	currency                         *currencyx.Code
@@ -12074,6 +12221,91 @@ func (m *CustomerMutation) DeletedAtCleared() bool {
 func (m *CustomerMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, customer.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *CustomerMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *CustomerMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *CustomerMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *CustomerMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *CustomerMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *CustomerMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[customer.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *CustomerMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[customer.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *CustomerMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, customer.FieldDescription)
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
@@ -12419,42 +12651,6 @@ func (m *CustomerMutation) ResetBillingAddressPhoneNumber() {
 	delete(m.clearedFields, customer.FieldBillingAddressPhoneNumber)
 }
 
-// SetName sets the "name" field.
-func (m *CustomerMutation) SetName(s string) {
-	m.name = &s
-}
-
-// Name returns the value of the "name" field in the mutation.
-func (m *CustomerMutation) Name() (r string, exists bool) {
-	v := m.name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldName returns the old "name" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
-	}
-	return oldValue.Name, nil
-}
-
-// ResetName resets all changes to the "name" field.
-func (m *CustomerMutation) ResetName() {
-	m.name = nil
-}
-
 // SetPrimaryEmail sets the "primary_email" field.
 func (m *CustomerMutation) SetPrimaryEmail(s string) {
 	m.primary_email = &s
@@ -12783,7 +12979,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, customer.FieldNamespace)
 	}
@@ -12798,6 +12994,12 @@ func (m *CustomerMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, customer.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, customer.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, customer.FieldDescription)
 	}
 	if m.billing_address_country != nil {
 		fields = append(fields, customer.FieldBillingAddressCountry)
@@ -12819,9 +13021,6 @@ func (m *CustomerMutation) Fields() []string {
 	}
 	if m.billing_address_phone_number != nil {
 		fields = append(fields, customer.FieldBillingAddressPhoneNumber)
-	}
-	if m.name != nil {
-		fields = append(fields, customer.FieldName)
 	}
 	if m.primary_email != nil {
 		fields = append(fields, customer.FieldPrimaryEmail)
@@ -12850,6 +13049,10 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case customer.FieldDeletedAt:
 		return m.DeletedAt()
+	case customer.FieldName:
+		return m.Name()
+	case customer.FieldDescription:
+		return m.Description()
 	case customer.FieldBillingAddressCountry:
 		return m.BillingAddressCountry()
 	case customer.FieldBillingAddressPostalCode:
@@ -12864,8 +13067,6 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingAddressLine2()
 	case customer.FieldBillingAddressPhoneNumber:
 		return m.BillingAddressPhoneNumber()
-	case customer.FieldName:
-		return m.Name()
 	case customer.FieldPrimaryEmail:
 		return m.PrimaryEmail()
 	case customer.FieldTimezone:
@@ -12891,6 +13092,10 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldUpdatedAt(ctx)
 	case customer.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case customer.FieldName:
+		return m.OldName(ctx)
+	case customer.FieldDescription:
+		return m.OldDescription(ctx)
 	case customer.FieldBillingAddressCountry:
 		return m.OldBillingAddressCountry(ctx)
 	case customer.FieldBillingAddressPostalCode:
@@ -12905,8 +13110,6 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldBillingAddressLine2(ctx)
 	case customer.FieldBillingAddressPhoneNumber:
 		return m.OldBillingAddressPhoneNumber(ctx)
-	case customer.FieldName:
-		return m.OldName(ctx)
 	case customer.FieldPrimaryEmail:
 		return m.OldPrimaryEmail(ctx)
 	case customer.FieldTimezone:
@@ -12957,6 +13160,20 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case customer.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case customer.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
 	case customer.FieldBillingAddressCountry:
 		v, ok := value.(models.CountryCode)
 		if !ok {
@@ -13005,13 +13222,6 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBillingAddressPhoneNumber(v)
-		return nil
-	case customer.FieldName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetName(v)
 		return nil
 	case customer.FieldPrimaryEmail:
 		v, ok := value.(string)
@@ -13070,6 +13280,9 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldDeletedAt) {
 		fields = append(fields, customer.FieldDeletedAt)
 	}
+	if m.FieldCleared(customer.FieldDescription) {
+		fields = append(fields, customer.FieldDescription)
+	}
 	if m.FieldCleared(customer.FieldBillingAddressCountry) {
 		fields = append(fields, customer.FieldBillingAddressCountry)
 	}
@@ -13119,6 +13332,9 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case customer.FieldDescription:
+		m.ClearDescription()
 		return nil
 	case customer.FieldBillingAddressCountry:
 		m.ClearBillingAddressCountry()
@@ -13173,6 +13389,12 @@ func (m *CustomerMutation) ResetField(name string) error {
 	case customer.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case customer.FieldName:
+		m.ResetName()
+		return nil
+	case customer.FieldDescription:
+		m.ResetDescription()
+		return nil
 	case customer.FieldBillingAddressCountry:
 		m.ResetBillingAddressCountry()
 		return nil
@@ -13193,9 +13415,6 @@ func (m *CustomerMutation) ResetField(name string) error {
 		return nil
 	case customer.FieldBillingAddressPhoneNumber:
 		m.ResetBillingAddressPhoneNumber()
-		return nil
-	case customer.FieldName:
-		m.ResetName()
 		return nil
 	case customer.FieldPrimaryEmail:
 		m.ResetPrimaryEmail()
