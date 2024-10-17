@@ -46,11 +46,17 @@ func (a adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input 
 		return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
 	}
 
+	name, ok := lo.Coalesce(input.Name, registryItem.Listing.Name)
+	if !ok {
+		return nil, fmt.Errorf("name is required, listing doesn't have a name either")
+	}
+
 	// Install app
 	app, err := registryItem.Factory.InstallAppWithAPIKey(ctx, appentity.AppFactoryInstallAppWithAPIKeyInput{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
 		BaseURL:   a.baseURL,
+		Name:      name,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to install app: %w", err)

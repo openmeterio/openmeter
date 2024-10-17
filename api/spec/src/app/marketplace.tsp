@@ -96,6 +96,13 @@ model MarketplaceApiKeyInstallRequest {
      * For example, the Stripe API key.
      */
     apiKey: string;
+
+    /**
+     * Name of the application to install.
+     *
+     * If not set defaults to the marketplace item's description.
+     */
+    name?: string;
   };
 }
 

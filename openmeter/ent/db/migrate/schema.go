@@ -18,7 +18,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
-		{Name: "description", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString},
 		{Name: "is_default", Type: field.TypeBool, Default: false},
@@ -447,6 +447,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "supplier_address_country", Type: field.TypeString, Nullable: true, Size: 2},
 		{Name: "supplier_address_postal_code", Type: field.TypeString, Nullable: true},
 		{Name: "supplier_address_state", Type: field.TypeString, Nullable: true},
@@ -469,7 +471,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_profiles_billing_workflow_configs_billing_profile",
-				Columns:    []*schema.Column{BillingProfilesColumns[18]},
+				Columns:    []*schema.Column{BillingProfilesColumns[20]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -493,7 +495,7 @@ var (
 			{
 				Name:    "billingprofile_namespace_default_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[16], BillingProfilesColumns[5]},
+				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[18], BillingProfilesColumns[5]},
 			},
 		},
 	}
@@ -545,6 +547,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_country", Type: field.TypeString, Nullable: true, Size: 2},
 		{Name: "billing_address_postal_code", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_state", Type: field.TypeString, Nullable: true},
@@ -552,7 +556,6 @@ var (
 		{Name: "billing_address_line1", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_line2", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_phone_number", Type: field.TypeString, Nullable: true},
-		{Name: "name", Type: field.TypeString},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "timezone", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},

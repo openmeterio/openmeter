@@ -57,6 +57,10 @@ func (ResourceMixin) Fields() []ent.Field {
 	fields = append(fields, NamespaceMixin{}.Fields()...)
 	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
 	fields = append(fields, TimeMixin{}.Fields()...)
+	fields = append(fields,
+		field.String("name"),
+		field.String("description").Optional().Nillable(),
+	)
 
 	return fields
 }

@@ -41,6 +41,8 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 	dbProfile, err := c.BillingProfile.Create().
 		SetNamespace(input.Namespace).
 		SetDefault(input.Default).
+		SetName(input.Name).
+		SetNillableDescription(input.Description).
 		SetTaxProvider(input.TaxConfiguration.Type).
 		SetInvoicingProvider(input.InvoicingConfiguration.Type).
 		SetPaymentProvider(input.PaymentConfiguration.Type).
@@ -156,6 +158,8 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 
 	update := a.client().BillingProfile.UpdateOneID(targetState.ID).
 		Where(billingprofile.Namespace(targetState.Namespace)).
+		SetName(targetState.Name).
+		SetNillableDescription(targetState.Description).
 		SetTaxProvider(targetState.TaxConfiguration.Type).
 		SetInvoicingProvider(targetState.InvoicingConfiguration.Type).
 		SetPaymentProvider(targetState.PaymentConfiguration.Type).
@@ -199,9 +203,11 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) *billing.Profile {
 	}
 
 	return &billing.Profile{
-		Namespace: dbProfile.Namespace,
-		ID:        dbProfile.ID,
-		Default:   dbProfile.Default,
+		Namespace:   dbProfile.Namespace,
+		ID:          dbProfile.ID,
+		Default:     dbProfile.Default,
+		Name:        dbProfile.Name,
+		Description: dbProfile.Description,
 
 		CreatedAt: dbProfile.CreatedAt,
 		UpdatedAt: dbProfile.UpdatedAt,

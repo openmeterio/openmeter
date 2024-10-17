@@ -220,18 +220,18 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppI
 func mapAppBaseFromDB(dbApp *db.App, registryItem appentity.RegistryItem) appentitybase.AppBase {
 	return appentitybase.AppBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			ID:        dbApp.ID,
-			Namespace: dbApp.Namespace,
-			CreatedAt: dbApp.CreatedAt,
-			UpdatedAt: dbApp.UpdatedAt,
-			DeletedAt: dbApp.DeletedAt,
+			ID:          dbApp.ID,
+			Namespace:   dbApp.Namespace,
+			CreatedAt:   dbApp.CreatedAt,
+			UpdatedAt:   dbApp.UpdatedAt,
+			DeletedAt:   dbApp.DeletedAt,
+			Name:        dbApp.Name,
+			Description: dbApp.Description,
 		}),
-		Type:        dbApp.Type,
-		Name:        dbApp.Name,
-		Description: dbApp.Description,
-		Status:      dbApp.Status,
-		Listing:     registryItem.Listing,
-		Metadata:    dbApp.Metadata,
+		Type:     dbApp.Type,
+		Status:   dbApp.Status,
+		Listing:  registryItem.Listing,
+		Metadata: dbApp.Metadata,
 	}
 }
 

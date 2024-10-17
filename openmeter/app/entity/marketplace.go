@@ -41,6 +41,7 @@ type InstallAppWithAPIKeyInput struct {
 
 	Namespace string
 	APIKey    string
+	Name      string
 }
 
 func (i InstallAppWithAPIKeyInput) Validate() error {

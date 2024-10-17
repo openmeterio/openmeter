@@ -16,7 +16,6 @@ import (
 type Customer struct {
 	models.ManagedResource
 
-	Name             string                   `json:"name"`
 	Timezone         *timezone.Timezone       `json:"timezone"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 	PrimaryEmail     *string                  `json:"primaryEmail"`
@@ -36,6 +35,7 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 		Name:             c.Name,
 		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
 		PrimaryEmail:     c.PrimaryEmail,
+		Description:      c.Description,
 	}
 
 	if c.BillingAddress != nil {

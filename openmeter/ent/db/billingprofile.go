@@ -31,6 +31,10 @@ type BillingProfile struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
 	// SupplierAddressCountry holds the value of the "supplier_address_country" field.
 	SupplierAddressCountry *models.CountryCode `json:"supplier_address_country,omitempty"`
 	// SupplierAddressPostalCode holds the value of the "supplier_address_postal_code" field.
@@ -114,7 +118,7 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldSupplierAddressCountry, billingprofile.FieldSupplierAddressPostalCode, billingprofile.FieldSupplierAddressState, billingprofile.FieldSupplierAddressCity, billingprofile.FieldSupplierAddressLine1, billingprofile.FieldSupplierAddressLine2, billingprofile.FieldSupplierAddressPhoneNumber, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID, billingprofile.FieldSupplierName:
+		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldName, billingprofile.FieldDescription, billingprofile.FieldSupplierAddressCountry, billingprofile.FieldSupplierAddressPostalCode, billingprofile.FieldSupplierAddressState, billingprofile.FieldSupplierAddressCity, billingprofile.FieldSupplierAddressLine1, billingprofile.FieldSupplierAddressLine2, billingprofile.FieldSupplierAddressPhoneNumber, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID, billingprofile.FieldSupplierName:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -171,6 +175,19 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bp.DeletedAt = new(time.Time)
 				*bp.DeletedAt = value.Time
+			}
+		case billingprofile.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				bp.Name = value.String
+			}
+		case billingprofile.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				bp.Description = new(string)
+				*bp.Description = value.String
 			}
 		case billingprofile.FieldSupplierAddressCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -323,6 +340,14 @@ func (bp *BillingProfile) String() string {
 	if v := bp.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(bp.Name)
+	builder.WriteString(", ")
+	if v := bp.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := bp.SupplierAddressCountry; v != nil {

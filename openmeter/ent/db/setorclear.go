@@ -41,6 +41,20 @@ func (u *AppUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppUpdateOne {
 	return u.SetDeletedAt(*value)
 }
 
+func (u *AppUpdate) SetOrClearDescription(value *string) *AppUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *AppUpdateOne) SetOrClearDescription(value *string) *AppUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
 func (u *AppCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppCustomerUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -447,6 +461,20 @@ func (u *BillingProfileUpdateOne) SetOrClearDeletedAt(value *time.Time) *Billing
 	return u.SetDeletedAt(*value)
 }
 
+func (u *BillingProfileUpdate) SetOrClearDescription(value *string) *BillingProfileUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingProfileUpdateOne) SetOrClearDescription(value *string) *BillingProfileUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
 func (u *BillingProfileUpdate) SetOrClearSupplierAddressCountry(value *models.CountryCode) *BillingProfileUpdate {
 	if value == nil {
 		return u.ClearSupplierAddressCountry()
@@ -599,6 +627,20 @@ func (u *CustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *CustomerUpdat
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *CustomerUpdate) SetOrClearDescription(value *string) *CustomerUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *CustomerUpdateOne) SetOrClearDescription(value *string) *CustomerUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearBillingAddressCountry(value *models.CountryCode) *CustomerUpdate {

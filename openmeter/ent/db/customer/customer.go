@@ -24,6 +24,10 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// FieldBillingAddressCountry holds the string denoting the billing_address_country field in the database.
 	FieldBillingAddressCountry = "billing_address_country"
 	// FieldBillingAddressPostalCode holds the string denoting the billing_address_postal_code field in the database.
@@ -38,8 +42,6 @@ const (
 	FieldBillingAddressLine2 = "billing_address_line2"
 	// FieldBillingAddressPhoneNumber holds the string denoting the billing_address_phone_number field in the database.
 	FieldBillingAddressPhoneNumber = "billing_address_phone_number"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
 	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
 	FieldPrimaryEmail = "primary_email"
 	// FieldTimezone holds the string denoting the timezone field in the database.
@@ -85,6 +87,8 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldName,
+	FieldDescription,
 	FieldBillingAddressCountry,
 	FieldBillingAddressPostalCode,
 	FieldBillingAddressState,
@@ -92,7 +96,6 @@ var Columns = []string{
 	FieldBillingAddressLine1,
 	FieldBillingAddressLine2,
 	FieldBillingAddressPhoneNumber,
-	FieldName,
 	FieldPrimaryEmail,
 	FieldTimezone,
 	FieldCurrency,
@@ -153,6 +156,16 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
 // ByBillingAddressCountry orders the results by the billing_address_country field.
 func ByBillingAddressCountry(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressCountry, opts...).ToFunc()
@@ -186,11 +199,6 @@ func ByBillingAddressLine2(opts ...sql.OrderTermOption) OrderOption {
 // ByBillingAddressPhoneNumber orders the results by the billing_address_phone_number field.
 func ByBillingAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressPhoneNumber, opts...).ToFunc()
-}
-
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByPrimaryEmail orders the results by the primary_email field.

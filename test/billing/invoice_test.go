@@ -43,7 +43,9 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 		Namespace: namespace,
 
 		Customer: customerentity.Customer{
-			Name:         "Test Customer",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Test Customer",
+			}),
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),

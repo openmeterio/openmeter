@@ -96,6 +96,12 @@ func (au *AppUpdate) SetNillableDescription(s *string) *AppUpdate {
 	return au
 }
 
+// ClearDescription clears the value of the "description" field.
+func (au *AppUpdate) ClearDescription() *AppUpdate {
+	au.mutation.ClearDescription()
+	return au
+}
+
 // SetStatus sets the "status" field.
 func (au *AppUpdate) SetStatus(as appentitybase.AppStatus) *AppUpdate {
 	au.mutation.SetStatus(as)
@@ -231,6 +237,9 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := au.mutation.Description(); ok {
 		_spec.SetField(app.FieldDescription, field.TypeString, value)
 	}
+	if au.mutation.DescriptionCleared() {
+		_spec.ClearField(app.FieldDescription, field.TypeString)
+	}
 	if value, ok := au.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
 	}
@@ -365,6 +374,12 @@ func (auo *AppUpdateOne) SetNillableDescription(s *string) *AppUpdateOne {
 	if s != nil {
 		auo.SetDescription(*s)
 	}
+	return auo
+}
+
+// ClearDescription clears the value of the "description" field.
+func (auo *AppUpdateOne) ClearDescription() *AppUpdateOne {
+	auo.mutation.ClearDescription()
 	return auo
 }
 
@@ -532,6 +547,9 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	}
 	if value, ok := auo.mutation.Description(); ok {
 		_spec.SetField(app.FieldDescription, field.TypeString, value)
+	}
+	if auo.mutation.DescriptionCleared() {
+		_spec.ClearField(app.FieldDescription, field.TypeString)
 	}
 	if value, ok := auo.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
