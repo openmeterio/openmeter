@@ -1,113 +1,3 @@
-diff --git a/dist/src/decorators.d.ts.map b/dist/src/decorators.d.ts.map
-index de6a40635bcfc5b0e34854ea0aa279c3eec6cbf8..45cb61965af033d6f33320e8d69a4d78891813aa 100644
---- a/dist/src/decorators.d.ts.map
-+++ b/dist/src/decorators.d.ts.map
-@@ -1 +1 @@
--{"version":3,"file":"decorators.d.ts","sourceRoot":"","sources":["../../src/decorators.ts"],"names":[],"mappings":"AAAA,OAAO,EAML,SAAS,EACT,SAAS,EACT,OAAO,EACP,IAAI,EAGL,MAAM,oBAAoB,CAAC;AAE5B,OAAO,EACL,wBAAwB,EACxB,kBAAkB,EAClB,qBAAqB,EACrB,aAAa,EACb,oBAAoB,EACrB,MAAM,uCAAuC,CAAC;AAE/C,OAAO,EAAE,cAAc,EAAE,YAAY,EAAE,YAAY,EAAE,MAAM,YAAY,CAAC;AAGxE;;;;;GAKG;AACH,eAAO,MAAM,YAAY,EAAE,oBAM1B,CAAC;AAEF;;GAEG;AACH,wBAAgB,cAAc,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,GAAG,MAAM,GAAG,SAAS,CAEtF;AAID,uCAAuC;AACvC,eAAO,MAAM,UAAU,EAAE,kBAmBxB,CAAC;AAEF;;;;;GAKG;AACH,wBAAgB,OAAO,CACrB,OAAO,EAAE,OAAO,EAChB,MAAM,EAAE,SAAS,EACjB,IAAI,EAAE,cAAc,GAAG,MAAM,CAAC,YAAY,EAAE,OAAO,CAAC,QAGrD;AAED;;;;;;GAMG;AACH,wBAAgB,YAAY,CAC1B,OAAO,EAAE,OAAO,EAChB,MAAM,EAAE,IAAI,EACZ,aAAa,EAAE,YAAY,EAC3B,IAAI,EAAE,OAAO,QAMd;AAED;;;;GAIG;AACH,wBAAgB,aAAa,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,IAAI,GAAG,WAAW,CAAC,YAAY,EAAE,GAAG,CAAC,CAE5F;AAYD,6CAA6C;AAC7C,eAAO,MAAM,gBAAgB,EAAE,wBAO9B,CAAC;AAEF;;;;;GAKG;AACH,wBAAgB,iBAAiB,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,IAAI,GAAG,OAAO,CAEzE;AAID;;;;GAIG;AACH,eAAO,MAAM,aAAa,EAAE,qBAW3B,CAAC;AAEF;;;;GAIG;AACH,wBAAgB,eAAe,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,IAAI,GAAG,YAAY,GAAG,SAAS,CAExF;AAID,kCAAkC;AAClC,eAAO,MAAM,KAAK,EAAE,aAcnB,CAAC;AAEF;;;;GAIG;AACH,wBAAgB,OAAO,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,GAAG,cAAc,GAAG,SAAS,CAEvF;AAED,gGAAgG;AAChG,wBAAgB,WAAW,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,GAAG,cAAc,GAAG,SAAS,CAW3F"}
-\ No newline at end of file
-+{"version":3,"file":"decorators.d.ts","sourceRoot":"","sources":["../../src/decorators.ts"],"names":[],"mappings":"AAAA,OAAO,EAUL,SAAS,EACT,SAAS,EACT,OAAO,EACP,IAAI,EAGL,MAAM,oBAAoB,CAAC;AAE5B,OAAO,EACL,wBAAwB,EACxB,kBAAkB,EAClB,qBAAqB,EACrB,aAAa,EACb,oBAAoB,EACrB,MAAM,uCAAuC,CAAC;AAE/C,OAAO,EAAE,cAAc,EAAE,YAAY,EAAE,YAAY,EAAE,MAAM,YAAY,CAAC;AAGxE;;;;;GAKG;AACH,eAAO,MAAM,YAAY,EAAE,oBAM1B,CAAC;AAEF;;GAEG;AACH,wBAAgB,cAAc,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,GAAG,MAAM,GAAG,SAAS,CAEtF;AAID,uCAAuC;AACvC,eAAO,MAAM,UAAU,EAAE,kBAmBxB,CAAC;AAEF;;;;;GAKG;AACH,wBAAgB,OAAO,CACrB,OAAO,EAAE,OAAO,EAChB,MAAM,EAAE,SAAS,EACjB,IAAI,EAAE,cAAc,GAAG,MAAM,CAAC,YAAY,EAAE,OAAO,CAAC,QAGrD;AAED;;;;;;GAMG;AACH,wBAAgB,YAAY,CAC1B,OAAO,EAAE,OAAO,EAChB,MAAM,EAAE,IAAI,EACZ,aAAa,EAAE,YAAY,EAC3B,IAAI,EAAE,OAAO,QAMd;AAED;;;;GAIG;AACH,wBAAgB,aAAa,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,IAAI,GAAG,WAAW,CAAC,YAAY,EAAE,GAAG,CAAC,CAE5F;AAYD,6CAA6C;AAC7C,eAAO,MAAM,gBAAgB,EAAE,wBAO9B,CAAC;AAEF;;;;;GAKG;AACH,wBAAgB,iBAAiB,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,IAAI,GAAG,OAAO,CAEzE;AAID;;;;GAIG;AACH,eAAO,MAAM,aAAa,EAAE,qBAW3B,CAAC;AAEF;;;;GAIG;AACH,wBAAgB,eAAe,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,IAAI,GAAG,YAAY,GAAG,SAAS,CAExF;AAID,kCAAkC;AAClC,eAAO,MAAM,KAAK,EAAE,aAoBnB,CAAC;AAEF;;;;GAIG;AACH,wBAAgB,OAAO,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,GAAG,cAAc,GAAG,SAAS,CAEvF;AAED,gGAAgG;AAChG,wBAAgB,WAAW,CAAC,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,GAAG,cAAc,GAAG,SAAS,CAW3F"}
-\ No newline at end of file
-diff --git a/dist/src/decorators.js b/dist/src/decorators.js
-index b5e58132c795e647ff1582ebc14994d0c325f546..02a078b3951acd854b5d29dc17d69a23d9784805 100644
---- a/dist/src/decorators.js
-+++ b/dist/src/decorators.js
-@@ -1,6 +1,6 @@
--import { getDoc, getService, getSummary, typespecTypeToJson, } from "@typespec/compiler";
-+import { compilerAssert, getDoc, getProperty, getService, getSummary, typespecTypeToJson, } from "@typespec/compiler";
- import { setStatusCode } from "@typespec/http";
--import { createStateSymbol, reportDiagnostic } from "./lib.js";
-+import { createDiagnostic, createStateSymbol, reportDiagnostic } from "./lib.js";
- const operationIdsKey = createStateSymbol("operationIds");
- /**
-  * Set a specific operation ID.
-@@ -74,7 +74,7 @@ function isOpenAPIExtensionKey(key) {
- const defaultResponseKey = createStateSymbol("defaultResponse");
- /** {@inheritdoc DefaultResponseDecorator} */
- export const $defaultResponse = (context, entity) => {
--    // eslint-disable-next-line deprecation/deprecation
-+    // eslint-disable-next-line @typescript-eslint/no-deprecated
-     setStatusCode(context.program, entity, ["*"]);
-     context.program.stateSet(defaultResponseKey).add(entity);
- };
-@@ -116,6 +116,12 @@ export const $info = (context, entity, model) => {
-     if (data === undefined) {
-         return;
-     }
-+    validateAdditionalInfoModel(context, model);
-+    if (data.termsOfService) {
-+        if (!validateIsUri(context, data.termsOfService, "TermsOfService")) {
-+            return;
-+        }
-+    }
-     setInfo(context.program, entity, data);
- };
- /**
-@@ -133,7 +139,7 @@ export function resolveInfo(program, entity) {
-     return omitUndefined({
-         ...info,
-         title: info?.title ?? service?.title,
--        // eslint-disable-next-line deprecation/deprecation
-+        // eslint-disable-next-line @typescript-eslint/no-deprecated
-         version: info?.version ?? service?.version,
-         summary: info?.summary ?? getSummary(program, entity),
-         description: info?.description ?? getDoc(program, entity),
-@@ -142,4 +148,46 @@ export function resolveInfo(program, entity) {
- function omitUndefined(data) {
-     return Object.fromEntries(Object.entries(data).filter(([k, v]) => v !== undefined));
- }
-+function validateIsUri(context, url, propertyName) {
-+    try {
-+        new URL(url);
-+        return true;
-+    }
-+    catch {
-+        reportDiagnostic(context.program, {
-+            code: "not-url",
-+            target: context.getArgumentTarget(0),
-+            format: { property: propertyName, value: url },
-+        });
-+        return false;
-+    }
-+}
-+function validateAdditionalInfoModel(context, typespecType) {
-+    const propertyModel = context.program.resolveTypeReference("TypeSpec.OpenAPI.AdditionalInfo")[0];
-+    if (typeof typespecType === "object" && propertyModel) {
-+        const diagnostics = checkNoAdditionalProperties(typespecType, context.getArgumentTarget(0), propertyModel);
-+        context.program.reportDiagnostics(diagnostics);
-+    }
-+}
-+function checkNoAdditionalProperties(typespecType, target, source) {
-+    const diagnostics = [];
-+    compilerAssert(typespecType.kind === "Model", "Expected type to be a Model.");
-+    for (const [name, type] of typespecType.properties.entries()) {
-+        const sourceProperty = getProperty(source, name);
-+        if (sourceProperty) {
-+            if (sourceProperty.type.kind === "Model") {
-+                const nestedDiagnostics = checkNoAdditionalProperties(type.type, target, sourceProperty.type);
-+                diagnostics.push(...nestedDiagnostics);
-+            }
-+        }
-+        else if (!isOpenAPIExtensionKey(name)) {
-+            diagnostics.push(createDiagnostic({
-+                code: "invalid-extension-key",
-+                format: { value: name },
-+                target,
-+            }));
-+        }
-+    }
-+    return diagnostics;
-+}
- //# sourceMappingURL=decorators.js.map
-\ No newline at end of file
-diff --git a/dist/src/decorators.js.map b/dist/src/decorators.js.map
-index 4b8a50ad31a1fe172e685cc68e1c9f47d8ab81dc..0f86fc8697eb81d1a74d611024e33d9df64bae55 100644
---- a/dist/src/decorators.js.map
-+++ b/dist/src/decorators.js.map
-@@ -1 +1 @@
--{"version":3,"file":"decorators.js","sourceRoot":"","sources":["../../src/decorators.ts"],"names":[],"mappings":"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"}
-\ No newline at end of file
-+{"version":3,"file":"decorators.js","sourceRoot":"","sources":["../../src/decorators.ts"],"names":[],"mappings":"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"}
-\ No newline at end of file
 diff --git a/dist/src/helpers.d.ts.map b/dist/src/helpers.d.ts.map
 index 74e855cfad7c12d4bbbdd2986b560dc752590f22..c315dc46727c9aa26bf3871755f9d181ab4674b4 100644
 --- a/dist/src/helpers.d.ts.map
@@ -141,149 +31,45 @@ index 4642dd3ea31669139e6ded3757762aaccef21a9d..4648072d1dab14196a5a688cd89e72ab
 \ No newline at end of file
 +{"version":3,"file":"helpers.js","sourceRoot":"","sources":["../../src/helpers.ts"],"names":[],"mappings":"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"}
 \ No newline at end of file
-diff --git a/dist/src/lib.d.ts b/dist/src/lib.d.ts
-index 1d42849455a9f904cf5f175f2c9b661ed375f41f..6276604c7a24ab807bc16d0daec4650f47d98592 100644
---- a/dist/src/lib.d.ts
-+++ b/dist/src/lib.d.ts
-@@ -6,8 +6,22 @@ export declare const $lib: import("@typespec/compiler").TypeSpecLibrary<{
-         readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-         readonly parameter: import("@typespec/compiler").CallableMessage<["value"]>;
-     };
-+    "not-url": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["property", "value"]>;
-+    };
- }, Record<string, any>, never>;
--export declare const reportDiagnostic: <C extends "invalid-extension-key" | "duplicate-type-name", M extends keyof {
-+export declare const createDiagnostic: <C extends "invalid-extension-key" | "duplicate-type-name" | "not-url", M extends keyof {
-+    "invalid-extension-key": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-+    };
-+    "duplicate-type-name": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-+        readonly parameter: import("@typespec/compiler").CallableMessage<["value"]>;
-+    };
-+    "not-url": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["property", "value"]>;
-+    };
-+}[C]>(diag: import("@typespec/compiler").DiagnosticReport<{
-     "invalid-extension-key": {
-         readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-     };
-@@ -15,6 +29,20 @@ export declare const reportDiagnostic: <C extends "invalid-extension-key" | "dup
-         readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-         readonly parameter: import("@typespec/compiler").CallableMessage<["value"]>;
-     };
-+    "not-url": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["property", "value"]>;
-+    };
-+}, C, M>) => import("@typespec/compiler").Diagnostic, reportDiagnostic: <C extends "invalid-extension-key" | "duplicate-type-name" | "not-url", M extends keyof {
-+    "invalid-extension-key": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-+    };
-+    "duplicate-type-name": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-+        readonly parameter: import("@typespec/compiler").CallableMessage<["value"]>;
-+    };
-+    "not-url": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["property", "value"]>;
-+    };
- }[C]>(program: import("@typespec/compiler").Program, diag: import("@typespec/compiler").DiagnosticReport<{
-     "invalid-extension-key": {
-         readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-@@ -23,5 +51,8 @@ export declare const reportDiagnostic: <C extends "invalid-extension-key" | "dup
-         readonly default: import("@typespec/compiler").CallableMessage<["value"]>;
-         readonly parameter: import("@typespec/compiler").CallableMessage<["value"]>;
-     };
-+    "not-url": {
-+        readonly default: import("@typespec/compiler").CallableMessage<["property", "value"]>;
-+    };
- }, C, M>) => void, createStateSymbol: (name: string) => symbol;
- //# sourceMappingURL=lib.d.ts.map
-\ No newline at end of file
-diff --git a/dist/src/lib.d.ts.map b/dist/src/lib.d.ts.map
-index 14057c66ef740eab6c8fe13dfe800ebe7a87857f..58cb1b0b69e8b1f4d5cc77f55ed4f9461020460b 100644
---- a/dist/src/lib.d.ts.map
-+++ b/dist/src/lib.d.ts.map
-@@ -1 +1 @@
--{"version":3,"file":"lib.d.ts","sourceRoot":"","sources":["../../src/lib.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,IAAI;;;;;;;;8BAiBf,CAAC;AAEH,eAAO,MAAQ,gBAAgB;;;;;;;;;;;;;;;;mBAAE,iBAAiB,0BAAS,CAAC"}
-\ No newline at end of file
-+{"version":3,"file":"lib.d.ts","sourceRoot":"","sources":["../../src/lib.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,IAAI;;;;;;;;;;;8BAuBf,CAAC;AAEH,eAAO,MAAQ,gBAAgB;;;;;;;;;;;;;;;;;;;;;;sDAAE,gBAAgB;;;;;;;;;;;;;;;;;;;;;;mBAAE,iBAAiB,0BAAS,CAAC"}
-\ No newline at end of file
-diff --git a/dist/src/lib.js b/dist/src/lib.js
-index 1984fee9bd4ace796ca6c9be6b99fd64410e7bb9..61843f8eb7102a297d9a990b9f4b30289a36e70f 100644
---- a/dist/src/lib.js
-+++ b/dist/src/lib.js
-@@ -15,7 +15,13 @@ export const $lib = createTypeSpecLibrary({
-                 parameter: paramMessage `Duplicate parameter key: '${"value"}'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.`,
-             },
-         },
-+        "not-url": {
-+            severity: "error",
-+            messages: {
-+                default: paramMessage `${"property"}: ${"value"} is not a valid URL.`,
-+            },
-+        },
-     },
- });
--export const { reportDiagnostic, createStateSymbol } = $lib;
-+export const { createDiagnostic, reportDiagnostic, createStateSymbol } = $lib;
- //# sourceMappingURL=lib.js.map
-\ No newline at end of file
-diff --git a/dist/src/lib.js.map b/dist/src/lib.js.map
-index 12ebe40bb7f9ea5a71f338613cbb531722966dc5..3118fc43c170ac7795e7635278d58a2caf2e8732 100644
---- a/dist/src/lib.js.map
-+++ b/dist/src/lib.js.map
-@@ -1 +1 @@
--{"version":3,"file":"lib.js","sourceRoot":"","sources":["../../src/lib.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,qBAAqB,EAAE,YAAY,EAAE,MAAM,oBAAoB,CAAC;AAEzE,MAAM,CAAC,MAAM,IAAI,GAAG,qBAAqB,CAAC;IACxC,IAAI,EAAE,mBAAmB;IACzB,WAAW,EAAE;QACX,uBAAuB,EAAE;YACvB,QAAQ,EAAE,OAAO;YACjB,QAAQ,EAAE;gBACR,OAAO,EAAE,YAAY,CAAA,mDAAmD,OAAO,GAAG;aACnF;SACF;QACD,qBAAqB,EAAE;YACrB,QAAQ,EAAE,OAAO;YACjB,QAAQ,EAAE;gBACR,OAAO,EAAE,YAAY,CAAA,yBAAyB,OAAO,4FAA4F;gBACjJ,SAAS,EAAE,YAAY,CAAA,6BAA6B,OAAO,4FAA4F;aACxJ;SACF;KACF;CACF,CAAC,CAAC;AAEH,MAAM,CAAC,MAAM,EAAE,gBAAgB,EAAE,iBAAiB,EAAE,GAAG,IAAI,CAAC"}
-\ No newline at end of file
-+{"version":3,"file":"lib.js","sourceRoot":"","sources":["../../src/lib.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,qBAAqB,EAAE,YAAY,EAAE,MAAM,oBAAoB,CAAC;AAEzE,MAAM,CAAC,MAAM,IAAI,GAAG,qBAAqB,CAAC;IACxC,IAAI,EAAE,mBAAmB;IACzB,WAAW,EAAE;QACX,uBAAuB,EAAE;YACvB,QAAQ,EAAE,OAAO;YACjB,QAAQ,EAAE;gBACR,OAAO,EAAE,YAAY,CAAA,mDAAmD,OAAO,GAAG;aACnF;SACF;QACD,qBAAqB,EAAE;YACrB,QAAQ,EAAE,OAAO;YACjB,QAAQ,EAAE;gBACR,OAAO,EAAE,YAAY,CAAA,yBAAyB,OAAO,4FAA4F;gBACjJ,SAAS,EAAE,YAAY,CAAA,6BAA6B,OAAO,4FAA4F;aACxJ;SACF;QACD,SAAS,EAAE;YACT,QAAQ,EAAE,OAAO;YACjB,QAAQ,EAAE;gBACR,OAAO,EAAE,YAAY,CAAA,GAAG,UAAU,KAAK,OAAO,sBAAsB;aACrE;SACF;KACF;CACF,CAAC,CAAC;AAEH,MAAM,CAAC,MAAM,EAAE,gBAAgB,EAAE,gBAAgB,EAAE,iBAAiB,EAAE,GAAG,IAAI,CAAC"}
-\ No newline at end of file
-diff --git a/dist/src/tsdoc-metadata.json b/dist/src/tsdoc-metadata.json
-index 383a461406865e573419f7754303273b2b5a1661..9282787bcb11c42a6cc217c3c357b986dd93a113 100644
---- a/dist/src/tsdoc-metadata.json
-+++ b/dist/src/tsdoc-metadata.json
-@@ -5,7 +5,7 @@
-   "toolPackages": [
-     {
-       "packageName": "@microsoft/api-extractor",
--      "packageVersion": "7.47.7"
-+      "packageVersion": "7.47.9"
-     }
-   ]
- }
 diff --git a/package.json b/package.json
-index 65c55292d319de4e77c77814ab3b1579ed7e7e11..9ca6cf068d3df5e508c4a89fbed65bbd1fdd6a08 100644
+index 40045855827fb7af6be505e0b3f683eb87969f66..0757f23999e882b1e93eeb5f434b0a7436640733 100644
 --- a/package.json
 +++ b/package.json
-@@ -38,22 +38,22 @@
+@@ -21,6 +21,7 @@
+   "tspMain": "lib/main.tsp",
+   "exports": {
+     ".": {
++      "typespec": "./lib/main.tsp",
+       "types": "./dist/src/index.d.ts",
+       "default": "./dist/src/index.js"
+     },
+@@ -38,21 +39,21 @@
      "!dist/test/**"
    ],
    "peerDependencies": {
--    "@typespec/compiler": "~0.60.0",
-+    "@typespec/compiler": "~0.60.1",
-     "@typespec/http": "~0.60.0"
+-    "@typespec/compiler": "~0.61.0",
++    "@typespec/compiler": "~0.61.2",
+     "@typespec/http": "~0.61.0"
    },
    "devDependencies": {
--    "@types/node": "~18.11.19",
--    "@vitest/coverage-v8": "^2.0.4",
--    "@vitest/ui": "^2.0.4",
-+    "@types/node": "~22.7.1",
-+    "@vitest/coverage-v8": "^2.1.1",
-+    "@vitest/ui": "^2.1.1",
+-    "@types/node": "~22.7.1",
+-    "@vitest/coverage-v8": "^2.1.1",
+-    "@vitest/ui": "^2.1.1",
++    "@types/node": "~22.7.5",
++    "@vitest/coverage-v8": "^2.1.2",
++    "@vitest/ui": "^2.1.2",
      "c8": "^10.1.2",
      "rimraf": "~6.0.1",
--    "typescript": "~5.5.4",
--    "vitest": "^2.0.4",
--    "@typespec/compiler": "~0.60.0",
-+    "typescript": "~5.6.2",
-+    "vitest": "^2.1.1",
-+    "@typespec/tspd": "~0.46.0",
-+    "@typespec/library-linter": "~0.60.0",
-     "@typespec/rest": "~0.60.0",
-     "@typespec/http": "~0.60.0",
--    "@typespec/library-linter": "~0.60.0",
--    "@typespec/tspd": "~0.46.0"
-+    "@typespec/compiler": "~0.60.1"
+-    "typescript": "~5.6.2",
+-    "vitest": "^2.1.1",
+-    "@typespec/http": "~0.61.0",
+-    "@typespec/compiler": "~0.61.0",
++    "typescript": "~5.6.3",
++    "vitest": "^2.1.2",
+     "@typespec/library-linter": "~0.61.0",
+     "@typespec/rest": "~0.61.0",
++    "@typespec/compiler": "~0.61.2",
++    "@typespec/http": "~0.61.0",
+     "@typespec/tspd": "~0.46.0"
    },
    "scripts": {
-     "clean": "rimraf ./dist ./temp",
