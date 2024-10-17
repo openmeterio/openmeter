@@ -92,3 +92,31 @@ func TestManager_DeleteNamespce(t *testing.T) {
 
 	assert.False(t, handler.namespaces[namespace])
 }
+
+func TestManager_Register(t *testing.T) {
+	handler := newFakeHandler()
+	handler2 := newFakeHandler()
+
+	manager, err := NewManager(ManagerConfig{
+		Handlers:         []Handler{handler},
+		DefaultNamespace: "default",
+	})
+	require.NoError(t, err)
+
+	err = manager.RegisterHandler(handler2)
+	require.NoError(t, err)
+
+	const namespace = "my-namespace"
+
+	err = manager.CreateNamespace(context.Background(), namespace)
+	require.NoError(t, err)
+
+	assert.True(t, handler.namespaces[namespace])
+	assert.True(t, handler2.namespaces[namespace])
+
+	err = manager.DeleteNamespace(context.Background(), namespace)
+	require.NoError(t, err)
+
+	assert.False(t, handler.namespaces[namespace])
+	assert.False(t, handler2.namespaces[namespace])
+}

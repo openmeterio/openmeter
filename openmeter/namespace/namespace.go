@@ -4,11 +4,14 @@ package namespace
 import (
 	"context"
 	"errors"
+	"sync"
 )
 
 // Manager is responsible for managing namespaces in different components.
 type Manager struct {
 	config ManagerConfig
+
+	mu sync.RWMutex
 }
 
 type ManagerConfig struct {
@@ -22,8 +25,15 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 		return nil, errors.New("default namespace is required")
 	}
 
+	for _, handler := range config.Handlers {
+		if handler == nil {
+			return nil, errors.New("handler must not be nil")
+		}
+	}
+
 	manager := Manager{
 		config: config,
+		mu:     sync.RWMutex{},
 	}
 
 	return &manager, nil
@@ -41,7 +51,7 @@ type Handler interface {
 }
 
 // CreateNamespace orchestrates namespace creation across different components.
-func (m Manager) CreateNamespace(ctx context.Context, name string) error {
+func (m *Manager) CreateNamespace(ctx context.Context, name string) error {
 	if name == "" {
 		return errors.New("cannot create empty namespace")
 	}
@@ -50,7 +60,7 @@ func (m Manager) CreateNamespace(ctx context.Context, name string) error {
 }
 
 // DeleteNamespace orchestrates namespace creation across different components.
-func (m Manager) DeleteNamespace(ctx context.Context, name string) error {
+func (m *Manager) DeleteNamespace(ctx context.Context, name string) error {
 	if name == "" {
 		return errors.New("cannot delete empty namespace")
 	}
@@ -62,24 +72,41 @@ func (m Manager) DeleteNamespace(ctx context.Context, name string) error {
 	return m.deleteNamespace(ctx, name)
 }
 
+// RegisterHandler registers handler to be invoked on namespace create/delete.
+func (m *Manager) RegisterHandler(handler Handler) error {
+	if handler == nil {
+		return errors.New("cannot register nil handler")
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.config.Handlers = append(m.config.Handlers, handler)
+
+	return nil
+}
+
 // CreateDefaultNamespace orchestrates the creation of a default namespace.
 //
 // The concept of a default namespace is implementation specific.
-func (m Manager) CreateDefaultNamespace(ctx context.Context) error {
+func (m *Manager) CreateDefaultNamespace(ctx context.Context) error {
 	return m.createNamespace(ctx, m.config.DefaultNamespace)
 }
 
-func (m Manager) GetDefaultNamespace() string {
+func (m *Manager) GetDefaultNamespace() string {
 	return m.config.DefaultNamespace
 }
 
-func (m Manager) IsManagementDisabled() bool {
+func (m *Manager) IsManagementDisabled() bool {
 	return m.config.DisableManagement
 }
 
 // TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to create a namespace).
-func (m Manager) createNamespace(ctx context.Context, name string) error {
+func (m *Manager) createNamespace(ctx context.Context, name string) error {
 	var errs []error
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	for _, handler := range m.config.Handlers {
 		err := handler.CreateNamespace(ctx, name)
@@ -92,8 +119,11 @@ func (m Manager) createNamespace(ctx context.Context, name string) error {
 }
 
 // TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to delete a namespace).
-func (m Manager) deleteNamespace(ctx context.Context, name string) error {
+func (m *Manager) deleteNamespace(ctx context.Context, name string) error {
 	var errs []error
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	for _, handler := range m.config.Handlers {
 		err := handler.DeleteNamespace(ctx, name)
