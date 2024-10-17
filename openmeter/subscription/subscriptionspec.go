@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -58,7 +59,9 @@ func (s *SubscriptionSpec) GetSortedPhases() []*SubscriptionPhaseSpec {
 	}
 
 	slices.SortStableFunc(phases, func(i, j *SubscriptionPhaseSpec) int {
-		return int((i.StartAfter - j.StartAfter))
+		iTime, _ := i.StartAfter.AddTo(s.ActiveFrom)
+		jTime, _ := j.StartAfter.AddTo(s.ActiveFrom)
+		return int(iTime.Sub(jTime))
 	})
 
 	return phases
@@ -67,7 +70,7 @@ func (s *SubscriptionSpec) GetSortedPhases() []*SubscriptionPhaseSpec {
 func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpec, bool) {
 	var current *SubscriptionPhaseSpec
 	for _, phase := range s.GetSortedPhases() {
-		if s.ActiveFrom.Add(phase.StartAfter).Before(t) {
+		if st, _ := phase.StartAfter.AddTo(s.ActiveFrom); st.Before(t) {
 			current = phase
 		} else {
 			break
@@ -97,11 +100,8 @@ func (s *SubscriptionSpec) Validate() error {
 }
 
 type CreateSubscriptionPhasePlanInput struct {
-	PhaseKey string `json:"phaseKey"`
-	// We can use time.Duration for ISO8601 durations because the start time of the Subscription is known in the spec
-	// so the duration can be calculated from the start date.
-	// TODO: we should serialize as ISO8601
-	StartAfter time.Duration `json:"startAfter"`
+	PhaseKey   string       `json:"phaseKey"`
+	StartAfter datex.Period `json:"startAfter"`
 	// TODO: add back Plan level discounts
 	// CreateDiscountInput *applieddiscount.CreateInput
 }
@@ -234,9 +234,8 @@ const (
 )
 
 type ApplyContext struct {
-	Operation             SpecOperation
-	CurrentTime           time.Time
-	SubscriptionStartTime time.Time
+	Operation   SpecOperation
+	CurrentTime time.Time
 }
 
 // Each Patch applies its changes to the SubscriptionSpec.
