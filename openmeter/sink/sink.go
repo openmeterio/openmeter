@@ -29,11 +29,6 @@ import (
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
-const (
-	defaultOnFlushSuccessTimeout = 5 * time.Second
-	defaultDrainTimeout          = 10 * time.Second
-)
-
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 
 type Sink struct {
@@ -65,6 +60,9 @@ type SinkConfig struct {
 	MinCommitCount int
 	// MaxCommitWait is the maximum time to wait before flushing the buffer
 	MaxCommitWait time.Duration
+	// The time, in milliseconds, spent waiting in poll if data is not available in the buffer.
+	// If 0, returns immediately with any records that are available currently in the buffer, else returns empty.
+	MaxPollTimeout time.Duration
 	// NamespaceRefetch is the interval to refetch exsisting namespaces and meters
 	// this information is used to configure which topics the consumer subscribes and
 	// the meter configs used in event validation.
@@ -74,9 +72,12 @@ type SinkConfig struct {
 	// flushes. To prevent blocking the main sink logic this is always called in a go routine.
 	FlushEventHandler flushhandler.FlushEventHandler
 
-	// FlushSuccessTimeout is the timeout for the OnFlushSuccess callback, after this period the context
-	// of the callback will be canceled.
+	// FlushSuccessTimeout is the timeout for the OnFlushSuccess callback,
+	// after this period the context of the callback will be canceled.
 	FlushSuccessTimeout time.Duration
+
+	// DrainTimeout is the maximum time to wait before draining the buffer and closing the sink.
+	DrainTimeout time.Duration
 
 	TopicResolver topicresolver.Resolver
 }
@@ -88,21 +89,6 @@ func NewSink(config SinkConfig) (*Sink, error) {
 
 	if config.TopicResolver == nil {
 		return nil, errors.New("topic name resolver is required")
-	}
-
-	// Defaults
-	if config.MinCommitCount == 0 {
-		config.MinCommitCount = 1
-	}
-	if config.MaxCommitWait == 0 {
-		config.MaxCommitWait = 1 * time.Second
-	}
-	if config.NamespaceRefetch == 0 {
-		config.NamespaceRefetch = 15 * time.Second
-	}
-
-	if config.FlushSuccessTimeout == 0 {
-		config.FlushSuccessTimeout = defaultOnFlushSuccessTimeout
 	}
 
 	// Initialize OTel metrics
@@ -500,7 +486,7 @@ func (s *Sink) Run(ctx context.Context) error {
 			return fmt.Errorf("context canceled: %w", ctx.Err())
 
 		default:
-			ev := s.config.Consumer.Poll(100)
+			ev := s.config.Consumer.Poll(int(s.config.MaxPollTimeout.Milliseconds()))
 			if ev == nil {
 				continue
 			}
@@ -783,7 +769,7 @@ func (s *Sink) Close() error {
 
 	if s.config.FlushEventHandler != nil {
 		logger.Info("shutting down flush success handlers")
-		drainTimeoutContext, cancel := context.WithTimeout(context.Background(), defaultDrainTimeout)
+		drainTimeoutContext, cancel := context.WithTimeout(context.Background(), s.config.DrainTimeout)
 		defer cancel()
 		if err := s.config.FlushEventHandler.WaitForDrain(drainTimeoutContext); err != nil {
 			logger.Error("failed to shutdown flush success handlers", slog.String("err", err.Error()))
