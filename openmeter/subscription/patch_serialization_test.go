@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "asd",
-					StartAfter: 0,
+					StartAfter: datex.FromDuration(0),
 				},
 				CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{
 					CreateDiscountInput: &applieddiscount.Spec{
@@ -51,7 +52,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "asd",
-					StartAfter: 0,
+					StartAfter: datex.FromDuration(0),
 				},
 			},
 		}
@@ -68,7 +69,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 	t.Run("Should be the same for PatchExtendPhase", func(t *testing.T) {
 		p := &subscription.PatchExtendPhase{
 			PhaseKey: "asd",
-			Duration: time.Hour,
+			Duration: datex.FromDuration(time.Hour),
 		}
 
 		assertSame(t, p)

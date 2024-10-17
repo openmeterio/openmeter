@@ -3,7 +3,8 @@ package subscription
 import (
 	"encoding/json"
 	"fmt"
-	"time"
+
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 type AnyPatch struct {
@@ -96,7 +97,7 @@ func Deserialize(b []byte) (any, error) {
 			PhaseKey: pPath.PhaseKey(),
 		}, nil
 	} else if pPath.Type() == PatchPathTypePhase && pOp == PatchOperationExtend {
-		var val *time.Duration
+		var val *datex.Period
 
 		if err := json.Unmarshal(p.Value, &val); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal patch value: %w", err)
