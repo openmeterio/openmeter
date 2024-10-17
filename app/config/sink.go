@@ -15,7 +15,10 @@ type SinkConfiguration struct {
 	Dedupe              DedupeConfiguration
 	MinCommitCount      int
 	MaxCommitWait       time.Duration
+	MaxPollTimeout      time.Duration
 	NamespaceRefetch    time.Duration
+	FlushSuccessTimeout time.Duration
+	DrainTimeout        time.Duration
 	IngestNotifications IngestNotificationsConfiguration
 	// Kafka client/Consumer configuration
 	Kafka KafkaConfig
@@ -28,12 +31,24 @@ func (c SinkConfiguration) Validate() error {
 		errs = append(errs, errors.New("MinCommitCount must be greater than 0"))
 	}
 
-	if c.MaxCommitWait < 1 {
+	if c.MaxCommitWait == 0 {
 		errs = append(errs, errors.New("MaxCommitWait must be greater than 0"))
 	}
 
-	if c.NamespaceRefetch < 1 {
+	if c.MaxPollTimeout == 0 {
+		errs = append(errs, errors.New("MaxPollTimeout must be greater than 0"))
+	}
+
+	if c.NamespaceRefetch == 0 {
 		errs = append(errs, errors.New("NamespaceRefetch must be greater than 0"))
+	}
+
+	if c.FlushSuccessTimeout == 0 {
+		errs = append(errs, errors.New("FlushSuccessTimeout must be greater than 0"))
+	}
+
+	if c.DrainTimeout == 0 {
+		errs = append(errs, errors.New("DrainTimeout must be greater than 0"))
 	}
 
 	if err := c.IngestNotifications.Validate(); err != nil {
@@ -90,7 +105,10 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.groupId", "openmeter-sink-worker")
 	v.SetDefault("sink.minCommitCount", 500)
 	v.SetDefault("sink.maxCommitWait", "5s")
+	v.SetDefault("sink.maxPollTimeout", "100ms")
 	v.SetDefault("sink.namespaceRefetch", "15s")
+	v.SetDefault("sink.flushSuccessTimeout", "5s")
+	v.SetDefault("sink.drainTimeout", "10s")
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
 
 	// Sink Kafka configuration

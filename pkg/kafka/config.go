@@ -196,6 +196,19 @@ type ConsumerConfigParams struct {
 	// Cooperative and non-cooperative (eager) strategies must not be mixed.
 	// Available strategies: range, roundrobin, cooperative-sticky.
 	PartitionAssignmentStrategy string
+
+	// The maximum number of records returned in a single call to poll().
+	// Note, that max.poll.records does not impact the underlying fetching behavior.
+	// The consumer will cache the records from each fetch request and returns them incrementally from each poll.
+	// See https://docs.confluent.io/platform/current/installation/configuration/consumer-configs.html#max-poll-records
+	MaxPollRecords int
+
+	// The maximum delay between invocations of poll() when using consumer group management.
+	// This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
+	// If poll() is not called before expiration of this timeout, then the consumer is considered failed and
+	// the group will rebalance in order to reassign the partitions to another member.
+	// See https://docs.confluent.io/platform/current/installation/configuration/consumer-configs.html#max-poll-interval-ms
+	MaxPollInterval TimeDurationMilliSeconds
 }
 
 func (c ConsumerConfigParams) Validate() error {
@@ -219,6 +232,10 @@ func (c ConsumerConfigParams) Validate() error {
 				return fmt.Errorf("invalid partition assignment strategy: %s", strategy)
 			}
 		}
+	}
+
+	if c.MaxPollRecords < 0 {
+		return errors.New("max poll records must be non negative")
 	}
 
 	return nil
@@ -249,6 +266,18 @@ func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 
 	if c.HeartbeatInterval > 0 {
 		if err := m.SetKey("heartbeat.interval.ms", c.HeartbeatInterval); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.MaxPollRecords > 0 {
+		if err := m.SetKey("max.poll.records", c.MaxPollRecords); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.MaxPollInterval > 0 {
+		if err := m.SetKey("max.poll.interval.ms", c.MaxPollInterval); err != nil {
 			return nil, err
 		}
 	}
