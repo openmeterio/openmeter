@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -17,7 +18,7 @@ type CreateSubscriptionInput struct {
 	Plan PlanRef
 
 	CustomerId string `json:"customerId,omitempty"`
-	Currency   models.CurrencyCode
+	Currency   currencyx.Code
 	models.CadencedModel
 }
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 )
@@ -14,7 +15,7 @@ type NewSubscriptionRequest struct {
 	Namespace  string
 	ActiveFrom time.Time
 	CustomerID string
-	Currency   models.CurrencyCode
+	Currency   currencyx.Code
 
 	Plan struct {
 		Key     string
@@ -151,41 +152,53 @@ func (q *query) Get(ctx context.Context, subscriptionID string) (Subscription, e
 }
 
 func (q *query) Expand(ctx context.Context, subscriptionID string) (SubscriptionView, error) {
-	// sub, err := q.Get(ctx, subscriptionID)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	sub, err := q.Get(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
 
-	// patches, err := q.repo.GetPatches(ctx, subscriptionID)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	patches, err := q.repo.GetSubscriptionPatches(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
 
-	// plan, err := q.planAdapter.GetVersion(ctx, sub.Plan.Key, sub.Plan.Version)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	plan, err := q.planAdapter.GetVersion(ctx, sub.Plan.Key, sub.Plan.Version)
+	if err != nil {
+		return nil, err
+	}
 
-	// // Get the default spec based on the Plan
-	// spec, err := SpecFromPlan(plan, CreateSubscriptionCustomerInput{
-	// 	Currency:   sub.Currency,
-	// 	CustomerId: sub.CustomerId,
-	// 	ActiveFrom: sub.ActiveFrom,
-	// })
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create subscription spec from plan: %w", err)
-	// }
+	// Get the default spec based on the Plan
+	spec, err := SpecFromPlan(plan, CreateSubscriptionCustomerInput{
+		Currency:   sub.Currency,
+		CustomerId: sub.CustomerId,
+		ActiveFrom: sub.ActiveFrom,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create subscription spec from plan: %w", err)
+	}
 
-	// // Apply customizations
-	// err = spec.ApplyPatches(lo.Map(patches, func(p SubscriptionPatch, i int) Applies  {
+	// Map patches to applies
+	applies := make([]Applies, 0, len(patches))
+	for _, sp := range patches {
+		a, err := sp.AsPatch()
+		if err != nil {
+			return nil, err
+		}
+		if p, ok := a.(Applies); !ok {
+			return nil, fmt.Errorf("failed to convert patch to applies")
+		} else {
+			applies = append(applies, p)
+		}
+	}
 
-	// }), ApplyContext{
-	// 	Operation:   SpecOperationCreate,
-	// 	CurrentTime: clock.Now(),
-	// })
-	// if err != nil {
-	// 	return def, fmt.Errorf("failed to apply customizations: %w", err)
-	// }
+	// Apply customizations
+	err = spec.ApplyPatches(applies, ApplyContext{
+		Operation:   SpecOperationCreate,
+		CurrentTime: clock.Now(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply customizations: %w", err)
+	}
 
 	panic("implement me")
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/samber/lo"
 )
 
@@ -200,11 +200,13 @@ func (a PatchAddItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 			// if all phases are in the past then no addition is possible
 			//
 			// If all phases are in the past then the selected one is also in the past
-			if spec.ActiveFrom.Add(phase.StartAfter).Before(actx.CurrentTime) {
+			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
 				return &PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", a.PhaseKey)}
 			}
 		} else {
-			if phase.StartAfter < currentPhase.StartAfter {
+			pST, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
+			cPST, _ := currentPhase.StartAfter.AddTo(spec.ActiveFrom)
+			if pST.Before(cPST) {
 				return &PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", a.PhaseKey)}
 			}
 		}
@@ -249,11 +251,13 @@ func (r PatchRemoveItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) erro
 			// if all phases are in the past then no addition is possible
 			//
 			// If all phases are in the past then the selected one is also in the past
-			if spec.ActiveFrom.Add(phase.StartAfter).Before(actx.CurrentTime) {
+			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
 				return &PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
 			}
 		} else {
-			if phase.StartAfter < currentPhase.StartAfter {
+			pST, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
+			cPST, _ := currentPhase.StartAfter.AddTo(spec.ActiveFrom)
+			if pST.Before(cPST) {
 				return &PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
 			}
 		}
@@ -299,11 +303,15 @@ func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error 
 	// 2. You can only add a phase as the last phase
 	sortedPhases := spec.GetSortedPhases()
 	lastPhase := sortedPhases[len(sortedPhases)-1]
-	if lastPhase.StartAfter >= a.Value().StartAfter {
+
+	lPST, _ := lastPhase.StartAfter.AddTo(spec.ActiveFrom)
+	vST, _ := a.Value().StartAfter.AddTo(spec.ActiveFrom)
+
+	if vST.Before(lPST) {
 		return &PatchForbiddenError{Msg: "cannot add phase before the last phase"}
 	}
 	// 3. You can only add a phase before the subscription ends
-	if spec.ActiveTo != nil && !spec.ActiveFrom.Add(a.Value().StartAfter).Before(*spec.ActiveTo) {
+	if spec.ActiveTo != nil && !vST.Before(*spec.ActiveTo) {
 		return &PatchForbiddenError{Msg: "cannot add phase after the subscription ends"}
 	}
 
@@ -339,7 +347,7 @@ func (r PatchRemovePhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 		return &PatchForbiddenError{Msg: "you can only remove a phase in edit"}
 	}
 	// 2. You can only remove future phases
-	if !spec.ActiveFrom.Add(phase.StartAfter).After(actx.CurrentTime) {
+	if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); !st.After(actx.CurrentTime) {
 		return &PatchForbiddenError{Msg: "cannot remove already started phase"}
 	}
 
@@ -349,7 +357,7 @@ func (r PatchRemovePhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 
 type PatchExtendPhase struct {
 	PhaseKey string
-	Duration time.Duration
+	Duration datex.Period
 }
 
 func (e PatchExtendPhase) Op() PatchOperation {
@@ -360,21 +368,12 @@ func (e PatchExtendPhase) Path() PatchPath {
 	return NewPhasePath(e.PhaseKey)
 }
 
-func (e PatchExtendPhase) Value() time.Duration {
+func (e PatchExtendPhase) Value() datex.Period {
 	return e.Duration
 }
 
-var _ ValuePatch[time.Duration] = PatchExtendPhase{}
+var _ ValuePatch[datex.Period] = PatchExtendPhase{}
 
-// FIXME:
-// We can't store duration as time.Duration in the spec if it's provided as ISO8601.
-// The reason is ISO8601 => time.Duration would yield different results for the start time of each phase we're extending.
-//
-// Either
-// 1. We can store time.Duration as it gets transalted for the targe phase, then convert back and forth and reapply for all phases (quite hacky)
-// 2. We store it as ISO string
-//
-// Furthermore, we should check if go Date normalization behaves as expected (e.g. shifts in day of the month values when extending by months)
 func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 	phase, ok := spec.Phases[e.PhaseKey]
 	if !ok {
@@ -388,16 +387,19 @@ func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 	if actx.Operation != SpecOperationEdit {
 		return &PatchForbiddenError{Msg: "you can only extend a phase in edit"}
 	}
+	pST, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 	// 2. You cannot extend past phases, only current or future ones
 	current, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
 	if exists {
-		if phase.StartAfter < current.StartAfter {
+		cPST, _ := current.StartAfter.AddTo(spec.ActiveFrom)
+
+		if pST.Before(cPST) {
 			return &PatchForbiddenError{Msg: "cannot extend past phase"}
 		}
 	} else {
 		// If current phase doesn't exist then all phases are either in the past or in the future
 		// If they're all in the past then the by checking any we can see if it should fail or not
-		if spec.ActiveFrom.Add(phase.StartAfter).Before(actx.CurrentTime) {
+		if pST.Before(actx.CurrentTime) {
 			return &PatchForbiddenError{Msg: "cannot extend past phase"}
 		}
 	}
@@ -409,7 +411,13 @@ func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 		}
 
 		if reachedTargetPhase {
-			sortedPhases[i].StartAfter += e.Duration
+			// Adding durtions in the semantic way (using ISO8601 format)
+			sa, err := p.StartAfter.Add(e.Duration)
+			if err != nil {
+				return &PatchValidationError{Msg: fmt.Sprintf("failed to extend phase %s: %s", p.PhaseKey, err)}
+			}
+			sortedPhases[i].StartAfter = sa
+
 		}
 	}
 
