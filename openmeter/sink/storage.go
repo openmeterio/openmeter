@@ -17,8 +17,10 @@ type Storage interface {
 }
 
 type ClickHouseStorageConfig struct {
-	ClickHouse clickhouse.Conn
-	Database   string
+	ClickHouse      clickhouse.Conn
+	Database        string
+	AsyncInsert     bool
+	AsyncInsertWait bool
 }
 
 func NewClickhouseStorage(config ClickHouseStorageConfig) *ClickHouseStorage {
@@ -40,6 +42,15 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 	sql, args, err := query.ToSQL()
 	if err != nil {
 		return err
+	}
+
+	// By default, ClickHouse is writing data synchronously.
+	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
+	if c.config.AsyncInsert {
+		// With the `wait_for_async_insert` setting, you can configure
+		// if you want an insert statement to return with an acknowledgment
+		// either immediately after the data got inserted into the buffer.
+		ctx = clickhouse.Context(ctx, clickhouse.WithStdAsync(c.config.AsyncInsertWait))
 	}
 
 	err = c.config.ClickHouse.Exec(ctx, sql, args...)

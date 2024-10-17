@@ -180,6 +180,10 @@ func TestComplete(t *testing.T) {
 					PartitionAssignmentStrategy: "cooperative-sticky",
 				},
 			},
+			Storage: StorageConfiguration{
+				AsyncInsert:     false,
+				AsyncInsertWait: false,
+			},
 		},
 		Dedupe: DedupeConfiguration{
 			Enabled: true,

@@ -148,8 +148,10 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 
 	storage := sink.NewClickhouseStorage(
 		sink.ClickHouseStorageConfig{
-			ClickHouse: clickhouseClient,
-			Database:   config.Aggregation.ClickHouse.Database,
+			ClickHouse:      clickhouseClient,
+			Database:        config.Aggregation.ClickHouse.Database,
+			AsyncInsert:     config.Sink.Storage.AsyncInsert,
+			AsyncInsertWait: config.Sink.Storage.AsyncInsertWait,
 		},
 	)
 

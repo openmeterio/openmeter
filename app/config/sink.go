@@ -22,6 +22,8 @@ type SinkConfiguration struct {
 	IngestNotifications IngestNotificationsConfiguration
 	// Kafka client/Consumer configuration
 	Kafka KafkaConfig
+	// Storage configuration
+	Storage StorageConfiguration
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -80,6 +82,25 @@ func (c IngestNotificationsConfiguration) Validate() error {
 	return errors.Join(errs...)
 }
 
+type StorageConfiguration struct {
+	// Set true for ClickHouse first store the incoming inserts into an in-memory buffer
+	// before flushing them regularly to disk.
+	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
+	AsyncInsert bool
+	// Set true if you want an insert statement to return with an acknowledgment immediatelyy
+	// without waiting for the data got inserted into the buffer.
+	// Setting true can cause silent errors that you need to monitor separately.
+	AsyncInsertWait bool
+}
+
+func (c StorageConfiguration) Validate() error {
+	if c.AsyncInsertWait && !c.AsyncInsert {
+		return errors.New("AsyncInsertWait is set but AsyncInsert is not")
+	}
+
+	return nil
+}
+
 // ConfigureSink setup Sink specific configuration defaults for provided *viper.Viper instance.
 func ConfigureSink(v *viper.Viper) {
 	// Sink Dedupe
@@ -110,6 +131,10 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.flushSuccessTimeout", "5s")
 	v.SetDefault("sink.drainTimeout", "10s")
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
+
+	// Sink Storage
+	v.SetDefault("sink.storage.asyncInsert", false)
+	v.SetDefault("sink.storage.asyncInsertWait", false)
 
 	// Sink Kafka configuration
 	ConfigureKafkaConfiguration(v, "sink")
