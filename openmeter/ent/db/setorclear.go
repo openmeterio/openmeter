@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -167,18 +168,18 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearItemCollectionPeriodSeconds(value *int64) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearItemCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearItemCollectionPeriodSeconds()
+		return u.ClearItemCollectionPeriod()
 	}
-	return u.SetItemCollectionPeriodSeconds(*value)
+	return u.SetItemCollectionPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearItemCollectionPeriodSeconds(value *int64) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearItemCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearItemCollectionPeriodSeconds()
+		return u.ClearItemCollectionPeriod()
 	}
-	return u.SetItemCollectionPeriodSeconds(*value)
+	return u.SetItemCollectionPeriod(*value)
 }
 
 func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceAutoAdvance(value *bool) *BillingCustomerOverrideUpdate {
@@ -195,32 +196,32 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceAutoAdvance(value *b
 	return u.SetInvoiceAutoAdvance(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDraftPeriodSeconds(value *int64) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDraftPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearInvoiceDraftPeriodSeconds()
+		return u.ClearInvoiceDraftPeriod()
 	}
-	return u.SetInvoiceDraftPeriodSeconds(*value)
+	return u.SetInvoiceDraftPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDraftPeriodSeconds(value *int64) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDraftPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceDraftPeriodSeconds()
+		return u.ClearInvoiceDraftPeriod()
 	}
-	return u.SetInvoiceDraftPeriodSeconds(*value)
+	return u.SetInvoiceDraftPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDueAfterSeconds(value *int64) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDueAfter(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearInvoiceDueAfterSeconds()
+		return u.ClearInvoiceDueAfter()
 	}
-	return u.SetInvoiceDueAfterSeconds(*value)
+	return u.SetInvoiceDueAfter(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfterSeconds(value *int64) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfter(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceDueAfterSeconds()
+		return u.ClearInvoiceDueAfter()
 	}
-	return u.SetInvoiceDueAfterSeconds(*value)
+	return u.SetInvoiceDueAfter(*value)
 }
 
 func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceCollectionMethod(value *billing.CollectionMethod) *BillingCustomerOverrideUpdate {

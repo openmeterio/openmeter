@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // BillingCustomerOverride is the model entity for the BillingCustomerOverride schema.
@@ -34,14 +35,14 @@ type BillingCustomerOverride struct {
 	BillingProfileID *string `json:"billing_profile_id,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
-	// ItemCollectionPeriodSeconds holds the value of the "item_collection_period_seconds" field.
-	ItemCollectionPeriodSeconds *int64 `json:"item_collection_period_seconds,omitempty"`
+	// ItemCollectionPeriod holds the value of the "item_collection_period" field.
+	ItemCollectionPeriod *datex.ISOString `json:"item_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
 	InvoiceAutoAdvance *bool `json:"invoice_auto_advance,omitempty"`
-	// InvoiceDraftPeriodSeconds holds the value of the "invoice_draft_period_seconds" field.
-	InvoiceDraftPeriodSeconds *int64 `json:"invoice_draft_period_seconds,omitempty"`
-	// InvoiceDueAfterSeconds holds the value of the "invoice_due_after_seconds" field.
-	InvoiceDueAfterSeconds *int64 `json:"invoice_due_after_seconds,omitempty"`
+	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
+	InvoiceDraftPeriod *datex.ISOString `json:"invoice_draft_period,omitempty"`
+	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
+	InvoiceDueAfter *datex.ISOString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
 	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceItemResolution holds the value of the "invoice_item_resolution" field.
@@ -94,9 +95,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceItemPerSubject:
 			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldItemCollectionPeriodSeconds, billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-			values[i] = new(sql.NullInt64)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldInvoiceItemResolution:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldItemCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldInvoiceItemResolution:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -166,12 +165,12 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 				bco.CollectionAlignment = new(billing.AlignmentKind)
 				*bco.CollectionAlignment = billing.AlignmentKind(value.String)
 			}
-		case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field item_collection_period_seconds", values[i])
+		case billingcustomeroverride.FieldItemCollectionPeriod:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field item_collection_period", values[i])
 			} else if value.Valid {
-				bco.ItemCollectionPeriodSeconds = new(int64)
-				*bco.ItemCollectionPeriodSeconds = value.Int64
+				bco.ItemCollectionPeriod = new(datex.ISOString)
+				*bco.ItemCollectionPeriod = datex.ISOString(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -180,19 +179,19 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 				bco.InvoiceAutoAdvance = new(bool)
 				*bco.InvoiceAutoAdvance = value.Bool
 			}
-		case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_draft_period_seconds", values[i])
+		case billingcustomeroverride.FieldInvoiceDraftPeriod:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_draft_period", values[i])
 			} else if value.Valid {
-				bco.InvoiceDraftPeriodSeconds = new(int64)
-				*bco.InvoiceDraftPeriodSeconds = value.Int64
+				bco.InvoiceDraftPeriod = new(datex.ISOString)
+				*bco.InvoiceDraftPeriod = datex.ISOString(value.String)
 			}
-		case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_due_after_seconds", values[i])
+		case billingcustomeroverride.FieldInvoiceDueAfter:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_due_after", values[i])
 			} else if value.Valid {
-				bco.InvoiceDueAfterSeconds = new(int64)
-				*bco.InvoiceDueAfterSeconds = value.Int64
+				bco.InvoiceDueAfter = new(datex.ISOString)
+				*bco.InvoiceDueAfter = datex.ISOString(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceCollectionMethod:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -288,8 +287,8 @@ func (bco *BillingCustomerOverride) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.ItemCollectionPeriodSeconds; v != nil {
-		builder.WriteString("item_collection_period_seconds=")
+	if v := bco.ItemCollectionPeriod; v != nil {
+		builder.WriteString("item_collection_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
@@ -298,13 +297,13 @@ func (bco *BillingCustomerOverride) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceDraftPeriodSeconds; v != nil {
-		builder.WriteString("invoice_draft_period_seconds=")
+	if v := bco.InvoiceDraftPeriod; v != nil {
+		builder.WriteString("invoice_draft_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceDueAfterSeconds; v != nil {
-		builder.WriteString("invoice_due_after_seconds=")
+	if v := bco.InvoiceDueAfter; v != nil {
+		builder.WriteString("invoice_due_after=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

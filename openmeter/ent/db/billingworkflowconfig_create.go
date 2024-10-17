@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -95,9 +96,9 @@ func (bwcc *BillingWorkflowConfigCreate) SetCollectionAlignment(bk billing.Align
 	return bwcc
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (bwcc *BillingWorkflowConfigCreate) SetItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetItemCollectionPeriodSeconds(i)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (bwcc *BillingWorkflowConfigCreate) SetItemCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetItemCollectionPeriod(ds)
 	return bwcc
 }
 
@@ -107,15 +108,15 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceAutoAdvance(b bool) *BillingW
 	return bwcc
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDraftPeriodSeconds(i int64) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceDraftPeriod(ds)
 	return bwcc
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetInvoiceDueAfterSeconds(i)
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDueAfter(ds datex.ISOString) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceDueAfter(ds)
 	return bwcc
 }
 
@@ -262,17 +263,17 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.ItemCollectionPeriodSeconds(); !ok {
-		return &ValidationError{Name: "item_collection_period_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.item_collection_period_seconds"`)}
+	if _, ok := bwcc.mutation.ItemCollectionPeriod(); !ok {
+		return &ValidationError{Name: "item_collection_period", err: errors.New(`db: missing required field "BillingWorkflowConfig.item_collection_period"`)}
 	}
 	if _, ok := bwcc.mutation.InvoiceAutoAdvance(); !ok {
 		return &ValidationError{Name: "invoice_auto_advance", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_auto_advance"`)}
 	}
-	if _, ok := bwcc.mutation.InvoiceDraftPeriodSeconds(); !ok {
-		return &ValidationError{Name: "invoice_draft_period_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_draft_period_seconds"`)}
+	if _, ok := bwcc.mutation.InvoiceDraftPeriod(); !ok {
+		return &ValidationError{Name: "invoice_draft_period", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_draft_period"`)}
 	}
-	if _, ok := bwcc.mutation.InvoiceDueAfterSeconds(); !ok {
-		return &ValidationError{Name: "invoice_due_after_seconds", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_due_after_seconds"`)}
+	if _, ok := bwcc.mutation.InvoiceDueAfter(); !ok {
+		return &ValidationError{Name: "invoice_due_after", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_due_after"`)}
 	}
 	if _, ok := bwcc.mutation.InvoiceCollectionMethod(); !ok {
 		return &ValidationError{Name: "invoice_collection_method", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_collection_method"`)}
@@ -353,21 +354,21 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = value
 	}
-	if value, ok := bwcc.mutation.ItemCollectionPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
-		_node.ItemCollectionPeriodSeconds = value
+	if value, ok := bwcc.mutation.ItemCollectionPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriod, field.TypeString, value)
+		_node.ItemCollectionPeriod = value
 	}
 	if value, ok := bwcc.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
 		_node.InvoiceAutoAdvance = value
 	}
-	if value, ok := bwcc.mutation.InvoiceDraftPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
-		_node.InvoiceDraftPeriodSeconds = value
+	if value, ok := bwcc.mutation.InvoiceDraftPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriod, field.TypeString, value)
+		_node.InvoiceDraftPeriod = value
 	}
-	if value, ok := bwcc.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-		_node.InvoiceDueAfterSeconds = value
+	if value, ok := bwcc.mutation.InvoiceDueAfter(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfter, field.TypeString, value)
+		_node.InvoiceDueAfter = value
 	}
 	if value, ok := bwcc.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
@@ -525,21 +526,15 @@ func (u *BillingWorkflowConfigUpsert) UpdateCollectionAlignment() *BillingWorkfl
 	return u
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsert) SetItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldItemCollectionPeriodSeconds, v)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (u *BillingWorkflowConfigUpsert) SetItemCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldItemCollectionPeriod, v)
 	return u
 }
 
-// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateItemCollectionPeriodSeconds() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldItemCollectionPeriodSeconds)
-	return u
-}
-
-// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsert) AddItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Add(billingworkflowconfig.FieldItemCollectionPeriodSeconds, v)
+// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateItemCollectionPeriod() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldItemCollectionPeriod)
 	return u
 }
 
@@ -555,39 +550,27 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceAutoAdvance() *BillingWorkflo
 	return u
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceDraftPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, v)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceDraftPeriod(v datex.ISOString) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceDraftPeriod, v)
 	return u
 }
 
-// UpdateInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds)
+// UpdateInvoiceDraftPeriod sets the "invoice_draft_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDraftPeriod() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceDraftPeriod)
 	return u
 }
 
-// AddInvoiceDraftPeriodSeconds adds v to the "invoice_draft_period_seconds" field.
-func (u *BillingWorkflowConfigUpsert) AddInvoiceDraftPeriodSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Add(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, v)
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceDueAfter(v datex.ISOString) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceDueAfter, v)
 	return u
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldInvoiceDueAfterSeconds, v)
-	return u
-}
-
-// UpdateInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDueAfterSeconds() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldInvoiceDueAfterSeconds)
-	return u
-}
-
-// AddInvoiceDueAfterSeconds adds v to the "invoice_due_after_seconds" field.
-func (u *BillingWorkflowConfigUpsert) AddInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsert {
-	u.Add(billingworkflowconfig.FieldInvoiceDueAfterSeconds, v)
+// UpdateInvoiceDueAfter sets the "invoice_due_after" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDueAfter() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceDueAfter)
 	return u
 }
 
@@ -751,24 +734,17 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionAlignment() *BillingWor
 	})
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) SetItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (u *BillingWorkflowConfigUpsertOne) SetItemCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetItemCollectionPeriodSeconds(v)
+		s.SetItemCollectionPeriod(v)
 	})
 }
 
-// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) AddItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateItemCollectionPeriod() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddItemCollectionPeriodSeconds(v)
-	})
-}
-
-// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateItemCollectionPeriodSeconds() *BillingWorkflowConfigUpsertOne {
-	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateItemCollectionPeriodSeconds()
+		s.UpdateItemCollectionPeriod()
 	})
 }
 
@@ -786,45 +762,31 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceAutoAdvance() *BillingWork
 	})
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDraftPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDraftPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceDraftPeriodSeconds(v)
+		s.SetInvoiceDraftPeriod(v)
 	})
 }
 
-// AddInvoiceDraftPeriodSeconds adds v to the "invoice_draft_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) AddInvoiceDraftPeriodSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// UpdateInvoiceDraftPeriod sets the "invoice_draft_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDraftPeriod() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddInvoiceDraftPeriodSeconds(v)
+		s.UpdateInvoiceDraftPeriod()
 	})
 }
 
-// UpdateInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpsertOne {
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDueAfter(v datex.ISOString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceDraftPeriodSeconds()
+		s.SetInvoiceDueAfter(v)
 	})
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsertOne {
+// UpdateInvoiceDueAfter sets the "invoice_due_after" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDueAfter() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceDueAfterSeconds(v)
-	})
-}
-
-// AddInvoiceDueAfterSeconds adds v to the "invoice_due_after_seconds" field.
-func (u *BillingWorkflowConfigUpsertOne) AddInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsertOne {
-	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddInvoiceDueAfterSeconds(v)
-	})
-}
-
-// UpdateInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDueAfterSeconds() *BillingWorkflowConfigUpsertOne {
-	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceDueAfterSeconds()
+		s.UpdateInvoiceDueAfter()
 	})
 }
 
@@ -1161,24 +1123,17 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionAlignment() *BillingWo
 	})
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetItemCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetItemCollectionPeriodSeconds(v)
+		s.SetItemCollectionPeriod(v)
 	})
 }
 
-// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) AddItemCollectionPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateItemCollectionPeriod() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddItemCollectionPeriodSeconds(v)
-	})
-}
-
-// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateItemCollectionPeriodSeconds() *BillingWorkflowConfigUpsertBulk {
-	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateItemCollectionPeriodSeconds()
+		s.UpdateItemCollectionPeriod()
 	})
 }
 
@@ -1196,45 +1151,31 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceAutoAdvance() *BillingWor
 	})
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDraftPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDraftPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceDraftPeriodSeconds(v)
+		s.SetInvoiceDraftPeriod(v)
 	})
 }
 
-// AddInvoiceDraftPeriodSeconds adds v to the "invoice_draft_period_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) AddInvoiceDraftPeriodSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// UpdateInvoiceDraftPeriod sets the "invoice_draft_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDraftPeriod() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddInvoiceDraftPeriodSeconds(v)
+		s.UpdateInvoiceDraftPeriod()
 	})
 }
 
-// UpdateInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDraftPeriodSeconds() *BillingWorkflowConfigUpsertBulk {
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDueAfter(v datex.ISOString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceDraftPeriodSeconds()
+		s.SetInvoiceDueAfter(v)
 	})
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
+// UpdateInvoiceDueAfter sets the "invoice_due_after" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDueAfter() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceDueAfterSeconds(v)
-	})
-}
-
-// AddInvoiceDueAfterSeconds adds v to the "invoice_due_after_seconds" field.
-func (u *BillingWorkflowConfigUpsertBulk) AddInvoiceDueAfterSeconds(v int64) *BillingWorkflowConfigUpsertBulk {
-	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.AddInvoiceDueAfterSeconds(v)
-	})
-}
-
-// UpdateInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDueAfterSeconds() *BillingWorkflowConfigUpsertBulk {
-	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceDueAfterSeconds()
+		s.UpdateInvoiceDueAfter()
 	})
 }
 

@@ -3,6 +3,8 @@ package billing
 import (
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 type CustomerOverride struct {
@@ -56,8 +58,8 @@ func (c CustomerOverride) Validate() error {
 }
 
 type CollectionOverrideConfig struct {
-	Alignment            *AlignmentKind `json:"alignment,omitempty"`
-	ItemCollectionPeriod *time.Duration `json:"itemCollectionPeriod,omitempty"`
+	Alignment *AlignmentKind `json:"alignment,omitempty"`
+	Interval  *datex.Period  `json:"interval,omitempty"`
 }
 
 func (c *CollectionOverrideConfig) Validate() error {
@@ -65,7 +67,7 @@ func (c *CollectionOverrideConfig) Validate() error {
 		return fmt.Errorf("invalid alignment: %s", *c.Alignment)
 	}
 
-	if c.ItemCollectionPeriod != nil && *c.ItemCollectionPeriod < 0 {
+	if c.Interval.IsNegative() {
 		return fmt.Errorf("item collection period must be greater or equal to 0")
 	}
 
@@ -73,9 +75,9 @@ func (c *CollectionOverrideConfig) Validate() error {
 }
 
 type InvoicingOverrideConfig struct {
-	AutoAdvance *bool          `json:"autoAdvance,omitempty"`
-	DraftPeriod *time.Duration `json:"draftPeriod,omitempty"`
-	DueAfter    *time.Duration `json:"dueAfter,omitempty"`
+	AutoAdvance *bool         `json:"autoAdvance,omitempty"`
+	DraftPeriod *datex.Period `json:"draftPeriod,omitempty"`
+	DueAfter    *datex.Period `json:"dueAfter,omitempty"`
 
 	ItemResolution *GranularityResolution `json:"itemResolution,omitempty"`
 	ItemPerSubject *bool                  `json:"itemPerSubject,omitempty"`
@@ -86,8 +88,12 @@ func (c *InvoicingOverrideConfig) Validate() error {
 		return fmt.Errorf("auto advance is not supported")
 	}
 
-	if c.DueAfter != nil && *c.DueAfter < 0 {
+	if c.DueAfter != nil && c.DueAfter.IsNegative() {
 		return fmt.Errorf("due after must be greater or equal to 0")
+	}
+
+	if c.DraftPeriod != nil && c.DraftPeriod.IsNegative() {
+		return fmt.Errorf("draft period must be greater or equal to 0")
 	}
 
 	if c.ItemResolution != nil {

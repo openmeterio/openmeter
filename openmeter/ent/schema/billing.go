@@ -9,8 +9,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -30,9 +30,21 @@ func (BillingProfile) Mixin() []ent.Mixin {
 
 func (BillingProfile) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("tax_provider").GoType(provider.TaxProvider("")),
-		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")),
-		field.Enum("payment_provider").GoType(provider.PaymentProvider("")),
+		field.String("tax_app_id").
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("invoicing_app_id").
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("payment_app_id").
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 		field.String("workflow_config_id").
 			NotEmpty(),
 		field.Bool("default").
@@ -49,6 +61,11 @@ func (BillingProfile) Edges() []ent.Edge {
 		edge.From("workflow_config", BillingWorkflowConfig.Type).
 			Ref("billing_profile").
 			Field("workflow_config_id").
+			Unique().
+			Required(),
+		edge.From("workflow_invoicing_app", BillingWorkflowConfig.Type).
+			Ref("workflow_invoicing_app").
+			Field("invoicing_app_id").
 			Unique().
 			Required(),
 	}
@@ -81,13 +98,13 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")),
 
-		field.Int64("item_collection_period_seconds"),
+		field.String("item_collection_period").GoType(datex.ISOString("")),
 
 		field.Bool("invoice_auto_advance"),
 
-		field.Int64("invoice_draft_period_seconds"),
+		field.String("invoice_draft_period").GoType(datex.ISOString("")),
 
-		field.Int64("invoice_due_after_seconds"),
+		field.String("invoice_due_after").GoType(datex.ISOString("")),
 
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")),
@@ -152,7 +169,8 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.Int64("item_collection_period_seconds").
+		field.String("item_collection_period").
+			GoType(datex.ISOString("")).
 			Optional().
 			Nillable(),
 
@@ -160,11 +178,13 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.Int64("invoice_draft_period_seconds").
+		field.String("invoice_draft_period").
+			GoType(datex.ISOString("")).
 			Optional().
 			Nillable(),
 
-		field.Int64("invoice_due_after_seconds").
+		field.String("invoice_due_after").
+			GoType(datex.ISOString("")).
 			Optional().
 			Nillable(),
 
@@ -337,10 +357,6 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Time("due_date"),
 		field.Enum("status").
 			GoType(billing.InvoiceStatus("")),
-
-		field.Enum("tax_provider").GoType(provider.TaxProvider("")).Optional().Nillable(),
-		field.Enum("invoicing_provider").GoType(provider.InvoicingProvider("")).Optional().Nillable(),
-		field.Enum("payment_provider").GoType(provider.PaymentProvider("")).Optional().Nillable(),
 
 		field.String("workflow_config_id").
 			SchemaType(map[string]string{

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // BillingCustomerOverrideCreate is the builder for creating a BillingCustomerOverride entity.
@@ -108,16 +109,16 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(bk *bi
 	return bcoc
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (bcoc *BillingCustomerOverrideCreate) SetItemCollectionPeriodSeconds(i int64) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetItemCollectionPeriodSeconds(i)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (bcoc *BillingCustomerOverrideCreate) SetItemCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetItemCollectionPeriod(ds)
 	return bcoc
 }
 
-// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingCustomerOverrideCreate {
-	if i != nil {
-		bcoc.SetItemCollectionPeriodSeconds(*i)
+// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
+func (bcoc *BillingCustomerOverrideCreate) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideCreate {
+	if ds != nil {
+		bcoc.SetItemCollectionPeriod(*ds)
 	}
 	return bcoc
 }
@@ -136,30 +137,30 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceAutoAdvance(b *bool
 	return bcoc
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDraftPeriodSeconds(i int64) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetInvoiceDraftPeriod(ds)
 	return bcoc
 }
 
-// SetNillableInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDraftPeriodSeconds(i *int64) *BillingCustomerOverrideCreate {
-	if i != nil {
-		bcoc.SetInvoiceDraftPeriodSeconds(*i)
+// SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingCustomerOverrideCreate {
+	if ds != nil {
+		bcoc.SetInvoiceDraftPeriod(*ds)
 	}
 	return bcoc
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDueAfterSeconds(i int64) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDueAfterSeconds(i)
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDueAfter(ds datex.ISOString) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetInvoiceDueAfter(ds)
 	return bcoc
 }
 
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingCustomerOverrideCreate {
-	if i != nil {
-		bcoc.SetInvoiceDueAfterSeconds(*i)
+// SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingCustomerOverrideCreate {
+	if ds != nil {
+		bcoc.SetInvoiceDueAfter(*ds)
 	}
 	return bcoc
 }
@@ -372,21 +373,21 @@ func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverrid
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = &value
 	}
-	if value, ok := bcoc.mutation.ItemCollectionPeriodSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
-		_node.ItemCollectionPeriodSeconds = &value
+	if value, ok := bcoc.mutation.ItemCollectionPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString, value)
+		_node.ItemCollectionPeriod = &value
 	}
 	if value, ok := bcoc.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
 		_node.InvoiceAutoAdvance = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceDraftPeriodSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
-		_node.InvoiceDraftPeriodSeconds = &value
+	if value, ok := bcoc.mutation.InvoiceDraftPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString, value)
+		_node.InvoiceDraftPeriod = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-		_node.InvoiceDueAfterSeconds = &value
+	if value, ok := bcoc.mutation.InvoiceDueAfter(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString, value)
+		_node.InvoiceDueAfter = &value
 	}
 	if value, ok := bcoc.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)
@@ -552,27 +553,21 @@ func (u *BillingCustomerOverrideUpsert) ClearCollectionAlignment() *BillingCusto
 	return u
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsert) SetItemCollectionPeriodSeconds(v int64) *BillingCustomerOverrideUpsert {
-	u.Set(billingcustomeroverride.FieldItemCollectionPeriodSeconds, v)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (u *BillingCustomerOverrideUpsert) SetItemCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldItemCollectionPeriod, v)
 	return u
 }
 
-// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsert) UpdateItemCollectionPeriodSeconds() *BillingCustomerOverrideUpsert {
-	u.SetExcluded(billingcustomeroverride.FieldItemCollectionPeriodSeconds)
+// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateItemCollectionPeriod() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldItemCollectionPeriod)
 	return u
 }
 
-// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsert) AddItemCollectionPeriodSeconds(v int64) *BillingCustomerOverrideUpsert {
-	u.Add(billingcustomeroverride.FieldItemCollectionPeriodSeconds, v)
-	return u
-}
-
-// ClearItemCollectionPeriodSeconds clears the value of the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsert) ClearItemCollectionPeriodSeconds() *BillingCustomerOverrideUpsert {
-	u.SetNull(billingcustomeroverride.FieldItemCollectionPeriodSeconds)
+// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
+func (u *BillingCustomerOverrideUpsert) ClearItemCollectionPeriod() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldItemCollectionPeriod)
 	return u
 }
 
@@ -594,51 +589,39 @@ func (u *BillingCustomerOverrideUpsert) ClearInvoiceAutoAdvance() *BillingCustom
 	return u
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsert) SetInvoiceDraftPeriodSeconds(v int64) *BillingCustomerOverrideUpsert {
-	u.Set(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, v)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (u *BillingCustomerOverrideUpsert) SetInvoiceDraftPeriod(v datex.ISOString) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldInvoiceDraftPeriod, v)
 	return u
 }
 
-// UpdateInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsert) UpdateInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpsert {
-	u.SetExcluded(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds)
+// UpdateInvoiceDraftPeriod sets the "invoice_draft_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateInvoiceDraftPeriod() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldInvoiceDraftPeriod)
 	return u
 }
 
-// AddInvoiceDraftPeriodSeconds adds v to the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsert) AddInvoiceDraftPeriodSeconds(v int64) *BillingCustomerOverrideUpsert {
-	u.Add(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, v)
+// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
+func (u *BillingCustomerOverrideUpsert) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldInvoiceDraftPeriod)
 	return u
 }
 
-// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsert) ClearInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpsert {
-	u.SetNull(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds)
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (u *BillingCustomerOverrideUpsert) SetInvoiceDueAfter(v datex.ISOString) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldInvoiceDueAfter, v)
 	return u
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsert) SetInvoiceDueAfterSeconds(v int64) *BillingCustomerOverrideUpsert {
-	u.Set(billingcustomeroverride.FieldInvoiceDueAfterSeconds, v)
+// UpdateInvoiceDueAfter sets the "invoice_due_after" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateInvoiceDueAfter() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldInvoiceDueAfter)
 	return u
 }
 
-// UpdateInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsert) UpdateInvoiceDueAfterSeconds() *BillingCustomerOverrideUpsert {
-	u.SetExcluded(billingcustomeroverride.FieldInvoiceDueAfterSeconds)
-	return u
-}
-
-// AddInvoiceDueAfterSeconds adds v to the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsert) AddInvoiceDueAfterSeconds(v int64) *BillingCustomerOverrideUpsert {
-	u.Add(billingcustomeroverride.FieldInvoiceDueAfterSeconds, v)
-	return u
-}
-
-// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsert) ClearInvoiceDueAfterSeconds() *BillingCustomerOverrideUpsert {
-	u.SetNull(billingcustomeroverride.FieldInvoiceDueAfterSeconds)
+// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
+func (u *BillingCustomerOverrideUpsert) ClearInvoiceDueAfter() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldInvoiceDueAfter)
 	return u
 }
 
@@ -830,31 +813,24 @@ func (u *BillingCustomerOverrideUpsertOne) ClearCollectionAlignment() *BillingCu
 	})
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) SetItemCollectionPeriodSeconds(v int64) *BillingCustomerOverrideUpsertOne {
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (u *BillingCustomerOverrideUpsertOne) SetItemCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetItemCollectionPeriodSeconds(v)
+		s.SetItemCollectionPeriod(v)
 	})
 }
 
-// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) AddItemCollectionPeriodSeconds(v int64) *BillingCustomerOverrideUpsertOne {
+// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateItemCollectionPeriod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.AddItemCollectionPeriodSeconds(v)
+		s.UpdateItemCollectionPeriod()
 	})
 }
 
-// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertOne) UpdateItemCollectionPeriodSeconds() *BillingCustomerOverrideUpsertOne {
+// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearItemCollectionPeriod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateItemCollectionPeriodSeconds()
-	})
-}
-
-// ClearItemCollectionPeriodSeconds clears the value of the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) ClearItemCollectionPeriodSeconds() *BillingCustomerOverrideUpsertOne {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearItemCollectionPeriodSeconds()
+		s.ClearItemCollectionPeriod()
 	})
 }
 
@@ -879,59 +855,45 @@ func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceAutoAdvance() *BillingCus
 	})
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDraftPeriodSeconds(v int64) *BillingCustomerOverrideUpsertOne {
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDraftPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetInvoiceDraftPeriodSeconds(v)
+		s.SetInvoiceDraftPeriod(v)
 	})
 }
 
-// AddInvoiceDraftPeriodSeconds adds v to the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) AddInvoiceDraftPeriodSeconds(v int64) *BillingCustomerOverrideUpsertOne {
+// UpdateInvoiceDraftPeriod sets the "invoice_draft_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceDraftPeriod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.AddInvoiceDraftPeriodSeconds(v)
+		s.UpdateInvoiceDraftPeriod()
 	})
 }
 
-// UpdateInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpsertOne {
+// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateInvoiceDraftPeriodSeconds()
+		s.ClearInvoiceDraftPeriod()
 	})
 }
 
-// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpsertOne {
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDueAfter(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearInvoiceDraftPeriodSeconds()
+		s.SetInvoiceDueAfter(v)
 	})
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDueAfterSeconds(v int64) *BillingCustomerOverrideUpsertOne {
+// UpdateInvoiceDueAfter sets the "invoice_due_after" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceDueAfter() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetInvoiceDueAfterSeconds(v)
+		s.UpdateInvoiceDueAfter()
 	})
 }
 
-// AddInvoiceDueAfterSeconds adds v to the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) AddInvoiceDueAfterSeconds(v int64) *BillingCustomerOverrideUpsertOne {
+// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDueAfter() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.AddInvoiceDueAfterSeconds(v)
-	})
-}
-
-// UpdateInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceDueAfterSeconds() *BillingCustomerOverrideUpsertOne {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateInvoiceDueAfterSeconds()
-	})
-}
-
-// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDueAfterSeconds() *BillingCustomerOverrideUpsertOne {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearInvoiceDueAfterSeconds()
+		s.ClearInvoiceDueAfter()
 	})
 }
 
@@ -1299,31 +1261,24 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearCollectionAlignment() *BillingC
 	})
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetItemCollectionPeriodSeconds(v int64) *BillingCustomerOverrideUpsertBulk {
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetItemCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetItemCollectionPeriodSeconds(v)
+		s.SetItemCollectionPeriod(v)
 	})
 }
 
-// AddItemCollectionPeriodSeconds adds v to the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) AddItemCollectionPeriodSeconds(v int64) *BillingCustomerOverrideUpsertBulk {
+// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateItemCollectionPeriod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.AddItemCollectionPeriodSeconds(v)
+		s.UpdateItemCollectionPeriod()
 	})
 }
 
-// UpdateItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertBulk) UpdateItemCollectionPeriodSeconds() *BillingCustomerOverrideUpsertBulk {
+// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearItemCollectionPeriod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateItemCollectionPeriodSeconds()
-	})
-}
-
-// ClearItemCollectionPeriodSeconds clears the value of the "item_collection_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) ClearItemCollectionPeriodSeconds() *BillingCustomerOverrideUpsertBulk {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearItemCollectionPeriodSeconds()
+		s.ClearItemCollectionPeriod()
 	})
 }
 
@@ -1348,59 +1303,45 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceAutoAdvance() *BillingCu
 	})
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDraftPeriodSeconds(v int64) *BillingCustomerOverrideUpsertBulk {
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDraftPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetInvoiceDraftPeriodSeconds(v)
+		s.SetInvoiceDraftPeriod(v)
 	})
 }
 
-// AddInvoiceDraftPeriodSeconds adds v to the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) AddInvoiceDraftPeriodSeconds(v int64) *BillingCustomerOverrideUpsertBulk {
+// UpdateInvoiceDraftPeriod sets the "invoice_draft_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceDraftPeriod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.AddInvoiceDraftPeriodSeconds(v)
+		s.UpdateInvoiceDraftPeriod()
 	})
 }
 
-// UpdateInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpsertBulk {
+// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateInvoiceDraftPeriodSeconds()
+		s.ClearInvoiceDraftPeriod()
 	})
 }
 
-// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpsertBulk {
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDueAfter(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearInvoiceDraftPeriodSeconds()
+		s.SetInvoiceDueAfter(v)
 	})
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDueAfterSeconds(v int64) *BillingCustomerOverrideUpsertBulk {
+// UpdateInvoiceDueAfter sets the "invoice_due_after" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceDueAfter() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetInvoiceDueAfterSeconds(v)
+		s.UpdateInvoiceDueAfter()
 	})
 }
 
-// AddInvoiceDueAfterSeconds adds v to the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) AddInvoiceDueAfterSeconds(v int64) *BillingCustomerOverrideUpsertBulk {
+// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDueAfter() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.AddInvoiceDueAfterSeconds(v)
-	})
-}
-
-// UpdateInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceDueAfterSeconds() *BillingCustomerOverrideUpsertBulk {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateInvoiceDueAfterSeconds()
-	})
-}
-
-// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
-func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDueAfterSeconds() *BillingCustomerOverrideUpsertBulk {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearInvoiceDueAfterSeconds()
+		s.ClearInvoiceDueAfter()
 	})
 }
 

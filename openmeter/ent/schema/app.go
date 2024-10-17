@@ -46,6 +46,7 @@ func (App) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("customer_apps", AppCustomer.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("workflow_invoicing_app", BillingWorkflowConfig.Type),
 	}
 }
 

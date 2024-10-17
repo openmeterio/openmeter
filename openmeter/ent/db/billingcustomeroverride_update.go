@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // BillingCustomerOverrideUpdate is the builder for updating BillingCustomerOverride entities.
@@ -96,30 +97,23 @@ func (bcou *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCu
 	return bcou
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) SetItemCollectionPeriodSeconds(i int64) *BillingCustomerOverrideUpdate {
-	bcou.mutation.ResetItemCollectionPeriodSeconds()
-	bcou.mutation.SetItemCollectionPeriodSeconds(i)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (bcou *BillingCustomerOverrideUpdate) SetItemCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetItemCollectionPeriod(ds)
 	return bcou
 }
 
-// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingCustomerOverrideUpdate {
-	if i != nil {
-		bcou.SetItemCollectionPeriodSeconds(*i)
+// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
+	if ds != nil {
+		bcou.SetItemCollectionPeriod(*ds)
 	}
 	return bcou
 }
 
-// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) AddItemCollectionPeriodSeconds(i int64) *BillingCustomerOverrideUpdate {
-	bcou.mutation.AddItemCollectionPeriodSeconds(i)
-	return bcou
-}
-
-// ClearItemCollectionPeriodSeconds clears the value of the "item_collection_period_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearItemCollectionPeriodSeconds() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearItemCollectionPeriodSeconds()
+// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearItemCollectionPeriod() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearItemCollectionPeriod()
 	return bcou
 }
 
@@ -143,57 +137,43 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceAutoAdvance() *BillingCus
 	return bcou
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriodSeconds(i int64) *BillingCustomerOverrideUpdate {
-	bcou.mutation.ResetInvoiceDraftPeriodSeconds()
-	bcou.mutation.SetInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceDraftPeriod(ds)
 	return bcou
 }
 
-// SetNillableInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriodSeconds(i *int64) *BillingCustomerOverrideUpdate {
-	if i != nil {
-		bcou.SetInvoiceDraftPeriodSeconds(*i)
+// SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
+	if ds != nil {
+		bcou.SetInvoiceDraftPeriod(*ds)
 	}
 	return bcou
 }
 
-// AddInvoiceDraftPeriodSeconds adds i to the "invoice_draft_period_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) AddInvoiceDraftPeriodSeconds(i int64) *BillingCustomerOverrideUpdate {
-	bcou.mutation.AddInvoiceDraftPeriodSeconds(i)
+// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearInvoiceDraftPeriod()
 	return bcou
 }
 
-// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceDraftPeriodSeconds()
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(ds datex.ISOString) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceDueAfter(ds)
 	return bcou
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDueAfterSeconds(i int64) *BillingCustomerOverrideUpdate {
-	bcou.mutation.ResetInvoiceDueAfterSeconds()
-	bcou.mutation.SetInvoiceDueAfterSeconds(i)
-	return bcou
-}
-
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingCustomerOverrideUpdate {
-	if i != nil {
-		bcou.SetInvoiceDueAfterSeconds(*i)
+// SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
+	if ds != nil {
+		bcou.SetInvoiceDueAfter(*ds)
 	}
 	return bcou
 }
 
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) AddInvoiceDueAfterSeconds(i int64) *BillingCustomerOverrideUpdate {
-	bcou.mutation.AddInvoiceDueAfterSeconds(i)
-	return bcou
-}
-
-// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDueAfterSeconds() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceDueAfterSeconds()
+// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDueAfter() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearInvoiceDueAfter()
 	return bcou
 }
 
@@ -359,14 +339,11 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 	if bcou.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
-	if value, ok := bcou.mutation.ItemCollectionPeriodSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bcou.mutation.ItemCollectionPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString, value)
 	}
-	if value, ok := bcou.mutation.AddedItemCollectionPeriodSeconds(); ok {
-		_spec.AddField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
-	}
-	if bcou.mutation.ItemCollectionPeriodSecondsCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64)
+	if bcou.mutation.ItemCollectionPeriodCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString)
 	}
 	if value, ok := bcou.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -374,23 +351,17 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 	if bcou.mutation.InvoiceAutoAdvanceCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool)
 	}
-	if value, ok := bcou.mutation.InvoiceDraftPeriodSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bcou.mutation.InvoiceDraftPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString, value)
 	}
-	if value, ok := bcou.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
-		_spec.AddField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
+	if bcou.mutation.InvoiceDraftPeriodCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString)
 	}
-	if bcou.mutation.InvoiceDraftPeriodSecondsCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64)
+	if value, ok := bcou.mutation.InvoiceDueAfter(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString, value)
 	}
-	if value, ok := bcou.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bcou.mutation.AddedInvoiceDueAfterSeconds(); ok {
-		_spec.AddField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-	}
-	if bcou.mutation.InvoiceDueAfterSecondsCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64)
+	if bcou.mutation.InvoiceDueAfterCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString)
 	}
 	if value, ok := bcou.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)
@@ -525,30 +496,23 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *Billi
 	return bcouo
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetItemCollectionPeriodSeconds(i int64) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ResetItemCollectionPeriodSeconds()
-	bcouo.mutation.SetItemCollectionPeriodSeconds(i)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetItemCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetItemCollectionPeriod(ds)
 	return bcouo
 }
 
-// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingCustomerOverrideUpdateOne {
-	if i != nil {
-		bcouo.SetItemCollectionPeriodSeconds(*i)
+// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	if ds != nil {
+		bcouo.SetItemCollectionPeriod(*ds)
 	}
 	return bcouo
 }
 
-// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) AddItemCollectionPeriodSeconds(i int64) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.AddItemCollectionPeriodSeconds(i)
-	return bcouo
-}
-
-// ClearItemCollectionPeriodSeconds clears the value of the "item_collection_period_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearItemCollectionPeriodSeconds() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearItemCollectionPeriodSeconds()
+// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearItemCollectionPeriod() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearItemCollectionPeriod()
 	return bcouo
 }
 
@@ -572,57 +536,43 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceAutoAdvance() *Billin
 	return bcouo
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriodSeconds(i int64) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ResetInvoiceDraftPeriodSeconds()
-	bcouo.mutation.SetInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceDraftPeriod(ds)
 	return bcouo
 }
 
-// SetNillableInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriodSeconds(i *int64) *BillingCustomerOverrideUpdateOne {
-	if i != nil {
-		bcouo.SetInvoiceDraftPeriodSeconds(*i)
+// SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	if ds != nil {
+		bcouo.SetInvoiceDraftPeriod(*ds)
 	}
 	return bcouo
 }
 
-// AddInvoiceDraftPeriodSeconds adds i to the "invoice_draft_period_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) AddInvoiceDraftPeriodSeconds(i int64) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.AddInvoiceDraftPeriodSeconds(i)
+// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearInvoiceDraftPeriod()
 	return bcouo
 }
 
-// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDraftPeriodSeconds() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceDraftPeriodSeconds()
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceDueAfter(ds)
 	return bcouo
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfterSeconds(i int64) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ResetInvoiceDueAfterSeconds()
-	bcouo.mutation.SetInvoiceDueAfterSeconds(i)
-	return bcouo
-}
-
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingCustomerOverrideUpdateOne {
-	if i != nil {
-		bcouo.SetInvoiceDueAfterSeconds(*i)
+// SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	if ds != nil {
+		bcouo.SetInvoiceDueAfter(*ds)
 	}
 	return bcouo
 }
 
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) AddInvoiceDueAfterSeconds(i int64) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.AddInvoiceDueAfterSeconds(i)
-	return bcouo
-}
-
-// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDueAfterSeconds() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceDueAfterSeconds()
+// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDueAfter() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearInvoiceDueAfter()
 	return bcouo
 }
 
@@ -818,14 +768,11 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 	if bcouo.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
-	if value, ok := bcouo.mutation.ItemCollectionPeriodSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bcouo.mutation.ItemCollectionPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString, value)
 	}
-	if value, ok := bcouo.mutation.AddedItemCollectionPeriodSeconds(); ok {
-		_spec.AddField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
-	}
-	if bcouo.mutation.ItemCollectionPeriodSecondsCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldItemCollectionPeriodSeconds, field.TypeInt64)
+	if bcouo.mutation.ItemCollectionPeriodCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString)
 	}
 	if value, ok := bcouo.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -833,23 +780,17 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 	if bcouo.mutation.InvoiceAutoAdvanceCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool)
 	}
-	if value, ok := bcouo.mutation.InvoiceDraftPeriodSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bcouo.mutation.InvoiceDraftPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString, value)
 	}
-	if value, ok := bcouo.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
-		_spec.AddField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
+	if bcouo.mutation.InvoiceDraftPeriodCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString)
 	}
-	if bcouo.mutation.InvoiceDraftPeriodSecondsCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds, field.TypeInt64)
+	if value, ok := bcouo.mutation.InvoiceDueAfter(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString, value)
 	}
-	if value, ok := bcouo.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bcouo.mutation.AddedInvoiceDueAfterSeconds(); ok {
-		_spec.AddField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-	}
-	if bcouo.mutation.InvoiceDueAfterSecondsCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldInvoiceDueAfterSeconds, field.TypeInt64)
+	if bcouo.mutation.InvoiceDueAfterCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString)
 	}
 	if value, ok := bcouo.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)

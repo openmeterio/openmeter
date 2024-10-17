@@ -3,7 +3,6 @@ package billingadapter
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -26,10 +25,10 @@ func (r adapter) CreateCustomerOverride(ctx context.Context, input billing.Creat
 		SetCustomerID(input.CustomerID).
 		SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 		SetNillableCollectionAlignment(input.Collection.Alignment).
-		SetNillableItemCollectionPeriodSeconds(durationPtrToSecondsPtr(input.Collection.ItemCollectionPeriod)).
+		SetNillableItemCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 		SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-		SetNillableInvoiceDraftPeriodSeconds(durationPtrToSecondsPtr(input.Invoicing.DraftPeriod)).
-		SetNillableInvoiceDueAfterSeconds(durationPtrToSecondsPtr(input.Invoicing.DueAfter)).
+		SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
+		SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
 		SetNillableInvoiceItemResolution(input.Invoicing.ItemResolution).
 		SetNillableInvoiceItemPerSubject(input.Invoicing.ItemPerSubject).
 		SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
@@ -54,10 +53,10 @@ func (r adapter) UpdateCustomerOverride(ctx context.Context, input billing.Updat
 		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
 		SetOrClearBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 		SetOrClearCollectionAlignment(input.Collection.Alignment).
-		SetOrClearItemCollectionPeriodSeconds(durationPtrToSecondsPtr(input.Collection.ItemCollectionPeriod)).
+		SetOrClearItemCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 		SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-		SetOrClearInvoiceDraftPeriodSeconds(durationPtrToSecondsPtr(input.Invoicing.DraftPeriod)).
-		SetOrClearInvoiceDueAfterSeconds(durationPtrToSecondsPtr(input.Invoicing.DueAfter)).
+		SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
+		SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
 		SetOrClearInvoiceItemResolution(input.Invoicing.ItemResolution).
 		SetOrClearInvoiceItemPerSubject(input.Invoicing.ItemPerSubject).
 		SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod)
@@ -115,7 +114,7 @@ func (r adapter) GetCustomerOverride(ctx context.Context, input billing.GetCusto
 		}
 	}
 
-	return mapCustomerOverrideFromDB(dbCustomerOverride), nil
+	return mapCustomerOverrideFromDB(dbCustomerOverride)
 }
 
 func (r adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
@@ -170,7 +169,27 @@ func (r adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inpu
 	return customerIDs, nil
 }
 
-func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) *billing.CustomerOverride {
+func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing.CustomerOverride, error) {
+	collectionInterval, err := dbOverride.ItemCollectionPeriod.ParsePtrOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse collection.interval: %w", err)
+	}
+
+	draftPeriod, err := dbOverride.InvoiceDraftPeriod.ParsePtrOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse invoicing.draftPeriod: %w", err)
+	}
+
+	dueAfter, err := dbOverride.InvoiceDueAfter.ParsePtrOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse invoicing.dueAfter: %w", err)
+	}
+
+	baseProfile, err := mapProfileFromDB(dbOverride.Edges.BillingProfile)
+	if err != nil {
+		return nil, fmt.Errorf("cannot map profile: %w", err)
+	}
+
 	return &billing.CustomerOverride{
 		ID:        dbOverride.ID,
 		Namespace: dbOverride.Namespace,
@@ -179,16 +198,16 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) *billing.
 		UpdatedAt: dbOverride.UpdatedAt,
 
 		CustomerID: dbOverride.CustomerID,
-		Profile:    mapProfileFromDB(dbOverride.Edges.BillingProfile),
+		Profile:    baseProfile,
 		Collection: billing.CollectionOverrideConfig{
-			Alignment:            dbOverride.CollectionAlignment,
-			ItemCollectionPeriod: secondsPtrToDurationPtr(dbOverride.ItemCollectionPeriodSeconds),
+			Alignment: dbOverride.CollectionAlignment,
+			Interval:  collectionInterval,
 		},
 
 		Invoicing: billing.InvoicingOverrideConfig{
 			AutoAdvance:    dbOverride.InvoiceAutoAdvance,
-			DraftPeriod:    secondsPtrToDurationPtr(dbOverride.InvoiceDraftPeriodSeconds),
-			DueAfter:       secondsPtrToDurationPtr(dbOverride.InvoiceDueAfterSeconds),
+			DraftPeriod:    draftPeriod,
+			DueAfter:       dueAfter,
 			ItemResolution: dbOverride.InvoiceItemResolution,
 			ItemPerSubject: dbOverride.InvoiceItemPerSubject,
 		},
@@ -196,23 +215,5 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) *billing.
 		Payment: billing.PaymentOverrideConfig{
 			CollectionMethod: dbOverride.InvoiceCollectionMethod,
 		},
-	}
-}
-
-func durationPtrToSecondsPtr(d *time.Duration) *int64 {
-	if d == nil {
-		return nil
-	}
-
-	v := int64(*d / time.Second)
-	return &v
-}
-
-func secondsPtrToDurationPtr(s *int64) *time.Duration {
-	if s == nil {
-		return nil
-	}
-
-	v := time.Duration(*s) * time.Second
-	return &v
+	}, nil
 }

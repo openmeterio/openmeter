@@ -6540,19 +6540,18 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
-        collectionAlignment:
+        collection:
           allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
-          description: When to collect the pending line items into an invoice.
-          default: subscription
-        itemCollectionPeriod:
-          type: string
-          format: ISO8601
-          example: P1D
-          description: The period for collecting the pending line items into an invoice.
-          default: PT1H
-        invoice:
-          $ref: '#/components/schemas/BillingWorkflowInvoice'
+            - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
+          title: The collection settings for this workflow
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowInvoicingSettings'
+          title: The invoicing settings for this workflow
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
+          title: The payment settings for this workflow
         id:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -6575,19 +6574,18 @@ components:
     BillingCustomerWorkflowOverrideCreate:
       type: object
       properties:
-        collectionAlignment:
+        collection:
           allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
-          description: When to collect the pending line items into an invoice.
-          default: subscription
-        itemCollectionPeriod:
-          type: string
-          format: ISO8601
-          example: P1D
-          description: The period for collecting the pending line items into an invoice.
-          default: PT1H
-        invoice:
-          $ref: '#/components/schemas/BillingWorkflowInvoice'
+            - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
+          title: The collection settings for this workflow
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowInvoicingSettings'
+          title: The invoicing settings for this workflow
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
+          title: The payment settings for this workflow
     BillingDocumentRef:
       type: object
       allOf:
@@ -7243,6 +7241,7 @@ components:
         - updatedAt
         - supplier
         - workflow
+        - apps
         - default
       properties:
         id:
@@ -7297,17 +7296,62 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflow'
           title: The billing workflow settings for this profile
+        apps:
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileApps'
+          title: The applications used by this billing profile
         default:
           type: boolean
           title: Is this the default profile?
       description: Profile represents a billing profile
+    BillingProfileApps:
+      type: object
+      required:
+        - tax
+        - invoicing
+        - payment
+      properties:
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The tax app used for this workflow
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The invoicing app used for this workflow
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/App'
+          title: The payment app used for this workflow
+      description: ProfileApps represents the applications used by a billing profile
+    BillingProfileCreateAppsInput:
+      type: object
+      required:
+        - tax
+        - invoicing
+        - payment
+      properties:
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowAppReference'
+          title: The tax app used for this workflow
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowAppReference'
+          title: The invoicing app used for this workflow
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowAppReference'
+          title: The payment app used for this workflow
+      description: ProfileCreateAppsInput represents the input for creating a billing profile's apps
     BillingProfileCreateInput:
       type: object
       required:
         - name
         - supplier
-        - default
         - workflow
+        - default
+        - apps
       properties:
         name:
           type: string
@@ -7329,11 +7373,15 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingPartyCreate'
           title: The name and contact information for the supplier this billing profile represents
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflow'
+          title: The billing workflow settings for this profile
         default:
           type: boolean
           title: Is this the default profile?
-        workflow:
-          $ref: '#/components/schemas/BillingWorkflowCreateInput'
+        apps:
+          $ref: '#/components/schemas/BillingProfileCreateAppsInput'
       description: ProfileCreateInput represents the input for creating a billing profile
     BillingProfileOrderBy:
       type: string
@@ -7532,9 +7580,6 @@ components:
       required:
         - createdAt
         - updatedAt
-        - taxApp
-        - invoicingApp
-        - paymentApp
         - id
       properties:
         createdAt:
@@ -7558,31 +7603,18 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
-        collectionAlignment:
+        collection:
           allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
-          description: When to collect the pending line items into an invoice.
-          default: subscription
-        itemCollectionPeriod:
-          type: string
-          format: ISO8601
-          example: P1D
-          description: The period for collecting the pending line items into an invoice.
-          default: PT1H
-        invoice:
-          $ref: '#/components/schemas/BillingWorkflowInvoice'
-        taxApp:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
+          title: The collection settings for this workflow
+        invoicing:
           allOf:
-            - $ref: '#/components/schemas/App'
-          title: The tax app used for this workflow
-        invoicingApp:
+            - $ref: '#/components/schemas/BillingWorkflowInvoicingSettings'
+          title: The invoicing settings for this workflow
+        payment:
           allOf:
-            - $ref: '#/components/schemas/App'
-          title: The invoicing app used for this workflow
-        paymentApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The payment app used for this workflow
+            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
+          title: The payment settings for this workflow
         id:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -7591,20 +7623,47 @@ components:
           title: ID
           readOnly: true
       description: Workflow represents a billing workflow
-    BillingWorkflowAppReference:
+    BillingWorkflowAppIDReference:
       type: object
+      required:
+        - type
+        - id
       properties:
+        type:
+          type: string
+          enum:
+            - app_id
         id:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
-          title: The ID of the app, if not specified the type is used to find the default app
-        type:
-          allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.Type'
-          title: The type of the app, if specified the default app is used
+          title: The ID of the referred app
+      title: An app reference by App ID
+    BillingWorkflowAppReference:
+      anyOf:
+        - $ref: '#/components/schemas/BillingWorkflowAppIDReference'
+        - $ref: '#/components/schemas/BillingWorkflowAppTypeReference'
+      discriminator:
+        propertyName: type
+        mapping:
+          app_id: '#/components/schemas/BillingWorkflowAppIDReference'
+          app_type: '#/components/schemas/BillingWorkflowAppTypeReference'
       description: AppReference can be used to reference an app during creation only.
+    BillingWorkflowAppTypeReference:
+      type: object
+      required:
+        - type
+        - appType
+      properties:
+        type:
+          type: string
+          enum:
+            - app_type
+        appType:
+          type: string
+          title: The type of the referred app
+      title: An app reference by App Type
     BillingWorkflowCollectionAlignment:
       type: string
       enum:
@@ -7620,30 +7679,22 @@ components:
         - send_invoice
       description: CollectionMethod specifies how the invoice should be collected (automatic vs manual)
       title: Collection method
-    BillingWorkflowCreateInput:
+    BillingWorkflowCollectionSettings:
       type: object
       properties:
-        collectionAlignment:
+        alignment:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
           description: When to collect the pending line items into an invoice.
           default: subscription
-        itemCollectionPeriod:
+        interval:
           type: string
           format: ISO8601
           example: P1D
-          description: The period for collecting the pending line items into an invoice.
+          description: The interval for collecting the pending line items into an invoice.
           default: PT1H
-        invoice:
-          $ref: '#/components/schemas/BillingWorkflowInvoice'
-        taxApp:
-          $ref: '#/components/schemas/BillingWorkflowAppReference'
-        invoicingApp:
-          $ref: '#/components/schemas/BillingWorkflowAppReference'
-        paymentApp:
-          $ref: '#/components/schemas/BillingWorkflowAppReference'
-      description: WorkflowCreate represents the workflow settings for creation of a billing profile
-    BillingWorkflowInvoice:
+      title: Workflow collection specifies how to collect the pending items for an invoice
+    BillingWorkflowInvoicingSettings:
       type: object
       properties:
         autoAdvance:
@@ -7662,11 +7713,6 @@ components:
           example: P1D
           description: The period after which the invoice is due.
           default: P7D
-        collectionMethod:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionMethod'
-          description: The method to collect the invoice.
-          default: charge_automatically
         itemResolution:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowItemResolution'
@@ -7685,6 +7731,15 @@ components:
         - period
       description: ItemResolution specifies how the line items should be resolved in the invoice
       title: Item resolution
+    BillingWorkflowPaymentSettings:
+      type: object
+      properties:
+        collectionMethod:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowCollectionMethod'
+          default: charge_automatically
+      description: WorkflowPaymentSettings represents the payment settings for a billing workflow
+      title: Workflow payment settings
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
