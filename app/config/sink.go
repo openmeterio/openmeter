@@ -87,7 +87,7 @@ type StorageConfiguration struct {
 	// before flushing them regularly to disk.
 	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
 	AsyncInsert bool
-	// Set true if you want an insert statement to return with an acknowledgment immediatly
+	// Set true if you want an insert statement to return with an acknowledgment immediatelyy
 	// without waiting for the data got inserted into the buffer.
 	// Setting true can cause silent errors that you need to monitor separately.
 	AsyncInsertWait bool
