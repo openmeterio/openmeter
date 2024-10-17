@@ -15,6 +15,7 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var TestStripeAPIKey = "test_stripe_api_key"
@@ -170,7 +171,9 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: "Test Customer",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Test Customer",
+			}),
 			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,
@@ -207,7 +210,9 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: "Test Customer",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Test Customer",
+			}),
 			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,
@@ -225,7 +230,9 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: "Test Customer Without Stripe",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Test Customer Without Stripe",
+			}),
 		},
 	})
 
@@ -276,7 +283,9 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
-			Name: "Test Customer",
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Name: "Test Customer",
+			}),
 			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,

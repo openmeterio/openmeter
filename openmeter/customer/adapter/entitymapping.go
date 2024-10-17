@@ -22,13 +22,14 @@ func CustomerFromDBEntity(e db.Customer) *customerentity.Customer {
 
 	result := &customerentity.Customer{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			ID:        e.ID,
-			Namespace: e.Namespace,
-			CreatedAt: e.CreatedAt,
-			UpdatedAt: e.UpdatedAt,
-			DeletedAt: e.DeletedAt,
+			ID:          e.ID,
+			Namespace:   e.Namespace,
+			CreatedAt:   e.CreatedAt,
+			UpdatedAt:   e.UpdatedAt,
+			DeletedAt:   e.DeletedAt,
+			Name:        e.Name,
+			Description: e.Description,
 		}),
-		Name: e.Name,
 		UsageAttribution: customerentity.CustomerUsageAttribution{
 			SubjectKeys: subjectKeys,
 		},

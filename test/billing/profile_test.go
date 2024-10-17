@@ -15,6 +15,7 @@ import (
 )
 
 var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
+	Name:    "Awesome Profile",
 	Default: true,
 
 	TaxConfiguration: provider.TaxConfiguration{
@@ -145,6 +146,7 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	input := billing.CreateProfileInput{
 		Namespace: ns,
 		Default:   true,
+		Name:      "Awesome Default Profile",
 
 		TaxConfiguration: provider.TaxConfiguration{
 			Type: provider.TaxProviderOpenMeterSandbox,
@@ -232,6 +234,8 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		Namespace: ns,
 		Default:   true,
 
+		Name: "Awesome Default Profile",
+
 		TaxConfiguration: provider.TaxConfiguration{
 			Type: provider.TaxProviderOpenMeterSandbox,
 		},
@@ -298,10 +302,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	s.T().Run("update profile", func(t *testing.T) {
 		// When updating the profile
 		updateInput := billing.UpdateProfileInput{
-			ID:        profile.ID,
-			Namespace: ns,
-			Default:   true,
-			CreatedAt: profile.CreatedAt,
+			ID:          profile.ID,
+			Namespace:   ns,
+			Default:     true,
+			Name:        "Awesome Default Profile [update]",
+			Description: lo.ToPtr("Updated description"),
+			CreatedAt:   profile.CreatedAt,
 
 			UpdatedAt: profile.UpdatedAt,
 
@@ -376,6 +382,8 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			Default:   true,
 			CreatedAt: profile.CreatedAt,
 
+			Name: "Awesome Default Profile [update]",
+
 			UpdatedAt: profile.UpdatedAt,
 
 			TaxConfiguration: provider.TaxConfiguration{
@@ -444,6 +452,8 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			Namespace: ns,
 			Default:   true,
 			CreatedAt: profile.CreatedAt,
+
+			Name: "Awesome Default Profile [update]",
 
 			UpdatedAt: profile.UpdatedAt,
 

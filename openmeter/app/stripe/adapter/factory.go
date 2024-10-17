@@ -100,7 +100,7 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 	createStripeAppInput := appstripeentity.CreateAppStripeInput{
 		ID:              &appID.ID,
 		Namespace:       input.Namespace,
-		Name:            "Stripe",
+		Name:            input.Name,
 		Description:     fmt.Sprintf("Stripe account %s", stripeAccount.StripeAccountID),
 		StripeAccountID: stripeAccount.StripeAccountID,
 		Livemode:        livemode,

@@ -115,6 +115,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 		query := a.db.Customer.Create().
 			SetNamespace(input.Namespace).
 			SetName(input.Name).
+			SetNillableDescription(input.Description).
 			SetNillablePrimaryEmail(input.PrimaryEmail).
 			SetNillableCurrency(input.Currency).
 			SetNillableTimezone(input.Timezone)
@@ -287,6 +288,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			Where(customerdb.Namespace(input.Namespace)).
 			SetUpdatedAt(clock.Now().UTC()).
 			SetName(input.Name).
+			SetOrClearDescription(input.Description).
 			SetNillablePrimaryEmail(input.PrimaryEmail).
 			SetNillableTimezone(input.Timezone).
 			SetNillableCurrency(input.Currency)

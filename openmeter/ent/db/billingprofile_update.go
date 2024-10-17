@@ -71,6 +71,40 @@ func (bpu *BillingProfileUpdate) ClearDeletedAt() *BillingProfileUpdate {
 	return bpu
 }
 
+// SetName sets the "name" field.
+func (bpu *BillingProfileUpdate) SetName(s string) *BillingProfileUpdate {
+	bpu.mutation.SetName(s)
+	return bpu
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableName(s *string) *BillingProfileUpdate {
+	if s != nil {
+		bpu.SetName(*s)
+	}
+	return bpu
+}
+
+// SetDescription sets the "description" field.
+func (bpu *BillingProfileUpdate) SetDescription(s string) *BillingProfileUpdate {
+	bpu.mutation.SetDescription(s)
+	return bpu
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableDescription(s *string) *BillingProfileUpdate {
+	if s != nil {
+		bpu.SetDescription(*s)
+	}
+	return bpu
+}
+
+// ClearDescription clears the value of the "description" field.
+func (bpu *BillingProfileUpdate) ClearDescription() *BillingProfileUpdate {
+	bpu.mutation.ClearDescription()
+	return bpu
+}
+
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
 func (bpu *BillingProfileUpdate) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileUpdate {
 	bpu.mutation.SetSupplierAddressCountry(mc)
@@ -484,6 +518,15 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if bpu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingprofile.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := bpu.mutation.Name(); ok {
+		_spec.SetField(billingprofile.FieldName, field.TypeString, value)
+	}
+	if value, ok := bpu.mutation.Description(); ok {
+		_spec.SetField(billingprofile.FieldDescription, field.TypeString, value)
+	}
+	if bpu.mutation.DescriptionCleared() {
+		_spec.ClearField(billingprofile.FieldDescription, field.TypeString)
+	}
 	if value, ok := bpu.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
 	}
@@ -715,6 +758,40 @@ func (bpuo *BillingProfileUpdateOne) SetNillableDeletedAt(t *time.Time) *Billing
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (bpuo *BillingProfileUpdateOne) ClearDeletedAt() *BillingProfileUpdateOne {
 	bpuo.mutation.ClearDeletedAt()
+	return bpuo
+}
+
+// SetName sets the "name" field.
+func (bpuo *BillingProfileUpdateOne) SetName(s string) *BillingProfileUpdateOne {
+	bpuo.mutation.SetName(s)
+	return bpuo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableName(s *string) *BillingProfileUpdateOne {
+	if s != nil {
+		bpuo.SetName(*s)
+	}
+	return bpuo
+}
+
+// SetDescription sets the "description" field.
+func (bpuo *BillingProfileUpdateOne) SetDescription(s string) *BillingProfileUpdateOne {
+	bpuo.mutation.SetDescription(s)
+	return bpuo
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableDescription(s *string) *BillingProfileUpdateOne {
+	if s != nil {
+		bpuo.SetDescription(*s)
+	}
+	return bpuo
+}
+
+// ClearDescription clears the value of the "description" field.
+func (bpuo *BillingProfileUpdateOne) ClearDescription() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearDescription()
 	return bpuo
 }
 
@@ -1160,6 +1237,15 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if bpuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingprofile.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := bpuo.mutation.Name(); ok {
+		_spec.SetField(billingprofile.FieldName, field.TypeString, value)
+	}
+	if value, ok := bpuo.mutation.Description(); ok {
+		_spec.SetField(billingprofile.FieldDescription, field.TypeString, value)
+	}
+	if bpuo.mutation.DescriptionCleared() {
+		_spec.ClearField(billingprofile.FieldDescription, field.TypeString)
 	}
 	if value, ok := bpuo.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)

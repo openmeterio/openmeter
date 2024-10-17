@@ -72,6 +72,40 @@ func (cu *CustomerUpdate) ClearDeletedAt() *CustomerUpdate {
 	return cu
 }
 
+// SetName sets the "name" field.
+func (cu *CustomerUpdate) SetName(s string) *CustomerUpdate {
+	cu.mutation.SetName(s)
+	return cu
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableName(s *string) *CustomerUpdate {
+	if s != nil {
+		cu.SetName(*s)
+	}
+	return cu
+}
+
+// SetDescription sets the "description" field.
+func (cu *CustomerUpdate) SetDescription(s string) *CustomerUpdate {
+	cu.mutation.SetDescription(s)
+	return cu
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableDescription(s *string) *CustomerUpdate {
+	if s != nil {
+		cu.SetDescription(*s)
+	}
+	return cu
+}
+
+// ClearDescription clears the value of the "description" field.
+func (cu *CustomerUpdate) ClearDescription() *CustomerUpdate {
+	cu.mutation.ClearDescription()
+	return cu
+}
+
 // SetBillingAddressCountry sets the "billing_address_country" field.
 func (cu *CustomerUpdate) SetBillingAddressCountry(mc models.CountryCode) *CustomerUpdate {
 	cu.mutation.SetBillingAddressCountry(mc)
@@ -209,20 +243,6 @@ func (cu *CustomerUpdate) SetNillableBillingAddressPhoneNumber(s *string) *Custo
 // ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
 func (cu *CustomerUpdate) ClearBillingAddressPhoneNumber() *CustomerUpdate {
 	cu.mutation.ClearBillingAddressPhoneNumber()
-	return cu
-}
-
-// SetName sets the "name" field.
-func (cu *CustomerUpdate) SetName(s string) *CustomerUpdate {
-	cu.mutation.SetName(s)
-	return cu
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableName(s *string) *CustomerUpdate {
-	if s != nil {
-		cu.SetName(*s)
-	}
 	return cu
 }
 
@@ -466,6 +486,15 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if cu.mutation.DeletedAtCleared() {
 		_spec.ClearField(customer.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := cu.mutation.Name(); ok {
+		_spec.SetField(customer.FieldName, field.TypeString, value)
+	}
+	if value, ok := cu.mutation.Description(); ok {
+		_spec.SetField(customer.FieldDescription, field.TypeString, value)
+	}
+	if cu.mutation.DescriptionCleared() {
+		_spec.ClearField(customer.FieldDescription, field.TypeString)
+	}
 	if value, ok := cu.mutation.BillingAddressCountry(); ok {
 		_spec.SetField(customer.FieldBillingAddressCountry, field.TypeString, value)
 	}
@@ -507,9 +536,6 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.BillingAddressPhoneNumberCleared() {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
-	}
-	if value, ok := cu.mutation.Name(); ok {
-		_spec.SetField(customer.FieldName, field.TypeString, value)
 	}
 	if value, ok := cu.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
@@ -706,6 +732,40 @@ func (cuo *CustomerUpdateOne) ClearDeletedAt() *CustomerUpdateOne {
 	return cuo
 }
 
+// SetName sets the "name" field.
+func (cuo *CustomerUpdateOne) SetName(s string) *CustomerUpdateOne {
+	cuo.mutation.SetName(s)
+	return cuo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableName(s *string) *CustomerUpdateOne {
+	if s != nil {
+		cuo.SetName(*s)
+	}
+	return cuo
+}
+
+// SetDescription sets the "description" field.
+func (cuo *CustomerUpdateOne) SetDescription(s string) *CustomerUpdateOne {
+	cuo.mutation.SetDescription(s)
+	return cuo
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableDescription(s *string) *CustomerUpdateOne {
+	if s != nil {
+		cuo.SetDescription(*s)
+	}
+	return cuo
+}
+
+// ClearDescription clears the value of the "description" field.
+func (cuo *CustomerUpdateOne) ClearDescription() *CustomerUpdateOne {
+	cuo.mutation.ClearDescription()
+	return cuo
+}
+
 // SetBillingAddressCountry sets the "billing_address_country" field.
 func (cuo *CustomerUpdateOne) SetBillingAddressCountry(mc models.CountryCode) *CustomerUpdateOne {
 	cuo.mutation.SetBillingAddressCountry(mc)
@@ -843,20 +903,6 @@ func (cuo *CustomerUpdateOne) SetNillableBillingAddressPhoneNumber(s *string) *C
 // ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
 func (cuo *CustomerUpdateOne) ClearBillingAddressPhoneNumber() *CustomerUpdateOne {
 	cuo.mutation.ClearBillingAddressPhoneNumber()
-	return cuo
-}
-
-// SetName sets the "name" field.
-func (cuo *CustomerUpdateOne) SetName(s string) *CustomerUpdateOne {
-	cuo.mutation.SetName(s)
-	return cuo
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableName(s *string) *CustomerUpdateOne {
-	if s != nil {
-		cuo.SetName(*s)
-	}
 	return cuo
 }
 
@@ -1130,6 +1176,15 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	if cuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(customer.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := cuo.mutation.Name(); ok {
+		_spec.SetField(customer.FieldName, field.TypeString, value)
+	}
+	if value, ok := cuo.mutation.Description(); ok {
+		_spec.SetField(customer.FieldDescription, field.TypeString, value)
+	}
+	if cuo.mutation.DescriptionCleared() {
+		_spec.ClearField(customer.FieldDescription, field.TypeString)
+	}
 	if value, ok := cuo.mutation.BillingAddressCountry(); ok {
 		_spec.SetField(customer.FieldBillingAddressCountry, field.TypeString, value)
 	}
@@ -1171,9 +1226,6 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.BillingAddressPhoneNumberCleared() {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
-	}
-	if value, ok := cuo.mutation.Name(); ok {
-		_spec.SetField(customer.FieldName, field.TypeString, value)
 	}
 	if value, ok := cuo.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)

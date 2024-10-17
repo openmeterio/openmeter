@@ -91,6 +91,14 @@ func (ac *AppCreate) SetDescription(s string) *AppCreate {
 	return ac
 }
 
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (ac *AppCreate) SetNillableDescription(s *string) *AppCreate {
+	if s != nil {
+		ac.SetDescription(*s)
+	}
+	return ac
+}
+
 // SetType sets the "type" field.
 func (ac *AppCreate) SetType(at appentitybase.AppType) *AppCreate {
 	ac.mutation.SetType(at)
@@ -218,9 +226,6 @@ func (ac *AppCreate) check() error {
 	if _, ok := ac.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "App.name"`)}
 	}
-	if _, ok := ac.mutation.Description(); !ok {
-		return &ValidationError{Name: "description", err: errors.New(`db: missing required field "App.description"`)}
-	}
 	if _, ok := ac.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "App.type"`)}
 	}
@@ -292,7 +297,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := ac.mutation.Description(); ok {
 		_spec.SetField(app.FieldDescription, field.TypeString, value)
-		_node.Description = value
+		_node.Description = &value
 	}
 	if value, ok := ac.mutation.GetType(); ok {
 		_spec.SetField(app.FieldType, field.TypeString, value)
@@ -443,6 +448,12 @@ func (u *AppUpsert) SetDescription(v string) *AppUpsert {
 // UpdateDescription sets the "description" field to the value that was provided on create.
 func (u *AppUpsert) UpdateDescription() *AppUpsert {
 	u.SetExcluded(app.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *AppUpsert) ClearDescription() *AppUpsert {
+	u.SetNull(app.FieldDescription)
 	return u
 }
 
@@ -608,6 +619,13 @@ func (u *AppUpsertOne) SetDescription(v string) *AppUpsertOne {
 func (u *AppUpsertOne) UpdateDescription() *AppUpsertOne {
 	return u.Update(func(s *AppUpsert) {
 		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *AppUpsertOne) ClearDescription() *AppUpsertOne {
+	return u.Update(func(s *AppUpsert) {
+		s.ClearDescription()
 	})
 }
 
@@ -944,6 +962,13 @@ func (u *AppUpsertBulk) SetDescription(v string) *AppUpsertBulk {
 func (u *AppUpsertBulk) UpdateDescription() *AppUpsertBulk {
 	return u.Update(func(s *AppUpsert) {
 		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *AppUpsertBulk) ClearDescription() *AppUpsertBulk {
+	return u.Update(func(s *AppUpsert) {
+		s.ClearDescription()
 	})
 }
 

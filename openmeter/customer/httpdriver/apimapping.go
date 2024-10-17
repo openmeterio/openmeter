@@ -29,12 +29,11 @@ func newUpdateCustomerInput(namespace string, apiCustomer api.Customer) customer
 // newFromAPICustomer creates a new customer.Customer from an api.Customer.
 func newFromAPICustomer(namespace string, apiCustomer api.Customer) customerentity.Customer {
 	customerModel := customerentity.Customer{
-		ManagedResource: models.ManagedResource{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: namespace,
-			},
-		},
-		Name:             apiCustomer.Name,
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			Namespace:   namespace,
+			Name:        apiCustomer.Name,
+			Description: apiCustomer.Description,
+		}),
 		UsageAttribution: customerentity.CustomerUsageAttribution(apiCustomer.UsageAttribution),
 		PrimaryEmail:     apiCustomer.PrimaryEmail,
 	}

@@ -55,7 +55,7 @@ func init() {
 	// app.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	app.UpdateDefaultUpdatedAt = appDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// appDescIsDefault is the schema descriptor for is_default field.
-	appDescIsDefault := appFields[4].Descriptor()
+	appDescIsDefault := appFields[2].Descriptor()
 	// app.DefaultIsDefault holds the default value on creation for the is_default field.
 	app.DefaultIsDefault = appDescIsDefault.Default.(bool)
 	// appDescID is the schema descriptor for id field.
@@ -411,7 +411,7 @@ func init() {
 		}
 	}()
 	// customerDescCurrency is the schema descriptor for currency field.
-	customerDescCurrency := customerFields[3].Descriptor()
+	customerDescCurrency := customerFields[2].Descriptor()
 	// customer.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	customer.CurrencyValidator = func() func(string) error {
 		validators := customerDescCurrency.Validators

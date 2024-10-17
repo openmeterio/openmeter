@@ -172,6 +172,9 @@ type Profile struct {
 	ID        string `json:"id"`
 	Namespace string `json:"namespace"`
 
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt"`
@@ -190,6 +193,10 @@ type Profile struct {
 func (p Profile) Validate() error {
 	if p.Namespace == "" {
 		return errors.New("namespace is required")
+	}
+
+	if p.Name == "" {
+		return errors.New("name is required")
 	}
 
 	if err := p.TaxConfiguration.Validate(); err != nil {

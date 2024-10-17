@@ -32,6 +32,10 @@ type Customer struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
 	// BillingAddressCountry holds the value of the "billing_address_country" field.
 	BillingAddressCountry *models.CountryCode `json:"billing_address_country,omitempty"`
 	// BillingAddressPostalCode holds the value of the "billing_address_postal_code" field.
@@ -46,8 +50,6 @@ type Customer struct {
 	BillingAddressLine2 *string `json:"billing_address_line2,omitempty"`
 	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
 	PrimaryEmail *string `json:"primary_email,omitempty"`
 	// Timezone holds the value of the "timezone" field.
@@ -109,7 +111,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldNamespace, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldName, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency:
+		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -167,6 +169,19 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.DeletedAt = new(time.Time)
 				*c.DeletedAt = value.Time
 			}
+		case customer.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				c.Name = value.String
+			}
+		case customer.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				c.Description = new(string)
+				*c.Description = value.String
+			}
 		case customer.FieldBillingAddressCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_country", values[i])
@@ -215,12 +230,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.BillingAddressPhoneNumber = new(string)
 				*c.BillingAddressPhoneNumber = value.String
-			}
-		case customer.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				c.Name = value.String
 			}
 		case customer.FieldPrimaryEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -311,6 +320,14 @@ func (c *Customer) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(c.Name)
+	builder.WriteString(", ")
+	if v := c.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	if v := c.BillingAddressCountry; v != nil {
 		builder.WriteString("billing_address_country=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -345,9 +362,6 @@ func (c *Customer) String() string {
 		builder.WriteString("billing_address_phone_number=")
 		builder.WriteString(*v)
 	}
-	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(c.Name)
 	builder.WriteString(", ")
 	if v := c.PrimaryEmail; v != nil {
 		builder.WriteString("primary_email=")

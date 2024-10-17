@@ -1,4 +1,4 @@
-h1:B43cg0ISkI4d5MYgBgK/zq6L/hstISWfGIIlp3eSl10=
+h1:2ygNE43wugkY8SDdHqGAMJdM45focljx6GKyPjYFIXw=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -23,5 +23,7 @@ h1:B43cg0ISkI4d5MYgBgK/zq6L/hstISWfGIIlp3eSl10=
 20240926164233_pending-invoice-items.up.sql h1:mQmcDk8d0qrGPytX+rSJ5kWak3F5sc4vE1zKOTjhttA=
 20241013151355_apps.down.sql h1:nFLjVe0RfclvCW6GI9dGtVNcNhr7JsjhmsTFUrxdD9E=
 20241013151355_apps.up.sql h1:Xw9g3PpSHtwoSScTIa8SCmjj3uZRWSOaWzfvlfl37Ic=
-20241017135535_entitlement_scheduling.down.sql h1:iYYS7hSwVy4VkpuZ4+kYCefuNE1GNqN2O1fenSS3hnc=
-20241017135535_entitlement_scheduling.up.sql h1:986KykYjufMVBw8RHzlIgu4EC5WA/G8NAZhvAOR95qo=
+20241017090045_unify-resource-def.down.sql h1:9bG/nuSKS5ibqL2xL6elq80ld1XXm5E1ODjeAOBo54I=
+20241017090045_unify-resource-def.up.sql h1:YSRP6iyb60Q2Zscc1MatXb+r6BTDXRYxDXmKvfwOOj8=
+20241017135535_entitlement_scheduling.down.sql h1:Km2FQ5euyZfFas/85ESuLQSWJk8ZboMCtm7OXLDkdpk=
+20241017135535_entitlement_scheduling.up.sql h1:ODE4LqknutPUtgjWF/DyvCLVJYjv1oSRsLAx1f5goYI=
