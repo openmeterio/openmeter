@@ -82,13 +82,70 @@ type SinkConfig struct {
 	TopicResolver topicresolver.Resolver
 }
 
-func NewSink(config SinkConfig) (*Sink, error) {
-	if config.Deduplicator == nil {
-		config.Logger.Warn("deduplicator is not set, deduplication will be disabled")
+func (s *SinkConfig) Validate() error {
+	if s.Logger == nil {
+		return errors.New("logger is required")
 	}
 
-	if config.TopicResolver == nil {
-		return nil, errors.New("topic name resolver is required")
+	if s.Tracer == nil {
+		return errors.New("tracer is required")
+	}
+
+	if s.MetricMeter == nil {
+		return errors.New("metric meter is required")
+	}
+
+	if s.MeterRepository == nil {
+		return errors.New("meter repository is required")
+	}
+
+	if s.Storage == nil {
+		return errors.New("storage is required")
+	}
+
+	if s.Consumer == nil {
+		return errors.New("consumer is required")
+	}
+
+	if s.MinCommitCount < 1 {
+		return errors.New("MinCommitCount must be greater than 0")
+	}
+
+	if s.MaxCommitWait == 0 {
+		return errors.New("MaxCommitWait must be greater than 0")
+	}
+
+	if s.MaxPollTimeout == 0 {
+		return errors.New("MaxPollTimeout must be greater than 0")
+	}
+
+	if s.NamespaceRefetch == 0 {
+		return errors.New("NamespaceRefetch must be greater than 0")
+	}
+
+	if s.FlushSuccessTimeout == 0 {
+		return errors.New("FlushSuccessTimeout must be greater than 0")
+	}
+
+	if s.DrainTimeout == 0 {
+		return errors.New("DrainTimeout must be greater than 0")
+	}
+
+	if s.TopicResolver == nil {
+		return errors.New("topic resolver is required")
+	}
+
+	return nil
+}
+
+func NewSink(config SinkConfig) (*Sink, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid sink configuration: %w", err)
+	}
+
+	// Warn if deduplicator is not set
+	if config.Deduplicator == nil {
+		config.Logger.Warn("deduplicator is not set, deduplication will be disabled")
 	}
 
 	// Initialize OTel metrics
