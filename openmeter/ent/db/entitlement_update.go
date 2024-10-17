@@ -70,6 +70,26 @@ func (eu *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
 	return eu
 }
 
+// SetActiveTo sets the "active_to" field.
+func (eu *EntitlementUpdate) SetActiveTo(t time.Time) *EntitlementUpdate {
+	eu.mutation.SetActiveTo(t)
+	return eu
+}
+
+// SetNillableActiveTo sets the "active_to" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableActiveTo(t *time.Time) *EntitlementUpdate {
+	if t != nil {
+		eu.SetActiveTo(*t)
+	}
+	return eu
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (eu *EntitlementUpdate) ClearActiveTo() *EntitlementUpdate {
+	eu.mutation.ClearActiveTo()
+	return eu
+}
+
 // SetConfig sets the "config" field.
 func (eu *EntitlementUpdate) SetConfig(u []uint8) *EntitlementUpdate {
 	eu.mutation.SetConfig(u)
@@ -332,6 +352,15 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
 	}
+	if eu.mutation.ActiveFromCleared() {
+		_spec.ClearField(entitlement.FieldActiveFrom, field.TypeTime)
+	}
+	if value, ok := eu.mutation.ActiveTo(); ok {
+		_spec.SetField(entitlement.FieldActiveTo, field.TypeTime, value)
+	}
+	if eu.mutation.ActiveToCleared() {
+		_spec.ClearField(entitlement.FieldActiveTo, field.TypeTime)
+	}
 	if eu.mutation.MeasureUsageFromCleared() {
 		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)
 	}
@@ -569,6 +598,26 @@ func (euo *EntitlementUpdateOne) SetNillableDeletedAt(t *time.Time) *Entitlement
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (euo *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
 	euo.mutation.ClearDeletedAt()
+	return euo
+}
+
+// SetActiveTo sets the "active_to" field.
+func (euo *EntitlementUpdateOne) SetActiveTo(t time.Time) *EntitlementUpdateOne {
+	euo.mutation.SetActiveTo(t)
+	return euo
+}
+
+// SetNillableActiveTo sets the "active_to" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableActiveTo(t *time.Time) *EntitlementUpdateOne {
+	if t != nil {
+		euo.SetActiveTo(*t)
+	}
+	return euo
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (euo *EntitlementUpdateOne) ClearActiveTo() *EntitlementUpdateOne {
+	euo.mutation.ClearActiveTo()
 	return euo
 }
 
@@ -863,6 +912,15 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
+	}
+	if euo.mutation.ActiveFromCleared() {
+		_spec.ClearField(entitlement.FieldActiveFrom, field.TypeTime)
+	}
+	if value, ok := euo.mutation.ActiveTo(); ok {
+		_spec.SetField(entitlement.FieldActiveTo, field.TypeTime, value)
+	}
+	if euo.mutation.ActiveToCleared() {
+		_spec.ClearField(entitlement.FieldActiveTo, field.TypeTime)
 	}
 	if euo.mutation.MeasureUsageFromCleared() {
 		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)

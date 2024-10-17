@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/edge"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -184,6 +185,13 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 		// Ingest batched event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
 			return w.handleBatchedIngestEvent(ctx, *event)
+		}),
+
+		// Edge Cache Miss Event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *edge.EntitlementCacheMissEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleCacheMissEvent(ctx, event, metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntitySubjectKey, event.SubjectKey)))
 		}),
 	)
 }

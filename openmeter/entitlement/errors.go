@@ -16,6 +16,14 @@ func (e *AlreadyExistsError) Error() string {
 	return fmt.Sprintf("entitlement with id %s already exists for feature %s and subject %s", e.EntitlementID, e.FeatureID, e.SubjectKey)
 }
 
+type AlreadyDeletedError struct {
+	EntitlementID string
+}
+
+func (e *AlreadyDeletedError) Error() string {
+	return fmt.Sprintf("entitlement with id %s already deleted", e.EntitlementID)
+}
+
 type NotFoundError struct {
 	EntitlementID models.NamespacedID
 }

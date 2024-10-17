@@ -23,7 +23,7 @@ import (
 
 type EntitlementHandler interface {
 	CreateEntitlement() CreateEntitlementHandler
-	OverrideEntitlement() OverrideEntitlementHandler
+	OverrideEntitlement() OverrideEntitlementHandler // Maybe rename (both here & API) to Supersede
 	GetEntitlement() GetEntitlementHandler
 	GetEntitlementById() GetEntitlementByIdHandler
 	DeleteEntitlement() DeleteEntitlementHandler
@@ -218,7 +218,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 			}, nil
 		},
 		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) (GetEntitlementsOfSubjectHandlerResponse, error) {
-			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, models.SubjectKey(id.ID))
+			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, models.SubjectKey(id.ID), clock.Now())
 			if err != nil {
 				return nil, err
 			}
