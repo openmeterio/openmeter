@@ -2,14 +2,13 @@ package clickhouse_connector
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -26,6 +25,8 @@ var (
 type ClickhouseConnector struct {
 	config ClickhouseConnectorConfig
 }
+
+var _ streaming.Connector = &ClickhouseConnector{}
 
 type ClickhouseConnectorConfig struct {
 	Logger               *slog.Logger
@@ -44,21 +45,81 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
+func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
+	return c.queryEvents(
+		ctx,
+		namespace,
+		params.Filters,
+		func() ([]ScannedEventRow, error) {
+			return c.queryEventsTable(ctx, namespace, params)
+		},
+	)
+}
+
+func (c *ClickhouseConnector) PaginateEvents(ctx context.Context, namespace string, params streaming.PaginateEventsParams) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
+	if err := params.Cursor.Cursor.Validate(); err != nil {
+		return nil, nil, fmt.Errorf("cursor validation: %w", err)
 	}
 
-	events, err := c.queryEventsTable(ctx, namespace, params)
+	return c.queryEvents(
+		ctx,
+		namespace,
+		params.Cursor.Filters,
+		func() ([]ScannedEventRow, error) {
+			return c.paginateEventsTable(ctx, namespace, params)
+		},
+	)
+}
+
+func (c *ClickhouseConnector) queryEvents(
+	_ context.Context,
+	namespace string,
+	filters streaming.EventsTableFilters,
+	querier func() ([]ScannedEventRow, error),
+) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
+	if namespace == "" {
+		return nil, nil, fmt.Errorf("namespace is required")
+	}
+
+	scannedRows, err := querier()
 	if err != nil {
 		if _, ok := err.(*models.NamespaceNotFoundError); ok {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return nil, fmt.Errorf("query events: %w", err)
+		return nil, nil, fmt.Errorf("query events: %w", err)
 	}
 
-	return events, nil
+	var events []api.IngestedEvent
+
+	for _, row := range scannedRows {
+		event, err := parseEventRow(row)
+		if err != nil {
+			return nil, nil, fmt.Errorf("query events: %w", err)
+		}
+
+		events = append(events, event)
+	}
+
+	var cursor *streaming.EventsCursor
+
+	if len(scannedRows) > 0 {
+		lastRow := scannedRows[len(scannedRows)-1]
+
+		cursor = &streaming.EventsCursor{
+			Filters: filters,
+			Cursor: streaming.EventsTableCursor{
+				Namespace: namespace,
+				Time:      lastRow.eventTime,
+				Type:      lastRow.eventType,
+				Subject:   lastRow.subject,
+				ID:        lastRow.id,
+				IsGreater: false, // We use SORT DESC when querying TODO: maybe tidy this up, its a bit arbitrary
+			},
+		}
+	}
+
+	return events, cursor, nil
 }
 
 func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
@@ -216,21 +277,22 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]ScannedEventRow, error) {
 	table := queryEventsTable{
-		Database:       c.config.Database,
-		Namespace:      namespace,
-		From:           params.From,
-		To:             params.To,
-		IngestedAtFrom: params.IngestedAtFrom,
-		IngestedAtTo:   params.IngestedAtTo,
-		ID:             params.ID,
-		Subject:        params.Subject,
-		HasError:       params.HasError,
-		Limit:          params.Limit,
+		Database:  c.config.Database,
+		Namespace: namespace,
+		Limit:     params.Limit,
 	}
 
-	sql, args := table.toSQL()
+	sql, args := table.toSQLWithWhere(queryEventsFilters{
+		From:           params.Filters.From,
+		To:             params.Filters.To,
+		IngestedAtFrom: params.Filters.IngestedAtFrom,
+		IngestedAtTo:   params.Filters.IngestedAtTo,
+		ID:             params.Filters.ID,
+		Subject:        params.Filters.Subject,
+		HasError:       params.Filters.HasError,
+	})
 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
@@ -241,7 +303,50 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		return nil, fmt.Errorf("query events table query: %w", err)
 	}
 
-	events := []api.IngestedEvent{}
+	return c.scanEventRows(rows)
+}
+
+func (c *ClickhouseConnector) paginateEventsTable(ctx context.Context, namespace string, params streaming.PaginateEventsParams) ([]ScannedEventRow, error) {
+	table := queryEventsTable{
+		Database:  c.config.Database,
+		Namespace: namespace,
+		Limit:     params.Limit,
+	}
+
+	sql, args := table.toSQLWithWhere(queryEventsCursor{
+		cursor: eventsTableCursor{
+			Namespace: params.Cursor.Cursor.Namespace,
+			Time:      params.Cursor.Cursor.Time,
+			Type:      params.Cursor.Cursor.Type,
+			Subject:   params.Cursor.Cursor.Subject,
+			ID:        params.Cursor.Cursor.ID,
+			IsGreater: params.Cursor.Cursor.IsGreater,
+		},
+		filters: queryEventsFilters{
+			From:           params.Cursor.Filters.From,
+			To:             params.Cursor.Filters.To,
+			IngestedAtFrom: params.Cursor.Filters.IngestedAtFrom,
+			IngestedAtTo:   params.Cursor.Filters.IngestedAtTo,
+			ID:             params.Cursor.Filters.ID,
+			Subject:        params.Cursor.Filters.Subject,
+			HasError:       params.Cursor.Filters.HasError,
+		},
+	})
+
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+		}
+
+		return nil, fmt.Errorf("query events table query: %w", err)
+	}
+
+	return c.scanEventRows(rows)
+}
+
+func (c *ClickhouseConnector) scanEventRows(rows driver.Rows) ([]ScannedEventRow, error) {
+	scannedRows := []ScannedEventRow{}
 
 	for rows.Next() {
 		var id string
@@ -254,43 +359,24 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		var ingestedAt time.Time
 		var storedAt time.Time
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &storedAt); err != nil {
+		if err := rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &storedAt); err != nil {
 			return nil, err
 		}
 
-		// Parse data
-		var data interface{}
-		err := json.Unmarshal([]byte(dataStr), &data)
-		if err != nil {
-			return nil, fmt.Errorf("query events parse data: %w", err)
-		}
-
-		event := event.New()
-		event.SetID(id)
-		event.SetType(eventType)
-		event.SetSubject(subject)
-		event.SetSource(source)
-		event.SetTime(eventTime)
-		err = event.SetData("application/json", data)
-		if err != nil {
-			return nil, fmt.Errorf("query events set data: %w", err)
-		}
-
-		ingestedEvent := api.IngestedEvent{
-			Event: event,
-		}
-
-		if validationError != "" {
-			ingestedEvent.ValidationError = &validationError
-		}
-
-		ingestedEvent.IngestedAt = ingestedAt
-		ingestedEvent.StoredAt = storedAt
-
-		events = append(events, ingestedEvent)
+		scannedRows = append(scannedRows, ScannedEventRow{
+			id:              id,
+			eventType:       eventType,
+			subject:         subject,
+			source:          source,
+			eventTime:       eventTime,
+			dataStr:         dataStr,
+			validationError: validationError,
+			ingestedAt:      ingestedAt,
+			storedAt:        storedAt,
+		})
 	}
 
-	return events, nil
+	return scannedRows, nil
 }
 
 func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {

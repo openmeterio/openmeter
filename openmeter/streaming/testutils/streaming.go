@@ -30,6 +30,8 @@ type MockStreamingConnector struct {
 	events map[string][]SimpleEvent
 }
 
+var _ streaming.Connector = &MockStreamingConnector{}
+
 func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64, at time.Time) {
 	m.events[meterSlug] = append(m.events[meterSlug], SimpleEvent{
 		MeterSlug: meterSlug,
@@ -53,8 +55,12 @@ func (m *MockStreamingConnector) CountEvents(ctx context.Context, namespace stri
 	return []streaming.CountEventRow{}, nil
 }
 
-func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	return []api.IngestedEvent{}, nil
+func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
+	return []api.IngestedEvent{}, nil, nil
+}
+
+func (m *MockStreamingConnector) PaginateEvents(ctx context.Context, namespace string, params streaming.PaginateEventsParams) ([]api.IngestedEvent, *streaming.EventsCursor, error) {
+	return []api.IngestedEvent{}, nil, nil
 }
 
 func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
