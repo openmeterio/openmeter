@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -731,12 +732,23 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 		},
 	}
 
-	// Get Namespace
-	namespace, err := getNamespace(*e.TopicPartition.Topic)
-	if err != nil {
+	// Get Namespace from Kafka message header
+	var namespace string
+	for _, header := range e.Headers {
+		if header.Key == kafkaingest.HeaderKeyNamespace {
+			namespace = string(header.Value)
+
+			break
+		}
+	}
+
+	if namespace == "" {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.DROP,
-			Error: fmt.Errorf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err),
+			Error: fmt.Errorf("failed to get namespace as header (%q) for Kafka Message is missing: %s",
+				kafkaingest.HeaderKeyNamespace,
+				e.TopicPartition.String(),
+			),
 		}
 
 		return sinkMessage, nil
@@ -745,7 +757,7 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 
 	// Parse Kafka Event
 	kafkaCloudEvent := &serializer.CloudEventsKafkaPayload{}
-	err = json.Unmarshal(e.Value, kafkaCloudEvent)
+	err := json.Unmarshal(e.Value, kafkaCloudEvent)
 	if err != nil {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.DROP,
@@ -841,15 +853,6 @@ func (s *Sink) Close() error {
 	}
 
 	return nil
-}
-
-// getNamespace from topic
-func getNamespace(topic string) (string, error) {
-	tmp := namespaceTopicRegexp.FindStringSubmatch(topic)
-	if len(tmp) != 2 || tmp[1] == "" {
-		return "", fmt.Errorf("namespace not found in topic: %s", topic)
-	}
-	return tmp[1], nil
 }
 
 // dedupeSinkMessages removes duplicates from a list of events

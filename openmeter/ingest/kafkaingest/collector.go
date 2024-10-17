@@ -16,6 +16,10 @@ import (
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
+const (
+	HeaderKeyNamespace = "namespace"
+)
+
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
 type Collector struct {
 	Producer      *kafka.Producer
@@ -66,7 +70,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		TopicPartition: kafka.TopicPartition{Topic: &topicName, Partition: kafka.PartitionAny},
 		Timestamp:      ev.Time(),
 		Headers: []kafka.Header{
-			{Key: "namespace", Value: []byte(namespace)},
+			{Key: HeaderKeyNamespace, Value: []byte(namespace)},
 			{Key: "specversion", Value: []byte(ev.SpecVersion())},
 			{Key: "ingested_at", Value: []byte(time.Now().UTC().Format(time.RFC3339))},
 		},
