@@ -61,6 +61,7 @@ model UniqueResource {
   /**
    * A semi-unique identifier for the resource.
    */
+  @visibility("read", "create")
   @summary("Key")
   key: Key;
 }

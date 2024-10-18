@@ -1,11 +1,6 @@
-import "./types.tsp";
-import "./discounts.tsp";
-import "./prices.tsp";
-import "./entitlements/main.tsp";
-import "./billing/main.tsp";
+namespace OpenMeter.ProductCatalog;
 
-namespace OpenMeter;
-
+using TypeSpec.OpenAPI;
 using OpenMeter.Entitlements;
 
 /**
@@ -21,14 +16,15 @@ enum RateCardType {
  * Common fields of the rate card.
  */
 @friendlyName("RateCardBase")
-model RateCardBase {
-  ...Resource;
+model RateCardBase<T extends RateCardType> {
+  ...OmitProperties<UniqueResource, "id">;
 
   /**
-   * The type of the rate card
+   * The type of the RateCard.
    */
-  @summary("Type of the rate card")
-  type: RateCardType;
+  @visibility("read", "create")
+  @summary("Channel Type")
+  type: T;
 
   /**
    * The feature the customer is entitled to use.
@@ -56,6 +52,7 @@ model RateCardBase {
  */
 @friendlyName("RateCard")
 @discriminator("type")
+@oneOf
 union RateCard {
   flatFee: RateCardFlatFee,
   usageBased: RateCardUsageBased,
@@ -65,8 +62,8 @@ union RateCard {
  * A flat fee rate card defines a one-time purchase or a recurring fee.
  */
 @friendlyName("RateCardFlatFee")
-model RateCardFlatFee extends RateCardBase {
-  type: RateCardType.flatFee;
+model RateCardFlatFee {
+  ...RateCardBase<RateCardType.flatFee>;
 
   /**
    * The billing cadence of the rate card.
@@ -84,20 +81,21 @@ model RateCardFlatFee extends RateCardBase {
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
   price: FlatPriceWithPaymentTerm | null;
 
-  /**
-   * The discount of the rate card. Either a percentage or an amount.
-   * Only available when price is set.
-   */
-  @summary("Discount")
-  discount?: DiscountPercentage | DiscountAmount;
+  // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
+  // /**
+  //  * The discount of the rate card. Either a percentage or an amount.
+  //  * Only available when price is set.
+  //  */
+  // @summary("Discount")
+  // discount?: DiscountPercentage | DiscountAmount;
 }
 
 /**
  * A usage-based rate card defines a price based on usage.
  */
 @friendlyName("RateCardUsageBased")
-model RateCardUsageBased extends RateCardBase {
-  type: RateCardType.usageBased;
+model RateCardUsageBased {
+  ...RateCardBase<RateCardType.usageBased>;
 
   /**
    * The billing cadence of the rate card.
@@ -136,7 +134,7 @@ union RateCardOverride {
  */
 @friendlyName("RateCardOverrideFlatFee")
 model RateCardOverrideFlatFee {
-  ...PickProperties<RateCardFlatFee, "type" | "price" | "discount">;
+  ...PickProperties<RateCardFlatFee, "type" | "price">;
 }
 
 /**
@@ -144,7 +142,7 @@ model RateCardOverrideFlatFee {
  */
 @friendlyName("RateCardOverrideUsageBased")
 model RateCardOverrideUsageBased {
-  ...PickProperties<RateCardUsageBased, "type" | "price" | "discount">;
+  ...PickProperties<RateCardUsageBased, "type" | "price">;
 }
 
 /**
@@ -165,7 +163,7 @@ union RateCardEntitlement {
 @friendlyName("RateCardMeteredEntitlement")
 model RateCardMeteredEntitlement {
   ...OmitProperties<
-    EntitlementMeteredCreateInputs,
+    OpenMeter.Entitlements.EntitlementMeteredCreateInputs,
     "featureKey" | "featureId" | "usagePeriod" | "measureUsageFrom" | "isUnlimited"
   >;
 
