@@ -69,7 +69,7 @@ func (a App) Validate() error {
 // ValidateCustomer validates if the app can run for the given customer
 func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
 	// Validate if the app supports the given capabilities
-	if err := a.ValidateCapabilities(capabilities); err != nil {
+	if err := a.ValidateCapabilities(capabilities...); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 

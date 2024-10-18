@@ -12,8 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -149,50 +148,8 @@ func (bic *BillingInvoiceCreate) SetDueDate(t time.Time) *BillingInvoiceCreate {
 }
 
 // SetStatus sets the "status" field.
-func (bic *BillingInvoiceCreate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceCreate {
+func (bic *BillingInvoiceCreate) SetStatus(bs billingentity.InvoiceStatus) *BillingInvoiceCreate {
 	bic.mutation.SetStatus(bs)
-	return bic
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (bic *BillingInvoiceCreate) SetTaxProvider(pp provider.TaxProvider) *BillingInvoiceCreate {
-	bic.mutation.SetTaxProvider(pp)
-	return bic
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingInvoiceCreate {
-	if pp != nil {
-		bic.SetTaxProvider(*pp)
-	}
-	return bic
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (bic *BillingInvoiceCreate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingInvoiceCreate {
-	bic.mutation.SetInvoicingProvider(pp)
-	return bic
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingInvoiceCreate {
-	if pp != nil {
-		bic.SetInvoicingProvider(*pp)
-	}
-	return bic
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (bic *BillingInvoiceCreate) SetPaymentProvider(pp provider.PaymentProvider) *BillingInvoiceCreate {
-	bic.mutation.SetPaymentProvider(pp)
-	return bic
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingInvoiceCreate {
-	if pp != nil {
-		bic.SetPaymentProvider(*pp)
-	}
 	return bic
 }
 
@@ -359,21 +316,6 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
 		}
 	}
-	if v, ok := bic.mutation.TaxProvider(); ok {
-		if err := billinginvoice.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := bic.mutation.InvoicingProvider(); ok {
-		if err := billinginvoice.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := bic.mutation.PaymentProvider(); ok {
-		if err := billinginvoice.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.payment_provider": %w`, err)}
-		}
-	}
 	if _, ok := bic.mutation.WorkflowConfigID(); !ok {
 		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingInvoice.workflow_config_id"`)}
 	}
@@ -472,18 +414,6 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
-	}
-	if value, ok := bic.mutation.TaxProvider(); ok {
-		_spec.SetField(billinginvoice.FieldTaxProvider, field.TypeEnum, value)
-		_node.TaxProvider = &value
-	}
-	if value, ok := bic.mutation.InvoicingProvider(); ok {
-		_spec.SetField(billinginvoice.FieldInvoicingProvider, field.TypeEnum, value)
-		_node.InvoicingProvider = &value
-	}
-	if value, ok := bic.mutation.PaymentProvider(); ok {
-		_spec.SetField(billinginvoice.FieldPaymentProvider, field.TypeEnum, value)
-		_node.PaymentProvider = &value
 	}
 	if value, ok := bic.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
@@ -710,7 +640,7 @@ func (u *BillingInvoiceUpsert) UpdateDueDate() *BillingInvoiceUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsert) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetStatus(v billingentity.InvoiceStatus) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldStatus, v)
 	return u
 }
@@ -718,60 +648,6 @@ func (u *BillingInvoiceUpsert) SetStatus(v billing.InvoiceStatus) *BillingInvoic
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdateStatus() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldStatus)
-	return u
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (u *BillingInvoiceUpsert) SetTaxProvider(v provider.TaxProvider) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldTaxProvider, v)
-	return u
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateTaxProvider() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldTaxProvider)
-	return u
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (u *BillingInvoiceUpsert) ClearTaxProvider() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldTaxProvider)
-	return u
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *BillingInvoiceUpsert) SetInvoicingProvider(v provider.InvoicingProvider) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldInvoicingProvider, v)
-	return u
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateInvoicingProvider() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldInvoicingProvider)
-	return u
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (u *BillingInvoiceUpsert) ClearInvoicingProvider() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldInvoicingProvider)
-	return u
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *BillingInvoiceUpsert) SetPaymentProvider(v provider.PaymentProvider) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldPaymentProvider, v)
-	return u
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdatePaymentProvider() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldPaymentProvider)
-	return u
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (u *BillingInvoiceUpsert) ClearPaymentProvider() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldPaymentProvider)
 	return u
 }
 
@@ -1008,7 +884,7 @@ func (u *BillingInvoiceUpsertOne) UpdateDueDate() *BillingInvoiceUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertOne) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetStatus(v billingentity.InvoiceStatus) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})
@@ -1018,69 +894,6 @@ func (u *BillingInvoiceUpsertOne) SetStatus(v billing.InvoiceStatus) *BillingInv
 func (u *BillingInvoiceUpsertOne) UpdateStatus() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (u *BillingInvoiceUpsertOne) SetTaxProvider(v provider.TaxProvider) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetTaxProvider(v)
-	})
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateTaxProvider() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateTaxProvider()
-	})
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (u *BillingInvoiceUpsertOne) ClearTaxProvider() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearTaxProvider()
-	})
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *BillingInvoiceUpsertOne) SetInvoicingProvider(v provider.InvoicingProvider) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetInvoicingProvider(v)
-	})
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateInvoicingProvider() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateInvoicingProvider()
-	})
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (u *BillingInvoiceUpsertOne) ClearInvoicingProvider() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearInvoicingProvider()
-	})
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *BillingInvoiceUpsertOne) SetPaymentProvider(v provider.PaymentProvider) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetPaymentProvider(v)
-	})
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdatePaymentProvider() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdatePaymentProvider()
-	})
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (u *BillingInvoiceUpsertOne) ClearPaymentProvider() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearPaymentProvider()
 	})
 }
 
@@ -1490,7 +1303,7 @@ func (u *BillingInvoiceUpsertBulk) UpdateDueDate() *BillingInvoiceUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetStatus(v billingentity.InvoiceStatus) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})
@@ -1500,69 +1313,6 @@ func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.InvoiceStatus) *BillingIn
 func (u *BillingInvoiceUpsertBulk) UpdateStatus() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (u *BillingInvoiceUpsertBulk) SetTaxProvider(v provider.TaxProvider) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetTaxProvider(v)
-	})
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateTaxProvider() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateTaxProvider()
-	})
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (u *BillingInvoiceUpsertBulk) ClearTaxProvider() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearTaxProvider()
-	})
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *BillingInvoiceUpsertBulk) SetInvoicingProvider(v provider.InvoicingProvider) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetInvoicingProvider(v)
-	})
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateInvoicingProvider() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateInvoicingProvider()
-	})
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (u *BillingInvoiceUpsertBulk) ClearInvoicingProvider() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearInvoicingProvider()
-	})
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *BillingInvoiceUpsertBulk) SetPaymentProvider(v provider.PaymentProvider) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetPaymentProvider(v)
-	})
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdatePaymentProvider() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdatePaymentProvider()
-	})
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (u *BillingInvoiceUpsertBulk) ClearPaymentProvider() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearPaymentProvider()
 	})
 }
 

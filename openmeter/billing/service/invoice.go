@@ -8,13 +8,15 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ billing.InvoiceService = (*Service)(nil)
 
-func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billing.InvoiceWithValidation, error) {
+func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billingentity.InvoiceWithValidation, error) {
 	customerEntity, err := s.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(customerID))
 	if err != nil {
 		if err, ok := lo.ErrorsAs[customerentity.NotFoundError](err); ok {
@@ -26,10 +28,10 @@ func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID custome
 		return nil, err
 	}
 
-	return billing.WithTx(ctx, s.adapter, func(ctx context.Context, adapter billing.TxAdapter) ([]billing.InvoiceWithValidation, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]billingentity.InvoiceWithValidation, error) {
 		validationErrors := []error{}
 
-		billingProfile, err := s.getProfileWithCustomerOverride(ctx, adapter, billing.GetProfileWithCustomerOverrideInput{
+		billingProfile, err := s.getProfileWithCustomerOverride(ctx, s.adapter, billing.GetProfileWithCustomerOverrideInput{
 			Namespace:  customerEntity.Namespace,
 			CustomerID: customerEntity.ID,
 		})
@@ -55,19 +57,19 @@ func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID custome
 
 		byCurrency := splitInvoicesByCurrency(pendingItems)
 
-		res := make([]billing.InvoiceWithValidation, 0, len(byCurrency))
+		res := make([]billingentity.InvoiceWithValidation, 0, len(byCurrency))
 
 		for currency, items := range byCurrency {
-			res = append(res, billing.InvoiceWithValidation{
-				Invoice: &billing.Invoice{
+			res = append(res, billingentity.InvoiceWithValidation{
+				Invoice: &billingentity.Invoice{
 					Namespace: customerEntity.Namespace,
-					InvoiceNumber: billing.InvoiceNumber{
+					InvoiceNumber: billingentity.InvoiceNumber{
 						Series: "INV",
 						Code:   "DRAFT",
 					},
-					Status: billing.InvoiceStatusPendingCreation,
+					Status: billingentity.InvoiceStatusPendingCreation,
 					Items:  items,
-					Type:   billing.InvoiceTypeStandard,
+					Type:   billingentity.InvoiceTypeStandard,
 
 					// TODO[OM-931]: Timezone
 
@@ -77,7 +79,7 @@ func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID custome
 					UpdatedAt: time.Now(),
 
 					Profile:  billingProfile.Profile,
-					Customer: billing.InvoiceCustomer(billingProfile.Customer),
+					Customer: billingentity.InvoiceCustomer(billingProfile.Customer),
 				},
 				ValidationErrors: validationErrors,
 			},
@@ -88,15 +90,15 @@ func (s *Service) GetPendingInvoiceItems(ctx context.Context, customerID custome
 	})
 }
 
-func splitInvoicesByCurrency(items []billing.InvoiceItem) map[currencyx.Code][]billing.InvoiceItem {
-	byCurrency := make(map[currencyx.Code][]billing.InvoiceItem)
+func splitInvoicesByCurrency(items []billingentity.InvoiceItem) map[currencyx.Code][]billingentity.InvoiceItem {
+	byCurrency := make(map[currencyx.Code][]billingentity.InvoiceItem)
 
 	if len(items) == 0 {
 		return byCurrency
 	}
 
 	// Optimization: pre-allocate the first currency, assuming that there will be not more than one currency
-	byCurrency[items[0].Currency] = make([]billing.InvoiceItem, 0, len(items))
+	byCurrency[items[0].Currency] = make([]billingentity.InvoiceItem, 0, len(items))
 
 	for _, item := range items {
 		byCurrency[item.Currency] = append(byCurrency[item.Currency], item)

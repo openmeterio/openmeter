@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -200,21 +200,21 @@ func (bpc *BillingProfileCreate) SetNillableSupplierAddressPhoneNumber(s *string
 	return bpc
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (bpc *BillingProfileCreate) SetTaxProvider(pp provider.TaxProvider) *BillingProfileCreate {
-	bpc.mutation.SetTaxProvider(pp)
+// SetTaxAppID sets the "tax_app_id" field.
+func (bpc *BillingProfileCreate) SetTaxAppID(s string) *BillingProfileCreate {
+	bpc.mutation.SetTaxAppID(s)
 	return bpc
 }
 
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (bpc *BillingProfileCreate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileCreate {
-	bpc.mutation.SetInvoicingProvider(pp)
+// SetInvoicingAppID sets the "invoicing_app_id" field.
+func (bpc *BillingProfileCreate) SetInvoicingAppID(s string) *BillingProfileCreate {
+	bpc.mutation.SetInvoicingAppID(s)
 	return bpc
 }
 
-// SetPaymentProvider sets the "payment_provider" field.
-func (bpc *BillingProfileCreate) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileCreate {
-	bpc.mutation.SetPaymentProvider(pp)
+// SetPaymentAppID sets the "payment_app_id" field.
+func (bpc *BillingProfileCreate) SetPaymentAppID(s string) *BillingProfileCreate {
+	bpc.mutation.SetPaymentAppID(s)
 	return bpc
 }
 
@@ -241,6 +241,20 @@ func (bpc *BillingProfileCreate) SetNillableDefault(b *bool) *BillingProfileCrea
 // SetSupplierName sets the "supplier_name" field.
 func (bpc *BillingProfileCreate) SetSupplierName(s string) *BillingProfileCreate {
 	bpc.mutation.SetSupplierName(s)
+	return bpc
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (bpc *BillingProfileCreate) SetSupplierTaxCode(s string) *BillingProfileCreate {
+	bpc.mutation.SetSupplierTaxCode(s)
+	return bpc
+}
+
+// SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
+func (bpc *BillingProfileCreate) SetNillableSupplierTaxCode(s *string) *BillingProfileCreate {
+	if s != nil {
+		bpc.SetSupplierTaxCode(*s)
+	}
 	return bpc
 }
 
@@ -291,6 +305,21 @@ func (bpc *BillingProfileCreate) AddBillingCustomerOverride(b ...*BillingCustome
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
 func (bpc *BillingProfileCreate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
 	return bpc.SetWorkflowConfigID(b.ID)
+}
+
+// SetTaxApp sets the "tax_app" edge to the App entity.
+func (bpc *BillingProfileCreate) SetTaxApp(a *App) *BillingProfileCreate {
+	return bpc.SetTaxAppID(a.ID)
+}
+
+// SetInvoicingApp sets the "invoicing_app" edge to the App entity.
+func (bpc *BillingProfileCreate) SetInvoicingApp(a *App) *BillingProfileCreate {
+	return bpc.SetInvoicingAppID(a.ID)
+}
+
+// SetPaymentApp sets the "payment_app" edge to the App entity.
+func (bpc *BillingProfileCreate) SetPaymentApp(a *App) *BillingProfileCreate {
+	return bpc.SetPaymentAppID(a.ID)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
@@ -370,29 +399,14 @@ func (bpc *BillingProfileCreate) check() error {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.TaxProvider(); !ok {
-		return &ValidationError{Name: "tax_provider", err: errors.New(`db: missing required field "BillingProfile.tax_provider"`)}
+	if _, ok := bpc.mutation.TaxAppID(); !ok {
+		return &ValidationError{Name: "tax_app_id", err: errors.New(`db: missing required field "BillingProfile.tax_app_id"`)}
 	}
-	if v, ok := bpc.mutation.TaxProvider(); ok {
-		if err := billingprofile.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
-		}
+	if _, ok := bpc.mutation.InvoicingAppID(); !ok {
+		return &ValidationError{Name: "invoicing_app_id", err: errors.New(`db: missing required field "BillingProfile.invoicing_app_id"`)}
 	}
-	if _, ok := bpc.mutation.InvoicingProvider(); !ok {
-		return &ValidationError{Name: "invoicing_provider", err: errors.New(`db: missing required field "BillingProfile.invoicing_provider"`)}
-	}
-	if v, ok := bpc.mutation.InvoicingProvider(); ok {
-		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
-		}
-	}
-	if _, ok := bpc.mutation.PaymentProvider(); !ok {
-		return &ValidationError{Name: "payment_provider", err: errors.New(`db: missing required field "BillingProfile.payment_provider"`)}
-	}
-	if v, ok := bpc.mutation.PaymentProvider(); ok {
-		if err := billingprofile.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
-		}
+	if _, ok := bpc.mutation.PaymentAppID(); !ok {
+		return &ValidationError{Name: "payment_app_id", err: errors.New(`db: missing required field "BillingProfile.payment_app_id"`)}
 	}
 	if _, ok := bpc.mutation.WorkflowConfigID(); !ok {
 		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingProfile.workflow_config_id"`)}
@@ -415,6 +429,15 @@ func (bpc *BillingProfileCreate) check() error {
 	}
 	if len(bpc.mutation.WorkflowConfigIDs()) == 0 {
 		return &ValidationError{Name: "workflow_config", err: errors.New(`db: missing required edge "BillingProfile.workflow_config"`)}
+	}
+	if len(bpc.mutation.TaxAppIDs()) == 0 {
+		return &ValidationError{Name: "tax_app", err: errors.New(`db: missing required edge "BillingProfile.tax_app"`)}
+	}
+	if len(bpc.mutation.InvoicingAppIDs()) == 0 {
+		return &ValidationError{Name: "invoicing_app", err: errors.New(`db: missing required edge "BillingProfile.invoicing_app"`)}
+	}
+	if len(bpc.mutation.PaymentAppIDs()) == 0 {
+		return &ValidationError{Name: "payment_app", err: errors.New(`db: missing required edge "BillingProfile.payment_app"`)}
 	}
 	return nil
 }
@@ -508,18 +531,6 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_spec.SetField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString, value)
 		_node.SupplierAddressPhoneNumber = &value
 	}
-	if value, ok := bpc.mutation.TaxProvider(); ok {
-		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
-		_node.TaxProvider = value
-	}
-	if value, ok := bpc.mutation.InvoicingProvider(); ok {
-		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
-		_node.InvoicingProvider = value
-	}
-	if value, ok := bpc.mutation.PaymentProvider(); ok {
-		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
-		_node.PaymentProvider = value
-	}
 	if value, ok := bpc.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 		_node.Default = value
@@ -527,6 +538,10 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 	if value, ok := bpc.mutation.SupplierName(); ok {
 		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
 		_node.SupplierName = value
+	}
+	if value, ok := bpc.mutation.SupplierTaxCode(); ok {
+		_spec.SetField(billingprofile.FieldSupplierTaxCode, field.TypeString, value)
+		_node.SupplierTaxCode = &value
 	}
 	if nodes := bpc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -575,6 +590,57 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.WorkflowConfigID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bpc.mutation.TaxAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.TaxAppTable,
+			Columns: []string{billingprofile.TaxAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxAppID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bpc.mutation.InvoicingAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.InvoicingAppTable,
+			Columns: []string{billingprofile.InvoicingAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.InvoicingAppID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bpc.mutation.PaymentAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.PaymentAppTable,
+			Columns: []string{billingprofile.PaymentAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PaymentAppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -833,42 +899,6 @@ func (u *BillingProfileUpsert) ClearSupplierAddressPhoneNumber() *BillingProfile
 	return u
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (u *BillingProfileUpsert) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsert {
-	u.Set(billingprofile.FieldTaxProvider, v)
-	return u
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsert) UpdateTaxProvider() *BillingProfileUpsert {
-	u.SetExcluded(billingprofile.FieldTaxProvider)
-	return u
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *BillingProfileUpsert) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsert {
-	u.Set(billingprofile.FieldInvoicingProvider, v)
-	return u
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsert) UpdateInvoicingProvider() *BillingProfileUpsert {
-	u.SetExcluded(billingprofile.FieldInvoicingProvider)
-	return u
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *BillingProfileUpsert) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsert {
-	u.Set(billingprofile.FieldPaymentProvider, v)
-	return u
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsert) UpdatePaymentProvider() *BillingProfileUpsert {
-	u.SetExcluded(billingprofile.FieldPaymentProvider)
-	return u
-}
-
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (u *BillingProfileUpsert) SetWorkflowConfigID(v string) *BillingProfileUpsert {
 	u.Set(billingprofile.FieldWorkflowConfigID, v)
@@ -905,6 +935,24 @@ func (u *BillingProfileUpsert) UpdateSupplierName() *BillingProfileUpsert {
 	return u
 }
 
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (u *BillingProfileUpsert) SetSupplierTaxCode(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldSupplierTaxCode, v)
+	return u
+}
+
+// UpdateSupplierTaxCode sets the "supplier_tax_code" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateSupplierTaxCode() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldSupplierTaxCode)
+	return u
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (u *BillingProfileUpsert) ClearSupplierTaxCode() *BillingProfileUpsert {
+	u.SetNull(billingprofile.FieldSupplierTaxCode)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -927,6 +975,15 @@ func (u *BillingProfileUpsertOne) UpdateNewValues() *BillingProfileUpsertOne {
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billingprofile.FieldCreatedAt)
+		}
+		if _, exists := u.create.mutation.TaxAppID(); exists {
+			s.SetIgnore(billingprofile.FieldTaxAppID)
+		}
+		if _, exists := u.create.mutation.InvoicingAppID(); exists {
+			s.SetIgnore(billingprofile.FieldInvoicingAppID)
+		}
+		if _, exists := u.create.mutation.PaymentAppID(); exists {
+			s.SetIgnore(billingprofile.FieldPaymentAppID)
 		}
 	}))
 	return u
@@ -1197,48 +1254,6 @@ func (u *BillingProfileUpsertOne) ClearSupplierAddressPhoneNumber() *BillingProf
 	})
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (u *BillingProfileUpsertOne) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsertOne {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetTaxProvider(v)
-	})
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsertOne) UpdateTaxProvider() *BillingProfileUpsertOne {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateTaxProvider()
-	})
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *BillingProfileUpsertOne) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsertOne {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetInvoicingProvider(v)
-	})
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsertOne) UpdateInvoicingProvider() *BillingProfileUpsertOne {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateInvoicingProvider()
-	})
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *BillingProfileUpsertOne) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsertOne {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetPaymentProvider(v)
-	})
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsertOne) UpdatePaymentProvider() *BillingProfileUpsertOne {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdatePaymentProvider()
-	})
-}
-
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (u *BillingProfileUpsertOne) SetWorkflowConfigID(v string) *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
@@ -1278,6 +1293,27 @@ func (u *BillingProfileUpsertOne) SetSupplierName(v string) *BillingProfileUpser
 func (u *BillingProfileUpsertOne) UpdateSupplierName() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.UpdateSupplierName()
+	})
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (u *BillingProfileUpsertOne) SetSupplierTaxCode(v string) *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierTaxCode(v)
+	})
+}
+
+// UpdateSupplierTaxCode sets the "supplier_tax_code" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateSupplierTaxCode() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierTaxCode()
+	})
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (u *BillingProfileUpsertOne) ClearSupplierTaxCode() *BillingProfileUpsertOne {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierTaxCode()
 	})
 }
 
@@ -1469,6 +1505,15 @@ func (u *BillingProfileUpsertBulk) UpdateNewValues() *BillingProfileUpsertBulk {
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billingprofile.FieldCreatedAt)
+			}
+			if _, exists := b.mutation.TaxAppID(); exists {
+				s.SetIgnore(billingprofile.FieldTaxAppID)
+			}
+			if _, exists := b.mutation.InvoicingAppID(); exists {
+				s.SetIgnore(billingprofile.FieldInvoicingAppID)
+			}
+			if _, exists := b.mutation.PaymentAppID(); exists {
+				s.SetIgnore(billingprofile.FieldPaymentAppID)
 			}
 		}
 	}))
@@ -1740,48 +1785,6 @@ func (u *BillingProfileUpsertBulk) ClearSupplierAddressPhoneNumber() *BillingPro
 	})
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (u *BillingProfileUpsertBulk) SetTaxProvider(v provider.TaxProvider) *BillingProfileUpsertBulk {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetTaxProvider(v)
-	})
-}
-
-// UpdateTaxProvider sets the "tax_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsertBulk) UpdateTaxProvider() *BillingProfileUpsertBulk {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateTaxProvider()
-	})
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (u *BillingProfileUpsertBulk) SetInvoicingProvider(v provider.InvoicingProvider) *BillingProfileUpsertBulk {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetInvoicingProvider(v)
-	})
-}
-
-// UpdateInvoicingProvider sets the "invoicing_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsertBulk) UpdateInvoicingProvider() *BillingProfileUpsertBulk {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateInvoicingProvider()
-	})
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (u *BillingProfileUpsertBulk) SetPaymentProvider(v provider.PaymentProvider) *BillingProfileUpsertBulk {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetPaymentProvider(v)
-	})
-}
-
-// UpdatePaymentProvider sets the "payment_provider" field to the value that was provided on create.
-func (u *BillingProfileUpsertBulk) UpdatePaymentProvider() *BillingProfileUpsertBulk {
-	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdatePaymentProvider()
-	})
-}
-
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (u *BillingProfileUpsertBulk) SetWorkflowConfigID(v string) *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
@@ -1821,6 +1824,27 @@ func (u *BillingProfileUpsertBulk) SetSupplierName(v string) *BillingProfileUpse
 func (u *BillingProfileUpsertBulk) UpdateSupplierName() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
 		s.UpdateSupplierName()
+	})
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (u *BillingProfileUpsertBulk) SetSupplierTaxCode(v string) *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.SetSupplierTaxCode(v)
+	})
+}
+
+// UpdateSupplierTaxCode sets the "supplier_tax_code" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateSupplierTaxCode() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.UpdateSupplierTaxCode()
+	})
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (u *BillingProfileUpsertBulk) ClearSupplierTaxCode() *BillingProfileUpsertBulk {
+	return u.Update(func(s *BillingProfileUpsert) {
+		s.ClearSupplierTaxCode()
 	})
 }
 

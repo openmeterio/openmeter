@@ -20,7 +20,7 @@ type App interface {
 	GetListing() appentitybase.MarketplaceListing
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
-	ValidateCapabilities(capabilities []appentitybase.CapabilityType) error
+	ValidateCapabilities(capabilities ...appentitybase.CapabilityType) error
 }
 
 // GetAppInput is the input for getting an installed app
@@ -58,10 +58,6 @@ func (i CreateAppInput) Validate() error {
 
 	if i.Name == "" {
 		return errors.New("name is required")
-	}
-
-	if i.Description == "" {
-		return errors.New("description is required")
 	}
 
 	return nil

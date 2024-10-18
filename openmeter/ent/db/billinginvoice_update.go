@@ -11,8 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -145,76 +144,16 @@ func (biu *BillingInvoiceUpdate) SetNillableDueDate(t *time.Time) *BillingInvoic
 }
 
 // SetStatus sets the "status" field.
-func (biu *BillingInvoiceUpdate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetStatus(bs billingentity.InvoiceStatus) *BillingInvoiceUpdate {
 	biu.mutation.SetStatus(bs)
 	return biu
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableStatus(bs *billing.InvoiceStatus) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetNillableStatus(bs *billingentity.InvoiceStatus) *BillingInvoiceUpdate {
 	if bs != nil {
 		biu.SetStatus(*bs)
 	}
-	return biu
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (biu *BillingInvoiceUpdate) SetTaxProvider(pp provider.TaxProvider) *BillingInvoiceUpdate {
-	biu.mutation.SetTaxProvider(pp)
-	return biu
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingInvoiceUpdate {
-	if pp != nil {
-		biu.SetTaxProvider(*pp)
-	}
-	return biu
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (biu *BillingInvoiceUpdate) ClearTaxProvider() *BillingInvoiceUpdate {
-	biu.mutation.ClearTaxProvider()
-	return biu
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (biu *BillingInvoiceUpdate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingInvoiceUpdate {
-	biu.mutation.SetInvoicingProvider(pp)
-	return biu
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingInvoiceUpdate {
-	if pp != nil {
-		biu.SetInvoicingProvider(*pp)
-	}
-	return biu
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (biu *BillingInvoiceUpdate) ClearInvoicingProvider() *BillingInvoiceUpdate {
-	biu.mutation.ClearInvoicingProvider()
-	return biu
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (biu *BillingInvoiceUpdate) SetPaymentProvider(pp provider.PaymentProvider) *BillingInvoiceUpdate {
-	biu.mutation.SetPaymentProvider(pp)
-	return biu
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingInvoiceUpdate {
-	if pp != nil {
-		biu.SetPaymentProvider(*pp)
-	}
-	return biu
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (biu *BillingInvoiceUpdate) ClearPaymentProvider() *BillingInvoiceUpdate {
-	biu.mutation.ClearPaymentProvider()
 	return biu
 }
 
@@ -361,21 +300,6 @@ func (biu *BillingInvoiceUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
 		}
 	}
-	if v, ok := biu.mutation.TaxProvider(); ok {
-		if err := billinginvoice.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := biu.mutation.InvoicingProvider(); ok {
-		if err := billinginvoice.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := biu.mutation.PaymentProvider(); ok {
-		if err := billinginvoice.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.payment_provider": %w`, err)}
-		}
-	}
 	if biu.mutation.BillingProfileCleared() && len(biu.mutation.BillingProfileIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoice.billing_profile"`)
 	}
@@ -435,24 +359,6 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if value, ok := biu.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
-	}
-	if value, ok := biu.mutation.TaxProvider(); ok {
-		_spec.SetField(billinginvoice.FieldTaxProvider, field.TypeEnum, value)
-	}
-	if biu.mutation.TaxProviderCleared() {
-		_spec.ClearField(billinginvoice.FieldTaxProvider, field.TypeEnum)
-	}
-	if value, ok := biu.mutation.InvoicingProvider(); ok {
-		_spec.SetField(billinginvoice.FieldInvoicingProvider, field.TypeEnum, value)
-	}
-	if biu.mutation.InvoicingProviderCleared() {
-		_spec.ClearField(billinginvoice.FieldInvoicingProvider, field.TypeEnum)
-	}
-	if value, ok := biu.mutation.PaymentProvider(); ok {
-		_spec.SetField(billinginvoice.FieldPaymentProvider, field.TypeEnum, value)
-	}
-	if biu.mutation.PaymentProviderCleared() {
-		_spec.ClearField(billinginvoice.FieldPaymentProvider, field.TypeEnum)
 	}
 	if value, ok := biu.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
@@ -667,76 +573,16 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableDueDate(t *time.Time) *BillingIn
 }
 
 // SetStatus sets the "status" field.
-func (biuo *BillingInvoiceUpdateOne) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetStatus(bs billingentity.InvoiceStatus) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetStatus(bs)
 	return biuo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(bs *billing.InvoiceStatus) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(bs *billingentity.InvoiceStatus) *BillingInvoiceUpdateOne {
 	if bs != nil {
 		biuo.SetStatus(*bs)
 	}
-	return biuo
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (biuo *BillingInvoiceUpdateOne) SetTaxProvider(pp provider.TaxProvider) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetTaxProvider(pp)
-	return biuo
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingInvoiceUpdateOne {
-	if pp != nil {
-		biuo.SetTaxProvider(*pp)
-	}
-	return biuo
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (biuo *BillingInvoiceUpdateOne) ClearTaxProvider() *BillingInvoiceUpdateOne {
-	biuo.mutation.ClearTaxProvider()
-	return biuo
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (biuo *BillingInvoiceUpdateOne) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetInvoicingProvider(pp)
-	return biuo
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingInvoiceUpdateOne {
-	if pp != nil {
-		biuo.SetInvoicingProvider(*pp)
-	}
-	return biuo
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (biuo *BillingInvoiceUpdateOne) ClearInvoicingProvider() *BillingInvoiceUpdateOne {
-	biuo.mutation.ClearInvoicingProvider()
-	return biuo
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (biuo *BillingInvoiceUpdateOne) SetPaymentProvider(pp provider.PaymentProvider) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetPaymentProvider(pp)
-	return biuo
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingInvoiceUpdateOne {
-	if pp != nil {
-		biuo.SetPaymentProvider(*pp)
-	}
-	return biuo
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (biuo *BillingInvoiceUpdateOne) ClearPaymentProvider() *BillingInvoiceUpdateOne {
-	biuo.mutation.ClearPaymentProvider()
 	return biuo
 }
 
@@ -896,21 +742,6 @@ func (biuo *BillingInvoiceUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
 		}
 	}
-	if v, ok := biuo.mutation.TaxProvider(); ok {
-		if err := billinginvoice.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := biuo.mutation.InvoicingProvider(); ok {
-		if err := billinginvoice.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := biuo.mutation.PaymentProvider(); ok {
-		if err := billinginvoice.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.payment_provider": %w`, err)}
-		}
-	}
 	if biuo.mutation.BillingProfileCleared() && len(biuo.mutation.BillingProfileIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoice.billing_profile"`)
 	}
@@ -987,24 +818,6 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if value, ok := biuo.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
-	}
-	if value, ok := biuo.mutation.TaxProvider(); ok {
-		_spec.SetField(billinginvoice.FieldTaxProvider, field.TypeEnum, value)
-	}
-	if biuo.mutation.TaxProviderCleared() {
-		_spec.ClearField(billinginvoice.FieldTaxProvider, field.TypeEnum)
-	}
-	if value, ok := biuo.mutation.InvoicingProvider(); ok {
-		_spec.SetField(billinginvoice.FieldInvoicingProvider, field.TypeEnum, value)
-	}
-	if biuo.mutation.InvoicingProviderCleared() {
-		_spec.ClearField(billinginvoice.FieldInvoicingProvider, field.TypeEnum)
-	}
-	if value, ok := biuo.mutation.PaymentProvider(); ok {
-		_spec.SetField(billinginvoice.FieldPaymentProvider, field.TypeEnum, value)
-	}
-	if biuo.mutation.PaymentProviderCleared() {
-		_spec.ClearField(billinginvoice.FieldPaymentProvider, field.TypeEnum)
 	}
 	if value, ok := biuo.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)

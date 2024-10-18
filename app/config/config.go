@@ -32,6 +32,8 @@ type Configuration struct {
 	Sink          SinkConfiguration
 	BalanceWorker BalanceWorkerConfiguration
 	Notification  NotificationConfiguration
+	Billing       BillingConfiguration
+	Apps          AppsConfiguration
 	StripeApp     StripeAppConfig
 	Svix          SvixConfig
 }
@@ -112,6 +114,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "stripe app"))
 	}
 
+	if err := c.Apps.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "apps"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -148,4 +154,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
 	ConfigureStripe(v)
+	ConfigureBilling(v)
+	ConfigureApps(v)
 }

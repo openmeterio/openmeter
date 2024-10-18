@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -49,18 +49,20 @@ type BillingProfile struct {
 	SupplierAddressLine2 *string `json:"supplier_address_line2,omitempty"`
 	// SupplierAddressPhoneNumber holds the value of the "supplier_address_phone_number" field.
 	SupplierAddressPhoneNumber *string `json:"supplier_address_phone_number,omitempty"`
-	// TaxProvider holds the value of the "tax_provider" field.
-	TaxProvider provider.TaxProvider `json:"tax_provider,omitempty"`
-	// InvoicingProvider holds the value of the "invoicing_provider" field.
-	InvoicingProvider provider.InvoicingProvider `json:"invoicing_provider,omitempty"`
-	// PaymentProvider holds the value of the "payment_provider" field.
-	PaymentProvider provider.PaymentProvider `json:"payment_provider,omitempty"`
+	// TaxAppID holds the value of the "tax_app_id" field.
+	TaxAppID string `json:"tax_app_id,omitempty"`
+	// InvoicingAppID holds the value of the "invoicing_app_id" field.
+	InvoicingAppID string `json:"invoicing_app_id,omitempty"`
+	// PaymentAppID holds the value of the "payment_app_id" field.
+	PaymentAppID string `json:"payment_app_id,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// Default holds the value of the "default" field.
 	Default bool `json:"default,omitempty"`
 	// SupplierName holds the value of the "supplier_name" field.
 	SupplierName string `json:"supplier_name,omitempty"`
+	// SupplierTaxCode holds the value of the "supplier_tax_code" field.
+	SupplierTaxCode *string `json:"supplier_tax_code,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingProfileQuery when eager-loading is set.
 	Edges        BillingProfileEdges `json:"edges"`
@@ -75,9 +77,15 @@ type BillingProfileEdges struct {
 	BillingCustomerOverride []*BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// WorkflowConfig holds the value of the workflow_config edge.
 	WorkflowConfig *BillingWorkflowConfig `json:"workflow_config,omitempty"`
+	// TaxApp holds the value of the tax_app edge.
+	TaxApp *App `json:"tax_app,omitempty"`
+	// InvoicingApp holds the value of the invoicing_app edge.
+	InvoicingApp *App `json:"invoicing_app,omitempty"`
+	// PaymentApp holds the value of the payment_app edge.
+	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [6]bool
 }
 
 // BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
@@ -109,6 +117,39 @@ func (e BillingProfileEdges) WorkflowConfigOrErr() (*BillingWorkflowConfig, erro
 	return nil, &NotLoadedError{edge: "workflow_config"}
 }
 
+// TaxAppOrErr returns the TaxApp value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingProfileEdges) TaxAppOrErr() (*App, error) {
+	if e.TaxApp != nil {
+		return e.TaxApp, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_app"}
+}
+
+// InvoicingAppOrErr returns the InvoicingApp value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingProfileEdges) InvoicingAppOrErr() (*App, error) {
+	if e.InvoicingApp != nil {
+		return e.InvoicingApp, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "invoicing_app"}
+}
+
+// PaymentAppOrErr returns the PaymentApp value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingProfileEdges) PaymentAppOrErr() (*App, error) {
+	if e.PaymentApp != nil {
+		return e.PaymentApp, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "payment_app"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -118,7 +159,7 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldName, billingprofile.FieldDescription, billingprofile.FieldSupplierAddressCountry, billingprofile.FieldSupplierAddressPostalCode, billingprofile.FieldSupplierAddressState, billingprofile.FieldSupplierAddressCity, billingprofile.FieldSupplierAddressLine1, billingprofile.FieldSupplierAddressLine2, billingprofile.FieldSupplierAddressPhoneNumber, billingprofile.FieldTaxProvider, billingprofile.FieldInvoicingProvider, billingprofile.FieldPaymentProvider, billingprofile.FieldWorkflowConfigID, billingprofile.FieldSupplierName:
+		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldName, billingprofile.FieldDescription, billingprofile.FieldSupplierAddressCountry, billingprofile.FieldSupplierAddressPostalCode, billingprofile.FieldSupplierAddressState, billingprofile.FieldSupplierAddressCity, billingprofile.FieldSupplierAddressLine1, billingprofile.FieldSupplierAddressLine2, billingprofile.FieldSupplierAddressPhoneNumber, billingprofile.FieldTaxAppID, billingprofile.FieldInvoicingAppID, billingprofile.FieldPaymentAppID, billingprofile.FieldWorkflowConfigID, billingprofile.FieldSupplierName, billingprofile.FieldSupplierTaxCode:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -238,23 +279,23 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 				bp.SupplierAddressPhoneNumber = new(string)
 				*bp.SupplierAddressPhoneNumber = value.String
 			}
-		case billingprofile.FieldTaxProvider:
+		case billingprofile.FieldTaxAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
+				return fmt.Errorf("unexpected type %T for field tax_app_id", values[i])
 			} else if value.Valid {
-				bp.TaxProvider = provider.TaxProvider(value.String)
+				bp.TaxAppID = value.String
 			}
-		case billingprofile.FieldInvoicingProvider:
+		case billingprofile.FieldInvoicingAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
+				return fmt.Errorf("unexpected type %T for field invoicing_app_id", values[i])
 			} else if value.Valid {
-				bp.InvoicingProvider = provider.InvoicingProvider(value.String)
+				bp.InvoicingAppID = value.String
 			}
-		case billingprofile.FieldPaymentProvider:
+		case billingprofile.FieldPaymentAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
+				return fmt.Errorf("unexpected type %T for field payment_app_id", values[i])
 			} else if value.Valid {
-				bp.PaymentProvider = provider.PaymentProvider(value.String)
+				bp.PaymentAppID = value.String
 			}
 		case billingprofile.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -273,6 +314,13 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field supplier_name", values[i])
 			} else if value.Valid {
 				bp.SupplierName = value.String
+			}
+		case billingprofile.FieldSupplierTaxCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_tax_code", values[i])
+			} else if value.Valid {
+				bp.SupplierTaxCode = new(string)
+				*bp.SupplierTaxCode = value.String
 			}
 		default:
 			bp.selectValues.Set(columns[i], values[i])
@@ -300,6 +348,21 @@ func (bp *BillingProfile) QueryBillingCustomerOverride() *BillingCustomerOverrid
 // QueryWorkflowConfig queries the "workflow_config" edge of the BillingProfile entity.
 func (bp *BillingProfile) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
 	return NewBillingProfileClient(bp.config).QueryWorkflowConfig(bp)
+}
+
+// QueryTaxApp queries the "tax_app" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryTaxApp() *AppQuery {
+	return NewBillingProfileClient(bp.config).QueryTaxApp(bp)
+}
+
+// QueryInvoicingApp queries the "invoicing_app" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryInvoicingApp() *AppQuery {
+	return NewBillingProfileClient(bp.config).QueryInvoicingApp(bp)
+}
+
+// QueryPaymentApp queries the "payment_app" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryPaymentApp() *AppQuery {
+	return NewBillingProfileClient(bp.config).QueryPaymentApp(bp)
 }
 
 // Update returns a builder for updating this BillingProfile.
@@ -385,14 +448,14 @@ func (bp *BillingProfile) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("tax_provider=")
-	builder.WriteString(fmt.Sprintf("%v", bp.TaxProvider))
+	builder.WriteString("tax_app_id=")
+	builder.WriteString(bp.TaxAppID)
 	builder.WriteString(", ")
-	builder.WriteString("invoicing_provider=")
-	builder.WriteString(fmt.Sprintf("%v", bp.InvoicingProvider))
+	builder.WriteString("invoicing_app_id=")
+	builder.WriteString(bp.InvoicingAppID)
 	builder.WriteString(", ")
-	builder.WriteString("payment_provider=")
-	builder.WriteString(fmt.Sprintf("%v", bp.PaymentProvider))
+	builder.WriteString("payment_app_id=")
+	builder.WriteString(bp.PaymentAppID)
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bp.WorkflowConfigID)
@@ -402,6 +465,11 @@ func (bp *BillingProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("supplier_name=")
 	builder.WriteString(bp.SupplierName)
+	builder.WriteString(", ")
+	if v := bp.SupplierTaxCode; v != nil {
+		builder.WriteString("supplier_tax_code=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

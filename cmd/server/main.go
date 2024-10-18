@@ -18,10 +18,14 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	apppkg "github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -197,7 +201,7 @@ func main() {
 	// Initialize App
 	var appService apppkg.Service
 
-	if app.EntClient != nil {
+	if conf.Apps.Enabled {
 		var appAdapter apppkg.Adapter
 		appAdapter, err = appadapter.New(appadapter.Config{
 			Client:  app.EntClient,
@@ -220,7 +224,7 @@ func main() {
 	// Initialize AppStripe
 	var appStripeService appstripe.Service
 
-	if app.EntClient != nil {
+	if conf.Apps.Enabled {
 		var appStripeAdapter appstripe.Adapter
 		appStripeAdapter, err = appstripeadapter.New(appstripeadapter.Config{
 			Client:          app.EntClient,
@@ -240,6 +244,28 @@ func main() {
 			logger.Error("failed to initialize app stripe service", "error", err)
 			os.Exit(1)
 		}
+	}
+
+	// Initialize AppSandbox
+	if conf.Apps.Enabled {
+		_, err = appsandbox.NewFactory(appsandbox.Config{
+			AppService: appService,
+		})
+		if err != nil {
+			logger.Error("failed to initialize app sandbox factory", "error", err)
+			os.Exit(1)
+		}
+
+		app, err := appsandbox.AutoProvision(ctx, appsandbox.AutoProvisionInput{
+			Namespace:  app.NamespaceManager.GetDefaultNamespace(),
+			AppService: appService,
+		})
+		if err != nil {
+			logger.Error("failed to auto-provision sandbox app", "error", err)
+			os.Exit(1)
+		}
+
+		logger.Info("sandbox app auto-provisioned", "app_id", app.GetID().ID)
 	}
 
 	// Initialize Notification
@@ -296,6 +322,29 @@ func main() {
 		}()
 	}
 
+	// Initialize billing
+	var billingService billing.Service
+	if conf.Billing.Enabled {
+		adapter, err := billingadapter.New(billingadapter.Config{
+			Client: app.EntClient,
+			Logger: logger.With("subsystem", "billing.adapter"),
+		})
+		if err != nil {
+			logger.Error("failed to initialize billing adapter", "error", err)
+			os.Exit(1)
+		}
+
+		billingService, err = billingservice.New(billingservice.Config{
+			Adapter:         adapter,
+			CustomerService: customerService,
+			AppService:      appService,
+		})
+		if err != nil {
+			logger.Error("failed to initialize billing service", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			NamespaceManager:    app.NamespaceManager,
@@ -308,6 +357,7 @@ func main() {
 			// deps
 			App:                         appService,
 			AppStripe:                   appStripeService,
+			Billing:                     billingService,
 			Customer:                    customerService,
 			DebugConnector:              debugConnector,
 			FeatureConnector:            entitlementConnRegistry.Feature,
@@ -319,6 +369,8 @@ func main() {
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 			NotificationEnabled: conf.Notification.Enabled,
+			AppsEnabled:         conf.Apps.Enabled,
+			BillingEnabled:      conf.Billing.Enabled,
 		},
 		RouterHook: app.RouterHook,
 	})

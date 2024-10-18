@@ -11,12 +11,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/timezone"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // BillingWorkflowConfigUpdate is the builder for updating BillingWorkflowConfig entities.
@@ -58,58 +58,31 @@ func (bwcu *BillingWorkflowConfigUpdate) ClearDeletedAt() *BillingWorkflowConfig
 	return bwcu
 }
 
-// SetTimezone sets the "timezone" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetTimezone(t)
-	return bwcu
-}
-
-// SetNillableTimezone sets the "timezone" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigUpdate {
-	if t != nil {
-		bwcu.SetTimezone(*t)
-	}
-	return bwcu
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (bwcu *BillingWorkflowConfigUpdate) ClearTimezone() *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ClearTimezone()
-	return bwcu
-}
-
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetCollectionAlignment(bk)
 	return bwcu
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingWorkflowConfigUpdate {
 	if bk != nil {
 		bwcu.SetCollectionAlignment(*bk)
 	}
 	return bwcu
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ResetItemCollectionPeriodSeconds()
-	bwcu.mutation.SetItemCollectionPeriodSeconds(i)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetItemCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetItemCollectionPeriod(ds)
 	return bwcu
 }
 
-// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigUpdate {
-	if i != nil {
-		bwcu.SetItemCollectionPeriodSeconds(*i)
+// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
+	if ds != nil {
+		bwcu.SetItemCollectionPeriod(*ds)
 	}
-	return bwcu
-}
-
-// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) AddItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddItemCollectionPeriodSeconds(i)
 	return bwcu
 }
 
@@ -127,86 +100,44 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceAutoAdvance(b *bool) 
 	return bwcu
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDraftPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ResetInvoiceDraftPeriodSeconds()
-	bwcu.mutation.SetInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceDraftPeriod(ds)
 	return bwcu
 }
 
-// SetNillableInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDraftPeriodSeconds(i *int64) *BillingWorkflowConfigUpdate {
-	if i != nil {
-		bwcu.SetInvoiceDraftPeriodSeconds(*i)
+// SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
+	if ds != nil {
+		bwcu.SetInvoiceDraftPeriod(*ds)
 	}
 	return bwcu
 }
 
-// AddInvoiceDraftPeriodSeconds adds i to the "invoice_draft_period_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDraftPeriodSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfter(ds datex.ISOString) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceDueAfter(ds)
 	return bwcu
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ResetInvoiceDueAfterSeconds()
-	bwcu.mutation.SetInvoiceDueAfterSeconds(i)
-	return bwcu
-}
-
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingWorkflowConfigUpdate {
-	if i != nil {
-		bwcu.SetInvoiceDueAfterSeconds(*i)
+// SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
+	if ds != nil {
+		bwcu.SetInvoiceDueAfter(*ds)
 	}
-	return bwcu
-}
-
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (bwcu *BillingWorkflowConfigUpdate) AddInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.AddInvoiceDueAfterSeconds(i)
 	return bwcu
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetInvoiceCollectionMethod(bm)
 	return bwcu
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingWorkflowConfigUpdate {
 	if bm != nil {
 		bwcu.SetInvoiceCollectionMethod(*bm)
-	}
-	return bwcu
-}
-
-// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceItemResolution(br billing.GranularityResolution) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceItemResolution(br)
-	return bwcu
-}
-
-// SetNillableInvoiceItemResolution sets the "invoice_item_resolution" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceItemResolution(br *billing.GranularityResolution) *BillingWorkflowConfigUpdate {
-	if br != nil {
-		bwcu.SetInvoiceItemResolution(*br)
-	}
-	return bwcu
-}
-
-// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceItemPerSubject(b)
-	return bwcu
-}
-
-// SetNillableInvoiceItemPerSubject sets the "invoice_item_per_subject" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceItemPerSubject(b *bool) *BillingWorkflowConfigUpdate {
-	if b != nil {
-		bwcu.SetInvoiceItemPerSubject(*b)
 	}
 	return bwcu
 }
@@ -314,11 +245,6 @@ func (bwcu *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcu.mutation.InvoiceItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -343,44 +269,23 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if bwcu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bwcu.mutation.Timezone(); ok {
-		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
-	}
-	if bwcu.mutation.TimezoneCleared() {
-		_spec.ClearField(billingworkflowconfig.FieldTimezone, field.TypeString)
-	}
 	if value, ok := bwcu.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
-	if value, ok := bwcu.mutation.ItemCollectionPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bwcu.mutation.AddedItemCollectionPeriodSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bwcu.mutation.ItemCollectionPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriod, field.TypeString, value)
 	}
 	if value, ok := bwcu.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceDraftPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bwcu.mutation.InvoiceDraftPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriod, field.TypeString, value)
 	}
-	if value, ok := bwcu.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bwcu.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bwcu.mutation.AddedInvoiceDueAfterSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
+	if value, ok := bwcu.mutation.InvoiceDueAfter(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfter, field.TypeString, value)
 	}
 	if value, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
-	}
-	if value, ok := bwcu.mutation.InvoiceItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
-	}
-	if value, ok := bwcu.mutation.InvoiceItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -486,58 +391,31 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) ClearDeletedAt() *BillingWorkflowCo
 	return bwcuo
 }
 
-// SetTimezone sets the "timezone" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetTimezone(t timezone.Timezone) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetTimezone(t)
-	return bwcuo
-}
-
-// SetNillableTimezone sets the "timezone" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableTimezone(t *timezone.Timezone) *BillingWorkflowConfigUpdateOne {
-	if t != nil {
-		bwcuo.SetTimezone(*t)
-	}
-	return bwcuo
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) ClearTimezone() *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ClearTimezone()
-	return bwcuo
-}
-
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetCollectionAlignment(bk)
 	return bwcuo
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	if bk != nil {
 		bwcuo.SetCollectionAlignment(*bk)
 	}
 	return bwcuo
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ResetItemCollectionPeriodSeconds()
-	bwcuo.mutation.SetItemCollectionPeriodSeconds(i)
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetItemCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetItemCollectionPeriod(ds)
 	return bwcuo
 }
 
-// SetNillableItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableItemCollectionPeriodSeconds(i *int64) *BillingWorkflowConfigUpdateOne {
-	if i != nil {
-		bwcuo.SetItemCollectionPeriodSeconds(*i)
+// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	if ds != nil {
+		bwcuo.SetItemCollectionPeriod(*ds)
 	}
-	return bwcuo
-}
-
-// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddItemCollectionPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddItemCollectionPeriodSeconds(i)
 	return bwcuo
 }
 
@@ -555,86 +433,44 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceAutoAdvance(b *bo
 	return bwcuo
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDraftPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ResetInvoiceDraftPeriodSeconds()
-	bwcuo.mutation.SetInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceDraftPeriod(ds)
 	return bwcuo
 }
 
-// SetNillableInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDraftPeriodSeconds(i *int64) *BillingWorkflowConfigUpdateOne {
-	if i != nil {
-		bwcuo.SetInvoiceDraftPeriodSeconds(*i)
+// SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	if ds != nil {
+		bwcuo.SetInvoiceDraftPeriod(*ds)
 	}
 	return bwcuo
 }
 
-// AddInvoiceDraftPeriodSeconds adds i to the "invoice_draft_period_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDraftPeriodSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddInvoiceDraftPeriodSeconds(i)
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfter(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceDueAfter(ds)
 	return bwcuo
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ResetInvoiceDueAfterSeconds()
-	bwcuo.mutation.SetInvoiceDueAfterSeconds(i)
-	return bwcuo
-}
-
-// SetNillableInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfterSeconds(i *int64) *BillingWorkflowConfigUpdateOne {
-	if i != nil {
-		bwcuo.SetInvoiceDueAfterSeconds(*i)
+// SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	if ds != nil {
+		bwcuo.SetInvoiceDueAfter(*ds)
 	}
-	return bwcuo
-}
-
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) AddInvoiceDueAfterSeconds(i int64) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.AddInvoiceDueAfterSeconds(i)
 	return bwcuo
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetInvoiceCollectionMethod(bm)
 	return bwcuo
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingWorkflowConfigUpdateOne {
 	if bm != nil {
 		bwcuo.SetInvoiceCollectionMethod(*bm)
-	}
-	return bwcuo
-}
-
-// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceItemResolution(br billing.GranularityResolution) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceItemResolution(br)
-	return bwcuo
-}
-
-// SetNillableInvoiceItemResolution sets the "invoice_item_resolution" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceItemResolution(br *billing.GranularityResolution) *BillingWorkflowConfigUpdateOne {
-	if br != nil {
-		bwcuo.SetInvoiceItemResolution(*br)
-	}
-	return bwcuo
-}
-
-// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceItemPerSubject(b bool) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceItemPerSubject(b)
-	return bwcuo
-}
-
-// SetNillableInvoiceItemPerSubject sets the "invoice_item_per_subject" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceItemPerSubject(b *bool) *BillingWorkflowConfigUpdateOne {
-	if b != nil {
-		bwcuo.SetInvoiceItemPerSubject(*b)
 	}
 	return bwcuo
 }
@@ -755,11 +591,6 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcuo.mutation.InvoiceItemResolution(); ok {
-		if err := billingworkflowconfig.InvoiceItemResolutionValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_item_resolution", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_item_resolution": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -801,44 +632,23 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if bwcuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bwcuo.mutation.Timezone(); ok {
-		_spec.SetField(billingworkflowconfig.FieldTimezone, field.TypeString, value)
-	}
-	if bwcuo.mutation.TimezoneCleared() {
-		_spec.ClearField(billingworkflowconfig.FieldTimezone, field.TypeString)
-	}
 	if value, ok := bwcuo.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
-	if value, ok := bwcuo.mutation.ItemCollectionPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bwcuo.mutation.AddedItemCollectionPeriodSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldItemCollectionPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bwcuo.mutation.ItemCollectionPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriod, field.TypeString, value)
 	}
 	if value, ok := bwcuo.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceDraftPeriodSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
+	if value, ok := bwcuo.mutation.InvoiceDraftPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDraftPeriod, field.TypeString, value)
 	}
-	if value, ok := bwcuo.mutation.AddedInvoiceDraftPeriodSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bwcuo.mutation.InvoiceDueAfterSeconds(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
-	}
-	if value, ok := bwcuo.mutation.AddedInvoiceDueAfterSeconds(); ok {
-		_spec.AddField(billingworkflowconfig.FieldInvoiceDueAfterSeconds, field.TypeInt64, value)
+	if value, ok := bwcuo.mutation.InvoiceDueAfter(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDueAfter, field.TypeString, value)
 	}
 	if value, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
-	}
-	if value, ok := bwcuo.mutation.InvoiceItemResolution(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceItemResolution, field.TypeEnum, value)
-	}
-	if value, ok := bwcuo.mutation.InvoiceItemPerSubject(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceItemPerSubject, field.TypeBool, value)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

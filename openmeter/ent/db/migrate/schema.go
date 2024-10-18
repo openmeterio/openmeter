@@ -246,13 +246,11 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "collection_alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription"}},
-		{Name: "item_collection_period_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "item_collection_period", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
-		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64, Nullable: true},
-		{Name: "invoice_due_after_seconds", Type: field.TypeInt64, Nullable: true},
+		{Name: "invoice_draft_period", Type: field.TypeString, Nullable: true},
+		{Name: "invoice_due_after", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
-		{Name: "invoice_item_resolution", Type: field.TypeEnum, Nullable: true, Enums: []string{"day", "period"}},
-		{Name: "invoice_item_per_subject", Type: field.TypeBool, Nullable: true},
 		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -264,13 +262,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_customer_overrides_billing_profiles_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[13]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[11]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_customer_overrides_customers_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[14]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[12]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -294,7 +292,7 @@ var (
 			{
 				Name:    "billingcustomeroverride_namespace_customer_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[14]},
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[12]},
 			},
 		},
 	}
@@ -313,9 +311,6 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "due_date", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed"}},
-		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe"}},
-		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe"}},
-		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -329,13 +324,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[18]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[15]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[19]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[16]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -456,11 +451,12 @@ var (
 		{Name: "supplier_address_line1", Type: field.TypeString, Nullable: true},
 		{Name: "supplier_address_line2", Type: field.TypeString, Nullable: true},
 		{Name: "supplier_address_phone_number", Type: field.TypeString, Nullable: true},
-		{Name: "tax_provider", Type: field.TypeEnum, Enums: []string{"openmeter_sandbox", "stripe"}},
-		{Name: "invoicing_provider", Type: field.TypeEnum, Enums: []string{"openmeter_sandbox", "stripe"}},
-		{Name: "payment_provider", Type: field.TypeEnum, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
 		{Name: "default", Type: field.TypeBool, Default: false},
 		{Name: "supplier_name", Type: field.TypeString},
+		{Name: "supplier_tax_code", Type: field.TypeString, Nullable: true},
+		{Name: "tax_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoicing_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "payment_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "workflow_config_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingProfilesTable holds the schema information for the "billing_profiles" table.
@@ -470,8 +466,26 @@ var (
 		PrimaryKey: []*schema.Column{BillingProfilesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "billing_profiles_billing_workflow_configs_billing_profile",
+				Symbol:     "billing_profiles_apps_tax_app",
+				Columns:    []*schema.Column{BillingProfilesColumns[18]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_profiles_apps_invoicing_app",
+				Columns:    []*schema.Column{BillingProfilesColumns[19]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_profiles_apps_payment_app",
 				Columns:    []*schema.Column{BillingProfilesColumns[20]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_profiles_billing_workflow_configs_billing_profile",
+				Columns:    []*schema.Column{BillingProfilesColumns[21]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -495,7 +509,7 @@ var (
 			{
 				Name:    "billingprofile_namespace_default_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[18], BillingProfilesColumns[5]},
+				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[15], BillingProfilesColumns[5]},
 			},
 		},
 	}
@@ -506,15 +520,12 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "timezone", Type: field.TypeString, Nullable: true},
 		{Name: "collection_alignment", Type: field.TypeEnum, Enums: []string{"subscription"}},
-		{Name: "item_collection_period_seconds", Type: field.TypeInt64},
+		{Name: "item_collection_period", Type: field.TypeString},
 		{Name: "invoice_auto_advance", Type: field.TypeBool},
-		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64},
-		{Name: "invoice_due_after_seconds", Type: field.TypeInt64},
+		{Name: "invoice_draft_period", Type: field.TypeString},
+		{Name: "invoice_due_after", Type: field.TypeString},
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
-		{Name: "invoice_item_resolution", Type: field.TypeEnum, Enums: []string{"day", "period"}},
-		{Name: "invoice_item_per_subject", Type: field.TypeBool},
 	}
 	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsTable = &schema.Table{
@@ -1106,7 +1117,10 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingInvoicesTable.ForeignKeys[1].RefTable = BillingWorkflowConfigsTable
 	BillingInvoiceItemsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
-	BillingProfilesTable.ForeignKeys[0].RefTable = BillingWorkflowConfigsTable
+	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
+	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
+	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable
+	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
