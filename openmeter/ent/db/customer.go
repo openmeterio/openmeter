@@ -72,9 +72,11 @@ type CustomerEdges struct {
 	BillingCustomerOverride *BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// BillingInvoice holds the value of the billing_invoice edge.
 	BillingInvoice []*BillingInvoice `json:"billing_invoice,omitempty"`
+	// Subscription holds the value of the subscription edge.
+	Subscription []*Subscription `json:"subscription,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -113,6 +115,15 @@ func (e CustomerEdges) BillingInvoiceOrErr() ([]*BillingInvoice, error) {
 		return e.BillingInvoice, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice"}
+}
+
+// SubscriptionOrErr returns the Subscription value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) SubscriptionOrErr() ([]*Subscription, error) {
+	if e.loadedTypes[4] {
+		return e.Subscription, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -294,6 +305,11 @@ func (c *Customer) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery 
 // QueryBillingInvoice queries the "billing_invoice" edge of the Customer entity.
 func (c *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
 	return NewCustomerClient(c.config).QueryBillingInvoice(c)
+}
+
+// QuerySubscription queries the "subscription" edge of the Customer entity.
+func (c *Customer) QuerySubscription() *SubscriptionQuery {
+	return NewCustomerClient(c.config).QuerySubscription(c)
 }
 
 // Update returns a builder for updating this Customer.

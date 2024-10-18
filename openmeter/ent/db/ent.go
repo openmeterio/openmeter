@@ -38,6 +38,11 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -99,31 +104,36 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			app.Table:                             app.ValidColumn,
-			appcustomer.Table:                     appcustomer.ValidColumn,
-			appstripe.Table:                       appstripe.ValidColumn,
-			appstripecustomer.Table:               appstripecustomer.ValidColumn,
-			balancesnapshot.Table:                 balancesnapshot.ValidColumn,
-			billingcustomeroverride.Table:         billingcustomeroverride.ValidColumn,
-			billinginvoice.Table:                  billinginvoice.ValidColumn,
-			billinginvoiceline.Table:              billinginvoiceline.ValidColumn,
-			billinginvoicemanuallineconfig.Table:  billinginvoicemanuallineconfig.ValidColumn,
-			billinginvoicevalidationissue.Table:   billinginvoicevalidationissue.ValidColumn,
-			billingprofile.Table:                  billingprofile.ValidColumn,
-			billingworkflowconfig.Table:           billingworkflowconfig.ValidColumn,
-			customer.Table:                        customer.ValidColumn,
-			customersubjects.Table:                customersubjects.ValidColumn,
-			entitlement.Table:                     entitlement.ValidColumn,
-			feature.Table:                         feature.ValidColumn,
-			dbgrant.Table:                         dbgrant.ValidColumn,
-			notificationchannel.Table:             notificationchannel.ValidColumn,
-			notificationevent.Table:               notificationevent.ValidColumn,
-			notificationeventdeliverystatus.Table: notificationeventdeliverystatus.ValidColumn,
-			notificationrule.Table:                notificationrule.ValidColumn,
-			dbplan.Table:                          dbplan.ValidColumn,
-			planphase.Table:                       planphase.ValidColumn,
-			planratecard.Table:                    planratecard.ValidColumn,
-			usagereset.Table:                      usagereset.ValidColumn,
+			app.Table:                               app.ValidColumn,
+			appcustomer.Table:                       appcustomer.ValidColumn,
+			appstripe.Table:                         appstripe.ValidColumn,
+			appstripecustomer.Table:                 appstripecustomer.ValidColumn,
+			balancesnapshot.Table:                   balancesnapshot.ValidColumn,
+			billingcustomeroverride.Table:           billingcustomeroverride.ValidColumn,
+			billinginvoice.Table:                    billinginvoice.ValidColumn,
+			billinginvoiceline.Table:                billinginvoiceline.ValidColumn,
+			billinginvoicemanuallineconfig.Table:    billinginvoicemanuallineconfig.ValidColumn,
+			billinginvoicevalidationissue.Table:     billinginvoicevalidationissue.ValidColumn,
+			billingprofile.Table:                    billingprofile.ValidColumn,
+			billingworkflowconfig.Table:             billingworkflowconfig.ValidColumn,
+			customer.Table:                          customer.ValidColumn,
+			customersubjects.Table:                  customersubjects.ValidColumn,
+			entitlement.Table:                       entitlement.ValidColumn,
+			feature.Table:                           feature.ValidColumn,
+			dbgrant.Table:                           dbgrant.ValidColumn,
+			notificationchannel.Table:               notificationchannel.ValidColumn,
+			notificationevent.Table:                 notificationevent.ValidColumn,
+			notificationeventdeliverystatus.Table:   notificationeventdeliverystatus.ValidColumn,
+			notificationrule.Table:                  notificationrule.ValidColumn,
+			dbplan.Table:                            dbplan.ValidColumn,
+			planphase.Table:                         planphase.ValidColumn,
+			planratecard.Table:                      planratecard.ValidColumn,
+			subscription.Table:                      subscription.ValidColumn,
+			subscriptionpatch.Table:                 subscriptionpatch.ValidColumn,
+			subscriptionpatchvalueadditem.Table:     subscriptionpatchvalueadditem.ValidColumn,
+			subscriptionpatchvalueaddphase.Table:    subscriptionpatchvalueaddphase.ValidColumn,
+			subscriptionpatchvalueextendphase.Table: subscriptionpatchvalueextendphase.ValidColumn,
+			usagereset.Table:                        usagereset.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

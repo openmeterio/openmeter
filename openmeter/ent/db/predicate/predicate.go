@@ -133,5 +133,20 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// Subscription is the predicate function for subscription builders.
+type Subscription func(*sql.Selector)
+
+// SubscriptionPatch is the predicate function for subscriptionpatch builders.
+type SubscriptionPatch func(*sql.Selector)
+
+// SubscriptionPatchValueAddItem is the predicate function for subscriptionpatchvalueadditem builders.
+type SubscriptionPatchValueAddItem func(*sql.Selector)
+
+// SubscriptionPatchValueAddPhase is the predicate function for subscriptionpatchvalueaddphase builders.
+type SubscriptionPatchValueAddPhase func(*sql.Selector)
+
+// SubscriptionPatchValueExtendPhase is the predicate function for subscriptionpatchvalueextendphase builders.
+type SubscriptionPatchValueExtendPhase func(*sql.Selector)
+
 // UsageReset is the predicate function for usagereset builders.
 type UsageReset func(*sql.Selector)

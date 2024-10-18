@@ -1289,6 +1289,252 @@ var (
 			},
 		},
 	}
+	// SubscriptionsColumns holds the columns for the "subscriptions" table.
+	SubscriptionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "active_from", Type: field.TypeTime},
+		{Name: "active_to", Type: field.TypeTime, Nullable: true},
+		{Name: "plan_key", Type: field.TypeString},
+		{Name: "plan_version", Type: field.TypeInt},
+		{Name: "currency", Type: field.TypeString, Size: 3},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionsTable holds the schema information for the "subscriptions" table.
+	SubscriptionsTable = &schema.Table{
+		Name:       "subscriptions",
+		Columns:    SubscriptionsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscriptions_customers_subscription",
+				Columns:    []*schema.Column{SubscriptionsColumns[11]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscription_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionsColumns[0]},
+			},
+			{
+				Name:    "subscription_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1]},
+			},
+			{
+				Name:    "subscription_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[0]},
+			},
+			{
+				Name:    "subscription_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[11]},
+			},
+		},
+	}
+	// SubscriptionPatchesColumns holds the columns for the "subscription_patches" table.
+	SubscriptionPatchesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "applied_at", Type: field.TypeTime},
+		{Name: "batch_index", Type: field.TypeInt},
+		{Name: "operation", Type: field.TypeString},
+		{Name: "path", Type: field.TypeString},
+		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionPatchesTable holds the schema information for the "subscription_patches" table.
+	SubscriptionPatchesTable = &schema.Table{
+		Name:       "subscription_patches",
+		Columns:    SubscriptionPatchesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionPatchesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_patches_subscriptions_subscription_patches",
+				Columns:    []*schema.Column{SubscriptionPatchesColumns[10]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionpatch_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionPatchesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatch_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchesColumns[1]},
+			},
+			{
+				Name:    "subscriptionpatch_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchesColumns[1], SubscriptionPatchesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatch_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchesColumns[1], SubscriptionPatchesColumns[10]},
+			},
+		},
+	}
+	// SubscriptionPatchValueAddItemsColumns holds the columns for the "subscription_patch_value_add_items" table.
+	SubscriptionPatchValueAddItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "phase_key", Type: field.TypeString},
+		{Name: "item_key", Type: field.TypeString},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "create_entitlement_entitlement_type", Type: field.TypeString, Nullable: true},
+		{Name: "create_entitlement_measure_usage_from", Type: field.TypeTime, Nullable: true},
+		{Name: "create_entitlement_issue_after_reset", Type: field.TypeFloat64, Nullable: true},
+		{Name: "create_entitlement_issue_after_reset_priority", Type: field.TypeUint8, Nullable: true},
+		{Name: "create_entitlement_is_soft_limit", Type: field.TypeBool, Nullable: true},
+		{Name: "create_entitlement_preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
+		{Name: "create_entitlement_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "create_entitlement_usage_period_interval", Type: field.TypeString, Nullable: true},
+		{Name: "create_entitlement_usage_period_anchor", Type: field.TypeTime, Nullable: true},
+		{Name: "create_price_value", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionPatchValueAddItemsTable holds the schema information for the "subscription_patch_value_add_items" table.
+	SubscriptionPatchValueAddItemsTable = &schema.Table{
+		Name:       "subscription_patch_value_add_items",
+		Columns:    SubscriptionPatchValueAddItemsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionPatchValueAddItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_patch_value_add_items_subscription_patches_value_add_item",
+				Columns:    []*schema.Column{SubscriptionPatchValueAddItemsColumns[15]},
+				RefColumns: []*schema.Column{SubscriptionPatchesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionpatchvalueadditem_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionPatchValueAddItemsColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueadditem_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueAddItemsColumns[1]},
+			},
+			{
+				Name:    "subscriptionpatchvalueadditem_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueAddItemsColumns[1], SubscriptionPatchValueAddItemsColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueadditem_namespace_subscription_patch_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueAddItemsColumns[1], SubscriptionPatchValueAddItemsColumns[15]},
+			},
+		},
+	}
+	// SubscriptionPatchValueAddPhasesColumns holds the columns for the "subscription_patch_value_add_phases" table.
+	SubscriptionPatchValueAddPhasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "phase_key", Type: field.TypeString},
+		{Name: "start_after_iso", Type: field.TypeString},
+		{Name: "create_discount", Type: field.TypeBool},
+		{Name: "create_discount_applies_to", Type: field.TypeJSON, Nullable: true},
+		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionPatchValueAddPhasesTable holds the schema information for the "subscription_patch_value_add_phases" table.
+	SubscriptionPatchValueAddPhasesTable = &schema.Table{
+		Name:       "subscription_patch_value_add_phases",
+		Columns:    SubscriptionPatchValueAddPhasesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_patch_value_add_phases_subscription_patches_value_add_phase",
+				Columns:    []*schema.Column{SubscriptionPatchValueAddPhasesColumns[6]},
+				RefColumns: []*schema.Column{SubscriptionPatchesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionpatchvalueaddphase_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueaddphase_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[1]},
+			},
+			{
+				Name:    "subscriptionpatchvalueaddphase_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[1], SubscriptionPatchValueAddPhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueaddphase_namespace_subscription_patch_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[1], SubscriptionPatchValueAddPhasesColumns[6]},
+			},
+		},
+	}
+	// SubscriptionPatchValueExtendPhasesColumns holds the columns for the "subscription_patch_value_extend_phases" table.
+	SubscriptionPatchValueExtendPhasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "phase_key", Type: field.TypeString},
+		{Name: "extend_duration_iso", Type: field.TypeString},
+		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionPatchValueExtendPhasesTable holds the schema information for the "subscription_patch_value_extend_phases" table.
+	SubscriptionPatchValueExtendPhasesTable = &schema.Table{
+		Name:       "subscription_patch_value_extend_phases",
+		Columns:    SubscriptionPatchValueExtendPhasesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_patch_value_extend_phases_subscription_patches_value_extend_phase",
+				Columns:    []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[4]},
+				RefColumns: []*schema.Column{SubscriptionPatchesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionpatchvalueextendphase_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueextendphase_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[1]},
+			},
+			{
+				Name:    "subscriptionpatchvalueextendphase_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[1], SubscriptionPatchValueExtendPhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueextendphase_namespace_subscription_patch_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[1], SubscriptionPatchValueExtendPhasesColumns[4]},
+			},
+		},
+	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
 	UsageResetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1411,6 +1657,11 @@ var (
 		PlansTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
+		SubscriptionsTable,
+		SubscriptionPatchesTable,
+		SubscriptionPatchValueAddItemsTable,
+		SubscriptionPatchValueAddPhasesTable,
+		SubscriptionPatchValueExtendPhasesTable,
 		UsageResetsTable,
 		NotificationChannelRulesTable,
 		NotificationEventDeliveryStatusEventsTable,
@@ -1446,6 +1697,14 @@ func init() {
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
+	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
+	SubscriptionPatchesTable.ForeignKeys[0].RefTable = SubscriptionsTable
+	SubscriptionPatchesTable.Annotation = &entsql.Annotation{
+		Table: "subscription_patches",
+	}
+	SubscriptionPatchValueAddItemsTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
+	SubscriptionPatchValueAddPhasesTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
+	SubscriptionPatchValueExtendPhasesTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable
 	NotificationChannelRulesTable.ForeignKeys[1].RefTable = NotificationRulesTable

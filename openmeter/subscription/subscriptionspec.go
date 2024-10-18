@@ -146,6 +146,7 @@ func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
 	namespace string,
 	featureKey string,
 	subjectKey string,
+	cadence models.CadencedModel,
 ) (*entitlement.CreateEntitlementInputs, error) {
 	return &entitlement.CreateEntitlementInputs{
 		Namespace:               namespace,
@@ -159,6 +160,8 @@ func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
 		Config:                  s.Config,
 		UsagePeriod:             s.UsagePeriod,
 		PreserveOverageAtReset:  s.PreserveOverageAtReset,
+		ActiveFrom:              &cadence.ActiveFrom,
+		ActiveTo:                cadence.ActiveTo,
 	}, nil
 }
 
@@ -174,7 +177,51 @@ type SubscriptionItemSpec struct {
 	CreateSubscriptionItemPlanInput
 }
 
+func (s SubscriptionItemSpec) GetRef(subId string) SubscriptionItemRef {
+	return SubscriptionItemRef{
+		SubscriptionId: subId,
+		PhaseKey:       s.PhaseKey,
+		ItemKey:        s.ItemKey,
+	}
+}
+
+func (s SubscriptionItemSpec) HasPrice() bool {
+	return s.CreatePriceInput != nil
+}
+
+func (s SubscriptionItemSpec) HasEntitlement() bool {
+	return s.CreateEntitlementInput != nil
+}
+
+func (s SubscriptionItemSpec) HasFeature() bool {
+	return s.FeatureKey != nil
+}
+
 func (s *SubscriptionItemSpec) Validate() error {
+	if s.CreateEntitlementInput != nil {
+		if s.FeatureKey == nil {
+			return &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+						"FeatureKey",
+					},
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+						"CreateEntitlementInput",
+					},
+				},
+				Msg: "FeatureKey is required for CreateEntitlementInput",
+			}
+		}
+	}
+
 	// TODO: implement
 	return nil
 }
@@ -256,4 +303,14 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 
 	}
 	return nil
+}
+
+type SpecValidationError struct {
+	// FIXME: This spec is broken and painful, lets improve it
+	AffectedKeys [][]string
+	Msg          string
+}
+
+func (e *SpecValidationError) Error() string {
+	return e.Msg
 }

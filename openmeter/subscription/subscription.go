@@ -14,6 +14,25 @@ type PlanRef struct {
 	Version int    `json:"version"`
 }
 
+type SubscriptionItemRef struct {
+	SubscriptionId string `json:"subscriptionId"`
+	PhaseKey       string `json:"phaseKey"`
+	ItemKey        string `json:"itemKey"`
+}
+
+func (r SubscriptionItemRef) Equals(r2 SubscriptionItemRef) bool {
+	if r.SubscriptionId != r2.SubscriptionId {
+		return false
+	}
+	if r.PhaseKey != r2.PhaseKey {
+		return false
+	}
+	if r.ItemKey != r2.ItemKey {
+		return false
+	}
+	return true
+}
+
 type CreateSubscriptionInput struct {
 	Plan PlanRef
 
@@ -28,6 +47,30 @@ type Subscription struct {
 	CreateSubscriptionInput
 
 	ID string `json:"id,omitempty"`
+}
+
+type CreateSubscriptionPatchInput struct {
+	AppliedAt  time.Time `json:"appliedAt,omitempty"`
+	BatchIndex int       `json:"batchIndex,omitempty"`
+
+	Patch
+}
+
+func TransformPatchesForRepository(patches []Patch, appliedAt time.Time) ([]CreateSubscriptionPatchInput, error) {
+	var res []CreateSubscriptionPatchInput
+
+	for i, p := range patches {
+		pi := CreateSubscriptionPatchInput{
+			Patch: p,
+		}
+
+		pi.AppliedAt = appliedAt
+		pi.BatchIndex = i
+
+		res = append(res, pi)
+	}
+
+	return res, nil
 }
 
 type SubscriptionPatch struct {
@@ -49,7 +92,7 @@ type SubscriptionPatch struct {
 }
 
 func (s *SubscriptionPatch) AsPatch() (any, error) {
-	p := &AnyPatch{
+	p := &wPatch{
 		Op:    s.Operation,
 		Path:  s.Path,
 		Value: s.Value,

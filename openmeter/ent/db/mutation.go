@@ -41,6 +41,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -60,31 +65,36 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeApp                             = "App"
-	TypeAppCustomer                     = "AppCustomer"
-	TypeAppStripe                       = "AppStripe"
-	TypeAppStripeCustomer               = "AppStripeCustomer"
-	TypeBalanceSnapshot                 = "BalanceSnapshot"
-	TypeBillingCustomerOverride         = "BillingCustomerOverride"
-	TypeBillingInvoice                  = "BillingInvoice"
-	TypeBillingInvoiceLine              = "BillingInvoiceLine"
-	TypeBillingInvoiceManualLineConfig  = "BillingInvoiceManualLineConfig"
-	TypeBillingInvoiceValidationIssue   = "BillingInvoiceValidationIssue"
-	TypeBillingProfile                  = "BillingProfile"
-	TypeBillingWorkflowConfig           = "BillingWorkflowConfig"
-	TypeCustomer                        = "Customer"
-	TypeCustomerSubjects                = "CustomerSubjects"
-	TypeEntitlement                     = "Entitlement"
-	TypeFeature                         = "Feature"
-	TypeGrant                           = "Grant"
-	TypeNotificationChannel             = "NotificationChannel"
-	TypeNotificationEvent               = "NotificationEvent"
-	TypeNotificationEventDeliveryStatus = "NotificationEventDeliveryStatus"
-	TypeNotificationRule                = "NotificationRule"
-	TypePlan                            = "Plan"
-	TypePlanPhase                       = "PlanPhase"
-	TypePlanRateCard                    = "PlanRateCard"
-	TypeUsageReset                      = "UsageReset"
+	TypeApp                               = "App"
+	TypeAppCustomer                       = "AppCustomer"
+	TypeAppStripe                         = "AppStripe"
+	TypeAppStripeCustomer                 = "AppStripeCustomer"
+	TypeBalanceSnapshot                   = "BalanceSnapshot"
+	TypeBillingCustomerOverride           = "BillingCustomerOverride"
+	TypeBillingInvoice                    = "BillingInvoice"
+	TypeBillingInvoiceLine                = "BillingInvoiceLine"
+	TypeBillingInvoiceManualLineConfig    = "BillingInvoiceManualLineConfig"
+	TypeBillingInvoiceValidationIssue     = "BillingInvoiceValidationIssue"
+	TypeBillingProfile                    = "BillingProfile"
+	TypeBillingWorkflowConfig             = "BillingWorkflowConfig"
+	TypeCustomer                          = "Customer"
+	TypeCustomerSubjects                  = "CustomerSubjects"
+	TypeEntitlement                       = "Entitlement"
+	TypeFeature                           = "Feature"
+	TypeGrant                             = "Grant"
+	TypeNotificationChannel               = "NotificationChannel"
+	TypeNotificationEvent                 = "NotificationEvent"
+	TypeNotificationEventDeliveryStatus   = "NotificationEventDeliveryStatus"
+	TypeNotificationRule                  = "NotificationRule"
+	TypePlan                              = "Plan"
+	TypePlanPhase                         = "PlanPhase"
+	TypePlanRateCard                      = "PlanRateCard"
+	TypeSubscription                      = "Subscription"
+	TypeSubscriptionPatch                 = "SubscriptionPatch"
+	TypeSubscriptionPatchValueAddItem     = "SubscriptionPatchValueAddItem"
+	TypeSubscriptionPatchValueAddPhase    = "SubscriptionPatchValueAddPhase"
+	TypeSubscriptionPatchValueExtendPhase = "SubscriptionPatchValueExtendPhase"
+	TypeUsageReset                        = "UsageReset"
 )
 
 // AppMutation represents an operation that mutates the App nodes in the graph.
@@ -15316,6 +15326,9 @@ type CustomerMutation struct {
 	billing_invoice                  map[string]struct{}
 	removedbilling_invoice           map[string]struct{}
 	clearedbilling_invoice           bool
+	subscription                     map[string]struct{}
+	removedsubscription              map[string]struct{}
+	clearedsubscription              bool
 	done                             bool
 	oldValue                         func(context.Context) (*Customer, error)
 	predicates                       []predicate.Customer
@@ -16407,6 +16420,60 @@ func (m *CustomerMutation) ResetBillingInvoice() {
 	m.removedbilling_invoice = nil
 }
 
+// AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by ids.
+func (m *CustomerMutation) AddSubscriptionIDs(ids ...string) {
+	if m.subscription == nil {
+		m.subscription = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (m *CustomerMutation) ClearSubscription() {
+	m.clearedsubscription = true
+}
+
+// SubscriptionCleared reports if the "subscription" edge to the Subscription entity was cleared.
+func (m *CustomerMutation) SubscriptionCleared() bool {
+	return m.clearedsubscription
+}
+
+// RemoveSubscriptionIDs removes the "subscription" edge to the Subscription entity by IDs.
+func (m *CustomerMutation) RemoveSubscriptionIDs(ids ...string) {
+	if m.removedsubscription == nil {
+		m.removedsubscription = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription, ids[i])
+		m.removedsubscription[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscription returns the removed IDs of the "subscription" edge to the Subscription entity.
+func (m *CustomerMutation) RemovedSubscriptionIDs() (ids []string) {
+	for id := range m.removedsubscription {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionIDs returns the "subscription" edge IDs in the mutation.
+func (m *CustomerMutation) SubscriptionIDs() (ids []string) {
+	for id := range m.subscription {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscription resets all changes to the "subscription" edge.
+func (m *CustomerMutation) ResetSubscription() {
+	m.subscription = nil
+	m.clearedsubscription = false
+	m.removedsubscription = nil
+}
+
 // Where appends a list predicates to the CustomerMutation builder.
 func (m *CustomerMutation) Where(ps ...predicate.Customer) {
 	m.predicates = append(m.predicates, ps...)
@@ -16893,7 +16960,7 @@ func (m *CustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.apps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -16905,6 +16972,9 @@ func (m *CustomerMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.subscription != nil {
+		edges = append(edges, customer.EdgeSubscription)
 	}
 	return edges
 }
@@ -16935,13 +17005,19 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeSubscription:
+		ids := make([]ent.Value, 0, len(m.subscription))
+		for id := range m.subscription {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedapps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -16950,6 +17026,9 @@ func (m *CustomerMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.removedsubscription != nil {
+		edges = append(edges, customer.EdgeSubscription)
 	}
 	return edges
 }
@@ -16976,13 +17055,19 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeSubscription:
+		ids := make([]ent.Value, 0, len(m.removedsubscription))
+		for id := range m.removedsubscription {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedapps {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -16994,6 +17079,9 @@ func (m *CustomerMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.clearedsubscription {
+		edges = append(edges, customer.EdgeSubscription)
 	}
 	return edges
 }
@@ -17010,6 +17098,8 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_customer_override
 	case customer.EdgeBillingInvoice:
 		return m.clearedbilling_invoice
+	case customer.EdgeSubscription:
+		return m.clearedsubscription
 	}
 	return false
 }
@@ -17040,6 +17130,9 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 		return nil
 	case customer.EdgeBillingInvoice:
 		m.ResetBillingInvoice()
+		return nil
+	case customer.EdgeSubscription:
+		m.ResetSubscription()
 		return nil
 	}
 	return fmt.Errorf("unknown Customer edge %s", name)
@@ -29183,6 +29276,4924 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard edge %s", name)
+}
+
+// SubscriptionMutation represents an operation that mutates the Subscription nodes in the graph.
+type SubscriptionMutation struct {
+	config
+	op                          Op
+	typ                         string
+	id                          *string
+	namespace                   *string
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	metadata                    *map[string]string
+	active_from                 *time.Time
+	active_to                   *time.Time
+	plan_key                    *string
+	plan_version                *int
+	addplan_version             *int
+	currency                    *currencyx.Code
+	clearedFields               map[string]struct{}
+	subscription_patches        map[string]struct{}
+	removedsubscription_patches map[string]struct{}
+	clearedsubscription_patches bool
+	customer                    *string
+	clearedcustomer             bool
+	done                        bool
+	oldValue                    func(context.Context) (*Subscription, error)
+	predicates                  []predicate.Subscription
+}
+
+var _ ent.Mutation = (*SubscriptionMutation)(nil)
+
+// subscriptionOption allows management of the mutation configuration using functional options.
+type subscriptionOption func(*SubscriptionMutation)
+
+// newSubscriptionMutation creates new mutation for the Subscription entity.
+func newSubscriptionMutation(c config, op Op, opts ...subscriptionOption) *SubscriptionMutation {
+	m := &SubscriptionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscription,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionID sets the ID field of the mutation.
+func withSubscriptionID(id string) subscriptionOption {
+	return func(m *SubscriptionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Subscription
+		)
+		m.oldValue = func(ctx context.Context) (*Subscription, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Subscription.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscription sets the old Subscription of the mutation.
+func withSubscription(node *Subscription) subscriptionOption {
+	return func(m *SubscriptionMutation) {
+		m.oldValue = func(context.Context) (*Subscription, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Subscription entities.
+func (m *SubscriptionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Subscription.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SubscriptionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SubscriptionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SubscriptionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SubscriptionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SubscriptionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SubscriptionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *SubscriptionMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *SubscriptionMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *SubscriptionMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[subscription.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *SubscriptionMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *SubscriptionMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, subscription.FieldDeletedAt)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *SubscriptionMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *SubscriptionMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *SubscriptionMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[subscription.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *SubscriptionMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *SubscriptionMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, subscription.FieldMetadata)
+}
+
+// SetActiveFrom sets the "active_from" field.
+func (m *SubscriptionMutation) SetActiveFrom(t time.Time) {
+	m.active_from = &t
+}
+
+// ActiveFrom returns the value of the "active_from" field in the mutation.
+func (m *SubscriptionMutation) ActiveFrom() (r time.Time, exists bool) {
+	v := m.active_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActiveFrom returns the old "active_from" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldActiveFrom(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActiveFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActiveFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActiveFrom: %w", err)
+	}
+	return oldValue.ActiveFrom, nil
+}
+
+// ResetActiveFrom resets all changes to the "active_from" field.
+func (m *SubscriptionMutation) ResetActiveFrom() {
+	m.active_from = nil
+}
+
+// SetActiveTo sets the "active_to" field.
+func (m *SubscriptionMutation) SetActiveTo(t time.Time) {
+	m.active_to = &t
+}
+
+// ActiveTo returns the value of the "active_to" field in the mutation.
+func (m *SubscriptionMutation) ActiveTo() (r time.Time, exists bool) {
+	v := m.active_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActiveTo returns the old "active_to" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldActiveTo(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActiveTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActiveTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActiveTo: %w", err)
+	}
+	return oldValue.ActiveTo, nil
+}
+
+// ClearActiveTo clears the value of the "active_to" field.
+func (m *SubscriptionMutation) ClearActiveTo() {
+	m.active_to = nil
+	m.clearedFields[subscription.FieldActiveTo] = struct{}{}
+}
+
+// ActiveToCleared returns if the "active_to" field was cleared in this mutation.
+func (m *SubscriptionMutation) ActiveToCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldActiveTo]
+	return ok
+}
+
+// ResetActiveTo resets all changes to the "active_to" field.
+func (m *SubscriptionMutation) ResetActiveTo() {
+	m.active_to = nil
+	delete(m.clearedFields, subscription.FieldActiveTo)
+}
+
+// SetPlanKey sets the "plan_key" field.
+func (m *SubscriptionMutation) SetPlanKey(s string) {
+	m.plan_key = &s
+}
+
+// PlanKey returns the value of the "plan_key" field in the mutation.
+func (m *SubscriptionMutation) PlanKey() (r string, exists bool) {
+	v := m.plan_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanKey returns the old "plan_key" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldPlanKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanKey: %w", err)
+	}
+	return oldValue.PlanKey, nil
+}
+
+// ResetPlanKey resets all changes to the "plan_key" field.
+func (m *SubscriptionMutation) ResetPlanKey() {
+	m.plan_key = nil
+}
+
+// SetPlanVersion sets the "plan_version" field.
+func (m *SubscriptionMutation) SetPlanVersion(i int) {
+	m.plan_version = &i
+	m.addplan_version = nil
+}
+
+// PlanVersion returns the value of the "plan_version" field in the mutation.
+func (m *SubscriptionMutation) PlanVersion() (r int, exists bool) {
+	v := m.plan_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanVersion returns the old "plan_version" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldPlanVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanVersion: %w", err)
+	}
+	return oldValue.PlanVersion, nil
+}
+
+// AddPlanVersion adds i to the "plan_version" field.
+func (m *SubscriptionMutation) AddPlanVersion(i int) {
+	if m.addplan_version != nil {
+		*m.addplan_version += i
+	} else {
+		m.addplan_version = &i
+	}
+}
+
+// AddedPlanVersion returns the value that was added to the "plan_version" field in this mutation.
+func (m *SubscriptionMutation) AddedPlanVersion() (r int, exists bool) {
+	v := m.addplan_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPlanVersion resets all changes to the "plan_version" field.
+func (m *SubscriptionMutation) ResetPlanVersion() {
+	m.plan_version = nil
+	m.addplan_version = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *SubscriptionMutation) SetCustomerID(s string) {
+	m.customer = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *SubscriptionMutation) CustomerID() (r string, exists bool) {
+	v := m.customer
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *SubscriptionMutation) ResetCustomerID() {
+	m.customer = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *SubscriptionMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *SubscriptionMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *SubscriptionMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// AddSubscriptionPatchIDs adds the "subscription_patches" edge to the SubscriptionPatch entity by ids.
+func (m *SubscriptionMutation) AddSubscriptionPatchIDs(ids ...string) {
+	if m.subscription_patches == nil {
+		m.subscription_patches = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription_patches[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscriptionPatches clears the "subscription_patches" edge to the SubscriptionPatch entity.
+func (m *SubscriptionMutation) ClearSubscriptionPatches() {
+	m.clearedsubscription_patches = true
+}
+
+// SubscriptionPatchesCleared reports if the "subscription_patches" edge to the SubscriptionPatch entity was cleared.
+func (m *SubscriptionMutation) SubscriptionPatchesCleared() bool {
+	return m.clearedsubscription_patches
+}
+
+// RemoveSubscriptionPatchIDs removes the "subscription_patches" edge to the SubscriptionPatch entity by IDs.
+func (m *SubscriptionMutation) RemoveSubscriptionPatchIDs(ids ...string) {
+	if m.removedsubscription_patches == nil {
+		m.removedsubscription_patches = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription_patches, ids[i])
+		m.removedsubscription_patches[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptionPatches returns the removed IDs of the "subscription_patches" edge to the SubscriptionPatch entity.
+func (m *SubscriptionMutation) RemovedSubscriptionPatchesIDs() (ids []string) {
+	for id := range m.removedsubscription_patches {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionPatchesIDs returns the "subscription_patches" edge IDs in the mutation.
+func (m *SubscriptionMutation) SubscriptionPatchesIDs() (ids []string) {
+	for id := range m.subscription_patches {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscriptionPatches resets all changes to the "subscription_patches" edge.
+func (m *SubscriptionMutation) ResetSubscriptionPatches() {
+	m.subscription_patches = nil
+	m.clearedsubscription_patches = false
+	m.removedsubscription_patches = nil
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (m *SubscriptionMutation) ClearCustomer() {
+	m.clearedcustomer = true
+	m.clearedFields[subscription.FieldCustomerID] = struct{}{}
+}
+
+// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
+func (m *SubscriptionMutation) CustomerCleared() bool {
+	return m.clearedcustomer
+}
+
+// CustomerIDs returns the "customer" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomerID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionMutation) CustomerIDs() (ids []string) {
+	if id := m.customer; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomer resets all changes to the "customer" edge.
+func (m *SubscriptionMutation) ResetCustomer() {
+	m.customer = nil
+	m.clearedcustomer = false
+}
+
+// Where appends a list predicates to the SubscriptionMutation builder.
+func (m *SubscriptionMutation) Where(ps ...predicate.Subscription) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Subscription, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Subscription).
+func (m *SubscriptionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.namespace != nil {
+		fields = append(fields, subscription.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, subscription.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, subscription.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, subscription.FieldDeletedAt)
+	}
+	if m.metadata != nil {
+		fields = append(fields, subscription.FieldMetadata)
+	}
+	if m.active_from != nil {
+		fields = append(fields, subscription.FieldActiveFrom)
+	}
+	if m.active_to != nil {
+		fields = append(fields, subscription.FieldActiveTo)
+	}
+	if m.plan_key != nil {
+		fields = append(fields, subscription.FieldPlanKey)
+	}
+	if m.plan_version != nil {
+		fields = append(fields, subscription.FieldPlanVersion)
+	}
+	if m.customer != nil {
+		fields = append(fields, subscription.FieldCustomerID)
+	}
+	if m.currency != nil {
+		fields = append(fields, subscription.FieldCurrency)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscription.FieldNamespace:
+		return m.Namespace()
+	case subscription.FieldCreatedAt:
+		return m.CreatedAt()
+	case subscription.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case subscription.FieldDeletedAt:
+		return m.DeletedAt()
+	case subscription.FieldMetadata:
+		return m.Metadata()
+	case subscription.FieldActiveFrom:
+		return m.ActiveFrom()
+	case subscription.FieldActiveTo:
+		return m.ActiveTo()
+	case subscription.FieldPlanKey:
+		return m.PlanKey()
+	case subscription.FieldPlanVersion:
+		return m.PlanVersion()
+	case subscription.FieldCustomerID:
+		return m.CustomerID()
+	case subscription.FieldCurrency:
+		return m.Currency()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscription.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscription.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case subscription.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case subscription.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case subscription.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case subscription.FieldActiveFrom:
+		return m.OldActiveFrom(ctx)
+	case subscription.FieldActiveTo:
+		return m.OldActiveTo(ctx)
+	case subscription.FieldPlanKey:
+		return m.OldPlanKey(ctx)
+	case subscription.FieldPlanVersion:
+		return m.OldPlanVersion(ctx)
+	case subscription.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case subscription.FieldCurrency:
+		return m.OldCurrency(ctx)
+	}
+	return nil, fmt.Errorf("unknown Subscription field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscription.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscription.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case subscription.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case subscription.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case subscription.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case subscription.FieldActiveFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActiveFrom(v)
+		return nil
+	case subscription.FieldActiveTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActiveTo(v)
+		return nil
+	case subscription.FieldPlanKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanKey(v)
+		return nil
+	case subscription.FieldPlanVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanVersion(v)
+		return nil
+	case subscription.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case subscription.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Subscription field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionMutation) AddedFields() []string {
+	var fields []string
+	if m.addplan_version != nil {
+		fields = append(fields, subscription.FieldPlanVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case subscription.FieldPlanVersion:
+		return m.AddedPlanVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case subscription.FieldPlanVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPlanVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Subscription numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(subscription.FieldDeletedAt) {
+		fields = append(fields, subscription.FieldDeletedAt)
+	}
+	if m.FieldCleared(subscription.FieldMetadata) {
+		fields = append(fields, subscription.FieldMetadata)
+	}
+	if m.FieldCleared(subscription.FieldActiveTo) {
+		fields = append(fields, subscription.FieldActiveTo)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionMutation) ClearField(name string) error {
+	switch name {
+	case subscription.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case subscription.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case subscription.FieldActiveTo:
+		m.ClearActiveTo()
+		return nil
+	}
+	return fmt.Errorf("unknown Subscription nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionMutation) ResetField(name string) error {
+	switch name {
+	case subscription.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscription.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case subscription.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case subscription.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case subscription.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case subscription.FieldActiveFrom:
+		m.ResetActiveFrom()
+		return nil
+	case subscription.FieldActiveTo:
+		m.ResetActiveTo()
+		return nil
+	case subscription.FieldPlanKey:
+		m.ResetPlanKey()
+		return nil
+	case subscription.FieldPlanVersion:
+		m.ResetPlanVersion()
+		return nil
+	case subscription.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case subscription.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	}
+	return fmt.Errorf("unknown Subscription field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.subscription_patches != nil {
+		edges = append(edges, subscription.EdgeSubscriptionPatches)
+	}
+	if m.customer != nil {
+		edges = append(edges, subscription.EdgeCustomer)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscription.EdgeSubscriptionPatches:
+		ids := make([]ent.Value, 0, len(m.subscription_patches))
+		for id := range m.subscription_patches {
+			ids = append(ids, id)
+		}
+		return ids
+	case subscription.EdgeCustomer:
+		if id := m.customer; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedsubscription_patches != nil {
+		edges = append(edges, subscription.EdgeSubscriptionPatches)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case subscription.EdgeSubscriptionPatches:
+		ids := make([]ent.Value, 0, len(m.removedsubscription_patches))
+		for id := range m.removedsubscription_patches {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedsubscription_patches {
+		edges = append(edges, subscription.EdgeSubscriptionPatches)
+	}
+	if m.clearedcustomer {
+		edges = append(edges, subscription.EdgeCustomer)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscription.EdgeSubscriptionPatches:
+		return m.clearedsubscription_patches
+	case subscription.EdgeCustomer:
+		return m.clearedcustomer
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionMutation) ClearEdge(name string) error {
+	switch name {
+	case subscription.EdgeCustomer:
+		m.ClearCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown Subscription unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionMutation) ResetEdge(name string) error {
+	switch name {
+	case subscription.EdgeSubscriptionPatches:
+		m.ResetSubscriptionPatches()
+		return nil
+	case subscription.EdgeCustomer:
+		m.ResetCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown Subscription edge %s", name)
+}
+
+// SubscriptionPatchMutation represents an operation that mutates the SubscriptionPatch nodes in the graph.
+type SubscriptionPatchMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	metadata                  *map[string]string
+	applied_at                *time.Time
+	batch_index               *int
+	addbatch_index            *int
+	operation                 *string
+	_path                     *string
+	clearedFields             map[string]struct{}
+	subscription              *string
+	clearedsubscription       bool
+	value_add_item            *string
+	clearedvalue_add_item     bool
+	value_add_phase           *string
+	clearedvalue_add_phase    bool
+	value_extend_phase        *string
+	clearedvalue_extend_phase bool
+	done                      bool
+	oldValue                  func(context.Context) (*SubscriptionPatch, error)
+	predicates                []predicate.SubscriptionPatch
+}
+
+var _ ent.Mutation = (*SubscriptionPatchMutation)(nil)
+
+// subscriptionpatchOption allows management of the mutation configuration using functional options.
+type subscriptionpatchOption func(*SubscriptionPatchMutation)
+
+// newSubscriptionPatchMutation creates new mutation for the SubscriptionPatch entity.
+func newSubscriptionPatchMutation(c config, op Op, opts ...subscriptionpatchOption) *SubscriptionPatchMutation {
+	m := &SubscriptionPatchMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscriptionPatch,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionPatchID sets the ID field of the mutation.
+func withSubscriptionPatchID(id string) subscriptionpatchOption {
+	return func(m *SubscriptionPatchMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubscriptionPatch
+		)
+		m.oldValue = func(ctx context.Context) (*SubscriptionPatch, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubscriptionPatch.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscriptionPatch sets the old SubscriptionPatch of the mutation.
+func withSubscriptionPatch(node *SubscriptionPatch) subscriptionpatchOption {
+	return func(m *SubscriptionPatchMutation) {
+		m.oldValue = func(context.Context) (*SubscriptionPatch, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionPatchMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionPatchMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SubscriptionPatch entities.
+func (m *SubscriptionPatchMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionPatchMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionPatchMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SubscriptionPatch.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionPatchMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionPatchMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionPatchMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SubscriptionPatchMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SubscriptionPatchMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SubscriptionPatchMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SubscriptionPatchMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SubscriptionPatchMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SubscriptionPatchMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *SubscriptionPatchMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *SubscriptionPatchMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *SubscriptionPatchMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[subscriptionpatch.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *SubscriptionPatchMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatch.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *SubscriptionPatchMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, subscriptionpatch.FieldDeletedAt)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *SubscriptionPatchMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *SubscriptionPatchMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *SubscriptionPatchMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[subscriptionpatch.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *SubscriptionPatchMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatch.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *SubscriptionPatchMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, subscriptionpatch.FieldMetadata)
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (m *SubscriptionPatchMutation) SetSubscriptionID(s string) {
+	m.subscription = &s
+}
+
+// SubscriptionID returns the value of the "subscription_id" field in the mutation.
+func (m *SubscriptionPatchMutation) SubscriptionID() (r string, exists bool) {
+	v := m.subscription
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionID returns the old "subscription_id" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldSubscriptionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionID: %w", err)
+	}
+	return oldValue.SubscriptionID, nil
+}
+
+// ResetSubscriptionID resets all changes to the "subscription_id" field.
+func (m *SubscriptionPatchMutation) ResetSubscriptionID() {
+	m.subscription = nil
+}
+
+// SetAppliedAt sets the "applied_at" field.
+func (m *SubscriptionPatchMutation) SetAppliedAt(t time.Time) {
+	m.applied_at = &t
+}
+
+// AppliedAt returns the value of the "applied_at" field in the mutation.
+func (m *SubscriptionPatchMutation) AppliedAt() (r time.Time, exists bool) {
+	v := m.applied_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppliedAt returns the old "applied_at" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldAppliedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppliedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppliedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppliedAt: %w", err)
+	}
+	return oldValue.AppliedAt, nil
+}
+
+// ResetAppliedAt resets all changes to the "applied_at" field.
+func (m *SubscriptionPatchMutation) ResetAppliedAt() {
+	m.applied_at = nil
+}
+
+// SetBatchIndex sets the "batch_index" field.
+func (m *SubscriptionPatchMutation) SetBatchIndex(i int) {
+	m.batch_index = &i
+	m.addbatch_index = nil
+}
+
+// BatchIndex returns the value of the "batch_index" field in the mutation.
+func (m *SubscriptionPatchMutation) BatchIndex() (r int, exists bool) {
+	v := m.batch_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBatchIndex returns the old "batch_index" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldBatchIndex(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBatchIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBatchIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBatchIndex: %w", err)
+	}
+	return oldValue.BatchIndex, nil
+}
+
+// AddBatchIndex adds i to the "batch_index" field.
+func (m *SubscriptionPatchMutation) AddBatchIndex(i int) {
+	if m.addbatch_index != nil {
+		*m.addbatch_index += i
+	} else {
+		m.addbatch_index = &i
+	}
+}
+
+// AddedBatchIndex returns the value that was added to the "batch_index" field in this mutation.
+func (m *SubscriptionPatchMutation) AddedBatchIndex() (r int, exists bool) {
+	v := m.addbatch_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBatchIndex resets all changes to the "batch_index" field.
+func (m *SubscriptionPatchMutation) ResetBatchIndex() {
+	m.batch_index = nil
+	m.addbatch_index = nil
+}
+
+// SetOperation sets the "operation" field.
+func (m *SubscriptionPatchMutation) SetOperation(s string) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *SubscriptionPatchMutation) Operation() (r string, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldOperation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *SubscriptionPatchMutation) ResetOperation() {
+	m.operation = nil
+}
+
+// SetPath sets the "path" field.
+func (m *SubscriptionPatchMutation) SetPath(s string) {
+	m._path = &s
+}
+
+// Path returns the value of the "path" field in the mutation.
+func (m *SubscriptionPatchMutation) Path() (r string, exists bool) {
+	v := m._path
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPath returns the old "path" field's value of the SubscriptionPatch entity.
+// If the SubscriptionPatch object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchMutation) OldPath(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPath is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPath requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPath: %w", err)
+	}
+	return oldValue.Path, nil
+}
+
+// ResetPath resets all changes to the "path" field.
+func (m *SubscriptionPatchMutation) ResetPath() {
+	m._path = nil
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (m *SubscriptionPatchMutation) ClearSubscription() {
+	m.clearedsubscription = true
+	m.clearedFields[subscriptionpatch.FieldSubscriptionID] = struct{}{}
+}
+
+// SubscriptionCleared reports if the "subscription" edge to the Subscription entity was cleared.
+func (m *SubscriptionPatchMutation) SubscriptionCleared() bool {
+	return m.clearedsubscription
+}
+
+// SubscriptionIDs returns the "subscription" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchMutation) SubscriptionIDs() (ids []string) {
+	if id := m.subscription; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscription resets all changes to the "subscription" edge.
+func (m *SubscriptionPatchMutation) ResetSubscription() {
+	m.subscription = nil
+	m.clearedsubscription = false
+}
+
+// SetValueAddItemID sets the "value_add_item" edge to the SubscriptionPatchValueAddItem entity by id.
+func (m *SubscriptionPatchMutation) SetValueAddItemID(id string) {
+	m.value_add_item = &id
+}
+
+// ClearValueAddItem clears the "value_add_item" edge to the SubscriptionPatchValueAddItem entity.
+func (m *SubscriptionPatchMutation) ClearValueAddItem() {
+	m.clearedvalue_add_item = true
+}
+
+// ValueAddItemCleared reports if the "value_add_item" edge to the SubscriptionPatchValueAddItem entity was cleared.
+func (m *SubscriptionPatchMutation) ValueAddItemCleared() bool {
+	return m.clearedvalue_add_item
+}
+
+// ValueAddItemID returns the "value_add_item" edge ID in the mutation.
+func (m *SubscriptionPatchMutation) ValueAddItemID() (id string, exists bool) {
+	if m.value_add_item != nil {
+		return *m.value_add_item, true
+	}
+	return
+}
+
+// ValueAddItemIDs returns the "value_add_item" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ValueAddItemID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchMutation) ValueAddItemIDs() (ids []string) {
+	if id := m.value_add_item; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetValueAddItem resets all changes to the "value_add_item" edge.
+func (m *SubscriptionPatchMutation) ResetValueAddItem() {
+	m.value_add_item = nil
+	m.clearedvalue_add_item = false
+}
+
+// SetValueAddPhaseID sets the "value_add_phase" edge to the SubscriptionPatchValueAddPhase entity by id.
+func (m *SubscriptionPatchMutation) SetValueAddPhaseID(id string) {
+	m.value_add_phase = &id
+}
+
+// ClearValueAddPhase clears the "value_add_phase" edge to the SubscriptionPatchValueAddPhase entity.
+func (m *SubscriptionPatchMutation) ClearValueAddPhase() {
+	m.clearedvalue_add_phase = true
+}
+
+// ValueAddPhaseCleared reports if the "value_add_phase" edge to the SubscriptionPatchValueAddPhase entity was cleared.
+func (m *SubscriptionPatchMutation) ValueAddPhaseCleared() bool {
+	return m.clearedvalue_add_phase
+}
+
+// ValueAddPhaseID returns the "value_add_phase" edge ID in the mutation.
+func (m *SubscriptionPatchMutation) ValueAddPhaseID() (id string, exists bool) {
+	if m.value_add_phase != nil {
+		return *m.value_add_phase, true
+	}
+	return
+}
+
+// ValueAddPhaseIDs returns the "value_add_phase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ValueAddPhaseID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchMutation) ValueAddPhaseIDs() (ids []string) {
+	if id := m.value_add_phase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetValueAddPhase resets all changes to the "value_add_phase" edge.
+func (m *SubscriptionPatchMutation) ResetValueAddPhase() {
+	m.value_add_phase = nil
+	m.clearedvalue_add_phase = false
+}
+
+// SetValueExtendPhaseID sets the "value_extend_phase" edge to the SubscriptionPatchValueExtendPhase entity by id.
+func (m *SubscriptionPatchMutation) SetValueExtendPhaseID(id string) {
+	m.value_extend_phase = &id
+}
+
+// ClearValueExtendPhase clears the "value_extend_phase" edge to the SubscriptionPatchValueExtendPhase entity.
+func (m *SubscriptionPatchMutation) ClearValueExtendPhase() {
+	m.clearedvalue_extend_phase = true
+}
+
+// ValueExtendPhaseCleared reports if the "value_extend_phase" edge to the SubscriptionPatchValueExtendPhase entity was cleared.
+func (m *SubscriptionPatchMutation) ValueExtendPhaseCleared() bool {
+	return m.clearedvalue_extend_phase
+}
+
+// ValueExtendPhaseID returns the "value_extend_phase" edge ID in the mutation.
+func (m *SubscriptionPatchMutation) ValueExtendPhaseID() (id string, exists bool) {
+	if m.value_extend_phase != nil {
+		return *m.value_extend_phase, true
+	}
+	return
+}
+
+// ValueExtendPhaseIDs returns the "value_extend_phase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ValueExtendPhaseID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchMutation) ValueExtendPhaseIDs() (ids []string) {
+	if id := m.value_extend_phase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetValueExtendPhase resets all changes to the "value_extend_phase" edge.
+func (m *SubscriptionPatchMutation) ResetValueExtendPhase() {
+	m.value_extend_phase = nil
+	m.clearedvalue_extend_phase = false
+}
+
+// Where appends a list predicates to the SubscriptionPatchMutation builder.
+func (m *SubscriptionPatchMutation) Where(ps ...predicate.SubscriptionPatch) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionPatchMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionPatchMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SubscriptionPatch, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionPatchMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionPatchMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SubscriptionPatch).
+func (m *SubscriptionPatchMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionPatchMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.namespace != nil {
+		fields = append(fields, subscriptionpatch.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, subscriptionpatch.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, subscriptionpatch.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, subscriptionpatch.FieldDeletedAt)
+	}
+	if m.metadata != nil {
+		fields = append(fields, subscriptionpatch.FieldMetadata)
+	}
+	if m.subscription != nil {
+		fields = append(fields, subscriptionpatch.FieldSubscriptionID)
+	}
+	if m.applied_at != nil {
+		fields = append(fields, subscriptionpatch.FieldAppliedAt)
+	}
+	if m.batch_index != nil {
+		fields = append(fields, subscriptionpatch.FieldBatchIndex)
+	}
+	if m.operation != nil {
+		fields = append(fields, subscriptionpatch.FieldOperation)
+	}
+	if m._path != nil {
+		fields = append(fields, subscriptionpatch.FieldPath)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionPatchMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionpatch.FieldNamespace:
+		return m.Namespace()
+	case subscriptionpatch.FieldCreatedAt:
+		return m.CreatedAt()
+	case subscriptionpatch.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case subscriptionpatch.FieldDeletedAt:
+		return m.DeletedAt()
+	case subscriptionpatch.FieldMetadata:
+		return m.Metadata()
+	case subscriptionpatch.FieldSubscriptionID:
+		return m.SubscriptionID()
+	case subscriptionpatch.FieldAppliedAt:
+		return m.AppliedAt()
+	case subscriptionpatch.FieldBatchIndex:
+		return m.BatchIndex()
+	case subscriptionpatch.FieldOperation:
+		return m.Operation()
+	case subscriptionpatch.FieldPath:
+		return m.Path()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionPatchMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscriptionpatch.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscriptionpatch.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case subscriptionpatch.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case subscriptionpatch.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case subscriptionpatch.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case subscriptionpatch.FieldSubscriptionID:
+		return m.OldSubscriptionID(ctx)
+	case subscriptionpatch.FieldAppliedAt:
+		return m.OldAppliedAt(ctx)
+	case subscriptionpatch.FieldBatchIndex:
+		return m.OldBatchIndex(ctx)
+	case subscriptionpatch.FieldOperation:
+		return m.OldOperation(ctx)
+	case subscriptionpatch.FieldPath:
+		return m.OldPath(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubscriptionPatch field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionpatch.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscriptionpatch.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case subscriptionpatch.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case subscriptionpatch.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case subscriptionpatch.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case subscriptionpatch.FieldSubscriptionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionID(v)
+		return nil
+	case subscriptionpatch.FieldAppliedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppliedAt(v)
+		return nil
+	case subscriptionpatch.FieldBatchIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBatchIndex(v)
+		return nil
+	case subscriptionpatch.FieldOperation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case subscriptionpatch.FieldPath:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPath(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatch field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionPatchMutation) AddedFields() []string {
+	var fields []string
+	if m.addbatch_index != nil {
+		fields = append(fields, subscriptionpatch.FieldBatchIndex)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionPatchMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionpatch.FieldBatchIndex:
+		return m.AddedBatchIndex()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionpatch.FieldBatchIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBatchIndex(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatch numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionPatchMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(subscriptionpatch.FieldDeletedAt) {
+		fields = append(fields, subscriptionpatch.FieldDeletedAt)
+	}
+	if m.FieldCleared(subscriptionpatch.FieldMetadata) {
+		fields = append(fields, subscriptionpatch.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionPatchMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionPatchMutation) ClearField(name string) error {
+	switch name {
+	case subscriptionpatch.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case subscriptionpatch.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatch nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionPatchMutation) ResetField(name string) error {
+	switch name {
+	case subscriptionpatch.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscriptionpatch.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case subscriptionpatch.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case subscriptionpatch.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case subscriptionpatch.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case subscriptionpatch.FieldSubscriptionID:
+		m.ResetSubscriptionID()
+		return nil
+	case subscriptionpatch.FieldAppliedAt:
+		m.ResetAppliedAt()
+		return nil
+	case subscriptionpatch.FieldBatchIndex:
+		m.ResetBatchIndex()
+		return nil
+	case subscriptionpatch.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case subscriptionpatch.FieldPath:
+		m.ResetPath()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatch field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionPatchMutation) AddedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.subscription != nil {
+		edges = append(edges, subscriptionpatch.EdgeSubscription)
+	}
+	if m.value_add_item != nil {
+		edges = append(edges, subscriptionpatch.EdgeValueAddItem)
+	}
+	if m.value_add_phase != nil {
+		edges = append(edges, subscriptionpatch.EdgeValueAddPhase)
+	}
+	if m.value_extend_phase != nil {
+		edges = append(edges, subscriptionpatch.EdgeValueExtendPhase)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionPatchMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscriptionpatch.EdgeSubscription:
+		if id := m.subscription; id != nil {
+			return []ent.Value{*id}
+		}
+	case subscriptionpatch.EdgeValueAddItem:
+		if id := m.value_add_item; id != nil {
+			return []ent.Value{*id}
+		}
+	case subscriptionpatch.EdgeValueAddPhase:
+		if id := m.value_add_phase; id != nil {
+			return []ent.Value{*id}
+		}
+	case subscriptionpatch.EdgeValueExtendPhase:
+		if id := m.value_extend_phase; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionPatchMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 4)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionPatchMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionPatchMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.clearedsubscription {
+		edges = append(edges, subscriptionpatch.EdgeSubscription)
+	}
+	if m.clearedvalue_add_item {
+		edges = append(edges, subscriptionpatch.EdgeValueAddItem)
+	}
+	if m.clearedvalue_add_phase {
+		edges = append(edges, subscriptionpatch.EdgeValueAddPhase)
+	}
+	if m.clearedvalue_extend_phase {
+		edges = append(edges, subscriptionpatch.EdgeValueExtendPhase)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionPatchMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscriptionpatch.EdgeSubscription:
+		return m.clearedsubscription
+	case subscriptionpatch.EdgeValueAddItem:
+		return m.clearedvalue_add_item
+	case subscriptionpatch.EdgeValueAddPhase:
+		return m.clearedvalue_add_phase
+	case subscriptionpatch.EdgeValueExtendPhase:
+		return m.clearedvalue_extend_phase
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionPatchMutation) ClearEdge(name string) error {
+	switch name {
+	case subscriptionpatch.EdgeSubscription:
+		m.ClearSubscription()
+		return nil
+	case subscriptionpatch.EdgeValueAddItem:
+		m.ClearValueAddItem()
+		return nil
+	case subscriptionpatch.EdgeValueAddPhase:
+		m.ClearValueAddPhase()
+		return nil
+	case subscriptionpatch.EdgeValueExtendPhase:
+		m.ClearValueExtendPhase()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatch unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionPatchMutation) ResetEdge(name string) error {
+	switch name {
+	case subscriptionpatch.EdgeSubscription:
+		m.ResetSubscription()
+		return nil
+	case subscriptionpatch.EdgeValueAddItem:
+		m.ResetValueAddItem()
+		return nil
+	case subscriptionpatch.EdgeValueAddPhase:
+		m.ResetValueAddPhase()
+		return nil
+	case subscriptionpatch.EdgeValueExtendPhase:
+		m.ResetValueExtendPhase()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatch edge %s", name)
+}
+
+// SubscriptionPatchValueAddItemMutation represents an operation that mutates the SubscriptionPatchValueAddItem nodes in the graph.
+type SubscriptionPatchValueAddItemMutation struct {
+	config
+	op                                               Op
+	typ                                              string
+	id                                               *string
+	namespace                                        *string
+	phase_key                                        *string
+	item_key                                         *string
+	feature_key                                      *string
+	create_entitlement_entitlement_type              *string
+	create_entitlement_measure_usage_from            *time.Time
+	create_entitlement_issue_after_reset             *float64
+	addcreate_entitlement_issue_after_reset          *float64
+	create_entitlement_issue_after_reset_priority    *uint8
+	addcreate_entitlement_issue_after_reset_priority *int8
+	create_entitlement_is_soft_limit                 *bool
+	create_entitlement_preserve_overage_at_reset     *bool
+	create_entitlement_config                        *[]uint8
+	appendcreate_entitlement_config                  []uint8
+	create_entitlement_usage_period_interval         *string
+	create_entitlement_usage_period_anchor           *time.Time
+	create_price_value                               *string
+	clearedFields                                    map[string]struct{}
+	subscription_patch                               *string
+	clearedsubscription_patch                        bool
+	done                                             bool
+	oldValue                                         func(context.Context) (*SubscriptionPatchValueAddItem, error)
+	predicates                                       []predicate.SubscriptionPatchValueAddItem
+}
+
+var _ ent.Mutation = (*SubscriptionPatchValueAddItemMutation)(nil)
+
+// subscriptionpatchvalueadditemOption allows management of the mutation configuration using functional options.
+type subscriptionpatchvalueadditemOption func(*SubscriptionPatchValueAddItemMutation)
+
+// newSubscriptionPatchValueAddItemMutation creates new mutation for the SubscriptionPatchValueAddItem entity.
+func newSubscriptionPatchValueAddItemMutation(c config, op Op, opts ...subscriptionpatchvalueadditemOption) *SubscriptionPatchValueAddItemMutation {
+	m := &SubscriptionPatchValueAddItemMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscriptionPatchValueAddItem,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionPatchValueAddItemID sets the ID field of the mutation.
+func withSubscriptionPatchValueAddItemID(id string) subscriptionpatchvalueadditemOption {
+	return func(m *SubscriptionPatchValueAddItemMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubscriptionPatchValueAddItem
+		)
+		m.oldValue = func(ctx context.Context) (*SubscriptionPatchValueAddItem, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubscriptionPatchValueAddItem.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscriptionPatchValueAddItem sets the old SubscriptionPatchValueAddItem of the mutation.
+func withSubscriptionPatchValueAddItem(node *SubscriptionPatchValueAddItem) subscriptionpatchvalueadditemOption {
+	return func(m *SubscriptionPatchValueAddItemMutation) {
+		m.oldValue = func(context.Context) (*SubscriptionPatchValueAddItem, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionPatchValueAddItemMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionPatchValueAddItemMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SubscriptionPatchValueAddItem entities.
+func (m *SubscriptionPatchValueAddItemMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionPatchValueAddItemMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SubscriptionPatchValueAddItem.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetSubscriptionPatchID sets the "subscription_patch_id" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetSubscriptionPatchID(s string) {
+	m.subscription_patch = &s
+}
+
+// SubscriptionPatchID returns the value of the "subscription_patch_id" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) SubscriptionPatchID() (r string, exists bool) {
+	v := m.subscription_patch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPatchID returns the old "subscription_patch_id" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldSubscriptionPatchID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPatchID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPatchID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPatchID: %w", err)
+	}
+	return oldValue.SubscriptionPatchID, nil
+}
+
+// ResetSubscriptionPatchID resets all changes to the "subscription_patch_id" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetSubscriptionPatchID() {
+	m.subscription_patch = nil
+}
+
+// SetPhaseKey sets the "phase_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetPhaseKey(s string) {
+	m.phase_key = &s
+}
+
+// PhaseKey returns the value of the "phase_key" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) PhaseKey() (r string, exists bool) {
+	v := m.phase_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhaseKey returns the old "phase_key" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldPhaseKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhaseKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhaseKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhaseKey: %w", err)
+	}
+	return oldValue.PhaseKey, nil
+}
+
+// ResetPhaseKey resets all changes to the "phase_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetPhaseKey() {
+	m.phase_key = nil
+}
+
+// SetItemKey sets the "item_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetItemKey(s string) {
+	m.item_key = &s
+}
+
+// ItemKey returns the value of the "item_key" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) ItemKey() (r string, exists bool) {
+	v := m.item_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldItemKey returns the old "item_key" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldItemKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldItemKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldItemKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldItemKey: %w", err)
+	}
+	return oldValue.ItemKey, nil
+}
+
+// ResetItemKey resets all changes to the "item_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetItemKey() {
+	m.item_key = nil
+}
+
+// SetFeatureKey sets the "feature_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetFeatureKey(s string) {
+	m.feature_key = &s
+}
+
+// FeatureKey returns the value of the "feature_key" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) FeatureKey() (r string, exists bool) {
+	v := m.feature_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureKey returns the old "feature_key" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldFeatureKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureKey: %w", err)
+	}
+	return oldValue.FeatureKey, nil
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearFeatureKey() {
+	m.feature_key = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldFeatureKey] = struct{}{}
+}
+
+// FeatureKeyCleared returns if the "feature_key" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) FeatureKeyCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldFeatureKey]
+	return ok
+}
+
+// ResetFeatureKey resets all changes to the "feature_key" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetFeatureKey() {
+	m.feature_key = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldFeatureKey)
+}
+
+// SetCreateEntitlementEntitlementType sets the "create_entitlement_entitlement_type" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementEntitlementType(s string) {
+	m.create_entitlement_entitlement_type = &s
+}
+
+// CreateEntitlementEntitlementType returns the value of the "create_entitlement_entitlement_type" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementEntitlementType() (r string, exists bool) {
+	v := m.create_entitlement_entitlement_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementEntitlementType returns the old "create_entitlement_entitlement_type" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementEntitlementType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementEntitlementType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementEntitlementType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementEntitlementType: %w", err)
+	}
+	return oldValue.CreateEntitlementEntitlementType, nil
+}
+
+// ClearCreateEntitlementEntitlementType clears the value of the "create_entitlement_entitlement_type" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementEntitlementType() {
+	m.create_entitlement_entitlement_type = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType] = struct{}{}
+}
+
+// CreateEntitlementEntitlementTypeCleared returns if the "create_entitlement_entitlement_type" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementEntitlementTypeCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType]
+	return ok
+}
+
+// ResetCreateEntitlementEntitlementType resets all changes to the "create_entitlement_entitlement_type" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementEntitlementType() {
+	m.create_entitlement_entitlement_type = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType)
+}
+
+// SetCreateEntitlementMeasureUsageFrom sets the "create_entitlement_measure_usage_from" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementMeasureUsageFrom(t time.Time) {
+	m.create_entitlement_measure_usage_from = &t
+}
+
+// CreateEntitlementMeasureUsageFrom returns the value of the "create_entitlement_measure_usage_from" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementMeasureUsageFrom() (r time.Time, exists bool) {
+	v := m.create_entitlement_measure_usage_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementMeasureUsageFrom returns the old "create_entitlement_measure_usage_from" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementMeasureUsageFrom(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementMeasureUsageFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementMeasureUsageFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementMeasureUsageFrom: %w", err)
+	}
+	return oldValue.CreateEntitlementMeasureUsageFrom, nil
+}
+
+// ClearCreateEntitlementMeasureUsageFrom clears the value of the "create_entitlement_measure_usage_from" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementMeasureUsageFrom() {
+	m.create_entitlement_measure_usage_from = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom] = struct{}{}
+}
+
+// CreateEntitlementMeasureUsageFromCleared returns if the "create_entitlement_measure_usage_from" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementMeasureUsageFromCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom]
+	return ok
+}
+
+// ResetCreateEntitlementMeasureUsageFrom resets all changes to the "create_entitlement_measure_usage_from" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementMeasureUsageFrom() {
+	m.create_entitlement_measure_usage_from = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom)
+}
+
+// SetCreateEntitlementIssueAfterReset sets the "create_entitlement_issue_after_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementIssueAfterReset(f float64) {
+	m.create_entitlement_issue_after_reset = &f
+	m.addcreate_entitlement_issue_after_reset = nil
+}
+
+// CreateEntitlementIssueAfterReset returns the value of the "create_entitlement_issue_after_reset" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementIssueAfterReset() (r float64, exists bool) {
+	v := m.create_entitlement_issue_after_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementIssueAfterReset returns the old "create_entitlement_issue_after_reset" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementIssueAfterReset(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementIssueAfterReset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementIssueAfterReset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementIssueAfterReset: %w", err)
+	}
+	return oldValue.CreateEntitlementIssueAfterReset, nil
+}
+
+// AddCreateEntitlementIssueAfterReset adds f to the "create_entitlement_issue_after_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) AddCreateEntitlementIssueAfterReset(f float64) {
+	if m.addcreate_entitlement_issue_after_reset != nil {
+		*m.addcreate_entitlement_issue_after_reset += f
+	} else {
+		m.addcreate_entitlement_issue_after_reset = &f
+	}
+}
+
+// AddedCreateEntitlementIssueAfterReset returns the value that was added to the "create_entitlement_issue_after_reset" field in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) AddedCreateEntitlementIssueAfterReset() (r float64, exists bool) {
+	v := m.addcreate_entitlement_issue_after_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCreateEntitlementIssueAfterReset clears the value of the "create_entitlement_issue_after_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementIssueAfterReset() {
+	m.create_entitlement_issue_after_reset = nil
+	m.addcreate_entitlement_issue_after_reset = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset] = struct{}{}
+}
+
+// CreateEntitlementIssueAfterResetCleared returns if the "create_entitlement_issue_after_reset" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementIssueAfterResetCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset]
+	return ok
+}
+
+// ResetCreateEntitlementIssueAfterReset resets all changes to the "create_entitlement_issue_after_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementIssueAfterReset() {
+	m.create_entitlement_issue_after_reset = nil
+	m.addcreate_entitlement_issue_after_reset = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset)
+}
+
+// SetCreateEntitlementIssueAfterResetPriority sets the "create_entitlement_issue_after_reset_priority" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementIssueAfterResetPriority(u uint8) {
+	m.create_entitlement_issue_after_reset_priority = &u
+	m.addcreate_entitlement_issue_after_reset_priority = nil
+}
+
+// CreateEntitlementIssueAfterResetPriority returns the value of the "create_entitlement_issue_after_reset_priority" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementIssueAfterResetPriority() (r uint8, exists bool) {
+	v := m.create_entitlement_issue_after_reset_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementIssueAfterResetPriority returns the old "create_entitlement_issue_after_reset_priority" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementIssueAfterResetPriority(ctx context.Context) (v *uint8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementIssueAfterResetPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementIssueAfterResetPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementIssueAfterResetPriority: %w", err)
+	}
+	return oldValue.CreateEntitlementIssueAfterResetPriority, nil
+}
+
+// AddCreateEntitlementIssueAfterResetPriority adds u to the "create_entitlement_issue_after_reset_priority" field.
+func (m *SubscriptionPatchValueAddItemMutation) AddCreateEntitlementIssueAfterResetPriority(u int8) {
+	if m.addcreate_entitlement_issue_after_reset_priority != nil {
+		*m.addcreate_entitlement_issue_after_reset_priority += u
+	} else {
+		m.addcreate_entitlement_issue_after_reset_priority = &u
+	}
+}
+
+// AddedCreateEntitlementIssueAfterResetPriority returns the value that was added to the "create_entitlement_issue_after_reset_priority" field in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) AddedCreateEntitlementIssueAfterResetPriority() (r int8, exists bool) {
+	v := m.addcreate_entitlement_issue_after_reset_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCreateEntitlementIssueAfterResetPriority clears the value of the "create_entitlement_issue_after_reset_priority" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementIssueAfterResetPriority() {
+	m.create_entitlement_issue_after_reset_priority = nil
+	m.addcreate_entitlement_issue_after_reset_priority = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority] = struct{}{}
+}
+
+// CreateEntitlementIssueAfterResetPriorityCleared returns if the "create_entitlement_issue_after_reset_priority" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementIssueAfterResetPriorityCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority]
+	return ok
+}
+
+// ResetCreateEntitlementIssueAfterResetPriority resets all changes to the "create_entitlement_issue_after_reset_priority" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementIssueAfterResetPriority() {
+	m.create_entitlement_issue_after_reset_priority = nil
+	m.addcreate_entitlement_issue_after_reset_priority = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority)
+}
+
+// SetCreateEntitlementIsSoftLimit sets the "create_entitlement_is_soft_limit" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementIsSoftLimit(b bool) {
+	m.create_entitlement_is_soft_limit = &b
+}
+
+// CreateEntitlementIsSoftLimit returns the value of the "create_entitlement_is_soft_limit" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementIsSoftLimit() (r bool, exists bool) {
+	v := m.create_entitlement_is_soft_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementIsSoftLimit returns the old "create_entitlement_is_soft_limit" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementIsSoftLimit(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementIsSoftLimit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementIsSoftLimit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementIsSoftLimit: %w", err)
+	}
+	return oldValue.CreateEntitlementIsSoftLimit, nil
+}
+
+// ClearCreateEntitlementIsSoftLimit clears the value of the "create_entitlement_is_soft_limit" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementIsSoftLimit() {
+	m.create_entitlement_is_soft_limit = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit] = struct{}{}
+}
+
+// CreateEntitlementIsSoftLimitCleared returns if the "create_entitlement_is_soft_limit" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementIsSoftLimitCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit]
+	return ok
+}
+
+// ResetCreateEntitlementIsSoftLimit resets all changes to the "create_entitlement_is_soft_limit" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementIsSoftLimit() {
+	m.create_entitlement_is_soft_limit = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit)
+}
+
+// SetCreateEntitlementPreserveOverageAtReset sets the "create_entitlement_preserve_overage_at_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementPreserveOverageAtReset(b bool) {
+	m.create_entitlement_preserve_overage_at_reset = &b
+}
+
+// CreateEntitlementPreserveOverageAtReset returns the value of the "create_entitlement_preserve_overage_at_reset" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementPreserveOverageAtReset() (r bool, exists bool) {
+	v := m.create_entitlement_preserve_overage_at_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementPreserveOverageAtReset returns the old "create_entitlement_preserve_overage_at_reset" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementPreserveOverageAtReset(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementPreserveOverageAtReset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementPreserveOverageAtReset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementPreserveOverageAtReset: %w", err)
+	}
+	return oldValue.CreateEntitlementPreserveOverageAtReset, nil
+}
+
+// ClearCreateEntitlementPreserveOverageAtReset clears the value of the "create_entitlement_preserve_overage_at_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementPreserveOverageAtReset() {
+	m.create_entitlement_preserve_overage_at_reset = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset] = struct{}{}
+}
+
+// CreateEntitlementPreserveOverageAtResetCleared returns if the "create_entitlement_preserve_overage_at_reset" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementPreserveOverageAtResetCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset]
+	return ok
+}
+
+// ResetCreateEntitlementPreserveOverageAtReset resets all changes to the "create_entitlement_preserve_overage_at_reset" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementPreserveOverageAtReset() {
+	m.create_entitlement_preserve_overage_at_reset = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset)
+}
+
+// SetCreateEntitlementConfig sets the "create_entitlement_config" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementConfig(u []uint8) {
+	m.create_entitlement_config = &u
+	m.appendcreate_entitlement_config = nil
+}
+
+// CreateEntitlementConfig returns the value of the "create_entitlement_config" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementConfig() (r []uint8, exists bool) {
+	v := m.create_entitlement_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementConfig returns the old "create_entitlement_config" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementConfig(ctx context.Context) (v []uint8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementConfig: %w", err)
+	}
+	return oldValue.CreateEntitlementConfig, nil
+}
+
+// AppendCreateEntitlementConfig adds u to the "create_entitlement_config" field.
+func (m *SubscriptionPatchValueAddItemMutation) AppendCreateEntitlementConfig(u []uint8) {
+	m.appendcreate_entitlement_config = append(m.appendcreate_entitlement_config, u...)
+}
+
+// AppendedCreateEntitlementConfig returns the list of values that were appended to the "create_entitlement_config" field in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) AppendedCreateEntitlementConfig() ([]uint8, bool) {
+	if len(m.appendcreate_entitlement_config) == 0 {
+		return nil, false
+	}
+	return m.appendcreate_entitlement_config, true
+}
+
+// ClearCreateEntitlementConfig clears the value of the "create_entitlement_config" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementConfig() {
+	m.create_entitlement_config = nil
+	m.appendcreate_entitlement_config = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementConfig] = struct{}{}
+}
+
+// CreateEntitlementConfigCleared returns if the "create_entitlement_config" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementConfigCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementConfig]
+	return ok
+}
+
+// ResetCreateEntitlementConfig resets all changes to the "create_entitlement_config" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementConfig() {
+	m.create_entitlement_config = nil
+	m.appendcreate_entitlement_config = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementConfig)
+}
+
+// SetCreateEntitlementUsagePeriodInterval sets the "create_entitlement_usage_period_interval" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementUsagePeriodInterval(s string) {
+	m.create_entitlement_usage_period_interval = &s
+}
+
+// CreateEntitlementUsagePeriodInterval returns the value of the "create_entitlement_usage_period_interval" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementUsagePeriodInterval() (r string, exists bool) {
+	v := m.create_entitlement_usage_period_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementUsagePeriodInterval returns the old "create_entitlement_usage_period_interval" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementUsagePeriodInterval(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementUsagePeriodInterval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementUsagePeriodInterval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementUsagePeriodInterval: %w", err)
+	}
+	return oldValue.CreateEntitlementUsagePeriodInterval, nil
+}
+
+// ClearCreateEntitlementUsagePeriodInterval clears the value of the "create_entitlement_usage_period_interval" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementUsagePeriodInterval() {
+	m.create_entitlement_usage_period_interval = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval] = struct{}{}
+}
+
+// CreateEntitlementUsagePeriodIntervalCleared returns if the "create_entitlement_usage_period_interval" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementUsagePeriodIntervalCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval]
+	return ok
+}
+
+// ResetCreateEntitlementUsagePeriodInterval resets all changes to the "create_entitlement_usage_period_interval" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementUsagePeriodInterval() {
+	m.create_entitlement_usage_period_interval = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval)
+}
+
+// SetCreateEntitlementUsagePeriodAnchor sets the "create_entitlement_usage_period_anchor" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreateEntitlementUsagePeriodAnchor(t time.Time) {
+	m.create_entitlement_usage_period_anchor = &t
+}
+
+// CreateEntitlementUsagePeriodAnchor returns the value of the "create_entitlement_usage_period_anchor" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementUsagePeriodAnchor() (r time.Time, exists bool) {
+	v := m.create_entitlement_usage_period_anchor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateEntitlementUsagePeriodAnchor returns the old "create_entitlement_usage_period_anchor" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreateEntitlementUsagePeriodAnchor(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateEntitlementUsagePeriodAnchor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateEntitlementUsagePeriodAnchor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateEntitlementUsagePeriodAnchor: %w", err)
+	}
+	return oldValue.CreateEntitlementUsagePeriodAnchor, nil
+}
+
+// ClearCreateEntitlementUsagePeriodAnchor clears the value of the "create_entitlement_usage_period_anchor" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreateEntitlementUsagePeriodAnchor() {
+	m.create_entitlement_usage_period_anchor = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor] = struct{}{}
+}
+
+// CreateEntitlementUsagePeriodAnchorCleared returns if the "create_entitlement_usage_period_anchor" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreateEntitlementUsagePeriodAnchorCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor]
+	return ok
+}
+
+// ResetCreateEntitlementUsagePeriodAnchor resets all changes to the "create_entitlement_usage_period_anchor" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreateEntitlementUsagePeriodAnchor() {
+	m.create_entitlement_usage_period_anchor = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor)
+}
+
+// SetCreatePriceValue sets the "create_price_value" field.
+func (m *SubscriptionPatchValueAddItemMutation) SetCreatePriceValue(s string) {
+	m.create_price_value = &s
+}
+
+// CreatePriceValue returns the value of the "create_price_value" field in the mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreatePriceValue() (r string, exists bool) {
+	v := m.create_price_value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatePriceValue returns the old "create_price_value" field's value of the SubscriptionPatchValueAddItem entity.
+// If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddItemMutation) OldCreatePriceValue(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatePriceValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatePriceValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatePriceValue: %w", err)
+	}
+	return oldValue.CreatePriceValue, nil
+}
+
+// ClearCreatePriceValue clears the value of the "create_price_value" field.
+func (m *SubscriptionPatchValueAddItemMutation) ClearCreatePriceValue() {
+	m.create_price_value = nil
+	m.clearedFields[subscriptionpatchvalueadditem.FieldCreatePriceValue] = struct{}{}
+}
+
+// CreatePriceValueCleared returns if the "create_price_value" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) CreatePriceValueCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueadditem.FieldCreatePriceValue]
+	return ok
+}
+
+// ResetCreatePriceValue resets all changes to the "create_price_value" field.
+func (m *SubscriptionPatchValueAddItemMutation) ResetCreatePriceValue() {
+	m.create_price_value = nil
+	delete(m.clearedFields, subscriptionpatchvalueadditem.FieldCreatePriceValue)
+}
+
+// ClearSubscriptionPatch clears the "subscription_patch" edge to the SubscriptionPatch entity.
+func (m *SubscriptionPatchValueAddItemMutation) ClearSubscriptionPatch() {
+	m.clearedsubscription_patch = true
+	m.clearedFields[subscriptionpatchvalueadditem.FieldSubscriptionPatchID] = struct{}{}
+}
+
+// SubscriptionPatchCleared reports if the "subscription_patch" edge to the SubscriptionPatch entity was cleared.
+func (m *SubscriptionPatchValueAddItemMutation) SubscriptionPatchCleared() bool {
+	return m.clearedsubscription_patch
+}
+
+// SubscriptionPatchIDs returns the "subscription_patch" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionPatchID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchValueAddItemMutation) SubscriptionPatchIDs() (ids []string) {
+	if id := m.subscription_patch; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscriptionPatch resets all changes to the "subscription_patch" edge.
+func (m *SubscriptionPatchValueAddItemMutation) ResetSubscriptionPatch() {
+	m.subscription_patch = nil
+	m.clearedsubscription_patch = false
+}
+
+// Where appends a list predicates to the SubscriptionPatchValueAddItemMutation builder.
+func (m *SubscriptionPatchValueAddItemMutation) Where(ps ...predicate.SubscriptionPatchValueAddItem) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionPatchValueAddItemMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionPatchValueAddItemMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SubscriptionPatchValueAddItem, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionPatchValueAddItemMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionPatchValueAddItemMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SubscriptionPatchValueAddItem).
+func (m *SubscriptionPatchValueAddItemMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionPatchValueAddItemMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.namespace != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldNamespace)
+	}
+	if m.subscription_patch != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldSubscriptionPatchID)
+	}
+	if m.phase_key != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldPhaseKey)
+	}
+	if m.item_key != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldItemKey)
+	}
+	if m.feature_key != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldFeatureKey)
+	}
+	if m.create_entitlement_entitlement_type != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType)
+	}
+	if m.create_entitlement_measure_usage_from != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom)
+	}
+	if m.create_entitlement_issue_after_reset != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset)
+	}
+	if m.create_entitlement_issue_after_reset_priority != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority)
+	}
+	if m.create_entitlement_is_soft_limit != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit)
+	}
+	if m.create_entitlement_preserve_overage_at_reset != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset)
+	}
+	if m.create_entitlement_config != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementConfig)
+	}
+	if m.create_entitlement_usage_period_interval != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval)
+	}
+	if m.create_entitlement_usage_period_anchor != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor)
+	}
+	if m.create_price_value != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreatePriceValue)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionPatchValueAddItemMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldNamespace:
+		return m.Namespace()
+	case subscriptionpatchvalueadditem.FieldSubscriptionPatchID:
+		return m.SubscriptionPatchID()
+	case subscriptionpatchvalueadditem.FieldPhaseKey:
+		return m.PhaseKey()
+	case subscriptionpatchvalueadditem.FieldItemKey:
+		return m.ItemKey()
+	case subscriptionpatchvalueadditem.FieldFeatureKey:
+		return m.FeatureKey()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType:
+		return m.CreateEntitlementEntitlementType()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom:
+		return m.CreateEntitlementMeasureUsageFrom()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		return m.CreateEntitlementIssueAfterReset()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		return m.CreateEntitlementIssueAfterResetPriority()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit:
+		return m.CreateEntitlementIsSoftLimit()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset:
+		return m.CreateEntitlementPreserveOverageAtReset()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementConfig:
+		return m.CreateEntitlementConfig()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval:
+		return m.CreateEntitlementUsagePeriodInterval()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
+		return m.CreateEntitlementUsagePeriodAnchor()
+	case subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		return m.CreatePriceValue()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionPatchValueAddItemMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscriptionpatchvalueadditem.FieldSubscriptionPatchID:
+		return m.OldSubscriptionPatchID(ctx)
+	case subscriptionpatchvalueadditem.FieldPhaseKey:
+		return m.OldPhaseKey(ctx)
+	case subscriptionpatchvalueadditem.FieldItemKey:
+		return m.OldItemKey(ctx)
+	case subscriptionpatchvalueadditem.FieldFeatureKey:
+		return m.OldFeatureKey(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType:
+		return m.OldCreateEntitlementEntitlementType(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom:
+		return m.OldCreateEntitlementMeasureUsageFrom(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		return m.OldCreateEntitlementIssueAfterReset(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		return m.OldCreateEntitlementIssueAfterResetPriority(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit:
+		return m.OldCreateEntitlementIsSoftLimit(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset:
+		return m.OldCreateEntitlementPreserveOverageAtReset(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementConfig:
+		return m.OldCreateEntitlementConfig(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval:
+		return m.OldCreateEntitlementUsagePeriodInterval(ctx)
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
+		return m.OldCreateEntitlementUsagePeriodAnchor(ctx)
+	case subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		return m.OldCreatePriceValue(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubscriptionPatchValueAddItem field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchValueAddItemMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldSubscriptionPatchID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPatchID(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldPhaseKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhaseKey(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldItemKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetItemKey(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldFeatureKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureKey(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementEntitlementType(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementMeasureUsageFrom(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementIssueAfterReset(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		v, ok := value.(uint8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementIssueAfterResetPriority(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementIsSoftLimit(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementPreserveOverageAtReset(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementConfig:
+		v, ok := value.([]uint8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementConfig(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementUsagePeriodInterval(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateEntitlementUsagePeriodAnchor(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatePriceValue(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddItem field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) AddedFields() []string {
+	var fields []string
+	if m.addcreate_entitlement_issue_after_reset != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset)
+	}
+	if m.addcreate_entitlement_issue_after_reset_priority != nil {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionPatchValueAddItemMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		return m.AddedCreateEntitlementIssueAfterReset()
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		return m.AddedCreateEntitlementIssueAfterResetPriority()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchValueAddItemMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreateEntitlementIssueAfterReset(v)
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreateEntitlementIssueAfterResetPriority(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddItem numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionPatchValueAddItemMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldFeatureKey) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldFeatureKey)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementConfig) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementConfig)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor)
+	}
+	if m.FieldCleared(subscriptionpatchvalueadditem.FieldCreatePriceValue) {
+		fields = append(fields, subscriptionpatchvalueadditem.FieldCreatePriceValue)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionPatchValueAddItemMutation) ClearField(name string) error {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldFeatureKey:
+		m.ClearFeatureKey()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType:
+		m.ClearCreateEntitlementEntitlementType()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom:
+		m.ClearCreateEntitlementMeasureUsageFrom()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		m.ClearCreateEntitlementIssueAfterReset()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		m.ClearCreateEntitlementIssueAfterResetPriority()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit:
+		m.ClearCreateEntitlementIsSoftLimit()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset:
+		m.ClearCreateEntitlementPreserveOverageAtReset()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementConfig:
+		m.ClearCreateEntitlementConfig()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval:
+		m.ClearCreateEntitlementUsagePeriodInterval()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
+		m.ClearCreateEntitlementUsagePeriodAnchor()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		m.ClearCreatePriceValue()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddItem nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionPatchValueAddItemMutation) ResetField(name string) error {
+	switch name {
+	case subscriptionpatchvalueadditem.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscriptionpatchvalueadditem.FieldSubscriptionPatchID:
+		m.ResetSubscriptionPatchID()
+		return nil
+	case subscriptionpatchvalueadditem.FieldPhaseKey:
+		m.ResetPhaseKey()
+		return nil
+	case subscriptionpatchvalueadditem.FieldItemKey:
+		m.ResetItemKey()
+		return nil
+	case subscriptionpatchvalueadditem.FieldFeatureKey:
+		m.ResetFeatureKey()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType:
+		m.ResetCreateEntitlementEntitlementType()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom:
+		m.ResetCreateEntitlementMeasureUsageFrom()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
+		m.ResetCreateEntitlementIssueAfterReset()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
+		m.ResetCreateEntitlementIssueAfterResetPriority()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementIsSoftLimit:
+		m.ResetCreateEntitlementIsSoftLimit()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset:
+		m.ResetCreateEntitlementPreserveOverageAtReset()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementConfig:
+		m.ResetCreateEntitlementConfig()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval:
+		m.ResetCreateEntitlementUsagePeriodInterval()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
+		m.ResetCreateEntitlementUsagePeriodAnchor()
+		return nil
+	case subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		m.ResetCreatePriceValue()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddItem field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.subscription_patch != nil {
+		edges = append(edges, subscriptionpatchvalueadditem.EdgeSubscriptionPatch)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscriptionpatchvalueadditem.EdgeSubscriptionPatch:
+		if id := m.subscription_patch; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsubscription_patch {
+		edges = append(edges, subscriptionpatchvalueadditem.EdgeSubscriptionPatch)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionPatchValueAddItemMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscriptionpatchvalueadditem.EdgeSubscriptionPatch:
+		return m.clearedsubscription_patch
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionPatchValueAddItemMutation) ClearEdge(name string) error {
+	switch name {
+	case subscriptionpatchvalueadditem.EdgeSubscriptionPatch:
+		m.ClearSubscriptionPatch()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddItem unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionPatchValueAddItemMutation) ResetEdge(name string) error {
+	switch name {
+	case subscriptionpatchvalueadditem.EdgeSubscriptionPatch:
+		m.ResetSubscriptionPatch()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddItem edge %s", name)
+}
+
+// SubscriptionPatchValueAddPhaseMutation represents an operation that mutates the SubscriptionPatchValueAddPhase nodes in the graph.
+type SubscriptionPatchValueAddPhaseMutation struct {
+	config
+	op                               Op
+	typ                              string
+	id                               *string
+	namespace                        *string
+	phase_key                        *string
+	start_after_iso                  *string
+	create_discount                  *bool
+	create_discount_applies_to       *[]string
+	appendcreate_discount_applies_to []string
+	clearedFields                    map[string]struct{}
+	subscription_patch               *string
+	clearedsubscription_patch        bool
+	done                             bool
+	oldValue                         func(context.Context) (*SubscriptionPatchValueAddPhase, error)
+	predicates                       []predicate.SubscriptionPatchValueAddPhase
+}
+
+var _ ent.Mutation = (*SubscriptionPatchValueAddPhaseMutation)(nil)
+
+// subscriptionpatchvalueaddphaseOption allows management of the mutation configuration using functional options.
+type subscriptionpatchvalueaddphaseOption func(*SubscriptionPatchValueAddPhaseMutation)
+
+// newSubscriptionPatchValueAddPhaseMutation creates new mutation for the SubscriptionPatchValueAddPhase entity.
+func newSubscriptionPatchValueAddPhaseMutation(c config, op Op, opts ...subscriptionpatchvalueaddphaseOption) *SubscriptionPatchValueAddPhaseMutation {
+	m := &SubscriptionPatchValueAddPhaseMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscriptionPatchValueAddPhase,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionPatchValueAddPhaseID sets the ID field of the mutation.
+func withSubscriptionPatchValueAddPhaseID(id string) subscriptionpatchvalueaddphaseOption {
+	return func(m *SubscriptionPatchValueAddPhaseMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubscriptionPatchValueAddPhase
+		)
+		m.oldValue = func(ctx context.Context) (*SubscriptionPatchValueAddPhase, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubscriptionPatchValueAddPhase.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscriptionPatchValueAddPhase sets the old SubscriptionPatchValueAddPhase of the mutation.
+func withSubscriptionPatchValueAddPhase(node *SubscriptionPatchValueAddPhase) subscriptionpatchvalueaddphaseOption {
+	return func(m *SubscriptionPatchValueAddPhaseMutation) {
+		m.oldValue = func(context.Context) (*SubscriptionPatchValueAddPhase, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionPatchValueAddPhaseMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionPatchValueAddPhaseMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SubscriptionPatchValueAddPhase entities.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionPatchValueAddPhaseMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SubscriptionPatchValueAddPhase.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionPatchValueAddPhase entity.
+// If the SubscriptionPatchValueAddPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetSubscriptionPatchID sets the "subscription_patch_id" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetSubscriptionPatchID(s string) {
+	m.subscription_patch = &s
+}
+
+// SubscriptionPatchID returns the value of the "subscription_patch_id" field in the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) SubscriptionPatchID() (r string, exists bool) {
+	v := m.subscription_patch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPatchID returns the old "subscription_patch_id" field's value of the SubscriptionPatchValueAddPhase entity.
+// If the SubscriptionPatchValueAddPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldSubscriptionPatchID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPatchID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPatchID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPatchID: %w", err)
+	}
+	return oldValue.SubscriptionPatchID, nil
+}
+
+// ResetSubscriptionPatchID resets all changes to the "subscription_patch_id" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetSubscriptionPatchID() {
+	m.subscription_patch = nil
+}
+
+// SetPhaseKey sets the "phase_key" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetPhaseKey(s string) {
+	m.phase_key = &s
+}
+
+// PhaseKey returns the value of the "phase_key" field in the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) PhaseKey() (r string, exists bool) {
+	v := m.phase_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhaseKey returns the old "phase_key" field's value of the SubscriptionPatchValueAddPhase entity.
+// If the SubscriptionPatchValueAddPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldPhaseKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhaseKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhaseKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhaseKey: %w", err)
+	}
+	return oldValue.PhaseKey, nil
+}
+
+// ResetPhaseKey resets all changes to the "phase_key" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetPhaseKey() {
+	m.phase_key = nil
+}
+
+// SetStartAfterIso sets the "start_after_iso" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetStartAfterIso(s string) {
+	m.start_after_iso = &s
+}
+
+// StartAfterIso returns the value of the "start_after_iso" field in the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) StartAfterIso() (r string, exists bool) {
+	v := m.start_after_iso
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartAfterIso returns the old "start_after_iso" field's value of the SubscriptionPatchValueAddPhase entity.
+// If the SubscriptionPatchValueAddPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldStartAfterIso(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartAfterIso is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartAfterIso requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartAfterIso: %w", err)
+	}
+	return oldValue.StartAfterIso, nil
+}
+
+// ResetStartAfterIso resets all changes to the "start_after_iso" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetStartAfterIso() {
+	m.start_after_iso = nil
+}
+
+// SetCreateDiscount sets the "create_discount" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetCreateDiscount(b bool) {
+	m.create_discount = &b
+}
+
+// CreateDiscount returns the value of the "create_discount" field in the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) CreateDiscount() (r bool, exists bool) {
+	v := m.create_discount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateDiscount returns the old "create_discount" field's value of the SubscriptionPatchValueAddPhase entity.
+// If the SubscriptionPatchValueAddPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldCreateDiscount(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateDiscount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateDiscount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateDiscount: %w", err)
+	}
+	return oldValue.CreateDiscount, nil
+}
+
+// ResetCreateDiscount resets all changes to the "create_discount" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetCreateDiscount() {
+	m.create_discount = nil
+}
+
+// SetCreateDiscountAppliesTo sets the "create_discount_applies_to" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetCreateDiscountAppliesTo(s []string) {
+	m.create_discount_applies_to = &s
+	m.appendcreate_discount_applies_to = nil
+}
+
+// CreateDiscountAppliesTo returns the value of the "create_discount_applies_to" field in the mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) CreateDiscountAppliesTo() (r []string, exists bool) {
+	v := m.create_discount_applies_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateDiscountAppliesTo returns the old "create_discount_applies_to" field's value of the SubscriptionPatchValueAddPhase entity.
+// If the SubscriptionPatchValueAddPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldCreateDiscountAppliesTo(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateDiscountAppliesTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateDiscountAppliesTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateDiscountAppliesTo: %w", err)
+	}
+	return oldValue.CreateDiscountAppliesTo, nil
+}
+
+// AppendCreateDiscountAppliesTo adds s to the "create_discount_applies_to" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) AppendCreateDiscountAppliesTo(s []string) {
+	m.appendcreate_discount_applies_to = append(m.appendcreate_discount_applies_to, s...)
+}
+
+// AppendedCreateDiscountAppliesTo returns the list of values that were appended to the "create_discount_applies_to" field in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) AppendedCreateDiscountAppliesTo() ([]string, bool) {
+	if len(m.appendcreate_discount_applies_to) == 0 {
+		return nil, false
+	}
+	return m.appendcreate_discount_applies_to, true
+}
+
+// ClearCreateDiscountAppliesTo clears the value of the "create_discount_applies_to" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearCreateDiscountAppliesTo() {
+	m.create_discount_applies_to = nil
+	m.appendcreate_discount_applies_to = nil
+	m.clearedFields[subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo] = struct{}{}
+}
+
+// CreateDiscountAppliesToCleared returns if the "create_discount_applies_to" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) CreateDiscountAppliesToCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo]
+	return ok
+}
+
+// ResetCreateDiscountAppliesTo resets all changes to the "create_discount_applies_to" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetCreateDiscountAppliesTo() {
+	m.create_discount_applies_to = nil
+	m.appendcreate_discount_applies_to = nil
+	delete(m.clearedFields, subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo)
+}
+
+// ClearSubscriptionPatch clears the "subscription_patch" edge to the SubscriptionPatch entity.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearSubscriptionPatch() {
+	m.clearedsubscription_patch = true
+	m.clearedFields[subscriptionpatchvalueaddphase.FieldSubscriptionPatchID] = struct{}{}
+}
+
+// SubscriptionPatchCleared reports if the "subscription_patch" edge to the SubscriptionPatch entity was cleared.
+func (m *SubscriptionPatchValueAddPhaseMutation) SubscriptionPatchCleared() bool {
+	return m.clearedsubscription_patch
+}
+
+// SubscriptionPatchIDs returns the "subscription_patch" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionPatchID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchValueAddPhaseMutation) SubscriptionPatchIDs() (ids []string) {
+	if id := m.subscription_patch; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscriptionPatch resets all changes to the "subscription_patch" edge.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetSubscriptionPatch() {
+	m.subscription_patch = nil
+	m.clearedsubscription_patch = false
+}
+
+// Where appends a list predicates to the SubscriptionPatchValueAddPhaseMutation builder.
+func (m *SubscriptionPatchValueAddPhaseMutation) Where(ps ...predicate.SubscriptionPatchValueAddPhase) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionPatchValueAddPhaseMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionPatchValueAddPhaseMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SubscriptionPatchValueAddPhase, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionPatchValueAddPhaseMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SubscriptionPatchValueAddPhase).
+func (m *SubscriptionPatchValueAddPhaseMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionPatchValueAddPhaseMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.namespace != nil {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldNamespace)
+	}
+	if m.subscription_patch != nil {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldSubscriptionPatchID)
+	}
+	if m.phase_key != nil {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldPhaseKey)
+	}
+	if m.start_after_iso != nil {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldStartAfterIso)
+	}
+	if m.create_discount != nil {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldCreateDiscount)
+	}
+	if m.create_discount_applies_to != nil {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionPatchValueAddPhaseMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionpatchvalueaddphase.FieldNamespace:
+		return m.Namespace()
+	case subscriptionpatchvalueaddphase.FieldSubscriptionPatchID:
+		return m.SubscriptionPatchID()
+	case subscriptionpatchvalueaddphase.FieldPhaseKey:
+		return m.PhaseKey()
+	case subscriptionpatchvalueaddphase.FieldStartAfterIso:
+		return m.StartAfterIso()
+	case subscriptionpatchvalueaddphase.FieldCreateDiscount:
+		return m.CreateDiscount()
+	case subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo:
+		return m.CreateDiscountAppliesTo()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionPatchValueAddPhaseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscriptionpatchvalueaddphase.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscriptionpatchvalueaddphase.FieldSubscriptionPatchID:
+		return m.OldSubscriptionPatchID(ctx)
+	case subscriptionpatchvalueaddphase.FieldPhaseKey:
+		return m.OldPhaseKey(ctx)
+	case subscriptionpatchvalueaddphase.FieldStartAfterIso:
+		return m.OldStartAfterIso(ctx)
+	case subscriptionpatchvalueaddphase.FieldCreateDiscount:
+		return m.OldCreateDiscount(ctx)
+	case subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo:
+		return m.OldCreateDiscountAppliesTo(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubscriptionPatchValueAddPhase field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchValueAddPhaseMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionpatchvalueaddphase.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscriptionpatchvalueaddphase.FieldSubscriptionPatchID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPatchID(v)
+		return nil
+	case subscriptionpatchvalueaddphase.FieldPhaseKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhaseKey(v)
+		return nil
+	case subscriptionpatchvalueaddphase.FieldStartAfterIso:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartAfterIso(v)
+		return nil
+	case subscriptionpatchvalueaddphase.FieldCreateDiscount:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateDiscount(v)
+		return nil
+	case subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateDiscountAppliesTo(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionPatchValueAddPhaseMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchValueAddPhaseMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo) {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearField(name string) error {
+	switch name {
+	case subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo:
+		m.ClearCreateDiscountAppliesTo()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetField(name string) error {
+	switch name {
+	case subscriptionpatchvalueaddphase.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscriptionpatchvalueaddphase.FieldSubscriptionPatchID:
+		m.ResetSubscriptionPatchID()
+		return nil
+	case subscriptionpatchvalueaddphase.FieldPhaseKey:
+		m.ResetPhaseKey()
+		return nil
+	case subscriptionpatchvalueaddphase.FieldStartAfterIso:
+		m.ResetStartAfterIso()
+		return nil
+	case subscriptionpatchvalueaddphase.FieldCreateDiscount:
+		m.ResetCreateDiscount()
+		return nil
+	case subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo:
+		m.ResetCreateDiscountAppliesTo()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.subscription_patch != nil {
+		edges = append(edges, subscriptionpatchvalueaddphase.EdgeSubscriptionPatch)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscriptionpatchvalueaddphase.EdgeSubscriptionPatch:
+		if id := m.subscription_patch; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsubscription_patch {
+		edges = append(edges, subscriptionpatchvalueaddphase.EdgeSubscriptionPatch)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscriptionpatchvalueaddphase.EdgeSubscriptionPatch:
+		return m.clearedsubscription_patch
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearEdge(name string) error {
+	switch name {
+	case subscriptionpatchvalueaddphase.EdgeSubscriptionPatch:
+		m.ClearSubscriptionPatch()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionPatchValueAddPhaseMutation) ResetEdge(name string) error {
+	switch name {
+	case subscriptionpatchvalueaddphase.EdgeSubscriptionPatch:
+		m.ResetSubscriptionPatch()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase edge %s", name)
+}
+
+// SubscriptionPatchValueExtendPhaseMutation represents an operation that mutates the SubscriptionPatchValueExtendPhase nodes in the graph.
+type SubscriptionPatchValueExtendPhaseMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	phase_key                 *string
+	extend_duration_iso       *string
+	clearedFields             map[string]struct{}
+	subscription_patch        *string
+	clearedsubscription_patch bool
+	done                      bool
+	oldValue                  func(context.Context) (*SubscriptionPatchValueExtendPhase, error)
+	predicates                []predicate.SubscriptionPatchValueExtendPhase
+}
+
+var _ ent.Mutation = (*SubscriptionPatchValueExtendPhaseMutation)(nil)
+
+// subscriptionpatchvalueextendphaseOption allows management of the mutation configuration using functional options.
+type subscriptionpatchvalueextendphaseOption func(*SubscriptionPatchValueExtendPhaseMutation)
+
+// newSubscriptionPatchValueExtendPhaseMutation creates new mutation for the SubscriptionPatchValueExtendPhase entity.
+func newSubscriptionPatchValueExtendPhaseMutation(c config, op Op, opts ...subscriptionpatchvalueextendphaseOption) *SubscriptionPatchValueExtendPhaseMutation {
+	m := &SubscriptionPatchValueExtendPhaseMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscriptionPatchValueExtendPhase,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionPatchValueExtendPhaseID sets the ID field of the mutation.
+func withSubscriptionPatchValueExtendPhaseID(id string) subscriptionpatchvalueextendphaseOption {
+	return func(m *SubscriptionPatchValueExtendPhaseMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubscriptionPatchValueExtendPhase
+		)
+		m.oldValue = func(ctx context.Context) (*SubscriptionPatchValueExtendPhase, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubscriptionPatchValueExtendPhase.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscriptionPatchValueExtendPhase sets the old SubscriptionPatchValueExtendPhase of the mutation.
+func withSubscriptionPatchValueExtendPhase(node *SubscriptionPatchValueExtendPhase) subscriptionpatchvalueextendphaseOption {
+	return func(m *SubscriptionPatchValueExtendPhaseMutation) {
+		m.oldValue = func(context.Context) (*SubscriptionPatchValueExtendPhase, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionPatchValueExtendPhaseMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionPatchValueExtendPhaseMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SubscriptionPatchValueExtendPhase entities.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SubscriptionPatchValueExtendPhase.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionPatchValueExtendPhase entity.
+// If the SubscriptionPatchValueExtendPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueExtendPhaseMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetSubscriptionPatchID sets the "subscription_patch_id" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetSubscriptionPatchID(s string) {
+	m.subscription_patch = &s
+}
+
+// SubscriptionPatchID returns the value of the "subscription_patch_id" field in the mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SubscriptionPatchID() (r string, exists bool) {
+	v := m.subscription_patch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPatchID returns the old "subscription_patch_id" field's value of the SubscriptionPatchValueExtendPhase entity.
+// If the SubscriptionPatchValueExtendPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueExtendPhaseMutation) OldSubscriptionPatchID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPatchID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPatchID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPatchID: %w", err)
+	}
+	return oldValue.SubscriptionPatchID, nil
+}
+
+// ResetSubscriptionPatchID resets all changes to the "subscription_patch_id" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetSubscriptionPatchID() {
+	m.subscription_patch = nil
+}
+
+// SetPhaseKey sets the "phase_key" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetPhaseKey(s string) {
+	m.phase_key = &s
+}
+
+// PhaseKey returns the value of the "phase_key" field in the mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) PhaseKey() (r string, exists bool) {
+	v := m.phase_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhaseKey returns the old "phase_key" field's value of the SubscriptionPatchValueExtendPhase entity.
+// If the SubscriptionPatchValueExtendPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueExtendPhaseMutation) OldPhaseKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhaseKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhaseKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhaseKey: %w", err)
+	}
+	return oldValue.PhaseKey, nil
+}
+
+// ResetPhaseKey resets all changes to the "phase_key" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetPhaseKey() {
+	m.phase_key = nil
+}
+
+// SetExtendDurationIso sets the "extend_duration_iso" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetExtendDurationIso(s string) {
+	m.extend_duration_iso = &s
+}
+
+// ExtendDurationIso returns the value of the "extend_duration_iso" field in the mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ExtendDurationIso() (r string, exists bool) {
+	v := m.extend_duration_iso
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExtendDurationIso returns the old "extend_duration_iso" field's value of the SubscriptionPatchValueExtendPhase entity.
+// If the SubscriptionPatchValueExtendPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPatchValueExtendPhaseMutation) OldExtendDurationIso(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExtendDurationIso is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExtendDurationIso requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExtendDurationIso: %w", err)
+	}
+	return oldValue.ExtendDurationIso, nil
+}
+
+// ResetExtendDurationIso resets all changes to the "extend_duration_iso" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetExtendDurationIso() {
+	m.extend_duration_iso = nil
+}
+
+// ClearSubscriptionPatch clears the "subscription_patch" edge to the SubscriptionPatch entity.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ClearSubscriptionPatch() {
+	m.clearedsubscription_patch = true
+	m.clearedFields[subscriptionpatchvalueextendphase.FieldSubscriptionPatchID] = struct{}{}
+}
+
+// SubscriptionPatchCleared reports if the "subscription_patch" edge to the SubscriptionPatch entity was cleared.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SubscriptionPatchCleared() bool {
+	return m.clearedsubscription_patch
+}
+
+// SubscriptionPatchIDs returns the "subscription_patch" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionPatchID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SubscriptionPatchIDs() (ids []string) {
+	if id := m.subscription_patch; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscriptionPatch resets all changes to the "subscription_patch" edge.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetSubscriptionPatch() {
+	m.subscription_patch = nil
+	m.clearedsubscription_patch = false
+}
+
+// Where appends a list predicates to the SubscriptionPatchValueExtendPhaseMutation builder.
+func (m *SubscriptionPatchValueExtendPhaseMutation) Where(ps ...predicate.SubscriptionPatchValueExtendPhase) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionPatchValueExtendPhaseMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionPatchValueExtendPhaseMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SubscriptionPatchValueExtendPhase, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionPatchValueExtendPhaseMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SubscriptionPatchValueExtendPhase).
+func (m *SubscriptionPatchValueExtendPhaseMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionPatchValueExtendPhaseMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.namespace != nil {
+		fields = append(fields, subscriptionpatchvalueextendphase.FieldNamespace)
+	}
+	if m.subscription_patch != nil {
+		fields = append(fields, subscriptionpatchvalueextendphase.FieldSubscriptionPatchID)
+	}
+	if m.phase_key != nil {
+		fields = append(fields, subscriptionpatchvalueextendphase.FieldPhaseKey)
+	}
+	if m.extend_duration_iso != nil {
+		fields = append(fields, subscriptionpatchvalueextendphase.FieldExtendDurationIso)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionPatchValueExtendPhaseMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionpatchvalueextendphase.FieldNamespace:
+		return m.Namespace()
+	case subscriptionpatchvalueextendphase.FieldSubscriptionPatchID:
+		return m.SubscriptionPatchID()
+	case subscriptionpatchvalueextendphase.FieldPhaseKey:
+		return m.PhaseKey()
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		return m.ExtendDurationIso()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionPatchValueExtendPhaseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscriptionpatchvalueextendphase.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscriptionpatchvalueextendphase.FieldSubscriptionPatchID:
+		return m.OldSubscriptionPatchID(ctx)
+	case subscriptionpatchvalueextendphase.FieldPhaseKey:
+		return m.OldPhaseKey(ctx)
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		return m.OldExtendDurationIso(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubscriptionPatchValueExtendPhase field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionpatchvalueextendphase.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscriptionpatchvalueextendphase.FieldSubscriptionPatchID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPatchID(v)
+		return nil
+	case subscriptionpatchvalueextendphase.FieldPhaseKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhaseKey(v)
+		return nil
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExtendDurationIso(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionPatchValueExtendPhaseMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionPatchValueExtendPhaseMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetField(name string) error {
+	switch name {
+	case subscriptionpatchvalueextendphase.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscriptionpatchvalueextendphase.FieldSubscriptionPatchID:
+		m.ResetSubscriptionPatchID()
+		return nil
+	case subscriptionpatchvalueextendphase.FieldPhaseKey:
+		m.ResetPhaseKey()
+		return nil
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		m.ResetExtendDurationIso()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.subscription_patch != nil {
+		edges = append(edges, subscriptionpatchvalueextendphase.EdgeSubscriptionPatch)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscriptionpatchvalueextendphase.EdgeSubscriptionPatch:
+		if id := m.subscription_patch; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsubscription_patch {
+		edges = append(edges, subscriptionpatchvalueextendphase.EdgeSubscriptionPatch)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscriptionpatchvalueextendphase.EdgeSubscriptionPatch:
+		return m.clearedsubscription_patch
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ClearEdge(name string) error {
+	switch name {
+	case subscriptionpatchvalueextendphase.EdgeSubscriptionPatch:
+		m.ClearSubscriptionPatch()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetEdge(name string) error {
+	switch name {
+	case subscriptionpatchvalueextendphase.EdgeSubscriptionPatch:
+		m.ResetSubscriptionPatch()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase edge %s", name)
 }
 
 // UsageResetMutation represents an operation that mutates the UsageReset nodes in the graph.

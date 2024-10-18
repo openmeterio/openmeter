@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 )
 
 // CustomerQuery is the builder for querying Customer entities.
@@ -32,6 +33,7 @@ type CustomerQuery struct {
 	withSubjects                *CustomerSubjectsQuery
 	withBillingCustomerOverride *BillingCustomerOverrideQuery
 	withBillingInvoice          *BillingInvoiceQuery
+	withSubscription            *SubscriptionQuery
 	modifiers                   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -150,6 +152,28 @@ func (cq *CustomerQuery) QueryBillingInvoice() *BillingInvoiceQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingInvoiceTable, customer.BillingInvoiceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubscription chains the current query on the "subscription" edge.
+func (cq *CustomerQuery) QuerySubscription() *SubscriptionQuery {
+	query := (&SubscriptionClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubscriptionTable, customer.SubscriptionColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -353,6 +377,7 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 		withSubjects:                cq.withSubjects.Clone(),
 		withBillingCustomerOverride: cq.withBillingCustomerOverride.Clone(),
 		withBillingInvoice:          cq.withBillingInvoice.Clone(),
+		withSubscription:            cq.withSubscription.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -400,6 +425,17 @@ func (cq *CustomerQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) 
 		opt(query)
 	}
 	cq.withBillingInvoice = query
+	return cq
+}
+
+// WithSubscription tells the query-builder to eager-load the nodes that are connected to
+// the "subscription" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CustomerQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *CustomerQuery {
+	query := (&SubscriptionClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withSubscription = query
 	return cq
 }
 
@@ -481,11 +517,12 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = cq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			cq.withApps != nil,
 			cq.withSubjects != nil,
 			cq.withBillingCustomerOverride != nil,
 			cq.withBillingInvoice != nil,
+			cq.withSubscription != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -533,6 +570,13 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 		if err := cq.loadBillingInvoice(ctx, query, nodes,
 			func(n *Customer) { n.Edges.BillingInvoice = []*BillingInvoice{} },
 			func(n *Customer, e *BillingInvoice) { n.Edges.BillingInvoice = append(n.Edges.BillingInvoice, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withSubscription; query != nil {
+		if err := cq.loadSubscription(ctx, query, nodes,
+			func(n *Customer) { n.Edges.Subscription = []*Subscription{} },
+			func(n *Customer, e *Subscription) { n.Edges.Subscription = append(n.Edges.Subscription, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -641,6 +685,36 @@ func (cq *CustomerQuery) loadBillingInvoice(ctx context.Context, query *BillingI
 	}
 	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customer.BillingInvoiceColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (cq *CustomerQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *Subscription)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscription.FieldCustomerID)
+	}
+	query.Where(predicate.Subscription(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.SubscriptionColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

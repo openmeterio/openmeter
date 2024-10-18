@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -371,6 +372,21 @@ func (cu *CustomerUpdate) AddBillingInvoice(b ...*BillingInvoice) *CustomerUpdat
 	return cu.AddBillingInvoiceIDs(ids...)
 }
 
+// AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by IDs.
+func (cu *CustomerUpdate) AddSubscriptionIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.AddSubscriptionIDs(ids...)
+	return cu
+}
+
+// AddSubscription adds the "subscription" edges to the Subscription entity.
+func (cu *CustomerUpdate) AddSubscription(s ...*Subscription) *CustomerUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return cu.AddSubscriptionIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
@@ -443,6 +459,27 @@ func (cu *CustomerUpdate) RemoveBillingInvoice(b ...*BillingInvoice) *CustomerUp
 		ids[i] = b[i].ID
 	}
 	return cu.RemoveBillingInvoiceIDs(ids...)
+}
+
+// ClearSubscription clears all "subscription" edges to the Subscription entity.
+func (cu *CustomerUpdate) ClearSubscription() *CustomerUpdate {
+	cu.mutation.ClearSubscription()
+	return cu
+}
+
+// RemoveSubscriptionIDs removes the "subscription" edge to Subscription entities by IDs.
+func (cu *CustomerUpdate) RemoveSubscriptionIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.RemoveSubscriptionIDs(ids...)
+	return cu
+}
+
+// RemoveSubscription removes "subscription" edges to Subscription entities.
+func (cu *CustomerUpdate) RemoveSubscription(s ...*Subscription) *CustomerUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return cu.RemoveSubscriptionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -754,6 +791,51 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.SubscriptionTable,
+			Columns: []string{customer.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedSubscriptionIDs(); len(nodes) > 0 && !cu.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.SubscriptionTable,
+			Columns: []string{customer.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.SubscriptionTable,
+			Columns: []string{customer.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1117,6 +1199,21 @@ func (cuo *CustomerUpdateOne) AddBillingInvoice(b ...*BillingInvoice) *CustomerU
 	return cuo.AddBillingInvoiceIDs(ids...)
 }
 
+// AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by IDs.
+func (cuo *CustomerUpdateOne) AddSubscriptionIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.AddSubscriptionIDs(ids...)
+	return cuo
+}
+
+// AddSubscription adds the "subscription" edges to the Subscription entity.
+func (cuo *CustomerUpdateOne) AddSubscription(s ...*Subscription) *CustomerUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return cuo.AddSubscriptionIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
@@ -1189,6 +1286,27 @@ func (cuo *CustomerUpdateOne) RemoveBillingInvoice(b ...*BillingInvoice) *Custom
 		ids[i] = b[i].ID
 	}
 	return cuo.RemoveBillingInvoiceIDs(ids...)
+}
+
+// ClearSubscription clears all "subscription" edges to the Subscription entity.
+func (cuo *CustomerUpdateOne) ClearSubscription() *CustomerUpdateOne {
+	cuo.mutation.ClearSubscription()
+	return cuo
+}
+
+// RemoveSubscriptionIDs removes the "subscription" edge to Subscription entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveSubscriptionIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.RemoveSubscriptionIDs(ids...)
+	return cuo
+}
+
+// RemoveSubscription removes "subscription" edges to Subscription entities.
+func (cuo *CustomerUpdateOne) RemoveSubscription(s ...*Subscription) *CustomerUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return cuo.RemoveSubscriptionIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1530,6 +1648,51 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.SubscriptionTable,
+			Columns: []string{customer.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedSubscriptionIDs(); len(nodes) > 0 && !cuo.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.SubscriptionTable,
+			Columns: []string{customer.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.SubscriptionTable,
+			Columns: []string{customer.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

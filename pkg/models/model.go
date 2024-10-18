@@ -156,11 +156,41 @@ type VersionedModel struct {
 	Version int `json:"version,omitempty"`
 }
 
-// CadencedModel represents a model with active from and to dates.
+type (
+	annotatedMarker bool // marker is used so only AnnotatedModel can implement Annotated
+	Annotated       interface {
+		annotated() annotatedMarker
+	}
+)
+
+type AnnotatedModel struct {
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+var _ Annotated = AnnotatedModel{}
+
+func (a AnnotatedModel) annotated() annotatedMarker {
+	return true
+}
+
+// Cadenced represents a model with active from and to dates.
 // The interval described is incluse on the from side and exclusive on the to side.
+type (
+	cadencedMarker bool // marker is used so only CadencedModel can implement Cadenced
+	Cadenced       interface {
+		cadenced() cadencedMarker
+	}
+)
+
 type CadencedModel struct {
 	ActiveFrom time.Time  `json:"activeFrom"`
 	ActiveTo   *time.Time `json:"activeTo"`
+}
+
+var _ Cadenced = CadencedModel{}
+
+func (c CadencedModel) cadenced() cadencedMarker {
+	return true
 }
 
 func (c CadencedModel) IsActiveAt(t time.Time) bool {

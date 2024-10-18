@@ -1596,6 +1596,76 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionUpdate) SetOrClearActiveTo(value *time.Time) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearActiveTo(value *time.Time) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionPatchUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPatchUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionPatchUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionPatchUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionPatchUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionPatchUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionPatchUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionPatchUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
 func (u *UsageResetUpdate) SetOrClearDeletedAt(value *time.Time) *UsageResetUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
