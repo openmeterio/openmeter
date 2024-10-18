@@ -101,7 +101,10 @@ interface Events {
   @post
   @operationId("ingestEvents")
   @sharedRoute
-  ingestEvent(@header contentType: "application/cloudevents+json", @body body: Event): {
+  ingestEvent(
+    @header contentType: "application/cloudevents+json",
+    @body body: Event,
+  ): {
     @header contentType: "application/cloudevents+json";
     @body _: Event;
   } | CommonErrors;
@@ -109,7 +112,10 @@ interface Events {
   @post
   @operationId("ingestEvents")
   @sharedRoute
-  ingestEvents(@header contentType: "application/cloudevents-batch+json", @body body: Event[]): {
+  ingestEvents(
+    @header contentType: "application/cloudevents-batch+json",
+    @body body: Event[],
+  ): {
     @header contentType: "application/cloudevents-batch+json";
     @body _: Event[];
   } | CommonErrors;

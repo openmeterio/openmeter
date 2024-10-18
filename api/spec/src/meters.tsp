@@ -23,7 +23,9 @@ interface Meters {
    */
   @get
   @operationId("getMeter")
-  get(@path meterIdOrSlug: MeterIdentifier): Meter | NotFoundError | CommonErrors;
+  get(
+    @path meterIdOrSlug: MeterIdentifier,
+  ): Meter | NotFoundError | CommonErrors;
 
   /**
    * Query meter for usage.

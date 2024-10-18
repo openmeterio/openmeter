@@ -21,7 +21,10 @@ export const casingRule = createRule({
     },
     enum: (node) => {
       for (const variant of node.members.values()) {
-        if (typeof variant.name === 'string' && !isSnakeCase(variant.value || variant.name)) {
+        if (
+          typeof variant.name === 'string' &&
+          !isSnakeCase(variant.value || variant.name)
+        ) {
           context.reportDiagnostic({
             target: variant,
             format: {

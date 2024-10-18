@@ -64,7 +64,9 @@ interface Features {
    */
   @get
   @operationId("getFeature")
-  get(@path featureId: string): Feature | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path featureId: string,
+  ): Feature | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Archive a feature by ID.

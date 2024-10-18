@@ -53,7 +53,9 @@ interface Meters extends OpenMeter.Meters {
    */
   @delete
   @operationId("deleteMeter")
-  delete(@path meterIdOrSlug: OpenMeter.MeterIdentifier): void | OpenMeter.CommonErrors;
+  delete(
+    @path meterIdOrSlug: OpenMeter.MeterIdentifier,
+  ): void | OpenMeter.CommonErrors;
 }
 
 namespace OpenMeterCloud.Portal {
@@ -129,7 +131,8 @@ namespace OpenMeterCloud.Notification {
 
   @route("/api/v1/notification/webhook/svix")
   @tag("Notification (Experimental)")
-  interface SvixOperationalWebhooks extends OpenMeter.Notification.SvixOperationalWebhooks {}
+  interface SvixOperationalWebhooks
+    extends OpenMeter.Notification.SvixOperationalWebhooks {}
 }
 
 namespace OpenMeterCloud.Entitlements {
@@ -169,11 +172,13 @@ namespace OpenMeterCloud.Billing {
 
   @route("/api/v1/billing/invoices/{customerIdOrKey}")
   @tag("Billing (Experimental)")
-  interface CustomerInvoicesEndpoints extends OpenMeter.Billing.CustomerInvoicesEndpoints {}
+  interface CustomerInvoicesEndpoints
+    extends OpenMeter.Billing.CustomerInvoicesEndpoints {}
 
   @route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
   @tag("Billing (Experimental)")
-  interface CustomerInvoiceEndpoints extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
+  interface CustomerInvoiceEndpoints
+    extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {
@@ -191,7 +196,8 @@ namespace OpenMeterCloud.ProductCatalog {
 
   @route("/api/v1/plans/{planId}/next")
   @tag("Plan (Experimental)")
-  interface PlanNewDraftVersion extends OpenMeter.ProductCatalog.PlanNewDraftVersion {}
+  interface PlanNewDraftVersion
+    extends OpenMeter.ProductCatalog.PlanNewDraftVersion {}
 
   @route("/api/v1/plans/{planId}/phases")
   @tag("Plan (Experimental)")

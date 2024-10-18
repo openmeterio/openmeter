@@ -52,7 +52,9 @@ interface Profiles {
   @get
   @summary("Get a billing profile by ID")
   @operationId("billingGetProfile")
-  get(@path id: string): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path id: string,
+  ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Update a billing profile

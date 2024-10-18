@@ -43,7 +43,9 @@ interface Marketplace {
   @get
   @route("/listings/{type}/install/oauth2")
   @operationId("marketplaceOAuth2InstallGetURL")
-  getOAuth2InstallURL(@path type: Type): OAuth2.ClientAppStartResponse | CommonErrors;
+  getOAuth2InstallURL(
+    @path type: Type,
+  ): OAuth2.ClientAppStartResponse | CommonErrors;
 
   /**
    * Authorize OAuth2 code.

@@ -89,7 +89,10 @@ interface CustomerInvoicesEndpoints {
   @route("/items")
   @summary("Create a new pending item")
   @operationId("billingCreatePendingItemByCustomer")
-  createPendingItem(@path customerIdOrKey: ULIDOrKey, @body request: Invoices.InvoiceLine): {
+  createPendingItem(
+    @path customerIdOrKey: ULIDOrKey,
+    @body request: Invoices.InvoiceLine,
+  ): {
     @statusCode _: 201;
     @body body: CreatePendingItemResponse;
   } | OpenMeter.CommonErrors;
@@ -239,7 +242,11 @@ interface CustomerInvoiceEndpoints {
   @route("/lines/{lineId}")
   @summary("Delete an invoice line")
   @operationId("billingDeleteInvoiceLine")
-  deleteInvoiceLine(@path customerIdOrKey: ULIDOrKey, @path invoiceId: ULID, @path lineId: ULID): {
+  deleteInvoiceLine(
+    @path customerIdOrKey: ULIDOrKey,
+    @path invoiceId: ULID,
+    @path lineId: ULID,
+  ): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 

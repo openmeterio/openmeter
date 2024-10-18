@@ -28,7 +28,10 @@ interface AppStripe {
   @post
   @route("/api/v1/apps/{id}/stripe/webhook")
   @operationId("appStripeWebhook")
-  webhook(@path id: ULID, @body body: StripeWebhookEvent): StripeWebhookResponse | NotFoundError | CommonErrors;
+  webhook(
+    @path id: ULID,
+    @body body: StripeWebhookEvent,
+  ): StripeWebhookResponse | NotFoundError | CommonErrors;
 
   /**
    * Create checkout session.

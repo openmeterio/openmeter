@@ -26,7 +26,10 @@ interface Subjects {
   @post
   @summary("Create an entitlement")
   @operationId("createEntitlement")
-  post(@path subjectIdOrKey: string, @body entitlement: EntitlementCreateInputs): {
+  post(
+    @path subjectIdOrKey: string,
+    @body entitlement: EntitlementCreateInputs,
+  ): {
     @statusCode _: 201;
     @body body: EntitlementCreateInputs;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
@@ -36,7 +39,10 @@ interface Subjects {
    */
   @get
   @operationId("listSubjectEntitlements")
-  list(@path subjectIdOrKey: string, @query includeDeleted?: boolean = false): Entitlement[] | OpenMeter.CommonErrors;
+  list(
+    @path subjectIdOrKey: string,
+    @query includeDeleted?: boolean = false,
+  ): Entitlement[] | OpenMeter.CommonErrors;
 
   /**
    * Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
@@ -108,7 +114,11 @@ interface Subjects {
   @post
   @operationId("createGrant")
   @route("/{entitlementIdOrFeatureKey}/grants")
-  createGrant(@path subjectIdOrKey: string, @path entitlementIdOrFeatureKey: string, @body grant: GrantCreateInput): {
+  createGrant(
+    @path subjectIdOrKey: string,
+    @path entitlementIdOrFeatureKey: string,
+    @body grant: GrantCreateInput,
+  ): {
     @statusCode _: 201;
     @body body: Grant;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
@@ -171,7 +181,11 @@ interface Subjects {
   @post
   @operationId("resetEntitlementUsage")
   @route("/{entitlementId}/reset")
-  reset(@path subjectIdOrKey: string, @path entitlementId: string, @body reset: ResetEntitlementUsageInput): {
+  reset(
+    @path subjectIdOrKey: string,
+    @path entitlementId: string,
+    @body reset: ResetEntitlementUsageInput,
+  ): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 }

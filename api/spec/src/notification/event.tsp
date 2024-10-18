@@ -281,5 +281,7 @@ interface Events {
   @get
   @operationId("getNotificationEvent")
   @summary("Get notification event")
-  get(@path eventId: string): Event | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path eventId: string,
+  ): Event | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }

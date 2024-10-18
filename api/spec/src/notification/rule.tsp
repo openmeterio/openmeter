@@ -284,7 +284,9 @@ interface Rules {
   @get
   @operationId("getNotificationRule")
   @summary("Get notification rule")
-  get(@path ruleId: ULID): NotificationRule | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path ruleId: ULID,
+  ): NotificationRule | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Soft delete notification rule by id.

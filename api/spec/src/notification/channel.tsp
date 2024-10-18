@@ -196,7 +196,10 @@ interface Channels {
   @put
   @operationId("updateNotificationChannel")
   @summary("Update a notification channel")
-  update(@path channelId: ULID, @body request: NotificationChannelCreateRequest): {
+  update(
+    @path channelId: ULID,
+    @body request: NotificationChannelCreateRequest,
+  ): {
     @statusCode _: 200;
     @body body: NotificationChannel;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -207,7 +210,9 @@ interface Channels {
   @get
   @operationId("getNotificationChannel")
   @summary("Get notification channel")
-  get(@path channelId: ULID): NotificationChannel | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path channelId: ULID,
+  ): NotificationChannel | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Soft delete notification channel by id.
