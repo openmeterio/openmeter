@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -22,10 +23,10 @@ func TestValidationErrors(t *testing.T) {
 	billingPeriodStart := now.AddDate(0, -1, 0)
 	billingPeriodEnd := now.AddDate(0, 1, 0)
 
-	invoice := billing.InvoiceWithValidation{
-		Invoice: &billing.Invoice{
+	invoice := billingentity.InvoiceWithValidation{
+		Invoice: &billingentity.Invoice{
 			Currency: currencyx.Code(currency.USD),
-			Items: []billing.InvoiceItem{
+			Items: []billingentity.InvoiceItem{
 				{
 					Name:        "item in usd",
 					Quantity:    lo.ToPtr(alpacadecimal.NewFromFloat(1)),

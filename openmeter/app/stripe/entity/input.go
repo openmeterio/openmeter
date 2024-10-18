@@ -43,10 +43,6 @@ func (i CreateAppStripeInput) Validate() error {
 		return errors.New("name is required")
 	}
 
-	if i.Description == "" {
-		return errors.New("description is required")
-	}
-
 	if i.StripeAccountID == "" {
 		return errors.New("stripe account id is required")
 	}
