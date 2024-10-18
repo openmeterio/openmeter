@@ -165,7 +165,10 @@ enum RecurringPeriodInterval {
 /**
  * Recurring period with an interval and an anchor.
  */
-@example(#{ interval: RecurringPeriodInterval.Day, anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z") })
+@example(#{
+  interval: RecurringPeriodInterval.Day,
+  anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
+})
 @friendlyName("RecurringPeriod")
 model RecurringPeriod {
   /**
@@ -185,7 +188,10 @@ model RecurringPeriod {
 /**
  * Recurring period with an interval and an anchor.
  */
-@example(#{ interval: RecurringPeriodInterval.Day, anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z") })
+@example(#{
+  interval: RecurringPeriodInterval.Day,
+  anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
+})
 @friendlyName("RecurringPeriodCreateInput")
 model RecurringPeriodCreateInput {
   /**

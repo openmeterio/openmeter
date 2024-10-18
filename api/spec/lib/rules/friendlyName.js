@@ -9,7 +9,10 @@ export const friendlyNameRule = createRule({
   },
   create: (context) => ({
     model: (node) => {
-      if (node.name && !node.decorators.some((d) => d.decorator.name === '$friendlyName')) {
+      if (
+        node.name &&
+        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
+      ) {
         context.reportDiagnostic({
           format: {
             type: node.kind,
@@ -21,7 +24,10 @@ export const friendlyNameRule = createRule({
       }
     },
     enum: (node) => {
-      if (node.name && !node.decorators.some((d) => d.decorator.name === '$friendlyName')) {
+      if (
+        node.name &&
+        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
+      ) {
         context.reportDiagnostic({
           format: {
             type: node.kind,
@@ -33,7 +39,10 @@ export const friendlyNameRule = createRule({
       }
     },
     union: (node) => {
-      if (node.name && !node.decorators.some((d) => d.decorator.name === '$friendlyName')) {
+      if (
+        node.name &&
+        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
+      ) {
         context.reportDiagnostic({
           format: {
             type: node.kind,

@@ -23,7 +23,9 @@ interface Subjects {
    */
   @get
   @operationId("getSubject")
-  get(@path subjectIdOrKey: string): OpenMeter.Subject | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path subjectIdOrKey: string,
+  ): OpenMeter.Subject | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Upserts a subject. Creates or updates subject.
@@ -33,7 +35,9 @@ interface Subjects {
    */
   @post
   @operationId("upsertSubject")
-  upsert(@body subject: SubjectUpsert[]): OpenMeter.Subject[] | OpenMeter.CommonErrors;
+  upsert(
+    @body subject: SubjectUpsert[],
+  ): OpenMeter.Subject[] | OpenMeter.CommonErrors;
 
   /**
    * Delete subject by ID or key.

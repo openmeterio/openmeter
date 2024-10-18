@@ -77,7 +77,10 @@ interface Meters {
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
   @sharedRoute
-  queryJson(@path meterSlug: Key, ...OmitProperties<OpenMeter.MeterQuery, "subject">): {
+  queryJson(
+    @path meterSlug: Key,
+    ...OmitProperties<OpenMeter.MeterQuery, "subject">,
+  ): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -89,7 +92,10 @@ interface Meters {
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
   @sharedRoute
-  queryCsv(@path meterSlug: Key, ...OmitProperties<OpenMeter.MeterQuery, "subject">): {
+  queryCsv(
+    @path meterSlug: Key,
+    ...OmitProperties<OpenMeter.MeterQuery, "subject">,
+  ): {
     @header contentType: "text/csv";
 
     @body

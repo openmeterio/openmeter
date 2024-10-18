@@ -169,7 +169,10 @@ interface PlanPhases {
   @post
   @operationId("createPlanPhases")
   @summary("Create new phase in plan")
-  create(@path planId: ULID, @body request: TypeSpec.Rest.Resource.ResourceCreateModel<PlanPhase>): {
+  create(
+    @path planId: ULID,
+    @body request: TypeSpec.Rest.Resource.ResourceCreateModel<PlanPhase>,
+  ): {
     @statusCode _: 201;
     @bodyRoot body: PlanPhase;
   } | OpenMeter.CommonErrors;
@@ -183,7 +186,9 @@ interface PlanPhases {
   update(
     @path planId: ULID,
     @path planPhaseKey: Key,
-    @body request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<PlanPhase>,
+
+    @body
+    request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<PlanPhase>,
   ): PlanPhase | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -192,7 +197,10 @@ interface PlanPhases {
   @get
   @operationId("getPlanPhases")
   @summary("Get phase for plan")
-  get(@path planId: ULID, @path planPhaseKey: Key): PlanPhase | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(
+    @path planId: ULID,
+    @path planPhaseKey: Key,
+  ): PlanPhase | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete phase in plan.

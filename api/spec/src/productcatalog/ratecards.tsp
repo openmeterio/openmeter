@@ -110,7 +110,11 @@ model RateCardUsageBased {
    */
   @summary("Price")
   @example(#{ type: PriceType.unit, amount: "0.01", minimumAmount: "100" })
-  price: UnitPriceWithCommitments | TieredPriceWithCommitments | FlatPriceWithPaymentTerm | null;
+  price:
+    | UnitPriceWithCommitments
+    | TieredPriceWithCommitments
+    | FlatPriceWithPaymentTerm
+    | null;
 
   /**
    * The discount of the rate card.
@@ -164,7 +168,12 @@ union RateCardEntitlement {
 model RateCardMeteredEntitlement {
   ...OmitProperties<
     OpenMeter.Entitlements.EntitlementMeteredCreateInputs,
-    "featureKey" | "featureId" | "usagePeriod" | "measureUsageFrom" | "isUnlimited"
+
+      | "featureKey"
+      | "featureId"
+      | "usagePeriod"
+      | "measureUsageFrom"
+      | "isUnlimited"
   >;
 
   /**
@@ -181,7 +190,10 @@ model RateCardMeteredEntitlement {
  */
 @friendlyName("RateCardStaticEntitlement")
 model RateCardStaticEntitlement {
-  ...OmitProperties<EntitlementStaticCreateInputs, "featureKey" | "featureId" | "usagePeriod">;
+  ...OmitProperties<
+    EntitlementStaticCreateInputs,
+    "featureKey" | "featureId" | "usagePeriod"
+  >;
 }
 
 /**
@@ -189,5 +201,8 @@ model RateCardStaticEntitlement {
  */
 @friendlyName("RateCardBooleanEntitlement")
 model RateCardBooleanEntitlement {
-  ...OmitProperties<EntitlementBooleanCreateInputs, "featureKey" | "featureId" | "usagePeriod">;
+  ...OmitProperties<
+    EntitlementBooleanCreateInputs,
+    "featureKey" | "featureId" | "usagePeriod"
+  >;
 }

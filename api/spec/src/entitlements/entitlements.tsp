@@ -224,7 +224,10 @@ union EntitlementCreateInputs {
 @friendlyName("EntitlementBaseTemplate")
 model EntitlementSharedFields {
   ...ResourceTimestamps;
-  ...OmitProperties<EntitlementCreateSharedFields, "featureKey" | "featureId" | "usagePeriod">;
+  ...OmitProperties<
+    EntitlementCreateSharedFields,
+    "featureKey" | "featureId" | "usagePeriod"
+  >;
 
   /**
    * Readonly unique ULID identifier.
@@ -308,9 +311,19 @@ model EntitlementMetered {
   type: EntitlementType.metered;
   ...OmitProperties<
     EntitlementMeteredCreateInputs,
-    "type" | "measureUsageFrom" | "metadata" | "usagePeriod" | "featureKey" | "featureId" | "currentUsagePeriod"
+
+      | "type"
+      | "measureUsageFrom"
+      | "metadata"
+      | "usagePeriod"
+      | "featureKey"
+      | "featureId"
+      | "currentUsagePeriod"
   >;
-  ...OmitProperties<EntitlementSharedFields, "type" | "currentUsagePeriod" | "usagePeriod">;
+  ...OmitProperties<
+    EntitlementSharedFields,
+    "type" | "currentUsagePeriod" | "usagePeriod"
+  >;
   ...EntitlementMeteredCalculatedFields;
 }
 
@@ -320,7 +333,10 @@ model EntitlementMetered {
 @friendlyName("EntitlementBoolean")
 model EntitlementBoolean extends EntitlementSharedFields {
   type: EntitlementType.boolean;
-  ...OmitProperties<EntitlementBooleanCreateInputs, "type" | "metadata" | "usagePeriod" | "featureKey" | "featureId">;
+  ...OmitProperties<
+    EntitlementBooleanCreateInputs,
+    "type" | "metadata" | "usagePeriod" | "featureKey" | "featureId"
+  >;
   ...OmitProperties<EntitlementSharedFields, "type">;
 }
 
@@ -330,7 +346,10 @@ model EntitlementBoolean extends EntitlementSharedFields {
 @friendlyName("EntitlementStatic")
 model EntitlementStatic {
   type: EntitlementType.static;
-  ...OmitProperties<EntitlementStaticCreateInputs, "type" | "metadata" | "usagePeriod" | "featureKey" | "featureId">;
+  ...OmitProperties<
+    EntitlementStaticCreateInputs,
+    "type" | "metadata" | "usagePeriod" | "featureKey" | "featureId"
+  >;
   ...OmitProperties<EntitlementSharedFields, "type">;
 }
 

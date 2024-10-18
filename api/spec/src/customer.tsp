@@ -37,7 +37,9 @@ interface Customers {
   @get
   @route("/{customerIdOrKey}")
   @operationId("getCustomer")
-  get(@path customerIdOrKey: CustomerIdentifier): Customer | NotFoundError | CommonErrors;
+  get(
+    @path customerIdOrKey: CustomerIdentifier,
+  ): Customer | NotFoundError | CommonErrors;
 
   /**
    * Update a customer by ID or key.
@@ -45,7 +47,10 @@ interface Customers {
   @put
   @route("/{customerIdOrKey}")
   @operationId("updateCustomer")
-  update(@path customerIdOrKey: CustomerIdentifier, @body customer: Customer): Customer | NotFoundError | CommonErrors;
+  update(
+    @path customerIdOrKey: CustomerIdentifier,
+    @body customer: Customer,
+  ): Customer | NotFoundError | CommonErrors;
 
   /**
    * Delete a customer by ID or key.
@@ -53,7 +58,9 @@ interface Customers {
   @delete
   @route("/{customerIdOrKey}")
   @operationId("deleteCustomer")
-  delete(@path customerIdOrKey: CustomerIdentifier): Customer | NotFoundError | CommonErrors;
+  delete(
+    @path customerIdOrKey: CustomerIdentifier,
+  ): Customer | NotFoundError | CommonErrors;
 }
 
 /**

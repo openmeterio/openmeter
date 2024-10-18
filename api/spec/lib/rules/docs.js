@@ -9,7 +9,10 @@ export const docDecoratorRule = createRule({
   },
   create: (context) => ({
     model: (target) => {
-      if (target.name && !target.decorators.find((d) => d.decorator?.name === '$docFromComment')) {
+      if (
+        target.name &&
+        !target.decorators.find((d) => d.decorator?.name === '$docFromComment')
+      ) {
         context.reportDiagnostic({
           target,
           format: {
@@ -19,7 +22,10 @@ export const docDecoratorRule = createRule({
       }
     },
     enum: (target) => {
-      if (target.name && !target.decorators.find((d) => d.decorator?.name === '$docFromComment')) {
+      if (
+        target.name &&
+        !target.decorators.find((d) => d.decorator?.name === '$docFromComment')
+      ) {
         context.reportDiagnostic({
           target,
           format: {
@@ -29,7 +35,10 @@ export const docDecoratorRule = createRule({
       }
     },
     union: (target) => {
-      if (target.name && !target.decorators.find((d) => d.decorator?.name === '$docFromComment')) {
+      if (
+        target.name &&
+        !target.decorators.find((d) => d.decorator?.name === '$docFromComment')
+      ) {
         context.reportDiagnostic({
           target,
           format: {
