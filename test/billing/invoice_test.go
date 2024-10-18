@@ -35,6 +35,8 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
 	issueAt := now.Add(-time.Minute)
 
+	_ = s.installSandboxApp(s.T(), namespace)
+
 	ctx := context.Background()
 
 	// Given we have a test customer

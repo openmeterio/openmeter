@@ -7,7 +7,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -133,6 +132,21 @@ func SupplierAddressPhoneNumber(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldSupplierAddressPhoneNumber, v))
 }
 
+// TaxAppID applies equality check predicate on the "tax_app_id" field. It's identical to TaxAppIDEQ.
+func TaxAppID(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldTaxAppID, v))
+}
+
+// InvoicingAppID applies equality check predicate on the "invoicing_app_id" field. It's identical to InvoicingAppIDEQ.
+func InvoicingAppID(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldInvoicingAppID, v))
+}
+
+// PaymentAppID applies equality check predicate on the "payment_app_id" field. It's identical to PaymentAppIDEQ.
+func PaymentAppID(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldPaymentAppID, v))
+}
+
 // WorkflowConfigID applies equality check predicate on the "workflow_config_id" field. It's identical to WorkflowConfigIDEQ.
 func WorkflowConfigID(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldWorkflowConfigID, v))
@@ -146,6 +160,11 @@ func Default(v bool) predicate.BillingProfile {
 // SupplierName applies equality check predicate on the "supplier_name" field. It's identical to SupplierNameEQ.
 func SupplierName(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldSupplierName, v))
+}
+
+// SupplierTaxCode applies equality check predicate on the "supplier_tax_code" field. It's identical to SupplierTaxCodeEQ.
+func SupplierTaxCode(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldSupplierTaxCode, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -1037,94 +1056,199 @@ func SupplierAddressPhoneNumberContainsFold(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldContainsFold(FieldSupplierAddressPhoneNumber, v))
 }
 
-// TaxProviderEQ applies the EQ predicate on the "tax_provider" field.
-func TaxProviderEQ(v provider.TaxProvider) predicate.BillingProfile {
-	vc := v
-	return predicate.BillingProfile(sql.FieldEQ(FieldTaxProvider, vc))
+// TaxAppIDEQ applies the EQ predicate on the "tax_app_id" field.
+func TaxAppIDEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldTaxAppID, v))
 }
 
-// TaxProviderNEQ applies the NEQ predicate on the "tax_provider" field.
-func TaxProviderNEQ(v provider.TaxProvider) predicate.BillingProfile {
-	vc := v
-	return predicate.BillingProfile(sql.FieldNEQ(FieldTaxProvider, vc))
+// TaxAppIDNEQ applies the NEQ predicate on the "tax_app_id" field.
+func TaxAppIDNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldTaxAppID, v))
 }
 
-// TaxProviderIn applies the In predicate on the "tax_provider" field.
-func TaxProviderIn(vs ...provider.TaxProvider) predicate.BillingProfile {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingProfile(sql.FieldIn(FieldTaxProvider, v...))
+// TaxAppIDIn applies the In predicate on the "tax_app_id" field.
+func TaxAppIDIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldTaxAppID, vs...))
 }
 
-// TaxProviderNotIn applies the NotIn predicate on the "tax_provider" field.
-func TaxProviderNotIn(vs ...provider.TaxProvider) predicate.BillingProfile {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingProfile(sql.FieldNotIn(FieldTaxProvider, v...))
+// TaxAppIDNotIn applies the NotIn predicate on the "tax_app_id" field.
+func TaxAppIDNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldTaxAppID, vs...))
 }
 
-// InvoicingProviderEQ applies the EQ predicate on the "invoicing_provider" field.
-func InvoicingProviderEQ(v provider.InvoicingProvider) predicate.BillingProfile {
-	vc := v
-	return predicate.BillingProfile(sql.FieldEQ(FieldInvoicingProvider, vc))
+// TaxAppIDGT applies the GT predicate on the "tax_app_id" field.
+func TaxAppIDGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldTaxAppID, v))
 }
 
-// InvoicingProviderNEQ applies the NEQ predicate on the "invoicing_provider" field.
-func InvoicingProviderNEQ(v provider.InvoicingProvider) predicate.BillingProfile {
-	vc := v
-	return predicate.BillingProfile(sql.FieldNEQ(FieldInvoicingProvider, vc))
+// TaxAppIDGTE applies the GTE predicate on the "tax_app_id" field.
+func TaxAppIDGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldTaxAppID, v))
 }
 
-// InvoicingProviderIn applies the In predicate on the "invoicing_provider" field.
-func InvoicingProviderIn(vs ...provider.InvoicingProvider) predicate.BillingProfile {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingProfile(sql.FieldIn(FieldInvoicingProvider, v...))
+// TaxAppIDLT applies the LT predicate on the "tax_app_id" field.
+func TaxAppIDLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldTaxAppID, v))
 }
 
-// InvoicingProviderNotIn applies the NotIn predicate on the "invoicing_provider" field.
-func InvoicingProviderNotIn(vs ...provider.InvoicingProvider) predicate.BillingProfile {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingProfile(sql.FieldNotIn(FieldInvoicingProvider, v...))
+// TaxAppIDLTE applies the LTE predicate on the "tax_app_id" field.
+func TaxAppIDLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldTaxAppID, v))
 }
 
-// PaymentProviderEQ applies the EQ predicate on the "payment_provider" field.
-func PaymentProviderEQ(v provider.PaymentProvider) predicate.BillingProfile {
-	vc := v
-	return predicate.BillingProfile(sql.FieldEQ(FieldPaymentProvider, vc))
+// TaxAppIDContains applies the Contains predicate on the "tax_app_id" field.
+func TaxAppIDContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldTaxAppID, v))
 }
 
-// PaymentProviderNEQ applies the NEQ predicate on the "payment_provider" field.
-func PaymentProviderNEQ(v provider.PaymentProvider) predicate.BillingProfile {
-	vc := v
-	return predicate.BillingProfile(sql.FieldNEQ(FieldPaymentProvider, vc))
+// TaxAppIDHasPrefix applies the HasPrefix predicate on the "tax_app_id" field.
+func TaxAppIDHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldTaxAppID, v))
 }
 
-// PaymentProviderIn applies the In predicate on the "payment_provider" field.
-func PaymentProviderIn(vs ...provider.PaymentProvider) predicate.BillingProfile {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingProfile(sql.FieldIn(FieldPaymentProvider, v...))
+// TaxAppIDHasSuffix applies the HasSuffix predicate on the "tax_app_id" field.
+func TaxAppIDHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldTaxAppID, v))
 }
 
-// PaymentProviderNotIn applies the NotIn predicate on the "payment_provider" field.
-func PaymentProviderNotIn(vs ...provider.PaymentProvider) predicate.BillingProfile {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingProfile(sql.FieldNotIn(FieldPaymentProvider, v...))
+// TaxAppIDEqualFold applies the EqualFold predicate on the "tax_app_id" field.
+func TaxAppIDEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldTaxAppID, v))
+}
+
+// TaxAppIDContainsFold applies the ContainsFold predicate on the "tax_app_id" field.
+func TaxAppIDContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldTaxAppID, v))
+}
+
+// InvoicingAppIDEQ applies the EQ predicate on the "invoicing_app_id" field.
+func InvoicingAppIDEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDNEQ applies the NEQ predicate on the "invoicing_app_id" field.
+func InvoicingAppIDNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDIn applies the In predicate on the "invoicing_app_id" field.
+func InvoicingAppIDIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldInvoicingAppID, vs...))
+}
+
+// InvoicingAppIDNotIn applies the NotIn predicate on the "invoicing_app_id" field.
+func InvoicingAppIDNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldInvoicingAppID, vs...))
+}
+
+// InvoicingAppIDGT applies the GT predicate on the "invoicing_app_id" field.
+func InvoicingAppIDGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDGTE applies the GTE predicate on the "invoicing_app_id" field.
+func InvoicingAppIDGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDLT applies the LT predicate on the "invoicing_app_id" field.
+func InvoicingAppIDLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDLTE applies the LTE predicate on the "invoicing_app_id" field.
+func InvoicingAppIDLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDContains applies the Contains predicate on the "invoicing_app_id" field.
+func InvoicingAppIDContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDHasPrefix applies the HasPrefix predicate on the "invoicing_app_id" field.
+func InvoicingAppIDHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDHasSuffix applies the HasSuffix predicate on the "invoicing_app_id" field.
+func InvoicingAppIDHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDEqualFold applies the EqualFold predicate on the "invoicing_app_id" field.
+func InvoicingAppIDEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldInvoicingAppID, v))
+}
+
+// InvoicingAppIDContainsFold applies the ContainsFold predicate on the "invoicing_app_id" field.
+func InvoicingAppIDContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldInvoicingAppID, v))
+}
+
+// PaymentAppIDEQ applies the EQ predicate on the "payment_app_id" field.
+func PaymentAppIDEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDNEQ applies the NEQ predicate on the "payment_app_id" field.
+func PaymentAppIDNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDIn applies the In predicate on the "payment_app_id" field.
+func PaymentAppIDIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldPaymentAppID, vs...))
+}
+
+// PaymentAppIDNotIn applies the NotIn predicate on the "payment_app_id" field.
+func PaymentAppIDNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldPaymentAppID, vs...))
+}
+
+// PaymentAppIDGT applies the GT predicate on the "payment_app_id" field.
+func PaymentAppIDGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDGTE applies the GTE predicate on the "payment_app_id" field.
+func PaymentAppIDGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDLT applies the LT predicate on the "payment_app_id" field.
+func PaymentAppIDLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDLTE applies the LTE predicate on the "payment_app_id" field.
+func PaymentAppIDLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDContains applies the Contains predicate on the "payment_app_id" field.
+func PaymentAppIDContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDHasPrefix applies the HasPrefix predicate on the "payment_app_id" field.
+func PaymentAppIDHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDHasSuffix applies the HasSuffix predicate on the "payment_app_id" field.
+func PaymentAppIDHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDEqualFold applies the EqualFold predicate on the "payment_app_id" field.
+func PaymentAppIDEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldPaymentAppID, v))
+}
+
+// PaymentAppIDContainsFold applies the ContainsFold predicate on the "payment_app_id" field.
+func PaymentAppIDContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldPaymentAppID, v))
 }
 
 // WorkflowConfigIDEQ applies the EQ predicate on the "workflow_config_id" field.
@@ -1267,6 +1391,81 @@ func SupplierNameContainsFold(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldContainsFold(FieldSupplierName, v))
 }
 
+// SupplierTaxCodeEQ applies the EQ predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeNEQ applies the NEQ predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeIn applies the In predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldSupplierTaxCode, vs...))
+}
+
+// SupplierTaxCodeNotIn applies the NotIn predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldSupplierTaxCode, vs...))
+}
+
+// SupplierTaxCodeGT applies the GT predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeGTE applies the GTE predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeLT applies the LT predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeLTE applies the LTE predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeContains applies the Contains predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeHasPrefix applies the HasPrefix predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeHasSuffix applies the HasSuffix predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeIsNil applies the IsNil predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeIsNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIsNull(FieldSupplierTaxCode))
+}
+
+// SupplierTaxCodeNotNil applies the NotNil predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeNotNil() predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotNull(FieldSupplierTaxCode))
+}
+
+// SupplierTaxCodeEqualFold applies the EqualFold predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldSupplierTaxCode, v))
+}
+
+// SupplierTaxCodeContainsFold applies the ContainsFold predicate on the "supplier_tax_code" field.
+func SupplierTaxCodeContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldSupplierTaxCode, v))
+}
+
 // HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.
 func HasBillingInvoices() predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {
@@ -1328,6 +1527,75 @@ func HasWorkflowConfig() predicate.BillingProfile {
 func HasWorkflowConfigWith(preds ...predicate.BillingWorkflowConfig) predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {
 		step := newWorkflowConfigStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxApp applies the HasEdge predicate on the "tax_app" edge.
+func HasTaxApp() predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxAppTable, TaxAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxAppWith applies the HasEdge predicate on the "tax_app" edge with a given conditions (other predicates).
+func HasTaxAppWith(preds ...predicate.App) predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := newTaxAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasInvoicingApp applies the HasEdge predicate on the "invoicing_app" edge.
+func HasInvoicingApp() predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, InvoicingAppTable, InvoicingAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasInvoicingAppWith applies the HasEdge predicate on the "invoicing_app" edge with a given conditions (other predicates).
+func HasInvoicingAppWith(preds ...predicate.App) predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := newInvoicingAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPaymentApp applies the HasEdge predicate on the "payment_app" edge.
+func HasPaymentApp() predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PaymentAppTable, PaymentAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPaymentAppWith applies the HasEdge predicate on the "payment_app" edge with a given conditions (other predicates).
+func HasPaymentAppWith(preds ...predicate.App) predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := newPaymentAppStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

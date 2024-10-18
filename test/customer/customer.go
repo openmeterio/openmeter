@@ -7,7 +7,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,10 +34,7 @@ var (
 		PostalCode:  &TestAddressPostalCode,
 		PhoneNumber: &TestAddressPhoneNumber,
 	}
-	TestSubjectKeys       = []string{"subject-0"}
-	TestTaxProvider       = provider.TaxProviderOpenMeterSandbox
-	TestInvoicingProvider = provider.InvoicingProviderOpenMeterSandbox
-	TestPaymentProvider   = provider.PaymentProviderOpenMeterSandbox
+	TestSubjectKeys = []string{"subject-0"}
 )
 
 type CustomerHandlerTestSuite struct {

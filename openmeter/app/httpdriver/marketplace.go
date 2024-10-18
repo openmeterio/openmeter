@@ -63,13 +63,13 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 type (
 	GetMarketplaceListingRequest  = appentity.MarketplaceGetInput
 	GetMarketplaceListingResponse = api.MarketplaceListing
-	GetMarketplaceListingHandler  httptransport.HandlerWithArgs[GetMarketplaceListingRequest, GetMarketplaceListingResponse, api.OpenMeterAppType]
+	GetMarketplaceListingHandler  httptransport.HandlerWithArgs[GetMarketplaceListingRequest, GetMarketplaceListingResponse, api.AppType]
 )
 
 // GetMarketplaceListing returns a handler for listing marketplace listings
 func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appType api.OpenMeterAppType) (GetMarketplaceListingRequest, error) {
+		func(ctx context.Context, r *http.Request, appType api.AppType) (GetMarketplaceListingRequest, error) {
 			return GetMarketplaceListingRequest{
 				Type: appentitybase.AppType(appType),
 			}, nil
@@ -94,13 +94,13 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 type (
 	MarketplaceAppAPIKeyInstallRequest  = appentity.InstallAppWithAPIKeyInput
 	MarketplaceAppAPIKeyInstallResponse = api.AppBase
-	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.OpenMeterAppType]
+	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.AppType]
 )
 
 // MarketplaceAppAPIKeyInstall returns a handler for installing an app type with an API key
 func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appType api.OpenMeterAppType) (MarketplaceAppAPIKeyInstallRequest, error) {
+		func(ctx context.Context, r *http.Request, appType api.AppType) (MarketplaceAppAPIKeyInstallRequest, error) {
 			body := api.MarketplaceAppAPIKeyInstallJSONBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
@@ -152,7 +152,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 
 func mapMarketplaceListing(listing appentitybase.MarketplaceListing) api.MarketplaceListing {
 	return api.MarketplaceListing{
-		Type:        api.OpenMeterAppType(listing.Type),
+		Type:        api.AppType(listing.Type),
 		Name:        listing.Name,
 		Description: listing.Description,
 		IconUrl:     listing.IconURL,

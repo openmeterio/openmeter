@@ -276,13 +276,6 @@ model Annotations {
 /**
  * Numeric represents an arbitrary precision number.
  */
-@extension("x-go-type", "alpacadecimal.Decimal")
-@extension(
-  "x-go-type-import",
-  {
-    path: "github.com/alpacahq/alpacadecimal",
-  }
-)
 @pattern("^\\-?[0-9]+(\\.[0-9]+)?$")
 @friendlyName("Numeric")
 scalar Numeric extends string;
@@ -293,7 +286,6 @@ alias Money = Numeric;
  */
 @friendlyName("Percentage")
 @pattern("^\\-?[0-9]+(\\.[0-9]+)?%$")
-// TODO: let's add some default go implementation
 scalar Percentage extends Numeric;
 
 /**
