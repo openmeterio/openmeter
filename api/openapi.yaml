@@ -15,6 +15,7 @@ tags:
   - name: Entitlements (Experimental)
   - name: Customers
   - name: Billing (Experimental)
+  - name: Plan (Experimental)
   - name: Events
   - name: Meters
   - name: Debug
@@ -4578,6 +4579,915 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SvixOperationalWebhookRequest'
+  /api/v1/plans:
+    get:
+      operationId: listPlans
+      summary: List plans
+      description: List all plans.
+      parameters:
+        - name: includeDeleted
+          in: query
+          required: false
+          description: |-
+            Include deleted plans in response.
+
+            Usage: `?includeDeleted=true`
+          schema:
+            type: boolean
+            default: false
+          explode: false
+        - name: id
+          in: query
+          required: false
+          description: Filter by plan.id attribute
+          schema:
+            type: array
+            items:
+              type: string
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        - name: key
+          in: query
+          required: false
+          description: Filter by plan.key attribute
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+        - name: keyVersion
+          in: query
+          required: false
+          description: Filter by plan.key and plan.version attributes
+          schema:
+            type: object
+            additionalProperties:
+              type: integer
+          style: deepObject
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/PlanOrderByOrdering.order'
+        - $ref: '#/components/parameters/PlanOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+    post:
+      operationId: createPlan
+      summary: Create a plan
+      description: Create a new plan.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanCreate'
+  /api/v1/plans/{planId}:
+    put:
+      operationId: updatePlan
+      summary: Update a plan
+      description: Update plan by id.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanUpdate'
+    get:
+      operationId: getPlan
+      summary: Get plan
+      description: Get a plan by id or key. The latest published version is returned if latter is used.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            anyOf:
+              - type: string
+                example: 01G65Z755AFWAKHE12NY0CQ9FH
+                pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+                description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              - type: string
+                minLength: 1
+                maxLength: 64
+                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+                description: A key is a unique string that is used to identify a resource.
+            x-go-type: string
+          x-go-type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+    delete:
+      operationId: deletePlan
+      summary: Delete plan
+      description: |-
+        Soft delete plan by plan.id.
+
+        Once a plan is deleted it cannot be undeleted.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+  /api/v1/plans/{planId}/next:
+    post:
+      operationId: newDraftPlan
+      summary: New draft plan
+      description: |-
+        Create a new draft version from plan.
+        It returns error if there is already a plan in draft or planId does not reference the latest published version.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            anyOf:
+              - type: string
+                example: 01G65Z755AFWAKHE12NY0CQ9FH
+                pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+                description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              - type: string
+                minLength: 1
+                maxLength: 64
+                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+                description: A key is a unique string that is used to identify a resource.
+            x-go-type: string
+          x-go-type: string
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+  /api/v1/plans/{planId}/phases:
+    get:
+      operationId: listPlanPhases
+      summary: List phases in plan
+      description: List all phases in plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: key
+          in: query
+          required: false
+          description: Filter by phase.key attribute
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/PhasesOrderByOrdering.order'
+        - $ref: '#/components/parameters/PhasesOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPhasePaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+    post:
+      operationId: createPlanPhases
+      summary: Create new phase in plan
+      description: Create new phase in plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPhase'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanPhaseCreate'
+  /api/v1/plans/{planId}/phases/{planPhaseKey}:
+    put:
+      operationId: updatePlanPhases
+      summary: Update phase in plan
+      description: Update phase in plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: planPhaseKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPhase'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanPhaseUpdate'
+    get:
+      operationId: getPlanPhases
+      summary: Get phase for plan
+      description: Get phase in plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: planPhaseKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPhase'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+    delete:
+      operationId: deletePlanPhases
+      summary: Delete phase for plan
+      description: |-
+        Delete phase in plan.
+
+        Once a phase is deleted it cannot be undeleted.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: planPhaseKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+  /api/v1/plans/{planId}/publish:
+    post:
+      operationId: publishPlan
+      summary: Publish plan
+      description: Publish a new plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+  /api/v1/plans/{planId}/unpublish:
+    post:
+      operationId: unpublishPlan
+      summary: Unpublish plan
+      description: Unpublish a new plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
@@ -6197,6 +7107,38 @@ components:
         maximum: 1000
         default: 100
       explode: false
+    PhasesOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+      explode: false
+    PhasesOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/PhasesOrderBy'
+      explode: false
+    PlanOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+      explode: false
+    PlanOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/PlanOrderBy'
+      explode: false
     ProfileOrderByOrdering.order:
       name: order
       in: query
@@ -6648,6 +7590,8 @@ components:
       title: DocumentRef is used to describe an existing document or a specific part of it's contents.
     BillingGenericPaymentTerms:
       type: object
+      required:
+        - type
       properties:
         type:
           allOf:
@@ -8046,37 +8990,12 @@ components:
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
     Discount:
-      anyOf:
+      type: object
+      allOf:
         - $ref: '#/components/schemas/DiscountPercentage'
-        - $ref: '#/components/schemas/DiscountAmount'
-        - $ref: '#/components/schemas/UsageDiscount'
-      discriminator:
-        propertyName: type
-        mapping:
-          percentage: '#/components/schemas/DiscountPercentage'
-          amount: '#/components/schemas/DiscountAmount'
-          usage: '#/components/schemas/UsageDiscount'
       description: |-
         A discount on a price.
         One of: percentage, amount, or usage.
-    DiscountAmount:
-      type: object
-      required:
-        - type
-        - amount
-      properties:
-        type:
-          type: string
-          enum:
-            - amount
-          description: The type of the discount.
-          title: Type
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The amount of the discount.
-          title: Amount
-      description: Amount discount.
     DiscountPercentage:
       type: object
       required:
@@ -9169,7 +10088,18 @@ components:
       description: Flat price.
     FlatPriceWithPaymentTerm:
       type: object
+      required:
+        - type
+        - amount
       properties:
+        type:
+          type: string
+          enum:
+            - flat
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the flat price.
         paymentTerm:
           allOf:
             - $ref: '#/components/schemas/PricePaymentTerm'
@@ -9177,8 +10107,6 @@ components:
             The payment term of the flat price.
             Defaults to in advance.
           default: in_advance
-      allOf:
-        - $ref: '#/components/schemas/FlatPrice'
       description: Flat price with payment term.
     ForbiddenProblemResponse:
       type: object
@@ -10315,6 +11243,495 @@ components:
           example: 2023-02-01T01:01:01.001Z
           description: Period end time.
       description: A period with a start and end time.
+    PhasesOrderBy:
+      type: string
+      enum:
+        - key
+      description: Order by options for plan phases.
+    Plan:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - key
+        - version
+        - currency
+        - status
+        - phases
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
+        version:
+          type: integer
+          minimum: 1
+          description: Version of the plan. Incremented when the plan is updated.
+          title: Version
+          default: 1
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the plan.
+          title: Currency
+          default: USD
+        effectiveFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
+          title: Effective start date
+        effectiveTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+          title: Effective end date
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PlanStatus'
+          description: |-
+            The status of the plan.
+            Computed based on the effective start and end dates:
+            - draft = no effectiveStartDate
+            - active = effectiveStartDate <= now < effectiveEndDate
+            - archived / inactive = effectiveEndDate <= now
+          title: Status
+          readOnly: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanPhase'
+          minItems: 1
+          description: |-
+            The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+            A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+          title: Plan phases
+      description: Plans provide a template for subscriptions.
+    PlanCreate:
+      type: object
+      required:
+        - name
+        - key
+        - currency
+        - phases
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the plan.
+          title: Currency
+          default: USD
+        effectiveFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
+          title: Effective start date
+        effectiveTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+          title: Effective end date
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanPhase'
+          minItems: 1
+          description: |-
+            The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+            A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+          title: Plan phases
+      description: Resource create operation model.
+    PlanDiscount:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/PlanDiscountPercentage'
+      description: 'A discount on plan. One of: percentage or amount.'
+    PlanDiscountPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the discount.
+          title: Type
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        appliesToRateCards:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+            description: A key is a unique string that is used to identify a resource.
+          description: |-
+            The rate cards that the discount applies to.
+            When not specified, the discount applies to all rate cards.
+          title: Applies To
+      description: Percentage discount on plan.
+    PlanOrderBy:
+      type: string
+      enum:
+        - id
+        - key
+      description: Order by options for plans.
+    PlanPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+          description: The items in the current page.
+      description: Paginated response
+    PlanPhase:
+      type: object
+      required:
+        - name
+        - createdAt
+        - updatedAt
+        - key
+        - interval
+        - rateCards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
+        interval:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: |-
+            Interval after the subscription starts to transition to the phase.
+            When null, the phase starts immediately after the subscription starts.
+          title: Interval
+        rateCards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateCard'
+          description: The rate cards of the plan.
+          title: Rate cards
+        discount:
+          allOf:
+            - $ref: '#/components/schemas/PlanDiscount'
+          description: The discount on the plan.
+          title: Discount
+      description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+    PlanPhaseCreate:
+      type: object
+      required:
+        - name
+        - key
+        - interval
+        - rateCards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
+        interval:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: |-
+            Interval after the subscription starts to transition to the phase.
+            When null, the phase starts immediately after the subscription starts.
+          title: Interval
+        rateCards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateCard'
+          description: The rate cards of the plan.
+          title: Rate cards
+        discount:
+          allOf:
+            - $ref: '#/components/schemas/PlanDiscount'
+          description: The discount on the plan.
+          title: Discount
+      description: Resource create operation model.
+    PlanPhasePaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanPhase'
+          description: The items in the current page.
+      description: Paginated response
+    PlanPhaseUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        interval:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: |-
+            Interval after the subscription starts to transition to the phase.
+            When null, the phase starts immediately after the subscription starts.
+          title: Interval
+        rateCards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateCard'
+          description: The rate cards of the plan.
+          title: Rate cards
+        discount:
+          allOf:
+            - $ref: '#/components/schemas/PlanDiscount'
+          description: The discount on the plan.
+          title: Discount
+      description: Resource create or update operation model.
+    PlanStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+      description: The status of a plan.
+    PlanUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the plan.
+          title: Currency
+          default: USD
+        effectiveFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
+          title: Effective start date
+        effectiveTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+          title: Effective end date
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanPhase'
+          minItems: 1
+          description: |-
+            The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+            A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+          title: Plan phases
+      description: Resource create or update operation model.
     PortalToken:
       type: object
       required:
@@ -10433,7 +11850,7 @@ components:
           description: The items in the current page.
       description: Paginated response
     RateCard:
-      anyOf:
+      oneOf:
         - $ref: '#/components/schemas/RateCardFlatFee'
         - $ref: '#/components/schemas/RateCardUsageBased'
       discriminator:
@@ -10442,22 +11859,45 @@ components:
           flat_fee: '#/components/schemas/RateCardFlatFee'
           usage_based: '#/components/schemas/RateCardUsageBased'
       description: A rate card defines the pricing and entitlement of a feature or service.
-    RateCardBase:
+    RateCardBooleanEntitlement:
       type: object
       required:
-        - id
+        - type
+      properties:
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        type:
+          type: string
+          enum:
+            - boolean
+      description: Entitlement template of a boolean entitlement.
+    RateCardEntitlement:
+      anyOf:
+        - $ref: '#/components/schemas/RateCardMeteredEntitlement'
+        - $ref: '#/components/schemas/RateCardStaticEntitlement'
+        - $ref: '#/components/schemas/RateCardBooleanEntitlement'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/RateCardMeteredEntitlement'
+          static: '#/components/schemas/RateCardStaticEntitlement'
+          boolean: '#/components/schemas/RateCardBooleanEntitlement'
+      description: |-
+        Entitlement templates are used to define the entitlements of a plan.
+        Features are omitted from the entitlement template, as they are defined in the rate card.
+    RateCardFlatFee:
+      type: object
+      required:
         - name
         - createdAt
         - updatedAt
+        - key
         - type
+        - billingCandence
+        - price
       properties:
-        id:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: A unique identifier for the resource.
-          title: ID
-          readOnly: true
         name:
           type: string
           minLength: 1
@@ -10495,11 +11935,19 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
         type:
-          allOf:
-            - $ref: '#/components/schemas/RateCardType'
-          description: The type of the rate card
-          title: Type of the rate card
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the RateCard.
+          title: Channel Type
         featureKey:
           type: string
           minLength: 1
@@ -10521,46 +11969,6 @@ components:
             The tax config of the rate card.
             When undefined, the tax config of the feature or the default tax config of the plan is used.
           title: Tax config
-      description: Common fields of the rate card.
-    RateCardBooleanEntitlement:
-      type: object
-      required:
-        - type
-      properties:
-        metadata:
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          description: Additional metadata for the feature.
-        type:
-          type: string
-          enum:
-            - boolean
-      description: Entitlement template of a boolean entitlement.
-    RateCardEntitlement:
-      anyOf:
-        - $ref: '#/components/schemas/RateCardMeteredEntitlement'
-        - $ref: '#/components/schemas/RateCardStaticEntitlement'
-        - $ref: '#/components/schemas/RateCardBooleanEntitlement'
-      discriminator:
-        propertyName: type
-        mapping:
-          metered: '#/components/schemas/RateCardMeteredEntitlement'
-          static: '#/components/schemas/RateCardStaticEntitlement'
-          boolean: '#/components/schemas/RateCardBooleanEntitlement'
-      description: |-
-        Entitlement templates are used to define the entitlements of a plan.
-        Features are omitted from the entitlement template, as they are defined in the rate card.
-    RateCardFlatFee:
-      type: object
-      required:
-        - type
-        - billingCandence
-        - price
-      properties:
-        type:
-          type: string
-          enum:
-            - flat_fee
         billingCandence:
           type: string
           format: duration
@@ -10579,16 +11987,6 @@ components:
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
-        discount:
-          anyOf:
-            - $ref: '#/components/schemas/DiscountPercentage'
-            - $ref: '#/components/schemas/DiscountAmount'
-          description: |-
-            The discount of the rate card. Either a percentage or an amount.
-            Only available when price is set.
-          title: Discount
-      allOf:
-        - $ref: '#/components/schemas/RateCardBase'
       description: A flat fee rate card defines a one-time purchase or a recurring fee.
     RateCardMeteredEntitlement:
       type: object
@@ -10659,23 +12057,88 @@ components:
           example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
       description: Entitlement template of a static entitlement.
-    RateCardType:
-      type: string
-      enum:
-        - flat_fee
-        - usage_based
-      description: The type of the rate card.
     RateCardUsageBased:
       type: object
       required:
+        - name
+        - createdAt
+        - updatedAt
+        - key
         - type
         - billingCandence
         - price
       properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
         type:
           type: string
           enum:
             - usage_based
+          description: The type of the RateCard.
+          title: Channel Type
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the customer is entitled to use.
+          title: Feature key
+        entitlementTemplate:
+          allOf:
+            - $ref: '#/components/schemas/RateCardEntitlement'
+          description: |-
+            The entitlement of the rate card.
+            Only available when featureKey is set.
+          title: Entitlement template
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the rate card.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
         billingCandence:
           type: string
           format: duration
@@ -10683,10 +12146,18 @@ components:
           title: Billing cadence
         price:
           anyOf:
-            - $ref: '#/components/schemas/UnitPriceWithCommitments'
-            - $ref: '#/components/schemas/TieredPriceWithCommitments'
-            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
-          nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/UnitPriceWithCommitments'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/TieredPriceWithCommitments'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+              nullable: true
           example: {}
           description: |-
             The price of the rate card.
@@ -10697,8 +12168,6 @@ components:
             - $ref: '#/components/schemas/Discount'
           description: The discount of the rate card.
           title: Discount
-      allOf:
-        - $ref: '#/components/schemas/RateCardBase'
       description: A usage-based rate card defines a price based on usage.
     RecurringPeriod:
       type: object
@@ -11120,7 +12589,13 @@ components:
           description: Stripe tax config.
           title: Stripe tax config
       description: A tax config.
-    TieredPrice:
+    TieredPriceMode:
+      type: string
+      enum:
+        - volume
+        - graduated
+      description: The mode of the tiered price.
+    TieredPriceWithCommitments:
       type: object
       required:
         - type
@@ -11146,16 +12621,6 @@ components:
           description: |-
             The tiers of the tiered price.
             At least one price component is required in each tier.
-      description: Tiered price.
-    TieredPriceMode:
-      type: string
-      enum:
-        - volume
-        - graduated
-      description: The mode of the tiered price.
-    TieredPriceWithCommitments:
-      type: object
-      properties:
         minimumAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11166,8 +12631,6 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
-      allOf:
-        - $ref: '#/components/schemas/TieredPrice'
       description: Tiered price with spend commitments.
     UnauthorizedProblemResponse:
       type: object
@@ -11235,7 +12698,18 @@ components:
       description: Unit price.
     UnitPriceWithCommitments:
       type: object
+      required:
+        - type
+        - amount
       properties:
+        type:
+          type: string
+          enum:
+            - unit
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the unit price.
         minimumAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11246,27 +12720,7 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
-      allOf:
-        - $ref: '#/components/schemas/UnitPrice'
       description: Unit price with spend commitments.
-    UsageDiscount:
-      type: object
-      required:
-        - type
-        - usage
-      properties:
-        type:
-          type: string
-          enum:
-            - usage
-          description: The type of the discount.
-          title: Type
-        usage:
-          type: number
-          format: double
-          description: The usage discount.
-          title: Usage
-      description: Usage discount.
     WindowSize:
       type: string
       enum:

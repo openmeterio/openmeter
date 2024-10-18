@@ -5,6 +5,7 @@ import "@typespec/openapi3";
 import "@typespec/versioning";
 
 import "../..";
+import "../../productcatalog";
 
 // Package Contents
 import "./invoice.tsp";

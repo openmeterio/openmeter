@@ -1,11 +1,12 @@
 import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
-import "../../ratecards.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
+
+using OpenMeter.ProductCatalog;
 
 namespace Invoices;
 
@@ -282,7 +283,7 @@ model UnitPriceLine extends Line {
   type: LineTypes.unitPrice;
 
   @summary("Details about what is being sold.")
-  item: OpenMeter.RateCard;
+  item: RateCard;
 
   @summary("Quantity of the item being sold.")
   quantity: Numeric;
