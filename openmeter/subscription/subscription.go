@@ -14,6 +14,12 @@ type PlanRef struct {
 	Version int    `json:"version"`
 }
 
+type SubscriptionItemRef struct {
+	SubscriptionId string `json:"subscriptionId"`
+	PhaseKey       string `json:"phaseKey"`
+	ItemKey        string `json:"itemKey"`
+}
+
 type CreateSubscriptionInput struct {
 	Plan PlanRef
 

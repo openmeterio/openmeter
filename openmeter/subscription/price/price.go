@@ -21,6 +21,7 @@ type Price struct {
 
 type CreateInput struct {
 	Spec
+	models.CadencedModel
 	SubscriptionId models.NamespacedID `json:"subscriptionId,omitempty"`
 }
 

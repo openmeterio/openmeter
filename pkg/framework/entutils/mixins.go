@@ -132,7 +132,7 @@ func (NamespaceMixin) Indexes() []ent.Index {
 	}
 }
 
-// NamespaceMixin can be used for namespaced entities
+// MetadataAnnotationsMixin adds metadata to the schema
 type MetadataAnnotationsMixin struct {
 	mixin.Schema
 }

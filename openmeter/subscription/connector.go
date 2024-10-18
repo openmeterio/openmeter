@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,9 +39,13 @@ type Command interface {
 
 type command struct {
 	repo Repository
+	// connectors
+	priceConnector  price.Connector
+	customerService customer.Service
 	// adapters
-	billingAdapter BillingAdapter
-	planAdapter    PlanAdapter
+	billingAdapter     BillingAdapter
+	planAdapter        PlanAdapter
+	entitlementAdapter EntitlementAdapter
 }
 
 func NewConnector() Command {
@@ -48,8 +55,21 @@ func NewConnector() Command {
 func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error) {
 	def := Subscription{}
 
+	// Fetch the customer
+	cust, err := c.customerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+		Namespace: req.Namespace,
+		ID:        req.CustomerID,
+	})
+	if err != nil {
+		return def, err
+	}
+
+	if cust == nil {
+		return def, fmt.Errorf("customer is nil")
+	}
+
 	// If user has a plan right now return an error
-	_, err := c.repo.GetCustomerSubscription(ctx, req.CustomerID)
+	_, err = c.repo.GetCustomerSubscription(ctx, req.CustomerID)
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*NotFoundError](err); !ok {
 			return def, err
@@ -91,33 +111,101 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 	}
 
 	// Create subscription entity
-	_, err = c.repo.CreateSubscription(ctx, spec.GetCreateInput())
+	sub, err := c.repo.CreateSubscription(ctx, spec.GetCreateInput())
 	if err != nil {
 		return def, err
 	}
 
 	// Iterate through each phase & create phases and items
 	for _, phase := range spec.Phases {
-		err := c.createPhase(ctx, spec, phase.PhaseKey)
+		err := c.createPhase(ctx, sub, *cust, spec, phase.PhaseKey)
 		if err != nil {
-			return def, err
+			return def, fmt.Errorf("failed to create phase %s: %w", phase.PhaseKey, err)
 		}
 	}
 	// Return sub reference
-	panic("implement me")
+	return sub, nil
 }
 
-func (c *command) createPhase(ctx context.Context, spec *SubscriptionSpec, phaseKey string) error {
+func (c *command) createPhase(ctx context.Context, sub Subscription, cust customerentity.Customer, spec *SubscriptionSpec, phaseKey string) error {
 	if spec == nil {
 		return fmt.Errorf("spec is nil")
 	}
 
-	_, exists := spec.Phases[phaseKey]
+	phase, exists := spec.Phases[phaseKey]
 	if !exists {
 		return fmt.Errorf("phase %s does not exist", phaseKey)
 	}
 
-	panic("implement me")
+	phaseStartTime, _ := phase.StartAfter.AddTo(sub.ActiveFrom)
+	var phaseEndTime *time.Time
+
+	// Find the next phase if any
+	sortedPhases := spec.GetSortedPhases()
+	for i, p := range sortedPhases {
+		if p.PhaseKey == phaseKey && i+1 < len(sortedPhases) {
+			nextPhase := sortedPhases[i+1]
+			et, _ := nextPhase.StartAfter.AddTo(sub.ActiveFrom)
+			phaseEndTime = &et
+			break
+		}
+	}
+
+	cadence := models.CadencedModel{
+		ActiveFrom: phaseStartTime,
+		ActiveTo:   phaseEndTime,
+	}
+
+	for _, item := range phase.Items {
+		// Create Entitlement
+		if item.CreateEntitlementInput != nil {
+			if len(cust.UsageAttribution.SubjectKeys) == 0 {
+				return fmt.Errorf("customer has no subject keys")
+			}
+			customerSubject := cust.UsageAttribution.SubjectKeys[0]
+
+			if item.FeatureKey == nil {
+				return fmt.Errorf("item %s has no feature key, cannot create entitlement", item.ItemKey)
+			}
+
+			input, err := item.CreateEntitlementInput.ToCreateEntitlementInput(
+				sub.Namespace,
+				*item.FeatureKey,
+				customerSubject,
+				cadence,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to create entitlement input for item %s: %w", item.ItemKey, err)
+			}
+			if input == nil {
+				return fmt.Errorf("entitlement input is nil")
+			}
+
+			_, err = c.entitlementAdapter.ScheduleEntitlement(ctx, SubscriptionItemRef{
+				SubscriptionId: sub.ID,
+				PhaseKey:       phaseKey,
+				ItemKey:        item.ItemKey,
+			}, *input)
+		}
+		// Create Price
+		if item.CreatePriceInput != nil {
+			// TODO: link price to Item & Phase
+			_, err := c.priceConnector.Create(ctx, price.CreateInput{
+				SubscriptionId: models.NamespacedID{
+					Namespace: sub.Namespace,
+					ID:        sub.ID,
+				},
+				Spec:          *item.CreatePriceInput,
+				CadencedModel: cadence,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create price for item %s: %w", item.ItemKey, err)
+			}
+		}
+	}
+
+	// TODO: Write discounts!
+	return nil
 }
 
 func (c *command) Edit(ctx context.Context, subscriptionID string, patches []Patch) (Subscription, error) {
