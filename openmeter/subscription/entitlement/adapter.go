@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/framework/annotations"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
@@ -51,7 +52,8 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 			return nil, fmt.Errorf("entitlement is nil")
 		}
 
-		// TODO: add Metadata Annotations so it cant be used directly via entitlements APIs
+		annotations.Annotate(&ent.AnnotatedModel, entitlement.SystemManagedEntitlementAnnotation)
+
 		sEnt, err := a.repo.Create(ctx, CreateSubscriptionEntitlementInput{
 			Namespace:           ent.Namespace,
 			EntitlementId:       ent.ID,
