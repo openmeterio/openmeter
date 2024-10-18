@@ -6,18 +6,24 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 )
 
 var _ billing.ProfileAdapter = (*adapter)(nil)
 
-func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.Profile, error) {
+func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.AdapterProfile, error) {
 	if a.tx == nil {
 		return nil, fmt.Errorf("cannot create profile: %w", ErrTransactionRequired)
+	}
+
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
 	}
 
 	c := a.client()
@@ -26,12 +32,10 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 		SetNamespace(input.Namespace).
 		SetNillableTimezone(input.WorkflowConfig.Timezone).
 		SetCollectionAlignment(input.WorkflowConfig.Collection.Alignment).
-		SetItemCollectionPeriodSeconds(int64(input.WorkflowConfig.Collection.ItemCollectionPeriod / time.Second)).
-		SetInvoiceAutoAdvance(input.WorkflowConfig.Invoicing.AutoAdvance).
-		SetInvoiceDraftPeriodSeconds(int64(input.WorkflowConfig.Invoicing.DraftPeriod / time.Second)).
-		SetInvoiceDueAfterSeconds(int64(input.WorkflowConfig.Invoicing.DueAfter / time.Second)).
-		SetInvoiceItemResolution(input.WorkflowConfig.Invoicing.ItemResolution).
-		SetInvoiceItemPerSubject(input.WorkflowConfig.Invoicing.ItemPerSubject).
+		SetItemCollectionPeriod(input.WorkflowConfig.Collection.Interval.ISOString()).
+		SetInvoiceAutoAdvance(*input.WorkflowConfig.Invoicing.AutoAdvance).
+		SetInvoiceDraftPeriod(input.WorkflowConfig.Invoicing.DraftPeriod.ISOString()).
+		SetInvoiceDueAfter(input.WorkflowConfig.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.WorkflowConfig.Payment.CollectionMethod).
 		Save(ctx)
 	if err != nil {
@@ -43,10 +47,8 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 		SetDefault(input.Default).
 		SetName(input.Name).
 		SetNillableDescription(input.Description).
-		SetTaxProvider(input.TaxConfiguration.Type).
-		SetInvoicingProvider(input.InvoicingConfiguration.Type).
-		SetPaymentProvider(input.PaymentConfiguration.Type).
 		SetSupplierName(input.Supplier.Name).
+		SetNillableSupplierTaxCode(input.Supplier.TaxCode).
 		SetSupplierAddressCountry(*input.Supplier.Address.Country). // Validation is done at service level
 		SetNillableSupplierAddressState(input.Supplier.Address.State).
 		SetNillableSupplierAddressCity(input.Supplier.Address.City).
@@ -55,6 +57,10 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 		SetNillableSupplierAddressLine2(input.Supplier.Address.Line2).
 		SetNillableSupplierAddressPhoneNumber(input.Supplier.Address.PhoneNumber).
 		SetWorkflowConfig(dbWorkflowConfig).
+		SetInvoicingAppID(input.Apps.Invoicing.ID).
+		SetPaymentAppID(input.Apps.Payment.ID).
+		SetTaxAppID(input.Apps.Tax.ID).
+		SetMetadata(input.Metadata).
 		Save(ctx)
 	if err != nil {
 		return nil, err
@@ -63,10 +69,10 @@ func (a adapter) CreateProfile(ctx context.Context, input billing.CreateProfileI
 	// Hack: we need to add the edges back
 	dbProfile.Edges.WorkflowConfig = dbWorkflowConfig
 
-	return mapProfileFromDB(dbProfile), nil
+	return mapProfileFromDB(dbProfile)
 }
 
-func (a adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
+func (a adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.AdapterProfile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -83,10 +89,10 @@ func (a adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) 
 		return nil, err
 	}
 
-	return mapProfileFromDB(dbProfile), nil
+	return mapProfileFromDB(dbProfile)
 }
 
-func (a adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.Profile, error) {
+func (a adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.AdapterProfile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -105,7 +111,7 @@ func (a adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefault
 		return nil, err
 	}
 
-	return mapProfileFromDB(dbProfile), nil
+	return mapProfileFromDB(dbProfile)
 }
 
 func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
@@ -143,7 +149,7 @@ func (a adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileI
 	return nil
 }
 
-func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billing.Profile, error) {
+func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billing.AdapterProfile, error) {
 	if a.tx == nil {
 		return nil, fmt.Errorf("cannot update profile: %w", ErrTransactionRequired)
 	}
@@ -160,18 +166,17 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 		Where(billingprofile.Namespace(targetState.Namespace)).
 		SetName(targetState.Name).
 		SetNillableDescription(targetState.Description).
-		SetTaxProvider(targetState.TaxConfiguration.Type).
-		SetInvoicingProvider(targetState.InvoicingConfiguration.Type).
-		SetPaymentProvider(targetState.PaymentConfiguration.Type).
 		SetSupplierName(targetState.Supplier.Name).
 		SetSupplierAddressCountry(*targetState.Supplier.Address.Country).
 		SetDefault(targetState.Default).
+		SetOrClearSupplierTaxCode(targetState.Supplier.TaxCode).
 		SetOrClearSupplierAddressState(targetState.Supplier.Address.State).
 		SetOrClearSupplierAddressCity(targetState.Supplier.Address.City).
 		SetOrClearSupplierAddressPostalCode(targetState.Supplier.Address.PostalCode).
 		SetOrClearSupplierAddressLine1(targetState.Supplier.Address.Line1).
 		SetOrClearSupplierAddressLine2(targetState.Supplier.Address.Line2).
-		SetOrClearSupplierAddressPhoneNumber(targetState.Supplier.Address.PhoneNumber)
+		SetOrClearSupplierAddressPhoneNumber(targetState.Supplier.Address.PhoneNumber).
+		SetMetadata(targetState.Metadata)
 
 	updatedProfile, err := update.Save(ctx)
 	if err != nil {
@@ -181,12 +186,10 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 	updatedWorkflowConfig, err := a.client().BillingWorkflowConfig.UpdateOneID(input.WorkflowConfigID).
 		Where(billingworkflowconfig.Namespace(targetState.Namespace)).
 		SetCollectionAlignment(targetState.WorkflowConfig.Collection.Alignment).
-		SetItemCollectionPeriodSeconds(int64(targetState.WorkflowConfig.Collection.ItemCollectionPeriod / time.Second)).
-		SetInvoiceAutoAdvance(targetState.WorkflowConfig.Invoicing.AutoAdvance).
-		SetInvoiceDraftPeriodSeconds(int64(targetState.WorkflowConfig.Invoicing.DraftPeriod / time.Second)).
-		SetInvoiceDueAfterSeconds(int64(targetState.WorkflowConfig.Invoicing.DueAfter / time.Second)).
-		SetInvoiceItemResolution(targetState.WorkflowConfig.Invoicing.ItemResolution).
-		SetInvoiceItemPerSubject(targetState.WorkflowConfig.Invoicing.ItemPerSubject).
+		SetItemCollectionPeriod(targetState.WorkflowConfig.Collection.Interval.ISOString()).
+		SetInvoiceAutoAdvance(*targetState.WorkflowConfig.Invoicing.AutoAdvance).
+		SetInvoiceDraftPeriod(targetState.WorkflowConfig.Invoicing.DraftPeriod.ISOString()).
+		SetInvoiceDueAfter(targetState.WorkflowConfig.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(targetState.WorkflowConfig.Payment.CollectionMethod).
 		SetOrClearTimezone(targetState.WorkflowConfig.Timezone).Save(ctx)
 	if err != nil {
@@ -194,53 +197,72 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 	}
 
 	updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
-	return mapProfileFromDB(updatedProfile), nil
+	return mapProfileFromDB(updatedProfile)
 }
 
-func mapProfileFromDB(dbProfile *db.BillingProfile) *billing.Profile {
+func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterProfile, error) {
 	if dbProfile == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &billing.Profile{
-		Namespace:   dbProfile.Namespace,
-		ID:          dbProfile.ID,
-		Default:     dbProfile.Default,
-		Name:        dbProfile.Name,
-		Description: dbProfile.Description,
+	wfConfig, err := mapWorkflowConfigFromDB(dbProfile.Edges.WorkflowConfig)
+	if err != nil {
+		return nil, fmt.Errorf("cannot map workflow config: %w", err)
+	}
 
-		CreatedAt: dbProfile.CreatedAt,
-		UpdatedAt: dbProfile.UpdatedAt,
-		DeletedAt: dbProfile.DeletedAt,
+	return &billing.AdapterProfile{
+		Profile: billing.Profile{
+			Namespace:   dbProfile.Namespace,
+			ID:          dbProfile.ID,
+			Default:     dbProfile.Default,
+			Name:        dbProfile.Name,
+			Description: dbProfile.Description,
+			Metadata:    dbProfile.Metadata,
 
-		Supplier: billing.SupplierContact{
-			Name: dbProfile.SupplierName,
-			Address: models.Address{
-				Country:     dbProfile.SupplierAddressCountry,
-				PostalCode:  dbProfile.SupplierAddressPostalCode,
-				City:        dbProfile.SupplierAddressCity,
-				State:       dbProfile.SupplierAddressState,
-				Line1:       dbProfile.SupplierAddressLine1,
-				Line2:       dbProfile.SupplierAddressLine2,
-				PhoneNumber: dbProfile.SupplierAddressPhoneNumber,
+			CreatedAt: dbProfile.CreatedAt,
+			UpdatedAt: dbProfile.UpdatedAt,
+			DeletedAt: dbProfile.DeletedAt,
+
+			Supplier: billing.SupplierContact{
+				Name: dbProfile.SupplierName,
+				Address: models.Address{
+					Country:     dbProfile.SupplierAddressCountry,
+					PostalCode:  dbProfile.SupplierAddressPostalCode,
+					City:        dbProfile.SupplierAddressCity,
+					State:       dbProfile.SupplierAddressState,
+					Line1:       dbProfile.SupplierAddressLine1,
+					Line2:       dbProfile.SupplierAddressLine2,
+					PhoneNumber: dbProfile.SupplierAddressPhoneNumber,
+				},
+				TaxCode: dbProfile.SupplierTaxCode,
 			},
-		},
 
-		TaxConfiguration: provider.TaxConfiguration{
-			Type: dbProfile.TaxProvider,
+			WorkflowConfig: wfConfig,
 		},
-		InvoicingConfiguration: provider.InvoicingConfiguration{
-			Type: dbProfile.InvoicingProvider,
+		AppReferences: billing.ProfileAppReferences{
+			Tax:       billing.AppReference{ID: dbProfile.TaxAppID},
+			Invoicing: billing.AppReference{ID: dbProfile.InvoicingAppID},
+			Payment:   billing.AppReference{ID: dbProfile.PaymentAppID},
 		},
-		PaymentConfiguration: provider.PaymentConfiguration{
-			Type: dbProfile.PaymentProvider,
-		},
-
-		WorkflowConfig: mapWorkflowConfigFromDB(dbProfile.Edges.WorkflowConfig),
-	}
+	}, nil
 }
 
-func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) billing.WorkflowConfig {
+func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowConfig, error) {
+	collectionInterval, err := dbWC.ItemCollectionPeriod.Parse()
+	if err != nil {
+		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse collection.interval: %w", err)
+	}
+
+	draftPeriod, err := dbWC.InvoiceDraftPeriod.Parse()
+	if err != nil {
+		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.draftPeriod: %w", err)
+	}
+
+	dueAfter, err := dbWC.InvoiceDueAfter.Parse()
+	if err != nil {
+		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.dueAfter: %w", err)
+	}
+
 	return billing.WorkflowConfig{
 		ID: dbWC.ID,
 
@@ -251,21 +273,18 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) billing.WorkflowCon
 		Timezone: dbWC.Timezone,
 
 		Collection: billing.CollectionConfig{
-			Alignment:            dbWC.CollectionAlignment,
-			ItemCollectionPeriod: time.Duration(dbWC.ItemCollectionPeriodSeconds) * time.Second,
+			Alignment: dbWC.CollectionAlignment,
+			Interval:  collectionInterval,
 		},
 
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance: dbWC.InvoiceAutoAdvance,
-			DraftPeriod: time.Duration(dbWC.InvoiceDraftPeriodSeconds) * time.Second,
-			DueAfter:    time.Duration(dbWC.InvoiceDueAfterSeconds) * time.Second,
-
-			ItemResolution: dbWC.InvoiceItemResolution,
-			ItemPerSubject: dbWC.InvoiceItemPerSubject,
+			AutoAdvance: lo.ToPtr(dbWC.InvoiceAutoAdvance),
+			DraftPeriod: draftPeriod,
+			DueAfter:    dueAfter,
 		},
 
 		Payment: billing.PaymentConfig{
 			CollectionMethod: dbWC.InvoiceCollectionMethod,
 		},
-	}
+	}, nil
 }

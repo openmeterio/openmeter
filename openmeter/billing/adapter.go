@@ -25,17 +25,17 @@ type Adapter interface {
 }
 
 type ProfileAdapter interface {
-	CreateProfile(ctx context.Context, input CreateProfileInput) (*Profile, error)
-	GetProfile(ctx context.Context, input GetProfileInput) (*Profile, error)
-	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*Profile, error)
+	CreateProfile(ctx context.Context, input CreateProfileInput) (*AdapterProfile, error)
+	GetProfile(ctx context.Context, input GetProfileInput) (*AdapterProfile, error)
+	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*AdapterProfile, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
-	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*Profile, error)
+	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*AdapterProfile, error)
 }
 
 type CustomerOverrideAdapter interface {
-	CreateCustomerOverride(ctx context.Context, input CreateCustomerOverrideInput) (*CustomerOverride, error)
-	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*CustomerOverride, error)
-	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
+	CreateCustomerOverride(ctx context.Context, input CreateCustomerOverrideInput) (*AdapterCustomerOverride, error)
+	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*AdapterCustomerOverride, error)
+	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*AdapterCustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
 	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error)
@@ -66,6 +66,10 @@ func (i UpdateProfileAdapterInput) Validate() error {
 
 	if i.WorkflowConfigID == "" {
 		return fmt.Errorf("workflow config id is required")
+	}
+
+	if i.TargetState.WorkflowConfig.Invoicing.AutoAdvance == nil {
+		return fmt.Errorf("invoicing auto advance is required")
 	}
 
 	return nil

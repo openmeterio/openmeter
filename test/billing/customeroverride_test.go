@@ -3,7 +3,6 @@ package billing_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -42,6 +42,8 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	ns := "test-ns-default-profile-handling"
 	ctx := context.Background()
+
+	_ = s.installSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
@@ -105,15 +107,12 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 			CustomerID: customerID,
 
 			Collection: billing.CollectionOverrideConfig{
-				ItemCollectionPeriod: lo.ToPtr(time.Hour),
+				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 			},
 			Invoicing: billing.InvoicingOverrideConfig{
 				AutoAdvance: lo.ToPtr(false),
-				DraftPeriod: lo.ToPtr(2 * time.Hour),
-				DueAfter:    lo.ToPtr(3 * time.Hour),
-
-				ItemResolution: lo.ToPtr(billing.GranularityResolutionDay),
-				ItemPerSubject: lo.ToPtr(true),
+				DraftPeriod: lo.ToPtr(datex.MustParse(s.T(), "PT2H")),
+				DueAfter:    lo.ToPtr(datex.MustParse(s.T(), "PT3H")),
 			},
 			Payment: billing.PaymentOverrideConfig{
 				CollectionMethod: lo.ToPtr(billing.CollectionMethodSendInvoice),
@@ -134,12 +133,10 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 
 		wfConfig := customerProfile.Profile.WorkflowConfig
 
-		require.Equal(t, wfConfig.Collection.ItemCollectionPeriod, time.Hour)
-		require.Equal(t, wfConfig.Invoicing.AutoAdvance, false)
-		require.Equal(t, wfConfig.Invoicing.DraftPeriod, 2*time.Hour)
-		require.Equal(t, wfConfig.Invoicing.DueAfter, 3*time.Hour)
-		require.Equal(t, wfConfig.Invoicing.ItemResolution, billing.GranularityResolutionDay)
-		require.Equal(t, wfConfig.Invoicing.ItemPerSubject, true)
+		require.Equal(t, wfConfig.Collection.Interval, datex.MustParse(t, "PT1H"))
+		require.Equal(t, *wfConfig.Invoicing.AutoAdvance, false)
+		require.Equal(t, wfConfig.Invoicing.DraftPeriod, datex.MustParse(t, "PT2H"))
+		require.Equal(t, wfConfig.Invoicing.DueAfter, datex.MustParse(t, "PT3H"))
 		require.Equal(t, wfConfig.Payment.CollectionMethod, billing.CollectionMethodSendInvoice)
 	})
 }
@@ -147,6 +144,8 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	ns := "test-ns-pinned-profile-handling"
 	ctx := context.Background()
+
+	_ = s.installSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
@@ -191,7 +190,7 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 			ProfileID:  pinnedProfile.ID,
 
 			Collection: billing.CollectionOverrideConfig{
-				ItemCollectionPeriod: lo.ToPtr(time.Hour),
+				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 			},
 		})
 
@@ -209,12 +208,10 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 
 		wfConfig := customerProfile.Profile.WorkflowConfig
 
-		require.Equal(t, wfConfig.Collection.ItemCollectionPeriod, time.Hour)
-		require.Equal(t, wfConfig.Invoicing.AutoAdvance, false)
-		require.Equal(t, wfConfig.Invoicing.DraftPeriod, 24*time.Hour)
-		require.Equal(t, wfConfig.Invoicing.DueAfter, 30*24*time.Hour)
-		require.Equal(t, wfConfig.Invoicing.ItemResolution, billing.GranularityResolutionPeriod)
-		require.Equal(t, wfConfig.Invoicing.ItemPerSubject, false)
+		require.Equal(t, wfConfig.Collection.Interval, datex.MustParse(s.T(), "PT1H"))
+		require.Equal(t, *wfConfig.Invoicing.AutoAdvance, true)
+		require.Equal(t, wfConfig.Invoicing.DraftPeriod, billing.DefaultWorkflowConfig.Invoicing.DraftPeriod)
+		require.Equal(t, wfConfig.Invoicing.DueAfter, billing.DefaultWorkflowConfig.Invoicing.DueAfter)
 		require.Equal(t, wfConfig.Payment.CollectionMethod, billing.CollectionMethodChargeAutomatically)
 	})
 }
@@ -253,7 +250,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 			CustomerID: customer.ID,
 
 			Collection: billing.CollectionOverrideConfig{
-				ItemCollectionPeriod: lo.ToPtr(time.Hour),
+				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 			},
 		})
 
@@ -295,14 +292,14 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 			CustomerID: customer.ID,
 
 			Collection: billing.CollectionOverrideConfig{
-				ItemCollectionPeriod: lo.ToPtr(48 * time.Hour),
+				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT48H")),
 			},
 		})
 
 		// Then the override is created
 		require.NoError(t, err)
 		require.NotNil(t, createdCustomerOverride)
-		require.Equal(t, *createdCustomerOverride.Collection.ItemCollectionPeriod, 48*time.Hour)
+		require.Equal(t, *createdCustomerOverride.Collection.Interval, datex.MustParse(s.T(), "PT48H"))
 	})
 }
 
@@ -310,6 +307,8 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	// Given we have an existing customer and a default profile
 	ns := "test-customer-integration"
 	ctx := context.Background()
+
+	_ = s.installSandboxApp(s.T(), ns)
 
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
@@ -357,6 +356,8 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	ns := "test-null-setting"
 	ctx := context.Background()
 
+	_ = s.installSandboxApp(s.T(), ns)
+
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 
@@ -382,7 +383,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 		CustomerID: customer.ID,
 
 		Collection: billing.CollectionOverrideConfig{
-			ItemCollectionPeriod: lo.ToPtr(time.Hour),
+			Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 		},
 	})
 	require.NoError(s.T(), err)
@@ -395,7 +396,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 		UpdatedAt:  createdCustomerOverride.UpdatedAt,
 
 		Collection: billing.CollectionOverrideConfig{
-			ItemCollectionPeriod: nil,
+			Interval: nil,
 		},
 	})
 
@@ -410,5 +411,5 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customerProfile)
-	require.Nil(s.T(), customerProfile.Collection.ItemCollectionPeriod)
+	require.Nil(s.T(), customerProfile.Collection.Interval)
 }

@@ -4,10 +4,17 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
+	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
@@ -29,6 +36,8 @@ type BaseSuite struct {
 	BillingService billing.Service
 
 	CustomerService customer.Service
+
+	AppService app.Service
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -61,6 +70,26 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 	s.CustomerService = customerService
 
+	// App
+	appAdapter, err := appadapter.New(appadapter.Config{
+		Client:  dbClient,
+		BaseURL: "http://localhost:8888",
+	})
+	require.NoError(t, err)
+
+	appService, err := appservice.New(appservice.Config{
+		Adapter: appAdapter,
+	})
+	require.NoError(t, err)
+	s.AppService = appService
+
+	// OpenMeter sandbox (registration as side-effect)
+	_, err = appsandbox.NewFactory(appsandbox.Config{
+		AppService: appService,
+	})
+	require.NoError(t, err)
+
+	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbClient,
 	})
@@ -70,9 +99,27 @@ func (s *BaseSuite) SetupSuite() {
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:         billingAdapter,
 		CustomerService: s.CustomerService,
+		AppService:      s.AppService,
 	})
 	require.NoError(t, err)
 	s.BillingService = billingService
+}
+
+func (s *BaseSuite) installSandboxApp(t *testing.T, ns string) appentity.App {
+	ctx := context.Background()
+	defaultApp, err := s.AppService.InstallMarketplaceListingWithAPIKey(ctx,
+		appentity.InstallAppWithAPIKeyInput{
+			MarketplaceListingID: appentity.MarketplaceListingID{
+				Type: appentitybase.AppTypeSandbox,
+			},
+			Namespace: ns,
+			// TODO: In this case it's not needed, it's higly stripe specific
+			APIKey: "sandbox",
+		},
+	)
+
+	require.NoError(t, err)
+	return defaultApp
 }
 
 func (s *BaseSuite) TearDownSuite() {

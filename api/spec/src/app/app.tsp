@@ -58,8 +58,10 @@ model ListAppsRequest extends PaginatedQuery {}
 /**
  * Type of the app.
  */
+@friendlyName("AppType")
 enum Type {
   Stripe: "stripe",
+  Sandbox: "sandbox",
 }
 
 /**
@@ -70,6 +72,7 @@ enum Type {
 @discriminator("type")
 union App {
   stripe: StripeApp,
+  sandbox: SandboxApp,
 }
 
 /**

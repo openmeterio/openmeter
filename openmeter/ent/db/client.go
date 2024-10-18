@@ -491,6 +491,54 @@ func (c *AppClient) QueryCustomerApps(a *App) *AppCustomerQuery {
 	return query
 }
 
+// QueryTaxApp queries the tax_app edge of a App.
+func (c *AppClient) QueryTaxApp(a *App) *BillingProfileQuery {
+	query := (&BillingProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.TaxAppTable, app.TaxAppColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryInvoicingApp queries the invoicing_app edge of a App.
+func (c *AppClient) QueryInvoicingApp(a *App) *BillingProfileQuery {
+	query := (&BillingProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.InvoicingAppTable, app.InvoicingAppColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPaymentApp queries the payment_app edge of a App.
+func (c *AppClient) QueryPaymentApp(a *App) *BillingProfileQuery {
+	query := (&BillingProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.PaymentAppTable, app.PaymentAppColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *AppClient) Hooks() []Hook {
 	return c.hooks.App
@@ -1804,6 +1852,54 @@ func (c *BillingProfileClient) QueryWorkflowConfig(bp *BillingProfile) *BillingW
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, billingprofile.WorkflowConfigTable, billingprofile.WorkflowConfigColumn),
+		)
+		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxApp queries the tax_app edge of a BillingProfile.
+func (c *BillingProfileClient) QueryTaxApp(bp *BillingProfile) *AppQuery {
+	query := (&AppClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
+			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.TaxAppTable, billingprofile.TaxAppColumn),
+		)
+		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryInvoicingApp queries the invoicing_app edge of a BillingProfile.
+func (c *BillingProfileClient) QueryInvoicingApp(bp *BillingProfile) *AppQuery {
+	query := (&AppClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
+			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.InvoicingAppTable, billingprofile.InvoicingAppColumn),
+		)
+		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPaymentApp queries the payment_app edge of a BillingProfile.
+func (c *BillingProfileClient) QueryPaymentApp(bp *BillingProfile) *AppQuery {
+	query := (&AppClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
+			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.PaymentAppTable, billingprofile.PaymentAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
 		return fromV, nil

@@ -49,9 +49,15 @@ type App struct {
 type AppEdges struct {
 	// CustomerApps holds the value of the customer_apps edge.
 	CustomerApps []*AppCustomer `json:"customer_apps,omitempty"`
+	// TaxApp holds the value of the tax_app edge.
+	TaxApp []*BillingProfile `json:"tax_app,omitempty"`
+	// InvoicingApp holds the value of the invoicing_app edge.
+	InvoicingApp []*BillingProfile `json:"invoicing_app,omitempty"`
+	// PaymentApp holds the value of the payment_app edge.
+	PaymentApp []*BillingProfile `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [4]bool
 }
 
 // CustomerAppsOrErr returns the CustomerApps value or an error if the edge
@@ -61,6 +67,33 @@ func (e AppEdges) CustomerAppsOrErr() ([]*AppCustomer, error) {
 		return e.CustomerApps, nil
 	}
 	return nil, &NotLoadedError{edge: "customer_apps"}
+}
+
+// TaxAppOrErr returns the TaxApp value or an error if the edge
+// was not loaded in eager-loading.
+func (e AppEdges) TaxAppOrErr() ([]*BillingProfile, error) {
+	if e.loadedTypes[1] {
+		return e.TaxApp, nil
+	}
+	return nil, &NotLoadedError{edge: "tax_app"}
+}
+
+// InvoicingAppOrErr returns the InvoicingApp value or an error if the edge
+// was not loaded in eager-loading.
+func (e AppEdges) InvoicingAppOrErr() ([]*BillingProfile, error) {
+	if e.loadedTypes[2] {
+		return e.InvoicingApp, nil
+	}
+	return nil, &NotLoadedError{edge: "invoicing_app"}
+}
+
+// PaymentAppOrErr returns the PaymentApp value or an error if the edge
+// was not loaded in eager-loading.
+func (e AppEdges) PaymentAppOrErr() ([]*BillingProfile, error) {
+	if e.loadedTypes[3] {
+		return e.PaymentApp, nil
+	}
+	return nil, &NotLoadedError{edge: "payment_app"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -177,6 +210,21 @@ func (a *App) Value(name string) (ent.Value, error) {
 // QueryCustomerApps queries the "customer_apps" edge of the App entity.
 func (a *App) QueryCustomerApps() *AppCustomerQuery {
 	return NewAppClient(a.config).QueryCustomerApps(a)
+}
+
+// QueryTaxApp queries the "tax_app" edge of the App entity.
+func (a *App) QueryTaxApp() *BillingProfileQuery {
+	return NewAppClient(a.config).QueryTaxApp(a)
+}
+
+// QueryInvoicingApp queries the "invoicing_app" edge of the App entity.
+func (a *App) QueryInvoicingApp() *BillingProfileQuery {
+	return NewAppClient(a.config).QueryInvoicingApp(a)
+}
+
+// QueryPaymentApp queries the "payment_app" edge of the App entity.
+func (a *App) QueryPaymentApp() *BillingProfileQuery {
+	return NewAppClient(a.config).QueryPaymentApp(a)
 }
 
 // Update returns a builder for updating this App.

@@ -659,6 +659,75 @@ func HasCustomerAppsWith(preds ...predicate.AppCustomer) predicate.App {
 	})
 }
 
+// HasTaxApp applies the HasEdge predicate on the "tax_app" edge.
+func HasTaxApp() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TaxAppTable, TaxAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxAppWith applies the HasEdge predicate on the "tax_app" edge with a given conditions (other predicates).
+func HasTaxAppWith(preds ...predicate.BillingProfile) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newTaxAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasInvoicingApp applies the HasEdge predicate on the "invoicing_app" edge.
+func HasInvoicingApp() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, InvoicingAppTable, InvoicingAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasInvoicingAppWith applies the HasEdge predicate on the "invoicing_app" edge with a given conditions (other predicates).
+func HasInvoicingAppWith(preds ...predicate.BillingProfile) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newInvoicingAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPaymentApp applies the HasEdge predicate on the "payment_app" edge.
+func HasPaymentApp() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PaymentAppTable, PaymentAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPaymentAppWith applies the HasEdge predicate on the "payment_app" edge with a given conditions (other predicates).
+func HasPaymentAppWith(preds ...predicate.BillingProfile) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newPaymentAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.App) predicate.App {
 	return predicate.App(sql.AndPredicates(predicates...))

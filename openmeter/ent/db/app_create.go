@@ -15,6 +15,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 )
 
 // AppCreate is the builder for creating a App entity.
@@ -152,6 +153,51 @@ func (ac *AppCreate) AddCustomerApps(a ...*AppCustomer) *AppCreate {
 		ids[i] = a[i].ID
 	}
 	return ac.AddCustomerAppIDs(ids...)
+}
+
+// AddTaxAppIDs adds the "tax_app" edge to the BillingProfile entity by IDs.
+func (ac *AppCreate) AddTaxAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddTaxAppIDs(ids...)
+	return ac
+}
+
+// AddTaxApp adds the "tax_app" edges to the BillingProfile entity.
+func (ac *AppCreate) AddTaxApp(b ...*BillingProfile) *AppCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ac.AddTaxAppIDs(ids...)
+}
+
+// AddInvoicingAppIDs adds the "invoicing_app" edge to the BillingProfile entity by IDs.
+func (ac *AppCreate) AddInvoicingAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddInvoicingAppIDs(ids...)
+	return ac
+}
+
+// AddInvoicingApp adds the "invoicing_app" edges to the BillingProfile entity.
+func (ac *AppCreate) AddInvoicingApp(b ...*BillingProfile) *AppCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ac.AddInvoicingAppIDs(ids...)
+}
+
+// AddPaymentAppIDs adds the "payment_app" edge to the BillingProfile entity by IDs.
+func (ac *AppCreate) AddPaymentAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddPaymentAppIDs(ids...)
+	return ac
+}
+
+// AddPaymentApp adds the "payment_app" edges to the BillingProfile entity.
+func (ac *AppCreate) AddPaymentApp(b ...*BillingProfile) *AppCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ac.AddPaymentAppIDs(ids...)
 }
 
 // Mutation returns the AppMutation object of the builder.
@@ -320,6 +366,54 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.TaxAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.TaxAppTable,
+			Columns: []string{app.TaxAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.InvoicingAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.InvoicingAppTable,
+			Columns: []string{app.InvoicingAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.PaymentAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.PaymentAppTable,
+			Columns: []string{app.PaymentAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

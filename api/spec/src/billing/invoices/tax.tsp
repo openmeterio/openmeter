@@ -41,9 +41,6 @@ scalar TaxIdentificationCode extends string;
 @friendlyName("BillingTaxIdentity")
 @summary("Identity stores the details required to identify an entity for tax purposes in a specific country.")
 model TaxIdentity {
-  @summary("Tax country code for Where the tax identity was issued.")
-  country: CountryCode;
-
   @summary("Normalized tax code shown on the original identity document.")
   code?: TaxIdentificationCode;
 }

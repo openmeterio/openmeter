@@ -7,8 +7,13 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	"github.com/openmeterio/openmeter/api"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appshttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
+
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -16,11 +21,28 @@ import (
 // AlignmentKind specifies what governs when an invoice is issued
 type AlignmentKind string
 
+type Metadata map[string]string
+
 const (
 	// AlignmentKindSubscription specifies that the invoice is issued based on the subscription period (
 	// e.g. whenever a due line item is added, it will trigger an invoice generation after the collection period)
 	AlignmentKindSubscription AlignmentKind = "subscription"
 )
+
+var DefaultWorkflowConfig = WorkflowConfig{
+	Collection: CollectionConfig{
+		Alignment: AlignmentKindSubscription,
+		Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
+	},
+	Invoicing: InvoicingConfig{
+		AutoAdvance: lo.ToPtr(true),
+		DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
+		DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+	},
+	Payment: PaymentConfig{
+		CollectionMethod: CollectionMethodChargeAutomatically,
+	},
+}
 
 func (k AlignmentKind) Values() []string {
 	return []string{
@@ -58,10 +80,57 @@ func (c WorkflowConfig) Validate() error {
 	return nil
 }
 
+func (c WorkflowConfig) ToAPI() api.BillingWorkflow {
+	return api.BillingWorkflow{
+		Id:        c.ID,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+		DeletedAt: c.DeletedAt,
+
+		// TODO: Timezone
+
+		Collection: &api.BillingWorkflowCollectionSettings{
+			Alignment: (*api.BillingWorkflowCollectionAlignment)(lo.EmptyableToPtr(c.Collection.Alignment)),
+			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
+		},
+
+		Invoicing: &api.BillingWorkflowInvoicingSettings{
+			AutoAdvance: c.Invoicing.AutoAdvance,
+			DraftPeriod: lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:    lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+		},
+
+		Payment: &api.BillingWorkflowPaymentSettings{
+			CollectionMethod: (*api.BillingWorkflowCollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+		},
+	}
+}
+
+type AppReference struct {
+	ID   string                `json:"id"`
+	Type appentitybase.AppType `json:"type"`
+}
+
+func (a AppReference) Validate() error {
+	if a.ID == "" && a.Type == "" {
+		return errors.New("id or type is required")
+	}
+
+	if a.ID != "" && a.Type != "" {
+		return errors.New("only one of id or type is allowed")
+	}
+
+	return nil
+}
+
+type CreateWorkflowConfigInput struct {
+	WorkflowConfig
+}
+
 // CollectionConfig groups fields related to item collection.
 type CollectionConfig struct {
-	Alignment            AlignmentKind `json:"alignment"`
-	ItemCollectionPeriod time.Duration `json:"itemCollectionPeriod,omitempty"`
+	Alignment AlignmentKind `json:"alignment"`
+	Interval  datex.Period  `json:"period,omitempty"`
 }
 
 func (c *CollectionConfig) Validate() error {
@@ -69,7 +138,7 @@ func (c *CollectionConfig) Validate() error {
 		return fmt.Errorf("invalid alignment: %s", c.Alignment)
 	}
 
-	if c.ItemCollectionPeriod < 0 {
+	if !c.Interval.IsPositive() {
 		return fmt.Errorf("item collection period must be greater or equal to 0")
 	}
 
@@ -78,27 +147,18 @@ func (c *CollectionConfig) Validate() error {
 
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
-	AutoAdvance bool          `json:"autoAdvance"`
-	DraftPeriod time.Duration `json:"draftPeriod,omitempty"`
-	DueAfter    time.Duration `json:"dueAfter"`
-
-	ItemResolution GranularityResolution `json:"itemResolution"`
-	ItemPerSubject bool                  `json:"itemPerSubject"`
+	AutoAdvance *bool        `json:"autoAdvance"`
+	DraftPeriod datex.Period `json:"draftPeriod,omitempty"`
+	DueAfter    datex.Period `json:"dueAfter"`
 }
 
 func (c *InvoicingConfig) Validate() error {
-	if c.DraftPeriod < 0 && c.AutoAdvance {
+	if c.DraftPeriod.IsNegative() && c.AutoAdvance != nil && *c.AutoAdvance {
 		return fmt.Errorf("draft period must be greater or equal to 0")
 	}
 
-	if c.DueAfter < 0 {
+	if c.DueAfter.IsNegative() {
 		return fmt.Errorf("due after must be greater or equal to 0")
-	}
-
-	switch c.ItemResolution {
-	case GranularityResolutionDay, GranularityResolutionPeriod:
-	default:
-		return fmt.Errorf("invalid line item resolution: %s", c.ItemResolution)
 	}
 
 	return nil
@@ -151,8 +211,10 @@ func (c CollectionMethod) Values() []string {
 }
 
 type SupplierContact struct {
+	ID      string         `json:"id"`
 	Name    string         `json:"name"`
 	Address models.Address `json:"address"`
+	TaxCode *string        `json:"taxCode,omitempty"`
 }
 
 // Validate checks if the supplier contact is valid for invoice generation (e.g. Country is required)
@@ -168,6 +230,26 @@ func (c SupplierContact) Validate() error {
 	return nil
 }
 
+func (c SupplierContact) ToAPI() api.BillingParty {
+	a := c.Address
+
+	return api.BillingParty{
+		Name: lo.EmptyableToPtr(c.Name),
+		// TODO: taxID
+		Addresses: lo.ToPtr([]api.Address{
+			{
+				Country:     (*string)(a.Country),
+				PostalCode:  a.PostalCode,
+				State:       a.State,
+				City:        a.City,
+				Line1:       a.Line1,
+				Line2:       a.Line2,
+				PhoneNumber: a.PhoneNumber,
+			},
+		}),
+	}
+}
+
 type Profile struct {
 	ID        string `json:"id"`
 	Namespace string `json:"namespace"`
@@ -179,15 +261,28 @@ type Profile struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt"`
 
-	TaxConfiguration       provider.TaxConfiguration       `json:"tax"`
-	InvoicingConfiguration provider.InvoicingConfiguration `json:"invoicing"`
-	PaymentConfiguration   provider.PaymentConfiguration   `json:"payment"`
-
 	WorkflowConfig WorkflowConfig `json:"workflow"`
 
 	Supplier SupplierContact `json:"supplier"`
 
-	Default bool `json:"default"`
+	Default  bool     `json:"default"`
+	Metadata Metadata `json:"metadata"`
+
+	// Optionally expanded fields
+	Apps     *ProfileApps             `json:"apps,omitempty"`
+	Customer *customerentity.Customer `json:"customer,omitempty"`
+}
+
+type AdapterProfile struct {
+	Profile
+
+	AppReferences ProfileAppReferences `json:"appReferences"`
+}
+
+type ProfileApps struct {
+	Tax       appentity.App `json:"tax"`
+	Invoicing appentity.App `json:"invoicing"`
+	Payment   appentity.App `json:"payment"`
 }
 
 func (p Profile) Validate() error {
@@ -197,18 +292,6 @@ func (p Profile) Validate() error {
 
 	if p.Name == "" {
 		return errors.New("name is required")
-	}
-
-	if err := p.TaxConfiguration.Validate(); err != nil {
-		return fmt.Errorf("invalid tax configuration: %w", err)
-	}
-
-	if err := p.InvoicingConfiguration.Validate(); err != nil {
-		return fmt.Errorf("invalid invoicing configuration: %w", err)
-	}
-
-	if err := p.PaymentConfiguration.Validate(); err != nil {
-		return fmt.Errorf("invalid payment configuration: %w", err)
 	}
 
 	if err := p.WorkflowConfig.Validate(); err != nil {
@@ -222,18 +305,59 @@ func (p Profile) Validate() error {
 	return nil
 }
 
+// TODO: Make this aprt of the httpdriver instead
+func (p Profile) ToAPI() (api.BillingProfile, error) {
+	out := api.BillingProfile{
+		Id:        p.ID,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+		DeletedAt: p.DeletedAt,
+
+		Description: p.Description,
+		Metadata:    (*api.Metadata)(lo.EmptyableToPtr(p.Metadata)),
+		Default:     p.Default,
+
+		Name:     p.Name,
+		Supplier: p.Supplier.ToAPI(),
+		Workflow: p.WorkflowConfig.ToAPI(),
+	}
+
+	if p.Apps != nil {
+		tax, err := appshttpdriver.MapAppToAPI(p.Apps.Tax)
+		if err != nil {
+			return api.BillingProfile{}, fmt.Errorf("cannot map tax app: %w", err)
+		}
+
+		invoicing, err := appshttpdriver.MapAppToAPI(p.Apps.Invoicing)
+		if err != nil {
+			return api.BillingProfile{}, fmt.Errorf("cannot map invoicing app: %w", err)
+		}
+
+		payment, err := appshttpdriver.MapAppToAPI(p.Apps.Payment)
+		if err != nil {
+			return api.BillingProfile{}, fmt.Errorf("cannot map payment app: %w", err)
+		}
+
+		out.Apps = api.BillingProfileApps{
+			Tax:       tax,
+			Invoicing: invoicing,
+			Payment:   payment,
+		}
+	}
+
+	return out, nil
+}
+
 func (p Profile) Merge(o *CustomerOverride) Profile {
 	p.WorkflowConfig.Collection = CollectionConfig{
-		Alignment:            lo.FromPtrOr(o.Collection.Alignment, p.WorkflowConfig.Collection.Alignment),
-		ItemCollectionPeriod: lo.FromPtrOr(o.Collection.ItemCollectionPeriod, p.WorkflowConfig.Collection.ItemCollectionPeriod),
+		Alignment: lo.FromPtrOr(o.Collection.Alignment, p.WorkflowConfig.Collection.Alignment),
+		Interval:  lo.FromPtrOr(o.Collection.Interval, p.WorkflowConfig.Collection.Interval),
 	}
 
 	p.WorkflowConfig.Invoicing = InvoicingConfig{
-		AutoAdvance:    lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
-		DraftPeriod:    lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
-		DueAfter:       lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
-		ItemResolution: lo.FromPtrOr(o.Invoicing.ItemResolution, p.WorkflowConfig.Invoicing.ItemResolution),
-		ItemPerSubject: lo.FromPtrOr(o.Invoicing.ItemPerSubject, p.WorkflowConfig.Invoicing.ItemPerSubject),
+		AutoAdvance: lo.CoalesceOrEmpty(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
+		DraftPeriod: lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
+		DueAfter:    lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
 	}
 
 	p.WorkflowConfig.Payment = PaymentConfig{
@@ -256,36 +380,95 @@ func (p ProfileWithCustomerDetails) Validate() error {
 	return nil
 }
 
-type CreateProfileInput Profile
+type CreateProfileInput struct {
+	Namespace   string            `json:"namespace"`
+	Name        string            `json:"name"`
+	Description *string           `json:"description"`
+	Metadata    map[string]string `json:"metadata"`
+	Supplier    SupplierContact   `json:"supplier"`
+	Default     bool              `json:"default"`
 
-func (i CreateProfileInput) Validate() error {
-	return Profile(i).Validate()
+	WorkflowConfig WorkflowConfig         `json:"workflowConfig"`
+	Apps           CreateProfileAppsInput `json:"apps"`
 }
 
-// WithDefaults sets the default values for the profile input if not provided,
-// this is useful as the object is pretty big and we don't want to set all the fields
+func (i CreateProfileInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if err := i.Supplier.Validate(); err != nil {
+		return fmt.Errorf("invalid supplier: %w", err)
+	}
+
+	if err := i.WorkflowConfig.Validate(); err != nil {
+		return fmt.Errorf("invalid workflow config: %w", err)
+	}
+
+	if err := i.Apps.Validate(); err != nil {
+		return fmt.Errorf("invalid apps: %w", err)
+	}
+
+	return nil
+}
+
 func (i CreateProfileInput) WithDefaults() CreateProfileInput {
-	if i.WorkflowConfig.Invoicing.ItemResolution == "" {
-		i.WorkflowConfig.Invoicing.ItemResolution = GranularityResolutionPeriod
-	}
-
-	if i.WorkflowConfig.Collection.Alignment == "" {
-		i.WorkflowConfig.Collection.Alignment = AlignmentKindSubscription
-	}
-
-	if i.WorkflowConfig.Payment.CollectionMethod == "" {
-		i.WorkflowConfig.Payment.CollectionMethod = CollectionMethodChargeAutomatically
-	}
-
-	if i.WorkflowConfig.Invoicing.DueAfter == 0 {
-		i.WorkflowConfig.Invoicing.DueAfter = 30 * 24 * time.Hour
-	}
-
-	if i.WorkflowConfig.Invoicing.DraftPeriod == 0 {
-		i.WorkflowConfig.Invoicing.DraftPeriod = 24 * time.Hour
+	i.WorkflowConfig = WorkflowConfig{
+		Collection: CollectionConfig{
+			Alignment: lo.CoalesceOrEmpty(
+				i.WorkflowConfig.Collection.Alignment,
+				DefaultWorkflowConfig.Collection.Alignment),
+			Interval: lo.CoalesceOrEmpty(
+				i.WorkflowConfig.Collection.Interval,
+				DefaultWorkflowConfig.Collection.Interval),
+		},
+		Invoicing: InvoicingConfig{
+			AutoAdvance: lo.CoalesceOrEmpty(
+				i.WorkflowConfig.Invoicing.AutoAdvance,
+				DefaultWorkflowConfig.Invoicing.AutoAdvance),
+			DraftPeriod: lo.CoalesceOrEmpty(
+				i.WorkflowConfig.Invoicing.DraftPeriod,
+				DefaultWorkflowConfig.Invoicing.DraftPeriod),
+			DueAfter: lo.CoalesceOrEmpty(
+				i.WorkflowConfig.Invoicing.DueAfter,
+				DefaultWorkflowConfig.Invoicing.DueAfter),
+		},
+		Payment: PaymentConfig{
+			CollectionMethod: lo.CoalesceOrEmpty(
+				i.WorkflowConfig.Payment.CollectionMethod,
+				DefaultWorkflowConfig.Payment.CollectionMethod),
+		},
 	}
 
 	return i
+}
+
+type CreateProfileAppsInput = ProfileAppReferences
+
+type ProfileAppReferences struct {
+	Tax       AppReference `json:"tax"`
+	Invoicing AppReference `json:"invoicing"`
+	Payment   AppReference `json:"payment"`
+}
+
+func (i ProfileAppReferences) Validate() error {
+	if err := i.Tax.Validate(); err != nil {
+		return fmt.Errorf("invalid tax app reference: %w", err)
+	}
+
+	if err := i.Invoicing.Validate(); err != nil {
+		return fmt.Errorf("invalid invoicing app reference: %w", err)
+	}
+
+	if err := i.Payment.Validate(); err != nil {
+		return fmt.Errorf("invalid payment app reference: %w", err)
+	}
+
+	return nil
 }
 
 type GetDefaultProfileInput struct {
@@ -334,6 +517,10 @@ type UpdateProfileInput Profile
 func (i UpdateProfileInput) Validate() error {
 	if i.ID == "" {
 		return errors.New("id is required")
+	}
+
+	if i.Apps != nil {
+		return errors.New("apps cannot be updated")
 	}
 
 	return Profile(i).Validate()

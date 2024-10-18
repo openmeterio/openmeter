@@ -32,6 +32,7 @@ type Configuration struct {
 	Sink          SinkConfiguration
 	BalanceWorker BalanceWorkerConfiguration
 	Notification  NotificationConfiguration
+	Billing       BillingConfiguration
 	StripeApp     StripeAppConfig
 	Svix          SvixConfig
 }
@@ -148,4 +149,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
 	ConfigureStripe(v)
+	ConfigureBilling(v)
 }
