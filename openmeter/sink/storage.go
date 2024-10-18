@@ -50,10 +50,11 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 		// With the `wait_for_async_insert` setting, you can configure
 		// if you want an insert statement to return with an acknowledgment
 		// either immediately after the data got inserted into the buffer.
-		ctx = clickhouse.Context(ctx, clickhouse.WithStdAsync(c.config.AsyncInsertWait))
+		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
+	} else {
+		err = c.config.ClickHouse.Exec(ctx, sql, args...)
 	}
 
-	err = c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("failed to batch insert events: %w", err)
 	}
