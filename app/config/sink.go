@@ -140,8 +140,6 @@ func ConfigureSink(v *viper.Viper) {
 	// Sink Storage
 	v.SetDefault("sink.storage.asyncInsert", false)
 	v.SetDefault("sink.storage.asyncInsertWait", false)
-	v.SetDefault("sink.storage.maxInsertThreads", 0)
-	v.SetDefault("sink.storage.parallelViewProcessing", false)
 
 	// Sink Kafka configuration
 	ConfigureKafkaConfiguration(v, "sink")
