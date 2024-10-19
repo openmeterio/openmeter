@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/openmeter/meter"
+	ommeter "github.com/openmeterio/openmeter/openmeter/meter"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -57,8 +57,30 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 			//
 			// On the other hand we still want to collect the list of affected meters
 			// for the FlushEventHandler.
-			if m.Status.Error == nil {
-				validateEventWithMeter(meter, m)
+			if m.Status.Error != nil {
+				return
+			}
+
+			// Parse kafka event
+			event, err := serializer.FromKafkaPayloadToCloudEvents(*m.Serialized)
+			if err != nil {
+				m.Status = sinkmodels.ProcessingStatus{
+					State: sinkmodels.INVALID,
+					Error: errors.New("cannot unmarshal event data"),
+				}
+
+				return
+			}
+
+			// Parse event with meter
+			_, _, _, err = ommeter.ParseEvent(meter, event)
+			if err != nil {
+				m.Status = sinkmodels.ProcessingStatus{
+					State: sinkmodels.INVALID,
+					Error: err,
+				}
+
+				return
 			}
 		}
 	}
@@ -69,28 +91,5 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 			State: sinkmodels.INVALID,
 			Error: fmt.Errorf("no meter found for event type: %s", m.Serialized.Type),
 		}
-	}
-}
-
-// validateEventWithMeter validates a single event against a single meter
-func validateEventWithMeter(m models.Meter, sm *sinkmodels.SinkMessage) {
-	ev, err := serializer.FromKafkaPayloadToCloudEvents(*sm.Serialized)
-	if err != nil {
-		sm.Status = sinkmodels.ProcessingStatus{
-			State: sinkmodels.INVALID,
-			Error: errors.New("cannot unmarshal event data"),
-		}
-
-		return
-	}
-
-	err = meter.ValidateEvent(m, ev)
-	if err != nil {
-		sm.Status = sinkmodels.ProcessingStatus{
-			State: sinkmodels.INVALID,
-			Error: err,
-		}
-
-		return
 	}
 }

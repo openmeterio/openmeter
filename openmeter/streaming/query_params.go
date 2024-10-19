@@ -14,7 +14,6 @@ type QueryParams struct {
 	FilterSubject  []string
 	FilterGroupBy  map[string][]string
 	GroupBy        []string
-	Aggregation    models.MeterAggregation
 	WindowSize     *models.WindowSize
 	WindowTimeZone *time.Location
 }

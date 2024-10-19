@@ -15,9 +15,8 @@ type EndCurrentUsagePeriodParams struct {
 }
 
 type OwnerMeter struct {
-	MeterSlug     string
-	DefaultParams *streaming.QueryParams
-	WindowSize    models.WindowSize
+	Meter         models.Meter
+	DefaultParams streaming.QueryParams
 	SubjectKey    string
 }
 

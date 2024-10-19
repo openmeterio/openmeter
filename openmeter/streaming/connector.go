@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,12 +31,34 @@ type CountEventRow struct {
 	IsError bool
 }
 
+type ListMeterSubjectsParams struct {
+	From *time.Time
+	To   *time.Time
+}
+
+// RawEvent represents a single raw event
+type RawEvent struct {
+	Namespace       string
+	ValidationError string
+	ID              string
+	Type            string
+	Source          string
+	Subject         string
+	Time            time.Time
+	Data            string
+	IngestedAt      time.Time
+	StoredAt        time.Time
+}
+
 type Connector interface {
+	namespace.Handler
+
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
-	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
-	DeleteMeter(ctx context.Context, namespace string, meterSlug string) error
-	QueryMeter(ctx context.Context, namespace string, meterSlug string, params *QueryParams) ([]models.MeterQueryRow, error)
-	ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error)
+	CreateMeter(ctx context.Context, namespace string, meter models.Meter) error
+	DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error
+	QueryMeter(ctx context.Context, namespace string, meter models.Meter, params QueryParams) ([]models.MeterQueryRow, error)
+	ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params ListMeterSubjectsParams) ([]string, error)
+	BatchInsert(ctx context.Context, events []RawEvent) error
 	// Add more methods as needed ...
 }
