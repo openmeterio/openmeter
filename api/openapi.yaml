@@ -3338,7 +3338,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Meter'
+              $ref: '#/components/schemas/MeterCreate'
   /api/v1/meters/{meterIdOrSlug}:
     get:
       operationId: getMeter
@@ -5991,7 +5991,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntitlementCreateInputs'
+                $ref: '#/components/schemas/Entitlement'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -9802,6 +9802,7 @@ components:
         - source
         - specversion
         - type
+        - subject
       properties:
         id:
           type: string
@@ -10497,6 +10498,64 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.MeterAggregation
+    MeterCreate:
+      type: object
+      required:
+        - slug
+        - aggregation
+        - windowSize
+        - eventType
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: |-
+            A unique, human-readable identifier for the meter.
+            Must consist only alphanumeric and underscore characters.
+          example: tokens_total
+        description:
+          type: string
+          example: AI Token Usage
+          minLength: 1
+          description: A description of the meter.
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/MeterAggregation'
+          example: SUM
+        windowSize:
+          allOf:
+            - $ref: '#/components/schemas/WindowSize'
+          example: MINUTE
+        eventType:
+          type: string
+          example: prompt
+          minLength: 1
+          description: The event type to aggregate.
+        valueProperty:
+          type: string
+          example: $.tokens
+          minLength: 1
+          description: |-
+            JSONPath expression to extract the value from the ingested event's data property.
+
+            The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+
+            For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+        groupBy:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            type: $.type
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+
+            TODO: add key format enforcement
+      description: Resource create operation model.
     MeterQueryResult:
       type: object
       required:

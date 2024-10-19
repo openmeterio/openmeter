@@ -31,7 +31,7 @@ interface Subjects {
     @body entitlement: EntitlementCreateInputs,
   ): {
     @statusCode _: 201;
-    @body body: EntitlementCreateInputs;
+    @body body: Entitlement;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
 
   /**
