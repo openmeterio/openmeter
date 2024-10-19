@@ -42,7 +42,7 @@ model Subject {
    * A human-readable display name for the subject.
    */
   @example("Customer Name")
-  displayName?: string;
+  displayName?: string | null;
 
   // TODO: figure out if we want to support arbitrary values or string only
 

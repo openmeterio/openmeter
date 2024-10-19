@@ -12548,6 +12548,7 @@ components:
           description: A unique, human-readable identifier for the subject.
         displayName:
           type: string
+          nullable: true
           example: Customer Name
           description: A human-readable display name for the subject.
         metadata:
@@ -12590,6 +12591,7 @@ components:
           description: A unique, human-readable identifier for the subject.
         displayName:
           type: string
+          nullable: true
           example: Customer Name
           description: A human-readable display name for the subject.
         metadata:
