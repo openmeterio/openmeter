@@ -94,10 +94,16 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 
 		// Meter events per meter
 		for _, meterEvent := range message.MeterEvents {
+			meterID := meterEvent.Meter.ID
+
+			if meterID == "" {
+				meterID = meterEvent.Meter.Slug
+			}
+
 			meterEvent := clickhouse_connector.CHMeterEvent{
 				Namespace:   message.Namespace,
 				Time:        rawEvent.Time,
-				Meter:       meterEvent.Meter.ID,
+				Meter:       meterID,
 				Subject:     rawEvent.Subject,
 				Value:       meterEvent.Value,
 				GroupBy:     meterEvent.GroupBy,
