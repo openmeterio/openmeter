@@ -188,7 +188,7 @@ model Event {
    */
   @minLength(1)
   @example("customer-id")
-  subject?: string;
+  subject: string;
 
   /**
    * Timestamp of when the occurrence happened. Must adhere to RFC 3339.

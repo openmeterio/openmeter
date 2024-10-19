@@ -43,7 +43,7 @@ interface Meters extends OpenMeter.Meters {
    */
   @post
   @operationId("createMeter")
-  create(@body meter: OpenMeter.Meter): {
+  create(@body meter: Rest.Resource.ResourceCreateModel<OpenMeter.Meter>): {
     @statusCode _: 201;
     @body body: OpenMeter.Meter;
   } | OpenMeter.CommonErrors;
