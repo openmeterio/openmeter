@@ -151,6 +151,11 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
 
+	err = c.createMeterEventTable(ctx)
+	if err != nil {
+		return fmt.Errorf("create namespace in clickhouse: %w", err)
+	}
+
 	return nil
 }
 
@@ -211,6 +216,19 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
 	if err != nil {
 		return fmt.Errorf("create events table: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClickhouseConnector) createMeterEventTable(ctx context.Context) error {
+	table := createMeterEventTable{
+		Database: c.config.Database,
+	}
+
+	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
+	if err != nil {
+		return fmt.Errorf("create meter event table: %w", err)
 	}
 
 	return nil
