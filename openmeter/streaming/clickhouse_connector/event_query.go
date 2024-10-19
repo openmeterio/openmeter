@@ -9,7 +9,7 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 )
 
-const EventsTableName = "events"
+const EventsTableName = "om_events"
 
 // CHEvent represents a raw event in ClickHouse
 type CHEvent struct {
@@ -176,5 +176,5 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 }
 
 func GetEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, EventsTableName)
+	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), EventsTableName)
 }

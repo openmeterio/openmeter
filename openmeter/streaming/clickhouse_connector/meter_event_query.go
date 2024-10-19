@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	MeterEventTableName = "meter_events"
+	MeterEventTableName = "om_meter_events"
 )
 
 // Meter Event represents a single meter event in ClickHouse
@@ -127,5 +127,5 @@ func (q InsertMeterEventsQuery) ToSQL() (string, []interface{}) {
 
 // Get Meter Events Table Name
 func GetMeterEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, MeterEventTableName)
+	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), MeterEventTableName)
 }

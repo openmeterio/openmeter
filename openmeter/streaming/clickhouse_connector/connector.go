@@ -18,8 +18,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var tablePrefix = "om_"
-
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type ClickhouseConnector struct {
 	config ClickhouseConnectorConfig
