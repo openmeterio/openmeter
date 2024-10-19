@@ -11967,7 +11967,7 @@ components:
         - updatedAt
         - key
         - type
-        - billingCandence
+        - billingCadence
         - price
       properties:
         name:
@@ -12041,7 +12041,7 @@ components:
             The tax config of the rate card.
             When undefined, the tax config of the feature or the default tax config of the plan is used.
           title: Tax config
-        billingCandence:
+        billingCadence:
           type: string
           format: duration
           nullable: true
@@ -12137,7 +12137,7 @@ components:
         - updatedAt
         - key
         - type
-        - billingCandence
+        - billingCadence
         - price
       properties:
         name:
@@ -12211,7 +12211,7 @@ components:
             The tax config of the rate card.
             When undefined, the tax config of the feature or the default tax config of the plan is used.
           title: Tax config
-        billingCandence:
+        billingCadence:
           type: string
           format: duration
           description: The billing cadence of the rate card.

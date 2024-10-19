@@ -71,7 +71,7 @@ model RateCardFlatFee {
    */
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
-  billingCandence: duration | null;
+  billingCadence: duration | null;
 
   /**
    * The price of the rate card.
@@ -102,7 +102,7 @@ model RateCardUsageBased {
    */
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
-  billingCandence: duration;
+  billingCadence: duration;
 
   /**
    * The price of the rate card.
