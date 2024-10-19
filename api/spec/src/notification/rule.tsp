@@ -308,6 +308,6 @@ interface Rules {
   @operationId("testNotificationRule")
   test(@path ruleId: ULID): {
     @statusCode _: 201;
-    @body body: Event;
+    @body body: NotificationEvent;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
