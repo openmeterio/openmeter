@@ -10555,7 +10555,20 @@ components:
             Keys must be unique and consist only alphanumeric and underscore characters.
 
             TODO: add key format enforcement
-      description: Resource create operation model.
+      example:
+        slug: tokens_total
+        description: AI Token Usage
+        aggregation: SUM
+        windowSize: MINUTE
+        eventType: prompt
+        valueProperty: $.tokens
+        groupBy:
+          model: $.model
+          type: $.type
+      description: A meter is a configuration that defines how to match and aggregate events.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/models
+      x-go-type: models.Meter
     MeterQueryResult:
       type: object
       required:

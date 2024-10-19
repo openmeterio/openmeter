@@ -43,7 +43,10 @@ interface Meters extends OpenMeter.Meters {
    */
   @post
   @operationId("createMeter")
-  create(@body meter: Rest.Resource.ResourceCreateModel<OpenMeter.Meter>): {
+  create(
+    @body
+    meter: MeterCreate,
+  ): {
     @statusCode _: 201;
     @body body: OpenMeter.Meter;
   } | OpenMeter.CommonErrors;
@@ -203,3 +206,25 @@ namespace OpenMeterCloud.ProductCatalog {
   @tag("Plan (Experimental)")
   interface PlanByIdPhases extends OpenMeter.ProductCatalog.PlanPhases {}
 }
+
+/**
+ * A meter is a configuration that defines how to match and aggregate events.
+ */
+@extension("x-go-type", "models.Meter")
+@extension(
+  "x-go-type-import",
+  {
+    path: "github.com/openmeterio/openmeter/pkg/models",
+  }
+)
+@friendlyName("MeterCreate")
+@example(#{
+  slug: "tokens_total",
+  description: "AI Token Usage",
+  aggregation: OpenMeter.MeterAggregation.SUM,
+  windowSize: OpenMeter.WindowSize.MINUTE,
+  eventType: "prompt",
+  valueProperty: "$.tokens",
+  groupBy: #{ `model`: "$.model", type: "$.type" },
+})
+model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
