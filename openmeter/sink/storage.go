@@ -22,7 +22,7 @@ type ClickHouseStorageConfig struct {
 	Database        string
 	AsyncInsert     bool
 	AsyncInsertWait bool
-	QuerySettings   map[string]interface{}
+	QuerySettings   map[string]string
 }
 
 func (c ClickHouseStorageConfig) Validate() error {
@@ -85,7 +85,7 @@ type InsertEventsQuery struct {
 	Clock         Clock
 	Database      string
 	Messages      []sinkmodels.SinkMessage
-	QuerySettings map[string]interface{}
+	QuerySettings map[string]string
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
@@ -98,7 +98,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 	// Add settings
 	var settings []string
 	for key, value := range q.QuerySettings {
-		settings = append(settings, fmt.Sprintf("%s = %v", key, value))
+		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
 	}
 
 	if len(settings) > 0 {
