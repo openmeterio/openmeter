@@ -183,6 +183,7 @@ func TestComplete(t *testing.T) {
 			Storage: StorageConfiguration{
 				AsyncInsert:     false,
 				AsyncInsertWait: false,
+				QuerySettings:   map[string]interface{}{},
 			},
 		},
 		Dedupe: DedupeConfiguration{

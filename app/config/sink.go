@@ -91,6 +91,11 @@ type StorageConfiguration struct {
 	// without waiting for the data got inserted into the buffer.
 	// Setting true can cause silent errors that you need to monitor separately.
 	AsyncInsertWait bool
+
+	// See https://clickhouse.com/docs/en/operations/settings/settings
+	// For example, you can set the `max_insert_threads` setting to control the number of threads
+	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
+	QuerySettings map[string]interface{}
 }
 
 func (c StorageConfiguration) Validate() error {
@@ -135,6 +140,8 @@ func ConfigureSink(v *viper.Viper) {
 	// Sink Storage
 	v.SetDefault("sink.storage.asyncInsert", false)
 	v.SetDefault("sink.storage.asyncInsertWait", false)
+	v.SetDefault("sink.storage.maxInsertThreads", 0)
+	v.SetDefault("sink.storage.parallelViewProcessing", false)
 
 	// Sink Kafka configuration
 	ConfigureKafkaConfiguration(v, "sink")

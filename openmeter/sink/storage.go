@@ -3,6 +3,7 @@ package sink
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -21,12 +22,29 @@ type ClickHouseStorageConfig struct {
 	Database        string
 	AsyncInsert     bool
 	AsyncInsertWait bool
+	QuerySettings   map[string]interface{}
 }
 
-func NewClickhouseStorage(config ClickHouseStorageConfig) *ClickHouseStorage {
+func (c ClickHouseStorageConfig) Validate() error {
+	if c.ClickHouse == nil {
+		return fmt.Errorf("clickhouse connection is required")
+	}
+
+	if c.Database == "" {
+		return fmt.Errorf("database is required")
+	}
+
+	return nil
+}
+
+func NewClickhouseStorage(config ClickHouseStorageConfig) (*ClickHouseStorage, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &ClickHouseStorage{
 		config: config,
-	}
+	}, nil
 }
 
 type ClickHouseStorage struct {
@@ -35,9 +53,10 @@ type ClickHouseStorage struct {
 
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	query := InsertEventsQuery{
-		Clock:    realClock{},
-		Database: c.config.Database,
-		Messages: messages,
+		Clock:         realClock{},
+		Database:      c.config.Database,
+		Messages:      messages,
+		QuerySettings: c.config.QuerySettings,
 	}
 	sql, args, err := query.ToSQL()
 	if err != nil {
@@ -63,9 +82,10 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 }
 
 type InsertEventsQuery struct {
-	Clock    Clock
-	Database string
-	Messages []sinkmodels.SinkMessage
+	Clock         Clock
+	Database      string
+	Messages      []sinkmodels.SinkMessage
+	QuerySettings map[string]interface{}
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
@@ -74,6 +94,16 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
 	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
+
+	// Add settings
+	var settings []string
+	for key, value := range q.QuerySettings {
+		settings = append(settings, fmt.Sprintf("%s = %v", key, value))
+	}
+
+	if len(settings) > 0 {
+		query.SQL(fmt.Sprintf("SETTINGS %s", strings.Join(settings, ", ")))
+	}
 
 	for _, message := range q.Messages {
 		var eventErr string
