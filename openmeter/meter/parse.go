@@ -43,11 +43,11 @@ func ParseEvent(meter Meter, ev event.Event) (float64, map[string]string, error)
 	switch meter.Aggregation {
 	// UNIQUE_COUNT aggregation requires string property value
 	case MeterAggregationUniqueCount:
-		switch value := rawValue.(type) {
-		case string:
-			return 1, groupBy, nil
-		case float64:
-			return value, groupBy, nil
+		switch rawValue.(type) {
+		case string, float64:
+			// We return 0 because the meter is unique by this string value.
+			// The actual value is not used in the aggregation even if it's number.
+			return 0, groupBy, nil
 
 		default:
 			return 0, groupBy, errors.New("event data value property must be string for unique count aggregation")

@@ -32,9 +32,9 @@ type queryMeter struct {
 }
 
 func (d queryMeter) toSQL() (string, []interface{}, error) {
-	viewAlias := "meter"
-	tableName := fmt.Sprintf("%s %s", GetMeterEventsTableName(d.Database), viewAlias)
-	getColumn := columnFactory(viewAlias)
+	tableName := GetMeterEventsTableName(d.Database)
+	getColumn := columnFactory(MeterEventTableName)
+	timeColumn := getColumn("time")
 
 	var selectColumns, groupByColumns, where []string
 
@@ -50,22 +50,22 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		case models.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(time, toIntervalMinute(1), '%s') AS windowstart", tz),
-				fmt.Sprintf("tumbleEnd(time, toIntervalMinute(1), '%s') AS windowend", tz),
+				fmt.Sprintf("tumbleStart(%s, toIntervalMinute(1), '%s') AS windowstart", timeColumn, tz),
+				fmt.Sprintf("tumbleEnd(%s, toIntervalMinute(1), '%s') AS windowend", timeColumn, tz),
 			)
 
 		case models.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(time, toIntervalHour(1), '%s') AS windowstart", tz),
-				fmt.Sprintf("tumbleEnd(time, toIntervalHour(1), '%s') AS windowend", tz),
+				fmt.Sprintf("tumbleStart(%s, toIntervalHour(1), '%s') AS windowstart", timeColumn, tz),
+				fmt.Sprintf("tumbleEnd(%s, toIntervalHour(1), '%s') AS windowend", timeColumn, tz),
 			)
 
 		case models.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(time, toIntervalDay(1), '%s') AS windowstart", tz),
-				fmt.Sprintf("tumbleEnd(time, toIntervalDay(1), '%s') AS windowend", tz),
+				fmt.Sprintf("tumbleStart(%s, toIntervalDay(1), '%s') AS windowstart", timeColumn, tz),
+				fmt.Sprintf("tumbleEnd(%s, toIntervalDay(1), '%s') AS windowend", timeColumn, tz),
 			)
 
 		default:
@@ -79,83 +79,96 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
-		selectColumns = append(selectColumns, "sum(value) AS value")
+		selectColumns = append(selectColumns, fmt.Sprintf("sum(%s) AS value", getColumn("value")))
 	case models.MeterAggregationAvg:
-		selectColumns = append(selectColumns, "avg(value) AS value")
+		selectColumns = append(selectColumns, fmt.Sprintf("avg(%s) AS value", getColumn("value")))
 	case models.MeterAggregationMin:
-		selectColumns = append(selectColumns, "min(value) AS value")
+		selectColumns = append(selectColumns, fmt.Sprintf("min(%s) AS value", getColumn("value")))
 	case models.MeterAggregationMax:
-		selectColumns = append(selectColumns, "max(value) AS value")
+		selectColumns = append(selectColumns, fmt.Sprintf("max(%s) AS value", getColumn("value")))
 	case models.MeterAggregationUniqueCount:
 		// FIXME: value is a number, not a string
-		selectColumns = append(selectColumns, "toFloat64(uniq(value)) AS value")
+		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(uniq(%s)) AS value", getColumn("value")))
 	case models.MeterAggregationCount:
-		selectColumns = append(selectColumns, "sum(value) AS value")
+		selectColumns = append(selectColumns, fmt.Sprintf("sum(%s) AS value", getColumn("value")))
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	for _, column := range d.GroupBy {
-		c := sqlbuilder.Escape(column)
-		selectColumn := fmt.Sprintf("group_by['%s'] as %s", c, c)
+	for _, groupByKey := range d.GroupBy {
+		c := sqlbuilder.Escape(groupByKey)
+		selectColumn := fmt.Sprintf("%s['%s'] as %s", getColumn("group_by"), c, c)
+
+		// Subject is a special case
+		if groupByKey == "subject" {
+			selectColumn = getColumn("subject")
+		}
+
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, c)
 	}
 
-	queryView := sqlbuilder.ClickHouse.NewSelectBuilder()
-	queryView.Select(selectColumns...)
-	queryView.From(tableName)
-	queryView.Where(queryView.Equal("namespace", d.Namespace))
-	queryView.Where(queryView.Equal("meter", d.MeterSlug))
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select(selectColumns...)
+	query.From(tableName)
+	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
+	query.Where(query.Equal(getColumn("meter"), d.MeterSlug))
 
 	if len(d.Subject) > 0 {
 		mapFunc := func(subject string) string {
-			return queryView.Equal(getColumn("subject"), subject)
+			return query.Equal(getColumn("subject"), subject)
 		}
 
-		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
+		where = append(where, query.Or(slicesx.Map(d.Subject, mapFunc)...))
 	}
 
 	if len(d.FilterGroupBy) > 0 {
-		// We sort the columns to ensure the query is deterministic
-		columns := make([]string, 0, len(d.FilterGroupBy))
+		// We sort the group by s to ensure the query is deterministic
+		groupByKeys := make([]string, 0, len(d.FilterGroupBy))
 		for k := range d.FilterGroupBy {
-			columns = append(columns, k)
+			groupByKeys = append(groupByKeys, k)
 		}
-		sort.Strings(columns)
+		sort.Strings(groupByKeys)
 
-		for _, column := range columns {
-			values := d.FilterGroupBy[column]
+		for _, groupByKey := range groupByKeys {
+			values := d.FilterGroupBy[groupByKey]
 			if len(values) == 0 {
-				return "", nil, fmt.Errorf("empty filter for group by: %s", column)
+				return "", nil, fmt.Errorf("empty filter for group by: %s", groupByKey)
 			}
 			mapFunc := func(value string) string {
-				return queryView.Equal(sqlbuilder.Escape(getColumn(column)), value)
+				column := sqlbuilder.Escape(fmt.Sprintf("%s['%s']", getColumn("group_by"), groupByKey))
+
+				// Subject is a special case
+				if groupByKey == "subject" {
+					column = fmt.Sprintf("subject")
+				}
+
+				return query.Equal(column, value)
 			}
 
-			where = append(where, queryView.Or(slicesx.Map(values, mapFunc)...))
+			where = append(where, query.Or(slicesx.Map(values, mapFunc)...))
 		}
 	}
 
 	if d.From != nil {
-		where = append(where, queryView.GreaterEqualThan(getColumn("time"), d.From.Unix()))
+		where = append(where, query.GreaterEqualThan(getColumn("time"), d.From.Unix()))
 	}
 
 	if d.To != nil {
-		where = append(where, queryView.LessEqualThan(getColumn("time"), d.To.Unix()))
+		where = append(where, query.LessEqualThan(getColumn("time"), d.To.Unix()))
 	}
 
 	if len(where) > 0 {
-		queryView.Where(where...)
+		query.Where(where...)
 	}
 
-	queryView.GroupBy(groupByColumns...)
+	query.GroupBy(groupByColumns...)
 
 	if groupByWindowSize {
-		queryView.OrderBy("windowstart")
+		query.OrderBy("windowstart")
 	}
 
-	sql, args := queryView.Build()
+	sql, args := query.Build()
 	return sql, args, nil
 }
 
