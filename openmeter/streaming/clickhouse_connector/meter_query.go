@@ -12,16 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type column struct {
-	Name string
-	Type string
-}
-
 type queryMeter struct {
 	Database       string
 	Namespace      string
-	MeterSlug      string
-	Aggregation    models.MeterAggregation
+	Meter          models.Meter
 	Subject        []string
 	FilterGroupBy  map[string][]string
 	From           *time.Time
@@ -77,7 +71,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, "min(windowstart)", "max(windowend)")
 	}
 
-	switch d.Aggregation {
+	switch d.Meter.Aggregation {
 	case models.MeterAggregationSum:
 		selectColumns = append(selectColumns, fmt.Sprintf("sum(%s) AS value", getColumn("value")))
 	case models.MeterAggregationAvg:
@@ -87,12 +81,11 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 	case models.MeterAggregationMax:
 		selectColumns = append(selectColumns, fmt.Sprintf("max(%s) AS value", getColumn("value")))
 	case models.MeterAggregationUniqueCount:
-		// FIXME: value is a number, not a string
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(uniq(%s)) AS value", getColumn("value")))
+		selectColumns = append(selectColumns, fmt.Sprintf("toDecimal(uniq(%s)) AS value", getColumn("value_str")))
 	case models.MeterAggregationCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("sum(%s) AS value", getColumn("value")))
 	default:
-		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
+		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -112,7 +105,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 	query.Select(selectColumns...)
 	query.From(tableName)
 	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
-	query.Where(query.Equal(getColumn("meter"), d.MeterSlug))
+	query.Where(query.Equal(getColumn("meter"), d.Meter.GetID()))
 
 	if len(d.Subject) > 0 {
 		mapFunc := func(subject string) string {
@@ -140,7 +133,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 
 				// Subject is a special case
 				if groupByKey == "subject" {
-					column = fmt.Sprintf("subject")
+					column = "subject"
 				}
 
 				return query.Equal(column, value)
@@ -170,17 +163,6 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 
 	sql, args := query.Build()
 	return sql, args, nil
-}
-
-func sortedKeys(m map[string]string) []string {
-	keys := make([]string, len(m))
-	i := 0
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 type listMeterSubjectsQuery struct {

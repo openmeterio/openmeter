@@ -22,8 +22,9 @@ type CHMeterEvent struct {
 	Subject   string    `ch:"subject"`
 
 	// Usage
-	Value   float64           `ch:"value"`
-	GroupBy map[string]string `ch:"group_by"`
+	Value       float64           `ch:"value"`
+	ValueString string            `ch:"value_str"`
+	GroupBy     map[string]string `ch:"group_by"`
 
 	// Metadata
 	EventID     string    `ch:"event_id"`
@@ -53,6 +54,8 @@ func (d createMeterEventTable) toSQL() string {
 
 	// Usage
 	sb.Define("value", "Decimal(14, 4)")
+	// For unique aggregation we need to store the value as a string
+	sb.Define("value_str", "String")
 	sb.Define("group_by", "Map(String, String)")
 
 	// Metadata
@@ -87,6 +90,7 @@ func (q InsertMeterEventsQuery) ToSQL() (string, []interface{}) {
 		"meter",
 		"subject",
 		"value",
+		"value_str",
 		"group_by",
 		"event_id",
 		"event_source",
@@ -112,6 +116,7 @@ func (q InsertMeterEventsQuery) ToSQL() (string, []interface{}) {
 			meterEvent.Meter,
 			meterEvent.Subject,
 			meterEvent.Value,
+			meterEvent.ValueString,
 			meterEvent.GroupBy,
 			meterEvent.EventID,
 			meterEvent.EventSource,

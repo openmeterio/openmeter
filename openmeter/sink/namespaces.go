@@ -72,8 +72,8 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 				}
 			}
 
-			// Validate event against meter
-			value, groupBy, err := ommeter.ParseEvent(meter, event)
+			// Parse event with meter
+			value, valueString, groupBy, err := ommeter.ParseEvent(meter, event)
 			if err != nil {
 				m.Status = sinkmodels.ProcessingStatus{
 					State: sinkmodels.INVALID,
@@ -83,11 +83,23 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 				return
 			}
 
-			m.MeterEvents = append(m.MeterEvents, sinkmodels.MeterEvent{
+			// Create meter event
+			meterEvent := sinkmodels.MeterEvent{
 				Meter:   &meter,
-				Value:   value,
 				GroupBy: groupBy,
-			})
+			}
+
+			// Meterring numeric value
+			if value != nil {
+				meterEvent.Value = *value
+			}
+
+			// Meterring string value
+			if valueString != nil {
+				meterEvent.ValueString = *valueString
+			}
+
+			m.MeterEvents = append(m.MeterEvents, meterEvent)
 		}
 	}
 

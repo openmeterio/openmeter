@@ -20,9 +20,10 @@ type SinkMessage struct {
 }
 
 type MeterEvent struct {
-	Meter   *models.Meter
-	Value   float64
-	GroupBy map[string]string
+	Meter       *models.Meter
+	Value       float64
+	ValueString string
+	GroupBy     map[string]string
 }
 
 type ProcessingState int8

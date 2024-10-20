@@ -96,7 +96,7 @@ func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace stri
 	return nil
 }
 
-func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
 	if params.FilterSubject == nil {

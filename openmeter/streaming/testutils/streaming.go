@@ -67,18 +67,18 @@ func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace stri
 
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
-func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	rows := []models.MeterQueryRow{}
-	_, rowOk := m.rows[meterSlug]
+	_, rowOk := m.rows[meter.Slug]
 
 	if rowOk {
-		for _, row := range m.rows[meterSlug] {
+		for _, row := range m.rows[meter.Slug] {
 			if row.WindowStart.Equal(*params.From) && row.WindowEnd.Equal(*params.To) {
 				rows = append(rows, row)
 			}
 		}
 	} else {
-		row, err := m.aggregateEvents(meterSlug, params)
+		row, err := m.aggregateEvents(meter.Slug, params)
 		if err != nil {
 			return rows, err
 		}
