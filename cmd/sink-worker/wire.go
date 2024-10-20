@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-slog/otelslog"
 	"github.com/google/wire"
+	slogmulti "github.com/samber/slog-multi"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/trace"
@@ -70,9 +71,9 @@ func metadata(conf config.Configuration) common.Metadata {
 }
 
 // TODO: use the primary logger
-func NewLogger(conf config.Configuration, res *resource.Resource) *slog.Logger {
-	logger := slog.New(otelslog.NewHandler(conf.Telemetry.Log.NewHandler(os.Stdout)))
-	logger = otelslog.WithResource(logger, res)
-
-	return logger
+func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource) *slog.Logger {
+	return slog.New(slogmulti.Pipe(
+		otelslog.ResourceMiddleware(res),
+		otelslog.NewHandler,
+	).Handler(conf.NewHandler(os.Stdout)))
 }
