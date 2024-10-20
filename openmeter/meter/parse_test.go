@@ -5,18 +5,19 @@ import (
 	"testing"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestParseEvent(t *testing.T) {
 	meterSum := meter.Meter{
 		Namespace:     "default",
 		Slug:          "m1",
-		Description:   "",
-		Aggregation:   "SUM",
+		Aggregation:   models.MeterAggregationSum,
 		EventType:     "api-calls",
 		ValueProperty: "$.duration_ms",
 		GroupBy: map[string]string{
@@ -29,18 +30,27 @@ func TestParseEvent(t *testing.T) {
 	meterCount := meter.Meter{
 		Namespace:   "default",
 		Slug:        "m2",
-		Description: "",
-		Aggregation: "COUNT",
+		Aggregation: models.MeterAggregationCount,
 		EventType:   "api-calls",
 		WindowSize:  meter.WindowSizeMinute,
+	}
+
+	meterUniqueCount := meter.Meter{
+		Namespace:     "default",
+		Slug:          "m3",
+		Aggregation:   models.MeterAggregationUniqueCount,
+		EventType:     "spans",
+		ValueProperty: "$.trace_id",
+		WindowSize:    meter.WindowSizeMinute,
 	}
 
 	tests := []struct {
 		description string
 		meter       meter.Meter
 		event       func(t *testing.T) event.Event
-		want        error
-		value       float64
+		err         error
+		value       *float64
+		valueStr    *string
 		groupBy     map[string]string
 	}{
 		{
@@ -55,7 +65,7 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			value: 100,
+			value: lo.ToPtr(100.0),
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -70,8 +80,23 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			value:   1,
+			value:   lo.ToPtr(1.0),
 			groupBy: map[string]string{},
+		},
+		{
+			description: "should parse unique count as string",
+			meter:       meterUniqueCount,
+			event: func(t *testing.T) event.Event {
+				ev := event.New()
+				ev.SetType("spans")
+
+				err := ev.SetData(event.ApplicationJSON, []byte(`{"trace_id": "test_trace_id"}`))
+				require.NoError(t, err)
+
+				return ev
+			},
+			valueStr: lo.ToPtr("test_trace_id"),
+			groupBy:  map[string]string{},
 		},
 		{
 			description: "should parse event with missing group by properties",
@@ -85,8 +110,11 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			value:   100,
-			groupBy: map[string]string{},
+			value: lo.ToPtr(100.0),
+			groupBy: map[string]string{
+				"method": "",
+				"path":   "",
+			},
 		},
 		{
 			description: "should return error with invalid json",
@@ -100,7 +128,7 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			want:    errors.New("cannot unmarshal event data"),
+			err:     errors.New("cannot unmarshal event data"),
 			groupBy: map[string]string{},
 		},
 		{
@@ -115,7 +143,7 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			want: errors.New("event data is missing value property at \"$.duration_ms\""),
+			err: errors.New("event data is missing value property at \"$.duration_ms\""),
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -133,7 +161,7 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			want: errors.New("event data value cannot be null"),
+			err: errors.New("event data value cannot be null"),
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -151,7 +179,7 @@ func TestParseEvent(t *testing.T) {
 
 				return ev
 			},
-			want: errors.New("event data value cannot be parsed as float64: not a number"),
+			err: errors.New("event data value cannot be parsed as float64: not a number"),
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -163,15 +191,11 @@ func TestParseEvent(t *testing.T) {
 		test := test
 
 		t.Run(test.description, func(t *testing.T) {
-			value, groupBy, err := meter.ParseEvent(test.meter, test.event(t))
-			if test.want == nil {
-				assert.Nil(t, err)
+			value, valueStr, groupBy, err := meter.ParseEvent(test.meter, test.event(t))
 
-				return
-			}
-
-			assert.Equal(t, test.want, err)
+			assert.Equal(t, test.err, err)
 			assert.Equal(t, test.value, value)
+			assert.Equal(t, test.valueStr, valueStr)
 			assert.Equal(t, test.groupBy, groupBy)
 		})
 	}

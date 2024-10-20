@@ -229,7 +229,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, fmt.Errorf("failed to get owner query params for owner %s: %w", owner.ID, err)
 	}
 
-	at := params.At.Truncate(ownerMeter.WindowSize.Duration())
+	at := params.At.Truncate(ownerMeter.Meter.WindowSize.Duration())
 
 	// check if reset is possible (after last reset)
 	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, clock.Now())
@@ -425,9 +425,9 @@ func (m *connector) getQueryUsageFn(ctx context.Context, owner grant.NamespacedO
 			params.From = &from
 			params.To = &to
 			params.FilterSubject = []string{subjectKey}
-			rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, params)
+			rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
 			if err != nil {
-				return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.MeterSlug, err)
+				return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
 			}
 			if len(rows) > 1 {
 				return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
@@ -437,7 +437,7 @@ func (m *connector) getQueryUsageFn(ctx context.Context, owner grant.NamespacedO
 			}
 			return rows[0].Value, nil
 		},
-		Grantuality: ownerMeter.WindowSize,
+		Grantuality: ownerMeter.Meter.WindowSize,
 	}, nil
 }
 

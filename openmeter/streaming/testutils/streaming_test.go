@@ -16,6 +16,10 @@ import (
 func TestMockStreamingConnector(t *testing.T) {
 	defaultMeterSlug := "default-meter"
 
+	defaultMeter := models.Meter{
+		Slug: defaultMeterSlug,
+	}
+
 	type tc struct {
 		Name          string
 		Events        []SimpleEvent
@@ -203,7 +207,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				streamingConnector.AddRow(defaultMeterSlug, row)
 			}
 
-			result, err := streamingConnector.QueryMeter(context.Background(), "namespace", defaultMeterSlug, tc.Query)
+			result, err := streamingConnector.QueryMeter(context.Background(), "namespace", defaultMeter, tc.Query)
 			if tc.ExpectedError != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.ExpectedError, err)

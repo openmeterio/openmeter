@@ -114,6 +114,14 @@ type Meter struct {
 	WindowSize    WindowSize        `json:"windowSize,omitempty" yaml:"windowSize,omitempty"`
 }
 
+func (m *Meter) GetID() string {
+	if m.ID == "" {
+		return m.Slug
+	}
+
+	return m.ID
+}
+
 type MeterOptions struct {
 	ID          string
 	Description string

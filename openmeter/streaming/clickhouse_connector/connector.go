@@ -10,12 +10,12 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/shopspring/decimal"
 )
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
@@ -67,12 +67,12 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	values, err := c.queryMeter(ctx, namespace, meterSlug, params)
+	values, err := c.queryMeter(ctx, namespace, meter, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			return nil, err
@@ -290,12 +290,11 @@ func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace st
 	return results, nil
 }
 
-func (c *ClickhouseConnector) queryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *ClickhouseConnector) queryMeter(ctx context.Context, namespace string, meter models.Meter, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	queryMeter := queryMeter{
 		Database:       c.config.Database,
 		Namespace:      namespace,
-		MeterSlug:      meterSlug,
-		Aggregation:    params.Aggregation,
+		Meter:          meter,
 		From:           params.From,
 		To:             params.To,
 		Subject:        params.FilterSubject,
@@ -316,7 +315,7 @@ func (c *ClickhouseConnector) queryMeter(ctx context.Context, namespace string, 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
