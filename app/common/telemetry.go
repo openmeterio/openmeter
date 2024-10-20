@@ -55,15 +55,12 @@ func NewTelemetryResource(metadata Metadata) *resource.Resource {
 }
 
 func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource) *slog.Logger {
-	logger := slog.New(slogmulti.Pipe(
+	return slog.New(slogmulti.Pipe(
+		otelslog.ResourceMiddleware(res),
 		otelslog.NewHandler,
 		contextx.NewLogHandler,
 		operation.NewLogHandler,
 	).Handler(conf.NewHandler(os.Stdout)))
-
-	logger = otelslog.WithResource(logger, res)
-
-	return logger
 }
 
 func NewMeterProvider(ctx context.Context, conf config.MetricsTelemetryConfig, res *resource.Resource, logger *slog.Logger) (*sdkmetric.MeterProvider, func(), error) {

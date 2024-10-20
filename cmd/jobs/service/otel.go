@@ -46,11 +46,11 @@ func NewTelemetry(ctx context.Context, conf config.TelemetryConfig, env string, 
 	)
 
 	logger := slog.New(slogmulti.Pipe(
+		otelslog.ResourceMiddleware(res),
 		otelslog.NewHandler,
 		contextx.NewLogHandler,
 		operation.NewLogHandler,
 	).Handler(conf.Log.NewHandler(os.Stdout)))
-	logger = otelslog.WithResource(logger, res)
 
 	slog.SetDefault(logger)
 
