@@ -138,16 +138,24 @@ func (c Config) Validate() error {
 		}
 	}
 
-	if c.App == nil {
-		return errors.New("app service is required")
+	if c.AppsEnabled {
+		if c.App == nil {
+			return errors.New("app service is required")
+		}
+
+		if c.AppStripe == nil {
+			return errors.New("app stripe service is required")
+		}
 	}
 
-	if c.AppStripe == nil {
-		return errors.New("app stripe service is required")
+	if c.BillingEnabled || c.AppsEnabled {
+		if c.Customer == nil {
+			return errors.New("customer service is required")
+		}
 	}
 
-	if c.Customer == nil {
-		return errors.New("customer service is required")
+	if c.BillingEnabled && c.Billing == nil {
+		return errors.New("billing service is required")
 	}
 
 	return nil
