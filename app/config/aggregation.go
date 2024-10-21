@@ -37,6 +37,23 @@ type AggregationConfiguration struct {
 	// Engine is the aggregation engine to use
 	Engine     AggregationEngine
 	ClickHouse ClickHouseAggregationConfiguration
+
+	// Set true for ClickHouse first store the incoming inserts into an in-memory buffer
+	// before flushing them regularly to disk.
+	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
+	AsyncInsert bool
+	// Set true if you want an insert statement to return with an acknowledgment immediatelyy
+	// without waiting for the data got inserted into the buffer.
+	// Setting true can cause silent errors that you need to monitor separately.
+	AsyncInsertWait bool
+
+	// See https://clickhouse.com/docs/en/operations/settings/settings
+	// For example, you can set the `max_insert_threads` setting to control the number of threads
+	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
+	InsertQuerySettings map[string]string
+
+	// Engine specific options
+
 	// Populate creates the materialized view with data from the events table
 	// This is not safe to use in production as requires to stop ingestion
 	PopulateMeter bool
@@ -59,6 +76,10 @@ func (c AggregationConfiguration) Validate() error {
 
 	if err := c.Engine.Validate(); err != nil {
 		return fmt.Errorf("engine: %w", err)
+	}
+
+	if c.AsyncInsertWait && !c.AsyncInsert {
+		return errors.New("async insert wait is set but async insert is not")
 	}
 
 	// Validate engine specific options
@@ -151,6 +172,8 @@ func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Optio
 // ConfigureAggregation configures some defaults in the Viper instance.
 func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.engine", AggregationEngineClickHouseMV)
+	v.SetDefault("aggregation.asyncInsert", false)
+	v.SetDefault("aggregation.asyncInsertWait", false)
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("aggregation.clickhouse.tls", false)

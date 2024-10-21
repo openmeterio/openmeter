@@ -22,6 +22,7 @@ type SinkConfiguration struct {
 	IngestNotifications IngestNotificationsConfiguration
 	// Kafka client/Consumer configuration
 	Kafka KafkaConfig
+	// TODO: remove, config moved to aggregation config
 	// Storage configuration
 	Storage StorageConfiguration
 
@@ -154,6 +155,7 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.namespaceRefetchTimeout", "10s")
 	v.SetDefault("sink.namespaceTopicRegexp", "^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$")
 
+	// TODO: remove, config moved to aggregation config
 	// Sink Storage
 	v.SetDefault("sink.storage.asyncInsert", false)
 	v.SetDefault("sink.storage.asyncInsertWait", false)
