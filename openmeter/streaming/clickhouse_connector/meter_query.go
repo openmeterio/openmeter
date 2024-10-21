@@ -354,7 +354,7 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}) {
 }
 
 func GetMeterViewName(database string, namespace string, meterSlug string) string {
-	meterViewName := fmt.Sprintf("%s_%s", namespace, meterSlug)
+	meterViewName := fmt.Sprintf("om_%s_%s", namespace, meterSlug)
 	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), sqlbuilder.Escape(meterViewName))
 }
 

@@ -3,6 +3,7 @@ package clickhouse_connector_raw
 import (
 	_ "embed"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -99,17 +100,25 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, fmt.Sprintf("%s(cast(JSON_VALUE(%s, '%s'), 'Float64')) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(d.Meter.ValueProperty)))
 	}
 
+	groupBys := make([]string, 0, len(d.GroupBy))
+
+	for _, groupBy := range d.GroupBy {
+		if groupBy == "subject" {
+			selectColumns = append(selectColumns, getColumn("subject"))
+			groupByColumns = append(groupByColumns, "subject")
+			continue
+		}
+
+		groupBys = append(groupBys, groupBy)
+	}
+
 	// Select Group By
-	sortedGroupBy := sortedKeys(d.Meter.GroupBy)
-	for _, groupByKey := range sortedGroupBy {
+	slices.Sort(groupBys)
+
+	for _, groupByKey := range groupBys {
 		groupByColumn := sqlbuilder.Escape(groupByKey)
 		groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
 		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
-
-		// Subject is a special case
-		if groupByKey == "subject" {
-			selectColumn = getColumn("subject")
-		}
 
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, groupByColumn)
@@ -138,6 +147,10 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		sort.Strings(groupByKeys)
 
 		for _, groupByKey := range groupByKeys {
+			if _, ok := d.Meter.GroupBy[groupByKey]; !ok {
+				return "", nil, fmt.Errorf("meter does not have group by: %s", groupByKey)
+			}
+
 			groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
 
 			values := d.FilterGroupBy[groupByKey]
@@ -152,7 +165,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 					column = "subject"
 				}
 
-				return query.Equal(column, value)
+				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
 			}
 
 			where = append(where, query.Or(slicesx.Map(values, mapFunc)...))
@@ -215,15 +228,4 @@ func columnFactory(alias string) func(string) string {
 	return func(column string) string {
 		return fmt.Sprintf("%s.%s", alias, column)
 	}
-}
-
-func sortedKeys(m map[string]string) []string {
-	keys := make([]string, len(m))
-	i := 0
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
 }
