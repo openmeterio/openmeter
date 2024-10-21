@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+
 	raw_event_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
