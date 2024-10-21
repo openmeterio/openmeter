@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -28,8 +29,6 @@ import (
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
-
-var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 
 type Sink struct {
 	config            SinkConfig
@@ -45,6 +44,8 @@ type Sink struct {
 
 	mu        sync.Mutex
 	isRunning atomic.Bool
+
+	namespaceTopicRegexp *regexp.Regexp
 }
 
 type SinkConfig struct {
@@ -67,6 +68,13 @@ type SinkConfig struct {
 	// this information is used to configure which topics the consumer subscribes and
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
+
+	// NamespaceRefetchTimeout is the timeout for updating namespaces and consumer subscription.
+	// It must be less than NamespaceRefetch interval.
+	NamespaceRefetchTimeout time.Duration
+
+	// NamespaceTopicRegexp defines the regular expression to match/validate topic names the sink-worker needs to subscribe to.
+	NamespaceTopicRegexp string
 
 	// FlushEventHandlers is an optional lifecycle hook, allowing to act on successful batch
 	// flushes. To prevent blocking the main sink logic this is always called in a go routine.
@@ -123,6 +131,14 @@ func (s *SinkConfig) Validate() error {
 		return errors.New("NamespaceRefetch must be greater than 0")
 	}
 
+	if s.NamespaceRefetchTimeout != 0 && s.NamespaceRefetchTimeout > s.NamespaceRefetch {
+		return errors.New("NamespaceRefetchTimeout must be less than or equal to NamespaceRefetch")
+	}
+
+	if s.NamespaceTopicRegexp == "" {
+		return errors.New("NamespaceTopicRegexp must no be empty")
+	}
+
 	if s.FlushSuccessTimeout == 0 {
 		return errors.New("FlushSuccessTimeout must be greater than 0")
 	}
@@ -141,6 +157,11 @@ func (s *SinkConfig) Validate() error {
 func NewSink(config SinkConfig) (*Sink, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid sink configuration: %w", err)
+	}
+
+	namespaceTopicRegexp, err := regexp.Compile(config.NamespaceTopicRegexp)
+	if err != nil {
+		return nil, fmt.Errorf("invalid namespace topic regexp: %w", err)
 	}
 
 	// Warn if deduplicator is not set
@@ -172,14 +193,20 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		return nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
 	}
 
+	// Default NamespaceRefetchTimeout to 2/3 of NamespaceRefetch if not set.
+	if config.NamespaceRefetchTimeout == 0 {
+		config.NamespaceRefetchTimeout = (config.NamespaceRefetch / 3) * 2
+	}
+
 	sink := &Sink{
-		config:            config,
-		buffer:            NewSinkBuffer(),
-		namespaceStore:    NewNamespaceStore(),
-		flushEventCounter: flushEventCounter,
-		messageCounter:    messageCounter,
-		kafkaMetrics:      kafkaMetrics,
-		topicResolver:     config.TopicResolver,
+		config:               config,
+		buffer:               NewSinkBuffer(),
+		namespaceStore:       NewNamespaceStore(),
+		flushEventCounter:    flushEventCounter,
+		messageCounter:       messageCounter,
+		kafkaMetrics:         kafkaMetrics,
+		topicResolver:        config.TopicResolver,
+		namespaceTopicRegexp: namespaceTopicRegexp,
 	}
 
 	return sink, nil
@@ -414,62 +441,122 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 	return nil
 }
 
-func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
+func (s *Sink) updateNamespaceStore(ctx context.Context) error {
 	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get meters: %s", err)
+		return fmt.Errorf("failed to get meters: %s", err)
 	}
 
 	namespaceStore := NewNamespaceStore()
-	for _, meter := range meters {
-		namespaceStore.AddMeter(meter)
-	}
-
-	return namespaceStore, nil
-}
-
-func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
-	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
-	ns, err := s.getNamespaces(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get namespaces: %s", err)
-	}
-
-	// Identify if we have a new namespace
-	isNewNamespace := len(ns.namespaces) != len(s.namespaceStore.namespaces)
-	if !isNewNamespace {
-		for key := range ns.namespaces {
-			if s.namespaceStore.namespaces[key] == nil {
-				isNewNamespace = true
-				break
-			}
-		}
+	for _, m := range meters {
+		namespaceStore.AddMeter(m)
 	}
 
 	// We always replace store to ensure we have the latest meter changes
-	s.namespaceStore = ns
+	s.namespaceStore = namespaceStore
 
-	// We only subscribe to topics if we have a new namespace
-	if !isNewNamespace {
-		return nil
+	return nil
+}
+
+func (s *Sink) updateTopicSubscription(_ context.Context, metadataTimeout time.Duration) error {
+	logger := s.config.Logger.With("operation", "updateTopicSubscription")
+
+	logger.Debug("fetching metadata")
+	meta, err := s.config.Consumer.GetMetadata(nil, true, int(metadataTimeout.Milliseconds()))
+	if err != nil {
+		return fmt.Errorf("failed to fetch all topics from Kafka cluster: %w", err)
 	}
 
-	// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
-	topics := make([]string, 0, len(s.namespaceStore.namespaces))
-	for namespace := range s.namespaceStore.namespaces {
-		topic, err := s.topicResolver.Resolve(ctx, namespace)
-		if err != nil {
-			return fmt.Errorf("failed to resolve topic name for namespace '%s': %w", namespace, err)
+	topics := make([]string, 0, len(meta.Topics))
+	for _, topic := range meta.Topics {
+		if !s.namespaceTopicRegexp.MatchString(topic.Topic) {
+			logger.Debug("skipping topic as does not match regexp", "topic", topic.Topic, "regexp", s.namespaceTopicRegexp.String())
+
+			continue
 		}
 
-		topics = append(topics, topic)
+		logger.Debug("found matching topic", "topic", topic.Topic, "regexp", s.namespaceTopicRegexp.String())
+		topics = append(topics, topic.Topic)
 	}
 
-	logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
+	if len(topics) == 0 {
+		logger.Debug("no topics found to be subscribed to", "regexp", s.namespaceTopicRegexp.String())
+
+		return nil
+	}
 
 	err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to topics: %s", err)
+	}
+
+	logger.Debug("successfully subscribed to topics", "topics", topics)
+
+	return nil
+}
+
+func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
+	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
+
+	ctx, cancel := context.WithTimeout(ctx, s.config.NamespaceRefetchTimeout)
+	defer cancel()
+
+	wg := &sync.WaitGroup{}
+
+	errChan := make(chan error, 2)
+	closeErrChannelOnce := sync.OnceFunc(func() {
+		close(errChan)
+	})
+
+	defer closeErrChannelOnce()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		logger.Debug("updating namespace store: started")
+
+		err := s.updateNamespaceStore(ctx)
+		if err != nil {
+			err = fmt.Errorf("failed to update namespace store: %w", err)
+		}
+
+		errChan <- err
+
+		logger.Debug("updating namespace store: done")
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		logger.Debug("updating topic subscription: started")
+
+		// Set getting timeout for getting metadata from Kafka to make sure that we can
+		metadataTimeout := s.config.NamespaceRefetchTimeout / 2
+
+		err := s.updateTopicSubscription(ctx, metadataTimeout)
+		if err != nil {
+			err = fmt.Errorf("failed to update topic subscription: %w", err)
+		}
+
+		errChan <- err
+
+		logger.Debug("updating topic subscription: done")
+	}()
+
+	wg.Wait()
+	closeErrChannelOnce()
+
+	var errs []error
+	for err := range errChan {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -713,7 +800,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// Remove messages for revoked partitions from buffer
 		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
-		logger.Error("unxpected event type", "event", e)
+		logger.Error("unexpected event type", "event", e)
 	}
 
 	return nil
@@ -731,12 +818,23 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 		},
 	}
 
-	// Get Namespace
-	namespace, err := getNamespace(*e.TopicPartition.Topic)
-	if err != nil {
+	// Get Namespace from Kafka message header
+	var namespace string
+	for _, header := range e.Headers {
+		if header.Key == kafkaingest.HeaderKeyNamespace {
+			namespace = string(header.Value)
+
+			break
+		}
+	}
+
+	if namespace == "" {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.DROP,
-			Error: fmt.Errorf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err),
+			Error: fmt.Errorf("failed to get namespace as header (%q) for Kafka Message is missing: %s",
+				kafkaingest.HeaderKeyNamespace,
+				e.TopicPartition.String(),
+			),
 		}
 
 		return sinkMessage, nil
@@ -745,7 +843,7 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 
 	// Parse Kafka Event
 	kafkaCloudEvent := &serializer.CloudEventsKafkaPayload{}
-	err = json.Unmarshal(e.Value, kafkaCloudEvent)
+	err := json.Unmarshal(e.Value, kafkaCloudEvent)
 	if err != nil {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.DROP,
@@ -841,15 +939,6 @@ func (s *Sink) Close() error {
 	}
 
 	return nil
-}
-
-// getNamespace from topic
-func getNamespace(topic string) (string, error) {
-	tmp := namespaceTopicRegexp.FindStringSubmatch(topic)
-	if len(tmp) != 2 || tmp[1] == "" {
-		return "", fmt.Errorf("namespace not found in topic: %s", topic)
-	}
-	return tmp[1], nil
 }
 
 // dedupeSinkMessages removes duplicates from a list of events

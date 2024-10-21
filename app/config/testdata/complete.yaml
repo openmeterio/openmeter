@@ -59,6 +59,8 @@ sink:
   minCommitCount: 500
   maxCommitWait: 30s
   namespaceRefetch: 15s
+  namespaceRefetchTimeout: 9s
+  namespaceTopicRegexp: "^om_test_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$"
   dedupe:
     enabled: true
     driver: redis
