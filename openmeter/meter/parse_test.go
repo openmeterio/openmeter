@@ -72,6 +72,24 @@ func TestParseEvent(t *testing.T) {
 			},
 		},
 		{
+			description: "should parse event with numeric string value",
+			meter:       meterSum,
+			event: func(t *testing.T) event.Event {
+				ev := event.New()
+				ev.SetType("api-calls")
+
+				err := ev.SetData(event.ApplicationJSON, []byte(`{"duration_ms": "100", "method": "GET", "path": "/api/v1"}`))
+				require.NoError(t, err)
+
+				return ev
+			},
+			value: lo.ToPtr(100.0),
+			groupBy: map[string]string{
+				"method": "GET",
+				"path":   "/api/v1",
+			},
+		},
+		{
 			description: "should parse count as value one",
 			meter:       meterCount,
 			event: func(t *testing.T) event.Event {
