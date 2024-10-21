@@ -23,7 +23,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
-	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -136,30 +139,67 @@ func main() {
 	}
 }
 
-func initSink(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {
+func initSink(ctx context.Context, conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {
 	// Initialize ClickHouse client
-	clickhouseClient, err := clickhouse.Open(config.Aggregation.ClickHouse.GetClientOptions())
+	clickhouseClient, err := clickhouse.Open(conf.Aggregation.ClickHouse.GetClientOptions())
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
 	// Initialize streaming connector
-	streaming, err := clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:              logger,
-		ClickHouse:          clickhouseClient,
-		Database:            config.Aggregation.ClickHouse.Database,
-		AsyncInsert:         config.Sink.Storage.AsyncInsert,
-		AsyncInsertWait:     config.Sink.Storage.AsyncInsertWait,
-		InsertQuerySettings: config.Sink.Storage.QuerySettings,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse streaming connector: %w", err)
+	var (
+		streaming streaming.Connector
+	)
+
+	switch conf.Aggregation.Engine {
+	case config.AggregationEngineClickHouseRaw:
+		streaming, err = clickhouse_connector_raw.NewClickhouseConnector(ctx, clickhouse_connector_raw.ClickhouseConnectorConfig{
+			ClickHouse:          clickhouseClient,
+			Database:            conf.Aggregation.ClickHouse.Database,
+			Logger:              logger,
+			AsyncInsert:         conf.Sink.Storage.AsyncInsert,
+			AsyncInsertWait:     conf.Sink.Storage.AsyncInsertWait,
+			InsertQuerySettings: conf.Sink.Storage.QuerySettings,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init clickhouse raw engine: %w", err)
+		}
+
+	case config.AggregationEngineClickHouseMV:
+		streaming, err = clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
+			ClickHouse:           clickhouseClient,
+			Database:             conf.Aggregation.ClickHouse.Database,
+			Logger:               logger,
+			PopulateMeter:        conf.Aggregation.PopulateMeter,
+			CreateOrReplaceMeter: conf.Aggregation.CreateOrReplaceMeter,
+			QueryRawEvents:       conf.Aggregation.QueryRawEvents,
+			AsyncInsert:          conf.Sink.Storage.AsyncInsert,
+			AsyncInsertWait:      conf.Sink.Storage.AsyncInsertWait,
+			InsertQuerySettings:  conf.Sink.Storage.QuerySettings,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init clickhouse mv engine: %w", err)
+		}
+	case config.AggregationEngineClickHouseParse:
+		streaming, err = clickhouse_connector_parse.NewClickhouseConnector(ctx, clickhouse_connector_parse.ClickhouseConnectorConfig{
+			ClickHouse:          clickhouseClient,
+			Database:            conf.Aggregation.ClickHouse.Database,
+			Logger:              logger,
+			AsyncInsert:         conf.Sink.Storage.AsyncInsert,
+			AsyncInsertWait:     conf.Sink.Storage.AsyncInsertWait,
+			InsertQuerySettings: conf.Sink.Storage.QuerySettings,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init clickhouse parse engine: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("invalid aggregation engine: %s", conf.Aggregation.Engine)
 	}
 
 	// Initialize deduplicator if enabled
 	var deduplicator dedupe.Deduplicator
-	if config.Sink.Dedupe.Enabled {
-		deduplicator, err = config.Sink.Dedupe.NewDeduplicator()
+	if conf.Sink.Dedupe.Enabled {
+		deduplicator, err = conf.Sink.Dedupe.NewDeduplicator()
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
 		}
@@ -175,7 +215,7 @@ func initSink(ctx context.Context, config config.Configuration, logger *slog.Log
 
 	// Initialize Kafka consumer
 
-	consumerConfig := config.Sink.Kafka.AsConsumerConfig()
+	consumerConfig := conf.Sink.Kafka.AsConsumerConfig()
 
 	// Override following Kafka consumer configuration parameters with hardcoded values as the Sink implementation relies on
 	// these to be set to a specific value.
@@ -210,7 +250,7 @@ func initSink(ctx context.Context, config config.Configuration, logger *slog.Log
 	// Enable Kafka client logging
 	go pkgkafka.ConsumeLogChannel(consumer, logger.WithGroup("kafka").WithGroup("consumer"))
 
-	topicResolver, err := topicresolver.NewNamespacedTopicResolver(config.Ingest.Kafka.EventsTopicTemplate)
+	topicResolver, err := topicresolver.NewNamespacedTopicResolver(conf.Ingest.Kafka.EventsTopicTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create topic name resolver: %w", err)
 	}
@@ -223,16 +263,16 @@ func initSink(ctx context.Context, config config.Configuration, logger *slog.Log
 		Storage:                 storage,
 		Deduplicator:            deduplicator,
 		Consumer:                consumer,
-		MinCommitCount:          config.Sink.MinCommitCount,
-		MaxCommitWait:           config.Sink.MaxCommitWait,
-		MaxPollTimeout:          config.Sink.MaxPollTimeout,
-		FlushSuccessTimeout:     config.Sink.FlushSuccessTimeout,
-		DrainTimeout:            config.Sink.DrainTimeout,
-		NamespaceRefetch:        config.Sink.NamespaceRefetch,
+		MinCommitCount:          conf.Sink.MinCommitCount,
+		MaxCommitWait:           conf.Sink.MaxCommitWait,
+		MaxPollTimeout:          conf.Sink.MaxPollTimeout,
+		FlushSuccessTimeout:     conf.Sink.FlushSuccessTimeout,
+		DrainTimeout:            conf.Sink.DrainTimeout,
+		NamespaceRefetch:        conf.Sink.NamespaceRefetch,
 		FlushEventHandler:       flushHandler,
 		TopicResolver:           topicResolver,
-		NamespaceRefetchTimeout: config.Sink.NamespaceRefetchTimeout,
-		NamespaceTopicRegexp:    config.Sink.NamespaceTopicRegexp,
+		NamespaceRefetchTimeout: conf.Sink.NamespaceRefetchTimeout,
+		NamespaceTopicRegexp:    conf.Sink.NamespaceTopicRegexp,
 	}
 
 	return sink.NewSink(sinkConfig)

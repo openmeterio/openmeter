@@ -75,7 +75,11 @@ var (
 
 type MockStreamingConnector struct{}
 
-func (c *MockStreamingConnector) Init(ctx context.Context) error {
+func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
 	return nil
 }
 
