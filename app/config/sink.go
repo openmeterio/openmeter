@@ -28,6 +28,9 @@ type SinkConfiguration struct {
 	// NamespaceRefetchTimeout is the timeout for updating namespaces and consumer subscription.
 	// It must be less than NamespaceRefetch interval.
 	NamespaceRefetchTimeout time.Duration
+
+	// NamespaceTopicRegexp defines the regular expression to match/validate topic names the sink-worker needs to subscribe to.
+	NamespaceTopicRegexp string
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -59,6 +62,10 @@ func (c SinkConfiguration) Validate() error {
 
 	if c.NamespaceRefetchTimeout != 0 && c.NamespaceRefetchTimeout > c.NamespaceRefetch {
 		errs = append(errs, errors.New("NamespaceRefetchTimeout must be less than or equal to NamespaceRefetch"))
+	}
+
+	if c.NamespaceTopicRegexp == "" {
+		errs = append(errs, errors.New("NamespaceTopicRegexp must no be empty"))
 	}
 
 	if err := c.IngestNotifications.Validate(); err != nil {
@@ -145,6 +152,7 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.drainTimeout", "10s")
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
 	v.SetDefault("sink.namespaceRefetchTimeout", "10s")
+	v.SetDefault("sink.namespaceTopicRegexp", "^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$")
 
 	// Sink Storage
 	v.SetDefault("sink.storage.asyncInsert", false)

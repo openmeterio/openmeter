@@ -219,6 +219,7 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 		FlushEventHandler:       flushHandler,
 		TopicResolver:           topicResolver,
 		NamespaceRefetchTimeout: config.Sink.NamespaceRefetchTimeout,
+		NamespaceTopicRegexp:    config.Sink.NamespaceTopicRegexp,
 	}
 
 	return sink.NewSink(sinkConfig)
