@@ -15,9 +15,11 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/prometheus"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -327,6 +329,8 @@ type LogTelemetryConfig struct {
 	//
 	// Requires [mapstructure.TextUnmarshallerHookFunc] to be high up in the decode hook chain.
 	Level slog.Level
+
+	Exporters ExportersLogTelemetryConfig
 }
 
 // Validate validates the configuration.
@@ -369,6 +373,76 @@ func (c LogTelemetryConfig) NewHandler(w io.Writer) slog.Handler {
 	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
 }
 
+func (c LogTelemetryConfig) NewLoggerProvider(ctx context.Context, res *resource.Resource) (*sdklog.LoggerProvider, error) {
+	options := []sdklog.LoggerProviderOption{
+		sdklog.WithResource(res),
+	}
+
+	if c.Exporters.OTLP.Enabled {
+		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
+	}
+
+	return sdklog.NewLoggerProvider(options...), nil
+}
+
+type ExportersLogTelemetryConfig struct {
+	OTLP OTLPExportersLogTelemetryConfig
+}
+
+// Validate validates the configuration.
+func (c ExportersLogTelemetryConfig) Validate() error {
+	var errs []error
+
+	if err := c.OTLP.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "otlp"))
+	}
+
+	return errors.Join(errs...)
+}
+
+type OTLPExportersLogTelemetryConfig struct {
+	Enabled bool
+
+	OTLPExporterTelemetryConfig `mapstructure:",squash"`
+}
+
+// Validate validates the configuration.
+func (c OTLPExportersLogTelemetryConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	return c.OTLPExporterTelemetryConfig.Validate()
+}
+
+// NewExporter creates a new [sdklog.Exporter].
+func (c OTLPExportersLogTelemetryConfig) NewExporter(ctx context.Context) (sdklog.Exporter, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: log: exporter: otlp: disabled")
+	}
+
+	// TODO: make this configurable
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	conn, err := c.DialExporter(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: log: exporter: otlp: %w", err)
+	}
+
+	exporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: log: exporter: otlp: initializing exporter: %w", err)
+	}
+
+	return exporter, nil
+}
+
 // ConfigureTelemetry configures some defaults in the Viper instance.
 func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
@@ -385,4 +459,6 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 
 	v.SetDefault("telemetry.log.format", "json")
 	v.SetDefault("telemetry.log.level", "info")
+	v.SetDefault("telemetry.log.exporters.otlp.enabled", false)
+	v.SetDefault("telemetry.log.exporters.otlp.address", "")
 }
