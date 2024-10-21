@@ -68,7 +68,11 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 
 		groupByColumns = append(groupByColumns, "windowstart", "windowend")
 	} else {
-		selectColumns = append(selectColumns, "min(time) as windowstart", "max(time) as windowend")
+		// TODO: remove this when we don't round to the nearest minute anymore
+		// We round them to the nearest minute to ensure the result is the same as with
+		// streaming connector using materialized views with per minute windows
+		selectColumn := fmt.Sprintf("tumbleStart(min(%s), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(%s), toIntervalMinute(1)) AS windowend", timeColumn, timeColumn)
+		selectColumns = append(selectColumns, selectColumn)
 	}
 
 	switch d.Meter.Aggregation {
