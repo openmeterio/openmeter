@@ -10,8 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -47,13 +46,7 @@ type BillingInvoice struct {
 	// DueDate holds the value of the "due_date" field.
 	DueDate time.Time `json:"due_date,omitempty"`
 	// Status holds the value of the "status" field.
-	Status billing.InvoiceStatus `json:"status,omitempty"`
-	// TaxProvider holds the value of the "tax_provider" field.
-	TaxProvider *provider.TaxProvider `json:"tax_provider,omitempty"`
-	// InvoicingProvider holds the value of the "invoicing_provider" field.
-	InvoicingProvider *provider.InvoicingProvider `json:"invoicing_provider,omitempty"`
-	// PaymentProvider holds the value of the "payment_provider" field.
-	PaymentProvider *provider.PaymentProvider `json:"payment_provider,omitempty"`
+	Status billingentity.InvoiceStatus `json:"status,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
@@ -117,7 +110,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoice.FieldMetadata:
 			values[i] = new([]byte)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSeries, billinginvoice.FieldCode, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldTaxProvider, billinginvoice.FieldInvoicingProvider, billinginvoice.FieldPaymentProvider, billinginvoice.FieldWorkflowConfigID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSeries, billinginvoice.FieldCode, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldDueDate, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -223,28 +216,7 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				bi.Status = billing.InvoiceStatus(value.String)
-			}
-		case billinginvoice.FieldTaxProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_provider", values[i])
-			} else if value.Valid {
-				bi.TaxProvider = new(provider.TaxProvider)
-				*bi.TaxProvider = provider.TaxProvider(value.String)
-			}
-		case billinginvoice.FieldInvoicingProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_provider", values[i])
-			} else if value.Valid {
-				bi.InvoicingProvider = new(provider.InvoicingProvider)
-				*bi.InvoicingProvider = provider.InvoicingProvider(value.String)
-			}
-		case billinginvoice.FieldPaymentProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field payment_provider", values[i])
-			} else if value.Valid {
-				bi.PaymentProvider = new(provider.PaymentProvider)
-				*bi.PaymentProvider = provider.PaymentProvider(value.String)
+				bi.Status = billingentity.InvoiceStatus(value.String)
 			}
 		case billinginvoice.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -359,21 +331,6 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", bi.Status))
-	builder.WriteString(", ")
-	if v := bi.TaxProvider; v != nil {
-		builder.WriteString("tax_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := bi.InvoicingProvider; v != nil {
-		builder.WriteString("invoicing_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := bi.PaymentProvider; v != nil {
-		builder.WriteString("payment_provider=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bi.WorkflowConfigID)

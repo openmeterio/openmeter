@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -43,7 +43,7 @@ type BillingInvoiceItem struct {
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// Type holds the value of the "type" field.
-	Type billing.InvoiceItemType `json:"type,omitempty"`
+	Type billingentity.InvoiceItemType `json:"type,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Quantity holds the value of the "quantity" field.
@@ -53,7 +53,7 @@ type BillingInvoiceItem struct {
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxCodeOverride holds the value of the "tax_code_override" field.
-	TaxCodeOverride billing.TaxOverrides `json:"tax_code_override,omitempty"`
+	TaxCodeOverride billingentity.TaxOverrides `json:"tax_code_override,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceItemQuery when eager-loading is set.
 	Edges        BillingInvoiceItemEdges `json:"edges"`
@@ -184,7 +184,7 @@ func (bii *BillingInvoiceItem) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bii.Type = billing.InvoiceItemType(value.String)
+				bii.Type = billingentity.InvoiceItemType(value.String)
 			}
 		case billinginvoiceitem.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {

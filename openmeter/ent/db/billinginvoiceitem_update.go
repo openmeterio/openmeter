@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -132,13 +132,13 @@ func (biiu *BillingInvoiceItemUpdate) SetNillableInvoiceAt(t *time.Time) *Billin
 }
 
 // SetType sets the "type" field.
-func (biiu *BillingInvoiceItemUpdate) SetType(bit billing.InvoiceItemType) *BillingInvoiceItemUpdate {
+func (biiu *BillingInvoiceItemUpdate) SetType(bit billingentity.InvoiceItemType) *BillingInvoiceItemUpdate {
 	biiu.mutation.SetType(bit)
 	return biiu
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biiu *BillingInvoiceItemUpdate) SetNillableType(bit *billing.InvoiceItemType) *BillingInvoiceItemUpdate {
+func (biiu *BillingInvoiceItemUpdate) SetNillableType(bit *billingentity.InvoiceItemType) *BillingInvoiceItemUpdate {
 	if bit != nil {
 		biiu.SetType(*bit)
 	}
@@ -194,13 +194,13 @@ func (biiu *BillingInvoiceItemUpdate) SetNillableUnitPrice(a *alpacadecimal.Deci
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (biiu *BillingInvoiceItemUpdate) SetTaxCodeOverride(bo billing.TaxOverrides) *BillingInvoiceItemUpdate {
+func (biiu *BillingInvoiceItemUpdate) SetTaxCodeOverride(bo billingentity.TaxOverrides) *BillingInvoiceItemUpdate {
 	biiu.mutation.SetTaxCodeOverride(bo)
 	return biiu
 }
 
 // SetNillableTaxCodeOverride sets the "tax_code_override" field if the given value is not nil.
-func (biiu *BillingInvoiceItemUpdate) SetNillableTaxCodeOverride(bo *billing.TaxOverrides) *BillingInvoiceItemUpdate {
+func (biiu *BillingInvoiceItemUpdate) SetNillableTaxCodeOverride(bo *billingentity.TaxOverrides) *BillingInvoiceItemUpdate {
 	if bo != nil {
 		biiu.SetTaxCodeOverride(*bo)
 	}
@@ -492,13 +492,13 @@ func (biiuo *BillingInvoiceItemUpdateOne) SetNillableInvoiceAt(t *time.Time) *Bi
 }
 
 // SetType sets the "type" field.
-func (biiuo *BillingInvoiceItemUpdateOne) SetType(bit billing.InvoiceItemType) *BillingInvoiceItemUpdateOne {
+func (biiuo *BillingInvoiceItemUpdateOne) SetType(bit billingentity.InvoiceItemType) *BillingInvoiceItemUpdateOne {
 	biiuo.mutation.SetType(bit)
 	return biiuo
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biiuo *BillingInvoiceItemUpdateOne) SetNillableType(bit *billing.InvoiceItemType) *BillingInvoiceItemUpdateOne {
+func (biiuo *BillingInvoiceItemUpdateOne) SetNillableType(bit *billingentity.InvoiceItemType) *BillingInvoiceItemUpdateOne {
 	if bit != nil {
 		biiuo.SetType(*bit)
 	}
@@ -554,13 +554,13 @@ func (biiuo *BillingInvoiceItemUpdateOne) SetNillableUnitPrice(a *alpacadecimal.
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (biiuo *BillingInvoiceItemUpdateOne) SetTaxCodeOverride(bo billing.TaxOverrides) *BillingInvoiceItemUpdateOne {
+func (biiuo *BillingInvoiceItemUpdateOne) SetTaxCodeOverride(bo billingentity.TaxOverrides) *BillingInvoiceItemUpdateOne {
 	biiuo.mutation.SetTaxCodeOverride(bo)
 	return biiuo
 }
 
 // SetNillableTaxCodeOverride sets the "tax_code_override" field if the given value is not nil.
-func (biiuo *BillingInvoiceItemUpdateOne) SetNillableTaxCodeOverride(bo *billing.TaxOverrides) *BillingInvoiceItemUpdateOne {
+func (biiuo *BillingInvoiceItemUpdateOne) SetNillableTaxCodeOverride(bo *billingentity.TaxOverrides) *BillingInvoiceItemUpdateOne {
 	if bo != nil {
 		biiuo.SetTaxCodeOverride(*bo)
 	}

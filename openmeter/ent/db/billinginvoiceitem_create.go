@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -120,7 +120,7 @@ func (biic *BillingInvoiceItemCreate) SetInvoiceAt(t time.Time) *BillingInvoiceI
 }
 
 // SetType sets the "type" field.
-func (biic *BillingInvoiceItemCreate) SetType(bit billing.InvoiceItemType) *BillingInvoiceItemCreate {
+func (biic *BillingInvoiceItemCreate) SetType(bit billingentity.InvoiceItemType) *BillingInvoiceItemCreate {
 	biic.mutation.SetType(bit)
 	return biic
 }
@@ -158,7 +158,7 @@ func (biic *BillingInvoiceItemCreate) SetCurrency(c currencyx.Code) *BillingInvo
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (biic *BillingInvoiceItemCreate) SetTaxCodeOverride(bo billing.TaxOverrides) *BillingInvoiceItemCreate {
+func (biic *BillingInvoiceItemCreate) SetTaxCodeOverride(bo billingentity.TaxOverrides) *BillingInvoiceItemCreate {
 	biic.mutation.SetTaxCodeOverride(bo)
 	return biic
 }
@@ -576,7 +576,7 @@ func (u *BillingInvoiceItemUpsert) UpdateInvoiceAt() *BillingInvoiceItemUpsert {
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceItemUpsert) SetType(v billing.InvoiceItemType) *BillingInvoiceItemUpsert {
+func (u *BillingInvoiceItemUpsert) SetType(v billingentity.InvoiceItemType) *BillingInvoiceItemUpsert {
 	u.Set(billinginvoiceitem.FieldType, v)
 	return u
 }
@@ -630,7 +630,7 @@ func (u *BillingInvoiceItemUpsert) UpdateUnitPrice() *BillingInvoiceItemUpsert {
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (u *BillingInvoiceItemUpsert) SetTaxCodeOverride(v billing.TaxOverrides) *BillingInvoiceItemUpsert {
+func (u *BillingInvoiceItemUpsert) SetTaxCodeOverride(v billingentity.TaxOverrides) *BillingInvoiceItemUpsert {
 	u.Set(billinginvoiceitem.FieldTaxCodeOverride, v)
 	return u
 }
@@ -821,7 +821,7 @@ func (u *BillingInvoiceItemUpsertOne) UpdateInvoiceAt() *BillingInvoiceItemUpser
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceItemUpsertOne) SetType(v billing.InvoiceItemType) *BillingInvoiceItemUpsertOne {
+func (u *BillingInvoiceItemUpsertOne) SetType(v billingentity.InvoiceItemType) *BillingInvoiceItemUpsertOne {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.SetType(v)
 	})
@@ -884,7 +884,7 @@ func (u *BillingInvoiceItemUpsertOne) UpdateUnitPrice() *BillingInvoiceItemUpser
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (u *BillingInvoiceItemUpsertOne) SetTaxCodeOverride(v billing.TaxOverrides) *BillingInvoiceItemUpsertOne {
+func (u *BillingInvoiceItemUpsertOne) SetTaxCodeOverride(v billingentity.TaxOverrides) *BillingInvoiceItemUpsertOne {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.SetTaxCodeOverride(v)
 	})
@@ -1244,7 +1244,7 @@ func (u *BillingInvoiceItemUpsertBulk) UpdateInvoiceAt() *BillingInvoiceItemUpse
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceItemUpsertBulk) SetType(v billing.InvoiceItemType) *BillingInvoiceItemUpsertBulk {
+func (u *BillingInvoiceItemUpsertBulk) SetType(v billingentity.InvoiceItemType) *BillingInvoiceItemUpsertBulk {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.SetType(v)
 	})
@@ -1307,7 +1307,7 @@ func (u *BillingInvoiceItemUpsertBulk) UpdateUnitPrice() *BillingInvoiceItemUpse
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (u *BillingInvoiceItemUpsertBulk) SetTaxCodeOverride(v billing.TaxOverrides) *BillingInvoiceItemUpsertBulk {
+func (u *BillingInvoiceItemUpsertBulk) SetTaxCodeOverride(v billingentity.TaxOverrides) *BillingInvoiceItemUpsertBulk {
 	return u.Update(func(s *BillingInvoiceItemUpsert) {
 		s.SetTaxCodeOverride(v)
 	})

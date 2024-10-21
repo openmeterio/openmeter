@@ -104,29 +104,54 @@ func (a *Router) BillingCreatePendingItemByCustomer(w http.ResponseWriter, r *ht
 
 // (GET /api/v1/billing/profile)
 func (a *Router) BillingListProfiles(w http.ResponseWriter, r *http.Request, params api.BillingListProfilesParams) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.BillingListProfiles(w, r, params)
+		return
+	}
+
+	a.billingHandler.ListProfiles().With(params).ServeHTTP(w, r)
 }
 
 // Create a new billing profile
 // (POST /api/v1/billing/profile)
 func (a *Router) BillingCreateProfile(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.BillingCreateProfile(w, r)
+		return
+	}
+
+	a.billingHandler.CreateProfile().ServeHTTP(w, r)
 }
 
 // Archive a billing profile
 // (DELETE /api/v1/billing/profile/{id})
 func (a *Router) BillingArchiveProfile(w http.ResponseWriter, r *http.Request, id string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.BillingArchiveProfile(w, r, id)
+		return
+	}
+
+	a.billingHandler.ArchiveProfile().With(id).ServeHTTP(w, r)
 }
 
 // Get a billing profile by ID
 // (GET /api/v1/billing/profile/{id})
 func (a *Router) BillingGetProfile(w http.ResponseWriter, r *http.Request, id string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.BillingGetProfile(w, r, id)
+		return
+	}
+
+	a.billingHandler.GetProfile().With(id).ServeHTTP(w, r)
 }
 
 // Update a billing profile
 // (PUT /api/v1/billing/profile/{id})
 func (a *Router) BillingUpdateProfile(w http.ResponseWriter, r *http.Request, id string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.BillingUpdateProfile(w, r, id)
+		return
+	}
+
+	a.billingHandler.UpdateProfile().With(id).ServeHTTP(w, r)
 }

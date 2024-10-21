@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -245,48 +244,6 @@ func (bpu *BillingProfileUpdate) ClearSupplierAddressPhoneNumber() *BillingProfi
 	return bpu
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (bpu *BillingProfileUpdate) SetTaxProvider(pp provider.TaxProvider) *BillingProfileUpdate {
-	bpu.mutation.SetTaxProvider(pp)
-	return bpu
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingProfileUpdate {
-	if pp != nil {
-		bpu.SetTaxProvider(*pp)
-	}
-	return bpu
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (bpu *BillingProfileUpdate) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileUpdate {
-	bpu.mutation.SetInvoicingProvider(pp)
-	return bpu
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingProfileUpdate {
-	if pp != nil {
-		bpu.SetInvoicingProvider(*pp)
-	}
-	return bpu
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (bpu *BillingProfileUpdate) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileUpdate {
-	bpu.mutation.SetPaymentProvider(pp)
-	return bpu
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingProfileUpdate {
-	if pp != nil {
-		bpu.SetPaymentProvider(*pp)
-	}
-	return bpu
-}
-
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (bpu *BillingProfileUpdate) SetWorkflowConfigID(s string) *BillingProfileUpdate {
 	bpu.mutation.SetWorkflowConfigID(s)
@@ -326,6 +283,26 @@ func (bpu *BillingProfileUpdate) SetNillableSupplierName(s *string) *BillingProf
 	if s != nil {
 		bpu.SetSupplierName(*s)
 	}
+	return bpu
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (bpu *BillingProfileUpdate) SetSupplierTaxCode(s string) *BillingProfileUpdate {
+	bpu.mutation.SetSupplierTaxCode(s)
+	return bpu
+}
+
+// SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableSupplierTaxCode(s *string) *BillingProfileUpdate {
+	if s != nil {
+		bpu.SetSupplierTaxCode(*s)
+	}
+	return bpu
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (bpu *BillingProfileUpdate) ClearSupplierTaxCode() *BillingProfileUpdate {
+	bpu.mutation.ClearSupplierTaxCode()
 	return bpu
 }
 
@@ -460,21 +437,6 @@ func (bpu *BillingProfileUpdate) check() error {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if v, ok := bpu.mutation.TaxProvider(); ok {
-		if err := billingprofile.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := bpu.mutation.InvoicingProvider(); ok {
-		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := bpu.mutation.PaymentProvider(); ok {
-		if err := billingprofile.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
-		}
-	}
 	if v, ok := bpu.mutation.WorkflowConfigID(); ok {
 		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
 			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
@@ -487,6 +449,15 @@ func (bpu *BillingProfileUpdate) check() error {
 	}
 	if bpu.mutation.WorkflowConfigCleared() && len(bpu.mutation.WorkflowConfigIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.workflow_config"`)
+	}
+	if bpu.mutation.TaxAppCleared() && len(bpu.mutation.TaxAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.tax_app"`)
+	}
+	if bpu.mutation.InvoicingAppCleared() && len(bpu.mutation.InvoicingAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.invoicing_app"`)
+	}
+	if bpu.mutation.PaymentAppCleared() && len(bpu.mutation.PaymentAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.payment_app"`)
 	}
 	return nil
 }
@@ -569,20 +540,17 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if bpu.mutation.SupplierAddressPhoneNumberCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString)
 	}
-	if value, ok := bpu.mutation.TaxProvider(); ok {
-		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
-	}
-	if value, ok := bpu.mutation.InvoicingProvider(); ok {
-		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
-	}
-	if value, ok := bpu.mutation.PaymentProvider(); ok {
-		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
-	}
 	if value, ok := bpu.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 	}
 	if value, ok := bpu.mutation.SupplierName(); ok {
 		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
+	}
+	if value, ok := bpu.mutation.SupplierTaxCode(); ok {
+		_spec.SetField(billingprofile.FieldSupplierTaxCode, field.TypeString, value)
+	}
+	if bpu.mutation.SupplierTaxCodeCleared() {
+		_spec.ClearField(billingprofile.FieldSupplierTaxCode, field.TypeString)
 	}
 	if bpu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -935,48 +903,6 @@ func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressPhoneNumber() *BillingP
 	return bpuo
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (bpuo *BillingProfileUpdateOne) SetTaxProvider(pp provider.TaxProvider) *BillingProfileUpdateOne {
-	bpuo.mutation.SetTaxProvider(pp)
-	return bpuo
-}
-
-// SetNillableTaxProvider sets the "tax_provider" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableTaxProvider(pp *provider.TaxProvider) *BillingProfileUpdateOne {
-	if pp != nil {
-		bpuo.SetTaxProvider(*pp)
-	}
-	return bpuo
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (bpuo *BillingProfileUpdateOne) SetInvoicingProvider(pp provider.InvoicingProvider) *BillingProfileUpdateOne {
-	bpuo.mutation.SetInvoicingProvider(pp)
-	return bpuo
-}
-
-// SetNillableInvoicingProvider sets the "invoicing_provider" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableInvoicingProvider(pp *provider.InvoicingProvider) *BillingProfileUpdateOne {
-	if pp != nil {
-		bpuo.SetInvoicingProvider(*pp)
-	}
-	return bpuo
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (bpuo *BillingProfileUpdateOne) SetPaymentProvider(pp provider.PaymentProvider) *BillingProfileUpdateOne {
-	bpuo.mutation.SetPaymentProvider(pp)
-	return bpuo
-}
-
-// SetNillablePaymentProvider sets the "payment_provider" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillablePaymentProvider(pp *provider.PaymentProvider) *BillingProfileUpdateOne {
-	if pp != nil {
-		bpuo.SetPaymentProvider(*pp)
-	}
-	return bpuo
-}
-
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (bpuo *BillingProfileUpdateOne) SetWorkflowConfigID(s string) *BillingProfileUpdateOne {
 	bpuo.mutation.SetWorkflowConfigID(s)
@@ -1016,6 +942,26 @@ func (bpuo *BillingProfileUpdateOne) SetNillableSupplierName(s *string) *Billing
 	if s != nil {
 		bpuo.SetSupplierName(*s)
 	}
+	return bpuo
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (bpuo *BillingProfileUpdateOne) SetSupplierTaxCode(s string) *BillingProfileUpdateOne {
+	bpuo.mutation.SetSupplierTaxCode(s)
+	return bpuo
+}
+
+// SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableSupplierTaxCode(s *string) *BillingProfileUpdateOne {
+	if s != nil {
+		bpuo.SetSupplierTaxCode(*s)
+	}
+	return bpuo
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (bpuo *BillingProfileUpdateOne) ClearSupplierTaxCode() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearSupplierTaxCode()
 	return bpuo
 }
 
@@ -1163,21 +1109,6 @@ func (bpuo *BillingProfileUpdateOne) check() error {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if v, ok := bpuo.mutation.TaxProvider(); ok {
-		if err := billingprofile.TaxProviderValidator(v); err != nil {
-			return &ValidationError{Name: "tax_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.tax_provider": %w`, err)}
-		}
-	}
-	if v, ok := bpuo.mutation.InvoicingProvider(); ok {
-		if err := billingprofile.InvoicingProviderValidator(v); err != nil {
-			return &ValidationError{Name: "invoicing_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.invoicing_provider": %w`, err)}
-		}
-	}
-	if v, ok := bpuo.mutation.PaymentProvider(); ok {
-		if err := billingprofile.PaymentProviderValidator(v); err != nil {
-			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "BillingProfile.payment_provider": %w`, err)}
-		}
-	}
 	if v, ok := bpuo.mutation.WorkflowConfigID(); ok {
 		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
 			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
@@ -1190,6 +1121,15 @@ func (bpuo *BillingProfileUpdateOne) check() error {
 	}
 	if bpuo.mutation.WorkflowConfigCleared() && len(bpuo.mutation.WorkflowConfigIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.workflow_config"`)
+	}
+	if bpuo.mutation.TaxAppCleared() && len(bpuo.mutation.TaxAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.tax_app"`)
+	}
+	if bpuo.mutation.InvoicingAppCleared() && len(bpuo.mutation.InvoicingAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.invoicing_app"`)
+	}
+	if bpuo.mutation.PaymentAppCleared() && len(bpuo.mutation.PaymentAppIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.payment_app"`)
 	}
 	return nil
 }
@@ -1289,20 +1229,17 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	if bpuo.mutation.SupplierAddressPhoneNumberCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.TaxProvider(); ok {
-		_spec.SetField(billingprofile.FieldTaxProvider, field.TypeEnum, value)
-	}
-	if value, ok := bpuo.mutation.InvoicingProvider(); ok {
-		_spec.SetField(billingprofile.FieldInvoicingProvider, field.TypeEnum, value)
-	}
-	if value, ok := bpuo.mutation.PaymentProvider(); ok {
-		_spec.SetField(billingprofile.FieldPaymentProvider, field.TypeEnum, value)
-	}
 	if value, ok := bpuo.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 	}
 	if value, ok := bpuo.mutation.SupplierName(); ok {
 		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
+	}
+	if value, ok := bpuo.mutation.SupplierTaxCode(); ok {
+		_spec.SetField(billingprofile.FieldSupplierTaxCode, field.TypeString, value)
+	}
+	if bpuo.mutation.SupplierTaxCodeCleared() {
+		_spec.ClearField(billingprofile.FieldSupplierTaxCode, field.TypeString)
 	}
 	if bpuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

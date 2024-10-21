@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 )
 
 const (
@@ -112,7 +112,7 @@ var (
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billing.InvoiceItemType) error {
+func TypeValidator(_type billingentity.InvoiceItemType) error {
 	switch _type {
 	case "static", "usage":
 		return nil

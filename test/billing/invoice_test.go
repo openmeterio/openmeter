@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing/gobldriver"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -34,6 +35,8 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 	periodEnd := now.Add(-time.Hour)
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
 	issueAt := now.Add(-time.Minute)
+
+	_ = s.installSandboxApp(s.T(), namespace)
 
 	ctx := context.Background()
 
@@ -75,8 +78,8 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 		require.NotNil(t, profile)
 	})
 
-	var items []billing.InvoiceItem
-	var HUFItem billing.InvoiceItem
+	var items []billingentity.InvoiceItem
+	var HUFItem billingentity.InvoiceItem
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
@@ -85,7 +88,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 			billing.CreateInvoiceItemsInput{
 				InvoiceID: nil,
 				Namespace: namespace,
-				Items: []billing.InvoiceItem{
+				Items: []billingentity.InvoiceItem{
 					{
 						Namespace:   namespace,
 						CustomerID:  customerEntity.ID,
@@ -94,7 +97,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 						InvoiceAt: issueAt,
 
-						Type: billing.InvoiceItemTypeStatic,
+						Type: billingentity.InvoiceItemTypeStatic,
 
 						Name:      "Test item - USD",
 						Quantity:  lo.ToPtr(alpacadecimal.NewFromFloat(1)),
@@ -113,7 +116,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 						InvoiceAt: issueAt,
 
-						Type: billing.InvoiceItemTypeStatic,
+						Type: billingentity.InvoiceItemTypeStatic,
 
 						Name:      "Test item - HUF",
 						Quantity:  lo.ToPtr(alpacadecimal.NewFromFloat(3)),
@@ -126,7 +129,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 		// Then we should have the items created
 		require.NoError(s.T(), err)
 		require.Len(s.T(), items, 2)
-		require.Equal(s.T(), items[0], billing.InvoiceItem{
+		require.Equal(s.T(), items[0], billingentity.InvoiceItem{
 			ID:         items[0].ID,
 			Namespace:  namespace,
 			CustomerID: customerEntity.ID,
@@ -136,7 +139,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 			InvoiceAt: issueAt,
 
-			Type: billing.InvoiceItemTypeStatic,
+			Type: billingentity.InvoiceItemTypeStatic,
 
 			Name:      "Test item - USD",
 			Quantity:  lo.ToPtr(alpacadecimal.NewFromFloat(1)),
@@ -155,8 +158,8 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 		HUFItem = items[1]
 	})
 
-	var pendingInvoices []billing.InvoiceWithValidation
-	var USDInvoice billing.InvoiceWithValidation
+	var pendingInvoices []billingentity.InvoiceWithValidation
+	var USDInvoice billingentity.InvoiceWithValidation
 
 	s.T().Run("Pending invoices", func(t *testing.T) {
 		// When we get the pending invoices
@@ -178,7 +181,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 			pendingInvoice.Invoice.Customer.CreatedAt = customerEntity.CreatedAt
 			pendingInvoice.Invoice.Customer.UpdatedAt = customerEntity.UpdatedAt
 
-			require.EqualValues(t, billing.InvoiceCustomer(*customerEntity), pendingInvoice.Invoice.Customer)
+			require.EqualValues(t, billingentity.InvoiceCustomer(*customerEntity), pendingInvoice.Invoice.Customer)
 		}
 
 		require.EqualValues(t, HUFItem.ID, pendingInvoices[0].Invoice.Items[0].ID)

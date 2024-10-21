@@ -2,23 +2,19 @@ package billingadapter
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 )
 
-func (r adapter) CreateInvoiceItems(ctx context.Context, input billing.CreateInvoiceItemsInput) ([]billing.InvoiceItem, error) {
-	if r.tx == nil {
-		return nil, fmt.Errorf("create invoice items: %w", ErrTransactionRequired)
-	}
-
-	result := make([]billing.InvoiceItem, 0, len(input.Items))
+func (r adapter) CreateInvoiceItems(ctx context.Context, input billing.CreateInvoiceItemsInput) ([]billingentity.InvoiceItem, error) {
+	result := make([]billingentity.InvoiceItem, 0, len(input.Items))
 
 	for _, item := range input.Items {
-		item := r.tx.BillingInvoiceItem.Create().
+		item := r.db.BillingInvoiceItem.Create().
 			SetNamespace(input.Namespace).
 			SetCustomerID(item.CustomerID).
 			SetPeriodStart(item.PeriodStart).
@@ -48,7 +44,7 @@ func (r adapter) CreateInvoiceItems(ctx context.Context, input billing.CreateInv
 	return result, nil
 }
 
-func (r adapter) GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billing.InvoiceItem, error) {
+func (r adapter) GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billingentity.InvoiceItem, error) {
 	items, err := r.db.BillingInvoiceItem.Query().
 		Where(billinginvoiceitem.CustomerID(customerID.ID)).
 		Where(billinginvoiceitem.Namespace(customerID.Namespace)).
@@ -58,7 +54,7 @@ func (r adapter) GetPendingInvoiceItems(ctx context.Context, customerID customer
 		return nil, err
 	}
 
-	res := make([]billing.InvoiceItem, 0, len(items))
+	res := make([]billingentity.InvoiceItem, 0, len(items))
 	for _, item := range items {
 		res = append(res, mapInvoiceItemFromDB(item))
 	}
@@ -66,8 +62,8 @@ func (r adapter) GetPendingInvoiceItems(ctx context.Context, customerID customer
 	return res, nil
 }
 
-func mapInvoiceItemFromDB(dbItem *db.BillingInvoiceItem) billing.InvoiceItem {
-	invoiceItem := billing.InvoiceItem{
+func mapInvoiceItemFromDB(dbItem *db.BillingInvoiceItem) billingentity.InvoiceItem {
+	invoiceItem := billingentity.InvoiceItem{
 		Namespace: dbItem.Namespace,
 		ID:        dbItem.ID,
 

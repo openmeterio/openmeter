@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
@@ -153,32 +153,32 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearBillingProfileID(value *str
 	return u.SetBillingProfileID(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearCollectionAlignment(value *billing.AlignmentKind) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearCollectionAlignment(value *billingentity.AlignmentKind) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearCollectionAlignment()
 	}
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *billingentity.AlignmentKind) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearCollectionAlignment()
 	}
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearItemCollectionPeriodSeconds(value *int64) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearItemCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearItemCollectionPeriodSeconds()
+		return u.ClearItemCollectionPeriod()
 	}
-	return u.SetItemCollectionPeriodSeconds(*value)
+	return u.SetItemCollectionPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearItemCollectionPeriodSeconds(value *int64) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearItemCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearItemCollectionPeriodSeconds()
+		return u.ClearItemCollectionPeriod()
 	}
-	return u.SetItemCollectionPeriodSeconds(*value)
+	return u.SetItemCollectionPeriod(*value)
 }
 
 func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceAutoAdvance(value *bool) *BillingCustomerOverrideUpdate {
@@ -195,74 +195,46 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceAutoAdvance(value *b
 	return u.SetInvoiceAutoAdvance(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDraftPeriodSeconds(value *int64) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDraftPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearInvoiceDraftPeriodSeconds()
+		return u.ClearInvoiceDraftPeriod()
 	}
-	return u.SetInvoiceDraftPeriodSeconds(*value)
+	return u.SetInvoiceDraftPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDraftPeriodSeconds(value *int64) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDraftPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceDraftPeriodSeconds()
+		return u.ClearInvoiceDraftPeriod()
 	}
-	return u.SetInvoiceDraftPeriodSeconds(*value)
+	return u.SetInvoiceDraftPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDueAfterSeconds(value *int64) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDueAfter(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearInvoiceDueAfterSeconds()
+		return u.ClearInvoiceDueAfter()
 	}
-	return u.SetInvoiceDueAfterSeconds(*value)
+	return u.SetInvoiceDueAfter(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfterSeconds(value *int64) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfter(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceDueAfterSeconds()
+		return u.ClearInvoiceDueAfter()
 	}
-	return u.SetInvoiceDueAfterSeconds(*value)
+	return u.SetInvoiceDueAfter(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceCollectionMethod(value *billing.CollectionMethod) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceCollectionMethod(value *billingentity.CollectionMethod) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearInvoiceCollectionMethod()
 	}
 	return u.SetInvoiceCollectionMethod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceCollectionMethod(value *billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceCollectionMethod(value *billingentity.CollectionMethod) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearInvoiceCollectionMethod()
 	}
 	return u.SetInvoiceCollectionMethod(*value)
-}
-
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceItemResolution(value *billing.GranularityResolution) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearInvoiceItemResolution()
-	}
-	return u.SetInvoiceItemResolution(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceItemResolution(value *billing.GranularityResolution) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearInvoiceItemResolution()
-	}
-	return u.SetInvoiceItemResolution(*value)
-}
-
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceItemPerSubject(value *bool) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearInvoiceItemPerSubject()
-	}
-	return u.SetInvoiceItemPerSubject(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceItemPerSubject(value *bool) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearInvoiceItemPerSubject()
-	}
-	return u.SetInvoiceItemPerSubject(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceUpdate {
@@ -333,48 +305,6 @@ func (u *BillingInvoiceUpdateOne) SetOrClearVoidedAt(value *time.Time) *BillingI
 		return u.ClearVoidedAt()
 	}
 	return u.SetVoidedAt(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearTaxProvider(value *provider.TaxProvider) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearTaxProvider()
-	}
-	return u.SetTaxProvider(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearTaxProvider(value *provider.TaxProvider) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearTaxProvider()
-	}
-	return u.SetTaxProvider(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearInvoicingProvider(value *provider.InvoicingProvider) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearInvoicingProvider()
-	}
-	return u.SetInvoicingProvider(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearInvoicingProvider(value *provider.InvoicingProvider) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingProvider()
-	}
-	return u.SetInvoicingProvider(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearPaymentProvider(value *provider.PaymentProvider) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearPaymentProvider()
-	}
-	return u.SetPaymentProvider(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearPaymentProvider(value *provider.PaymentProvider) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearPaymentProvider()
-	}
-	return u.SetPaymentProvider(*value)
 }
 
 func (u *BillingInvoiceItemUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceItemUpdate {
@@ -573,6 +503,20 @@ func (u *BillingProfileUpdateOne) SetOrClearSupplierAddressPhoneNumber(value *st
 	return u.SetSupplierAddressPhoneNumber(*value)
 }
 
+func (u *BillingProfileUpdate) SetOrClearSupplierTaxCode(value *string) *BillingProfileUpdate {
+	if value == nil {
+		return u.ClearSupplierTaxCode()
+	}
+	return u.SetSupplierTaxCode(*value)
+}
+
+func (u *BillingProfileUpdateOne) SetOrClearSupplierTaxCode(value *string) *BillingProfileUpdateOne {
+	if value == nil {
+		return u.ClearSupplierTaxCode()
+	}
+	return u.SetSupplierTaxCode(*value)
+}
+
 func (u *BillingWorkflowConfigUpdate) SetOrClearDeletedAt(value *time.Time) *BillingWorkflowConfigUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -585,20 +529,6 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearDeletedAt(value *time.Time) *
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
-}
-
-func (u *BillingWorkflowConfigUpdate) SetOrClearTimezone(value *timezone.Timezone) *BillingWorkflowConfigUpdate {
-	if value == nil {
-		return u.ClearTimezone()
-	}
-	return u.SetTimezone(*value)
-}
-
-func (u *BillingWorkflowConfigUpdateOne) SetOrClearTimezone(value *timezone.Timezone) *BillingWorkflowConfigUpdateOne {
-	if value == nil {
-		return u.ClearTimezone()
-	}
-	return u.SetTimezone(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearMetadata(value *map[string]string) *CustomerUpdate {

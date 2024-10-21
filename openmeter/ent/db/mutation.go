@@ -13,8 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -40,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -96,6 +96,15 @@ type AppMutation struct {
 	customer_apps        map[int]struct{}
 	removedcustomer_apps map[int]struct{}
 	clearedcustomer_apps bool
+	tax_app              map[string]struct{}
+	removedtax_app       map[string]struct{}
+	clearedtax_app       bool
+	invoicing_app        map[string]struct{}
+	removedinvoicing_app map[string]struct{}
+	clearedinvoicing_app bool
+	payment_app          map[string]struct{}
+	removedpayment_app   map[string]struct{}
+	clearedpayment_app   bool
 	done                 bool
 	oldValue             func(context.Context) (*App, error)
 	predicates           []predicate.App
@@ -658,6 +667,168 @@ func (m *AppMutation) ResetCustomerApps() {
 	m.removedcustomer_apps = nil
 }
 
+// AddTaxAppIDs adds the "tax_app" edge to the BillingProfile entity by ids.
+func (m *AppMutation) AddTaxAppIDs(ids ...string) {
+	if m.tax_app == nil {
+		m.tax_app = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.tax_app[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTaxApp clears the "tax_app" edge to the BillingProfile entity.
+func (m *AppMutation) ClearTaxApp() {
+	m.clearedtax_app = true
+}
+
+// TaxAppCleared reports if the "tax_app" edge to the BillingProfile entity was cleared.
+func (m *AppMutation) TaxAppCleared() bool {
+	return m.clearedtax_app
+}
+
+// RemoveTaxAppIDs removes the "tax_app" edge to the BillingProfile entity by IDs.
+func (m *AppMutation) RemoveTaxAppIDs(ids ...string) {
+	if m.removedtax_app == nil {
+		m.removedtax_app = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.tax_app, ids[i])
+		m.removedtax_app[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTaxApp returns the removed IDs of the "tax_app" edge to the BillingProfile entity.
+func (m *AppMutation) RemovedTaxAppIDs() (ids []string) {
+	for id := range m.removedtax_app {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TaxAppIDs returns the "tax_app" edge IDs in the mutation.
+func (m *AppMutation) TaxAppIDs() (ids []string) {
+	for id := range m.tax_app {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTaxApp resets all changes to the "tax_app" edge.
+func (m *AppMutation) ResetTaxApp() {
+	m.tax_app = nil
+	m.clearedtax_app = false
+	m.removedtax_app = nil
+}
+
+// AddInvoicingAppIDs adds the "invoicing_app" edge to the BillingProfile entity by ids.
+func (m *AppMutation) AddInvoicingAppIDs(ids ...string) {
+	if m.invoicing_app == nil {
+		m.invoicing_app = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.invoicing_app[ids[i]] = struct{}{}
+	}
+}
+
+// ClearInvoicingApp clears the "invoicing_app" edge to the BillingProfile entity.
+func (m *AppMutation) ClearInvoicingApp() {
+	m.clearedinvoicing_app = true
+}
+
+// InvoicingAppCleared reports if the "invoicing_app" edge to the BillingProfile entity was cleared.
+func (m *AppMutation) InvoicingAppCleared() bool {
+	return m.clearedinvoicing_app
+}
+
+// RemoveInvoicingAppIDs removes the "invoicing_app" edge to the BillingProfile entity by IDs.
+func (m *AppMutation) RemoveInvoicingAppIDs(ids ...string) {
+	if m.removedinvoicing_app == nil {
+		m.removedinvoicing_app = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.invoicing_app, ids[i])
+		m.removedinvoicing_app[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedInvoicingApp returns the removed IDs of the "invoicing_app" edge to the BillingProfile entity.
+func (m *AppMutation) RemovedInvoicingAppIDs() (ids []string) {
+	for id := range m.removedinvoicing_app {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// InvoicingAppIDs returns the "invoicing_app" edge IDs in the mutation.
+func (m *AppMutation) InvoicingAppIDs() (ids []string) {
+	for id := range m.invoicing_app {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetInvoicingApp resets all changes to the "invoicing_app" edge.
+func (m *AppMutation) ResetInvoicingApp() {
+	m.invoicing_app = nil
+	m.clearedinvoicing_app = false
+	m.removedinvoicing_app = nil
+}
+
+// AddPaymentAppIDs adds the "payment_app" edge to the BillingProfile entity by ids.
+func (m *AppMutation) AddPaymentAppIDs(ids ...string) {
+	if m.payment_app == nil {
+		m.payment_app = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.payment_app[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPaymentApp clears the "payment_app" edge to the BillingProfile entity.
+func (m *AppMutation) ClearPaymentApp() {
+	m.clearedpayment_app = true
+}
+
+// PaymentAppCleared reports if the "payment_app" edge to the BillingProfile entity was cleared.
+func (m *AppMutation) PaymentAppCleared() bool {
+	return m.clearedpayment_app
+}
+
+// RemovePaymentAppIDs removes the "payment_app" edge to the BillingProfile entity by IDs.
+func (m *AppMutation) RemovePaymentAppIDs(ids ...string) {
+	if m.removedpayment_app == nil {
+		m.removedpayment_app = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.payment_app, ids[i])
+		m.removedpayment_app[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPaymentApp returns the removed IDs of the "payment_app" edge to the BillingProfile entity.
+func (m *AppMutation) RemovedPaymentAppIDs() (ids []string) {
+	for id := range m.removedpayment_app {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PaymentAppIDs returns the "payment_app" edge IDs in the mutation.
+func (m *AppMutation) PaymentAppIDs() (ids []string) {
+	for id := range m.payment_app {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPaymentApp resets all changes to the "payment_app" edge.
+func (m *AppMutation) ResetPaymentApp() {
+	m.payment_app = nil
+	m.clearedpayment_app = false
+	m.removedpayment_app = nil
+}
+
 // Where appends a list predicates to the AppMutation builder.
 func (m *AppMutation) Where(ps ...predicate.App) {
 	m.predicates = append(m.predicates, ps...)
@@ -965,9 +1136,18 @@ func (m *AppMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AppMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 4)
 	if m.customer_apps != nil {
 		edges = append(edges, app.EdgeCustomerApps)
+	}
+	if m.tax_app != nil {
+		edges = append(edges, app.EdgeTaxApp)
+	}
+	if m.invoicing_app != nil {
+		edges = append(edges, app.EdgeInvoicingApp)
+	}
+	if m.payment_app != nil {
+		edges = append(edges, app.EdgePaymentApp)
 	}
 	return edges
 }
@@ -982,15 +1162,42 @@ func (m *AppMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case app.EdgeTaxApp:
+		ids := make([]ent.Value, 0, len(m.tax_app))
+		for id := range m.tax_app {
+			ids = append(ids, id)
+		}
+		return ids
+	case app.EdgeInvoicingApp:
+		ids := make([]ent.Value, 0, len(m.invoicing_app))
+		for id := range m.invoicing_app {
+			ids = append(ids, id)
+		}
+		return ids
+	case app.EdgePaymentApp:
+		ids := make([]ent.Value, 0, len(m.payment_app))
+		for id := range m.payment_app {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AppMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 4)
 	if m.removedcustomer_apps != nil {
 		edges = append(edges, app.EdgeCustomerApps)
+	}
+	if m.removedtax_app != nil {
+		edges = append(edges, app.EdgeTaxApp)
+	}
+	if m.removedinvoicing_app != nil {
+		edges = append(edges, app.EdgeInvoicingApp)
+	}
+	if m.removedpayment_app != nil {
+		edges = append(edges, app.EdgePaymentApp)
 	}
 	return edges
 }
@@ -1005,15 +1212,42 @@ func (m *AppMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case app.EdgeTaxApp:
+		ids := make([]ent.Value, 0, len(m.removedtax_app))
+		for id := range m.removedtax_app {
+			ids = append(ids, id)
+		}
+		return ids
+	case app.EdgeInvoicingApp:
+		ids := make([]ent.Value, 0, len(m.removedinvoicing_app))
+		for id := range m.removedinvoicing_app {
+			ids = append(ids, id)
+		}
+		return ids
+	case app.EdgePaymentApp:
+		ids := make([]ent.Value, 0, len(m.removedpayment_app))
+		for id := range m.removedpayment_app {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AppMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 4)
 	if m.clearedcustomer_apps {
 		edges = append(edges, app.EdgeCustomerApps)
+	}
+	if m.clearedtax_app {
+		edges = append(edges, app.EdgeTaxApp)
+	}
+	if m.clearedinvoicing_app {
+		edges = append(edges, app.EdgeInvoicingApp)
+	}
+	if m.clearedpayment_app {
+		edges = append(edges, app.EdgePaymentApp)
 	}
 	return edges
 }
@@ -1024,6 +1258,12 @@ func (m *AppMutation) EdgeCleared(name string) bool {
 	switch name {
 	case app.EdgeCustomerApps:
 		return m.clearedcustomer_apps
+	case app.EdgeTaxApp:
+		return m.clearedtax_app
+	case app.EdgeInvoicingApp:
+		return m.clearedinvoicing_app
+	case app.EdgePaymentApp:
+		return m.clearedpayment_app
 	}
 	return false
 }
@@ -1042,6 +1282,15 @@ func (m *AppMutation) ResetEdge(name string) error {
 	switch name {
 	case app.EdgeCustomerApps:
 		m.ResetCustomerApps()
+		return nil
+	case app.EdgeTaxApp:
+		m.ResetTaxApp()
+		return nil
+	case app.EdgeInvoicingApp:
+		m.ResetInvoicingApp()
+		return nil
+	case app.EdgePaymentApp:
+		m.ResetPaymentApp()
 		return nil
 	}
 	return fmt.Errorf("unknown App edge %s", name)
@@ -4480,32 +4729,27 @@ func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
 // BillingCustomerOverrideMutation represents an operation that mutates the BillingCustomerOverride nodes in the graph.
 type BillingCustomerOverrideMutation struct {
 	config
-	op                                Op
-	typ                               string
-	id                                *string
-	namespace                         *string
-	created_at                        *time.Time
-	updated_at                        *time.Time
-	deleted_at                        *time.Time
-	collection_alignment              *billing.AlignmentKind
-	item_collection_period_seconds    *int64
-	additem_collection_period_seconds *int64
-	invoice_auto_advance              *bool
-	invoice_draft_period_seconds      *int64
-	addinvoice_draft_period_seconds   *int64
-	invoice_due_after_seconds         *int64
-	addinvoice_due_after_seconds      *int64
-	invoice_collection_method         *billing.CollectionMethod
-	invoice_item_resolution           *billing.GranularityResolution
-	invoice_item_per_subject          *bool
-	clearedFields                     map[string]struct{}
-	customer                          *string
-	clearedcustomer                   bool
-	billing_profile                   *string
-	clearedbilling_profile            bool
-	done                              bool
-	oldValue                          func(context.Context) (*BillingCustomerOverride, error)
-	predicates                        []predicate.BillingCustomerOverride
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	collection_alignment      *billingentity.AlignmentKind
+	item_collection_period    *datex.ISOString
+	invoice_auto_advance      *bool
+	invoice_draft_period      *datex.ISOString
+	invoice_due_after         *datex.ISOString
+	invoice_collection_method *billingentity.CollectionMethod
+	clearedFields             map[string]struct{}
+	customer                  *string
+	clearedcustomer           bool
+	billing_profile           *string
+	clearedbilling_profile    bool
+	done                      bool
+	oldValue                  func(context.Context) (*BillingCustomerOverride, error)
+	predicates                []predicate.BillingCustomerOverride
 }
 
 var _ ent.Mutation = (*BillingCustomerOverrideMutation)(nil)
@@ -4855,12 +5099,12 @@ func (m *BillingCustomerOverrideMutation) ResetBillingProfileID() {
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (m *BillingCustomerOverrideMutation) SetCollectionAlignment(bk billing.AlignmentKind) {
+func (m *BillingCustomerOverrideMutation) SetCollectionAlignment(bk billingentity.AlignmentKind) {
 	m.collection_alignment = &bk
 }
 
 // CollectionAlignment returns the value of the "collection_alignment" field in the mutation.
-func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billing.AlignmentKind, exists bool) {
+func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billingentity.AlignmentKind, exists bool) {
 	v := m.collection_alignment
 	if v == nil {
 		return
@@ -4871,7 +5115,7 @@ func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billing.Align
 // OldCollectionAlignment returns the old "collection_alignment" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldCollectionAlignment(ctx context.Context) (v *billing.AlignmentKind, err error) {
+func (m *BillingCustomerOverrideMutation) OldCollectionAlignment(ctx context.Context) (v *billingentity.AlignmentKind, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCollectionAlignment is only allowed on UpdateOne operations")
 	}
@@ -4903,74 +5147,53 @@ func (m *BillingCustomerOverrideMutation) ResetCollectionAlignment() {
 	delete(m.clearedFields, billingcustomeroverride.FieldCollectionAlignment)
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) SetItemCollectionPeriodSeconds(i int64) {
-	m.item_collection_period_seconds = &i
-	m.additem_collection_period_seconds = nil
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (m *BillingCustomerOverrideMutation) SetItemCollectionPeriod(ds datex.ISOString) {
+	m.item_collection_period = &ds
 }
 
-// ItemCollectionPeriodSeconds returns the value of the "item_collection_period_seconds" field in the mutation.
-func (m *BillingCustomerOverrideMutation) ItemCollectionPeriodSeconds() (r int64, exists bool) {
-	v := m.item_collection_period_seconds
+// ItemCollectionPeriod returns the value of the "item_collection_period" field in the mutation.
+func (m *BillingCustomerOverrideMutation) ItemCollectionPeriod() (r datex.ISOString, exists bool) {
+	v := m.item_collection_period
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldItemCollectionPeriodSeconds returns the old "item_collection_period_seconds" field's value of the BillingCustomerOverride entity.
+// OldItemCollectionPeriod returns the old "item_collection_period" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldItemCollectionPeriodSeconds(ctx context.Context) (v *int64, err error) {
+func (m *BillingCustomerOverrideMutation) OldItemCollectionPeriod(ctx context.Context) (v *datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldItemCollectionPeriodSeconds is only allowed on UpdateOne operations")
+		return v, errors.New("OldItemCollectionPeriod is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldItemCollectionPeriodSeconds requires an ID field in the mutation")
+		return v, errors.New("OldItemCollectionPeriod requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldItemCollectionPeriodSeconds: %w", err)
+		return v, fmt.Errorf("querying old value for OldItemCollectionPeriod: %w", err)
 	}
-	return oldValue.ItemCollectionPeriodSeconds, nil
+	return oldValue.ItemCollectionPeriod, nil
 }
 
-// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) AddItemCollectionPeriodSeconds(i int64) {
-	if m.additem_collection_period_seconds != nil {
-		*m.additem_collection_period_seconds += i
-	} else {
-		m.additem_collection_period_seconds = &i
-	}
+// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
+func (m *BillingCustomerOverrideMutation) ClearItemCollectionPeriod() {
+	m.item_collection_period = nil
+	m.clearedFields[billingcustomeroverride.FieldItemCollectionPeriod] = struct{}{}
 }
 
-// AddedItemCollectionPeriodSeconds returns the value that was added to the "item_collection_period_seconds" field in this mutation.
-func (m *BillingCustomerOverrideMutation) AddedItemCollectionPeriodSeconds() (r int64, exists bool) {
-	v := m.additem_collection_period_seconds
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearItemCollectionPeriodSeconds clears the value of the "item_collection_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) ClearItemCollectionPeriodSeconds() {
-	m.item_collection_period_seconds = nil
-	m.additem_collection_period_seconds = nil
-	m.clearedFields[billingcustomeroverride.FieldItemCollectionPeriodSeconds] = struct{}{}
-}
-
-// ItemCollectionPeriodSecondsCleared returns if the "item_collection_period_seconds" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) ItemCollectionPeriodSecondsCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldItemCollectionPeriodSeconds]
+// ItemCollectionPeriodCleared returns if the "item_collection_period" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) ItemCollectionPeriodCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldItemCollectionPeriod]
 	return ok
 }
 
-// ResetItemCollectionPeriodSeconds resets all changes to the "item_collection_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) ResetItemCollectionPeriodSeconds() {
-	m.item_collection_period_seconds = nil
-	m.additem_collection_period_seconds = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldItemCollectionPeriodSeconds)
+// ResetItemCollectionPeriod resets all changes to the "item_collection_period" field.
+func (m *BillingCustomerOverrideMutation) ResetItemCollectionPeriod() {
+	m.item_collection_period = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldItemCollectionPeriod)
 }
 
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
@@ -5022,153 +5245,111 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceAutoAdvance() {
 	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceAutoAdvance)
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriodSeconds(i int64) {
-	m.invoice_draft_period_seconds = &i
-	m.addinvoice_draft_period_seconds = nil
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriod(ds datex.ISOString) {
+	m.invoice_draft_period = &ds
 }
 
-// InvoiceDraftPeriodSeconds returns the value of the "invoice_draft_period_seconds" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriodSeconds() (r int64, exists bool) {
-	v := m.invoice_draft_period_seconds
+// InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
+func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriod() (r datex.ISOString, exists bool) {
+	v := m.invoice_draft_period
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInvoiceDraftPeriodSeconds returns the old "invoice_draft_period_seconds" field's value of the BillingCustomerOverride entity.
+// OldInvoiceDraftPeriod returns the old "invoice_draft_period" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDraftPeriodSeconds(ctx context.Context) (v *int64, err error) {
+func (m *BillingCustomerOverrideMutation) OldInvoiceDraftPeriod(ctx context.Context) (v *datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDraftPeriodSeconds is only allowed on UpdateOne operations")
+		return v, errors.New("OldInvoiceDraftPeriod is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDraftPeriodSeconds requires an ID field in the mutation")
+		return v, errors.New("OldInvoiceDraftPeriod requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDraftPeriodSeconds: %w", err)
+		return v, fmt.Errorf("querying old value for OldInvoiceDraftPeriod: %w", err)
 	}
-	return oldValue.InvoiceDraftPeriodSeconds, nil
+	return oldValue.InvoiceDraftPeriod, nil
 }
 
-// AddInvoiceDraftPeriodSeconds adds i to the "invoice_draft_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) AddInvoiceDraftPeriodSeconds(i int64) {
-	if m.addinvoice_draft_period_seconds != nil {
-		*m.addinvoice_draft_period_seconds += i
-	} else {
-		m.addinvoice_draft_period_seconds = &i
-	}
+// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
+func (m *BillingCustomerOverrideMutation) ClearInvoiceDraftPeriod() {
+	m.invoice_draft_period = nil
+	m.clearedFields[billingcustomeroverride.FieldInvoiceDraftPeriod] = struct{}{}
 }
 
-// AddedInvoiceDraftPeriodSeconds returns the value that was added to the "invoice_draft_period_seconds" field in this mutation.
-func (m *BillingCustomerOverrideMutation) AddedInvoiceDraftPeriodSeconds() (r int64, exists bool) {
-	v := m.addinvoice_draft_period_seconds
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearInvoiceDraftPeriodSeconds clears the value of the "invoice_draft_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceDraftPeriodSeconds() {
-	m.invoice_draft_period_seconds = nil
-	m.addinvoice_draft_period_seconds = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceDraftPeriodSeconds] = struct{}{}
-}
-
-// InvoiceDraftPeriodSecondsCleared returns if the "invoice_draft_period_seconds" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriodSecondsCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDraftPeriodSeconds]
+// InvoiceDraftPeriodCleared returns if the "invoice_draft_period" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriodCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDraftPeriod]
 	return ok
 }
 
-// ResetInvoiceDraftPeriodSeconds resets all changes to the "invoice_draft_period_seconds" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceDraftPeriodSeconds() {
-	m.invoice_draft_period_seconds = nil
-	m.addinvoice_draft_period_seconds = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDraftPeriodSeconds)
+// ResetInvoiceDraftPeriod resets all changes to the "invoice_draft_period" field.
+func (m *BillingCustomerOverrideMutation) ResetInvoiceDraftPeriod() {
+	m.invoice_draft_period = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDraftPeriod)
 }
 
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfterSeconds(i int64) {
-	m.invoice_due_after_seconds = &i
-	m.addinvoice_due_after_seconds = nil
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfter(ds datex.ISOString) {
+	m.invoice_due_after = &ds
 }
 
-// InvoiceDueAfterSeconds returns the value of the "invoice_due_after_seconds" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDueAfterSeconds() (r int64, exists bool) {
-	v := m.invoice_due_after_seconds
+// InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
+func (m *BillingCustomerOverrideMutation) InvoiceDueAfter() (r datex.ISOString, exists bool) {
+	v := m.invoice_due_after
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInvoiceDueAfterSeconds returns the old "invoice_due_after_seconds" field's value of the BillingCustomerOverride entity.
+// OldInvoiceDueAfter returns the old "invoice_due_after" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDueAfterSeconds(ctx context.Context) (v *int64, err error) {
+func (m *BillingCustomerOverrideMutation) OldInvoiceDueAfter(ctx context.Context) (v *datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDueAfterSeconds is only allowed on UpdateOne operations")
+		return v, errors.New("OldInvoiceDueAfter is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDueAfterSeconds requires an ID field in the mutation")
+		return v, errors.New("OldInvoiceDueAfter requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDueAfterSeconds: %w", err)
+		return v, fmt.Errorf("querying old value for OldInvoiceDueAfter: %w", err)
 	}
-	return oldValue.InvoiceDueAfterSeconds, nil
+	return oldValue.InvoiceDueAfter, nil
 }
 
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (m *BillingCustomerOverrideMutation) AddInvoiceDueAfterSeconds(i int64) {
-	if m.addinvoice_due_after_seconds != nil {
-		*m.addinvoice_due_after_seconds += i
-	} else {
-		m.addinvoice_due_after_seconds = &i
-	}
+// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
+func (m *BillingCustomerOverrideMutation) ClearInvoiceDueAfter() {
+	m.invoice_due_after = nil
+	m.clearedFields[billingcustomeroverride.FieldInvoiceDueAfter] = struct{}{}
 }
 
-// AddedInvoiceDueAfterSeconds returns the value that was added to the "invoice_due_after_seconds" field in this mutation.
-func (m *BillingCustomerOverrideMutation) AddedInvoiceDueAfterSeconds() (r int64, exists bool) {
-	v := m.addinvoice_due_after_seconds
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearInvoiceDueAfterSeconds clears the value of the "invoice_due_after_seconds" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceDueAfterSeconds() {
-	m.invoice_due_after_seconds = nil
-	m.addinvoice_due_after_seconds = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceDueAfterSeconds] = struct{}{}
-}
-
-// InvoiceDueAfterSecondsCleared returns if the "invoice_due_after_seconds" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDueAfterSecondsCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDueAfterSeconds]
+// InvoiceDueAfterCleared returns if the "invoice_due_after" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) InvoiceDueAfterCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDueAfter]
 	return ok
 }
 
-// ResetInvoiceDueAfterSeconds resets all changes to the "invoice_due_after_seconds" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceDueAfterSeconds() {
-	m.invoice_due_after_seconds = nil
-	m.addinvoice_due_after_seconds = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDueAfterSeconds)
+// ResetInvoiceDueAfter resets all changes to the "invoice_due_after" field.
+func (m *BillingCustomerOverrideMutation) ResetInvoiceDueAfter() {
+	m.invoice_due_after = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDueAfter)
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceCollectionMethod(bm billing.CollectionMethod) {
+func (m *BillingCustomerOverrideMutation) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) {
 	m.invoice_collection_method = &bm
 }
 
 // InvoiceCollectionMethod returns the value of the "invoice_collection_method" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billing.CollectionMethod, exists bool) {
+func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billingentity.CollectionMethod, exists bool) {
 	v := m.invoice_collection_method
 	if v == nil {
 		return
@@ -5179,7 +5360,7 @@ func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billing.C
 // OldInvoiceCollectionMethod returns the old "invoice_collection_method" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceCollectionMethod(ctx context.Context) (v *billing.CollectionMethod, err error) {
+func (m *BillingCustomerOverrideMutation) OldInvoiceCollectionMethod(ctx context.Context) (v *billingentity.CollectionMethod, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceCollectionMethod is only allowed on UpdateOne operations")
 	}
@@ -5209,104 +5390,6 @@ func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethodCleared() bool 
 func (m *BillingCustomerOverrideMutation) ResetInvoiceCollectionMethod() {
 	m.invoice_collection_method = nil
 	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceCollectionMethod)
-}
-
-// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceItemResolution(br billing.GranularityResolution) {
-	m.invoice_item_resolution = &br
-}
-
-// InvoiceItemResolution returns the value of the "invoice_item_resolution" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceItemResolution() (r billing.GranularityResolution, exists bool) {
-	v := m.invoice_item_resolution
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceItemResolution returns the old "invoice_item_resolution" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceItemResolution(ctx context.Context) (v *billing.GranularityResolution, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceItemResolution is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceItemResolution requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceItemResolution: %w", err)
-	}
-	return oldValue.InvoiceItemResolution, nil
-}
-
-// ClearInvoiceItemResolution clears the value of the "invoice_item_resolution" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceItemResolution() {
-	m.invoice_item_resolution = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceItemResolution] = struct{}{}
-}
-
-// InvoiceItemResolutionCleared returns if the "invoice_item_resolution" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceItemResolutionCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceItemResolution]
-	return ok
-}
-
-// ResetInvoiceItemResolution resets all changes to the "invoice_item_resolution" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceItemResolution() {
-	m.invoice_item_resolution = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceItemResolution)
-}
-
-// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceItemPerSubject(b bool) {
-	m.invoice_item_per_subject = &b
-}
-
-// InvoiceItemPerSubject returns the value of the "invoice_item_per_subject" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceItemPerSubject() (r bool, exists bool) {
-	v := m.invoice_item_per_subject
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceItemPerSubject returns the old "invoice_item_per_subject" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceItemPerSubject(ctx context.Context) (v *bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceItemPerSubject is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceItemPerSubject requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceItemPerSubject: %w", err)
-	}
-	return oldValue.InvoiceItemPerSubject, nil
-}
-
-// ClearInvoiceItemPerSubject clears the value of the "invoice_item_per_subject" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceItemPerSubject() {
-	m.invoice_item_per_subject = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceItemPerSubject] = struct{}{}
-}
-
-// InvoiceItemPerSubjectCleared returns if the "invoice_item_per_subject" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceItemPerSubjectCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceItemPerSubject]
-	return ok
-}
-
-// ResetInvoiceItemPerSubject resets all changes to the "invoice_item_per_subject" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceItemPerSubject() {
-	m.invoice_item_per_subject = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceItemPerSubject)
 }
 
 // ClearCustomer clears the "customer" edge to the Customer entity.
@@ -5397,7 +5480,7 @@ func (m *BillingCustomerOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingCustomerOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, billingcustomeroverride.FieldNamespace)
 	}
@@ -5419,26 +5502,20 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	if m.collection_alignment != nil {
 		fields = append(fields, billingcustomeroverride.FieldCollectionAlignment)
 	}
-	if m.item_collection_period_seconds != nil {
-		fields = append(fields, billingcustomeroverride.FieldItemCollectionPeriodSeconds)
+	if m.item_collection_period != nil {
+		fields = append(fields, billingcustomeroverride.FieldItemCollectionPeriod)
 	}
 	if m.invoice_auto_advance != nil {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceAutoAdvance)
 	}
-	if m.invoice_draft_period_seconds != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriodSeconds)
+	if m.invoice_draft_period != nil {
+		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriod)
 	}
-	if m.invoice_due_after_seconds != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfterSeconds)
+	if m.invoice_due_after != nil {
+		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfter)
 	}
 	if m.invoice_collection_method != nil {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceCollectionMethod)
-	}
-	if m.invoice_item_resolution != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceItemResolution)
-	}
-	if m.invoice_item_per_subject != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceItemPerSubject)
 	}
 	return fields
 }
@@ -5462,20 +5539,16 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingProfileID()
 	case billingcustomeroverride.FieldCollectionAlignment:
 		return m.CollectionAlignment()
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		return m.ItemCollectionPeriodSeconds()
+	case billingcustomeroverride.FieldItemCollectionPeriod:
+		return m.ItemCollectionPeriod()
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
 		return m.InvoiceAutoAdvance()
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		return m.InvoiceDraftPeriodSeconds()
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		return m.InvoiceDueAfterSeconds()
+	case billingcustomeroverride.FieldInvoiceDraftPeriod:
+		return m.InvoiceDraftPeriod()
+	case billingcustomeroverride.FieldInvoiceDueAfter:
+		return m.InvoiceDueAfter()
 	case billingcustomeroverride.FieldInvoiceCollectionMethod:
 		return m.InvoiceCollectionMethod()
-	case billingcustomeroverride.FieldInvoiceItemResolution:
-		return m.InvoiceItemResolution()
-	case billingcustomeroverride.FieldInvoiceItemPerSubject:
-		return m.InvoiceItemPerSubject()
 	}
 	return nil, false
 }
@@ -5499,20 +5572,16 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldBillingProfileID(ctx)
 	case billingcustomeroverride.FieldCollectionAlignment:
 		return m.OldCollectionAlignment(ctx)
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		return m.OldItemCollectionPeriodSeconds(ctx)
+	case billingcustomeroverride.FieldItemCollectionPeriod:
+		return m.OldItemCollectionPeriod(ctx)
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
 		return m.OldInvoiceAutoAdvance(ctx)
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		return m.OldInvoiceDraftPeriodSeconds(ctx)
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		return m.OldInvoiceDueAfterSeconds(ctx)
+	case billingcustomeroverride.FieldInvoiceDraftPeriod:
+		return m.OldInvoiceDraftPeriod(ctx)
+	case billingcustomeroverride.FieldInvoiceDueAfter:
+		return m.OldInvoiceDueAfter(ctx)
 	case billingcustomeroverride.FieldInvoiceCollectionMethod:
 		return m.OldInvoiceCollectionMethod(ctx)
-	case billingcustomeroverride.FieldInvoiceItemResolution:
-		return m.OldInvoiceItemResolution(ctx)
-	case billingcustomeroverride.FieldInvoiceItemPerSubject:
-		return m.OldInvoiceItemPerSubject(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -5565,18 +5634,18 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		m.SetBillingProfileID(v)
 		return nil
 	case billingcustomeroverride.FieldCollectionAlignment:
-		v, ok := value.(billing.AlignmentKind)
+		v, ok := value.(billingentity.AlignmentKind)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCollectionAlignment(v)
 		return nil
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		v, ok := value.(int64)
+	case billingcustomeroverride.FieldItemCollectionPeriod:
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetItemCollectionPeriodSeconds(v)
+		m.SetItemCollectionPeriod(v)
 		return nil
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
 		v, ok := value.(bool)
@@ -5585,40 +5654,26 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		}
 		m.SetInvoiceAutoAdvance(v)
 		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		v, ok := value.(int64)
+	case billingcustomeroverride.FieldInvoiceDraftPeriod:
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInvoiceDraftPeriodSeconds(v)
+		m.SetInvoiceDraftPeriod(v)
 		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		v, ok := value.(int64)
+	case billingcustomeroverride.FieldInvoiceDueAfter:
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInvoiceDueAfterSeconds(v)
+		m.SetInvoiceDueAfter(v)
 		return nil
 	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		v, ok := value.(billing.CollectionMethod)
+		v, ok := value.(billingentity.CollectionMethod)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceCollectionMethod(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceItemResolution:
-		v, ok := value.(billing.GranularityResolution)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceItemResolution(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceItemPerSubject:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceItemPerSubject(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
@@ -5627,31 +5682,13 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *BillingCustomerOverrideMutation) AddedFields() []string {
-	var fields []string
-	if m.additem_collection_period_seconds != nil {
-		fields = append(fields, billingcustomeroverride.FieldItemCollectionPeriodSeconds)
-	}
-	if m.addinvoice_draft_period_seconds != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriodSeconds)
-	}
-	if m.addinvoice_due_after_seconds != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfterSeconds)
-	}
-	return fields
+	return nil
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *BillingCustomerOverrideMutation) AddedField(name string) (ent.Value, bool) {
-	switch name {
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		return m.AddedItemCollectionPeriodSeconds()
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		return m.AddedInvoiceDraftPeriodSeconds()
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		return m.AddedInvoiceDueAfterSeconds()
-	}
 	return nil, false
 }
 
@@ -5660,27 +5697,6 @@ func (m *BillingCustomerOverrideMutation) AddedField(name string) (ent.Value, bo
 // type.
 func (m *BillingCustomerOverrideMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddItemCollectionPeriodSeconds(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddInvoiceDraftPeriodSeconds(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddInvoiceDueAfterSeconds(v)
-		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride numeric field %s", name)
 }
@@ -5698,26 +5714,20 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldCollectionAlignment) {
 		fields = append(fields, billingcustomeroverride.FieldCollectionAlignment)
 	}
-	if m.FieldCleared(billingcustomeroverride.FieldItemCollectionPeriodSeconds) {
-		fields = append(fields, billingcustomeroverride.FieldItemCollectionPeriodSeconds)
+	if m.FieldCleared(billingcustomeroverride.FieldItemCollectionPeriod) {
+		fields = append(fields, billingcustomeroverride.FieldItemCollectionPeriod)
 	}
 	if m.FieldCleared(billingcustomeroverride.FieldInvoiceAutoAdvance) {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceAutoAdvance)
 	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDraftPeriodSeconds) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriodSeconds)
+	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDraftPeriod) {
+		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriod)
 	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDueAfterSeconds) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfterSeconds)
+	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDueAfter) {
+		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfter)
 	}
 	if m.FieldCleared(billingcustomeroverride.FieldInvoiceCollectionMethod) {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceCollectionMethod)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceItemResolution) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceItemResolution)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceItemPerSubject) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceItemPerSubject)
 	}
 	return fields
 }
@@ -5742,26 +5752,20 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 	case billingcustomeroverride.FieldCollectionAlignment:
 		m.ClearCollectionAlignment()
 		return nil
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		m.ClearItemCollectionPeriodSeconds()
+	case billingcustomeroverride.FieldItemCollectionPeriod:
+		m.ClearItemCollectionPeriod()
 		return nil
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
 		m.ClearInvoiceAutoAdvance()
 		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		m.ClearInvoiceDraftPeriodSeconds()
+	case billingcustomeroverride.FieldInvoiceDraftPeriod:
+		m.ClearInvoiceDraftPeriod()
 		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		m.ClearInvoiceDueAfterSeconds()
+	case billingcustomeroverride.FieldInvoiceDueAfter:
+		m.ClearInvoiceDueAfter()
 		return nil
 	case billingcustomeroverride.FieldInvoiceCollectionMethod:
 		m.ClearInvoiceCollectionMethod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceItemResolution:
-		m.ClearInvoiceItemResolution()
-		return nil
-	case billingcustomeroverride.FieldInvoiceItemPerSubject:
-		m.ClearInvoiceItemPerSubject()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride nullable field %s", name)
@@ -5792,26 +5796,20 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 	case billingcustomeroverride.FieldCollectionAlignment:
 		m.ResetCollectionAlignment()
 		return nil
-	case billingcustomeroverride.FieldItemCollectionPeriodSeconds:
-		m.ResetItemCollectionPeriodSeconds()
+	case billingcustomeroverride.FieldItemCollectionPeriod:
+		m.ResetItemCollectionPeriod()
 		return nil
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
 		m.ResetInvoiceAutoAdvance()
 		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriodSeconds:
-		m.ResetInvoiceDraftPeriodSeconds()
+	case billingcustomeroverride.FieldInvoiceDraftPeriod:
+		m.ResetInvoiceDraftPeriod()
 		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfterSeconds:
-		m.ResetInvoiceDueAfterSeconds()
+	case billingcustomeroverride.FieldInvoiceDueAfter:
+		m.ResetInvoiceDueAfter()
 		return nil
 	case billingcustomeroverride.FieldInvoiceCollectionMethod:
 		m.ResetInvoiceCollectionMethod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceItemResolution:
-		m.ResetInvoiceItemResolution()
-		return nil
-	case billingcustomeroverride.FieldInvoiceItemPerSubject:
-		m.ResetInvoiceItemPerSubject()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
@@ -5926,10 +5924,7 @@ type BillingInvoiceMutation struct {
 	voided_at                      *time.Time
 	currency                       *string
 	due_date                       *time.Time
-	status                         *billing.InvoiceStatus
-	tax_provider                   *provider.TaxProvider
-	invoicing_provider             *provider.InvoicingProvider
-	payment_provider               *provider.PaymentProvider
+	status                         *billingentity.InvoiceStatus
 	period_start                   *time.Time
 	period_end                     *time.Time
 	clearedFields                  map[string]struct{}
@@ -6547,12 +6542,12 @@ func (m *BillingInvoiceMutation) ResetDueDate() {
 }
 
 // SetStatus sets the "status" field.
-func (m *BillingInvoiceMutation) SetStatus(bs billing.InvoiceStatus) {
+func (m *BillingInvoiceMutation) SetStatus(bs billingentity.InvoiceStatus) {
 	m.status = &bs
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *BillingInvoiceMutation) Status() (r billing.InvoiceStatus, exists bool) {
+func (m *BillingInvoiceMutation) Status() (r billingentity.InvoiceStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -6563,7 +6558,7 @@ func (m *BillingInvoiceMutation) Status() (r billing.InvoiceStatus, exists bool)
 // OldStatus returns the old "status" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billing.InvoiceStatus, err error) {
+func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billingentity.InvoiceStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -6580,153 +6575,6 @@ func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billing.Invoi
 // ResetStatus resets all changes to the "status" field.
 func (m *BillingInvoiceMutation) ResetStatus() {
 	m.status = nil
-}
-
-// SetTaxProvider sets the "tax_provider" field.
-func (m *BillingInvoiceMutation) SetTaxProvider(pp provider.TaxProvider) {
-	m.tax_provider = &pp
-}
-
-// TaxProvider returns the value of the "tax_provider" field in the mutation.
-func (m *BillingInvoiceMutation) TaxProvider() (r provider.TaxProvider, exists bool) {
-	v := m.tax_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxProvider returns the old "tax_provider" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldTaxProvider(ctx context.Context) (v *provider.TaxProvider, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxProvider: %w", err)
-	}
-	return oldValue.TaxProvider, nil
-}
-
-// ClearTaxProvider clears the value of the "tax_provider" field.
-func (m *BillingInvoiceMutation) ClearTaxProvider() {
-	m.tax_provider = nil
-	m.clearedFields[billinginvoice.FieldTaxProvider] = struct{}{}
-}
-
-// TaxProviderCleared returns if the "tax_provider" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) TaxProviderCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldTaxProvider]
-	return ok
-}
-
-// ResetTaxProvider resets all changes to the "tax_provider" field.
-func (m *BillingInvoiceMutation) ResetTaxProvider() {
-	m.tax_provider = nil
-	delete(m.clearedFields, billinginvoice.FieldTaxProvider)
-}
-
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (m *BillingInvoiceMutation) SetInvoicingProvider(pp provider.InvoicingProvider) {
-	m.invoicing_provider = &pp
-}
-
-// InvoicingProvider returns the value of the "invoicing_provider" field in the mutation.
-func (m *BillingInvoiceMutation) InvoicingProvider() (r provider.InvoicingProvider, exists bool) {
-	v := m.invoicing_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingProvider returns the old "invoicing_provider" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldInvoicingProvider(ctx context.Context) (v *provider.InvoicingProvider, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingProvider: %w", err)
-	}
-	return oldValue.InvoicingProvider, nil
-}
-
-// ClearInvoicingProvider clears the value of the "invoicing_provider" field.
-func (m *BillingInvoiceMutation) ClearInvoicingProvider() {
-	m.invoicing_provider = nil
-	m.clearedFields[billinginvoice.FieldInvoicingProvider] = struct{}{}
-}
-
-// InvoicingProviderCleared returns if the "invoicing_provider" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) InvoicingProviderCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldInvoicingProvider]
-	return ok
-}
-
-// ResetInvoicingProvider resets all changes to the "invoicing_provider" field.
-func (m *BillingInvoiceMutation) ResetInvoicingProvider() {
-	m.invoicing_provider = nil
-	delete(m.clearedFields, billinginvoice.FieldInvoicingProvider)
-}
-
-// SetPaymentProvider sets the "payment_provider" field.
-func (m *BillingInvoiceMutation) SetPaymentProvider(pp provider.PaymentProvider) {
-	m.payment_provider = &pp
-}
-
-// PaymentProvider returns the value of the "payment_provider" field in the mutation.
-func (m *BillingInvoiceMutation) PaymentProvider() (r provider.PaymentProvider, exists bool) {
-	v := m.payment_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPaymentProvider returns the old "payment_provider" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldPaymentProvider(ctx context.Context) (v *provider.PaymentProvider, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPaymentProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPaymentProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPaymentProvider: %w", err)
-	}
-	return oldValue.PaymentProvider, nil
-}
-
-// ClearPaymentProvider clears the value of the "payment_provider" field.
-func (m *BillingInvoiceMutation) ClearPaymentProvider() {
-	m.payment_provider = nil
-	m.clearedFields[billinginvoice.FieldPaymentProvider] = struct{}{}
-}
-
-// PaymentProviderCleared returns if the "payment_provider" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) PaymentProviderCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldPaymentProvider]
-	return ok
-}
-
-// ResetPaymentProvider resets all changes to the "payment_provider" field.
-func (m *BillingInvoiceMutation) ResetPaymentProvider() {
-	m.payment_provider = nil
-	delete(m.clearedFields, billinginvoice.FieldPaymentProvider)
 }
 
 // SetWorkflowConfigID sets the "workflow_config_id" field.
@@ -6992,7 +6840,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -7031,15 +6879,6 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, billinginvoice.FieldStatus)
-	}
-	if m.tax_provider != nil {
-		fields = append(fields, billinginvoice.FieldTaxProvider)
-	}
-	if m.invoicing_provider != nil {
-		fields = append(fields, billinginvoice.FieldInvoicingProvider)
-	}
-	if m.payment_provider != nil {
-		fields = append(fields, billinginvoice.FieldPaymentProvider)
 	}
 	if m.billing_workflow_config != nil {
 		fields = append(fields, billinginvoice.FieldWorkflowConfigID)
@@ -7084,12 +6923,6 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.DueDate()
 	case billinginvoice.FieldStatus:
 		return m.Status()
-	case billinginvoice.FieldTaxProvider:
-		return m.TaxProvider()
-	case billinginvoice.FieldInvoicingProvider:
-		return m.InvoicingProvider()
-	case billinginvoice.FieldPaymentProvider:
-		return m.PaymentProvider()
 	case billinginvoice.FieldWorkflowConfigID:
 		return m.WorkflowConfigID()
 	case billinginvoice.FieldPeriodStart:
@@ -7131,12 +6964,6 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldDueDate(ctx)
 	case billinginvoice.FieldStatus:
 		return m.OldStatus(ctx)
-	case billinginvoice.FieldTaxProvider:
-		return m.OldTaxProvider(ctx)
-	case billinginvoice.FieldInvoicingProvider:
-		return m.OldInvoicingProvider(ctx)
-	case billinginvoice.FieldPaymentProvider:
-		return m.OldPaymentProvider(ctx)
 	case billinginvoice.FieldWorkflowConfigID:
 		return m.OldWorkflowConfigID(ctx)
 	case billinginvoice.FieldPeriodStart:
@@ -7237,32 +7064,11 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		m.SetDueDate(v)
 		return nil
 	case billinginvoice.FieldStatus:
-		v, ok := value.(billing.InvoiceStatus)
+		v, ok := value.(billingentity.InvoiceStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
-		return nil
-	case billinginvoice.FieldTaxProvider:
-		v, ok := value.(provider.TaxProvider)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxProvider(v)
-		return nil
-	case billinginvoice.FieldInvoicingProvider:
-		v, ok := value.(provider.InvoicingProvider)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingProvider(v)
-		return nil
-	case billinginvoice.FieldPaymentProvider:
-		v, ok := value.(provider.PaymentProvider)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPaymentProvider(v)
 		return nil
 	case billinginvoice.FieldWorkflowConfigID:
 		v, ok := value.(string)
@@ -7330,15 +7136,6 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldVoidedAt) {
 		fields = append(fields, billinginvoice.FieldVoidedAt)
 	}
-	if m.FieldCleared(billinginvoice.FieldTaxProvider) {
-		fields = append(fields, billinginvoice.FieldTaxProvider)
-	}
-	if m.FieldCleared(billinginvoice.FieldInvoicingProvider) {
-		fields = append(fields, billinginvoice.FieldInvoicingProvider)
-	}
-	if m.FieldCleared(billinginvoice.FieldPaymentProvider) {
-		fields = append(fields, billinginvoice.FieldPaymentProvider)
-	}
 	return fields
 }
 
@@ -7367,15 +7164,6 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldVoidedAt:
 		m.ClearVoidedAt()
-		return nil
-	case billinginvoice.FieldTaxProvider:
-		m.ClearTaxProvider()
-		return nil
-	case billinginvoice.FieldInvoicingProvider:
-		m.ClearInvoicingProvider()
-		return nil
-	case billinginvoice.FieldPaymentProvider:
-		m.ClearPaymentProvider()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoice nullable field %s", name)
@@ -7423,15 +7211,6 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldStatus:
 		m.ResetStatus()
-		return nil
-	case billinginvoice.FieldTaxProvider:
-		m.ResetTaxProvider()
-		return nil
-	case billinginvoice.FieldInvoicingProvider:
-		m.ResetInvoicingProvider()
-		return nil
-	case billinginvoice.FieldPaymentProvider:
-		m.ResetPaymentProvider()
 		return nil
 	case billinginvoice.FieldWorkflowConfigID:
 		m.ResetWorkflowConfigID()
@@ -7581,12 +7360,12 @@ type BillingInvoiceItemMutation struct {
 	period_start           *time.Time
 	period_end             *time.Time
 	invoice_at             *time.Time
-	_type                  *billing.InvoiceItemType
+	_type                  *billingentity.InvoiceItemType
 	name                   *string
 	quantity               *alpacadecimal.Decimal
 	unit_price             *alpacadecimal.Decimal
 	currency               *currencyx.Code
-	tax_code_override      *billing.TaxOverrides
+	tax_code_override      *billingentity.TaxOverrides
 	clearedFields          map[string]struct{}
 	billing_invoice        *string
 	clearedbilling_invoice bool
@@ -8099,12 +7878,12 @@ func (m *BillingInvoiceItemMutation) ResetInvoiceAt() {
 }
 
 // SetType sets the "type" field.
-func (m *BillingInvoiceItemMutation) SetType(bit billing.InvoiceItemType) {
+func (m *BillingInvoiceItemMutation) SetType(bit billingentity.InvoiceItemType) {
 	m._type = &bit
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceItemMutation) GetType() (r billing.InvoiceItemType, exists bool) {
+func (m *BillingInvoiceItemMutation) GetType() (r billingentity.InvoiceItemType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -8115,7 +7894,7 @@ func (m *BillingInvoiceItemMutation) GetType() (r billing.InvoiceItemType, exist
 // OldType returns the old "type" field's value of the BillingInvoiceItem entity.
 // If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceItemMutation) OldType(ctx context.Context) (v billing.InvoiceItemType, err error) {
+func (m *BillingInvoiceItemMutation) OldType(ctx context.Context) (v billingentity.InvoiceItemType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -8292,12 +8071,12 @@ func (m *BillingInvoiceItemMutation) ResetCurrency() {
 }
 
 // SetTaxCodeOverride sets the "tax_code_override" field.
-func (m *BillingInvoiceItemMutation) SetTaxCodeOverride(bo billing.TaxOverrides) {
+func (m *BillingInvoiceItemMutation) SetTaxCodeOverride(bo billingentity.TaxOverrides) {
 	m.tax_code_override = &bo
 }
 
 // TaxCodeOverride returns the value of the "tax_code_override" field in the mutation.
-func (m *BillingInvoiceItemMutation) TaxCodeOverride() (r billing.TaxOverrides, exists bool) {
+func (m *BillingInvoiceItemMutation) TaxCodeOverride() (r billingentity.TaxOverrides, exists bool) {
 	v := m.tax_code_override
 	if v == nil {
 		return
@@ -8308,7 +8087,7 @@ func (m *BillingInvoiceItemMutation) TaxCodeOverride() (r billing.TaxOverrides, 
 // OldTaxCodeOverride returns the old "tax_code_override" field's value of the BillingInvoiceItem entity.
 // If the BillingInvoiceItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceItemMutation) OldTaxCodeOverride(ctx context.Context) (v billing.TaxOverrides, err error) {
+func (m *BillingInvoiceItemMutation) OldTaxCodeOverride(ctx context.Context) (v billingentity.TaxOverrides, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxCodeOverride is only allowed on UpdateOne operations")
 	}
@@ -8611,7 +8390,7 @@ func (m *BillingInvoiceItemMutation) SetField(name string, value ent.Value) erro
 		m.SetInvoiceAt(v)
 		return nil
 	case billinginvoiceitem.FieldType:
-		v, ok := value.(billing.InvoiceItemType)
+		v, ok := value.(billingentity.InvoiceItemType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -8646,7 +8425,7 @@ func (m *BillingInvoiceItemMutation) SetField(name string, value ent.Value) erro
 		m.SetCurrency(v)
 		return nil
 	case billinginvoiceitem.FieldTaxCodeOverride:
-		v, ok := value.(billing.TaxOverrides)
+		v, ok := value.(billingentity.TaxOverrides)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -8874,11 +8653,9 @@ type BillingProfileMutation struct {
 	supplier_address_line1           *string
 	supplier_address_line2           *string
 	supplier_address_phone_number    *string
-	tax_provider                     *provider.TaxProvider
-	invoicing_provider               *provider.InvoicingProvider
-	payment_provider                 *provider.PaymentProvider
 	_default                         *bool
 	supplier_name                    *string
+	supplier_tax_code                *string
 	clearedFields                    map[string]struct{}
 	billing_invoices                 map[string]struct{}
 	removedbilling_invoices          map[string]struct{}
@@ -8888,6 +8665,12 @@ type BillingProfileMutation struct {
 	clearedbilling_customer_override bool
 	workflow_config                  *string
 	clearedworkflow_config           bool
+	tax_app                          *string
+	clearedtax_app                   bool
+	invoicing_app                    *string
+	clearedinvoicing_app             bool
+	payment_app                      *string
+	clearedpayment_app               bool
 	done                             bool
 	oldValue                         func(context.Context) (*BillingProfile, error)
 	predicates                       []predicate.BillingProfile
@@ -9631,112 +9414,112 @@ func (m *BillingProfileMutation) ResetSupplierAddressPhoneNumber() {
 	delete(m.clearedFields, billingprofile.FieldSupplierAddressPhoneNumber)
 }
 
-// SetTaxProvider sets the "tax_provider" field.
-func (m *BillingProfileMutation) SetTaxProvider(pp provider.TaxProvider) {
-	m.tax_provider = &pp
+// SetTaxAppID sets the "tax_app_id" field.
+func (m *BillingProfileMutation) SetTaxAppID(s string) {
+	m.tax_app = &s
 }
 
-// TaxProvider returns the value of the "tax_provider" field in the mutation.
-func (m *BillingProfileMutation) TaxProvider() (r provider.TaxProvider, exists bool) {
-	v := m.tax_provider
+// TaxAppID returns the value of the "tax_app_id" field in the mutation.
+func (m *BillingProfileMutation) TaxAppID() (r string, exists bool) {
+	v := m.tax_app
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldTaxProvider returns the old "tax_provider" field's value of the BillingProfile entity.
+// OldTaxAppID returns the old "tax_app_id" field's value of the BillingProfile entity.
 // If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingProfileMutation) OldTaxProvider(ctx context.Context) (v provider.TaxProvider, err error) {
+func (m *BillingProfileMutation) OldTaxAppID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxProvider is only allowed on UpdateOne operations")
+		return v, errors.New("OldTaxAppID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxProvider requires an ID field in the mutation")
+		return v, errors.New("OldTaxAppID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxProvider: %w", err)
+		return v, fmt.Errorf("querying old value for OldTaxAppID: %w", err)
 	}
-	return oldValue.TaxProvider, nil
+	return oldValue.TaxAppID, nil
 }
 
-// ResetTaxProvider resets all changes to the "tax_provider" field.
-func (m *BillingProfileMutation) ResetTaxProvider() {
-	m.tax_provider = nil
+// ResetTaxAppID resets all changes to the "tax_app_id" field.
+func (m *BillingProfileMutation) ResetTaxAppID() {
+	m.tax_app = nil
 }
 
-// SetInvoicingProvider sets the "invoicing_provider" field.
-func (m *BillingProfileMutation) SetInvoicingProvider(pp provider.InvoicingProvider) {
-	m.invoicing_provider = &pp
+// SetInvoicingAppID sets the "invoicing_app_id" field.
+func (m *BillingProfileMutation) SetInvoicingAppID(s string) {
+	m.invoicing_app = &s
 }
 
-// InvoicingProvider returns the value of the "invoicing_provider" field in the mutation.
-func (m *BillingProfileMutation) InvoicingProvider() (r provider.InvoicingProvider, exists bool) {
-	v := m.invoicing_provider
+// InvoicingAppID returns the value of the "invoicing_app_id" field in the mutation.
+func (m *BillingProfileMutation) InvoicingAppID() (r string, exists bool) {
+	v := m.invoicing_app
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInvoicingProvider returns the old "invoicing_provider" field's value of the BillingProfile entity.
+// OldInvoicingAppID returns the old "invoicing_app_id" field's value of the BillingProfile entity.
 // If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingProfileMutation) OldInvoicingProvider(ctx context.Context) (v provider.InvoicingProvider, err error) {
+func (m *BillingProfileMutation) OldInvoicingAppID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingProvider is only allowed on UpdateOne operations")
+		return v, errors.New("OldInvoicingAppID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingProvider requires an ID field in the mutation")
+		return v, errors.New("OldInvoicingAppID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingProvider: %w", err)
+		return v, fmt.Errorf("querying old value for OldInvoicingAppID: %w", err)
 	}
-	return oldValue.InvoicingProvider, nil
+	return oldValue.InvoicingAppID, nil
 }
 
-// ResetInvoicingProvider resets all changes to the "invoicing_provider" field.
-func (m *BillingProfileMutation) ResetInvoicingProvider() {
-	m.invoicing_provider = nil
+// ResetInvoicingAppID resets all changes to the "invoicing_app_id" field.
+func (m *BillingProfileMutation) ResetInvoicingAppID() {
+	m.invoicing_app = nil
 }
 
-// SetPaymentProvider sets the "payment_provider" field.
-func (m *BillingProfileMutation) SetPaymentProvider(pp provider.PaymentProvider) {
-	m.payment_provider = &pp
+// SetPaymentAppID sets the "payment_app_id" field.
+func (m *BillingProfileMutation) SetPaymentAppID(s string) {
+	m.payment_app = &s
 }
 
-// PaymentProvider returns the value of the "payment_provider" field in the mutation.
-func (m *BillingProfileMutation) PaymentProvider() (r provider.PaymentProvider, exists bool) {
-	v := m.payment_provider
+// PaymentAppID returns the value of the "payment_app_id" field in the mutation.
+func (m *BillingProfileMutation) PaymentAppID() (r string, exists bool) {
+	v := m.payment_app
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldPaymentProvider returns the old "payment_provider" field's value of the BillingProfile entity.
+// OldPaymentAppID returns the old "payment_app_id" field's value of the BillingProfile entity.
 // If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingProfileMutation) OldPaymentProvider(ctx context.Context) (v provider.PaymentProvider, err error) {
+func (m *BillingProfileMutation) OldPaymentAppID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPaymentProvider is only allowed on UpdateOne operations")
+		return v, errors.New("OldPaymentAppID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPaymentProvider requires an ID field in the mutation")
+		return v, errors.New("OldPaymentAppID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPaymentProvider: %w", err)
+		return v, fmt.Errorf("querying old value for OldPaymentAppID: %w", err)
 	}
-	return oldValue.PaymentProvider, nil
+	return oldValue.PaymentAppID, nil
 }
 
-// ResetPaymentProvider resets all changes to the "payment_provider" field.
-func (m *BillingProfileMutation) ResetPaymentProvider() {
-	m.payment_provider = nil
+// ResetPaymentAppID resets all changes to the "payment_app_id" field.
+func (m *BillingProfileMutation) ResetPaymentAppID() {
+	m.payment_app = nil
 }
 
 // SetWorkflowConfigID sets the "workflow_config_id" field.
@@ -9845,6 +9628,55 @@ func (m *BillingProfileMutation) OldSupplierName(ctx context.Context) (v string,
 // ResetSupplierName resets all changes to the "supplier_name" field.
 func (m *BillingProfileMutation) ResetSupplierName() {
 	m.supplier_name = nil
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (m *BillingProfileMutation) SetSupplierTaxCode(s string) {
+	m.supplier_tax_code = &s
+}
+
+// SupplierTaxCode returns the value of the "supplier_tax_code" field in the mutation.
+func (m *BillingProfileMutation) SupplierTaxCode() (r string, exists bool) {
+	v := m.supplier_tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSupplierTaxCode returns the old "supplier_tax_code" field's value of the BillingProfile entity.
+// If the BillingProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingProfileMutation) OldSupplierTaxCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSupplierTaxCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSupplierTaxCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSupplierTaxCode: %w", err)
+	}
+	return oldValue.SupplierTaxCode, nil
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (m *BillingProfileMutation) ClearSupplierTaxCode() {
+	m.supplier_tax_code = nil
+	m.clearedFields[billingprofile.FieldSupplierTaxCode] = struct{}{}
+}
+
+// SupplierTaxCodeCleared returns if the "supplier_tax_code" field was cleared in this mutation.
+func (m *BillingProfileMutation) SupplierTaxCodeCleared() bool {
+	_, ok := m.clearedFields[billingprofile.FieldSupplierTaxCode]
+	return ok
+}
+
+// ResetSupplierTaxCode resets all changes to the "supplier_tax_code" field.
+func (m *BillingProfileMutation) ResetSupplierTaxCode() {
+	m.supplier_tax_code = nil
+	delete(m.clearedFields, billingprofile.FieldSupplierTaxCode)
 }
 
 // AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by ids.
@@ -9982,6 +9814,87 @@ func (m *BillingProfileMutation) ResetWorkflowConfig() {
 	m.clearedworkflow_config = false
 }
 
+// ClearTaxApp clears the "tax_app" edge to the App entity.
+func (m *BillingProfileMutation) ClearTaxApp() {
+	m.clearedtax_app = true
+	m.clearedFields[billingprofile.FieldTaxAppID] = struct{}{}
+}
+
+// TaxAppCleared reports if the "tax_app" edge to the App entity was cleared.
+func (m *BillingProfileMutation) TaxAppCleared() bool {
+	return m.clearedtax_app
+}
+
+// TaxAppIDs returns the "tax_app" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxAppID instead. It exists only for internal usage by the builders.
+func (m *BillingProfileMutation) TaxAppIDs() (ids []string) {
+	if id := m.tax_app; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxApp resets all changes to the "tax_app" edge.
+func (m *BillingProfileMutation) ResetTaxApp() {
+	m.tax_app = nil
+	m.clearedtax_app = false
+}
+
+// ClearInvoicingApp clears the "invoicing_app" edge to the App entity.
+func (m *BillingProfileMutation) ClearInvoicingApp() {
+	m.clearedinvoicing_app = true
+	m.clearedFields[billingprofile.FieldInvoicingAppID] = struct{}{}
+}
+
+// InvoicingAppCleared reports if the "invoicing_app" edge to the App entity was cleared.
+func (m *BillingProfileMutation) InvoicingAppCleared() bool {
+	return m.clearedinvoicing_app
+}
+
+// InvoicingAppIDs returns the "invoicing_app" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// InvoicingAppID instead. It exists only for internal usage by the builders.
+func (m *BillingProfileMutation) InvoicingAppIDs() (ids []string) {
+	if id := m.invoicing_app; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetInvoicingApp resets all changes to the "invoicing_app" edge.
+func (m *BillingProfileMutation) ResetInvoicingApp() {
+	m.invoicing_app = nil
+	m.clearedinvoicing_app = false
+}
+
+// ClearPaymentApp clears the "payment_app" edge to the App entity.
+func (m *BillingProfileMutation) ClearPaymentApp() {
+	m.clearedpayment_app = true
+	m.clearedFields[billingprofile.FieldPaymentAppID] = struct{}{}
+}
+
+// PaymentAppCleared reports if the "payment_app" edge to the App entity was cleared.
+func (m *BillingProfileMutation) PaymentAppCleared() bool {
+	return m.clearedpayment_app
+}
+
+// PaymentAppIDs returns the "payment_app" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PaymentAppID instead. It exists only for internal usage by the builders.
+func (m *BillingProfileMutation) PaymentAppIDs() (ids []string) {
+	if id := m.payment_app; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPaymentApp resets all changes to the "payment_app" edge.
+func (m *BillingProfileMutation) ResetPaymentApp() {
+	m.payment_app = nil
+	m.clearedpayment_app = false
+}
+
 // Where appends a list predicates to the BillingProfileMutation builder.
 func (m *BillingProfileMutation) Where(ps ...predicate.BillingProfile) {
 	m.predicates = append(m.predicates, ps...)
@@ -10016,7 +9929,7 @@ func (m *BillingProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingProfileMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, billingprofile.FieldNamespace)
 	}
@@ -10059,14 +9972,14 @@ func (m *BillingProfileMutation) Fields() []string {
 	if m.supplier_address_phone_number != nil {
 		fields = append(fields, billingprofile.FieldSupplierAddressPhoneNumber)
 	}
-	if m.tax_provider != nil {
-		fields = append(fields, billingprofile.FieldTaxProvider)
+	if m.tax_app != nil {
+		fields = append(fields, billingprofile.FieldTaxAppID)
 	}
-	if m.invoicing_provider != nil {
-		fields = append(fields, billingprofile.FieldInvoicingProvider)
+	if m.invoicing_app != nil {
+		fields = append(fields, billingprofile.FieldInvoicingAppID)
 	}
-	if m.payment_provider != nil {
-		fields = append(fields, billingprofile.FieldPaymentProvider)
+	if m.payment_app != nil {
+		fields = append(fields, billingprofile.FieldPaymentAppID)
 	}
 	if m.workflow_config != nil {
 		fields = append(fields, billingprofile.FieldWorkflowConfigID)
@@ -10076,6 +9989,9 @@ func (m *BillingProfileMutation) Fields() []string {
 	}
 	if m.supplier_name != nil {
 		fields = append(fields, billingprofile.FieldSupplierName)
+	}
+	if m.supplier_tax_code != nil {
+		fields = append(fields, billingprofile.FieldSupplierTaxCode)
 	}
 	return fields
 }
@@ -10113,18 +10029,20 @@ func (m *BillingProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.SupplierAddressLine2()
 	case billingprofile.FieldSupplierAddressPhoneNumber:
 		return m.SupplierAddressPhoneNumber()
-	case billingprofile.FieldTaxProvider:
-		return m.TaxProvider()
-	case billingprofile.FieldInvoicingProvider:
-		return m.InvoicingProvider()
-	case billingprofile.FieldPaymentProvider:
-		return m.PaymentProvider()
+	case billingprofile.FieldTaxAppID:
+		return m.TaxAppID()
+	case billingprofile.FieldInvoicingAppID:
+		return m.InvoicingAppID()
+	case billingprofile.FieldPaymentAppID:
+		return m.PaymentAppID()
 	case billingprofile.FieldWorkflowConfigID:
 		return m.WorkflowConfigID()
 	case billingprofile.FieldDefault:
 		return m.Default()
 	case billingprofile.FieldSupplierName:
 		return m.SupplierName()
+	case billingprofile.FieldSupplierTaxCode:
+		return m.SupplierTaxCode()
 	}
 	return nil, false
 }
@@ -10162,18 +10080,20 @@ func (m *BillingProfileMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldSupplierAddressLine2(ctx)
 	case billingprofile.FieldSupplierAddressPhoneNumber:
 		return m.OldSupplierAddressPhoneNumber(ctx)
-	case billingprofile.FieldTaxProvider:
-		return m.OldTaxProvider(ctx)
-	case billingprofile.FieldInvoicingProvider:
-		return m.OldInvoicingProvider(ctx)
-	case billingprofile.FieldPaymentProvider:
-		return m.OldPaymentProvider(ctx)
+	case billingprofile.FieldTaxAppID:
+		return m.OldTaxAppID(ctx)
+	case billingprofile.FieldInvoicingAppID:
+		return m.OldInvoicingAppID(ctx)
+	case billingprofile.FieldPaymentAppID:
+		return m.OldPaymentAppID(ctx)
 	case billingprofile.FieldWorkflowConfigID:
 		return m.OldWorkflowConfigID(ctx)
 	case billingprofile.FieldDefault:
 		return m.OldDefault(ctx)
 	case billingprofile.FieldSupplierName:
 		return m.OldSupplierName(ctx)
+	case billingprofile.FieldSupplierTaxCode:
+		return m.OldSupplierTaxCode(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingProfile field %s", name)
 }
@@ -10281,26 +10201,26 @@ func (m *BillingProfileMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSupplierAddressPhoneNumber(v)
 		return nil
-	case billingprofile.FieldTaxProvider:
-		v, ok := value.(provider.TaxProvider)
+	case billingprofile.FieldTaxAppID:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetTaxProvider(v)
+		m.SetTaxAppID(v)
 		return nil
-	case billingprofile.FieldInvoicingProvider:
-		v, ok := value.(provider.InvoicingProvider)
+	case billingprofile.FieldInvoicingAppID:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInvoicingProvider(v)
+		m.SetInvoicingAppID(v)
 		return nil
-	case billingprofile.FieldPaymentProvider:
-		v, ok := value.(provider.PaymentProvider)
+	case billingprofile.FieldPaymentAppID:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetPaymentProvider(v)
+		m.SetPaymentAppID(v)
 		return nil
 	case billingprofile.FieldWorkflowConfigID:
 		v, ok := value.(string)
@@ -10322,6 +10242,13 @@ func (m *BillingProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSupplierName(v)
+		return nil
+	case billingprofile.FieldSupplierTaxCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSupplierTaxCode(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingProfile field %s", name)
@@ -10383,6 +10310,9 @@ func (m *BillingProfileMutation) ClearedFields() []string {
 	if m.FieldCleared(billingprofile.FieldSupplierAddressPhoneNumber) {
 		fields = append(fields, billingprofile.FieldSupplierAddressPhoneNumber)
 	}
+	if m.FieldCleared(billingprofile.FieldSupplierTaxCode) {
+		fields = append(fields, billingprofile.FieldSupplierTaxCode)
+	}
 	return fields
 }
 
@@ -10426,6 +10356,9 @@ func (m *BillingProfileMutation) ClearField(name string) error {
 		return nil
 	case billingprofile.FieldSupplierAddressPhoneNumber:
 		m.ClearSupplierAddressPhoneNumber()
+		return nil
+	case billingprofile.FieldSupplierTaxCode:
+		m.ClearSupplierTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingProfile nullable field %s", name)
@@ -10477,14 +10410,14 @@ func (m *BillingProfileMutation) ResetField(name string) error {
 	case billingprofile.FieldSupplierAddressPhoneNumber:
 		m.ResetSupplierAddressPhoneNumber()
 		return nil
-	case billingprofile.FieldTaxProvider:
-		m.ResetTaxProvider()
+	case billingprofile.FieldTaxAppID:
+		m.ResetTaxAppID()
 		return nil
-	case billingprofile.FieldInvoicingProvider:
-		m.ResetInvoicingProvider()
+	case billingprofile.FieldInvoicingAppID:
+		m.ResetInvoicingAppID()
 		return nil
-	case billingprofile.FieldPaymentProvider:
-		m.ResetPaymentProvider()
+	case billingprofile.FieldPaymentAppID:
+		m.ResetPaymentAppID()
 		return nil
 	case billingprofile.FieldWorkflowConfigID:
 		m.ResetWorkflowConfigID()
@@ -10495,13 +10428,16 @@ func (m *BillingProfileMutation) ResetField(name string) error {
 	case billingprofile.FieldSupplierName:
 		m.ResetSupplierName()
 		return nil
+	case billingprofile.FieldSupplierTaxCode:
+		m.ResetSupplierTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingProfile field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 6)
 	if m.billing_invoices != nil {
 		edges = append(edges, billingprofile.EdgeBillingInvoices)
 	}
@@ -10510,6 +10446,15 @@ func (m *BillingProfileMutation) AddedEdges() []string {
 	}
 	if m.workflow_config != nil {
 		edges = append(edges, billingprofile.EdgeWorkflowConfig)
+	}
+	if m.tax_app != nil {
+		edges = append(edges, billingprofile.EdgeTaxApp)
+	}
+	if m.invoicing_app != nil {
+		edges = append(edges, billingprofile.EdgeInvoicingApp)
+	}
+	if m.payment_app != nil {
+		edges = append(edges, billingprofile.EdgePaymentApp)
 	}
 	return edges
 }
@@ -10534,13 +10479,25 @@ func (m *BillingProfileMutation) AddedIDs(name string) []ent.Value {
 		if id := m.workflow_config; id != nil {
 			return []ent.Value{*id}
 		}
+	case billingprofile.EdgeTaxApp:
+		if id := m.tax_app; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingprofile.EdgeInvoicingApp:
+		if id := m.invoicing_app; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingprofile.EdgePaymentApp:
+		if id := m.payment_app; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 6)
 	if m.removedbilling_invoices != nil {
 		edges = append(edges, billingprofile.EdgeBillingInvoices)
 	}
@@ -10572,7 +10529,7 @@ func (m *BillingProfileMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 6)
 	if m.clearedbilling_invoices {
 		edges = append(edges, billingprofile.EdgeBillingInvoices)
 	}
@@ -10581,6 +10538,15 @@ func (m *BillingProfileMutation) ClearedEdges() []string {
 	}
 	if m.clearedworkflow_config {
 		edges = append(edges, billingprofile.EdgeWorkflowConfig)
+	}
+	if m.clearedtax_app {
+		edges = append(edges, billingprofile.EdgeTaxApp)
+	}
+	if m.clearedinvoicing_app {
+		edges = append(edges, billingprofile.EdgeInvoicingApp)
+	}
+	if m.clearedpayment_app {
+		edges = append(edges, billingprofile.EdgePaymentApp)
 	}
 	return edges
 }
@@ -10595,6 +10561,12 @@ func (m *BillingProfileMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_customer_override
 	case billingprofile.EdgeWorkflowConfig:
 		return m.clearedworkflow_config
+	case billingprofile.EdgeTaxApp:
+		return m.clearedtax_app
+	case billingprofile.EdgeInvoicingApp:
+		return m.clearedinvoicing_app
+	case billingprofile.EdgePaymentApp:
+		return m.clearedpayment_app
 	}
 	return false
 }
@@ -10605,6 +10577,15 @@ func (m *BillingProfileMutation) ClearEdge(name string) error {
 	switch name {
 	case billingprofile.EdgeWorkflowConfig:
 		m.ClearWorkflowConfig()
+		return nil
+	case billingprofile.EdgeTaxApp:
+		m.ClearTaxApp()
+		return nil
+	case billingprofile.EdgeInvoicingApp:
+		m.ClearInvoicingApp()
+		return nil
+	case billingprofile.EdgePaymentApp:
+		m.ClearPaymentApp()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingProfile unique edge %s", name)
@@ -10623,6 +10604,15 @@ func (m *BillingProfileMutation) ResetEdge(name string) error {
 	case billingprofile.EdgeWorkflowConfig:
 		m.ResetWorkflowConfig()
 		return nil
+	case billingprofile.EdgeTaxApp:
+		m.ResetTaxApp()
+		return nil
+	case billingprofile.EdgeInvoicingApp:
+		m.ResetInvoicingApp()
+		return nil
+	case billingprofile.EdgePaymentApp:
+		m.ResetPaymentApp()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingProfile edge %s", name)
 }
@@ -10630,33 +10620,27 @@ func (m *BillingProfileMutation) ResetEdge(name string) error {
 // BillingWorkflowConfigMutation represents an operation that mutates the BillingWorkflowConfig nodes in the graph.
 type BillingWorkflowConfigMutation struct {
 	config
-	op                                Op
-	typ                               string
-	id                                *string
-	namespace                         *string
-	created_at                        *time.Time
-	updated_at                        *time.Time
-	deleted_at                        *time.Time
-	timezone                          *timezone.Timezone
-	collection_alignment              *billing.AlignmentKind
-	item_collection_period_seconds    *int64
-	additem_collection_period_seconds *int64
-	invoice_auto_advance              *bool
-	invoice_draft_period_seconds      *int64
-	addinvoice_draft_period_seconds   *int64
-	invoice_due_after_seconds         *int64
-	addinvoice_due_after_seconds      *int64
-	invoice_collection_method         *billing.CollectionMethod
-	invoice_item_resolution           *billing.GranularityResolution
-	invoice_item_per_subject          *bool
-	clearedFields                     map[string]struct{}
-	billing_invoices                  *string
-	clearedbilling_invoices           bool
-	billing_profile                   *string
-	clearedbilling_profile            bool
-	done                              bool
-	oldValue                          func(context.Context) (*BillingWorkflowConfig, error)
-	predicates                        []predicate.BillingWorkflowConfig
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	collection_alignment      *billingentity.AlignmentKind
+	item_collection_period    *datex.ISOString
+	invoice_auto_advance      *bool
+	invoice_draft_period      *datex.ISOString
+	invoice_due_after         *datex.ISOString
+	invoice_collection_method *billingentity.CollectionMethod
+	clearedFields             map[string]struct{}
+	billing_invoices          *string
+	clearedbilling_invoices   bool
+	billing_profile           *string
+	clearedbilling_profile    bool
+	done                      bool
+	oldValue                  func(context.Context) (*BillingWorkflowConfig, error)
+	predicates                []predicate.BillingWorkflowConfig
 }
 
 var _ ent.Mutation = (*BillingWorkflowConfigMutation)(nil)
@@ -10920,62 +10904,13 @@ func (m *BillingWorkflowConfigMutation) ResetDeletedAt() {
 	delete(m.clearedFields, billingworkflowconfig.FieldDeletedAt)
 }
 
-// SetTimezone sets the "timezone" field.
-func (m *BillingWorkflowConfigMutation) SetTimezone(t timezone.Timezone) {
-	m.timezone = &t
-}
-
-// Timezone returns the value of the "timezone" field in the mutation.
-func (m *BillingWorkflowConfigMutation) Timezone() (r timezone.Timezone, exists bool) {
-	v := m.timezone
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTimezone returns the old "timezone" field's value of the BillingWorkflowConfig entity.
-// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldTimezone(ctx context.Context) (v *timezone.Timezone, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTimezone is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTimezone requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTimezone: %w", err)
-	}
-	return oldValue.Timezone, nil
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (m *BillingWorkflowConfigMutation) ClearTimezone() {
-	m.timezone = nil
-	m.clearedFields[billingworkflowconfig.FieldTimezone] = struct{}{}
-}
-
-// TimezoneCleared returns if the "timezone" field was cleared in this mutation.
-func (m *BillingWorkflowConfigMutation) TimezoneCleared() bool {
-	_, ok := m.clearedFields[billingworkflowconfig.FieldTimezone]
-	return ok
-}
-
-// ResetTimezone resets all changes to the "timezone" field.
-func (m *BillingWorkflowConfigMutation) ResetTimezone() {
-	m.timezone = nil
-	delete(m.clearedFields, billingworkflowconfig.FieldTimezone)
-}
-
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (m *BillingWorkflowConfigMutation) SetCollectionAlignment(bk billing.AlignmentKind) {
+func (m *BillingWorkflowConfigMutation) SetCollectionAlignment(bk billingentity.AlignmentKind) {
 	m.collection_alignment = &bk
 }
 
 // CollectionAlignment returns the value of the "collection_alignment" field in the mutation.
-func (m *BillingWorkflowConfigMutation) CollectionAlignment() (r billing.AlignmentKind, exists bool) {
+func (m *BillingWorkflowConfigMutation) CollectionAlignment() (r billingentity.AlignmentKind, exists bool) {
 	v := m.collection_alignment
 	if v == nil {
 		return
@@ -10986,7 +10921,7 @@ func (m *BillingWorkflowConfigMutation) CollectionAlignment() (r billing.Alignme
 // OldCollectionAlignment returns the old "collection_alignment" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldCollectionAlignment(ctx context.Context) (v billing.AlignmentKind, err error) {
+func (m *BillingWorkflowConfigMutation) OldCollectionAlignment(ctx context.Context) (v billingentity.AlignmentKind, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCollectionAlignment is only allowed on UpdateOne operations")
 	}
@@ -11005,60 +10940,40 @@ func (m *BillingWorkflowConfigMutation) ResetCollectionAlignment() {
 	m.collection_alignment = nil
 }
 
-// SetItemCollectionPeriodSeconds sets the "item_collection_period_seconds" field.
-func (m *BillingWorkflowConfigMutation) SetItemCollectionPeriodSeconds(i int64) {
-	m.item_collection_period_seconds = &i
-	m.additem_collection_period_seconds = nil
+// SetItemCollectionPeriod sets the "item_collection_period" field.
+func (m *BillingWorkflowConfigMutation) SetItemCollectionPeriod(ds datex.ISOString) {
+	m.item_collection_period = &ds
 }
 
-// ItemCollectionPeriodSeconds returns the value of the "item_collection_period_seconds" field in the mutation.
-func (m *BillingWorkflowConfigMutation) ItemCollectionPeriodSeconds() (r int64, exists bool) {
-	v := m.item_collection_period_seconds
+// ItemCollectionPeriod returns the value of the "item_collection_period" field in the mutation.
+func (m *BillingWorkflowConfigMutation) ItemCollectionPeriod() (r datex.ISOString, exists bool) {
+	v := m.item_collection_period
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldItemCollectionPeriodSeconds returns the old "item_collection_period_seconds" field's value of the BillingWorkflowConfig entity.
+// OldItemCollectionPeriod returns the old "item_collection_period" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldItemCollectionPeriodSeconds(ctx context.Context) (v int64, err error) {
+func (m *BillingWorkflowConfigMutation) OldItemCollectionPeriod(ctx context.Context) (v datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldItemCollectionPeriodSeconds is only allowed on UpdateOne operations")
+		return v, errors.New("OldItemCollectionPeriod is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldItemCollectionPeriodSeconds requires an ID field in the mutation")
+		return v, errors.New("OldItemCollectionPeriod requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldItemCollectionPeriodSeconds: %w", err)
+		return v, fmt.Errorf("querying old value for OldItemCollectionPeriod: %w", err)
 	}
-	return oldValue.ItemCollectionPeriodSeconds, nil
+	return oldValue.ItemCollectionPeriod, nil
 }
 
-// AddItemCollectionPeriodSeconds adds i to the "item_collection_period_seconds" field.
-func (m *BillingWorkflowConfigMutation) AddItemCollectionPeriodSeconds(i int64) {
-	if m.additem_collection_period_seconds != nil {
-		*m.additem_collection_period_seconds += i
-	} else {
-		m.additem_collection_period_seconds = &i
-	}
-}
-
-// AddedItemCollectionPeriodSeconds returns the value that was added to the "item_collection_period_seconds" field in this mutation.
-func (m *BillingWorkflowConfigMutation) AddedItemCollectionPeriodSeconds() (r int64, exists bool) {
-	v := m.additem_collection_period_seconds
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetItemCollectionPeriodSeconds resets all changes to the "item_collection_period_seconds" field.
-func (m *BillingWorkflowConfigMutation) ResetItemCollectionPeriodSeconds() {
-	m.item_collection_period_seconds = nil
-	m.additem_collection_period_seconds = nil
+// ResetItemCollectionPeriod resets all changes to the "item_collection_period" field.
+func (m *BillingWorkflowConfigMutation) ResetItemCollectionPeriod() {
+	m.item_collection_period = nil
 }
 
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
@@ -11097,125 +11012,85 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceAutoAdvance() {
 	m.invoice_auto_advance = nil
 }
 
-// SetInvoiceDraftPeriodSeconds sets the "invoice_draft_period_seconds" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceDraftPeriodSeconds(i int64) {
-	m.invoice_draft_period_seconds = &i
-	m.addinvoice_draft_period_seconds = nil
+// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
+func (m *BillingWorkflowConfigMutation) SetInvoiceDraftPeriod(ds datex.ISOString) {
+	m.invoice_draft_period = &ds
 }
 
-// InvoiceDraftPeriodSeconds returns the value of the "invoice_draft_period_seconds" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceDraftPeriodSeconds() (r int64, exists bool) {
-	v := m.invoice_draft_period_seconds
+// InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
+func (m *BillingWorkflowConfigMutation) InvoiceDraftPeriod() (r datex.ISOString, exists bool) {
+	v := m.invoice_draft_period
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInvoiceDraftPeriodSeconds returns the old "invoice_draft_period_seconds" field's value of the BillingWorkflowConfig entity.
+// OldInvoiceDraftPeriod returns the old "invoice_draft_period" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceDraftPeriodSeconds(ctx context.Context) (v int64, err error) {
+func (m *BillingWorkflowConfigMutation) OldInvoiceDraftPeriod(ctx context.Context) (v datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDraftPeriodSeconds is only allowed on UpdateOne operations")
+		return v, errors.New("OldInvoiceDraftPeriod is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDraftPeriodSeconds requires an ID field in the mutation")
+		return v, errors.New("OldInvoiceDraftPeriod requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDraftPeriodSeconds: %w", err)
+		return v, fmt.Errorf("querying old value for OldInvoiceDraftPeriod: %w", err)
 	}
-	return oldValue.InvoiceDraftPeriodSeconds, nil
+	return oldValue.InvoiceDraftPeriod, nil
 }
 
-// AddInvoiceDraftPeriodSeconds adds i to the "invoice_draft_period_seconds" field.
-func (m *BillingWorkflowConfigMutation) AddInvoiceDraftPeriodSeconds(i int64) {
-	if m.addinvoice_draft_period_seconds != nil {
-		*m.addinvoice_draft_period_seconds += i
-	} else {
-		m.addinvoice_draft_period_seconds = &i
-	}
+// ResetInvoiceDraftPeriod resets all changes to the "invoice_draft_period" field.
+func (m *BillingWorkflowConfigMutation) ResetInvoiceDraftPeriod() {
+	m.invoice_draft_period = nil
 }
 
-// AddedInvoiceDraftPeriodSeconds returns the value that was added to the "invoice_draft_period_seconds" field in this mutation.
-func (m *BillingWorkflowConfigMutation) AddedInvoiceDraftPeriodSeconds() (r int64, exists bool) {
-	v := m.addinvoice_draft_period_seconds
+// SetInvoiceDueAfter sets the "invoice_due_after" field.
+func (m *BillingWorkflowConfigMutation) SetInvoiceDueAfter(ds datex.ISOString) {
+	m.invoice_due_after = &ds
+}
+
+// InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
+func (m *BillingWorkflowConfigMutation) InvoiceDueAfter() (r datex.ISOString, exists bool) {
+	v := m.invoice_due_after
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ResetInvoiceDraftPeriodSeconds resets all changes to the "invoice_draft_period_seconds" field.
-func (m *BillingWorkflowConfigMutation) ResetInvoiceDraftPeriodSeconds() {
-	m.invoice_draft_period_seconds = nil
-	m.addinvoice_draft_period_seconds = nil
-}
-
-// SetInvoiceDueAfterSeconds sets the "invoice_due_after_seconds" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceDueAfterSeconds(i int64) {
-	m.invoice_due_after_seconds = &i
-	m.addinvoice_due_after_seconds = nil
-}
-
-// InvoiceDueAfterSeconds returns the value of the "invoice_due_after_seconds" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceDueAfterSeconds() (r int64, exists bool) {
-	v := m.invoice_due_after_seconds
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceDueAfterSeconds returns the old "invoice_due_after_seconds" field's value of the BillingWorkflowConfig entity.
+// OldInvoiceDueAfter returns the old "invoice_due_after" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceDueAfterSeconds(ctx context.Context) (v int64, err error) {
+func (m *BillingWorkflowConfigMutation) OldInvoiceDueAfter(ctx context.Context) (v datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDueAfterSeconds is only allowed on UpdateOne operations")
+		return v, errors.New("OldInvoiceDueAfter is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDueAfterSeconds requires an ID field in the mutation")
+		return v, errors.New("OldInvoiceDueAfter requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDueAfterSeconds: %w", err)
+		return v, fmt.Errorf("querying old value for OldInvoiceDueAfter: %w", err)
 	}
-	return oldValue.InvoiceDueAfterSeconds, nil
+	return oldValue.InvoiceDueAfter, nil
 }
 
-// AddInvoiceDueAfterSeconds adds i to the "invoice_due_after_seconds" field.
-func (m *BillingWorkflowConfigMutation) AddInvoiceDueAfterSeconds(i int64) {
-	if m.addinvoice_due_after_seconds != nil {
-		*m.addinvoice_due_after_seconds += i
-	} else {
-		m.addinvoice_due_after_seconds = &i
-	}
-}
-
-// AddedInvoiceDueAfterSeconds returns the value that was added to the "invoice_due_after_seconds" field in this mutation.
-func (m *BillingWorkflowConfigMutation) AddedInvoiceDueAfterSeconds() (r int64, exists bool) {
-	v := m.addinvoice_due_after_seconds
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetInvoiceDueAfterSeconds resets all changes to the "invoice_due_after_seconds" field.
-func (m *BillingWorkflowConfigMutation) ResetInvoiceDueAfterSeconds() {
-	m.invoice_due_after_seconds = nil
-	m.addinvoice_due_after_seconds = nil
+// ResetInvoiceDueAfter resets all changes to the "invoice_due_after" field.
+func (m *BillingWorkflowConfigMutation) ResetInvoiceDueAfter() {
+	m.invoice_due_after = nil
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceCollectionMethod(bm billing.CollectionMethod) {
+func (m *BillingWorkflowConfigMutation) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) {
 	m.invoice_collection_method = &bm
 }
 
 // InvoiceCollectionMethod returns the value of the "invoice_collection_method" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceCollectionMethod() (r billing.CollectionMethod, exists bool) {
+func (m *BillingWorkflowConfigMutation) InvoiceCollectionMethod() (r billingentity.CollectionMethod, exists bool) {
 	v := m.invoice_collection_method
 	if v == nil {
 		return
@@ -11226,7 +11101,7 @@ func (m *BillingWorkflowConfigMutation) InvoiceCollectionMethod() (r billing.Col
 // OldInvoiceCollectionMethod returns the old "invoice_collection_method" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceCollectionMethod(ctx context.Context) (v billing.CollectionMethod, err error) {
+func (m *BillingWorkflowConfigMutation) OldInvoiceCollectionMethod(ctx context.Context) (v billingentity.CollectionMethod, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceCollectionMethod is only allowed on UpdateOne operations")
 	}
@@ -11243,78 +11118,6 @@ func (m *BillingWorkflowConfigMutation) OldInvoiceCollectionMethod(ctx context.C
 // ResetInvoiceCollectionMethod resets all changes to the "invoice_collection_method" field.
 func (m *BillingWorkflowConfigMutation) ResetInvoiceCollectionMethod() {
 	m.invoice_collection_method = nil
-}
-
-// SetInvoiceItemResolution sets the "invoice_item_resolution" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceItemResolution(br billing.GranularityResolution) {
-	m.invoice_item_resolution = &br
-}
-
-// InvoiceItemResolution returns the value of the "invoice_item_resolution" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceItemResolution() (r billing.GranularityResolution, exists bool) {
-	v := m.invoice_item_resolution
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceItemResolution returns the old "invoice_item_resolution" field's value of the BillingWorkflowConfig entity.
-// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceItemResolution(ctx context.Context) (v billing.GranularityResolution, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceItemResolution is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceItemResolution requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceItemResolution: %w", err)
-	}
-	return oldValue.InvoiceItemResolution, nil
-}
-
-// ResetInvoiceItemResolution resets all changes to the "invoice_item_resolution" field.
-func (m *BillingWorkflowConfigMutation) ResetInvoiceItemResolution() {
-	m.invoice_item_resolution = nil
-}
-
-// SetInvoiceItemPerSubject sets the "invoice_item_per_subject" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceItemPerSubject(b bool) {
-	m.invoice_item_per_subject = &b
-}
-
-// InvoiceItemPerSubject returns the value of the "invoice_item_per_subject" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceItemPerSubject() (r bool, exists bool) {
-	v := m.invoice_item_per_subject
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceItemPerSubject returns the old "invoice_item_per_subject" field's value of the BillingWorkflowConfig entity.
-// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceItemPerSubject(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceItemPerSubject is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceItemPerSubject requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceItemPerSubject: %w", err)
-	}
-	return oldValue.InvoiceItemPerSubject, nil
-}
-
-// ResetInvoiceItemPerSubject resets all changes to the "invoice_item_per_subject" field.
-func (m *BillingWorkflowConfigMutation) ResetInvoiceItemPerSubject() {
-	m.invoice_item_per_subject = nil
 }
 
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by id.
@@ -11429,7 +11232,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -11442,32 +11245,23 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
 	}
-	if m.timezone != nil {
-		fields = append(fields, billingworkflowconfig.FieldTimezone)
-	}
 	if m.collection_alignment != nil {
 		fields = append(fields, billingworkflowconfig.FieldCollectionAlignment)
 	}
-	if m.item_collection_period_seconds != nil {
-		fields = append(fields, billingworkflowconfig.FieldItemCollectionPeriodSeconds)
+	if m.item_collection_period != nil {
+		fields = append(fields, billingworkflowconfig.FieldItemCollectionPeriod)
 	}
 	if m.invoice_auto_advance != nil {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceAutoAdvance)
 	}
-	if m.invoice_draft_period_seconds != nil {
-		fields = append(fields, billingworkflowconfig.FieldInvoiceDraftPeriodSeconds)
+	if m.invoice_draft_period != nil {
+		fields = append(fields, billingworkflowconfig.FieldInvoiceDraftPeriod)
 	}
-	if m.invoice_due_after_seconds != nil {
-		fields = append(fields, billingworkflowconfig.FieldInvoiceDueAfterSeconds)
+	if m.invoice_due_after != nil {
+		fields = append(fields, billingworkflowconfig.FieldInvoiceDueAfter)
 	}
 	if m.invoice_collection_method != nil {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceCollectionMethod)
-	}
-	if m.invoice_item_resolution != nil {
-		fields = append(fields, billingworkflowconfig.FieldInvoiceItemResolution)
-	}
-	if m.invoice_item_per_subject != nil {
-		fields = append(fields, billingworkflowconfig.FieldInvoiceItemPerSubject)
 	}
 	return fields
 }
@@ -11485,24 +11279,18 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingworkflowconfig.FieldDeletedAt:
 		return m.DeletedAt()
-	case billingworkflowconfig.FieldTimezone:
-		return m.Timezone()
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.CollectionAlignment()
-	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-		return m.ItemCollectionPeriodSeconds()
+	case billingworkflowconfig.FieldItemCollectionPeriod:
+		return m.ItemCollectionPeriod()
 	case billingworkflowconfig.FieldInvoiceAutoAdvance:
 		return m.InvoiceAutoAdvance()
-	case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-		return m.InvoiceDraftPeriodSeconds()
-	case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-		return m.InvoiceDueAfterSeconds()
+	case billingworkflowconfig.FieldInvoiceDraftPeriod:
+		return m.InvoiceDraftPeriod()
+	case billingworkflowconfig.FieldInvoiceDueAfter:
+		return m.InvoiceDueAfter()
 	case billingworkflowconfig.FieldInvoiceCollectionMethod:
 		return m.InvoiceCollectionMethod()
-	case billingworkflowconfig.FieldInvoiceItemResolution:
-		return m.InvoiceItemResolution()
-	case billingworkflowconfig.FieldInvoiceItemPerSubject:
-		return m.InvoiceItemPerSubject()
 	}
 	return nil, false
 }
@@ -11520,24 +11308,18 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldUpdatedAt(ctx)
 	case billingworkflowconfig.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case billingworkflowconfig.FieldTimezone:
-		return m.OldTimezone(ctx)
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.OldCollectionAlignment(ctx)
-	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-		return m.OldItemCollectionPeriodSeconds(ctx)
+	case billingworkflowconfig.FieldItemCollectionPeriod:
+		return m.OldItemCollectionPeriod(ctx)
 	case billingworkflowconfig.FieldInvoiceAutoAdvance:
 		return m.OldInvoiceAutoAdvance(ctx)
-	case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-		return m.OldInvoiceDraftPeriodSeconds(ctx)
-	case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-		return m.OldInvoiceDueAfterSeconds(ctx)
+	case billingworkflowconfig.FieldInvoiceDraftPeriod:
+		return m.OldInvoiceDraftPeriod(ctx)
+	case billingworkflowconfig.FieldInvoiceDueAfter:
+		return m.OldInvoiceDueAfter(ctx)
 	case billingworkflowconfig.FieldInvoiceCollectionMethod:
 		return m.OldInvoiceCollectionMethod(ctx)
-	case billingworkflowconfig.FieldInvoiceItemResolution:
-		return m.OldInvoiceItemResolution(ctx)
-	case billingworkflowconfig.FieldInvoiceItemPerSubject:
-		return m.OldInvoiceItemPerSubject(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingWorkflowConfig field %s", name)
 }
@@ -11575,26 +11357,19 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case billingworkflowconfig.FieldTimezone:
-		v, ok := value.(timezone.Timezone)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTimezone(v)
-		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
-		v, ok := value.(billing.AlignmentKind)
+		v, ok := value.(billingentity.AlignmentKind)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCollectionAlignment(v)
 		return nil
-	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-		v, ok := value.(int64)
+	case billingworkflowconfig.FieldItemCollectionPeriod:
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetItemCollectionPeriodSeconds(v)
+		m.SetItemCollectionPeriod(v)
 		return nil
 	case billingworkflowconfig.FieldInvoiceAutoAdvance:
 		v, ok := value.(bool)
@@ -11603,40 +11378,26 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetInvoiceAutoAdvance(v)
 		return nil
-	case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-		v, ok := value.(int64)
+	case billingworkflowconfig.FieldInvoiceDraftPeriod:
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInvoiceDraftPeriodSeconds(v)
+		m.SetInvoiceDraftPeriod(v)
 		return nil
-	case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-		v, ok := value.(int64)
+	case billingworkflowconfig.FieldInvoiceDueAfter:
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInvoiceDueAfterSeconds(v)
+		m.SetInvoiceDueAfter(v)
 		return nil
 	case billingworkflowconfig.FieldInvoiceCollectionMethod:
-		v, ok := value.(billing.CollectionMethod)
+		v, ok := value.(billingentity.CollectionMethod)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceCollectionMethod(v)
-		return nil
-	case billingworkflowconfig.FieldInvoiceItemResolution:
-		v, ok := value.(billing.GranularityResolution)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceItemResolution(v)
-		return nil
-	case billingworkflowconfig.FieldInvoiceItemPerSubject:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceItemPerSubject(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig field %s", name)
@@ -11645,31 +11406,13 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *BillingWorkflowConfigMutation) AddedFields() []string {
-	var fields []string
-	if m.additem_collection_period_seconds != nil {
-		fields = append(fields, billingworkflowconfig.FieldItemCollectionPeriodSeconds)
-	}
-	if m.addinvoice_draft_period_seconds != nil {
-		fields = append(fields, billingworkflowconfig.FieldInvoiceDraftPeriodSeconds)
-	}
-	if m.addinvoice_due_after_seconds != nil {
-		fields = append(fields, billingworkflowconfig.FieldInvoiceDueAfterSeconds)
-	}
-	return fields
+	return nil
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *BillingWorkflowConfigMutation) AddedField(name string) (ent.Value, bool) {
-	switch name {
-	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-		return m.AddedItemCollectionPeriodSeconds()
-	case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-		return m.AddedInvoiceDraftPeriodSeconds()
-	case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-		return m.AddedInvoiceDueAfterSeconds()
-	}
 	return nil, false
 }
 
@@ -11678,27 +11421,6 @@ func (m *BillingWorkflowConfigMutation) AddedField(name string) (ent.Value, bool
 // type.
 func (m *BillingWorkflowConfigMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddItemCollectionPeriodSeconds(v)
-		return nil
-	case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddInvoiceDraftPeriodSeconds(v)
-		return nil
-	case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddInvoiceDueAfterSeconds(v)
-		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig numeric field %s", name)
 }
@@ -11709,9 +11431,6 @@ func (m *BillingWorkflowConfigMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(billingworkflowconfig.FieldDeletedAt) {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
-	}
-	if m.FieldCleared(billingworkflowconfig.FieldTimezone) {
-		fields = append(fields, billingworkflowconfig.FieldTimezone)
 	}
 	return fields
 }
@@ -11729,9 +11448,6 @@ func (m *BillingWorkflowConfigMutation) ClearField(name string) error {
 	switch name {
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case billingworkflowconfig.FieldTimezone:
-		m.ClearTimezone()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig nullable field %s", name)
@@ -11753,32 +11469,23 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case billingworkflowconfig.FieldTimezone:
-		m.ResetTimezone()
-		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
 		m.ResetCollectionAlignment()
 		return nil
-	case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-		m.ResetItemCollectionPeriodSeconds()
+	case billingworkflowconfig.FieldItemCollectionPeriod:
+		m.ResetItemCollectionPeriod()
 		return nil
 	case billingworkflowconfig.FieldInvoiceAutoAdvance:
 		m.ResetInvoiceAutoAdvance()
 		return nil
-	case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-		m.ResetInvoiceDraftPeriodSeconds()
+	case billingworkflowconfig.FieldInvoiceDraftPeriod:
+		m.ResetInvoiceDraftPeriod()
 		return nil
-	case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-		m.ResetInvoiceDueAfterSeconds()
+	case billingworkflowconfig.FieldInvoiceDueAfter:
+		m.ResetInvoiceDueAfter()
 		return nil
 	case billingworkflowconfig.FieldInvoiceCollectionMethod:
 		m.ResetInvoiceCollectionMethod()
-		return nil
-	case billingworkflowconfig.FieldInvoiceItemResolution:
-		m.ResetInvoiceItemResolution()
-		return nil
-	case billingworkflowconfig.FieldInvoiceItemPerSubject:
-		m.ResetInvoiceItemPerSubject()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig field %s", name)

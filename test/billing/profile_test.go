@@ -9,8 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,28 +20,28 @@ var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	Name:    "Awesome Profile",
 	Default: true,
 
-	TaxConfiguration: provider.TaxConfiguration{
-		Type: provider.TaxProviderOpenMeterSandbox,
-	},
-
-	InvoicingConfiguration: provider.InvoicingConfiguration{
-		Type: provider.InvoicingProviderOpenMeterSandbox,
-	},
-
-	PaymentConfiguration: provider.PaymentConfiguration{
-		Type: provider.PaymentProviderOpenMeterSandbox,
-	},
-
-	WorkflowConfig: billing.WorkflowConfig{
-		Collection: billing.CollectionConfig{
-			Alignment: billing.AlignmentKindSubscription,
+	WorkflowConfig: billingentity.WorkflowConfig{
+		Collection: billingentity.CollectionConfig{
+			Alignment: billingentity.AlignmentKindSubscription,
 		},
 	},
 
-	Supplier: billing.SupplierContact{
+	Supplier: billingentity.SupplierContact{
 		Name: "Awesome Supplier",
 		Address: models.Address{
 			Country: lo.ToPtr(models.CountryCode("US")),
+		},
+	},
+
+	Apps: billing.CreateProfileAppsInput{
+		Invoicing: billingentity.AppReference{
+			Type: appentitybase.AppTypeSandbox,
+		},
+		Payment: billingentity.AppReference{
+			Type: appentitybase.AppTypeSandbox,
+		},
+		Tax: billingentity.AppReference{
+			Type: appentitybase.AppTypeSandbox,
 		},
 	},
 }
@@ -56,6 +58,8 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	ctx := context.Background()
 	ns := "test_create_billing_profile"
 
+	_ = s.installSandboxApp(s.T(), ns)
+
 	s.T().Run("missing default profile", func(t *testing.T) {
 		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 			Namespace: ns,
@@ -64,7 +68,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.Nil(t, defaultProfile)
 	})
 
-	var profile *billing.Profile
+	var profile *billingentity.Profile
 	var err error
 
 	minimalCreateProfileInput := minimalCreateProfileInputTemplate
@@ -141,44 +145,36 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	ctx := context.Background()
+	t := s.T()
 	ns := "test_profile_field_setting"
+
+	app := s.installSandboxApp(s.T(), ns)
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
 		Default:   true,
 		Name:      "Awesome Default Profile",
 
-		TaxConfiguration: provider.TaxConfiguration{
-			Type: provider.TaxProviderOpenMeterSandbox,
+		Metadata: map[string]string{
+			"key": "value",
 		},
 
-		InvoicingConfiguration: provider.InvoicingConfiguration{
-			Type: provider.InvoicingProviderOpenMeterSandbox,
-		},
-
-		PaymentConfiguration: provider.PaymentConfiguration{
-			Type: provider.PaymentProviderOpenMeterSandbox,
-		},
-
-		WorkflowConfig: billing.WorkflowConfig{
-			Collection: billing.CollectionConfig{
-				Alignment:            billing.AlignmentKindSubscription,
-				ItemCollectionPeriod: 30 * time.Minute,
+		WorkflowConfig: billingentity.WorkflowConfig{
+			Collection: billingentity.CollectionConfig{
+				Alignment: billingentity.AlignmentKindSubscription,
+				Interval:  datex.MustParse(t, "PT30M"),
 			},
-			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: 1 * time.Hour,
-				DueAfter:    24 * time.Hour,
-
-				ItemResolution: billing.GranularityResolutionDay,
-				ItemPerSubject: true,
+			Invoicing: billingentity.InvoicingConfig{
+				AutoAdvance: lo.ToPtr(true),
+				DraftPeriod: datex.MustParse(t, "PT1H"),
+				DueAfter:    datex.MustParse(t, "PT24H"),
 			},
-			Payment: billing.PaymentConfig{
-				CollectionMethod: billing.CollectionMethodSendInvoice,
+			Payment: billingentity.PaymentConfig{
+				CollectionMethod: billingentity.CollectionMethodSendInvoice,
 			},
 		},
 
-		Supplier: billing.SupplierContact{
+		Supplier: billingentity.SupplierContact{
 			Name: "Awesome Supplier",
 			Address: models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),
@@ -188,6 +184,18 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 				Line1:       lo.ToPtr("Line 1"),
 				Line2:       lo.ToPtr("Line 2"),
 				PhoneNumber: lo.ToPtr("1234567890"),
+			},
+		},
+
+		Apps: billing.CreateProfileAppsInput{
+			Invoicing: billingentity.AppReference{
+				Type: appentitybase.AppTypeSandbox,
+			},
+			Payment: billingentity.AppReference{
+				Type: appentitybase.AppTypeSandbox,
+			},
+			Tax: billingentity.AppReference{
+				Type: appentitybase.AppTypeSandbox,
 			},
 		},
 	}
@@ -212,17 +220,38 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	require.Equal(s.T(), profile, fetchedProfile)
 
 	// let's add the db derived fields to the input
-	input.ID = profile.ID
-	input.CreatedAt = fetchedProfile.CreatedAt
-	input.UpdatedAt = fetchedProfile.UpdatedAt
-	input.DeletedAt = fetchedProfile.DeletedAt
-	input.WorkflowConfig.ID = fetchedProfile.WorkflowConfig.ID
-	input.WorkflowConfig.CreatedAt = fetchedProfile.WorkflowConfig.CreatedAt
-	input.WorkflowConfig.UpdatedAt = fetchedProfile.WorkflowConfig.UpdatedAt
-	input.WorkflowConfig.DeletedAt = fetchedProfile.WorkflowConfig.DeletedAt
+	expectedProfile := billingentity.Profile{
+		BaseProfile: billingentity.BaseProfile{
+			ID: profile.ID,
+
+			Namespace:   input.Namespace,
+			Name:        input.Name,
+			Description: input.Description,
+			Default:     input.Default,
+
+			CreatedAt: fetchedProfile.CreatedAt,
+			UpdatedAt: fetchedProfile.UpdatedAt,
+			DeletedAt: fetchedProfile.DeletedAt,
+
+			WorkflowConfig: input.WorkflowConfig,
+			Supplier:       input.Supplier,
+
+			Metadata:      input.Metadata,
+			AppReferences: fetchedProfile.AppReferences,
+		},
+		Apps: fetchedProfile.Apps,
+	}
+
+	expectedProfile.WorkflowConfig.ID = fetchedProfile.WorkflowConfig.ID
+	expectedProfile.WorkflowConfig.CreatedAt = fetchedProfile.WorkflowConfig.CreatedAt
+	expectedProfile.WorkflowConfig.UpdatedAt = fetchedProfile.WorkflowConfig.UpdatedAt
+	expectedProfile.WorkflowConfig.DeletedAt = fetchedProfile.WorkflowConfig.DeletedAt
 
 	// Let's check if the fields are set correctly
-	require.Equal(s.T(), billing.Profile(input), *fetchedProfile)
+	require.Equal(s.T(), expectedProfile, *fetchedProfile)
+	require.Equal(s.T(), app.GetID(), fetchedProfile.Apps.Tax.GetID())
+	require.Equal(s.T(), app.GetID(), fetchedProfile.Apps.Invoicing.GetID())
+	require.Equal(s.T(), app.GetID(), fetchedProfile.Apps.Payment.GetID())
 }
 
 func (s *ProfileTestSuite) TestProfileUpdates() {
@@ -230,43 +259,32 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	ctx := context.Background()
 	ns := "test_profile_updates"
 
+	_ = s.installSandboxApp(s.T(), ns)
+
 	input := billing.CreateProfileInput{
 		Namespace: ns,
 		Default:   true,
 
 		Name: "Awesome Default Profile",
 
-		TaxConfiguration: provider.TaxConfiguration{
-			Type: provider.TaxProviderOpenMeterSandbox,
-		},
+		Apps: minimalCreateProfileInputTemplate.Apps,
 
-		InvoicingConfiguration: provider.InvoicingConfiguration{
-			Type: provider.InvoicingProviderOpenMeterSandbox,
-		},
-
-		PaymentConfiguration: provider.PaymentConfiguration{
-			Type: provider.PaymentProviderOpenMeterSandbox,
-		},
-
-		WorkflowConfig: billing.WorkflowConfig{
-			Collection: billing.CollectionConfig{
-				Alignment:            billing.AlignmentKindSubscription,
-				ItemCollectionPeriod: 30 * time.Minute,
+		WorkflowConfig: billingentity.WorkflowConfig{
+			Collection: billingentity.CollectionConfig{
+				Alignment: billingentity.AlignmentKindSubscription,
+				Interval:  datex.MustParse(s.T(), "PT30M"),
 			},
-			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: 1 * time.Hour,
-				DueAfter:    24 * time.Hour,
-
-				ItemResolution: billing.GranularityResolutionDay,
-				ItemPerSubject: true,
+			Invoicing: billingentity.InvoicingConfig{
+				AutoAdvance: lo.ToPtr(true),
+				DraftPeriod: datex.MustParse(s.T(), "PT1H"),
+				DueAfter:    datex.MustParse(s.T(), "PT24H"),
 			},
-			Payment: billing.PaymentConfig{
-				CollectionMethod: billing.CollectionMethodSendInvoice,
+			Payment: billingentity.PaymentConfig{
+				CollectionMethod: billingentity.CollectionMethodSendInvoice,
 			},
 		},
 
-		Supplier: billing.SupplierContact{
+		Supplier: billingentity.SupplierContact{
 			Name: "Awesome Supplier",
 			Address: models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),
@@ -311,38 +329,23 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 			UpdatedAt: profile.UpdatedAt,
 
-			TaxConfiguration: provider.TaxConfiguration{
-				Type: provider.TaxProviderOpenMeterSandbox,
-			},
-
-			InvoicingConfiguration: provider.InvoicingConfiguration{
-				Type: provider.InvoicingProviderOpenMeterSandbox,
-			},
-
-			PaymentConfiguration: provider.PaymentConfiguration{
-				Type: provider.PaymentProviderOpenMeterSandbox,
-			},
-
-			WorkflowConfig: billing.WorkflowConfig{
+			WorkflowConfig: billingentity.WorkflowConfig{
 				CreatedAt: profile.WorkflowConfig.CreatedAt,
-				Collection: billing.CollectionConfig{
-					Alignment:            billing.AlignmentKindSubscription,
-					ItemCollectionPeriod: 60 * time.Minute,
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+					Interval:  datex.MustParse(s.T(), "PT30M"),
 				},
-				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: false,
-					DraftPeriod: 2 * time.Hour,
-					DueAfter:    48 * time.Hour,
-
-					ItemResolution: billing.GranularityResolutionPeriod,
-					ItemPerSubject: false,
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: lo.ToPtr(false),
+					DraftPeriod: datex.MustParse(s.T(), "PT2H"),
+					DueAfter:    datex.MustParse(s.T(), "PT48H"),
 				},
-				Payment: billing.PaymentConfig{
-					CollectionMethod: billing.CollectionMethodChargeAutomatically,
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
 				},
 			},
 
-			Supplier: billing.SupplierContact{
+			Supplier: billingentity.SupplierContact{
 				Name: "Awesome Supplier [update]",
 				Address: models.Address{
 					Country:     lo.ToPtr(models.CountryCode("HU")),
@@ -366,12 +369,27 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		require.NotEqual(t, fetchedProfile.UpdatedAt, updatedProfile.UpdatedAt, "the new updated at is returned")
 
 		// Set up DB only fields
-		expecedOutput := billing.Profile(updateInput)
-		expecedOutput.WorkflowConfig.ID = fetchedProfile.WorkflowConfig.ID
-		expecedOutput.UpdatedAt = updatedProfile.UpdatedAt                               // This is checked by the previous assertion
-		expecedOutput.WorkflowConfig.UpdatedAt = updatedProfile.WorkflowConfig.UpdatedAt // This is checked by the previous assertion
+		expectedOutput := billingentity.Profile{
+			BaseProfile: billingentity.BaseProfile{
+				ID:          updateInput.ID,
+				Namespace:   updateInput.Namespace,
+				CreatedAt:   fetchedProfile.CreatedAt,
+				Name:        updateInput.Name,
+				Description: updateInput.Description,
+				Metadata:    updateInput.Metadata,
+				Supplier:    updateInput.Supplier,
+				Default:     updateInput.Default,
 
-		require.Equal(t, expecedOutput, *updatedProfile)
+				WorkflowConfig: updateInput.WorkflowConfig,
+				AppReferences:  fetchedProfile.AppReferences,
+			},
+		}
+		expectedOutput.WorkflowConfig.ID = fetchedProfile.WorkflowConfig.ID
+		expectedOutput.UpdatedAt = updatedProfile.UpdatedAt                               // This is checked by the previous assertion
+		expectedOutput.WorkflowConfig.UpdatedAt = updatedProfile.WorkflowConfig.UpdatedAt // This is checked by the previous assertion
+		expectedOutput.Apps = fetchedProfile.Apps
+
+		require.Equal(t, expectedOutput, *updatedProfile)
 	})
 
 	s.T().Run("update profile, out of date input", func(t *testing.T) {
@@ -386,38 +404,23 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 			UpdatedAt: profile.UpdatedAt,
 
-			TaxConfiguration: provider.TaxConfiguration{
-				Type: provider.TaxProviderStripeTax,
-			},
-
-			InvoicingConfiguration: provider.InvoicingConfiguration{
-				Type: provider.InvoicingProviderStripeInvoicing,
-			},
-
-			PaymentConfiguration: provider.PaymentConfiguration{
-				Type: provider.PaymentProviderStripePayments,
-			},
-
-			WorkflowConfig: billing.WorkflowConfig{
+			WorkflowConfig: billingentity.WorkflowConfig{
 				CreatedAt: profile.WorkflowConfig.CreatedAt,
-				Collection: billing.CollectionConfig{
-					Alignment:            billing.AlignmentKindSubscription,
-					ItemCollectionPeriod: 60 * time.Minute,
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+					Interval:  datex.MustParse(t, "PT30M"),
 				},
-				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: false,
-					DraftPeriod: 2 * time.Hour,
-					DueAfter:    48 * time.Hour,
-
-					ItemResolution: billing.GranularityResolutionPeriod,
-					ItemPerSubject: false,
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: lo.ToPtr(false),
+					DraftPeriod: datex.MustParse(t, "PT2H"),
+					DueAfter:    datex.MustParse(t, "PT48H"),
 				},
-				Payment: billing.PaymentConfig{
-					CollectionMethod: billing.CollectionMethodChargeAutomatically,
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
 				},
 			},
 
-			Supplier: billing.SupplierContact{
+			Supplier: billingentity.SupplierContact{
 				Name: "Awesome Supplier [update]",
 				Address: models.Address{
 					Country:     lo.ToPtr(models.CountryCode("HU")),
@@ -436,76 +439,5 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		// Then the profile is updated
 		require.ErrorIs(t, err, billing.ErrProfileConflict)
 		require.ErrorAs(t, err, &billing.UpdateAfterDeleteError{})
-	})
-
-	s.T().Run("update profile, provider change => fails", func(t *testing.T) {
-		// When updating the profile with new providers (which is not allowed)
-		profile, err = s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-			Namespace: ns,
-			ID:        profile.ID,
-		})
-
-		require.NoError(t, err)
-
-		updateInput := billing.UpdateProfileInput{
-			ID:        profile.ID,
-			Namespace: ns,
-			Default:   true,
-			CreatedAt: profile.CreatedAt,
-
-			Name: "Awesome Default Profile [update]",
-
-			UpdatedAt: profile.UpdatedAt,
-
-			TaxConfiguration: provider.TaxConfiguration{
-				Type: provider.TaxProviderStripeTax,
-			},
-
-			InvoicingConfiguration: provider.InvoicingConfiguration{
-				Type: provider.InvoicingProviderStripeInvoicing,
-			},
-
-			PaymentConfiguration: provider.PaymentConfiguration{
-				Type: provider.PaymentProviderStripePayments,
-			},
-
-			WorkflowConfig: billing.WorkflowConfig{
-				CreatedAt: profile.WorkflowConfig.CreatedAt,
-				Collection: billing.CollectionConfig{
-					Alignment:            billing.AlignmentKindSubscription,
-					ItemCollectionPeriod: 60 * time.Minute,
-				},
-				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: false,
-					DraftPeriod: 2 * time.Hour,
-					DueAfter:    48 * time.Hour,
-
-					ItemResolution: billing.GranularityResolutionPeriod,
-					ItemPerSubject: false,
-				},
-				Payment: billing.PaymentConfig{
-					CollectionMethod: billing.CollectionMethodChargeAutomatically,
-				},
-			},
-
-			Supplier: billing.SupplierContact{
-				Name: "Awesome Supplier [update]",
-				Address: models.Address{
-					Country:     lo.ToPtr(models.CountryCode("HU")),
-					PostalCode:  lo.ToPtr("12345 [update]"),
-					City:        lo.ToPtr("City [update]"),
-					State:       lo.ToPtr("State [update]"),
-					Line1:       lo.ToPtr("Line 1 [update]"),
-					Line2:       lo.ToPtr("Line 2 [update]"),
-					PhoneNumber: lo.ToPtr("1234567890 [update]"),
-				},
-			},
-		}
-
-		_, err := s.BillingService.UpdateProfile(ctx, updateInput)
-
-		// Then the profile update is rejected
-		require.ErrorIs(t, err, billing.ErrProfileTaxTypeChange)
-		require.ErrorAs(t, err, &billing.ValidationError{})
 	})
 }

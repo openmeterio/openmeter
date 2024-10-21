@@ -22,7 +22,7 @@ import (
 	"github.com/invopop/validation"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/gobl"
 )
 
@@ -60,7 +60,7 @@ type invoiceWithValidation struct {
 // if error is set, then a non-recordable error occurred
 // if the invoice has validation issues then the Invoice's ValidationError will be set
 // and the Invoice's Complements will contain the validation notes
-func (d *Driver) Generate(ctx context.Context, invoice billing.InvoiceWithValidation) (*bill.Invoice, error) {
+func (d *Driver) Generate(ctx context.Context, invoice billingentity.InvoiceWithValidation) (*bill.Invoice, error) {
 	inv := d.invoiceToGOBL(invoice)
 
 	if err := inv.Invoice.Validate(); err != nil {
@@ -93,7 +93,7 @@ func (d *Driver) Generate(ctx context.Context, invoice billing.InvoiceWithValida
 // invoiceToGOBL converts a billing.Invoice to a gobl invoice. If error is set, then
 // a fatal error has occurred, which should be reported to the caller instead of putting
 // it into the validation errors.
-func (d *Driver) invoiceToGOBL(input billing.InvoiceWithValidation) invoiceWithValidation {
+func (d *Driver) invoiceToGOBL(input billingentity.InvoiceWithValidation) invoiceWithValidation {
 	validationErrors := slices.Clone(input.ValidationErrors)
 
 	inv := input.Invoice
@@ -134,14 +134,14 @@ func (d *Driver) invoiceToGOBL(input billing.InvoiceWithValidation) invoiceWithV
 	invoice.Meta[InvoiceIDKey] = inv.ID
 
 	switch inv.Profile.WorkflowConfig.Payment.CollectionMethod {
-	case billing.CollectionMethodChargeAutomatically:
+	case billingentity.CollectionMethodChargeAutomatically:
 		invoice.Payment = &bill.Payment{
 			Terms: &pay.Terms{
 				Key: pay.TermKeyInstant,
 			},
 		}
 
-	case billing.CollectionMethodSendInvoice:
+	case billingentity.CollectionMethodSendInvoice:
 		invoice.Payment = &bill.Payment{
 			Terms: &pay.Terms{
 				Key: pay.TermKeyDueDate,
@@ -190,7 +190,7 @@ func (d *Driver) invoiceToGOBL(input billing.InvoiceWithValidation) invoiceWithV
 	}
 }
 
-func (d *Driver) invoiceItemToLine(item billing.InvoiceItem, loc *time.Location) (*bill.Line, validation.Errors) {
+func (d *Driver) invoiceItemToLine(item billingentity.InvoiceItem, loc *time.Location) (*bill.Line, validation.Errors) {
 	var validationErrs validation.Errors
 
 	// TODO: for usage based items we need to add a different logic
@@ -231,7 +231,7 @@ func (d *Driver) invoiceItemToLine(item billing.InvoiceItem, loc *time.Location)
 	}, validationErrs
 }
 
-func (d *Driver) invoiceItemLifecycleNote(item billing.InvoiceItem, loc *time.Location) *cbc.Note {
+func (d *Driver) invoiceItemLifecycleNote(item billingentity.InvoiceItem, loc *time.Location) *cbc.Note {
 	note := &cbc.Note{
 		Key:  cbc.NoteKeyReason,
 		Code: InvoiceItemCodeLifecycle,
@@ -254,7 +254,7 @@ func (d *Driver) invoiceItemLifecycleNote(item billing.InvoiceItem, loc *time.Lo
 	return note
 }
 
-func (d *Driver) invoiceItemEntityNote(item billing.InvoiceItem) *cbc.Note {
+func (d *Driver) invoiceItemEntityNote(item billingentity.InvoiceItem) *cbc.Note {
 	note := &cbc.Note{
 		Key:  cbc.NoteKeyGeneral,
 		Code: InvoiceItemCodeEntity,
@@ -268,7 +268,7 @@ func (d *Driver) invoiceItemEntityNote(item billing.InvoiceItem) *cbc.Note {
 	return note
 }
 
-func (d *Driver) invoiceCustomerToParty(i billing.InvoiceCustomer) (*org.Party, validation.Errors) {
+func (d *Driver) invoiceCustomerToParty(i billingentity.InvoiceCustomer) (*org.Party, validation.Errors) {
 	if i.BillingAddress == nil {
 		return nil, validation.Errors{
 			"billingAddress": ErrMissingCustomerBillingAddress,
@@ -303,7 +303,7 @@ func (d *Driver) invoiceCustomerToParty(i billing.InvoiceCustomer) (*org.Party, 
 	return party, nil
 }
 
-func (d *Driver) invoiceSupplierContactToParty(c billing.SupplierContact) *org.Party {
+func (d *Driver) invoiceSupplierContactToParty(c billingentity.SupplierContact) *org.Party {
 	party := &org.Party{
 		Name: c.Name,
 		Addresses: []*org.Address{

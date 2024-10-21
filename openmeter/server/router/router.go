@@ -15,6 +15,8 @@ import (
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -69,6 +71,7 @@ type Config struct {
 	App                         app.Service
 	AppStripe                   appstripe.Service
 	Customer                    customer.Service
+	Billing                     billing.Service
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
@@ -80,6 +83,8 @@ type Config struct {
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
 	NotificationEnabled bool
+	BillingEnabled      bool
+	AppsEnabled         bool
 }
 
 func (c Config) Validate() error {
@@ -133,16 +138,24 @@ func (c Config) Validate() error {
 		}
 	}
 
-	if c.App == nil {
-		return errors.New("app service is required")
+	if c.AppsEnabled {
+		if c.App == nil {
+			return errors.New("app service is required")
+		}
+
+		if c.AppStripe == nil {
+			return errors.New("app stripe service is required")
+		}
 	}
 
-	if c.AppStripe == nil {
-		return errors.New("app stripe service is required")
+	if c.BillingEnabled || c.AppsEnabled {
+		if c.Customer == nil {
+			return errors.New("customer service is required")
+		}
 	}
 
-	if c.Customer == nil {
-		return errors.New("customer service is required")
+	if c.BillingEnabled && c.Billing == nil {
+		return errors.New("billing service is required")
 	}
 
 	return nil
@@ -153,6 +166,7 @@ type Router struct {
 
 	appHandler                apphttpdriver.Handler
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
+	billingHandler            billinghttpdriver.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
@@ -238,6 +252,14 @@ func NewRouter(config Config) (*Router, error) {
 		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+
+	if config.BillingEnabled {
+		router.billingHandler = billinghttpdriver.New(
+			staticNamespaceDecoder,
+			config.Billing,
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+	}
 
 	return router, nil
 }

@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -600,19 +600,19 @@ func InvoiceAtLTE(v time.Time) predicate.BillingInvoiceItem {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billing.InvoiceItemType) predicate.BillingInvoiceItem {
+func TypeEQ(v billingentity.InvoiceItemType) predicate.BillingInvoiceItem {
 	vc := v
 	return predicate.BillingInvoiceItem(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billing.InvoiceItemType) predicate.BillingInvoiceItem {
+func TypeNEQ(v billingentity.InvoiceItemType) predicate.BillingInvoiceItem {
 	vc := v
 	return predicate.BillingInvoiceItem(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billing.InvoiceItemType) predicate.BillingInvoiceItem {
+func TypeIn(vs ...billingentity.InvoiceItemType) predicate.BillingInvoiceItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -621,7 +621,7 @@ func TypeIn(vs ...billing.InvoiceItemType) predicate.BillingInvoiceItem {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billing.InvoiceItemType) predicate.BillingInvoiceItem {
+func TypeNotIn(vs ...billingentity.InvoiceItemType) predicate.BillingInvoiceItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

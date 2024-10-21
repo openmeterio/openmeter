@@ -9,11 +9,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
-	"github.com/openmeterio/openmeter/pkg/timezone"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // BillingWorkflowConfig is the model entity for the BillingWorkflowConfig schema.
@@ -29,24 +29,18 @@ type BillingWorkflowConfig struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Timezone holds the value of the "timezone" field.
-	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
-	CollectionAlignment billing.AlignmentKind `json:"collection_alignment,omitempty"`
-	// ItemCollectionPeriodSeconds holds the value of the "item_collection_period_seconds" field.
-	ItemCollectionPeriodSeconds int64 `json:"item_collection_period_seconds,omitempty"`
+	CollectionAlignment billingentity.AlignmentKind `json:"collection_alignment,omitempty"`
+	// ItemCollectionPeriod holds the value of the "item_collection_period" field.
+	ItemCollectionPeriod datex.ISOString `json:"item_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
 	InvoiceAutoAdvance bool `json:"invoice_auto_advance,omitempty"`
-	// InvoiceDraftPeriodSeconds holds the value of the "invoice_draft_period_seconds" field.
-	InvoiceDraftPeriodSeconds int64 `json:"invoice_draft_period_seconds,omitempty"`
-	// InvoiceDueAfterSeconds holds the value of the "invoice_due_after_seconds" field.
-	InvoiceDueAfterSeconds int64 `json:"invoice_due_after_seconds,omitempty"`
+	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
+	InvoiceDraftPeriod datex.ISOString `json:"invoice_draft_period,omitempty"`
+	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
+	InvoiceDueAfter datex.ISOString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
-	InvoiceCollectionMethod billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
-	// InvoiceItemResolution holds the value of the "invoice_item_resolution" field.
-	InvoiceItemResolution billing.GranularityResolution `json:"invoice_item_resolution,omitempty"`
-	// InvoiceItemPerSubject holds the value of the "invoice_item_per_subject" field.
-	InvoiceItemPerSubject bool `json:"invoice_item_per_subject,omitempty"`
+	InvoiceCollectionMethod billingentity.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingWorkflowConfigQuery when eager-loading is set.
 	Edges        BillingWorkflowConfigEdges `json:"edges"`
@@ -91,11 +85,9 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceItemPerSubject:
+		case billingworkflowconfig.FieldInvoiceAutoAdvance:
 			values[i] = new(sql.NullBool)
-		case billingworkflowconfig.FieldItemCollectionPeriodSeconds, billingworkflowconfig.FieldInvoiceDraftPeriodSeconds, billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-			values[i] = new(sql.NullInt64)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldTimezone, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldInvoiceItemResolution:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldItemCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -145,24 +137,17 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 				bwc.DeletedAt = new(time.Time)
 				*bwc.DeletedAt = value.Time
 			}
-		case billingworkflowconfig.FieldTimezone:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field timezone", values[i])
-			} else if value.Valid {
-				bwc.Timezone = new(timezone.Timezone)
-				*bwc.Timezone = timezone.Timezone(value.String)
-			}
 		case billingworkflowconfig.FieldCollectionAlignment:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_alignment", values[i])
 			} else if value.Valid {
-				bwc.CollectionAlignment = billing.AlignmentKind(value.String)
+				bwc.CollectionAlignment = billingentity.AlignmentKind(value.String)
 			}
-		case billingworkflowconfig.FieldItemCollectionPeriodSeconds:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field item_collection_period_seconds", values[i])
+		case billingworkflowconfig.FieldItemCollectionPeriod:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field item_collection_period", values[i])
 			} else if value.Valid {
-				bwc.ItemCollectionPeriodSeconds = value.Int64
+				bwc.ItemCollectionPeriod = datex.ISOString(value.String)
 			}
 		case billingworkflowconfig.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -170,35 +155,23 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			} else if value.Valid {
 				bwc.InvoiceAutoAdvance = value.Bool
 			}
-		case billingworkflowconfig.FieldInvoiceDraftPeriodSeconds:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_draft_period_seconds", values[i])
+		case billingworkflowconfig.FieldInvoiceDraftPeriod:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_draft_period", values[i])
 			} else if value.Valid {
-				bwc.InvoiceDraftPeriodSeconds = value.Int64
+				bwc.InvoiceDraftPeriod = datex.ISOString(value.String)
 			}
-		case billingworkflowconfig.FieldInvoiceDueAfterSeconds:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_due_after_seconds", values[i])
+		case billingworkflowconfig.FieldInvoiceDueAfter:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_due_after", values[i])
 			} else if value.Valid {
-				bwc.InvoiceDueAfterSeconds = value.Int64
+				bwc.InvoiceDueAfter = datex.ISOString(value.String)
 			}
 		case billingworkflowconfig.FieldInvoiceCollectionMethod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_collection_method", values[i])
 			} else if value.Valid {
-				bwc.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
-			}
-		case billingworkflowconfig.FieldInvoiceItemResolution:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_item_resolution", values[i])
-			} else if value.Valid {
-				bwc.InvoiceItemResolution = billing.GranularityResolution(value.String)
-			}
-		case billingworkflowconfig.FieldInvoiceItemPerSubject:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_item_per_subject", values[i])
-			} else if value.Valid {
-				bwc.InvoiceItemPerSubject = value.Bool
+				bwc.InvoiceCollectionMethod = billingentity.CollectionMethod(value.String)
 			}
 		default:
 			bwc.selectValues.Set(columns[i], values[i])
@@ -260,34 +233,23 @@ func (bwc *BillingWorkflowConfig) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := bwc.Timezone; v != nil {
-		builder.WriteString("timezone=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("collection_alignment=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.CollectionAlignment))
 	builder.WriteString(", ")
-	builder.WriteString("item_collection_period_seconds=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.ItemCollectionPeriodSeconds))
+	builder.WriteString("item_collection_period=")
+	builder.WriteString(fmt.Sprintf("%v", bwc.ItemCollectionPeriod))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_auto_advance=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceAutoAdvance))
 	builder.WriteString(", ")
-	builder.WriteString("invoice_draft_period_seconds=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceDraftPeriodSeconds))
+	builder.WriteString("invoice_draft_period=")
+	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceDraftPeriod))
 	builder.WriteString(", ")
-	builder.WriteString("invoice_due_after_seconds=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceDueAfterSeconds))
+	builder.WriteString("invoice_due_after=")
+	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceDueAfter))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_collection_method=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceCollectionMethod))
-	builder.WriteString(", ")
-	builder.WriteString("invoice_item_resolution=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceItemResolution))
-	builder.WriteString(", ")
-	builder.WriteString("invoice_item_per_subject=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceItemPerSubject))
 	builder.WriteByte(')')
 	return builder.String()
 }
