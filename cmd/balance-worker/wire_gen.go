@@ -133,7 +133,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	v3 := conf.Meters
 	inMemoryRepository := common.NewMeterRepository(v3)
-	clickhouseConnector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v2, inMemoryRepository, logger)
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v2, inMemoryRepository, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -144,7 +144,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	entitlementOptions := registrybuilder.EntitlementOptions{
 		DatabaseClient:     client,
-		StreamingConnector: clickhouseConnector,
+		StreamingConnector: connector,
 		Logger:             logger,
 		MeterRepository:    inMemoryRepository,
 		Publisher:          eventbusPublisher,

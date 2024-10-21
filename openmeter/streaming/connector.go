@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -59,6 +60,8 @@ type MeterEvent struct {
 }
 
 type Connector interface {
+	namespace.Handler
+
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
 	CreateMeter(ctx context.Context, namespace string, meter models.Meter) error

@@ -72,7 +72,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	v2 := conf.Meters
 	inMemoryRepository := common.NewMeterRepository(v2)
-	clickhouseConnector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -139,7 +139,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
 		Metadata:           commonMetadata,
-		StreamingConnector: clickhouseConnector,
+		StreamingConnector: connector,
 		MeterRepository:    inMemoryRepository,
 		EntClient:          client,
 		TelemetryServer:    v3,

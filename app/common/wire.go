@@ -15,8 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
-	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
@@ -106,7 +104,6 @@ var OpenMeter = wire.NewSet(
 	wire.Bind(new(meter.Repository), new(*meter.InMemoryRepository)),
 
 	NewClickHouseStreamingConnector,
-	wire.Bind(new(streaming.Connector), new(*clickhouse_connector.ClickhouseConnector)),
 
 	NewNamespacedTopicResolver,
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),

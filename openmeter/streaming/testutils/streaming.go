@@ -51,7 +51,11 @@ func (m *MockStreamingConnector) AddRow(meterSlug string, row models.MeterQueryR
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
 }
 
-func (m *MockStreamingConnector) Init(ctx context.Context) error {
+func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
 	return nil
 }
 

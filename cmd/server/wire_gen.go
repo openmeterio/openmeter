@@ -76,7 +76,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}
 	v2 := conf.Meters
 	inMemoryRepository := common.NewMeterRepository(v2)
-	clickhouseConnector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -197,7 +197,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	v5 := common.NewNamespaceHandlers(namespaceHandler, clickhouseConnector)
+	v5 := common.NewNamespaceHandlers(namespaceHandler, connector)
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(v5, namespaceConfiguration)
 	if err != nil {
@@ -214,7 +214,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
-		StreamingConnector: clickhouseConnector,
+		StreamingConnector: connector,
 		MeterRepository:    inMemoryRepository,
 		EntClient:          client,
 		TelemetryServer:    v3,
