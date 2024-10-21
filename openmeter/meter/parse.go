@@ -52,11 +52,13 @@ func ParseEvent(meter Meter, ev event.Event) (*float64, *string, map[string]stri
 	case MeterAggregationSum, MeterAggregationAvg, MeterAggregationMin, MeterAggregationMax:
 		switch value := rawValue.(type) {
 		case string:
-			_, err = strconv.ParseFloat(value, 64)
+			val, err := strconv.ParseFloat(value, 64)
 			if err != nil {
 				// TODO: omit value or make sure it's length is not too long
 				return nil, nil, groupBy, fmt.Errorf("event data value cannot be parsed as float64: %s", value)
 			}
+
+			return &val, nil, groupBy, nil
 
 		case float64:
 			return &value, nil, groupBy, nil
