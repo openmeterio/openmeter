@@ -43,6 +43,7 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 	}
 
 	return transaction.Run(ctx, a.txCreator, func(ctx context.Context) (*subscription.SubscriptionEntitlement, error) {
+		annotations.Annotate(input.Metadata, entitlement.SystemManagedEntitlementAnnotation)
 		ent, err := a.entitlementConnector.ScheduleEntitlement(ctx, input)
 		if err != nil {
 			return nil, err
@@ -51,8 +52,6 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 		if ent == nil {
 			return nil, fmt.Errorf("entitlement is nil")
 		}
-
-		annotations.Annotate(&ent.AnnotatedModel, entitlement.SystemManagedEntitlementAnnotation)
 
 		sEnt, err := a.repo.Create(ctx, CreateSubscriptionEntitlementInput{
 			Namespace:           ent.Namespace,
@@ -101,4 +100,8 @@ func (a *EntitlementSubscriptionAdapter) GetForItem(ctx context.Context, ref sub
 			ActiveTo:   ent.ActiveTo,
 		},
 	}, nil
+}
+
+func (a *EntitlementSubscriptionAdapter) GetForSubscription(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]subscription.SubscriptionEntitlement, error) {
+	panic("implement me")
 }

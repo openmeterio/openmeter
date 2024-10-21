@@ -177,6 +177,26 @@ type SubscriptionItemSpec struct {
 	CreateSubscriptionItemPlanInput
 }
 
+func (s SubscriptionItemSpec) GetRef(subId string) SubscriptionItemRef {
+	return SubscriptionItemRef{
+		SubscriptionId: subId,
+		PhaseKey:       s.PhaseKey,
+		ItemKey:        s.ItemKey,
+	}
+}
+
+func (s SubscriptionItemSpec) HasPrice() bool {
+	return s.CreatePriceInput != nil
+}
+
+func (s SubscriptionItemSpec) HasEntitlement() bool {
+	return s.CreateEntitlementInput != nil
+}
+
+func (s SubscriptionItemSpec) HasFeature() bool {
+	return s.FeatureKey != nil
+}
+
 func (s *SubscriptionItemSpec) Validate() error {
 	if s.CreateEntitlementInput != nil {
 		if s.FeatureKey == nil {

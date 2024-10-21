@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -198,11 +199,15 @@ func (c *command) createPhase(ctx context.Context, sub Subscription, cust custom
 					return fmt.Errorf("entitlement input is nil")
 				}
 
+				// FIXME: this will fail if there's already an entitlement present
 				_, err = c.entitlementAdapter.ScheduleEntitlement(ctx, SubscriptionItemRef{
 					SubscriptionId: sub.ID,
 					PhaseKey:       phaseKey,
 					ItemKey:        item.ItemKey,
 				}, *input)
+				if err != nil {
+					return fmt.Errorf("failed to create entitlement for item %s: %w", item.ItemKey, err)
+				}
 			}
 			// Create Price
 			if item.CreatePriceInput != nil {
@@ -241,8 +246,12 @@ type Query interface {
 
 type query struct {
 	repo Repository
-
-	planAdapter PlanAdapter
+	// connectors
+	priceConnector   price.Connector
+	featureConnector feature.FeatureConnector
+	// adapters
+	planAdapter        PlanAdapter
+	entitlementAdapter EntitlementAdapter
 }
 
 func NewQuery() Query {
@@ -258,6 +267,7 @@ func (q *query) Get(ctx context.Context, subscriptionID string) (Subscription, e
 }
 
 func (q *query) Expand(ctx context.Context, subscriptionID string) (SubscriptionView, error) {
+	currentTime := clock.Now()
 	sub, err := q.Get(ctx, subscriptionID)
 	if err != nil {
 		return nil, err
@@ -306,5 +316,21 @@ func (q *query) Expand(ctx context.Context, subscriptionID string) (Subscription
 		return nil, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
-	panic("implement me")
+	// Let's fetch all dependent entities in batches and then match them to the spec
+	ents, err := q.entitlementAdapter.GetForSubscription(ctx, models.NamespacedID{
+		Namespace: sub.Namespace,
+		ID:        sub.ID,
+	}, currentTime)
+	if err != nil {
+		return nil, err
+	}
+
+	prices, err := q.priceConnector.GetForSubscription(ctx, models.NamespacedID{
+		Namespace: sub.Namespace,
+		ID:        sub.ID,
+	})
+
+	view, err := NewSubscriptionView(sub, spec, ents, prices)
+
+	return view, err
 }

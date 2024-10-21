@@ -20,6 +20,19 @@ type SubscriptionItemRef struct {
 	ItemKey        string `json:"itemKey"`
 }
 
+func (r SubscriptionItemRef) Equals(r2 SubscriptionItemRef) bool {
+	if r.SubscriptionId != r2.SubscriptionId {
+		return false
+	}
+	if r.PhaseKey != r2.PhaseKey {
+		return false
+	}
+	if r.ItemKey != r2.ItemKey {
+		return false
+	}
+	return true
+}
+
 type CreateSubscriptionInput struct {
 	Plan PlanRef
 
