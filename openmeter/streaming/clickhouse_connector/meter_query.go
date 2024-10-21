@@ -9,6 +9,8 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 
+
+	raw_event_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -102,7 +104,7 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 }
 
 func (d createMeterView) toSelectSQL() (string, error) {
-	eventsTableName := GetEventsTableName(d.Database)
+	eventsTableName := raw_event_connector.GetEventsTableName(d.Database)
 
 	aggStateFn := ""
 	switch d.Aggregation {
