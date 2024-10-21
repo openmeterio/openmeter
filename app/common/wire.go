@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
