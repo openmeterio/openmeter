@@ -190,6 +190,8 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 		}
 
 		// Create new entitlement
+		//
+		// The Unique Constraint durint Scheduling catches the InconsistencyError where the new entitltment would be scheduled active longer then any later entitlement would start.
 		return c.ScheduleEntitlement(ctx, input)
 	})
 }

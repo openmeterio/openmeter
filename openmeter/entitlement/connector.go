@@ -67,7 +67,7 @@ type Connector interface {
 	SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error)
 
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
-	DeleteEntitlement(ctx context.Context, namespace string, id string) error
+	DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error
 
 	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
@@ -137,7 +137,7 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	}
 
 	if oldEnt.DeletedAt != nil {
-		return nil, fmt.Errorf("inconsistency error, entitlement already deleted: %s", oldEnt.ID)
+		return nil, &models.GenericUserError{Message: fmt.Sprintf("Entitlement already deleted: %s", oldEnt.ID)}
 	}
 
 	if input.ActiveFrom != nil || input.ActiveTo != nil {
@@ -151,14 +151,14 @@ func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace str
 	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 }
 
-func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string) error {
+func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	doInTx := func(ctx context.Context) (*Entitlement, error) {
 		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 		if err != nil {
 			return nil, err
 		}
 
-		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id}, at)
 		if err != nil {
 			return nil, err
 		}

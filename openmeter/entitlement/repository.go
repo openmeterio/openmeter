@@ -30,7 +30,7 @@ type EntitlementRepo interface {
 
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
-	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
+	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 
