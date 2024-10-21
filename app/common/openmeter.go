@@ -22,7 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_mv"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -64,7 +64,7 @@ func NewStreamingConnector(
 		}
 
 	case config.AggregationEngineClickHouseMV:
-		connector, err = clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
+		connector, err = clickhouse_connector_mv.NewClickhouseConnector(ctx, clickhouse_connector_mv.ClickhouseConnectorConfig{
 			ClickHouse:          clickHouse,
 			Database:            conf.ClickHouse.Database,
 			Logger:              logger,

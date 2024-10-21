@@ -1,4 +1,4 @@
-package clickhouse_connector
+package clickhouse_connector_mv
 
 import (
 	"context"
