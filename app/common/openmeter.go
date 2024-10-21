@@ -35,12 +35,13 @@ func NewMeterRepository(meters []*models.Meter) *meter.InMemoryRepository {
 }
 
 func NewClickHouseStreamingConnector(
+	ctx context.Context,
 	conf config.AggregationConfiguration,
 	clickHouse clickhouse.Conn,
 	meterRepository meter.Repository,
 	logger *slog.Logger,
 ) (*clickhouse_connector.ClickhouseConnector, error) {
-	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
+	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
 		ClickHouse:           clickHouse,
 		Database:             conf.ClickHouse.Database,
 		Meters:               meterRepository,

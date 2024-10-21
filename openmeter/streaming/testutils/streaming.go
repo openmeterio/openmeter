@@ -51,6 +51,10 @@ func (m *MockStreamingConnector) AddRow(meterSlug string, row models.MeterQueryR
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
 }
 
+func (m *MockStreamingConnector) Init(ctx context.Context) error {
+	return nil
+}
+
 func (m *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
 	return []streaming.CountEventRow{}, nil
 }
@@ -88,6 +92,10 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	}
 
 	return rows, nil
+}
+
+func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+	return nil
 }
 
 func windowSizeToDuration(windowSize models.WindowSize) time.Duration {

@@ -1,4 +1,4 @@
-package clickhouse_connector_map
+package clickhouse_connector_parse
 
 import (
 	"testing"

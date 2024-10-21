@@ -35,6 +35,29 @@ type ListMeterSubjectsParams struct {
 	To   *time.Time
 }
 
+// RawEvent represents a single raw event
+type RawEvent struct {
+	Namespace       string
+	ValidationError string
+	ID              string
+	Type            string
+	Source          string
+	Subject         string
+	Time            time.Time
+	Data            string
+	IngestedAt      time.Time
+	StoredAt        time.Time
+}
+
+// Meter Event represents a single event related to a meter
+type MeterEvent struct {
+	RawEvent
+	Meter       string
+	Value       float64
+	ValueString string
+	GroupBy     map[string]string
+}
+
 type Connector interface {
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
@@ -42,5 +65,6 @@ type Connector interface {
 	DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error
 	QueryMeter(ctx context.Context, namespace string, meter models.Meter, params QueryParams) ([]models.MeterQueryRow, error)
 	ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params ListMeterSubjectsParams) ([]string, error)
+	BatchInsert(ctx context.Context, events []RawEvent, meterEvents []MeterEvent) error
 	// Add more methods as needed ...
 }

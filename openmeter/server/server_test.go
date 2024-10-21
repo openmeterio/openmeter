@@ -75,6 +75,10 @@ var (
 
 type MockStreamingConnector struct{}
 
+func (c *MockStreamingConnector) Init(ctx context.Context) error {
+	return nil
+}
+
 func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
 	return []streaming.CountEventRow{}, nil
 }
@@ -108,6 +112,10 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 
 func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
+}
+
+func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+	return nil
 }
 
 type MockDebugHandler struct{}

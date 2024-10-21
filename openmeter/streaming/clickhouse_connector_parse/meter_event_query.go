@@ -1,38 +1,18 @@
-package clickhouse_connector_map
+package clickhouse_connector_parse
 
 import (
 	_ "embed"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 const (
 	MeterEventTableName = "om_meter_events"
 )
-
-// Meter Event represents a single meter event in ClickHouse
-type CHMeterEvent struct {
-	// Identifiers
-	Namespace string    `ch:"namespace"`
-	Time      time.Time `ch:"time"`
-	Meter     string    `ch:"meter"`
-	Subject   string    `ch:"subject"`
-
-	// Usage
-	Value       float64           `ch:"value"`
-	ValueString string            `ch:"value_str"`
-	GroupBy     map[string]string `ch:"group_by"`
-
-	// Metadata
-	EventID     string    `ch:"event_id"`
-	EventSource string    `ch:"event_source"`
-	EventType   string    `ch:"event_type"`
-	IngestedAt  time.Time `ch:"ingested_at"`
-	StoredAt    time.Time `ch:"stored_at"`
-}
 
 // Create Meter Event Table
 type createMeterEventTable struct {
@@ -75,7 +55,7 @@ func (d createMeterEventTable) toSQL() string {
 // Insert Meter Events Query
 type InsertMeterEventsQuery struct {
 	Database      string
-	MeterEvents   []CHMeterEvent
+	MeterEvents   []streaming.MeterEvent
 	QuerySettings map[string]string
 }
 
@@ -118,9 +98,9 @@ func (q InsertMeterEventsQuery) ToSQL() (string, []interface{}) {
 			meterEvent.Value,
 			meterEvent.ValueString,
 			meterEvent.GroupBy,
-			meterEvent.EventID,
-			meterEvent.EventSource,
-			meterEvent.EventType,
+			meterEvent.RawEvent.ID,
+			meterEvent.RawEvent.Source,
+			meterEvent.RawEvent.Type,
 			meterEvent.IngestedAt,
 			meterEvent.StoredAt,
 		)

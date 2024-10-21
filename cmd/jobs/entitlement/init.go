@@ -50,7 +50,7 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 		return nil, fmt.Errorf("failed to initialize clickhouse client: %w", err)
 	}
 
-	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
+	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
 		Logger:               logger,
 		ClickHouse:           clickHouseClient,
 		Database:             conf.Aggregation.ClickHouse.Database,

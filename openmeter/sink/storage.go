@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
-
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_map"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 type Storage interface {
@@ -16,20 +14,12 @@ type Storage interface {
 }
 
 type ClickHouseStorageConfig struct {
-	ClickHouse      clickhouse.Conn
-	Database        string
-	AsyncInsert     bool
-	AsyncInsertWait bool
-	QuerySettings   map[string]string
+	Streaming streaming.Connector
 }
 
 func (c ClickHouseStorageConfig) Validate() error {
-	if c.ClickHouse == nil {
-		return fmt.Errorf("clickhouse connection is required")
-	}
-
-	if c.Database == "" {
-		return fmt.Errorf("database is required")
+	if c.Streaming == nil {
+		return fmt.Errorf("streaming connection is required")
 	}
 
 	return nil
@@ -51,8 +41,8 @@ type ClickHouseStorage struct {
 
 // BatchInsert inserts multiple messages into ClickHouse.
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
-	var rawEvents []clickhouse_connector.CHEvent
-	var meterEvents []clickhouse_connector.CHMeterEvent
+	var rawEvents []streaming.RawEvent
+	var meterEvents []streaming.MeterEvent
 
 	for _, message := range messages {
 		var eventErr string
@@ -77,7 +67,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 			}
 		}
 
-		rawEvent := clickhouse_connector.CHEvent{
+		rawEvent := streaming.RawEvent{
 			Namespace:       message.Namespace,
 			ValidationError: eventErr,
 			ID:              message.Serialized.Id,
@@ -94,68 +84,20 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 
 		// Meter events per meter
 		for _, meterEvent := range message.MeterEvents {
-			meterEvent := clickhouse_connector.CHMeterEvent{
-				Namespace:   message.Namespace,
-				Time:        rawEvent.Time,
+			meterEvent := streaming.MeterEvent{
+				RawEvent:    rawEvent,
 				Meter:       meterEvent.Meter.GetID(),
-				Subject:     rawEvent.Subject,
 				Value:       meterEvent.Value,
 				ValueString: meterEvent.ValueString,
 				GroupBy:     meterEvent.GroupBy,
-				EventID:     rawEvent.ID,
-				EventSource: rawEvent.Source,
-				EventType:   rawEvent.Type,
-				StoredAt:    rawEvent.StoredAt,
-				IngestedAt:  rawEvent.IngestedAt,
 			}
 
 			meterEvents = append(meterEvents, meterEvent)
 		}
 	}
 
-	var err error
-
-	// Insert raw events
-	query := clickhouse_connector.InsertEventsQuery{
-		Database:      c.config.Database,
-		Events:        rawEvents,
-		QuerySettings: c.config.QuerySettings,
-	}
-	sql, args := query.ToSQL()
-
-	// By default, ClickHouse is writing data synchronously.
-	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
-	if c.config.AsyncInsert {
-		// With the `wait_for_async_insert` setting, you can configure
-		// if you want an insert statement to return with an acknowledgment
-		// either immediately after the data got inserted into the buffer.
-		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
-	} else {
-		err = c.config.ClickHouse.Exec(ctx, sql, args...)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to batch insert raw events: %w", err)
-	}
-
-	// Insert meter events
-	if len(meterEvents) > 0 {
-		query := clickhouse_connector.InsertMeterEventsQuery{
-			Database:      c.config.Database,
-			MeterEvents:   meterEvents,
-			QuerySettings: c.config.QuerySettings,
-		}
-		sql, args := query.ToSQL()
-
-		if c.config.AsyncInsert {
-			err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
-		} else {
-			err = c.config.ClickHouse.Exec(ctx, sql, args...)
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to batch insert meter events: %w", err)
-		}
+	if err := c.config.Streaming.BatchInsert(ctx, rawEvents, meterEvents); err != nil {
+		return fmt.Errorf("failed to store events: %w", err)
 	}
 
 	return nil
