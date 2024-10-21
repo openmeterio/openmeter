@@ -30,12 +30,17 @@ type CountEventRow struct {
 	IsError bool
 }
 
+type ListMeterSubjectsParams struct {
+	From *time.Time
+	To   *time.Time
+}
+
 type Connector interface {
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
-	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
-	DeleteMeter(ctx context.Context, namespace string, meterSlug string) error
-	QueryMeter(ctx context.Context, namespace string, meter models.Meter, params *QueryParams) ([]models.MeterQueryRow, error)
-	ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error)
+	CreateMeter(ctx context.Context, namespace string, meter models.Meter) error
+	DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error
+	QueryMeter(ctx context.Context, namespace string, meter models.Meter, params QueryParams) ([]models.MeterQueryRow, error)
+	ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params ListMeterSubjectsParams) ([]string, error)
 	// Add more methods as needed ...
 }

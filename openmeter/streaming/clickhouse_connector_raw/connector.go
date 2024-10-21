@@ -1,4 +1,4 @@
-package clickhouse_connector
+package clickhouse_connector_raw
 
 import (
 	"context"
@@ -108,7 +108,7 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 		return nil, fmt.Errorf("meter is required")
 	}
 
-	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter.Slug, params.From, params.To)
+	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter, params.From, params.To)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			return nil, err
@@ -122,11 +122,6 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
 	err := c.createEventsTable(ctx)
-	if err != nil {
-		return fmt.Errorf("create namespace in clickhouse: %w", err)
-	}
-
-	err = c.createMeterEventTable(ctx)
 	if err != nil {
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
@@ -164,19 +159,6 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
 	if err != nil {
 		return fmt.Errorf("create events table: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ClickhouseConnector) createMeterEventTable(ctx context.Context) error {
-	table := createMeterEventTable{
-		Database: c.config.Database,
-	}
-
-	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
-	if err != nil {
-		return fmt.Errorf("create meter event table: %w", err)
 	}
 
 	return nil
@@ -378,11 +360,11 @@ func (c *ClickhouseConnector) queryMeter(ctx context.Context, namespace string, 
 	return values, nil
 }
 
-func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
+func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, from *time.Time, to *time.Time) ([]string, error) {
 	query := listMeterSubjectsQuery{
 		Database:  c.config.Database,
 		Namespace: namespace,
-		MeterSlug: meterSlug,
+		Meter:     meter,
 		From:      from,
 		To:        to,
 	}
@@ -392,7 +374,7 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

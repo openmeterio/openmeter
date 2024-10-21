@@ -16,7 +16,7 @@ type EndCurrentUsagePeriodParams struct {
 
 type OwnerMeter struct {
 	Meter         models.Meter
-	DefaultParams *streaming.QueryParams
+	DefaultParams streaming.QueryParams
 	SubjectKey    string
 }
 
