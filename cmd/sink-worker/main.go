@@ -17,16 +17,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -143,54 +140,22 @@ func initSink(ctx context.Context, conf config.Configuration, logger *slog.Logge
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
+	// Temporary: copy over sink storage settings
+	// TODO: remove after config migration is over
+	if conf.Sink.Storage.AsyncInsert {
+		conf.Aggregation.AsyncInsert = conf.Sink.Storage.AsyncInsert
+	}
+	if conf.Sink.Storage.AsyncInsertWait {
+		conf.Aggregation.AsyncInsertWait = conf.Sink.Storage.AsyncInsertWait
+	}
+	if conf.Sink.Storage.QuerySettings != nil {
+		conf.Aggregation.InsertQuerySettings = conf.Sink.Storage.QuerySettings
+	}
+
 	// Initialize streaming connector
-	var (
-		streaming streaming.Connector
-	)
-
-	switch conf.Aggregation.Engine {
-	case config.AggregationEngineClickHouseRaw:
-		streaming, err = clickhouse_connector_raw.NewClickhouseConnector(ctx, clickhouse_connector_raw.ClickhouseConnectorConfig{
-			ClickHouse:          clickhouseClient,
-			Database:            conf.Aggregation.ClickHouse.Database,
-			Logger:              logger,
-			AsyncInsert:         conf.Sink.Storage.AsyncInsert,
-			AsyncInsertWait:     conf.Sink.Storage.AsyncInsertWait,
-			InsertQuerySettings: conf.Sink.Storage.QuerySettings,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init clickhouse raw engine: %w", err)
-		}
-
-	case config.AggregationEngineClickHouseMV:
-		streaming, err = clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
-			ClickHouse:           clickhouseClient,
-			Database:             conf.Aggregation.ClickHouse.Database,
-			Logger:               logger,
-			PopulateMeter:        conf.Aggregation.PopulateMeter,
-			CreateOrReplaceMeter: conf.Aggregation.CreateOrReplaceMeter,
-			QueryRawEvents:       conf.Aggregation.QueryRawEvents,
-			AsyncInsert:          conf.Sink.Storage.AsyncInsert,
-			AsyncInsertWait:      conf.Sink.Storage.AsyncInsertWait,
-			InsertQuerySettings:  conf.Sink.Storage.QuerySettings,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init clickhouse mv engine: %w", err)
-		}
-	case config.AggregationEngineClickHouseParse:
-		streaming, err = clickhouse_connector_parse.NewClickhouseConnector(ctx, clickhouse_connector_parse.ClickhouseConnectorConfig{
-			ClickHouse:          clickhouseClient,
-			Database:            conf.Aggregation.ClickHouse.Database,
-			Logger:              logger,
-			AsyncInsert:         conf.Sink.Storage.AsyncInsert,
-			AsyncInsertWait:     conf.Sink.Storage.AsyncInsertWait,
-			InsertQuerySettings: conf.Sink.Storage.QuerySettings,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init clickhouse parse engine: %w", err)
-		}
-	default:
-		return nil, fmt.Errorf("invalid aggregation engine: %s", conf.Aggregation.Engine)
+	streaming, err := common.NewClickHouseStreamingConnector(ctx, conf.Aggregation, clickhouseClient, meterRepository, logger)
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse streaming connector: %w", err)
 	}
 
 	// Initialize deduplicator if enabled
