@@ -70,7 +70,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 
 		groupByColumns = append(groupByColumns, "windowstart", "windowend")
 	} else {
-		selectColumns = append(selectColumns, "min(windowstart)", "max(windowend)")
+		selectColumns = append(selectColumns, "min(time) as windowstart", "max(time) as windowend")
 	}
 
 	// Select Value
