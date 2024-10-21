@@ -8,7 +8,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_map"
 )
 
 type Storage interface {

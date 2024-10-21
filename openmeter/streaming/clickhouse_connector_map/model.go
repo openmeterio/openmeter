@@ -1,4 +1,4 @@
-package clickhouse_connector
+package clickhouse_connector_map
 
 import "github.com/openmeterio/openmeter/pkg/models"
 
