@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -42,12 +42,9 @@ func NewClickHouseStreamingConnector(
 	logger *slog.Logger,
 ) (*clickhouse_connector.ClickhouseConnector, error) {
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
-		ClickHouse:           clickHouse,
-		Database:             conf.ClickHouse.Database,
-		Meters:               meterRepository,
-		CreateOrReplaceMeter: conf.CreateOrReplaceMeter,
-		PopulateMeter:        conf.PopulateMeter,
-		Logger:               logger,
+		ClickHouse: clickHouse,
+		Database:   conf.ClickHouse.Database,
+		Logger:     logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
