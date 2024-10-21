@@ -37,7 +37,7 @@ func NewMeterRepository(meters []*models.Meter) *meter.InMemoryRepository {
 	return meter.NewInMemoryRepository(slicesx.Map(meters, lo.FromPtr[models.Meter]))
 }
 
-func NewClickHouseStreamingConnector(
+func NewStreamingConnector(
 	ctx context.Context,
 	conf config.AggregationConfiguration,
 	clickHouse clickhouse.Conn,

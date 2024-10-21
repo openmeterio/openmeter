@@ -156,7 +156,7 @@ func initSink(ctx context.Context, conf config.Configuration, logger *slog.Logge
 	}
 
 	// Initialize streaming connector
-	streaming, err := common.NewClickHouseStreamingConnector(ctx, conf.Aggregation, clickhouseClient, meterRepository, logger)
+	streaming, err := common.NewStreamingConnector(ctx, conf.Aggregation, clickhouseClient, meterRepository, logger)
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming connector: %w", err)
 	}

@@ -74,7 +74,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v2 := conf.Meters
 	inMemoryRepository := common.NewMeterRepository(v2)
-	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
