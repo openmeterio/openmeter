@@ -122,13 +122,14 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Sink: SinkConfiguration{
-			GroupId:             "openmeter-sink-worker",
-			MinCommitCount:      500,
-			MaxCommitWait:       30 * time.Second,
-			MaxPollTimeout:      100 * time.Millisecond,
-			NamespaceRefetch:    15 * time.Second,
-			FlushSuccessTimeout: 5 * time.Second,
-			DrainTimeout:        10 * time.Second,
+			GroupId:                 "openmeter-sink-worker",
+			MinCommitCount:          500,
+			MaxCommitWait:           30 * time.Second,
+			MaxPollTimeout:          100 * time.Millisecond,
+			NamespaceRefetch:        15 * time.Second,
+			FlushSuccessTimeout:     5 * time.Second,
+			DrainTimeout:            10 * time.Second,
+			NamespaceRefetchTimeout: 9 * time.Second,
 			Dedupe: DedupeConfiguration{
 				Enabled: true,
 				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{

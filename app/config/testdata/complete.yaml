@@ -59,6 +59,7 @@ sink:
   minCommitCount: 500
   maxCommitWait: 30s
   namespaceRefetch: 15s
+  namespaceRefetchTimeout: 9s
   dedupe:
     enabled: true
     driver: redis

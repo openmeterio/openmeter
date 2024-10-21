@@ -203,21 +203,22 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	}
 
 	sinkConfig := sink.SinkConfig{
-		Logger:              logger,
-		Tracer:              tracer,
-		MetricMeter:         metricMeter,
-		MeterRepository:     meterRepository,
-		Storage:             storage,
-		Deduplicator:        deduplicator,
-		Consumer:            consumer,
-		MinCommitCount:      config.Sink.MinCommitCount,
-		MaxCommitWait:       config.Sink.MaxCommitWait,
-		MaxPollTimeout:      config.Sink.MaxPollTimeout,
-		FlushSuccessTimeout: config.Sink.FlushSuccessTimeout,
-		DrainTimeout:        config.Sink.DrainTimeout,
-		NamespaceRefetch:    config.Sink.NamespaceRefetch,
-		FlushEventHandler:   flushHandler,
-		TopicResolver:       topicResolver,
+		Logger:                  logger,
+		Tracer:                  tracer,
+		MetricMeter:             metricMeter,
+		MeterRepository:         meterRepository,
+		Storage:                 storage,
+		Deduplicator:            deduplicator,
+		Consumer:                consumer,
+		MinCommitCount:          config.Sink.MinCommitCount,
+		MaxCommitWait:           config.Sink.MaxCommitWait,
+		MaxPollTimeout:          config.Sink.MaxPollTimeout,
+		FlushSuccessTimeout:     config.Sink.FlushSuccessTimeout,
+		DrainTimeout:            config.Sink.DrainTimeout,
+		NamespaceRefetch:        config.Sink.NamespaceRefetch,
+		FlushEventHandler:       flushHandler,
+		TopicResolver:           topicResolver,
+		NamespaceRefetchTimeout: config.Sink.NamespaceRefetchTimeout,
 	}
 
 	return sink.NewSink(sinkConfig)

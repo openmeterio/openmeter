@@ -24,6 +24,10 @@ type SinkConfiguration struct {
 	Kafka KafkaConfig
 	// Storage configuration
 	Storage StorageConfiguration
+
+	// NamespaceRefetchTimeout is the timeout for updating namespaces and consumer subscription.
+	// It must be less than NamespaceRefetch interval.
+	NamespaceRefetchTimeout time.Duration
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -51,6 +55,10 @@ func (c SinkConfiguration) Validate() error {
 
 	if c.DrainTimeout == 0 {
 		errs = append(errs, errors.New("DrainTimeout must be greater than 0"))
+	}
+
+	if c.NamespaceRefetchTimeout != 0 && c.NamespaceRefetchTimeout > c.NamespaceRefetch {
+		errs = append(errs, errors.New("NamespaceRefetchTimeout must be less than or equal to NamespaceRefetch"))
 	}
 
 	if err := c.IngestNotifications.Validate(); err != nil {
@@ -136,6 +144,7 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.flushSuccessTimeout", "5s")
 	v.SetDefault("sink.drainTimeout", "10s")
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
+	v.SetDefault("sink.namespaceRefetchTimeout", "10s")
 
 	// Sink Storage
 	v.SetDefault("sink.storage.asyncInsert", false)

@@ -69,6 +69,10 @@ type SinkConfig struct {
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
 
+	// NamespaceRefetchTimeout is the timeout for updating namespaces and consumer subscription.
+	// It must be less than NamespaceRefetch interval.
+	NamespaceRefetchTimeout time.Duration
+
 	// FlushEventHandlers is an optional lifecycle hook, allowing to act on successful batch
 	// flushes. To prevent blocking the main sink logic this is always called in a go routine.
 	FlushEventHandler flushhandler.FlushEventHandler
@@ -122,6 +126,10 @@ func (s *SinkConfig) Validate() error {
 
 	if s.NamespaceRefetch == 0 {
 		return errors.New("NamespaceRefetch must be greater than 0")
+	}
+
+	if s.NamespaceRefetchTimeout != 0 && s.NamespaceRefetchTimeout > s.NamespaceRefetch {
+		return errors.New("NamespaceRefetchTimeout must be less than or equal to NamespaceRefetch")
 	}
 
 	if s.FlushSuccessTimeout == 0 {
@@ -415,62 +423,122 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 	return nil
 }
 
-func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
+func (s *Sink) updateNamespaceStore(ctx context.Context) error {
 	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get meters: %s", err)
+		return fmt.Errorf("failed to get meters: %s", err)
 	}
 
 	namespaceStore := NewNamespaceStore()
-	for _, meter := range meters {
-		namespaceStore.AddMeter(meter)
-	}
-
-	return namespaceStore, nil
-}
-
-func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
-	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
-	ns, err := s.getNamespaces(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get namespaces: %s", err)
-	}
-
-	// Identify if we have a new namespace
-	isNewNamespace := len(ns.namespaces) != len(s.namespaceStore.namespaces)
-	if !isNewNamespace {
-		for key := range ns.namespaces {
-			if s.namespaceStore.namespaces[key] == nil {
-				isNewNamespace = true
-				break
-			}
-		}
+	for _, m := range meters {
+		namespaceStore.AddMeter(m)
 	}
 
 	// We always replace store to ensure we have the latest meter changes
-	s.namespaceStore = ns
+	s.namespaceStore = namespaceStore
 
-	// We only subscribe to topics if we have a new namespace
-	if !isNewNamespace {
-		return nil
+	return nil
+}
+
+func (s *Sink) updateTopicSubscription(_ context.Context, metadataTimeout time.Duration) error {
+	logger := s.config.Logger.With("operation", "updateTopicSubscription")
+
+	logger.Debug("fetching metadata")
+	meta, err := s.config.Consumer.GetMetadata(nil, true, int(metadataTimeout.Milliseconds()))
+	if err != nil {
+		return fmt.Errorf("failed to fetch all topics from Kafka cluster: %w", err)
 	}
 
-	// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
-	topics := make([]string, 0, len(s.namespaceStore.namespaces))
-	for namespace := range s.namespaceStore.namespaces {
-		topic, err := s.topicResolver.Resolve(ctx, namespace)
-		if err != nil {
-			return fmt.Errorf("failed to resolve topic name for namespace '%s': %w", namespace, err)
+	topics := make([]string, 0, len(meta.Topics))
+	for _, topic := range meta.Topics {
+		if !namespaceTopicRegexp.MatchString(topic.Topic) {
+			logger.Debug("skipping topic as does not match regexp", "topic", topic.Topic, "regexp", namespaceTopicRegexp.String())
+
+			continue
 		}
 
-		topics = append(topics, topic)
+		logger.Debug("found matching topic", "topic", topic.Topic, "regexp", namespaceTopicRegexp.String())
+		topics = append(topics, topic.Topic)
 	}
 
-	logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
+	if len(topics) == 0 {
+		logger.Debug("no topics found to be subscribed to", "regexp", namespaceTopicRegexp.String())
+
+		return nil
+	}
 
 	err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to topics: %s", err)
+	}
+
+	logger.Debug("successfully subscribed to topics", "topics", topics)
+
+	return nil
+}
+
+func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
+	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
+
+	ctx, cancel := context.WithTimeout(ctx, s.config.NamespaceRefetchTimeout)
+	defer cancel()
+
+	wg := &sync.WaitGroup{}
+
+	errChan := make(chan error, 2)
+	closeErrChannelOnce := sync.OnceFunc(func() {
+		close(errChan)
+	})
+
+	defer closeErrChannelOnce()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		logger.Debug("updating namespace store: started")
+
+		err := s.updateNamespaceStore(ctx)
+		if err != nil {
+			err = fmt.Errorf("failed to update namespace store: %w", err)
+		}
+
+		errChan <- err
+
+		logger.Debug("updating namespace store: done")
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		logger.Debug("updating topic subscription: started")
+
+		// Set getting timeout for getting metadata from Kafka to make sure that we can
+		metadataTimeout := s.config.NamespaceRefetchTimeout / 2
+
+		err := s.updateTopicSubscription(ctx, metadataTimeout)
+		if err != nil {
+			err = fmt.Errorf("failed to update topic subscription: %w", err)
+		}
+
+		errChan <- err
+
+		logger.Debug("updating topic subscription: done")
+	}()
+
+	wg.Wait()
+	closeErrChannelOnce()
+
+	var errs []error
+	for err := range errChan {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -714,7 +782,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// Remove messages for revoked partitions from buffer
 		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
-		logger.Error("unxpected event type", "event", e)
+		logger.Error("unexpected event type", "event", e)
 	}
 
 	return nil
