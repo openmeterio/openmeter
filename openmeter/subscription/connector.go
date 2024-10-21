@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 )
@@ -46,6 +47,8 @@ type command struct {
 	billingAdapter     BillingAdapter
 	planAdapter        PlanAdapter
 	entitlementAdapter EntitlementAdapter
+	// framework
+	transactionManager transaction.Creator
 }
 
 func NewConnector() Command {
@@ -54,6 +57,7 @@ func NewConnector() Command {
 
 func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error) {
 	def := Subscription{}
+	currentTime := clock.Now()
 
 	// Fetch the customer
 	cust, err := c.customerService.GetCustomer(ctx, customerentity.GetCustomerInput{
@@ -110,21 +114,33 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 		return def, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
-	// Create subscription entity
-	sub, err := c.repo.CreateSubscription(ctx, spec.GetCreateInput())
-	if err != nil {
-		return def, err
-	}
-
-	// Iterate through each phase & create phases and items
-	for _, phase := range spec.Phases {
-		err := c.createPhase(ctx, sub, *cust, spec, phase.PhaseKey)
+	return transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (Subscription, error) {
+		// Create subscription entity
+		sub, err := c.repo.CreateSubscription(ctx, spec.GetCreateInput())
 		if err != nil {
-			return def, fmt.Errorf("failed to create phase %s: %w", phase.PhaseKey, err)
+			return def, err
 		}
-	}
-	// Return sub reference
-	return sub, nil
+
+		// Iterate through each phase & create phases and items
+		for _, phase := range spec.Phases {
+			err := c.createPhase(ctx, sub, *cust, spec, phase.PhaseKey)
+			if err != nil {
+				return def, fmt.Errorf("failed to create phase %s: %w", phase.PhaseKey, err)
+			}
+		}
+
+		// Once everything is succesful, lets save the patches
+		patchInputs, err := TransformPatchesForRepository(req.ItemCustomization, currentTime)
+		if err != nil {
+			return def, fmt.Errorf("failed to transform patches for repository: %w", err)
+		}
+		_, err = c.repo.CreateSubscriptionPatches(ctx, sub.ID, patchInputs)
+		if err != nil {
+			return def, fmt.Errorf("failed to create subscription patches: %w", err)
+		}
+		// Return sub reference
+		return sub, nil
+	})
 }
 
 func (c *command) createPhase(ctx context.Context, sub Subscription, cust customerentity.Customer, spec *SubscriptionSpec, phaseKey string) error {
@@ -156,56 +172,58 @@ func (c *command) createPhase(ctx context.Context, sub Subscription, cust custom
 		ActiveTo:   phaseEndTime,
 	}
 
-	for _, item := range phase.Items {
-		// Create Entitlement
-		if item.CreateEntitlementInput != nil {
-			if len(cust.UsageAttribution.SubjectKeys) == 0 {
-				return fmt.Errorf("customer has no subject keys")
-			}
-			customerSubject := cust.UsageAttribution.SubjectKeys[0]
+	return transaction.RunWithNoValue(ctx, c.transactionManager, func(ctx context.Context) error {
+		for _, item := range phase.Items {
+			// Create Entitlement
+			if item.CreateEntitlementInput != nil {
+				if len(cust.UsageAttribution.SubjectKeys) == 0 {
+					return fmt.Errorf("customer has no subject keys")
+				}
+				customerSubject := cust.UsageAttribution.SubjectKeys[0]
 
-			if item.FeatureKey == nil {
-				return fmt.Errorf("item %s has no feature key, cannot create entitlement", item.ItemKey)
-			}
+				if item.FeatureKey == nil {
+					return fmt.Errorf("item %s has no feature key, cannot create entitlement", item.ItemKey)
+				}
 
-			input, err := item.CreateEntitlementInput.ToCreateEntitlementInput(
-				sub.Namespace,
-				*item.FeatureKey,
-				customerSubject,
-				cadence,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create entitlement input for item %s: %w", item.ItemKey, err)
-			}
-			if input == nil {
-				return fmt.Errorf("entitlement input is nil")
-			}
+				input, err := item.CreateEntitlementInput.ToCreateEntitlementInput(
+					sub.Namespace,
+					*item.FeatureKey,
+					customerSubject,
+					cadence,
+				)
+				if err != nil {
+					return fmt.Errorf("failed to create entitlement input for item %s: %w", item.ItemKey, err)
+				}
+				if input == nil {
+					return fmt.Errorf("entitlement input is nil")
+				}
 
-			_, err = c.entitlementAdapter.ScheduleEntitlement(ctx, SubscriptionItemRef{
-				SubscriptionId: sub.ID,
-				PhaseKey:       phaseKey,
-				ItemKey:        item.ItemKey,
-			}, *input)
+				_, err = c.entitlementAdapter.ScheduleEntitlement(ctx, SubscriptionItemRef{
+					SubscriptionId: sub.ID,
+					PhaseKey:       phaseKey,
+					ItemKey:        item.ItemKey,
+				}, *input)
+			}
+			// Create Price
+			if item.CreatePriceInput != nil {
+				// TODO: link price to Item & Phase
+				_, err := c.priceConnector.Create(ctx, price.CreateInput{
+					SubscriptionId: models.NamespacedID{
+						Namespace: sub.Namespace,
+						ID:        sub.ID,
+					},
+					Spec:          *item.CreatePriceInput,
+					CadencedModel: cadence,
+				})
+				if err != nil {
+					return fmt.Errorf("failed to create price for item %s: %w", item.ItemKey, err)
+				}
+			}
 		}
-		// Create Price
-		if item.CreatePriceInput != nil {
-			// TODO: link price to Item & Phase
-			_, err := c.priceConnector.Create(ctx, price.CreateInput{
-				SubscriptionId: models.NamespacedID{
-					Namespace: sub.Namespace,
-					ID:        sub.ID,
-				},
-				Spec:          *item.CreatePriceInput,
-				CadencedModel: cadence,
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create price for item %s: %w", item.ItemKey, err)
-			}
-		}
-	}
 
-	// TODO: Write discounts!
-	return nil
+		// TODO: Write discounts!
+		return nil
+	})
 }
 
 func (c *command) Edit(ctx context.Context, subscriptionID string, patches []Patch) (Subscription, error) {

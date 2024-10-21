@@ -36,6 +36,40 @@ type Subscription struct {
 	ID string `json:"id,omitempty"`
 }
 
+type CreateSubscriptionPatchInput struct {
+	AppliedAt  time.Time `json:"appliedAt,omitempty"`
+	BatchIndex int       `json:"batchIndex,omitempty"`
+
+	Operation string          `json:"operation,omitempty"`
+	Path      string          `json:"path,omitempty"`
+	Value     json.RawMessage `json:"value,omitempty"`
+}
+
+func TransformPatchesForRepository(patches []Patch, appliedAt time.Time) ([]CreateSubscriptionPatchInput, error) {
+	var res []CreateSubscriptionPatchInput
+
+	for i, p := range patches {
+		var pi CreateSubscriptionPatchInput
+
+		bytes, err := json.Marshal(p)
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize patch: %w", err)
+		}
+
+		err = json.Unmarshal(bytes, &pi)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deserialize patch: %w", err)
+		}
+
+		pi.AppliedAt = appliedAt
+		pi.BatchIndex = i
+
+		res = append(res, pi)
+	}
+
+	return res, nil
+}
+
 type SubscriptionPatch struct {
 	models.NamespacedModel
 	models.ManagedModel

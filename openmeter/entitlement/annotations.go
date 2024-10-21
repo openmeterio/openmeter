@@ -7,7 +7,7 @@ import (
 )
 
 var SystemManagedEntitlementAnnotation annotations.Annotation = annotations.Annotation{
-	Key:   "entitlement.openmeter.io/entitlements/system-managed",
+	Key:   "openmeter.io/entitlements/system-managed",
 	Value: "true",
 }
 

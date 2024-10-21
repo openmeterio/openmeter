@@ -8,7 +8,7 @@ import (
 )
 
 type AnyPatch struct {
-	Op    string `json:"op"`
+	Op    string `json:"operation"`
 	Path  string `json:"path"`
 	Value any    `json:"value,omitempty"`
 }
@@ -55,7 +55,7 @@ func (p PatchExtendPhase) MarshalJSON() ([]byte, error) {
 }
 
 type rPatch struct {
-	Op    string          `json:"op"`
+	Op    string          `json:"operation"`
 	Path  string          `json:"path"`
 	Value json.RawMessage `json:"value,omitempty"`
 }

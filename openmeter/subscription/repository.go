@@ -15,4 +15,7 @@ type Repository interface {
 	// Patches
 	// GetSubscriptionPatches returns the patches of a subscription
 	GetSubscriptionPatches(ctx context.Context, subscriptionID string) ([]SubscriptionPatch, error)
+
+	// CreateSubscriptionPatches creates patches for a subscription
+	CreateSubscriptionPatches(ctx context.Context, subscriptionID string, patches []CreateSubscriptionPatchInput) ([]SubscriptionPatch, error)
 }
