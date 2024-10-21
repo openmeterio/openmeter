@@ -57,7 +57,7 @@ func TestQueryMeter(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ?",
 			wantArgs: []interface{}{"my_namespace", "meter1"},
 		},
 		{ // Aggregate with count aggregation
@@ -74,7 +74,7 @@ func TestQueryMeter(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, count(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, count(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ?",
 			wantArgs: []interface{}{"my_namespace", "meter1"},
 		},
 		{ // Aggregate data from start
@@ -92,7 +92,7 @@ func TestQueryMeter(t *testing.T) {
 				},
 				From: &from,
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND om_events.time >= ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND om_events.time >= ?",
 			wantArgs: []interface{}{"my_namespace", "meter1", from.Unix()},
 		},
 		{ // Aggregate data between period
@@ -111,7 +111,7 @@ func TestQueryMeter(t *testing.T) {
 				From: &from,
 				To:   &to,
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND om_events.time >= ? AND om_events.time <= ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND om_events.time >= ? AND om_events.time <= ?",
 			wantArgs: []interface{}{"my_namespace", "meter1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data between period, groupped by window size
@@ -171,7 +171,7 @@ func TestQueryMeter(t *testing.T) {
 				Subject: []string{subject},
 				GroupBy: []string{"subject"},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (om_events.subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (om_events.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"my_namespace", "meter1", "subject1"},
 		},
 		{ // Aggregate data for a single subject and group by additional fields
@@ -190,7 +190,7 @@ func TestQueryMeter(t *testing.T) {
 				Subject: []string{subject},
 				GroupBy: []string{"subject", "group1", "group2"},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value, om_events.subject, JSON_VALUE(om_events.data, '$.group1') as group1, JSON_VALUE(om_events.data, '$.group2') as group2 FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (om_events.subject = ?) GROUP BY subject, group1, group2",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value, om_events.subject, JSON_VALUE(om_events.data, '$.group1') as group1, JSON_VALUE(om_events.data, '$.group2') as group2 FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (om_events.subject = ?) GROUP BY subject, group1, group2",
 			wantArgs: []interface{}{"my_namespace", "meter1", "subject1"},
 		},
 		{ // Aggregate data for a multiple subjects
@@ -209,7 +209,7 @@ func TestQueryMeter(t *testing.T) {
 				Subject: []string{subject, "subject2"},
 				GroupBy: []string{"subject"},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"my_namespace", "meter1", "subject1", "subject2"},
 		},
 		{ // Aggregate data with filtering for a single group and single value
@@ -227,7 +227,7 @@ func TestQueryMeter(t *testing.T) {
 				},
 				FilterGroupBy: map[string][]string{"g1": {"g1v1"}},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1')",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1')",
 			wantArgs: []interface{}{"my_namespace", "meter1"},
 		},
 		{ // Aggregate data with filtering for a single group and multiple values
@@ -245,7 +245,7 @@ func TestQueryMeter(t *testing.T) {
 				},
 				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1' OR JSON_VALUE(om_events.data, '$.group1') = 'g1v2')",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1' OR JSON_VALUE(om_events.data, '$.group1') = 'g1v2')",
 			wantArgs: []interface{}{"my_namespace", "meter1"},
 		},
 		{ // Aggregate data with filtering for multiple groups and multiple values
@@ -263,7 +263,7 @@ func TestQueryMeter(t *testing.T) {
 				},
 				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}, "g2": {"g2v1", "g2v2"}},
 			},
-			wantSQL:  "SELECT min(time) as windowstart, max(time) as windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1' OR JSON_VALUE(om_events.data, '$.group1') = 'g1v2') AND (JSON_VALUE(om_events.data, '$.group2') = 'g2v1' OR JSON_VALUE(om_events.data, '$.group2') = 'g2v2')",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(cast(JSON_VALUE(om_events.data, '$.value'), 'Float64')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.meter = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1' OR JSON_VALUE(om_events.data, '$.group1') = 'g1v2') AND (JSON_VALUE(om_events.data, '$.group2') = 'g2v1' OR JSON_VALUE(om_events.data, '$.group2') = 'g2v2')",
 			wantArgs: []interface{}{"my_namespace", "meter1"},
 		},
 	}
