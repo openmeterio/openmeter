@@ -34,6 +34,7 @@ type ClickhouseConnectorConfig struct {
 	AsyncInsert          bool
 	AsyncInsertWait      bool
 	InsertQuerySettings  map[string]string
+	QueryRawEvents       bool
 }
 
 func (c ClickhouseConnectorConfig) Validate() error {
@@ -149,6 +150,11 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("meter is required")
 	}
 
+	// Query raw events if the flag is set
+	if c.config.QueryRawEvents {
+		return c.rawEventConnector.QueryMeter(ctx, namespace, meter, params)
+	}
+
 	values, err := c.queryMeterView(ctx, namespace, meter, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
@@ -181,6 +187,11 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 	}
 	if meter.Slug == "" {
 		return nil, fmt.Errorf("meter is required")
+	}
+
+	// Query raw events if the flag is set
+	if c.config.QueryRawEvents {
+		return c.rawEventConnector.ListMeterSubjects(ctx, namespace, meter, params)
 	}
 
 	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter, params)
