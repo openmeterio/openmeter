@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/openmeter/meter"
+	ommeter "github.com/openmeterio/openmeter/openmeter/meter"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -60,9 +59,47 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 			//
 			// On the other hand we still want to collect the list of affected meters
 			// for the FlushEventHandler.
-			if m.Status.Error == nil {
-				validateEventWithMeter(meter, m)
+			if m.Status.Error != nil {
+				return
 			}
+
+			// Parse kafka event
+			event, err := kafkaPayloadToCloudEvents(*m.Serialized)
+			if err != nil {
+				m.Status = sinkmodels.ProcessingStatus{
+					State: sinkmodels.INVALID,
+					Error: errors.New("cannot parse event"),
+				}
+			}
+
+			// Parse event with meter
+			value, valueString, groupBy, err := ommeter.ParseEvent(meter, event)
+			if err != nil {
+				m.Status = sinkmodels.ProcessingStatus{
+					State: sinkmodels.INVALID,
+					Error: err,
+				}
+
+				return
+			}
+
+			// Create meter event
+			meterEvent := sinkmodels.MeterEvent{
+				Meter:   &meter,
+				GroupBy: groupBy,
+			}
+
+			// Meterring numeric value
+			if value != nil {
+				meterEvent.Value = *value
+			}
+
+			// Meterring string value
+			if valueString != nil {
+				meterEvent.ValueString = *valueString
+			}
+
+			m.MeterEvents = append(m.MeterEvents, meterEvent)
 		}
 	}
 
@@ -82,7 +119,7 @@ func kafkaPayloadToCloudEvents(payload serializer.CloudEventsKafkaPayload) (even
 	ev.SetType(payload.Type)
 	ev.SetSource(payload.Source)
 	ev.SetSubject(payload.Subject)
-	ev.SetTime(time.Unix(payload.Time, 0))
+	ev.SetTime(payload.Time)
 
 	err := ev.SetData(event.ApplicationJSON, []byte(payload.Data))
 	if err != nil {
@@ -90,27 +127,4 @@ func kafkaPayloadToCloudEvents(payload serializer.CloudEventsKafkaPayload) (even
 	}
 
 	return ev, nil
-}
-
-// validateEventWithMeter validates a single event against a single meter
-func validateEventWithMeter(m models.Meter, sm *sinkmodels.SinkMessage) {
-	ev, err := kafkaPayloadToCloudEvents(*sm.Serialized)
-	if err != nil {
-		sm.Status = sinkmodels.ProcessingStatus{
-			State: sinkmodels.INVALID,
-			Error: errors.New("cannot parse event"),
-		}
-
-		return
-	}
-
-	err = meter.ValidateEvent(m, ev)
-	if err != nil {
-		sm.Status = sinkmodels.ProcessingStatus{
-			State: sinkmodels.INVALID,
-			Error: err,
-		}
-
-		return
-	}
 }

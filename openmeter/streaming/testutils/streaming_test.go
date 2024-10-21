@@ -16,11 +16,15 @@ import (
 func TestMockStreamingConnector(t *testing.T) {
 	defaultMeterSlug := "default-meter"
 
+	defaultMeter := models.Meter{
+		Slug: defaultMeterSlug,
+	}
+
 	type tc struct {
 		Name          string
 		Events        []SimpleEvent
 		Rows          []models.MeterQueryRow
-		Query         *streaming.QueryParams
+		Query         streaming.QueryParams
 		Expected      []models.MeterQueryRow
 		ExpectedError error
 	}
@@ -31,7 +35,7 @@ func TestMockStreamingConnector(t *testing.T) {
 	tt := []tc{
 		{
 			Name: "Should return error if meter not found",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
@@ -39,7 +43,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should error if meter exists but doesnt match",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
@@ -48,7 +52,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should return empty rows if no rows and no events",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
@@ -64,7 +68,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should return exact row",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
@@ -83,7 +87,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should return event sum",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
@@ -100,7 +104,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should aggregate events as if they were windowed",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From: convert.ToPointer(now.Truncate(time.Minute).Add(time.Second * 30).Add(-time.Minute * 2)),
 				To:   convert.ToPointer(now.Truncate(time.Minute).Add(time.Second * 30)),
 			},
@@ -133,7 +137,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should return events windowed",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
 				To:             convert.ToPointer(now),
 				WindowSize:     convert.ToPointer(models.WindowSizeMinute),
@@ -168,7 +172,7 @@ func TestMockStreamingConnector(t *testing.T) {
 		},
 		{
 			Name: "Should return row for queried period if window is larger than period",
-			Query: &streaming.QueryParams{
+			Query: streaming.QueryParams{
 				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
 				To:             convert.ToPointer(now),
 				WindowSize:     convert.ToPointer(models.WindowSizeHour),
@@ -203,7 +207,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				streamingConnector.AddRow(defaultMeterSlug, row)
 			}
 
-			result, err := streamingConnector.QueryMeter(context.Background(), "namespace", defaultMeterSlug, tc.Query)
+			result, err := streamingConnector.QueryMeter(context.Background(), "namespace", defaultMeter, tc.Query)
 			if tc.ExpectedError != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.ExpectedError, err)

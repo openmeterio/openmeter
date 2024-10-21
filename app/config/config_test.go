@@ -120,6 +120,9 @@ func TestComplete(t *testing.T) {
 				ConnMaxLifetime: 10 * time.Minute,
 				BlockBufferSize: 10,
 			},
+			Engine:          AggregationEngineClickHouseMV,
+			AsyncInsert:     false,
+			AsyncInsertWait: false,
 		},
 		Sink: SinkConfiguration{
 			GroupId:             "openmeter-sink-worker",

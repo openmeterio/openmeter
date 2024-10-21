@@ -1,4 +1,4 @@
-package clickhouse_connector
+package clickhouse_connector_parse
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	raw_event_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,16 +25,12 @@ type ClickhouseConnector struct {
 }
 
 type ClickhouseConnectorConfig struct {
-	Logger               *slog.Logger
-	ClickHouse           clickhouse.Conn
-	Database             string
-	Meters               meter.Repository
-	CreateOrReplaceMeter bool
-	PopulateMeter        bool
-	AsyncInsert          bool
-	AsyncInsertWait      bool
-	InsertQuerySettings  map[string]string
-	QueryRawEvents       bool
+	Logger              *slog.Logger
+	ClickHouse          clickhouse.Conn
+	Database            string
+	AsyncInsert         bool
+	AsyncInsertWait     bool
+	InsertQuerySettings map[string]string
 }
 
 func (c ClickhouseConnectorConfig) Validate() error {
@@ -48,10 +44,6 @@ func (c ClickhouseConnectorConfig) Validate() error {
 
 	if c.Database == "" {
 		return fmt.Errorf("database is required")
-	}
-
-	if c.Meters == nil {
-		return fmt.Errorf("meters repository is required")
 	}
 
 	return nil
@@ -79,6 +71,11 @@ func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfi
 		rawEventConnector: rawEventConnector,
 	}
 
+	err = connector.createMeterEventTable(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create meter events table in clickhouse: %w", err)
+	}
+
 	return connector, nil
 }
 
@@ -87,15 +84,43 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string) error {
-	err := c.deleteNamespace(ctx, namespace)
-	if err != nil {
-		return fmt.Errorf("delete namespace in clickhouse: %w", err)
-	}
+	// We don't delete the event tables as it it reused between namespaces
 	return nil
 }
 
 func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
-	return c.rawEventConnector.BatchInsert(ctx, rawEvents, meterEvents)
+	// Insert raw events
+	err := c.rawEventConnector.BatchInsert(ctx, rawEvents, meterEvents)
+	if err != nil {
+		return fmt.Errorf("failed to batch insert raw events: %w", err)
+	}
+
+	// NOTE: The two inserts are not atomic.
+	// If the second insert fails, the first insert will not be rolled back.
+
+	// Insert meter events
+	if len(meterEvents) == 0 {
+		return nil
+	}
+
+	query := InsertMeterEventsQuery{
+		Database:      c.config.Database,
+		MeterEvents:   meterEvents,
+		QuerySettings: c.config.InsertQuerySettings,
+	}
+	sql, args := query.ToSQL()
+
+	if c.config.AsyncInsert {
+		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
+	} else {
+		err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to batch insert meter events: %w", err)
+	}
+
+	return nil
 }
 
 func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
@@ -107,38 +132,12 @@ func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, 
 }
 
 func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
-	if namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-	if meter.Slug == "" {
-		return fmt.Errorf("meter is required")
-	}
-
-	err := c.createMeterView(ctx, namespace, meter)
-	if err != nil {
-		return fmt.Errorf("init: %w", err)
-	}
-
+	// Do nothing
 	return nil
 }
 
 func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
-	if namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-	if meter.Slug == "" {
-		return fmt.Errorf("meter is required")
-	}
-
-	err := c.deleteMeterView(ctx, namespace, meter)
-	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
-			return err
-		}
-
-		return fmt.Errorf("delete meter view: %w", err)
-	}
-
+	// Do nothing
 	return nil
 }
 
@@ -146,16 +145,8 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
-		return nil, fmt.Errorf("meter is required")
-	}
 
-	// Query raw events if the flag is set
-	if c.config.QueryRawEvents {
-		return c.rawEventConnector.QueryMeter(ctx, namespace, meter, params)
-	}
-
-	values, err := c.queryMeterView(ctx, namespace, meter, params)
+	values, err := c.queryMeter(ctx, namespace, meter, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			return nil, err
@@ -189,12 +180,7 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 		return nil, fmt.Errorf("meter is required")
 	}
 
-	// Query raw events if the flag is set
-	if c.config.QueryRawEvents {
-		return c.rawEventConnector.ListMeterSubjects(ctx, namespace, meter, params)
-	}
-
-	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter, params)
+	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter.Slug, params.From, params.To)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			return nil, err
@@ -206,89 +192,24 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 	return subjects, nil
 }
 
-// DeleteNamespace deletes the namespace related resources from Clickhouse
-// We don't delete the events table as it it reused between namespaces
-// We only delete the materialized views for the meters
-func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace string) error {
-	// Retrieve meters belonging to the namespace
-	meters, err := c.config.Meters.ListMeters(ctx, namespace)
-	if err != nil {
-		return fmt.Errorf("failed to list meters: %w", err)
+func (c *ClickhouseConnector) createMeterEventTable(ctx context.Context) error {
+	table := createMeterEventTable{
+		Database: c.config.Database,
 	}
 
-	for _, meter := range meters {
-		err := c.deleteMeterView(ctx, namespace, meter)
-		if err != nil {
-			// If the meter view does not exist, we ignore the error
-			if _, ok := err.(*models.MeterNotFoundError); ok {
-				return nil
-			}
-			return fmt.Errorf("delete meter view: %w", err)
-		}
+	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
+	if err != nil {
+		return fmt.Errorf("create meter event table: %w", err)
 	}
 
 	return nil
 }
 
-func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter models.Meter) error {
-	// CreateOrReplace is used to force the recreation of the materialized view
-	// This is not safe to use in production as it will drop the existing views
-	if c.config.CreateOrReplaceMeter {
-		err := c.deleteMeterView(ctx, namespace, meter)
-		if err != nil {
-			return fmt.Errorf("drop meter view: %w", err)
-		}
-	}
-
-	view := createMeterView{
-		Populate:      c.config.PopulateMeter,
-		Database:      c.config.Database,
-		Namespace:     namespace,
-		MeterSlug:     meter.Slug,
-		Aggregation:   meter.Aggregation,
-		EventType:     meter.EventType,
-		ValueProperty: meter.ValueProperty,
-		GroupBy:       meter.GroupBy,
-	}
-	sql, args, err := view.toSQL()
-	if err != nil {
-		return fmt.Errorf("create meter view: %w", err)
-	}
-	err = c.config.ClickHouse.Exec(ctx, sql, args...)
-	if err != nil {
-		return fmt.Errorf("create meter view: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meter models.Meter) error {
-	query := deleteMeterView{
-		Database:  c.config.Database,
-		Namespace: namespace,
-		MeterSlug: meter.Slug,
-	}
-
-	sql := query.toSQL()
-
-	err := c.config.ClickHouse.Exec(ctx, sql)
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return &models.MeterNotFoundError{MeterSlug: meter.Slug}
-		}
-
-		return fmt.Errorf("delete meter view: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
-	queryMeter := queryMeterView{
+func (c *ClickhouseConnector) queryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+	queryMeter := queryMeter{
 		Database:       c.config.Database,
 		Namespace:      namespace,
-		MeterSlug:      meter.Slug,
-		Aggregation:    meter.Aggregation,
+		Meter:          meter,
 		From:           params.From,
 		To:             params.To,
 		Subject:        params.FilterSubject,
@@ -318,11 +239,12 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	for rows.Next() {
-		value := models.MeterQueryRow{
+		row := models.MeterQueryRow{
 			GroupBy: map[string]*string{},
 		}
 
-		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Value}
+		var value decimal.Decimal
+		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
 		argCount := len(args)
 
 		for range queryMeter.GroupBy {
@@ -334,28 +256,31 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
+		// TODO: should we use decima all the way?
+		row.Value, _ = value.Float64()
+
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
 				if key == "subject" {
-					value.Subject = s
+					row.Subject = s
 					continue
 				}
 
 				// We treat empty string as nil
 				if s != nil && *s == "" {
-					value.GroupBy[key] = nil
+					row.GroupBy[key] = nil
 				} else {
-					value.GroupBy[key] = s
+					row.GroupBy[key] = s
 				}
 			}
 		}
 
 		// an empty row is returned when there are no values for the meter
-		if value.WindowStart.IsZero() && value.WindowEnd.IsZero() && value.Value == 0 {
+		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
 			continue
 		}
 
-		values = append(values, value)
+		values = append(values, row)
 	}
 	rows.Close()
 	err = rows.Err()
@@ -366,13 +291,13 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	return values, nil
 }
 
-func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
-	query := listMeterViewSubjects{
+func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
+	query := listMeterSubjectsQuery{
 		Database:  c.config.Database,
 		Namespace: namespace,
-		MeterSlug: meter.Slug,
-		From:      params.From,
-		To:        params.To,
+		MeterSlug: meterSlug,
+		From:      from,
+		To:        to,
 	}
 
 	sql, args := query.toSQL()
@@ -380,7 +305,7 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

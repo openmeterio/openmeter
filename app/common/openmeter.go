@@ -21,7 +21,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -34,25 +37,66 @@ func NewMeterRepository(meters []*models.Meter) *meter.InMemoryRepository {
 	return meter.NewInMemoryRepository(slicesx.Map(meters, lo.FromPtr[models.Meter]))
 }
 
-func NewClickHouseStreamingConnector(
+func NewStreamingConnector(
+	ctx context.Context,
 	conf config.AggregationConfiguration,
 	clickHouse clickhouse.Conn,
 	meterRepository meter.Repository,
 	logger *slog.Logger,
-) (*clickhouse_connector.ClickhouseConnector, error) {
-	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
-		ClickHouse:           clickHouse,
-		Database:             conf.ClickHouse.Database,
-		Meters:               meterRepository,
-		CreateOrReplaceMeter: conf.CreateOrReplaceMeter,
-		PopulateMeter:        conf.PopulateMeter,
-		Logger:               logger,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
+) (streaming.Connector, error) {
+	var (
+		connector streaming.Connector
+		err       error
+	)
+
+	switch conf.Engine {
+	case config.AggregationEngineClickHouseRaw:
+		connector, err = clickhouse_connector_raw.NewClickhouseConnector(ctx, clickhouse_connector_raw.ClickhouseConnectorConfig{
+			ClickHouse:          clickHouse,
+			Database:            conf.ClickHouse.Database,
+			Logger:              logger,
+			AsyncInsert:         conf.AsyncInsert,
+			AsyncInsertWait:     conf.AsyncInsertWait,
+			InsertQuerySettings: conf.InsertQuerySettings,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init clickhouse raw engine: %w", err)
+		}
+
+	case config.AggregationEngineClickHouseMV:
+		connector, err = clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
+			ClickHouse:          clickHouse,
+			Database:            conf.ClickHouse.Database,
+			Logger:              logger,
+			AsyncInsert:         conf.AsyncInsert,
+			AsyncInsertWait:     conf.AsyncInsertWait,
+			InsertQuerySettings: conf.InsertQuerySettings,
+
+			Meters:               meterRepository,
+			PopulateMeter:        conf.PopulateMeter,
+			CreateOrReplaceMeter: conf.CreateOrReplaceMeter,
+			QueryRawEvents:       conf.QueryRawEvents,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init clickhouse mv engine: %w", err)
+		}
+	case config.AggregationEngineClickHouseParse:
+		connector, err = clickhouse_connector_parse.NewClickhouseConnector(ctx, clickhouse_connector_parse.ClickhouseConnectorConfig{
+			ClickHouse:          clickHouse,
+			Database:            conf.ClickHouse.Database,
+			Logger:              logger,
+			AsyncInsert:         conf.AsyncInsert,
+			AsyncInsertWait:     conf.AsyncInsertWait,
+			InsertQuerySettings: conf.InsertQuerySettings,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init clickhouse parse engine: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("invalid aggregation engine: %s", conf.Engine)
 	}
 
-	return streamingConnector, nil
+	return connector, nil
 }
 
 func NewNamespacedTopicResolver(config config.Configuration) (*topicresolver.NamespacedTopicResolver, error) {
@@ -127,7 +171,7 @@ func NewKafkaNamespaceHandler(
 
 func NewNamespaceHandlers(
 	kafkaHandler *kafkaingest.NamespaceHandler,
-	clickHouseHandler *clickhouse_connector.ClickhouseConnector,
+	clickHouseHandler streaming.Connector,
 ) []namespace.Handler {
 	return []namespace.Handler{
 		kafkaHandler,

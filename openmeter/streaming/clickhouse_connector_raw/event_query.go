@@ -1,0 +1,168 @@
+package clickhouse_connector_raw
+
+import (
+	_ "embed"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/huandu/go-sqlbuilder"
+
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+)
+
+const EventsTableName = "om_events"
+
+// Create Events Table
+type createEventsTable struct {
+	Database string
+}
+
+func (d createEventsTable) toSQL() string {
+	tableName := GetEventsTableName(d.Database)
+
+	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	sb.CreateTable(tableName)
+	sb.IfNotExists()
+	sb.Define("namespace", "String")
+	sb.Define("validation_error", "String")
+	sb.Define("id", "String")
+	sb.Define("type", "LowCardinality(String)")
+	sb.Define("subject", "String")
+	sb.Define("source", "String")
+	sb.Define("time", "DateTime")
+	sb.Define("data", "String")
+	sb.Define("ingested_at", "DateTime")
+	sb.Define("stored_at", "DateTime")
+	sb.SQL("ENGINE = MergeTree")
+	sb.SQL("PARTITION BY toYYYYMM(time)")
+	sb.SQL("ORDER BY (namespace, time, type, subject)")
+
+	sql, _ := sb.Build()
+	return sql
+}
+
+// Query Events Table
+type queryEventsTable struct {
+	Database       string
+	Namespace      string
+	From           *time.Time
+	To             *time.Time
+	IngestedAtFrom *time.Time
+	IngestedAtTo   *time.Time
+	ID             *string
+	Subject        *string
+	HasError       *bool
+	Limit          int
+}
+
+func (d queryEventsTable) toSQL() (string, []interface{}) {
+	tableName := GetEventsTableName(d.Database)
+	where := []string{}
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
+	query.From(tableName)
+
+	where = append(where, query.Equal("namespace", d.Namespace))
+	if d.From != nil {
+		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
+	}
+	if d.To != nil {
+		where = append(where, query.LessEqualThan("time", d.To.Unix()))
+	}
+	if d.IngestedAtFrom != nil {
+		where = append(where, query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
+	}
+	if d.IngestedAtTo != nil {
+		where = append(where, query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
+	}
+	if d.ID != nil {
+		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
+	}
+	if d.Subject != nil {
+		where = append(where, query.Equal("subject", *d.Subject))
+	}
+	if d.HasError != nil {
+		if *d.HasError {
+			where = append(where, "notEmpty(validation_error) = 1")
+		} else {
+			where = append(where, "empty(validation_error) = 1")
+		}
+	}
+	query.Where(where...)
+
+	query.Desc().OrderBy("time")
+	query.Limit(d.Limit)
+
+	sql, args := query.Build()
+	return sql, args
+}
+
+type queryCountEvents struct {
+	Database  string
+	Namespace string
+	From      time.Time
+}
+
+func (d queryCountEvents) toSQL() (string, []interface{}) {
+	tableName := GetEventsTableName(d.Database)
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("count() as count", "subject", "notEmpty(validation_error) as is_error")
+	query.From(tableName)
+
+	query.Where(query.Equal("namespace", d.Namespace))
+	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
+	query.GroupBy("subject", "is_error")
+
+	sql, args := query.Build()
+	return sql, args
+}
+
+// Insert Events Query
+type InsertEventsQuery struct {
+	Database      string
+	Events        []streaming.RawEvent
+	QuerySettings map[string]string
+}
+
+func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
+	tableName := GetEventsTableName(q.Database)
+
+	query := sqlbuilder.ClickHouse.NewInsertBuilder()
+	query.InsertInto(tableName)
+	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
+
+	// Add settings
+	var settings []string
+	for key, value := range q.QuerySettings {
+		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
+	}
+
+	if len(settings) > 0 {
+		query.SQL(fmt.Sprintf("SETTINGS %s", strings.Join(settings, ", ")))
+	}
+
+	for _, event := range q.Events {
+		query.Values(
+			event.Namespace,
+			event.ValidationError,
+			event.ID,
+			event.Type,
+			event.Source,
+			event.Subject,
+			event.Time,
+			event.Data,
+			event.IngestedAt,
+			event.StoredAt,
+		)
+	}
+
+	sql, args := query.Build()
+	return sql, args
+}
+
+func GetEventsTableName(database string) string {
+	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), EventsTableName)
+}

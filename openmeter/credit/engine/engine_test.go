@@ -26,6 +26,10 @@ func TestEngine(t *testing.T) {
 	assert.NoError(t, err)
 	meterSlug := "meter-1"
 
+	meter := models.Meter{
+		Slug: meterSlug,
+	}
+
 	grant1 := makeGrant(grant.Grant{
 		ID:          "grant-1",
 		Amount:      100.0,
@@ -795,7 +799,7 @@ func TestEngine(t *testing.T) {
 			streamingConnector := testutils.NewMockStreamingConnector(t)
 
 			queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
-				rows, err := streamingConnector.QueryMeter(ctx, "default", meterSlug, &streaming.QueryParams{
+				rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
 					From: &from,
 					To:   &to,
 				})
@@ -1091,7 +1095,7 @@ func TestEngine(t *testing.T) {
 				streamingConnector := testutils.NewMockStreamingConnector(t)
 
 				queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
-					rows, err := streamingConnector.QueryMeter(ctx, "default", meterSlug, &streaming.QueryParams{
+					rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
 						From: &from,
 						To:   &to,
 					})
