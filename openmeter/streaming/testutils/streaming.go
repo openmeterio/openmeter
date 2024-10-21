@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+var _ streaming.Connector = &MockStreamingConnector{}
+
 func NewMockStreamingConnector(t testing.TB) *MockStreamingConnector {
 	t.Helper()
 	return &MockStreamingConnector{
@@ -57,17 +59,17 @@ func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return []api.IngestedEvent{}, nil
 }
 
-func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
+func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	return nil
 }
 
-func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	return nil
 }
 
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
-func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	rows := []models.MeterQueryRow{}
 	_, rowOk := m.rows[meter.Slug]
 
@@ -93,7 +95,7 @@ func windowSizeToDuration(windowSize models.WindowSize) time.Duration {
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases
-func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
 	from := defaultx.WithDefault(params.From, time.Now().AddDate(-10, 0, 0))
 	to := defaultx.WithDefault(params.To, time.Now())
@@ -154,6 +156,6 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *strea
 	return rows, nil
 }
 
-func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
+func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{}, nil
 }

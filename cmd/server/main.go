@@ -333,7 +333,12 @@ func main() {
 	})
 
 	for _, meter := range conf.Meters {
-		err := app.StreamingConnector.CreateMeter(ctx, app.NamespaceManager.GetDefaultNamespace(), meter)
+		if meter == nil {
+			logger.Error("meter configuration is nil")
+			os.Exit(1)
+		}
+
+		err := app.StreamingConnector.CreateMeter(ctx, app.NamespaceManager.GetDefaultNamespace(), *meter)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)

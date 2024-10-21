@@ -799,7 +799,7 @@ func TestEngine(t *testing.T) {
 			streamingConnector := testutils.NewMockStreamingConnector(t)
 
 			queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
-				rows, err := streamingConnector.QueryMeter(ctx, "default", meter, &streaming.QueryParams{
+				rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
 					From: &from,
 					To:   &to,
 				})
@@ -1095,7 +1095,7 @@ func TestEngine(t *testing.T) {
 				streamingConnector := testutils.NewMockStreamingConnector(t)
 
 				queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
-					rows, err := streamingConnector.QueryMeter(ctx, "default", meter, &streaming.QueryParams{
+					rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
 						From: &from,
 						To:   &to,
 					})

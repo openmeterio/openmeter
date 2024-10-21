@@ -51,7 +51,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 // QueryMeter queries the values stored for a meter.
 func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
 	// Query Params
-	queryParams := &streaming.QueryParams{
+	queryParams := streaming.QueryParams{
 		From:       params.From,
 		To:         params.To,
 		WindowSize: params.WindowSize,

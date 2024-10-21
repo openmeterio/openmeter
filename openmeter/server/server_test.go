@@ -88,15 +88,15 @@ func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return events, nil
 }
 
-func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
+func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	return nil
 }
 
-func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	return nil
 }
 
-func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
 	if params.FilterSubject == nil {
@@ -106,7 +106,7 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return []models.MeterQueryRow{value}, nil
 }
 
-func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
+func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
 }
 
