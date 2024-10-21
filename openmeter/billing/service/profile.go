@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -25,7 +26,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 	}
 
-	return Transaction(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
 		// Given that we have multiple constraints let's validate those here for better error reporting
 		if input.Default {
 			defaultProfile, err := txAdapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
@@ -184,7 +185,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		}
 	}
 
-	return TransactionWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
+	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
 		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput(input))
 		if err != nil {
 			return err
@@ -263,7 +264,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 	}
 
-	return Transaction(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
 		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput{
 			Namespace: input.Namespace,
 			ID:        input.ID,

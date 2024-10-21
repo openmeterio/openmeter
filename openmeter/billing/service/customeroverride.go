@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 var _ billing.CustomerOverrideService = (*Service)(nil)
@@ -17,7 +18,7 @@ func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.Crea
 		}
 	}
 
-	adapterOverride, err := Transaction(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.CustomerOverride, error) {
+	adapterOverride, err := entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.CustomerOverride, error) {
 		existingOverride, err := txAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Namespace:  input.Namespace,
 			CustomerID: input.CustomerID,
@@ -81,7 +82,7 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 		}
 	}
 
-	return Transaction(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.CustomerOverride, error) {
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.CustomerOverride, error) {
 		existingOverride, err := txAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Namespace:  input.Namespace,
 			CustomerID: input.CustomerID,
@@ -150,7 +151,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 		}
 	}
 
-	return TransactionWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
+	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
 		existingOverride, err := txAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Namespace:  input.Namespace,
 			CustomerID: input.CustomerID,
@@ -182,7 +183,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 }
 
 func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input billing.GetProfileWithCustomerOverrideInput) (*billingentity.ProfileWithCustomerDetails, error) {
-	return Transaction(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.ProfileWithCustomerDetails, error) {
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.ProfileWithCustomerDetails, error) {
 		return s.getProfileWithCustomerOverride(ctx, txAdapter, input)
 	})
 }

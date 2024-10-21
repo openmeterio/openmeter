@@ -213,6 +213,21 @@ func TransactingRepo[R, T any](
 	})
 }
 
+// TransactingRepoWithNoValue is a helper that can be used inside repository methods.
+func TransactingRepoWithNoValue[T any](
+	ctx context.Context,
+	repo interface {
+		TxUser[T]
+		TxCreator
+	},
+	cb func(ctx context.Context, rep T) error,
+) error {
+	_, err := TransactingRepo(ctx, repo, func(ctx context.Context, rep T) (interface{}, error) {
+		return nil, cb(ctx, rep)
+	})
+	return err
+}
+
 // Only use for direct interacton with the Ent driver implementation
 func GetDriverFromContext(ctx context.Context) (*TxDriver, error) {
 	driver, err := transaction.GetDriverFromContext(ctx)
