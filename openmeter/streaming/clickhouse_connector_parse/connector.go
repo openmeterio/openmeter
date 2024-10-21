@@ -2,18 +2,17 @@ package clickhouse_connector_parse
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	raw_event_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -21,7 +20,8 @@ var _ streaming.Connector = (*ClickhouseConnector)(nil)
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type ClickhouseConnector struct {
-	config ClickhouseConnectorConfig
+	config            ClickhouseConnectorConfig
+	rawEventConnector *raw_event_connector.ClickhouseConnector
 }
 
 type ClickhouseConnectorConfig struct {
@@ -54,13 +54,21 @@ func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfi
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	connector := &ClickhouseConnector{
-		config: config,
+	rawEventConnector, err := raw_event_connector.NewClickhouseConnector(ctx, raw_event_connector.ClickhouseConnectorConfig{
+		Logger:              config.Logger,
+		ClickHouse:          config.ClickHouse,
+		Database:            config.Database,
+		AsyncInsert:         config.AsyncInsert,
+		AsyncInsertWait:     config.AsyncInsertWait,
+		InsertQuerySettings: config.InsertQuerySettings,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create raw event connector: %w", err)
 	}
 
-	err := connector.createEventsTable(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create events table in clickhouse: %w", err)
+	connector := &ClickhouseConnector{
+		config:            config,
+		rawEventConnector: rawEventConnector,
 	}
 
 	err = connector.createMeterEventTable(ctx)
@@ -71,21 +79,56 @@ func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfi
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
+func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
 
-	events, err := c.queryEventsTable(ctx, namespace, params)
+func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string) error {
+	// We don't delete the event tables as it it reused between namespaces
+	return nil
+}
+
+func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+	// Insert raw events
+	err := c.rawEventConnector.BatchInsert(ctx, rawEvents, meterEvents)
 	if err != nil {
-		if _, ok := err.(*models.NamespaceNotFoundError); ok {
-			return nil, err
-		}
-
-		return nil, fmt.Errorf("query events: %w", err)
+		return fmt.Errorf("failed to batch insert raw events: %w", err)
 	}
 
-	return events, nil
+	// NOTE: The two inserts are not atomic.
+	// If the second insert fails, the first insert will not be rolled back.
+
+	// Insert meter events
+	if len(meterEvents) == 0 {
+		return nil
+	}
+
+	query := InsertMeterEventsQuery{
+		Database:      c.config.Database,
+		MeterEvents:   meterEvents,
+		QuerySettings: c.config.InsertQuerySettings,
+	}
+	sql, args := query.ToSQL()
+
+	if c.config.AsyncInsert {
+		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
+	} else {
+		err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to batch insert meter events: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	return c.rawEventConnector.CountEvents(ctx, namespace, params)
+}
+
+func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+	return c.rawEventConnector.ListEvents(ctx, namespace, params)
 }
 
 func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
@@ -149,94 +192,6 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 	return subjects, nil
 }
 
-func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
-	return nil
-}
-
-func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string) error {
-	// We don't delete the event tables as it it reused between namespaces
-	return nil
-}
-
-func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
-
-	rows, err := c.queryCountEvents(ctx, namespace, params)
-	if err != nil {
-		if _, ok := err.(*models.NamespaceNotFoundError); ok {
-			return nil, err
-		}
-
-		return nil, fmt.Errorf("query count events: %w", err)
-	}
-
-	return rows, nil
-}
-
-func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
-	var err error
-
-	// Insert raw events
-	query := InsertEventsQuery{
-		Database:      c.config.Database,
-		Events:        rawEvents,
-		QuerySettings: c.config.InsertQuerySettings,
-	}
-	sql, args := query.ToSQL()
-
-	// By default, ClickHouse is writing data synchronously.
-	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
-	if c.config.AsyncInsert {
-		// With the `wait_for_async_insert` setting, you can configure
-		// if you want an insert statement to return with an acknowledgment
-		// either immediately after the data got inserted into the buffer.
-		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
-	} else {
-		err = c.config.ClickHouse.Exec(ctx, sql, args...)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to batch insert raw events: %w", err)
-	}
-
-	// Insert meter events
-	if len(meterEvents) > 0 {
-		query := InsertMeterEventsQuery{
-			Database:      c.config.Database,
-			MeterEvents:   meterEvents,
-			QuerySettings: c.config.InsertQuerySettings,
-		}
-		sql, args := query.ToSQL()
-
-		if c.config.AsyncInsert {
-			err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
-		} else {
-			err = c.config.ClickHouse.Exec(ctx, sql, args...)
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to batch insert meter events: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {
-	table := createEventsTable{
-		Database: c.config.Database,
-	}
-
-	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
-	if err != nil {
-		return fmt.Errorf("create events table: %w", err)
-	}
-
-	return nil
-}
-
 func (c *ClickhouseConnector) createMeterEventTable(ctx context.Context) error {
 	table := createMeterEventTable{
 		Database: c.config.Database,
@@ -248,116 +203,6 @@ func (c *ClickhouseConnector) createMeterEventTable(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	table := queryEventsTable{
-		Database:       c.config.Database,
-		Namespace:      namespace,
-		From:           params.From,
-		To:             params.To,
-		IngestedAtFrom: params.IngestedAtFrom,
-		IngestedAtTo:   params.IngestedAtTo,
-		ID:             params.ID,
-		Subject:        params.Subject,
-		HasError:       params.HasError,
-		Limit:          params.Limit,
-	}
-
-	sql, args := table.toSQL()
-
-	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
-		}
-
-		return nil, fmt.Errorf("query events table query: %w", err)
-	}
-
-	events := []api.IngestedEvent{}
-
-	for rows.Next() {
-		var id string
-		var eventType string
-		var subject string
-		var source string
-		var eventTime time.Time
-		var dataStr string
-		var validationError string
-		var ingestedAt time.Time
-		var storedAt time.Time
-
-		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &storedAt); err != nil {
-			return nil, err
-		}
-
-		// Parse data
-		var data interface{}
-		err := json.Unmarshal([]byte(dataStr), &data)
-		if err != nil {
-			return nil, fmt.Errorf("query events parse data: %w", err)
-		}
-
-		event := event.New()
-		event.SetID(id)
-		event.SetType(eventType)
-		event.SetSubject(subject)
-		event.SetSource(source)
-		event.SetTime(eventTime)
-		err = event.SetData("application/json", data)
-		if err != nil {
-			return nil, fmt.Errorf("query events set data: %w", err)
-		}
-
-		ingestedEvent := api.IngestedEvent{
-			Event: event,
-		}
-
-		if validationError != "" {
-			ingestedEvent.ValidationError = &validationError
-		}
-
-		ingestedEvent.IngestedAt = ingestedAt
-		ingestedEvent.StoredAt = storedAt
-
-		events = append(events, ingestedEvent)
-	}
-
-	return events, nil
-}
-
-func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
-	table := queryCountEvents{
-		Database:  c.config.Database,
-		Namespace: namespace,
-		From:      params.From,
-	}
-
-	sql, args := table.toSQL()
-
-	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
-		}
-
-		return nil, fmt.Errorf("query events count query: %w", err)
-	}
-
-	results := []streaming.CountEventRow{}
-
-	for rows.Next() {
-		result := streaming.CountEventRow{}
-
-		if err = rows.Scan(&result.Count, &result.Subject, &result.IsError); err != nil {
-			return nil, err
-		}
-
-		results = append(results, result)
-	}
-
-	return results, nil
 }
 
 func (c *ClickhouseConnector) queryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
