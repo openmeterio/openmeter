@@ -7,23 +7,11 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 const EventsTableName = "om_events"
-
-// CHEvent represents a raw event in ClickHouse
-type CHEvent struct {
-	Namespace       string    `ch:"namespace"`
-	ValidationError string    `ch:"validation_error"`
-	ID              string    `ch:"id"`
-	Type            string    `ch:"type"`
-	Source          string    `ch:"source"`
-	Subject         string    `ch:"subject"`
-	Time            time.Time `ch:"time"`
-	Data            string    `ch:"data"`
-	IngestedAt      time.Time `ch:"ingested_at"`
-	StoredAt        time.Time `ch:"stored_at"`
-}
 
 // Create Events Table
 type createEventsTable struct {
@@ -135,7 +123,7 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 // Insert Events Query
 type InsertEventsQuery struct {
 	Database      string
-	Events        []CHEvent
+	Events        []streaming.RawEvent
 	QuerySettings map[string]string
 }
 

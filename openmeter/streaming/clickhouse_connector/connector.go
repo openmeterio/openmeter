@@ -31,11 +31,43 @@ type ClickhouseConnectorConfig struct {
 	Meters               meter.Repository
 	CreateOrReplaceMeter bool
 	PopulateMeter        bool
+	AsyncInsert          bool
+	AsyncInsertWait      bool
+	InsertQuerySettings  map[string]string
 }
 
-func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
+func (c ClickhouseConnectorConfig) Validate() error {
+	if c.Logger == nil {
+		return fmt.Errorf("logger is required")
+	}
+
+	if c.ClickHouse == nil {
+		return fmt.Errorf("clickhouse connection is required")
+	}
+
+	if c.Database == "" {
+		return fmt.Errorf("database is required")
+	}
+
+	if c.Meters == nil {
+		return fmt.Errorf("meters repository is required")
+	}
+
+	return nil
+}
+
+func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+
 	connector := &ClickhouseConnector{
 		config: config,
+	}
+
+	err := connector.createEventsTable(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create events table in clickhouse: %w", err)
 	}
 
 	return connector, nil
@@ -143,11 +175,6 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
-	err := c.createEventsTable(ctx)
-	if err != nil {
-		return fmt.Errorf("create namespace in clickhouse: %w", err)
-	}
-
 	return nil
 }
 
@@ -198,6 +225,35 @@ func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string,
 	}
 
 	return rows, nil
+}
+
+func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+	var err error
+
+	// Insert raw events
+	query := InsertEventsQuery{
+		Database:      c.config.Database,
+		Events:        rawEvents,
+		QuerySettings: c.config.InsertQuerySettings,
+	}
+	sql, args := query.ToSQL()
+
+	// By default, ClickHouse is writing data synchronously.
+	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
+	if c.config.AsyncInsert {
+		// With the `wait_for_async_insert` setting, you can configure
+		// if you want an insert statement to return with an acknowledgment
+		// either immediately after the data got inserted into the buffer.
+		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
+	} else {
+		err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to batch insert raw events: %w", err)
+	}
+
+	return nil
 }
 
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {

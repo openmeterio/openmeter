@@ -1,10 +1,12 @@
-package clickhouse_connector_map
+package clickhouse_connector_parse
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 func TestCreateEventsTable(t *testing.T) {
@@ -136,7 +138,7 @@ func TestInsertEventsQuery(t *testing.T) {
 
 	query := InsertEventsQuery{
 		Database: "database",
-		Events: []CHEvent{
+		Events: []streaming.RawEvent{
 			{
 				Namespace:  "my_namespace",
 				ID:         "1",

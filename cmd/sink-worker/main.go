@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
+	clickhouse_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -93,7 +94,7 @@ func main() {
 	var group run.Group
 
 	// Initialize sink worker
-	sink, err := initSink(conf, logger, app.Meter, app.Tracer, app.MeterRepository, app.FlushHandler)
+	sink, err := initSink(ctx, conf, logger, app.Meter, app.Tracer, app.MeterRepository, app.FlushHandler)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -132,12 +133,27 @@ func main() {
 	}
 }
 
-func initSink(config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {
+func initSink(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {
+	// Initialize ClickHouse client
 	clickhouseClient, err := clickhouse.Open(config.Aggregation.ClickHouse.GetClientOptions())
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
+	// Initialize streaming connector
+	streaming, err := clickhouse_connector.NewClickhouseConnector(ctx, clickhouse_connector.ClickhouseConnectorConfig{
+		Logger:              logger,
+		ClickHouse:          clickhouseClient,
+		Database:            config.Aggregation.ClickHouse.Database,
+		AsyncInsert:         config.Sink.Storage.AsyncInsert,
+		AsyncInsertWait:     config.Sink.Storage.AsyncInsertWait,
+		InsertQuerySettings: config.Sink.Storage.QuerySettings,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse streaming connector: %w", err)
+	}
+
+	// Initialize deduplicator if enabled
 	var deduplicator dedupe.Deduplicator
 	if config.Sink.Dedupe.Enabled {
 		deduplicator, err = config.Sink.Dedupe.NewDeduplicator()
@@ -147,15 +163,9 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	}
 
 	// Initialize storage
-	storage, err := sink.NewClickhouseStorage(
-		sink.ClickHouseStorageConfig{
-			ClickHouse:      clickhouseClient,
-			Database:        config.Aggregation.ClickHouse.Database,
-			AsyncInsert:     config.Sink.Storage.AsyncInsert,
-			AsyncInsertWait: config.Sink.Storage.AsyncInsertWait,
-			QuerySettings:   config.Sink.Storage.QuerySettings,
-		},
-	)
+	storage, err := sink.NewClickhouseStorage(sink.ClickHouseStorageConfig{
+		Streaming: streaming,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
