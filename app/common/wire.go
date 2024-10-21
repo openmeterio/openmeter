@@ -103,7 +103,7 @@ var OpenMeter = wire.NewSet(
 	NewMeterRepository,
 	wire.Bind(new(meter.Repository), new(*meter.InMemoryRepository)),
 
-	NewClickHouseStreamingConnector,
+	NewStreamingConnector,
 
 	NewNamespacedTopicResolver,
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
