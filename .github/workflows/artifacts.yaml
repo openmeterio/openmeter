@@ -101,7 +101,7 @@ jobs:
           echo "::add-mask::$PULL_TOKEN"
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@5681af892cd0f4997658e2bacc62bd0a894cf564 # 0.27.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
           format: sarif
@@ -199,7 +199,7 @@ jobs:
           echo "::add-mask::$PULL_TOKEN"
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@5681af892cd0f4997658e2bacc62bd0a894cf564 # 0.27.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
           format: sarif
