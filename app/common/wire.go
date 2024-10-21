@@ -98,6 +98,7 @@ var Telemetry = wire.NewSet(
 
 var Logger = wire.NewSet(
 	NewTelemetryResource,
+	NewLoggerProvider,
 	NewLogger,
 )
 

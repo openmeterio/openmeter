@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -52,6 +53,28 @@ func NewTelemetryResource(metadata Metadata) *resource.Resource {
 	)
 
 	return res
+}
+
+func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res *resource.Resource) (*sdklog.LoggerProvider, func(), error) {
+	loggerProvider, err := conf.NewLoggerProvider(ctx, res)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Trace provider: %w", err)
+	}
+
+	return loggerProvider, func() {
+		// Use dedicated context with timeout for shutdown as parent context might be canceled
+		// by the time the execution reaches this stage.
+		ctx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
+		defer cancel()
+
+		if err := loggerProvider.ForceFlush(ctx); err != nil {
+			fmt.Println(fmt.Errorf("flushing logger provider: %w", err))
+		}
+
+		if err := loggerProvider.Shutdown(ctx); err != nil {
+			fmt.Println(fmt.Errorf("shutting down logger provider: %w", err))
+		}
+	}, nil
 }
 
 func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource) *slog.Logger {
