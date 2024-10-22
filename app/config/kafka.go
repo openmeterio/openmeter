@@ -30,6 +30,12 @@ func (c KafkaConfig) AsConsumerConfig() pkgkafka.ConsumerConfig {
 	}
 }
 
+func (c KafkaConfig) AsAdminConfig() pkgkafka.AdminConfig {
+	return pkgkafka.AdminConfig{
+		CommonConfigParams: c.CommonConfigParams,
+	}
+}
+
 func (c KafkaConfig) Validate() error {
 	validators := []pkgkafka.ConfigValidator{
 		c.CommonConfigParams,
@@ -69,6 +75,6 @@ func ConfigureKafkaConfiguration(v *viper.Viper, prefix string) {
 	v.SetDefault(AddPrefix(prefix, "kafka.heartbeatInterval"), 0)
 	v.SetDefault(AddPrefix(prefix, "kafka.enableAutoCommit"), true)
 	v.SetDefault(AddPrefix(prefix, "kafka.enableAutoOffsetStore"), true)
-	v.SetDefault(AddPrefix(prefix, "kafka.autoOffsetReset"), "")
+	v.SetDefault(AddPrefix(prefix, "kafka.autoOffsetReset"), "largest")
 	v.SetDefault(AddPrefix(prefix, "kafka.partitionAssignmentStrategy"), "cooperative-sticky")
 }

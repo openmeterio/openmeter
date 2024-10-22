@@ -47,8 +47,8 @@ func TestConsumerConfig(t *testing.T) {
 					HeartbeatInterval:           TimeDurationMilliSeconds(5 * time.Second),
 					EnableAutoCommit:            true,
 					EnableAutoOffsetStore:       true,
-					AutoOffsetReset:             "latest",
-					PartitionAssignmentStrategy: "cooperative-sticky",
+					AutoOffsetReset:             AutoOffsetResetLatest,
+					PartitionAssignmentStrategy: PartitionAssignmentStrategies{PartitionAssignmentStrategyCooperativeSticky},
 				},
 			},
 			ExpectedError:           nil,
@@ -72,8 +72,75 @@ func TestConsumerConfig(t *testing.T) {
 				"heartbeat.interval.ms":              TimeDurationMilliSeconds(5 * time.Second),
 				"enable.auto.commit":                 true,
 				"enable.auto.offset.store":           true,
-				"auto.offset.reset":                  "latest",
-				"partition.assignment.strategy":      "cooperative-sticky",
+				"auto.offset.reset":                  AutoOffsetResetLatest,
+				"partition.assignment.strategy":      PartitionAssignmentStrategies{PartitionAssignmentStrategyCooperativeSticky},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := test.Params.Validate()
+			require.Equal(t, test.ExpectedValidationError, err)
+
+			m, err := test.Params.AsConfigMap()
+			require.Equal(t, test.ExpectedError, err)
+
+			for k, v := range test.ExpectedConfigMap {
+				assert.Equal(t, v, m[k], fmt.Sprintf("expected %s got %s", v, m[k]))
+			}
+		})
+	}
+}
+
+func TestProducerConfig(t *testing.T) {
+	tests := []struct {
+		Name string
+
+		Params ProducerConfig
+
+		ExpectedError           error
+		ExpectedValidationError error
+		ExpectedConfigMap       kafka.ConfigMap
+	}{
+		{
+			Name: "Valid",
+			Params: ProducerConfig{
+				CommonConfigParams{
+					Brokers:                      "broker-1:9092,broker-2:9092",
+					SecurityProtocol:             "SASL_SSL",
+					SaslMechanisms:               "PLAIN",
+					SaslUsername:                 "user",
+					SaslPassword:                 "pass",
+					StatsInterval:                TimeDurationMilliSeconds(5 * time.Second),
+					BrokerAddressFamily:          BrokerAddressFamilyAny,
+					SocketKeepAliveEnabled:       true,
+					TopicMetadataRefreshInterval: TimeDurationMilliSeconds(30 * time.Second),
+					DebugContexts: DebugContexts{
+						DebugContextAdmin,
+						DebugContextBroker,
+					},
+					ClientID: "client-id-1",
+				},
+				ProducerConfigParams{
+					Partitioner: PartitionerRandom,
+				},
+			},
+			ExpectedError:           nil,
+			ExpectedValidationError: nil,
+			ExpectedConfigMap: kafka.ConfigMap{
+				"bootstrap.servers":                  "broker-1:9092,broker-2:9092",
+				"broker.address.family":              BrokerAddressFamilyAny,
+				"security.protocol":                  "SASL_SSL",
+				"sasl.mechanism":                     "PLAIN",
+				"sasl.username":                      "user",
+				"sasl.password":                      "pass",
+				"statistics.interval.ms":             TimeDurationMilliSeconds(5 * time.Second),
+				"socket.keepalive.enable":            true,
+				"topic.metadata.refresh.interval.ms": TimeDurationMilliSeconds(30 * time.Second),
+				"metadata.max.age.ms":                3 * TimeDurationMilliSeconds(30*time.Second),
+				"debug":                              "admin,broker",
+				"partitioner":                        PartitionerRandom,
 			},
 		},
 	}
@@ -193,6 +260,158 @@ func TestTimeDurationMilliSeconds(t *testing.T) {
 				assert.Equal(t, test.ExpectedValue, timeMs)
 				assert.Equal(t, test.ExpectedString, timeMs.String())
 				assert.Equal(t, test.ExpectedDuration, timeMs.Duration())
+			}
+		})
+	}
+}
+
+func TestPartitioner(t *testing.T) {
+	tests := []struct {
+		Name string
+
+		Value          string
+		ExpectedError  error
+		ExplectedValue Partitioner
+	}{
+		{
+			Name:           "Random",
+			Value:          "random",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerRandom,
+		},
+		{
+			Name:           "Consistent",
+			Value:          "consistent",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerConsistent,
+		},
+		{
+			Name:           "ConsistentRandom",
+			Value:          "consistent_random",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerConsistentRandom,
+		},
+		{
+			Name:           "Murmur2",
+			Value:          "murmur2",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerMurmur2,
+		},
+		{
+			Name:           "Murmur2Random",
+			Value:          "murmur2_random",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerMurmur2Random,
+		},
+		{
+			Name:           "Fnv1a",
+			Value:          "fnv1a",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerFnv1a,
+		},
+		{
+			Name:           "Fnv1aRandom",
+			Value:          "fnv1a_random",
+			ExpectedError:  nil,
+			ExplectedValue: PartitionerFnv1aRandom,
+		},
+		{
+			Name:          "Invalid",
+			Value:         "invalid",
+			ExpectedError: errors.New("invalid partitioner: invalid"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			var partitioner Partitioner
+
+			err := partitioner.UnmarshalText([]byte(test.Value))
+			assert.Equal(t, test.ExpectedError, err)
+			if err == nil {
+				assert.Equal(t, test.ExplectedValue, partitioner)
+			}
+
+			err = partitioner.UnmarshalJSON([]byte(test.Value))
+			assert.Equal(t, test.ExpectedError, err)
+			if err == nil {
+				assert.Equal(t, test.ExplectedValue, partitioner)
+			}
+		})
+	}
+}
+
+func TestAutoOffsetReset(t *testing.T) {
+	tests := []struct {
+		Name string
+
+		Value          string
+		ExpectedError  error
+		ExplectedValue AutoOffsetReset
+	}{
+		{
+			Name:           "Smallest",
+			Value:          "smallest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetSmallest,
+		},
+		{
+			Name:           "Earliest",
+			Value:          "earliest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetEarliest,
+		},
+		{
+			Name:           "Beginning",
+			Value:          "beginning",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetBeginning,
+		},
+		{
+			Name:           "Largest",
+			Value:          "largest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetLargest,
+		},
+		{
+			Name:           "Latest",
+			Value:          "latest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetLatest,
+		},
+		{
+			Name:           "End",
+			Value:          "end",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetEnd,
+		},
+		{
+			Name:           "Error",
+			Value:          "error",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetError,
+		},
+		{
+			Name:          "Invalid",
+			Value:         "invalid",
+			ExpectedError: errors.New("invalid auto offset reset strategy: invalid"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			var autoOffsetReset AutoOffsetReset
+
+			err := autoOffsetReset.UnmarshalText([]byte(test.Value))
+			assert.Equal(t, test.ExpectedError, err)
+			if err == nil {
+				assert.Equal(t, test.ExplectedValue, autoOffsetReset)
+			}
+
+			err = autoOffsetReset.UnmarshalJSON([]byte(test.Value))
+			assert.Equal(t, test.ExpectedError, err)
+			if err == nil {
+				assert.Equal(t, test.ExplectedValue, autoOffsetReset)
 			}
 		})
 	}

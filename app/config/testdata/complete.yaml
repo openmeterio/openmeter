@@ -94,7 +94,9 @@ sink:
     enableAutoCommit: true
     enableAutoOffsetStore: false
     autoOffsetReset: "error"
-    partitionAssignmentStrategy: "cooperative-sticky"
+    partitionAssignmentStrategy:
+      - "range"
+      - "roundrobin"
 
 dedupe:
   enabled: true
