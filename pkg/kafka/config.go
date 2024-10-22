@@ -156,6 +156,10 @@ func (c CommonConfigParams) Validate() error {
 		return errors.New("topic metadata refresh interval must be >=10s")
 	}
 
+	if c.BrokerAddressFamily != "" && !slices.Contains(BrokerAddressFamilyValues, c.BrokerAddressFamily) {
+		return fmt.Errorf("invalid broker address family: %s", c.BrokerAddressFamily)
+	}
+
 	if len(c.DebugContexts) > 0 {
 		keys := DebugContextValues.AsKeyMap()
 
@@ -425,6 +429,12 @@ type configValue interface {
 	fmt.Stringer
 	encoding.TextUnmarshaler
 	json.Unmarshaler
+}
+
+var BrokerAddressFamilyValues = ValidValues[BrokerAddressFamily]{
+	BrokerAddressFamilyAny,
+	BrokerAddressFamilyIPv4,
+	BrokerAddressFamilyIPv6,
 }
 
 const (
