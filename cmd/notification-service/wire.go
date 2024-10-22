@@ -34,10 +34,11 @@ type Application struct {
 	MessagePublisher   message.Publisher
 	EventPublisher     eventbus.Publisher
 
-	Meter metric.Meter
+	Logger *slog.Logger
+	Meter  metric.Meter
 }
 
-func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
+func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
 		common.Config,
@@ -53,13 +54,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil
-}
-
-// TODO: is this necessary? Do we need a logger first?
-func initializeLogger(conf config.Configuration) *slog.Logger {
-	wire.Build(metadata, common.Config, common.Logger)
-
-	return new(slog.Logger)
 }
 
 func metadata(conf config.Configuration) common.Metadata {

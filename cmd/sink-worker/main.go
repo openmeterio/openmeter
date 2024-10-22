@@ -74,16 +74,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger := initializeLogger(conf)
-
-	app, cleanup, err := initializeApplication(ctx, conf, logger)
+	app, cleanup, err := initializeApplication(ctx, conf)
 	if err != nil {
-		logger.Error("failed to initialize application", "error", err)
+		slog.Error("failed to initialize application", "error", err)
+
+		cleanup()
+
 		os.Exit(1)
 	}
 	defer cleanup()
 
 	app.SetGlobals()
+
+	logger := app.Logger
 
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
 		"telemetry.address":   conf.Telemetry.Address,
