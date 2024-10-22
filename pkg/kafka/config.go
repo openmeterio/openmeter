@@ -189,7 +189,8 @@ type ConsumerConfigParams struct {
 	// * "smallest","earliest","beginning": automatically reset the offset to the smallest offset
 	// * "largest","latest","end": automatically reset the offset to the largest offset
 	// * "error":  trigger an error (ERR__AUTO_OFFSET_RESET) which is retrieved by consuming messages and checking 'message->err'.
-	AutoOffsetReset string
+	AutoOffsetReset AutoOffsetReset
+
 	// PartitionAssignmentStrategy defines one or more partition assignment strategies.
 	// The elected group leader will use a strategy supported by all members of the group to assign partitions to group members.
 	// If there is more than one eligible strategy, preference is determined by the order of this list (strategies earlier in the list have higher priority).
@@ -210,11 +211,7 @@ func (c ConsumerConfigParams) Validate() error {
 		return errors.New("consumer group id is required if instance id is set")
 	}
 
-	if c.AutoOffsetReset != "" && !slices.Contains([]string{
-		"smallest", "earliest", "beginning",
-		"largest", "latest", "end",
-		"error",
-	}, c.AutoOffsetReset) {
+	if c.AutoOffsetReset != "" && !slices.Contains(AutoOffsetResetValues, c.AutoOffsetReset) {
 		return errors.New("invalid auto offset reset")
 	}
 
@@ -677,5 +674,68 @@ func (s *Partitioner) UnmarshalJSON(data []byte) error {
 }
 
 func (s Partitioner) String() string {
+	return string(s)
+}
+
+var AutoOffsetResetValues = []AutoOffsetReset{
+	AutoOffsetResetSmallest,
+	AutoOffsetResetEarliest,
+	AutoOffsetResetBeginning,
+	AutoOffsetResetLargest,
+	AutoOffsetResetLatest,
+	AutoOffsetResetEnd,
+	AutoOffsetResetError,
+}
+
+const (
+	// AutoOffsetResetSmallest automatically reset the offset to the smallest offset.
+	AutoOffsetResetSmallest AutoOffsetReset = "smallest"
+	// AutoOffsetResetEarliest automatically reset the offset to the smallest offset.
+	AutoOffsetResetEarliest AutoOffsetReset = "earliest"
+	// AutoOffsetResetBeginning automatically reset the offset to the smallest offset.
+	AutoOffsetResetBeginning AutoOffsetReset = "beginning"
+	// AutoOffsetResetLargest automatically reset the offset to the largest offset.
+	AutoOffsetResetLargest AutoOffsetReset = "largest"
+	// AutoOffsetResetLatest automatically reset the offset to the largest offset.
+	AutoOffsetResetLatest AutoOffsetReset = "latest"
+	// AutoOffsetResetEnd automatically reset the offset to the largest offset.
+	AutoOffsetResetEnd AutoOffsetReset = "end"
+	// AutoOffsetResetError trigger an error (ERR__AUTO_OFFSET_RESET) which is retrieved by
+	// consuming messages and checking 'message->err'
+	AutoOffsetResetError AutoOffsetReset = "error"
+)
+
+var _ configValue = (*AutoOffsetReset)(nil)
+
+type AutoOffsetReset string
+
+func (s *AutoOffsetReset) UnmarshalText(text []byte) error {
+	switch strings.ToLower(strings.TrimSpace(string(text))) {
+	case "smallest":
+		*s = AutoOffsetResetSmallest
+	case "earliest":
+		*s = AutoOffsetResetEarliest
+	case "beginning":
+		*s = AutoOffsetResetBeginning
+	case "largest":
+		*s = AutoOffsetResetLargest
+	case "latest":
+		*s = AutoOffsetResetLatest
+	case "end":
+		*s = AutoOffsetResetEnd
+	case "error":
+		*s = AutoOffsetResetError
+	default:
+		return fmt.Errorf("invalid auto offset reset strategy: %s", text)
+	}
+
+	return nil
+}
+
+func (s *AutoOffsetReset) UnmarshalJSON(data []byte) error {
+	return s.UnmarshalText(data)
+}
+
+func (s AutoOffsetReset) String() string {
 	return string(s)
 }

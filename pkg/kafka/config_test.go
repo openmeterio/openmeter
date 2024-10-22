@@ -47,7 +47,7 @@ func TestConsumerConfig(t *testing.T) {
 					HeartbeatInterval:           TimeDurationMilliSeconds(5 * time.Second),
 					EnableAutoCommit:            true,
 					EnableAutoOffsetStore:       true,
-					AutoOffsetReset:             "latest",
+					AutoOffsetReset:             AutoOffsetResetLatest,
 					PartitionAssignmentStrategy: "cooperative-sticky",
 				},
 			},
@@ -72,7 +72,7 @@ func TestConsumerConfig(t *testing.T) {
 				"heartbeat.interval.ms":              TimeDurationMilliSeconds(5 * time.Second),
 				"enable.auto.commit":                 true,
 				"enable.auto.offset.store":           true,
-				"auto.offset.reset":                  "latest",
+				"auto.offset.reset":                  AutoOffsetResetLatest,
 				"partition.assignment.strategy":      "cooperative-sticky",
 			},
 		},
@@ -336,6 +336,82 @@ func TestPartitioner(t *testing.T) {
 			assert.Equal(t, test.ExpectedError, err)
 			if err == nil {
 				assert.Equal(t, test.ExplectedValue, partitioner)
+			}
+		})
+	}
+}
+
+func TestAutoOffsetReset(t *testing.T) {
+	tests := []struct {
+		Name string
+
+		Value          string
+		ExpectedError  error
+		ExplectedValue AutoOffsetReset
+	}{
+		{
+			Name:           "Smallest",
+			Value:          "smallest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetSmallest,
+		},
+		{
+			Name:           "Earliest",
+			Value:          "earliest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetEarliest,
+		},
+		{
+			Name:           "Beginning",
+			Value:          "beginning",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetBeginning,
+		},
+		{
+			Name:           "Largest",
+			Value:          "largest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetLargest,
+		},
+		{
+			Name:           "Latest",
+			Value:          "latest",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetLatest,
+		},
+		{
+			Name:           "End",
+			Value:          "end",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetEnd,
+		},
+		{
+			Name:           "Error",
+			Value:          "error",
+			ExpectedError:  nil,
+			ExplectedValue: AutoOffsetResetError,
+		},
+		{
+			Name:          "Invalid",
+			Value:         "invalid",
+			ExpectedError: errors.New("invalid auto offset reset strategy: invalid"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			var autoOffsetReset AutoOffsetReset
+
+			err := autoOffsetReset.UnmarshalText([]byte(test.Value))
+			assert.Equal(t, test.ExpectedError, err)
+			if err == nil {
+				assert.Equal(t, test.ExplectedValue, autoOffsetReset)
+			}
+
+			err = autoOffsetReset.UnmarshalJSON([]byte(test.Value))
+			assert.Equal(t, test.ExpectedError, err)
+			if err == nil {
+				assert.Equal(t, test.ExplectedValue, autoOffsetReset)
 			}
 		})
 	}
