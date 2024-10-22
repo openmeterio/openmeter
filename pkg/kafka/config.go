@@ -294,14 +294,29 @@ var (
 	_ ConfigValidator = (*ProducerConfigParams)(nil)
 )
 
-type ProducerConfigParams struct{}
+type ProducerConfigParams struct {
+	// Partitioner defines the algorithm used for assigning topic partition for produced message based its partition key.
+	Partitioner Partitioner
+}
 
 func (p ProducerConfigParams) Validate() error {
+	if p.Partitioner != "" && !slices.Contains(PartitionerValues, p.Partitioner) {
+		return errors.New("invalid partitioner config")
+	}
+
 	return nil
 }
 
 func (p ProducerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
-	return nil, nil
+	m := kafka.ConfigMap{}
+
+	if p.Partitioner != "" {
+		if err := m.SetKey("partitioner", p.Partitioner); err != nil {
+			return nil, err
+		}
+	}
+
+	return m, nil
 }
 
 var (
@@ -381,6 +396,17 @@ func mergeConfigsToMap(mappers ...ConfigMapper) (kafka.ConfigMap, error) {
 	}
 
 	return configMap, nil
+}
+
+type ValidValues[T comparable] []T
+
+func (v ValidValues[T]) AsKeyMap() map[T]struct{} {
+	m := make(map[T]struct{}, len(v))
+	for _, k := range v {
+		m[k] = struct{}{}
+	}
+
+	return m
 }
 
 type configValue interface {
@@ -589,4 +615,67 @@ func (d DebugContexts) String() string {
 	}
 
 	return ""
+}
+
+var PartitionerValues = ValidValues[Partitioner]{
+	PartitionerRandom,
+	PartitionerConsistent,
+	PartitionerConsistentRandom,
+	PartitionerMurmur2,
+	PartitionerMurmur2Random,
+	PartitionerFnv1a,
+	PartitionerFnv1aRandom,
+}
+
+const (
+	// PartitionerRandom uses random distribution.
+	PartitionerRandom Partitioner = "random"
+	// PartitionerConsistent uses the CRC32 hash of key while Empty and NULL keys are mapped to single partition.
+	PartitionerConsistent Partitioner = "consistent"
+	// PartitionerConsistentRandom uses CRC32 hash of key while Empty and NULL keys are randomly partitioned.
+	PartitionerConsistentRandom Partitioner = "consistent_random"
+	// PartitionerMurmur2 uses Java Producer compatible Murmur2 hash of key while NULL keys are mapped to single partition.
+	PartitionerMurmur2 Partitioner = "murmur2"
+	// PartitionerMurmur2Random uses Java Producer compatible Murmur2 hash of key whileNULL keys are randomly partitioned.
+	// This is functionally equivalent to the default partitioner in the Java Producer.
+	PartitionerMurmur2Random Partitioner = "murmur2_random"
+	// PartitionerFnv1a uses FNV-1a hash of key whileNULL keys are mapped to single partition.
+	PartitionerFnv1a Partitioner = "fnv1a"
+	// PartitionerFnv1aRandom uses FNV-1a hash of key whileNULL keys are randomly partitioned.
+	PartitionerFnv1aRandom Partitioner = "fnv1a_random"
+)
+
+var _ configValue = (*Partitioner)(nil)
+
+type Partitioner string
+
+func (s *Partitioner) UnmarshalText(text []byte) error {
+	switch strings.ToLower(strings.TrimSpace(string(text))) {
+	case "random":
+		*s = PartitionerRandom
+	case "consistent":
+		*s = PartitionerConsistent
+	case "consistent_random":
+		*s = PartitionerConsistentRandom
+	case "murmur2":
+		*s = PartitionerMurmur2
+	case "murmur2_random":
+		*s = PartitionerMurmur2Random
+	case "fnv1a":
+		*s = PartitionerFnv1a
+	case "fnv1a_random":
+		*s = PartitionerFnv1aRandom
+	default:
+		return fmt.Errorf("invalid partitioner: %s", text)
+	}
+
+	return nil
+}
+
+func (s *Partitioner) UnmarshalJSON(data []byte) error {
+	return s.UnmarshalText(data)
+}
+
+func (s Partitioner) String() string {
+	return string(s)
 }
