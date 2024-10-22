@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -60,7 +61,7 @@ func main() {
 
 	app, cleanup, err := initializeApplication(ctx, conf, logger)
 	if err != nil {
-		logger.Error("failed to initialize application", "error", err)
+		slog.Error("failed to initialize application", "error", err)
 
 		cleanup()
 

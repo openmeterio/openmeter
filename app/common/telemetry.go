@@ -30,6 +30,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
+// Set the default logger to JSON for messages emitted before the "real" logger is initialized.
+//
+// We use JSON as a best-effort to make the logs machine-readable.
+func init() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+}
+
 const (
 	DefaultShutdownTimeout = 5 * time.Second
 )
