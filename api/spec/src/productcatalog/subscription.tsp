@@ -167,6 +167,28 @@ model SubscriptionItem {
   };
 }
 
+model CreateSubscriptionInput {
+  customerId: ULID;
+  plan: {
+    key: Key;
+    version: integer;
+  };
+  currency: CurrencyCode;
+  activeFrom: DateTime;
+
+  /**
+   * Batch processing commands for customizing the susbcription.
+   * The key format is `/phases/{phaseKey}/items/{itemKey}`.
+   *
+   * Add operations insert a new member based on the creation input without altering the existing members.
+   *
+   * Remove operations remove the member from the document.
+   *
+   */
+  @maxItems(100)
+  customizations: SubscriptionItemPatch[];
+}
+
 @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
 scalar SubscriptionPhasePatchKey extends string;
 
