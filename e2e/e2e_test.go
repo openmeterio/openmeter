@@ -470,7 +470,7 @@ func TestCredit(t *testing.T) {
 	client := initClient(t)
 	subject := "customer-1"
 	meterSlug := "credit_test_meter"
-	var featureId *api.FeatureId
+	var featureId *string
 	var featureKey string
 
 	const waitTime = time.Second * 30
@@ -554,8 +554,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
-		require.NotEmpty(t, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
-		require.Equal(t, *entitlementId, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
+		require.NotNil(t, resp.ApplicationproblemJSON409)
+		require.NotEmpty(t, resp.ApplicationproblemJSON409.Extensions["conflictingEntityId"])
+		require.Equal(t, *entitlementId, resp.ApplicationproblemJSON409.Extensions["conflictingEntityId"])
 	})
 
 	t.Run("Create a Entitlement With Default Grants", func(t *testing.T) {
@@ -573,7 +574,7 @@ func TestCredit(t *testing.T) {
 			},
 			MeasureUsageFrom:        muf,
 			IssueAfterReset:         convert.ToPointer(100.0),
-			IssueAfterResetPriority: convert.ToPointer(6),
+			IssueAfterResetPriority: convert.ToPointer[uint8](6),
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
 		err = body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
@@ -587,7 +588,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, randSubject, metered.SubjectKey)
-		require.Equal(t, measureUsageFrom, metered.MeasureUsageFrom)
+		require.Equal(t, &measureUsageFrom, metered.MeasureUsageFrom)
 
 		// fetch grants for entitlement
 		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubject, *metered.Id, nil)
@@ -607,7 +608,7 @@ func TestCredit(t *testing.T) {
 		randSubject := ulid.Make().String()
 		periodAnchor := time.Now().Truncate(time.Minute).Add(-time.Hour).In(time.UTC)
 		muf := &api.MeasureUsageFrom{}
-		err := muf.FromMeasureUsageFromEnum(api.CURRENTPERIODSTART)
+		err := muf.FromMeasureUsageFromPreset(api.CurrentPeriodStart)
 		require.NoError(t, err)
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
@@ -630,13 +631,13 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, randSubject, metered.SubjectKey)
-		require.Equal(t, periodAnchor, metered.MeasureUsageFrom)
+		require.Equal(t, &periodAnchor, metered.MeasureUsageFrom)
 	})
 
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt := time.Now().Truncate(time.Minute)
 
-		priority := 1
+		priority := int8(1)
 		maxRolloverAmount := 100.0
 		minRolloverAmount := 0.0
 
@@ -768,7 +769,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
-		features, err := featureListResp.JSON200.AsListFeatureResponse0()
+		features, err := featureListResp.JSON200.AsListFeaturesResult0()
 		require.NoError(t, err)
 		require.Len(t, features, 1)
 
@@ -805,7 +806,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
-		features, err := featureListResp.JSON200.AsListFeatureResponse0()
+		features, err := featureListResp.JSON200.AsListFeaturesResult0()
 		require.NoError(t, err)
 		require.Len(t, features, 1)
 
@@ -908,7 +909,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 		require.NotNil(t, resp.JSON200)
 		// should be a paginated response
-		resBody, err := resp.JSON200.AsListEntitlementPaginatedResponse()
+		resBody, err := resp.JSON200.AsEntitlementPaginatedResponse()
 		require.NoError(t, err)
 
 		require.Equal(t, 1, resBody.Page)
@@ -927,7 +928,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 		require.NotNil(t, resp.JSON200)
 		// should be a paginated response
-		resBody, err = resp.JSON200.AsListEntitlementPaginatedResponse()
+		resBody, err = resp.JSON200.AsEntitlementPaginatedResponse()
 		require.NoError(t, err)
 
 		require.Equal(t, 1, resBody.Page)
