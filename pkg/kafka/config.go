@@ -156,6 +156,21 @@ func (c CommonConfigParams) Validate() error {
 		return errors.New("topic metadata refresh interval must be >=10s")
 	}
 
+	if len(c.DebugContexts) > 0 {
+		keys := DebugContextValues.AsKeyMap()
+
+		invalid := make([]DebugContext, 0, len(c.DebugContexts))
+		for _, v := range c.DebugContexts {
+			if _, ok := keys[v]; !ok {
+				invalid = append(invalid, v)
+			}
+		}
+
+		if len(invalid) > 0 {
+			return fmt.Errorf("invalid debug contexts: %v", invalid)
+		}
+	}
+
 	return nil
 }
 
@@ -470,6 +485,29 @@ func (d TimeDurationMilliSeconds) Duration() time.Duration {
 
 func (d TimeDurationMilliSeconds) String() string {
 	return strconv.Itoa(int(time.Duration(d).Milliseconds()))
+}
+
+var DebugContextValues = ValidValues[DebugContext]{
+	DebugContextGeneric,
+	DebugContextBroker,
+	DebugContextTopic,
+	DebugContextMetadata,
+	DebugContextFeature,
+	DebugContextQueue,
+	DebugContextMessage,
+	DebugContextProtocol,
+	DebugContextConsumerGroup,
+	DebugContextSecurity,
+	DebugContextFetch,
+	DebugContextInterceptor,
+	DebugContextPlugin,
+	DebugContextConsumer,
+	DebugContextAdmin,
+	DebugContextIdempotentProducer,
+	DebugContextMock,
+	DebugContextAssignor,
+	DebugContextConfig,
+	DebugContextAll,
 }
 
 var _ configValue = (*DebugContext)(nil)
