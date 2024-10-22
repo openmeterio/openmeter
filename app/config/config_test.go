@@ -104,6 +104,10 @@ func TestComplete(t *testing.T) {
 				TopicProvisionerConfig: TopicProvisionerConfig{
 					CacheSize: 200,
 					CacheTTL:  15 * time.Minute,
+					ProtectedTopics: []string{
+						"protected-topic-1",
+						"protected-topic-2",
+					},
 				},
 			},
 		},

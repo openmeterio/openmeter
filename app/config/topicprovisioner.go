@@ -16,6 +16,9 @@ type TopicProvisionerConfig struct {
 
 	// The maximum time an entries is kept in cache before being evicted
 	CacheTTL time.Duration
+
+	// ProtectedTopics defines a list of topics which are protected from deletion.
+	ProtectedTopics []string
 }
 
 func (c TopicProvisionerConfig) Validate() error {
@@ -38,4 +41,5 @@ func ConfigureTopicProvisioner(v *viper.Viper, prefixes ...string) {
 
 	v.SetDefault(prefixer("cacheSize"), 250)
 	v.SetDefault(prefixer("cacheTTL"), "5m")
+	v.SetDefault(prefixer("protectedTopics"), nil)
 }

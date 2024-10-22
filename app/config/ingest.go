@@ -34,6 +34,9 @@ type KafkaIngestConfiguration struct {
 
 	Partitions          int
 	EventsTopicTemplate string
+
+	// NamespaceDeletionEnabled defines whether deleting namespaces are allowed or not.
+	NamespaceDeletionEnabled bool
 }
 
 // Validate validates the configuration.
@@ -166,6 +169,7 @@ func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.saslPassword", "")
 	v.SetDefault("ingest.kafka.partitions", 1)
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
+	v.SetDefault("ingest.kafka.namespaceDeletionEnabled", false)
 
 	ConfigureTopicProvisioner(v, "ingest", "kafka")
 }

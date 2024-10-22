@@ -123,12 +123,13 @@ func NewIngestCollector(
 func NewKafkaNamespaceHandler(
 	topicResolver topicresolver.Resolver,
 	topicProvisioner pkgkafka.TopicProvisioner,
-	conf config.Configuration,
+	conf config.KafkaIngestConfiguration,
 ) (*kafkaingest.NamespaceHandler, error) {
 	return &kafkaingest.NamespaceHandler{
 		TopicResolver:    topicResolver,
 		TopicProvisioner: topicProvisioner,
-		Partitions:       conf.Ingest.Kafka.Partitions,
+		Partitions:       conf.Partitions,
+		DeletionEnabled:  conf.NamespaceDeletionEnabled,
 	}, nil
 }
 
