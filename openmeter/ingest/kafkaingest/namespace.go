@@ -15,6 +15,9 @@ type NamespaceHandler struct {
 	TopicProvisioner pkgkafka.TopicProvisioner
 
 	Partitions int
+
+	// DeletionEnabled defines whether deleting namespaces are allowed or not.
+	DeletionEnabled bool
 }
 
 // CreateNamespace implements the namespace handler interface.
@@ -41,6 +44,10 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 
 // DeleteNamespace implements the namespace handler interface.
 func (h NamespaceHandler) DeleteNamespace(ctx context.Context, namespace string) error {
+	if !h.DeletionEnabled {
+		return nil
+	}
+
 	if h.TopicResolver == nil {
 		return errors.New("topic name resolver must not be nil")
 	}
