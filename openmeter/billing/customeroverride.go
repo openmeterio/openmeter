@@ -5,6 +5,7 @@ import (
 	"time"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 type CreateCustomerOverrideInput struct {
@@ -116,4 +117,38 @@ type GetProfileWithCustomerOverrideInput namespacedCustomerID
 
 func (g GetProfileWithCustomerOverrideInput) Validate() error {
 	return namespacedCustomerID(g).Validate()
+}
+
+type GetCustomerOverrideAdapterInput struct {
+	Customer customerentity.CustomerID
+
+	IncludeDeleted bool
+}
+
+func (i GetCustomerOverrideAdapterInput) Validate() error {
+	if err := i.Customer.Validate(); err != nil {
+		return fmt.Errorf("error validating customer: %w", err)
+	}
+
+	return nil
+}
+
+type UpdateCustomerOverrideAdapterInput struct {
+	UpdateCustomerOverrideInput
+
+	ResetDeletedAt bool
+}
+
+func (i UpdateCustomerOverrideAdapterInput) Validate() error {
+	if err := i.UpdateCustomerOverrideInput.Validate(); err != nil {
+		return fmt.Errorf("error validating update customer override input: %w", err)
+	}
+
+	return nil
+}
+
+type HasCustomerOverrideReferencingProfileAdapterInput genericNamespaceID
+
+func (i HasCustomerOverrideReferencingProfileAdapterInput) Validate() error {
+	return genericNamespaceID(i).Validate()
 }

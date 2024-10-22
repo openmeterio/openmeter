@@ -103,8 +103,13 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 	s.T().Run("fetching the profile by id", func(t *testing.T) {
 		fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-			Namespace: ns,
-			ID:        profile.ID,
+			Profile: models.NamespacedID{
+				Namespace: ns,
+				ID:        profile.ID,
+			},
+			Expand: billing.ProfileExpand{
+				Apps: true,
+			},
 		})
 
 		require.NoError(t, err)
@@ -126,8 +131,10 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 		t.Run("fetching a deleted profile by id returns the profile", func(t *testing.T) {
 			fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-				Namespace: ns,
-				ID:        profile.ID,
+				Profile: models.NamespacedID{
+					Namespace: ns,
+					ID:        profile.ID,
+				},
 			})
 
 			require.NoError(t, err)
@@ -211,8 +218,11 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-		Namespace: ns,
-		ID:        profile.ID,
+		Profile: models.NamespacedID{
+			Namespace: ns,
+			ID:        profile.ID,
+		},
+		Expand: billing.ProfileExpandAll,
 	})
 
 	// Sanity check db conversion & fetching
@@ -309,8 +319,11 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-		Namespace: ns,
-		ID:        profile.ID,
+		Profile: models.NamespacedID{
+			Namespace: ns,
+			ID:        profile.ID,
+		},
+		Expand: billing.ProfileExpandAll,
 	})
 
 	// Sanity check db conversion & fetching

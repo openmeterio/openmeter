@@ -46,9 +46,12 @@ func (App) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("customer_apps", AppCustomer.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("tax_app", BillingProfile.Type),
-		edge.To("invoicing_app", BillingProfile.Type),
-		edge.To("payment_app", BillingProfile.Type),
+		edge.To("billing_profile_tax_app", BillingProfile.Type),
+		edge.To("billing_profile_invoicing_app", BillingProfile.Type),
+		edge.To("billing_profile_payment_app", BillingProfile.Type),
+		edge.To("billing_invoice_tax_app", BillingInvoice.Type),
+		edge.To("billing_invoice_invoicing_app", BillingInvoice.Type),
+		edge.To("billing_invoice_payment_app", BillingInvoice.Type),
 	}
 }
 

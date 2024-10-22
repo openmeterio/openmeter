@@ -167,18 +167,18 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearItemCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearLineCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearItemCollectionPeriod()
+		return u.ClearLineCollectionPeriod()
 	}
-	return u.SetItemCollectionPeriod(*value)
+	return u.SetLineCollectionPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearItemCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearLineCollectionPeriod(value *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearItemCollectionPeriod()
+		return u.ClearLineCollectionPeriod()
 	}
-	return u.SetItemCollectionPeriod(*value)
+	return u.SetLineCollectionPeriod(*value)
 }
 
 func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceAutoAdvance(value *bool) *BillingCustomerOverrideUpdate {
@@ -237,20 +237,6 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceCollectionMethod(val
 	return u.SetInvoiceCollectionMethod(*value)
 }
 
-func (u *BillingInvoiceUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -265,32 +251,270 @@ func (u *BillingInvoiceUpdateOne) SetOrClearMetadata(value *map[string]string) *
 	return u.SetMetadata(*value)
 }
 
-func (u *BillingInvoiceUpdate) SetOrClearSeries(value *string) *BillingInvoiceUpdate {
+func (u *BillingInvoiceUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
-		return u.ClearSeries()
+		return u.ClearDeletedAt()
 	}
-	return u.SetSeries(*value)
+	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingInvoiceUpdateOne) SetOrClearSeries(value *string) *BillingInvoiceUpdateOne {
+func (u *BillingInvoiceUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceUpdateOne {
 	if value == nil {
-		return u.ClearSeries()
+		return u.ClearDeletedAt()
 	}
-	return u.SetSeries(*value)
+	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingInvoiceUpdate) SetOrClearCode(value *string) *BillingInvoiceUpdate {
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressCountry(value *models.CountryCode) *BillingInvoiceUpdate {
 	if value == nil {
-		return u.ClearCode()
+		return u.ClearSupplierAddressCountry()
 	}
-	return u.SetCode(*value)
+	return u.SetSupplierAddressCountry(*value)
 }
 
-func (u *BillingInvoiceUpdateOne) SetOrClearCode(value *string) *BillingInvoiceUpdateOne {
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressCountry(value *models.CountryCode) *BillingInvoiceUpdateOne {
 	if value == nil {
-		return u.ClearCode()
+		return u.ClearSupplierAddressCountry()
 	}
-	return u.SetCode(*value)
+	return u.SetSupplierAddressCountry(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressPostalCode(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierAddressPostalCode()
+	}
+	return u.SetSupplierAddressPostalCode(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressPostalCode(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierAddressPostalCode()
+	}
+	return u.SetSupplierAddressPostalCode(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressState(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierAddressState()
+	}
+	return u.SetSupplierAddressState(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressState(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierAddressState()
+	}
+	return u.SetSupplierAddressState(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressCity(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierAddressCity()
+	}
+	return u.SetSupplierAddressCity(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressCity(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierAddressCity()
+	}
+	return u.SetSupplierAddressCity(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressLine1(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierAddressLine1()
+	}
+	return u.SetSupplierAddressLine1(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressLine1(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierAddressLine1()
+	}
+	return u.SetSupplierAddressLine1(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressLine2(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierAddressLine2()
+	}
+	return u.SetSupplierAddressLine2(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressLine2(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierAddressLine2()
+	}
+	return u.SetSupplierAddressLine2(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierAddressPhoneNumber(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierAddressPhoneNumber()
+	}
+	return u.SetSupplierAddressPhoneNumber(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierAddressPhoneNumber(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierAddressPhoneNumber()
+	}
+	return u.SetSupplierAddressPhoneNumber(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressCountry(value *models.CountryCode) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressCountry()
+	}
+	return u.SetCustomerAddressCountry(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressCountry(value *models.CountryCode) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressCountry()
+	}
+	return u.SetCustomerAddressCountry(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressPostalCode(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressPostalCode()
+	}
+	return u.SetCustomerAddressPostalCode(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressPostalCode(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressPostalCode()
+	}
+	return u.SetCustomerAddressPostalCode(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressState(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressState()
+	}
+	return u.SetCustomerAddressState(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressState(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressState()
+	}
+	return u.SetCustomerAddressState(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressCity(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressCity()
+	}
+	return u.SetCustomerAddressCity(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressCity(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressCity()
+	}
+	return u.SetCustomerAddressCity(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressLine1(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressLine1()
+	}
+	return u.SetCustomerAddressLine1(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressLine1(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressLine1()
+	}
+	return u.SetCustomerAddressLine1(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressLine2(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressLine2()
+	}
+	return u.SetCustomerAddressLine2(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressLine2(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressLine2()
+	}
+	return u.SetCustomerAddressLine2(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerAddressPhoneNumber(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerAddressPhoneNumber()
+	}
+	return u.SetCustomerAddressPhoneNumber(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressPhoneNumber(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerAddressPhoneNumber()
+	}
+	return u.SetCustomerAddressPhoneNumber(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearSupplierTaxCode(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearSupplierTaxCode()
+	}
+	return u.SetSupplierTaxCode(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearSupplierTaxCode(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearSupplierTaxCode()
+	}
+	return u.SetSupplierTaxCode(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearCustomerTimezone(value *timezone.Timezone) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerTimezone()
+	}
+	return u.SetCustomerTimezone(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerTimezone(value *timezone.Timezone) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerTimezone()
+	}
+	return u.SetCustomerTimezone(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearNumber(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearNumber()
+	}
+	return u.SetNumber(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearNumber(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearNumber()
+	}
+	return u.SetNumber(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearDescription(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearVoidedAt(value *time.Time) *BillingInvoiceUpdate {
@@ -307,60 +531,130 @@ func (u *BillingInvoiceUpdateOne) SetOrClearVoidedAt(value *time.Time) *BillingI
 	return u.SetVoidedAt(*value)
 }
 
-func (u *BillingInvoiceItemUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceItemUpdate {
+func (u *BillingInvoiceUpdate) SetOrClearIssuedAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
-		return u.ClearDeletedAt()
+		return u.ClearIssuedAt()
 	}
-	return u.SetDeletedAt(*value)
+	return u.SetIssuedAt(*value)
 }
 
-func (u *BillingInvoiceItemUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceItemUpdateOne {
+func (u *BillingInvoiceUpdateOne) SetOrClearIssuedAt(value *time.Time) *BillingInvoiceUpdateOne {
 	if value == nil {
-		return u.ClearDeletedAt()
+		return u.ClearIssuedAt()
 	}
-	return u.SetDeletedAt(*value)
+	return u.SetIssuedAt(*value)
 }
 
-func (u *BillingInvoiceItemUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceItemUpdate {
+func (u *BillingInvoiceUpdate) SetOrClearDueAt(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearDueAt()
+	}
+	return u.SetDueAt(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearDueAt(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearDueAt()
+	}
+	return u.SetDueAt(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearPeriodStart(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearPeriodStart()
+	}
+	return u.SetPeriodStart(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearPeriodStart(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearPeriodStart()
+	}
+	return u.SetPeriodStart(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearPeriodEnd(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearPeriodEnd()
+	}
+	return u.SetPeriodEnd(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearPeriodEnd(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearPeriodEnd()
+	}
+	return u.SetPeriodEnd(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearMetadata()
 	}
 	return u.SetMetadata(*value)
 }
 
-func (u *BillingInvoiceItemUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingInvoiceItemUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearMetadata()
 	}
 	return u.SetMetadata(*value)
 }
 
-func (u *BillingInvoiceItemUpdate) SetOrClearInvoiceID(value *string) *BillingInvoiceItemUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineUpdate {
 	if value == nil {
-		return u.ClearInvoiceID()
+		return u.ClearDeletedAt()
 	}
-	return u.SetInvoiceID(*value)
+	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingInvoiceItemUpdateOne) SetOrClearInvoiceID(value *string) *BillingInvoiceItemUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceID()
+		return u.ClearDeletedAt()
 	}
-	return u.SetInvoiceID(*value)
+	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingInvoiceItemUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceItemUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearDescription(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearQuantity()
 	}
 	return u.SetQuantity(*value)
 }
 
-func (u *BillingInvoiceItemUpdateOne) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceItemUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearQuantity()
 	}
 	return u.SetQuantity(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearTaxOverrides(value **billingentity.TaxOverrides) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxOverrides()
+	}
+	return u.SetTaxOverrides(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxOverrides(value **billingentity.TaxOverrides) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxOverrides()
+	}
+	return u.SetTaxOverrides(*value)
 }
 
 func (u *BillingProfileUpdate) SetOrClearMetadata(value *map[string]string) *BillingProfileUpdate {

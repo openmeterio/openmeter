@@ -3,6 +3,7 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -17,12 +18,14 @@ type Service struct {
 	adapter         billing.Adapter
 	customerService customer.CustomerService
 	appService      app.Service
+	logger          *slog.Logger
 }
 
 type Config struct {
 	Adapter         billing.Adapter
 	CustomerService customer.CustomerService
 	AppService      app.Service
+	Logger          *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -38,6 +41,10 @@ func (c Config) Validate() error {
 		return errors.New("app service cannot be null")
 	}
 
+	if c.Logger == nil {
+		return errors.New("logger cannot be null")
+	}
+
 	return nil
 }
 
@@ -50,6 +57,7 @@ func New(config Config) (*Service, error) {
 		adapter:         config.Adapter,
 		customerService: config.CustomerService,
 		appService:      config.AppService,
+		logger:          config.Logger,
 	}, nil
 }
 

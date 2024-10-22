@@ -31,8 +31,8 @@ type BillingWorkflowConfig struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment billingentity.AlignmentKind `json:"collection_alignment,omitempty"`
-	// ItemCollectionPeriod holds the value of the "item_collection_period" field.
-	ItemCollectionPeriod datex.ISOString `json:"item_collection_period,omitempty"`
+	// LineCollectionPeriod holds the value of the "line_collection_period" field.
+	LineCollectionPeriod datex.ISOString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
 	InvoiceAutoAdvance bool `json:"invoice_auto_advance,omitempty"`
 	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
@@ -87,7 +87,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingworkflowconfig.FieldInvoiceAutoAdvance:
 			values[i] = new(sql.NullBool)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldItemCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -143,11 +143,11 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			} else if value.Valid {
 				bwc.CollectionAlignment = billingentity.AlignmentKind(value.String)
 			}
-		case billingworkflowconfig.FieldItemCollectionPeriod:
+		case billingworkflowconfig.FieldLineCollectionPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field item_collection_period", values[i])
+				return fmt.Errorf("unexpected type %T for field line_collection_period", values[i])
 			} else if value.Valid {
-				bwc.ItemCollectionPeriod = datex.ISOString(value.String)
+				bwc.LineCollectionPeriod = datex.ISOString(value.String)
 			}
 		case billingworkflowconfig.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -236,8 +236,8 @@ func (bwc *BillingWorkflowConfig) String() string {
 	builder.WriteString("collection_alignment=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.CollectionAlignment))
 	builder.WriteString(", ")
-	builder.WriteString("item_collection_period=")
-	builder.WriteString(fmt.Sprintf("%v", bwc.ItemCollectionPeriod))
+	builder.WriteString("line_collection_period=")
+	builder.WriteString(fmt.Sprintf("%v", bwc.LineCollectionPeriod))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_auto_advance=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceAutoAdvance))

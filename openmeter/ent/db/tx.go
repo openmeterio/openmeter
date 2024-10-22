@@ -28,8 +28,10 @@ type Tx struct {
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
-	// BillingInvoiceItem is the client for interacting with the BillingInvoiceItem builders.
-	BillingInvoiceItem *BillingInvoiceItemClient
+	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
+	BillingInvoiceLine *BillingInvoiceLineClient
+	// BillingInvoiceManualLineConfig is the client for interacting with the BillingInvoiceManualLineConfig builders.
+	BillingInvoiceManualLineConfig *BillingInvoiceManualLineConfigClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
@@ -192,7 +194,8 @@ func (tx *Tx) init() {
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
-	tx.BillingInvoiceItem = NewBillingInvoiceItemClient(tx.config)
+	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
+	tx.BillingInvoiceManualLineConfig = NewBillingInvoiceManualLineConfigClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)

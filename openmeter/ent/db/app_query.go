@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -22,15 +23,18 @@ import (
 // AppQuery is the builder for querying App entities.
 type AppQuery struct {
 	config
-	ctx              *QueryContext
-	order            []app.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.App
-	withCustomerApps *AppCustomerQuery
-	withTaxApp       *BillingProfileQuery
-	withInvoicingApp *BillingProfileQuery
-	withPaymentApp   *BillingProfileQuery
-	modifiers        []func(*sql.Selector)
+	ctx                            *QueryContext
+	order                          []app.OrderOption
+	inters                         []Interceptor
+	predicates                     []predicate.App
+	withCustomerApps               *AppCustomerQuery
+	withBillingProfileTaxApp       *BillingProfileQuery
+	withBillingProfileInvoicingApp *BillingProfileQuery
+	withBillingProfilePaymentApp   *BillingProfileQuery
+	withBillingInvoiceTaxApp       *BillingInvoiceQuery
+	withBillingInvoiceInvoicingApp *BillingInvoiceQuery
+	withBillingInvoicePaymentApp   *BillingInvoiceQuery
+	modifiers                      []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -89,8 +93,8 @@ func (aq *AppQuery) QueryCustomerApps() *AppCustomerQuery {
 	return query
 }
 
-// QueryTaxApp chains the current query on the "tax_app" edge.
-func (aq *AppQuery) QueryTaxApp() *BillingProfileQuery {
+// QueryBillingProfileTaxApp chains the current query on the "billing_profile_tax_app" edge.
+func (aq *AppQuery) QueryBillingProfileTaxApp() *BillingProfileQuery {
 	query := (&BillingProfileClient{config: aq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := aq.prepareQuery(ctx); err != nil {
@@ -103,7 +107,7 @@ func (aq *AppQuery) QueryTaxApp() *BillingProfileQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(app.Table, app.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.TaxAppTable, app.TaxAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfileTaxAppTable, app.BillingProfileTaxAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -111,8 +115,8 @@ func (aq *AppQuery) QueryTaxApp() *BillingProfileQuery {
 	return query
 }
 
-// QueryInvoicingApp chains the current query on the "invoicing_app" edge.
-func (aq *AppQuery) QueryInvoicingApp() *BillingProfileQuery {
+// QueryBillingProfileInvoicingApp chains the current query on the "billing_profile_invoicing_app" edge.
+func (aq *AppQuery) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
 	query := (&BillingProfileClient{config: aq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := aq.prepareQuery(ctx); err != nil {
@@ -125,7 +129,7 @@ func (aq *AppQuery) QueryInvoicingApp() *BillingProfileQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(app.Table, app.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.InvoicingAppTable, app.InvoicingAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfileInvoicingAppTable, app.BillingProfileInvoicingAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -133,8 +137,8 @@ func (aq *AppQuery) QueryInvoicingApp() *BillingProfileQuery {
 	return query
 }
 
-// QueryPaymentApp chains the current query on the "payment_app" edge.
-func (aq *AppQuery) QueryPaymentApp() *BillingProfileQuery {
+// QueryBillingProfilePaymentApp chains the current query on the "billing_profile_payment_app" edge.
+func (aq *AppQuery) QueryBillingProfilePaymentApp() *BillingProfileQuery {
 	query := (&BillingProfileClient{config: aq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := aq.prepareQuery(ctx); err != nil {
@@ -147,7 +151,73 @@ func (aq *AppQuery) QueryPaymentApp() *BillingProfileQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(app.Table, app.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.PaymentAppTable, app.PaymentAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfilePaymentAppTable, app.BillingProfilePaymentAppColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceTaxApp chains the current query on the "billing_invoice_tax_app" edge.
+func (aq *AppQuery) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: aq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoiceTaxAppTable, app.BillingInvoiceTaxAppColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceInvoicingApp chains the current query on the "billing_invoice_invoicing_app" edge.
+func (aq *AppQuery) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: aq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoiceInvoicingAppTable, app.BillingInvoiceInvoicingAppColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoicePaymentApp chains the current query on the "billing_invoice_payment_app" edge.
+func (aq *AppQuery) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: aq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoicePaymentAppTable, app.BillingInvoicePaymentAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -342,15 +412,18 @@ func (aq *AppQuery) Clone() *AppQuery {
 		return nil
 	}
 	return &AppQuery{
-		config:           aq.config,
-		ctx:              aq.ctx.Clone(),
-		order:            append([]app.OrderOption{}, aq.order...),
-		inters:           append([]Interceptor{}, aq.inters...),
-		predicates:       append([]predicate.App{}, aq.predicates...),
-		withCustomerApps: aq.withCustomerApps.Clone(),
-		withTaxApp:       aq.withTaxApp.Clone(),
-		withInvoicingApp: aq.withInvoicingApp.Clone(),
-		withPaymentApp:   aq.withPaymentApp.Clone(),
+		config:                         aq.config,
+		ctx:                            aq.ctx.Clone(),
+		order:                          append([]app.OrderOption{}, aq.order...),
+		inters:                         append([]Interceptor{}, aq.inters...),
+		predicates:                     append([]predicate.App{}, aq.predicates...),
+		withCustomerApps:               aq.withCustomerApps.Clone(),
+		withBillingProfileTaxApp:       aq.withBillingProfileTaxApp.Clone(),
+		withBillingProfileInvoicingApp: aq.withBillingProfileInvoicingApp.Clone(),
+		withBillingProfilePaymentApp:   aq.withBillingProfilePaymentApp.Clone(),
+		withBillingInvoiceTaxApp:       aq.withBillingInvoiceTaxApp.Clone(),
+		withBillingInvoiceInvoicingApp: aq.withBillingInvoiceInvoicingApp.Clone(),
+		withBillingInvoicePaymentApp:   aq.withBillingInvoicePaymentApp.Clone(),
 		// clone intermediate query.
 		sql:  aq.sql.Clone(),
 		path: aq.path,
@@ -368,36 +441,69 @@ func (aq *AppQuery) WithCustomerApps(opts ...func(*AppCustomerQuery)) *AppQuery 
 	return aq
 }
 
-// WithTaxApp tells the query-builder to eager-load the nodes that are connected to
-// the "tax_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithTaxApp(opts ...func(*BillingProfileQuery)) *AppQuery {
+// WithBillingProfileTaxApp tells the query-builder to eager-load the nodes that are connected to
+// the "billing_profile_tax_app" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithBillingProfileTaxApp(opts ...func(*BillingProfileQuery)) *AppQuery {
 	query := (&BillingProfileClient{config: aq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withTaxApp = query
+	aq.withBillingProfileTaxApp = query
 	return aq
 }
 
-// WithInvoicingApp tells the query-builder to eager-load the nodes that are connected to
-// the "invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithInvoicingApp(opts ...func(*BillingProfileQuery)) *AppQuery {
+// WithBillingProfileInvoicingApp tells the query-builder to eager-load the nodes that are connected to
+// the "billing_profile_invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithBillingProfileInvoicingApp(opts ...func(*BillingProfileQuery)) *AppQuery {
 	query := (&BillingProfileClient{config: aq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withInvoicingApp = query
+	aq.withBillingProfileInvoicingApp = query
 	return aq
 }
 
-// WithPaymentApp tells the query-builder to eager-load the nodes that are connected to
-// the "payment_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithPaymentApp(opts ...func(*BillingProfileQuery)) *AppQuery {
+// WithBillingProfilePaymentApp tells the query-builder to eager-load the nodes that are connected to
+// the "billing_profile_payment_app" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithBillingProfilePaymentApp(opts ...func(*BillingProfileQuery)) *AppQuery {
 	query := (&BillingProfileClient{config: aq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withPaymentApp = query
+	aq.withBillingProfilePaymentApp = query
+	return aq
+}
+
+// WithBillingInvoiceTaxApp tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_tax_app" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithBillingInvoiceTaxApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
+	query := (&BillingInvoiceClient{config: aq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withBillingInvoiceTaxApp = query
+	return aq
+}
+
+// WithBillingInvoiceInvoicingApp tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithBillingInvoiceInvoicingApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
+	query := (&BillingInvoiceClient{config: aq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withBillingInvoiceInvoicingApp = query
+	return aq
+}
+
+// WithBillingInvoicePaymentApp tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_payment_app" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AppQuery) WithBillingInvoicePaymentApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
+	query := (&BillingInvoiceClient{config: aq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withBillingInvoicePaymentApp = query
 	return aq
 }
 
@@ -479,11 +585,14 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 	var (
 		nodes       = []*App{}
 		_spec       = aq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [7]bool{
 			aq.withCustomerApps != nil,
-			aq.withTaxApp != nil,
-			aq.withInvoicingApp != nil,
-			aq.withPaymentApp != nil,
+			aq.withBillingProfileTaxApp != nil,
+			aq.withBillingProfileInvoicingApp != nil,
+			aq.withBillingProfilePaymentApp != nil,
+			aq.withBillingInvoiceTaxApp != nil,
+			aq.withBillingInvoiceInvoicingApp != nil,
+			aq.withBillingInvoicePaymentApp != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -514,24 +623,57 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 			return nil, err
 		}
 	}
-	if query := aq.withTaxApp; query != nil {
-		if err := aq.loadTaxApp(ctx, query, nodes,
-			func(n *App) { n.Edges.TaxApp = []*BillingProfile{} },
-			func(n *App, e *BillingProfile) { n.Edges.TaxApp = append(n.Edges.TaxApp, e) }); err != nil {
+	if query := aq.withBillingProfileTaxApp; query != nil {
+		if err := aq.loadBillingProfileTaxApp(ctx, query, nodes,
+			func(n *App) { n.Edges.BillingProfileTaxApp = []*BillingProfile{} },
+			func(n *App, e *BillingProfile) {
+				n.Edges.BillingProfileTaxApp = append(n.Edges.BillingProfileTaxApp, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
-	if query := aq.withInvoicingApp; query != nil {
-		if err := aq.loadInvoicingApp(ctx, query, nodes,
-			func(n *App) { n.Edges.InvoicingApp = []*BillingProfile{} },
-			func(n *App, e *BillingProfile) { n.Edges.InvoicingApp = append(n.Edges.InvoicingApp, e) }); err != nil {
+	if query := aq.withBillingProfileInvoicingApp; query != nil {
+		if err := aq.loadBillingProfileInvoicingApp(ctx, query, nodes,
+			func(n *App) { n.Edges.BillingProfileInvoicingApp = []*BillingProfile{} },
+			func(n *App, e *BillingProfile) {
+				n.Edges.BillingProfileInvoicingApp = append(n.Edges.BillingProfileInvoicingApp, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
-	if query := aq.withPaymentApp; query != nil {
-		if err := aq.loadPaymentApp(ctx, query, nodes,
-			func(n *App) { n.Edges.PaymentApp = []*BillingProfile{} },
-			func(n *App, e *BillingProfile) { n.Edges.PaymentApp = append(n.Edges.PaymentApp, e) }); err != nil {
+	if query := aq.withBillingProfilePaymentApp; query != nil {
+		if err := aq.loadBillingProfilePaymentApp(ctx, query, nodes,
+			func(n *App) { n.Edges.BillingProfilePaymentApp = []*BillingProfile{} },
+			func(n *App, e *BillingProfile) {
+				n.Edges.BillingProfilePaymentApp = append(n.Edges.BillingProfilePaymentApp, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := aq.withBillingInvoiceTaxApp; query != nil {
+		if err := aq.loadBillingInvoiceTaxApp(ctx, query, nodes,
+			func(n *App) { n.Edges.BillingInvoiceTaxApp = []*BillingInvoice{} },
+			func(n *App, e *BillingInvoice) {
+				n.Edges.BillingInvoiceTaxApp = append(n.Edges.BillingInvoiceTaxApp, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := aq.withBillingInvoiceInvoicingApp; query != nil {
+		if err := aq.loadBillingInvoiceInvoicingApp(ctx, query, nodes,
+			func(n *App) { n.Edges.BillingInvoiceInvoicingApp = []*BillingInvoice{} },
+			func(n *App, e *BillingInvoice) {
+				n.Edges.BillingInvoiceInvoicingApp = append(n.Edges.BillingInvoiceInvoicingApp, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := aq.withBillingInvoicePaymentApp; query != nil {
+		if err := aq.loadBillingInvoicePaymentApp(ctx, query, nodes,
+			func(n *App) { n.Edges.BillingInvoicePaymentApp = []*BillingInvoice{} },
+			func(n *App, e *BillingInvoice) {
+				n.Edges.BillingInvoicePaymentApp = append(n.Edges.BillingInvoicePaymentApp, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -568,7 +710,7 @@ func (aq *AppQuery) loadCustomerApps(ctx context.Context, query *AppCustomerQuer
 	}
 	return nil
 }
-func (aq *AppQuery) loadTaxApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
+func (aq *AppQuery) loadBillingProfileTaxApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -582,7 +724,7 @@ func (aq *AppQuery) loadTaxApp(ctx context.Context, query *BillingProfileQuery, 
 		query.ctx.AppendFieldOnce(billingprofile.FieldTaxAppID)
 	}
 	query.Where(predicate.BillingProfile(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.TaxAppColumn), fks...))
+		s.Where(sql.InValues(s.C(app.BillingProfileTaxAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -598,7 +740,7 @@ func (aq *AppQuery) loadTaxApp(ctx context.Context, query *BillingProfileQuery, 
 	}
 	return nil
 }
-func (aq *AppQuery) loadInvoicingApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
+func (aq *AppQuery) loadBillingProfileInvoicingApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -612,7 +754,7 @@ func (aq *AppQuery) loadInvoicingApp(ctx context.Context, query *BillingProfileQ
 		query.ctx.AppendFieldOnce(billingprofile.FieldInvoicingAppID)
 	}
 	query.Where(predicate.BillingProfile(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.InvoicingAppColumn), fks...))
+		s.Where(sql.InValues(s.C(app.BillingProfileInvoicingAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -628,7 +770,7 @@ func (aq *AppQuery) loadInvoicingApp(ctx context.Context, query *BillingProfileQ
 	}
 	return nil
 }
-func (aq *AppQuery) loadPaymentApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
+func (aq *AppQuery) loadBillingProfilePaymentApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -642,7 +784,97 @@ func (aq *AppQuery) loadPaymentApp(ctx context.Context, query *BillingProfileQue
 		query.ctx.AppendFieldOnce(billingprofile.FieldPaymentAppID)
 	}
 	query.Where(predicate.BillingProfile(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.PaymentAppColumn), fks...))
+		s.Where(sql.InValues(s.C(app.BillingProfilePaymentAppColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PaymentAppID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "payment_app_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (aq *AppQuery) loadBillingInvoiceTaxApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*App)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoice.FieldTaxAppID)
+	}
+	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(app.BillingInvoiceTaxAppColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxAppID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_app_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (aq *AppQuery) loadBillingInvoiceInvoicingApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*App)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoice.FieldInvoicingAppID)
+	}
+	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(app.BillingInvoiceInvoicingAppColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoicingAppID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoicing_app_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (aq *AppQuery) loadBillingInvoicePaymentApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*App)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoice.FieldPaymentAppID)
+	}
+	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(app.BillingInvoicePaymentAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

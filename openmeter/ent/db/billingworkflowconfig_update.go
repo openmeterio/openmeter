@@ -72,16 +72,16 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *bill
 	return bwcu
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetItemCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetItemCollectionPeriod(ds)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetLineCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetLineCollectionPeriod(ds)
 	return bwcu
 }
 
-// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
+// SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
 	if ds != nil {
-		bwcu.SetItemCollectionPeriod(*ds)
+		bwcu.SetLineCollectionPeriod(*ds)
 	}
 	return bwcu
 }
@@ -272,8 +272,8 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := bwcu.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
-	if value, ok := bwcu.mutation.ItemCollectionPeriod(); ok {
-		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriod, field.TypeString, value)
+	if value, ok := bwcu.mutation.LineCollectionPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldLineCollectionPeriod, field.TypeString, value)
 	}
 	if value, ok := bwcu.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -405,16 +405,16 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *
 	return bwcuo
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetItemCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetItemCollectionPeriod(ds)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetLineCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetLineCollectionPeriod(ds)
 	return bwcuo
 }
 
-// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
+// SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
 	if ds != nil {
-		bwcuo.SetItemCollectionPeriod(*ds)
+		bwcuo.SetLineCollectionPeriod(*ds)
 	}
 	return bwcuo
 }
@@ -635,8 +635,8 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if value, ok := bwcuo.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
-	if value, ok := bwcuo.mutation.ItemCollectionPeriod(); ok {
-		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriod, field.TypeString, value)
+	if value, ok := bwcuo.mutation.LineCollectionPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldLineCollectionPeriod, field.TypeString, value)
 	}
 	if value, ok := bwcuo.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)

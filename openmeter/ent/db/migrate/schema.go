@@ -246,7 +246,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "collection_alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription"}},
-		{Name: "item_collection_period", Type: field.TypeString, Nullable: true},
+		{Name: "line_collection_period", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
 		{Name: "invoice_draft_period", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_due_after", Type: field.TypeString, Nullable: true},
@@ -300,21 +300,44 @@ var (
 	BillingInvoicesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "series", Type: field.TypeString, Nullable: true},
-		{Name: "code", Type: field.TypeString, Nullable: true},
-		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "supplier_address_country", Type: field.TypeString, Nullable: true, Size: 2},
+		{Name: "supplier_address_postal_code", Type: field.TypeString, Nullable: true},
+		{Name: "supplier_address_state", Type: field.TypeString, Nullable: true},
+		{Name: "supplier_address_city", Type: field.TypeString, Nullable: true},
+		{Name: "supplier_address_line1", Type: field.TypeString, Nullable: true},
+		{Name: "supplier_address_line2", Type: field.TypeString, Nullable: true},
+		{Name: "supplier_address_phone_number", Type: field.TypeString, Nullable: true},
+		{Name: "customer_address_country", Type: field.TypeString, Nullable: true, Size: 2},
+		{Name: "customer_address_postal_code", Type: field.TypeString, Nullable: true},
+		{Name: "customer_address_state", Type: field.TypeString, Nullable: true},
+		{Name: "customer_address_city", Type: field.TypeString, Nullable: true},
+		{Name: "customer_address_line1", Type: field.TypeString, Nullable: true},
+		{Name: "customer_address_line2", Type: field.TypeString, Nullable: true},
+		{Name: "customer_address_phone_number", Type: field.TypeString, Nullable: true},
+		{Name: "supplier_name", Type: field.TypeString},
+		{Name: "supplier_tax_code", Type: field.TypeString, Nullable: true},
+		{Name: "customer_name", Type: field.TypeString},
+		{Name: "customer_timezone", Type: field.TypeString, Nullable: true},
+		{Name: "number", Type: field.TypeString, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "credit-note"}},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
+		{Name: "issued_at", Type: field.TypeTime, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "due_date", Type: field.TypeTime},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed"}},
-		{Name: "period_start", Type: field.TypeTime},
-		{Name: "period_end", Type: field.TypeTime},
-		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "due_at", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"gathering", "created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed"}},
+		{Name: "period_start", Type: field.TypeTime, Nullable: true},
+		{Name: "period_end", Type: field.TypeTime, Nullable: true},
+		{Name: "tax_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoicing_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "payment_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "workflow_config_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoicesTable holds the schema information for the "billing_invoices" table.
 	BillingInvoicesTable = &schema.Table{
@@ -323,15 +346,39 @@ var (
 		PrimaryKey: []*schema.Column{BillingInvoicesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
+				Symbol:     "billing_invoices_apps_billing_invoice_tax_app",
+				Columns:    []*schema.Column{BillingInvoicesColumns[34]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
+				Columns:    []*schema.Column{BillingInvoicesColumns[35]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
+				Columns:    []*schema.Column{BillingInvoicesColumns[36]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
 				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[15]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[37]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[16]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[38]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_customers_billing_invoice",
+				Columns:    []*schema.Column{BillingInvoicesColumns[39]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -354,83 +401,94 @@ var (
 			{
 				Name:    "billinginvoice_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[8]},
-			},
-			{
-				Name:    "billinginvoice_namespace_due_date",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[11]},
-			},
-			{
-				Name:    "billinginvoice_namespace_status",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[12]},
-			},
-			{
-				Name:    "billinginvoice_namespace_customer_id_series_code",
-				Unique:  true,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[8], BillingInvoicesColumns[6], BillingInvoicesColumns[7]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[39]},
 			},
 		},
 	}
-	// BillingInvoiceItemsColumns holds the columns for the "billing_invoice_items" table.
-	BillingInvoiceItemsColumns = []*schema.Column{
+	// BillingInvoiceLinesColumns holds the columns for the "billing_invoice_lines" table.
+	BillingInvoiceLinesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"static", "usage"}},
-		{Name: "name", Type: field.TypeString},
-		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "unit_price", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"manual_fee", "flat_fee", "usage_based"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"valid", "split"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "tax_code_override", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "tax_overrides", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "manual_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
-	// BillingInvoiceItemsTable holds the schema information for the "billing_invoice_items" table.
-	BillingInvoiceItemsTable = &schema.Table{
-		Name:       "billing_invoice_items",
-		Columns:    BillingInvoiceItemsColumns,
-		PrimaryKey: []*schema.Column{BillingInvoiceItemsColumns[0]},
+	// BillingInvoiceLinesTable holds the schema information for the "billing_invoice_lines" table.
+	BillingInvoiceLinesTable = &schema.Table{
+		Name:       "billing_invoice_lines",
+		Columns:    BillingInvoiceLinesColumns,
+		PrimaryKey: []*schema.Column{BillingInvoiceLinesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "billing_invoice_items_billing_invoices_billing_invoice_items",
-				Columns:    []*schema.Column{BillingInvoiceItemsColumns[16]},
+				Symbol:     "billing_invoice_lines_billing_invoices_billing_invoice_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[16]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoice_lines_billing_invoice_manual_line_configs_billing_invoice_manual_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[17]},
+				RefColumns: []*schema.Column{BillingInvoiceManualLineConfigsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "billinginvoiceitem_id",
+				Name:    "billinginvoiceline_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceItemsColumns[0]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 			},
 			{
-				Name:    "billinginvoiceitem_namespace",
+				Name:    "billinginvoiceline_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceItemsColumns[1]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1]},
 			},
 			{
-				Name:    "billinginvoiceitem_namespace_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceItemsColumns[1], BillingInvoiceItemsColumns[0]},
+				Name:    "billinginvoiceline_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[0]},
 			},
 			{
-				Name:    "billinginvoiceitem_namespace_invoice_id",
+				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceItemsColumns[1], BillingInvoiceItemsColumns[16]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[16]},
+			},
+		},
+	}
+	// BillingInvoiceManualLineConfigsColumns holds the columns for the "billing_invoice_manual_line_configs" table.
+	BillingInvoiceManualLineConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "unit_price", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+	}
+	// BillingInvoiceManualLineConfigsTable holds the schema information for the "billing_invoice_manual_line_configs" table.
+	BillingInvoiceManualLineConfigsTable = &schema.Table{
+		Name:       "billing_invoice_manual_line_configs",
+		Columns:    BillingInvoiceManualLineConfigsColumns,
+		PrimaryKey: []*schema.Column{BillingInvoiceManualLineConfigsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinginvoicemanuallineconfig_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceManualLineConfigsColumns[1]},
 			},
 			{
-				Name:    "billinginvoiceitem_namespace_customer_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceItemsColumns[1], BillingInvoiceItemsColumns[6]},
+				Name:    "billinginvoicemanuallineconfig_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceManualLineConfigsColumns[0]},
 			},
 		},
 	}
@@ -466,19 +524,19 @@ var (
 		PrimaryKey: []*schema.Column{BillingProfilesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "billing_profiles_apps_tax_app",
+				Symbol:     "billing_profiles_apps_billing_profile_tax_app",
 				Columns:    []*schema.Column{BillingProfilesColumns[18]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_profiles_apps_invoicing_app",
+				Symbol:     "billing_profiles_apps_billing_profile_invoicing_app",
 				Columns:    []*schema.Column{BillingProfilesColumns[19]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_profiles_apps_payment_app",
+				Symbol:     "billing_profiles_apps_billing_profile_payment_app",
 				Columns:    []*schema.Column{BillingProfilesColumns[20]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
@@ -521,7 +579,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "collection_alignment", Type: field.TypeEnum, Enums: []string{"subscription"}},
-		{Name: "item_collection_period", Type: field.TypeString},
+		{Name: "line_collection_period", Type: field.TypeString},
 		{Name: "invoice_auto_advance", Type: field.TypeBool},
 		{Name: "invoice_draft_period", Type: field.TypeString},
 		{Name: "invoice_due_after", Type: field.TypeString},
@@ -1087,7 +1145,8 @@ var (
 		BalanceSnapshotsTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
-		BillingInvoiceItemsTable,
+		BillingInvoiceLinesTable,
+		BillingInvoiceManualLineConfigsTable,
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
 		CustomersTable,
@@ -1114,9 +1173,14 @@ func init() {
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable
-	BillingInvoicesTable.ForeignKeys[0].RefTable = BillingProfilesTable
-	BillingInvoicesTable.ForeignKeys[1].RefTable = BillingWorkflowConfigsTable
-	BillingInvoiceItemsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingInvoicesTable.ForeignKeys[0].RefTable = AppsTable
+	BillingInvoicesTable.ForeignKeys[1].RefTable = AppsTable
+	BillingInvoicesTable.ForeignKeys[2].RefTable = AppsTable
+	BillingInvoicesTable.ForeignKeys[3].RefTable = BillingProfilesTable
+	BillingInvoicesTable.ForeignKeys[4].RefTable = BillingWorkflowConfigsTable
+	BillingInvoicesTable.ForeignKeys[5].RefTable = CustomersTable
+	BillingInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceManualLineConfigsTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable

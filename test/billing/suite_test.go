@@ -101,6 +101,7 @@ func (s *BaseSuite) SetupSuite() {
 		Adapter:         billingAdapter,
 		CustomerService: s.CustomerService,
 		AppService:      s.AppService,
+		Logger:          slog.Default(),
 	})
 	require.NoError(t, err)
 	s.BillingService = billingService

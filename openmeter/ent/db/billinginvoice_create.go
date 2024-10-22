@@ -13,10 +13,15 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingInvoiceCreate is the builder for creating a BillingInvoice entity.
@@ -30,6 +35,12 @@ type BillingInvoiceCreate struct {
 // SetNamespace sets the "namespace" field.
 func (bic *BillingInvoiceCreate) SetNamespace(s string) *BillingInvoiceCreate {
 	bic.mutation.SetNamespace(s)
+	return bic
+}
+
+// SetMetadata sets the "metadata" field.
+func (bic *BillingInvoiceCreate) SetMetadata(m map[string]string) *BillingInvoiceCreate {
+	bic.mutation.SetMetadata(m)
 	return bic
 }
 
@@ -75,36 +86,272 @@ func (bic *BillingInvoiceCreate) SetNillableDeletedAt(t *time.Time) *BillingInvo
 	return bic
 }
 
-// SetMetadata sets the "metadata" field.
-func (bic *BillingInvoiceCreate) SetMetadata(m map[string]string) *BillingInvoiceCreate {
-	bic.mutation.SetMetadata(m)
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressCountry(mc models.CountryCode) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressCountry(mc)
 	return bic
 }
 
-// SetSeries sets the "series" field.
-func (bic *BillingInvoiceCreate) SetSeries(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSeries(s)
-	return bic
-}
-
-// SetNillableSeries sets the "series" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSeries(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSeries(*s)
+// SetNillableSupplierAddressCountry sets the "supplier_address_country" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressCountry(mc *models.CountryCode) *BillingInvoiceCreate {
+	if mc != nil {
+		bic.SetSupplierAddressCountry(*mc)
 	}
 	return bic
 }
 
-// SetCode sets the "code" field.
-func (bic *BillingInvoiceCreate) SetCode(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCode(s)
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressPostalCode(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressPostalCode(s)
 	return bic
 }
 
-// SetNillableCode sets the "code" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCode(s *string) *BillingInvoiceCreate {
+// SetNillableSupplierAddressPostalCode sets the "supplier_address_postal_code" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressPostalCode(s *string) *BillingInvoiceCreate {
 	if s != nil {
-		bic.SetCode(*s)
+		bic.SetSupplierAddressPostalCode(*s)
+	}
+	return bic
+}
+
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressState(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressState(s)
+	return bic
+}
+
+// SetNillableSupplierAddressState sets the "supplier_address_state" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressState(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSupplierAddressState(*s)
+	}
+	return bic
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressCity(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressCity(s)
+	return bic
+}
+
+// SetNillableSupplierAddressCity sets the "supplier_address_city" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressCity(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSupplierAddressCity(*s)
+	}
+	return bic
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressLine1(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressLine1(s)
+	return bic
+}
+
+// SetNillableSupplierAddressLine1 sets the "supplier_address_line1" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressLine1(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSupplierAddressLine1(*s)
+	}
+	return bic
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressLine2(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressLine2(s)
+	return bic
+}
+
+// SetNillableSupplierAddressLine2 sets the "supplier_address_line2" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressLine2(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSupplierAddressLine2(*s)
+	}
+	return bic
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (bic *BillingInvoiceCreate) SetSupplierAddressPhoneNumber(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierAddressPhoneNumber(s)
+	return bic
+}
+
+// SetNillableSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierAddressPhoneNumber(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSupplierAddressPhoneNumber(*s)
+	}
+	return bic
+}
+
+// SetCustomerAddressCountry sets the "customer_address_country" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressCountry(mc models.CountryCode) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressCountry(mc)
+	return bic
+}
+
+// SetNillableCustomerAddressCountry sets the "customer_address_country" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressCountry(mc *models.CountryCode) *BillingInvoiceCreate {
+	if mc != nil {
+		bic.SetCustomerAddressCountry(*mc)
+	}
+	return bic
+}
+
+// SetCustomerAddressPostalCode sets the "customer_address_postal_code" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressPostalCode(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressPostalCode(s)
+	return bic
+}
+
+// SetNillableCustomerAddressPostalCode sets the "customer_address_postal_code" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressPostalCode(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCustomerAddressPostalCode(*s)
+	}
+	return bic
+}
+
+// SetCustomerAddressState sets the "customer_address_state" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressState(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressState(s)
+	return bic
+}
+
+// SetNillableCustomerAddressState sets the "customer_address_state" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressState(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCustomerAddressState(*s)
+	}
+	return bic
+}
+
+// SetCustomerAddressCity sets the "customer_address_city" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressCity(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressCity(s)
+	return bic
+}
+
+// SetNillableCustomerAddressCity sets the "customer_address_city" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressCity(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCustomerAddressCity(*s)
+	}
+	return bic
+}
+
+// SetCustomerAddressLine1 sets the "customer_address_line1" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressLine1(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressLine1(s)
+	return bic
+}
+
+// SetNillableCustomerAddressLine1 sets the "customer_address_line1" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressLine1(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCustomerAddressLine1(*s)
+	}
+	return bic
+}
+
+// SetCustomerAddressLine2 sets the "customer_address_line2" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressLine2(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressLine2(s)
+	return bic
+}
+
+// SetNillableCustomerAddressLine2 sets the "customer_address_line2" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressLine2(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCustomerAddressLine2(*s)
+	}
+	return bic
+}
+
+// SetCustomerAddressPhoneNumber sets the "customer_address_phone_number" field.
+func (bic *BillingInvoiceCreate) SetCustomerAddressPhoneNumber(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerAddressPhoneNumber(s)
+	return bic
+}
+
+// SetNillableCustomerAddressPhoneNumber sets the "customer_address_phone_number" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerAddressPhoneNumber(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetCustomerAddressPhoneNumber(*s)
+	}
+	return bic
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (bic *BillingInvoiceCreate) SetSupplierName(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierName(s)
+	return bic
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (bic *BillingInvoiceCreate) SetSupplierTaxCode(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSupplierTaxCode(s)
+	return bic
+}
+
+// SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSupplierTaxCode(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetSupplierTaxCode(*s)
+	}
+	return bic
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (bic *BillingInvoiceCreate) SetCustomerName(s string) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerName(s)
+	return bic
+}
+
+// SetCustomerTimezone sets the "customer_timezone" field.
+func (bic *BillingInvoiceCreate) SetCustomerTimezone(t timezone.Timezone) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerTimezone(t)
+	return bic
+}
+
+// SetNillableCustomerTimezone sets the "customer_timezone" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCustomerTimezone(t *timezone.Timezone) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetCustomerTimezone(*t)
+	}
+	return bic
+}
+
+// SetNumber sets the "number" field.
+func (bic *BillingInvoiceCreate) SetNumber(s string) *BillingInvoiceCreate {
+	bic.mutation.SetNumber(s)
+	return bic
+}
+
+// SetNillableNumber sets the "number" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableNumber(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetNumber(*s)
+	}
+	return bic
+}
+
+// SetType sets the "type" field.
+func (bic *BillingInvoiceCreate) SetType(bt billingentity.InvoiceType) *BillingInvoiceCreate {
+	bic.mutation.SetType(bt)
+	return bic
+}
+
+// SetDescription sets the "description" field.
+func (bic *BillingInvoiceCreate) SetDescription(s string) *BillingInvoiceCreate {
+	bic.mutation.SetDescription(s)
+	return bic
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableDescription(s *string) *BillingInvoiceCreate {
+	if s != nil {
+		bic.SetDescription(*s)
 	}
 	return bic
 }
@@ -115,9 +362,9 @@ func (bic *BillingInvoiceCreate) SetCustomerID(s string) *BillingInvoiceCreate {
 	return bic
 }
 
-// SetBillingProfileID sets the "billing_profile_id" field.
-func (bic *BillingInvoiceCreate) SetBillingProfileID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetBillingProfileID(s)
+// SetSourceBillingProfileID sets the "source_billing_profile_id" field.
+func (bic *BillingInvoiceCreate) SetSourceBillingProfileID(s string) *BillingInvoiceCreate {
+	bic.mutation.SetSourceBillingProfileID(s)
 	return bic
 }
 
@@ -135,15 +382,37 @@ func (bic *BillingInvoiceCreate) SetNillableVoidedAt(t *time.Time) *BillingInvoi
 	return bic
 }
 
-// SetCurrency sets the "currency" field.
-func (bic *BillingInvoiceCreate) SetCurrency(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCurrency(s)
+// SetIssuedAt sets the "issued_at" field.
+func (bic *BillingInvoiceCreate) SetIssuedAt(t time.Time) *BillingInvoiceCreate {
+	bic.mutation.SetIssuedAt(t)
 	return bic
 }
 
-// SetDueDate sets the "due_date" field.
-func (bic *BillingInvoiceCreate) SetDueDate(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetDueDate(t)
+// SetNillableIssuedAt sets the "issued_at" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableIssuedAt(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetIssuedAt(*t)
+	}
+	return bic
+}
+
+// SetCurrency sets the "currency" field.
+func (bic *BillingInvoiceCreate) SetCurrency(c currencyx.Code) *BillingInvoiceCreate {
+	bic.mutation.SetCurrency(c)
+	return bic
+}
+
+// SetDueAt sets the "due_at" field.
+func (bic *BillingInvoiceCreate) SetDueAt(t time.Time) *BillingInvoiceCreate {
+	bic.mutation.SetDueAt(t)
+	return bic
+}
+
+// SetNillableDueAt sets the "due_at" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableDueAt(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetDueAt(*t)
+	}
 	return bic
 }
 
@@ -159,15 +428,49 @@ func (bic *BillingInvoiceCreate) SetWorkflowConfigID(s string) *BillingInvoiceCr
 	return bic
 }
 
+// SetTaxAppID sets the "tax_app_id" field.
+func (bic *BillingInvoiceCreate) SetTaxAppID(s string) *BillingInvoiceCreate {
+	bic.mutation.SetTaxAppID(s)
+	return bic
+}
+
+// SetInvoicingAppID sets the "invoicing_app_id" field.
+func (bic *BillingInvoiceCreate) SetInvoicingAppID(s string) *BillingInvoiceCreate {
+	bic.mutation.SetInvoicingAppID(s)
+	return bic
+}
+
+// SetPaymentAppID sets the "payment_app_id" field.
+func (bic *BillingInvoiceCreate) SetPaymentAppID(s string) *BillingInvoiceCreate {
+	bic.mutation.SetPaymentAppID(s)
+	return bic
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (bic *BillingInvoiceCreate) SetPeriodStart(t time.Time) *BillingInvoiceCreate {
 	bic.mutation.SetPeriodStart(t)
 	return bic
 }
 
+// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillablePeriodStart(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetPeriodStart(*t)
+	}
+	return bic
+}
+
 // SetPeriodEnd sets the "period_end" field.
 func (bic *BillingInvoiceCreate) SetPeriodEnd(t time.Time) *BillingInvoiceCreate {
 	bic.mutation.SetPeriodEnd(t)
+	return bic
+}
+
+// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillablePeriodEnd(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetPeriodEnd(*t)
+	}
 	return bic
 }
 
@@ -185,9 +488,9 @@ func (bic *BillingInvoiceCreate) SetNillableID(s *string) *BillingInvoiceCreate 
 	return bic
 }
 
-// SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
-func (bic *BillingInvoiceCreate) SetBillingProfile(b *BillingProfile) *BillingInvoiceCreate {
-	return bic.SetBillingProfileID(b.ID)
+// SetSourceBillingProfile sets the "source_billing_profile" edge to the BillingProfile entity.
+func (bic *BillingInvoiceCreate) SetSourceBillingProfile(b *BillingProfile) *BillingInvoiceCreate {
+	return bic.SetSourceBillingProfileID(b.ID)
 }
 
 // SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
@@ -201,19 +504,45 @@ func (bic *BillingInvoiceCreate) SetBillingWorkflowConfig(b *BillingWorkflowConf
 	return bic.SetBillingWorkflowConfigID(b.ID)
 }
 
-// AddBillingInvoiceItemIDs adds the "billing_invoice_items" edge to the BillingInvoiceItem entity by IDs.
-func (bic *BillingInvoiceCreate) AddBillingInvoiceItemIDs(ids ...string) *BillingInvoiceCreate {
-	bic.mutation.AddBillingInvoiceItemIDs(ids...)
+// AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
+func (bic *BillingInvoiceCreate) AddBillingInvoiceLineIDs(ids ...string) *BillingInvoiceCreate {
+	bic.mutation.AddBillingInvoiceLineIDs(ids...)
 	return bic
 }
 
-// AddBillingInvoiceItems adds the "billing_invoice_items" edges to the BillingInvoiceItem entity.
-func (bic *BillingInvoiceCreate) AddBillingInvoiceItems(b ...*BillingInvoiceItem) *BillingInvoiceCreate {
+// AddBillingInvoiceLines adds the "billing_invoice_lines" edges to the BillingInvoiceLine entity.
+func (bic *BillingInvoiceCreate) AddBillingInvoiceLines(b ...*BillingInvoiceLine) *BillingInvoiceCreate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return bic.AddBillingInvoiceItemIDs(ids...)
+	return bic.AddBillingInvoiceLineIDs(ids...)
+}
+
+// SetBillingInvoiceCustomerID sets the "billing_invoice_customer" edge to the Customer entity by ID.
+func (bic *BillingInvoiceCreate) SetBillingInvoiceCustomerID(id string) *BillingInvoiceCreate {
+	bic.mutation.SetBillingInvoiceCustomerID(id)
+	return bic
+}
+
+// SetBillingInvoiceCustomer sets the "billing_invoice_customer" edge to the Customer entity.
+func (bic *BillingInvoiceCreate) SetBillingInvoiceCustomer(c *Customer) *BillingInvoiceCreate {
+	return bic.SetBillingInvoiceCustomerID(c.ID)
+}
+
+// SetTaxApp sets the "tax_app" edge to the App entity.
+func (bic *BillingInvoiceCreate) SetTaxApp(a *App) *BillingInvoiceCreate {
+	return bic.SetTaxAppID(a.ID)
+}
+
+// SetInvoicingApp sets the "invoicing_app" edge to the App entity.
+func (bic *BillingInvoiceCreate) SetInvoicingApp(a *App) *BillingInvoiceCreate {
+	return bic.SetInvoicingAppID(a.ID)
+}
+
+// SetPaymentApp sets the "payment_app" edge to the App entity.
+func (bic *BillingInvoiceCreate) SetPaymentApp(a *App) *BillingInvoiceCreate {
+	return bic.SetPaymentAppID(a.ID)
 }
 
 // Mutation returns the BillingInvoiceMutation object of the builder.
@@ -281,6 +610,45 @@ func (bic *BillingInvoiceCreate) check() error {
 	if _, ok := bic.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoice.updated_at"`)}
 	}
+	if v, ok := bic.mutation.SupplierAddressCountry(); ok {
+		if err := billinginvoice.SupplierAddressCountryValidator(string(v)); err != nil {
+			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.supplier_address_country": %w`, err)}
+		}
+	}
+	if v, ok := bic.mutation.CustomerAddressCountry(); ok {
+		if err := billinginvoice.CustomerAddressCountryValidator(string(v)); err != nil {
+			return &ValidationError{Name: "customer_address_country", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_address_country": %w`, err)}
+		}
+	}
+	if _, ok := bic.mutation.SupplierName(); !ok {
+		return &ValidationError{Name: "supplier_name", err: errors.New(`db: missing required field "BillingInvoice.supplier_name"`)}
+	}
+	if v, ok := bic.mutation.SupplierName(); ok {
+		if err := billinginvoice.SupplierNameValidator(v); err != nil {
+			return &ValidationError{Name: "supplier_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.supplier_name": %w`, err)}
+		}
+	}
+	if _, ok := bic.mutation.CustomerName(); !ok {
+		return &ValidationError{Name: "customer_name", err: errors.New(`db: missing required field "BillingInvoice.customer_name"`)}
+	}
+	if v, ok := bic.mutation.CustomerName(); ok {
+		if err := billinginvoice.CustomerNameValidator(v); err != nil {
+			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
+		}
+	}
+	if v, ok := bic.mutation.CustomerTimezone(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "customer_timezone", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_timezone": %w`, err)}
+		}
+	}
+	if _, ok := bic.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoice.type"`)}
+	}
+	if v, ok := bic.mutation.GetType(); ok {
+		if err := billinginvoice.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
+		}
+	}
 	if _, ok := bic.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingInvoice.customer_id"`)}
 	}
@@ -289,24 +657,21 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_id": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.BillingProfileID(); !ok {
-		return &ValidationError{Name: "billing_profile_id", err: errors.New(`db: missing required field "BillingInvoice.billing_profile_id"`)}
+	if _, ok := bic.mutation.SourceBillingProfileID(); !ok {
+		return &ValidationError{Name: "source_billing_profile_id", err: errors.New(`db: missing required field "BillingInvoice.source_billing_profile_id"`)}
 	}
-	if v, ok := bic.mutation.BillingProfileID(); ok {
-		if err := billinginvoice.BillingProfileIDValidator(v); err != nil {
-			return &ValidationError{Name: "billing_profile_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.billing_profile_id": %w`, err)}
+	if v, ok := bic.mutation.SourceBillingProfileID(); ok {
+		if err := billinginvoice.SourceBillingProfileIDValidator(v); err != nil {
+			return &ValidationError{Name: "source_billing_profile_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.source_billing_profile_id": %w`, err)}
 		}
 	}
 	if _, ok := bic.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoice.currency"`)}
 	}
 	if v, ok := bic.mutation.Currency(); ok {
-		if err := billinginvoice.CurrencyValidator(v); err != nil {
+		if err := billinginvoice.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.currency": %w`, err)}
 		}
-	}
-	if _, ok := bic.mutation.DueDate(); !ok {
-		return &ValidationError{Name: "due_date", err: errors.New(`db: missing required field "BillingInvoice.due_date"`)}
 	}
 	if _, ok := bic.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "BillingInvoice.status"`)}
@@ -319,17 +684,32 @@ func (bic *BillingInvoiceCreate) check() error {
 	if _, ok := bic.mutation.WorkflowConfigID(); !ok {
 		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingInvoice.workflow_config_id"`)}
 	}
-	if _, ok := bic.mutation.PeriodStart(); !ok {
-		return &ValidationError{Name: "period_start", err: errors.New(`db: missing required field "BillingInvoice.period_start"`)}
+	if _, ok := bic.mutation.TaxAppID(); !ok {
+		return &ValidationError{Name: "tax_app_id", err: errors.New(`db: missing required field "BillingInvoice.tax_app_id"`)}
 	}
-	if _, ok := bic.mutation.PeriodEnd(); !ok {
-		return &ValidationError{Name: "period_end", err: errors.New(`db: missing required field "BillingInvoice.period_end"`)}
+	if _, ok := bic.mutation.InvoicingAppID(); !ok {
+		return &ValidationError{Name: "invoicing_app_id", err: errors.New(`db: missing required field "BillingInvoice.invoicing_app_id"`)}
 	}
-	if len(bic.mutation.BillingProfileIDs()) == 0 {
-		return &ValidationError{Name: "billing_profile", err: errors.New(`db: missing required edge "BillingInvoice.billing_profile"`)}
+	if _, ok := bic.mutation.PaymentAppID(); !ok {
+		return &ValidationError{Name: "payment_app_id", err: errors.New(`db: missing required field "BillingInvoice.payment_app_id"`)}
+	}
+	if len(bic.mutation.SourceBillingProfileIDs()) == 0 {
+		return &ValidationError{Name: "source_billing_profile", err: errors.New(`db: missing required edge "BillingInvoice.source_billing_profile"`)}
 	}
 	if len(bic.mutation.BillingWorkflowConfigIDs()) == 0 {
 		return &ValidationError{Name: "billing_workflow_config", err: errors.New(`db: missing required edge "BillingInvoice.billing_workflow_config"`)}
+	}
+	if len(bic.mutation.BillingInvoiceCustomerIDs()) == 0 {
+		return &ValidationError{Name: "billing_invoice_customer", err: errors.New(`db: missing required edge "BillingInvoice.billing_invoice_customer"`)}
+	}
+	if len(bic.mutation.TaxAppIDs()) == 0 {
+		return &ValidationError{Name: "tax_app", err: errors.New(`db: missing required edge "BillingInvoice.tax_app"`)}
+	}
+	if len(bic.mutation.InvoicingAppIDs()) == 0 {
+		return &ValidationError{Name: "invoicing_app", err: errors.New(`db: missing required edge "BillingInvoice.invoicing_app"`)}
+	}
+	if len(bic.mutation.PaymentAppIDs()) == 0 {
+		return &ValidationError{Name: "payment_app", err: errors.New(`db: missing required edge "BillingInvoice.payment_app"`)}
 	}
 	return nil
 }
@@ -371,6 +751,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_spec.SetField(billinginvoice.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := bic.mutation.Metadata(); ok {
+		_spec.SetField(billinginvoice.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := bic.mutation.CreatedAt(); ok {
 		_spec.SetField(billinginvoice.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -383,33 +767,105 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_spec.SetField(billinginvoice.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bic.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoice.FieldMetadata, field.TypeJSON, value)
-		_node.Metadata = value
+	if value, ok := bic.mutation.SupplierAddressCountry(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressCountry, field.TypeString, value)
+		_node.SupplierAddressCountry = &value
 	}
-	if value, ok := bic.mutation.Series(); ok {
-		_spec.SetField(billinginvoice.FieldSeries, field.TypeString, value)
-		_node.Series = &value
+	if value, ok := bic.mutation.SupplierAddressPostalCode(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressPostalCode, field.TypeString, value)
+		_node.SupplierAddressPostalCode = &value
 	}
-	if value, ok := bic.mutation.Code(); ok {
-		_spec.SetField(billinginvoice.FieldCode, field.TypeString, value)
-		_node.Code = &value
+	if value, ok := bic.mutation.SupplierAddressState(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressState, field.TypeString, value)
+		_node.SupplierAddressState = &value
 	}
-	if value, ok := bic.mutation.CustomerID(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerID, field.TypeString, value)
-		_node.CustomerID = value
+	if value, ok := bic.mutation.SupplierAddressCity(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressCity, field.TypeString, value)
+		_node.SupplierAddressCity = &value
+	}
+	if value, ok := bic.mutation.SupplierAddressLine1(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressLine1, field.TypeString, value)
+		_node.SupplierAddressLine1 = &value
+	}
+	if value, ok := bic.mutation.SupplierAddressLine2(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressLine2, field.TypeString, value)
+		_node.SupplierAddressLine2 = &value
+	}
+	if value, ok := bic.mutation.SupplierAddressPhoneNumber(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierAddressPhoneNumber, field.TypeString, value)
+		_node.SupplierAddressPhoneNumber = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressCountry(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressCountry, field.TypeString, value)
+		_node.CustomerAddressCountry = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressPostalCode(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressPostalCode, field.TypeString, value)
+		_node.CustomerAddressPostalCode = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressState(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressState, field.TypeString, value)
+		_node.CustomerAddressState = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressCity(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressCity, field.TypeString, value)
+		_node.CustomerAddressCity = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressLine1(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressLine1, field.TypeString, value)
+		_node.CustomerAddressLine1 = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressLine2(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressLine2, field.TypeString, value)
+		_node.CustomerAddressLine2 = &value
+	}
+	if value, ok := bic.mutation.CustomerAddressPhoneNumber(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerAddressPhoneNumber, field.TypeString, value)
+		_node.CustomerAddressPhoneNumber = &value
+	}
+	if value, ok := bic.mutation.SupplierName(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)
+		_node.SupplierName = value
+	}
+	if value, ok := bic.mutation.SupplierTaxCode(); ok {
+		_spec.SetField(billinginvoice.FieldSupplierTaxCode, field.TypeString, value)
+		_node.SupplierTaxCode = &value
+	}
+	if value, ok := bic.mutation.CustomerName(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
+		_node.CustomerName = value
+	}
+	if value, ok := bic.mutation.CustomerTimezone(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerTimezone, field.TypeString, value)
+		_node.CustomerTimezone = &value
+	}
+	if value, ok := bic.mutation.Number(); ok {
+		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
+		_node.Number = &value
+	}
+	if value, ok := bic.mutation.GetType(); ok {
+		_spec.SetField(billinginvoice.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
+	if value, ok := bic.mutation.Description(); ok {
+		_spec.SetField(billinginvoice.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := bic.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
-		_node.VoidedAt = value
+		_node.VoidedAt = &value
+	}
+	if value, ok := bic.mutation.IssuedAt(); ok {
+		_spec.SetField(billinginvoice.FieldIssuedAt, field.TypeTime, value)
+		_node.IssuedAt = &value
 	}
 	if value, ok := bic.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
 	}
-	if value, ok := bic.mutation.DueDate(); ok {
-		_spec.SetField(billinginvoice.FieldDueDate, field.TypeTime, value)
-		_node.DueDate = value
+	if value, ok := bic.mutation.DueAt(); ok {
+		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
+		_node.DueAt = &value
 	}
 	if value, ok := bic.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
@@ -417,18 +873,18 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	}
 	if value, ok := bic.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
-		_node.PeriodStart = value
+		_node.PeriodStart = &value
 	}
 	if value, ok := bic.mutation.PeriodEnd(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodEnd, field.TypeTime, value)
-		_node.PeriodEnd = value
+		_node.PeriodEnd = &value
 	}
-	if nodes := bic.mutation.BillingProfileIDs(); len(nodes) > 0 {
+	if nodes := bic.mutation.SourceBillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   billinginvoice.BillingProfileTable,
-			Columns: []string{billinginvoice.BillingProfileColumn},
+			Table:   billinginvoice.SourceBillingProfileTable,
+			Columns: []string{billinginvoice.SourceBillingProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -437,7 +893,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.BillingProfileID = nodes[0]
+		_node.SourceBillingProfileID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := bic.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
@@ -457,20 +913,88 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_node.WorkflowConfigID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.BillingInvoiceItemsIDs(); len(nodes) > 0 {
+	if nodes := bic.mutation.BillingInvoiceLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoice.BillingInvoiceItemsTable,
-			Columns: []string{billinginvoice.BillingInvoiceItemsColumn},
+			Table:   billinginvoice.BillingInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceitem.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.BillingInvoiceCustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoice.BillingInvoiceCustomerTable,
+			Columns: []string{billinginvoice.BillingInvoiceCustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.TaxAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoice.TaxAppTable,
+			Columns: []string{billinginvoice.TaxAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxAppID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.InvoicingAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoice.InvoicingAppTable,
+			Columns: []string{billinginvoice.InvoicingAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.InvoicingAppID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.PaymentAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoice.PaymentAppTable,
+			Columns: []string{billinginvoice.PaymentAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PaymentAppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -525,6 +1049,24 @@ type (
 	}
 )
 
+// SetMetadata sets the "metadata" field.
+func (u *BillingInvoiceUpsert) SetMetadata(v map[string]string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateMetadata() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingInvoiceUpsert) ClearMetadata() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldMetadata)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BillingInvoiceUpsert) SetUpdatedAt(v time.Time) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldUpdatedAt, v)
@@ -555,57 +1097,363 @@ func (u *BillingInvoiceUpsert) ClearDeletedAt() *BillingInvoiceUpsert {
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *BillingInvoiceUpsert) SetMetadata(v map[string]string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldMetadata, v)
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressCountry(v models.CountryCode) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressCountry, v)
 	return u
 }
 
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateMetadata() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldMetadata)
+// UpdateSupplierAddressCountry sets the "supplier_address_country" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressCountry() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressCountry)
 	return u
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (u *BillingInvoiceUpsert) ClearMetadata() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldMetadata)
+// ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressCountry() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressCountry)
 	return u
 }
 
-// SetSeries sets the "series" field.
-func (u *BillingInvoiceUpsert) SetSeries(v string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldSeries, v)
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressPostalCode(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressPostalCode, v)
 	return u
 }
 
-// UpdateSeries sets the "series" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateSeries() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldSeries)
+// UpdateSupplierAddressPostalCode sets the "supplier_address_postal_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressPostalCode() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressPostalCode)
 	return u
 }
 
-// ClearSeries clears the value of the "series" field.
-func (u *BillingInvoiceUpsert) ClearSeries() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldSeries)
+// ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressPostalCode() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressPostalCode)
 	return u
 }
 
-// SetCode sets the "code" field.
-func (u *BillingInvoiceUpsert) SetCode(v string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldCode, v)
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressState(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressState, v)
 	return u
 }
 
-// UpdateCode sets the "code" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateCode() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldCode)
+// UpdateSupplierAddressState sets the "supplier_address_state" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressState() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressState)
 	return u
 }
 
-// ClearCode clears the value of the "code" field.
-func (u *BillingInvoiceUpsert) ClearCode() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldCode)
+// ClearSupplierAddressState clears the value of the "supplier_address_state" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressState() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressState)
+	return u
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressCity(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressCity, v)
+	return u
+}
+
+// UpdateSupplierAddressCity sets the "supplier_address_city" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressCity() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressCity)
+	return u
+}
+
+// ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressCity() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressCity)
+	return u
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressLine1(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressLine1, v)
+	return u
+}
+
+// UpdateSupplierAddressLine1 sets the "supplier_address_line1" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressLine1() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressLine1)
+	return u
+}
+
+// ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressLine1() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressLine1)
+	return u
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressLine2(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressLine2, v)
+	return u
+}
+
+// UpdateSupplierAddressLine2 sets the "supplier_address_line2" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressLine2() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressLine2)
+	return u
+}
+
+// ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressLine2() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressLine2)
+	return u
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (u *BillingInvoiceUpsert) SetSupplierAddressPhoneNumber(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierAddressPhoneNumber, v)
+	return u
+}
+
+// UpdateSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierAddressPhoneNumber() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierAddressPhoneNumber)
+	return u
+}
+
+// ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
+func (u *BillingInvoiceUpsert) ClearSupplierAddressPhoneNumber() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierAddressPhoneNumber)
+	return u
+}
+
+// SetCustomerAddressCountry sets the "customer_address_country" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressCountry(v models.CountryCode) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressCountry, v)
+	return u
+}
+
+// UpdateCustomerAddressCountry sets the "customer_address_country" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressCountry() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressCountry)
+	return u
+}
+
+// ClearCustomerAddressCountry clears the value of the "customer_address_country" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressCountry() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressCountry)
+	return u
+}
+
+// SetCustomerAddressPostalCode sets the "customer_address_postal_code" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressPostalCode(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressPostalCode, v)
+	return u
+}
+
+// UpdateCustomerAddressPostalCode sets the "customer_address_postal_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressPostalCode() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressPostalCode)
+	return u
+}
+
+// ClearCustomerAddressPostalCode clears the value of the "customer_address_postal_code" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressPostalCode() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressPostalCode)
+	return u
+}
+
+// SetCustomerAddressState sets the "customer_address_state" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressState(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressState, v)
+	return u
+}
+
+// UpdateCustomerAddressState sets the "customer_address_state" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressState() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressState)
+	return u
+}
+
+// ClearCustomerAddressState clears the value of the "customer_address_state" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressState() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressState)
+	return u
+}
+
+// SetCustomerAddressCity sets the "customer_address_city" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressCity(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressCity, v)
+	return u
+}
+
+// UpdateCustomerAddressCity sets the "customer_address_city" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressCity() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressCity)
+	return u
+}
+
+// ClearCustomerAddressCity clears the value of the "customer_address_city" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressCity() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressCity)
+	return u
+}
+
+// SetCustomerAddressLine1 sets the "customer_address_line1" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressLine1(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressLine1, v)
+	return u
+}
+
+// UpdateCustomerAddressLine1 sets the "customer_address_line1" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressLine1() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressLine1)
+	return u
+}
+
+// ClearCustomerAddressLine1 clears the value of the "customer_address_line1" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressLine1() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressLine1)
+	return u
+}
+
+// SetCustomerAddressLine2 sets the "customer_address_line2" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressLine2(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressLine2, v)
+	return u
+}
+
+// UpdateCustomerAddressLine2 sets the "customer_address_line2" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressLine2() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressLine2)
+	return u
+}
+
+// ClearCustomerAddressLine2 clears the value of the "customer_address_line2" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressLine2() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressLine2)
+	return u
+}
+
+// SetCustomerAddressPhoneNumber sets the "customer_address_phone_number" field.
+func (u *BillingInvoiceUpsert) SetCustomerAddressPhoneNumber(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerAddressPhoneNumber, v)
+	return u
+}
+
+// UpdateCustomerAddressPhoneNumber sets the "customer_address_phone_number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerAddressPhoneNumber() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerAddressPhoneNumber)
+	return u
+}
+
+// ClearCustomerAddressPhoneNumber clears the value of the "customer_address_phone_number" field.
+func (u *BillingInvoiceUpsert) ClearCustomerAddressPhoneNumber() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerAddressPhoneNumber)
+	return u
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (u *BillingInvoiceUpsert) SetSupplierName(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierName, v)
+	return u
+}
+
+// UpdateSupplierName sets the "supplier_name" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierName() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierName)
+	return u
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (u *BillingInvoiceUpsert) SetSupplierTaxCode(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSupplierTaxCode, v)
+	return u
+}
+
+// UpdateSupplierTaxCode sets the "supplier_tax_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSupplierTaxCode() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSupplierTaxCode)
+	return u
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (u *BillingInvoiceUpsert) ClearSupplierTaxCode() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSupplierTaxCode)
+	return u
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (u *BillingInvoiceUpsert) SetCustomerName(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerName, v)
+	return u
+}
+
+// UpdateCustomerName sets the "customer_name" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerName() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerName)
+	return u
+}
+
+// SetCustomerTimezone sets the "customer_timezone" field.
+func (u *BillingInvoiceUpsert) SetCustomerTimezone(v timezone.Timezone) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerTimezone, v)
+	return u
+}
+
+// UpdateCustomerTimezone sets the "customer_timezone" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerTimezone() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerTimezone)
+	return u
+}
+
+// ClearCustomerTimezone clears the value of the "customer_timezone" field.
+func (u *BillingInvoiceUpsert) ClearCustomerTimezone() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerTimezone)
+	return u
+}
+
+// SetNumber sets the "number" field.
+func (u *BillingInvoiceUpsert) SetNumber(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldNumber, v)
+	return u
+}
+
+// UpdateNumber sets the "number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateNumber() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldNumber)
+	return u
+}
+
+// ClearNumber clears the value of the "number" field.
+func (u *BillingInvoiceUpsert) ClearNumber() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldNumber)
+	return u
+}
+
+// SetType sets the "type" field.
+func (u *BillingInvoiceUpsert) SetType(v billingentity.InvoiceType) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateType() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldType)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *BillingInvoiceUpsert) SetDescription(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateDescription() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *BillingInvoiceUpsert) ClearDescription() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldDescription)
 	return u
 }
 
@@ -627,15 +1475,39 @@ func (u *BillingInvoiceUpsert) ClearVoidedAt() *BillingInvoiceUpsert {
 	return u
 }
 
-// SetDueDate sets the "due_date" field.
-func (u *BillingInvoiceUpsert) SetDueDate(v time.Time) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldDueDate, v)
+// SetIssuedAt sets the "issued_at" field.
+func (u *BillingInvoiceUpsert) SetIssuedAt(v time.Time) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldIssuedAt, v)
 	return u
 }
 
-// UpdateDueDate sets the "due_date" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateDueDate() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldDueDate)
+// UpdateIssuedAt sets the "issued_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateIssuedAt() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldIssuedAt)
+	return u
+}
+
+// ClearIssuedAt clears the value of the "issued_at" field.
+func (u *BillingInvoiceUpsert) ClearIssuedAt() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldIssuedAt)
+	return u
+}
+
+// SetDueAt sets the "due_at" field.
+func (u *BillingInvoiceUpsert) SetDueAt(v time.Time) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldDueAt, v)
+	return u
+}
+
+// UpdateDueAt sets the "due_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateDueAt() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldDueAt)
+	return u
+}
+
+// ClearDueAt clears the value of the "due_at" field.
+func (u *BillingInvoiceUpsert) ClearDueAt() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldDueAt)
 	return u
 }
 
@@ -675,6 +1547,12 @@ func (u *BillingInvoiceUpsert) UpdatePeriodStart() *BillingInvoiceUpsert {
 	return u
 }
 
+// ClearPeriodStart clears the value of the "period_start" field.
+func (u *BillingInvoiceUpsert) ClearPeriodStart() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldPeriodStart)
+	return u
+}
+
 // SetPeriodEnd sets the "period_end" field.
 func (u *BillingInvoiceUpsert) SetPeriodEnd(v time.Time) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldPeriodEnd, v)
@@ -684,6 +1562,12 @@ func (u *BillingInvoiceUpsert) SetPeriodEnd(v time.Time) *BillingInvoiceUpsert {
 // UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdatePeriodEnd() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldPeriodEnd)
+	return u
+}
+
+// ClearPeriodEnd clears the value of the "period_end" field.
+func (u *BillingInvoiceUpsert) ClearPeriodEnd() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldPeriodEnd)
 	return u
 }
 
@@ -713,11 +1597,20 @@ func (u *BillingInvoiceUpsertOne) UpdateNewValues() *BillingInvoiceUpsertOne {
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(billinginvoice.FieldCustomerID)
 		}
-		if _, exists := u.create.mutation.BillingProfileID(); exists {
-			s.SetIgnore(billinginvoice.FieldBillingProfileID)
+		if _, exists := u.create.mutation.SourceBillingProfileID(); exists {
+			s.SetIgnore(billinginvoice.FieldSourceBillingProfileID)
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(billinginvoice.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.TaxAppID(); exists {
+			s.SetIgnore(billinginvoice.FieldTaxAppID)
+		}
+		if _, exists := u.create.mutation.InvoicingAppID(); exists {
+			s.SetIgnore(billinginvoice.FieldInvoicingAppID)
+		}
+		if _, exists := u.create.mutation.PaymentAppID(); exists {
+			s.SetIgnore(billinginvoice.FieldPaymentAppID)
 		}
 	}))
 	return u
@@ -748,6 +1641,27 @@ func (u *BillingInvoiceUpsertOne) Update(set func(*BillingInvoiceUpsert)) *Billi
 		set(&BillingInvoiceUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingInvoiceUpsertOne) SetMetadata(v map[string]string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateMetadata() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingInvoiceUpsertOne) ClearMetadata() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -785,66 +1699,423 @@ func (u *BillingInvoiceUpsertOne) ClearDeletedAt() *BillingInvoiceUpsertOne {
 	})
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *BillingInvoiceUpsertOne) SetMetadata(v map[string]string) *BillingInvoiceUpsertOne {
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressCountry(v models.CountryCode) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetMetadata(v)
+		s.SetSupplierAddressCountry(v)
 	})
 }
 
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateMetadata() *BillingInvoiceUpsertOne {
+// UpdateSupplierAddressCountry sets the "supplier_address_country" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressCountry() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateMetadata()
+		s.UpdateSupplierAddressCountry()
 	})
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (u *BillingInvoiceUpsertOne) ClearMetadata() *BillingInvoiceUpsertOne {
+// ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressCountry() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearMetadata()
+		s.ClearSupplierAddressCountry()
 	})
 }
 
-// SetSeries sets the "series" field.
-func (u *BillingInvoiceUpsertOne) SetSeries(v string) *BillingInvoiceUpsertOne {
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressPostalCode(v string) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetSeries(v)
+		s.SetSupplierAddressPostalCode(v)
 	})
 }
 
-// UpdateSeries sets the "series" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateSeries() *BillingInvoiceUpsertOne {
+// UpdateSupplierAddressPostalCode sets the "supplier_address_postal_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressPostalCode() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateSeries()
+		s.UpdateSupplierAddressPostalCode()
 	})
 }
 
-// ClearSeries clears the value of the "series" field.
-func (u *BillingInvoiceUpsertOne) ClearSeries() *BillingInvoiceUpsertOne {
+// ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressPostalCode() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearSeries()
+		s.ClearSupplierAddressPostalCode()
 	})
 }
 
-// SetCode sets the "code" field.
-func (u *BillingInvoiceUpsertOne) SetCode(v string) *BillingInvoiceUpsertOne {
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressState(v string) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetCode(v)
+		s.SetSupplierAddressState(v)
 	})
 }
 
-// UpdateCode sets the "code" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateCode() *BillingInvoiceUpsertOne {
+// UpdateSupplierAddressState sets the "supplier_address_state" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressState() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateCode()
+		s.UpdateSupplierAddressState()
 	})
 }
 
-// ClearCode clears the value of the "code" field.
-func (u *BillingInvoiceUpsertOne) ClearCode() *BillingInvoiceUpsertOne {
+// ClearSupplierAddressState clears the value of the "supplier_address_state" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressState() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearCode()
+		s.ClearSupplierAddressState()
+	})
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressCity(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressCity(v)
+	})
+}
+
+// UpdateSupplierAddressCity sets the "supplier_address_city" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressCity() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressCity()
+	})
+}
+
+// ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressCity() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressCity()
+	})
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressLine1(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressLine1(v)
+	})
+}
+
+// UpdateSupplierAddressLine1 sets the "supplier_address_line1" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressLine1() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressLine1()
+	})
+}
+
+// ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressLine1() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressLine1()
+	})
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressLine2(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressLine2(v)
+	})
+}
+
+// UpdateSupplierAddressLine2 sets the "supplier_address_line2" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressLine2() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressLine2()
+	})
+}
+
+// ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressLine2() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressLine2()
+	})
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierAddressPhoneNumber(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressPhoneNumber(v)
+	})
+}
+
+// UpdateSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierAddressPhoneNumber() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressPhoneNumber()
+	})
+}
+
+// ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierAddressPhoneNumber() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressPhoneNumber()
+	})
+}
+
+// SetCustomerAddressCountry sets the "customer_address_country" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressCountry(v models.CountryCode) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressCountry(v)
+	})
+}
+
+// UpdateCustomerAddressCountry sets the "customer_address_country" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressCountry() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressCountry()
+	})
+}
+
+// ClearCustomerAddressCountry clears the value of the "customer_address_country" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressCountry() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressCountry()
+	})
+}
+
+// SetCustomerAddressPostalCode sets the "customer_address_postal_code" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressPostalCode(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressPostalCode(v)
+	})
+}
+
+// UpdateCustomerAddressPostalCode sets the "customer_address_postal_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressPostalCode() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressPostalCode()
+	})
+}
+
+// ClearCustomerAddressPostalCode clears the value of the "customer_address_postal_code" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressPostalCode() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressPostalCode()
+	})
+}
+
+// SetCustomerAddressState sets the "customer_address_state" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressState(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressState(v)
+	})
+}
+
+// UpdateCustomerAddressState sets the "customer_address_state" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressState() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressState()
+	})
+}
+
+// ClearCustomerAddressState clears the value of the "customer_address_state" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressState() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressState()
+	})
+}
+
+// SetCustomerAddressCity sets the "customer_address_city" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressCity(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressCity(v)
+	})
+}
+
+// UpdateCustomerAddressCity sets the "customer_address_city" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressCity() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressCity()
+	})
+}
+
+// ClearCustomerAddressCity clears the value of the "customer_address_city" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressCity() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressCity()
+	})
+}
+
+// SetCustomerAddressLine1 sets the "customer_address_line1" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressLine1(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressLine1(v)
+	})
+}
+
+// UpdateCustomerAddressLine1 sets the "customer_address_line1" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressLine1() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressLine1()
+	})
+}
+
+// ClearCustomerAddressLine1 clears the value of the "customer_address_line1" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressLine1() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressLine1()
+	})
+}
+
+// SetCustomerAddressLine2 sets the "customer_address_line2" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressLine2(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressLine2(v)
+	})
+}
+
+// UpdateCustomerAddressLine2 sets the "customer_address_line2" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressLine2() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressLine2()
+	})
+}
+
+// ClearCustomerAddressLine2 clears the value of the "customer_address_line2" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressLine2() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressLine2()
+	})
+}
+
+// SetCustomerAddressPhoneNumber sets the "customer_address_phone_number" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerAddressPhoneNumber(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressPhoneNumber(v)
+	})
+}
+
+// UpdateCustomerAddressPhoneNumber sets the "customer_address_phone_number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerAddressPhoneNumber() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressPhoneNumber()
+	})
+}
+
+// ClearCustomerAddressPhoneNumber clears the value of the "customer_address_phone_number" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerAddressPhoneNumber() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressPhoneNumber()
+	})
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierName(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierName(v)
+	})
+}
+
+// UpdateSupplierName sets the "supplier_name" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierName() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierName()
+	})
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (u *BillingInvoiceUpsertOne) SetSupplierTaxCode(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierTaxCode(v)
+	})
+}
+
+// UpdateSupplierTaxCode sets the "supplier_tax_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSupplierTaxCode() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierTaxCode()
+	})
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (u *BillingInvoiceUpsertOne) ClearSupplierTaxCode() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierTaxCode()
+	})
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerName(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerName(v)
+	})
+}
+
+// UpdateCustomerName sets the "customer_name" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerName() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerName()
+	})
+}
+
+// SetCustomerTimezone sets the "customer_timezone" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerTimezone(v timezone.Timezone) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerTimezone(v)
+	})
+}
+
+// UpdateCustomerTimezone sets the "customer_timezone" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerTimezone() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerTimezone()
+	})
+}
+
+// ClearCustomerTimezone clears the value of the "customer_timezone" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerTimezone() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerTimezone()
+	})
+}
+
+// SetNumber sets the "number" field.
+func (u *BillingInvoiceUpsertOne) SetNumber(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetNumber(v)
+	})
+}
+
+// UpdateNumber sets the "number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateNumber() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateNumber()
+	})
+}
+
+// ClearNumber clears the value of the "number" field.
+func (u *BillingInvoiceUpsertOne) ClearNumber() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearNumber()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *BillingInvoiceUpsertOne) SetType(v billingentity.InvoiceType) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateType() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateType()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *BillingInvoiceUpsertOne) SetDescription(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateDescription() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *BillingInvoiceUpsertOne) ClearDescription() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDescription()
 	})
 }
 
@@ -869,17 +2140,45 @@ func (u *BillingInvoiceUpsertOne) ClearVoidedAt() *BillingInvoiceUpsertOne {
 	})
 }
 
-// SetDueDate sets the "due_date" field.
-func (u *BillingInvoiceUpsertOne) SetDueDate(v time.Time) *BillingInvoiceUpsertOne {
+// SetIssuedAt sets the "issued_at" field.
+func (u *BillingInvoiceUpsertOne) SetIssuedAt(v time.Time) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetDueDate(v)
+		s.SetIssuedAt(v)
 	})
 }
 
-// UpdateDueDate sets the "due_date" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateDueDate() *BillingInvoiceUpsertOne {
+// UpdateIssuedAt sets the "issued_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateIssuedAt() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateDueDate()
+		s.UpdateIssuedAt()
+	})
+}
+
+// ClearIssuedAt clears the value of the "issued_at" field.
+func (u *BillingInvoiceUpsertOne) ClearIssuedAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearIssuedAt()
+	})
+}
+
+// SetDueAt sets the "due_at" field.
+func (u *BillingInvoiceUpsertOne) SetDueAt(v time.Time) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDueAt(v)
+	})
+}
+
+// UpdateDueAt sets the "due_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateDueAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDueAt()
+	})
+}
+
+// ClearDueAt clears the value of the "due_at" field.
+func (u *BillingInvoiceUpsertOne) ClearDueAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDueAt()
 	})
 }
 
@@ -925,6 +2224,13 @@ func (u *BillingInvoiceUpsertOne) UpdatePeriodStart() *BillingInvoiceUpsertOne {
 	})
 }
 
+// ClearPeriodStart clears the value of the "period_start" field.
+func (u *BillingInvoiceUpsertOne) ClearPeriodStart() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPeriodStart()
+	})
+}
+
 // SetPeriodEnd sets the "period_end" field.
 func (u *BillingInvoiceUpsertOne) SetPeriodEnd(v time.Time) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -936,6 +2242,13 @@ func (u *BillingInvoiceUpsertOne) SetPeriodEnd(v time.Time) *BillingInvoiceUpser
 func (u *BillingInvoiceUpsertOne) UpdatePeriodEnd() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdatePeriodEnd()
+	})
+}
+
+// ClearPeriodEnd clears the value of the "period_end" field.
+func (u *BillingInvoiceUpsertOne) ClearPeriodEnd() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPeriodEnd()
 	})
 }
 
@@ -1131,11 +2444,20 @@ func (u *BillingInvoiceUpsertBulk) UpdateNewValues() *BillingInvoiceUpsertBulk {
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(billinginvoice.FieldCustomerID)
 			}
-			if _, exists := b.mutation.BillingProfileID(); exists {
-				s.SetIgnore(billinginvoice.FieldBillingProfileID)
+			if _, exists := b.mutation.SourceBillingProfileID(); exists {
+				s.SetIgnore(billinginvoice.FieldSourceBillingProfileID)
 			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(billinginvoice.FieldCurrency)
+			}
+			if _, exists := b.mutation.TaxAppID(); exists {
+				s.SetIgnore(billinginvoice.FieldTaxAppID)
+			}
+			if _, exists := b.mutation.InvoicingAppID(); exists {
+				s.SetIgnore(billinginvoice.FieldInvoicingAppID)
+			}
+			if _, exists := b.mutation.PaymentAppID(); exists {
+				s.SetIgnore(billinginvoice.FieldPaymentAppID)
 			}
 		}
 	}))
@@ -1167,6 +2489,27 @@ func (u *BillingInvoiceUpsertBulk) Update(set func(*BillingInvoiceUpsert)) *Bill
 		set(&BillingInvoiceUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *BillingInvoiceUpsertBulk) SetMetadata(v map[string]string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateMetadata() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingInvoiceUpsertBulk) ClearMetadata() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -1204,66 +2547,423 @@ func (u *BillingInvoiceUpsertBulk) ClearDeletedAt() *BillingInvoiceUpsertBulk {
 	})
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *BillingInvoiceUpsertBulk) SetMetadata(v map[string]string) *BillingInvoiceUpsertBulk {
+// SetSupplierAddressCountry sets the "supplier_address_country" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressCountry(v models.CountryCode) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetMetadata(v)
+		s.SetSupplierAddressCountry(v)
 	})
 }
 
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateMetadata() *BillingInvoiceUpsertBulk {
+// UpdateSupplierAddressCountry sets the "supplier_address_country" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressCountry() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateMetadata()
+		s.UpdateSupplierAddressCountry()
 	})
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (u *BillingInvoiceUpsertBulk) ClearMetadata() *BillingInvoiceUpsertBulk {
+// ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressCountry() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearMetadata()
+		s.ClearSupplierAddressCountry()
 	})
 }
 
-// SetSeries sets the "series" field.
-func (u *BillingInvoiceUpsertBulk) SetSeries(v string) *BillingInvoiceUpsertBulk {
+// SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressPostalCode(v string) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetSeries(v)
+		s.SetSupplierAddressPostalCode(v)
 	})
 }
 
-// UpdateSeries sets the "series" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateSeries() *BillingInvoiceUpsertBulk {
+// UpdateSupplierAddressPostalCode sets the "supplier_address_postal_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressPostalCode() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateSeries()
+		s.UpdateSupplierAddressPostalCode()
 	})
 }
 
-// ClearSeries clears the value of the "series" field.
-func (u *BillingInvoiceUpsertBulk) ClearSeries() *BillingInvoiceUpsertBulk {
+// ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressPostalCode() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearSeries()
+		s.ClearSupplierAddressPostalCode()
 	})
 }
 
-// SetCode sets the "code" field.
-func (u *BillingInvoiceUpsertBulk) SetCode(v string) *BillingInvoiceUpsertBulk {
+// SetSupplierAddressState sets the "supplier_address_state" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressState(v string) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetCode(v)
+		s.SetSupplierAddressState(v)
 	})
 }
 
-// UpdateCode sets the "code" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateCode() *BillingInvoiceUpsertBulk {
+// UpdateSupplierAddressState sets the "supplier_address_state" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressState() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateCode()
+		s.UpdateSupplierAddressState()
 	})
 }
 
-// ClearCode clears the value of the "code" field.
-func (u *BillingInvoiceUpsertBulk) ClearCode() *BillingInvoiceUpsertBulk {
+// ClearSupplierAddressState clears the value of the "supplier_address_state" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressState() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearCode()
+		s.ClearSupplierAddressState()
+	})
+}
+
+// SetSupplierAddressCity sets the "supplier_address_city" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressCity(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressCity(v)
+	})
+}
+
+// UpdateSupplierAddressCity sets the "supplier_address_city" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressCity() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressCity()
+	})
+}
+
+// ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressCity() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressCity()
+	})
+}
+
+// SetSupplierAddressLine1 sets the "supplier_address_line1" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressLine1(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressLine1(v)
+	})
+}
+
+// UpdateSupplierAddressLine1 sets the "supplier_address_line1" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressLine1() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressLine1()
+	})
+}
+
+// ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressLine1() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressLine1()
+	})
+}
+
+// SetSupplierAddressLine2 sets the "supplier_address_line2" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressLine2(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressLine2(v)
+	})
+}
+
+// UpdateSupplierAddressLine2 sets the "supplier_address_line2" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressLine2() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressLine2()
+	})
+}
+
+// ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressLine2() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressLine2()
+	})
+}
+
+// SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierAddressPhoneNumber(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierAddressPhoneNumber(v)
+	})
+}
+
+// UpdateSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierAddressPhoneNumber() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierAddressPhoneNumber()
+	})
+}
+
+// ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierAddressPhoneNumber() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierAddressPhoneNumber()
+	})
+}
+
+// SetCustomerAddressCountry sets the "customer_address_country" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressCountry(v models.CountryCode) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressCountry(v)
+	})
+}
+
+// UpdateCustomerAddressCountry sets the "customer_address_country" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressCountry() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressCountry()
+	})
+}
+
+// ClearCustomerAddressCountry clears the value of the "customer_address_country" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressCountry() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressCountry()
+	})
+}
+
+// SetCustomerAddressPostalCode sets the "customer_address_postal_code" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressPostalCode(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressPostalCode(v)
+	})
+}
+
+// UpdateCustomerAddressPostalCode sets the "customer_address_postal_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressPostalCode() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressPostalCode()
+	})
+}
+
+// ClearCustomerAddressPostalCode clears the value of the "customer_address_postal_code" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressPostalCode() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressPostalCode()
+	})
+}
+
+// SetCustomerAddressState sets the "customer_address_state" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressState(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressState(v)
+	})
+}
+
+// UpdateCustomerAddressState sets the "customer_address_state" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressState() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressState()
+	})
+}
+
+// ClearCustomerAddressState clears the value of the "customer_address_state" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressState() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressState()
+	})
+}
+
+// SetCustomerAddressCity sets the "customer_address_city" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressCity(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressCity(v)
+	})
+}
+
+// UpdateCustomerAddressCity sets the "customer_address_city" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressCity() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressCity()
+	})
+}
+
+// ClearCustomerAddressCity clears the value of the "customer_address_city" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressCity() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressCity()
+	})
+}
+
+// SetCustomerAddressLine1 sets the "customer_address_line1" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressLine1(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressLine1(v)
+	})
+}
+
+// UpdateCustomerAddressLine1 sets the "customer_address_line1" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressLine1() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressLine1()
+	})
+}
+
+// ClearCustomerAddressLine1 clears the value of the "customer_address_line1" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressLine1() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressLine1()
+	})
+}
+
+// SetCustomerAddressLine2 sets the "customer_address_line2" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressLine2(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressLine2(v)
+	})
+}
+
+// UpdateCustomerAddressLine2 sets the "customer_address_line2" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressLine2() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressLine2()
+	})
+}
+
+// ClearCustomerAddressLine2 clears the value of the "customer_address_line2" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressLine2() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressLine2()
+	})
+}
+
+// SetCustomerAddressPhoneNumber sets the "customer_address_phone_number" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerAddressPhoneNumber(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerAddressPhoneNumber(v)
+	})
+}
+
+// UpdateCustomerAddressPhoneNumber sets the "customer_address_phone_number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerAddressPhoneNumber() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerAddressPhoneNumber()
+	})
+}
+
+// ClearCustomerAddressPhoneNumber clears the value of the "customer_address_phone_number" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerAddressPhoneNumber() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerAddressPhoneNumber()
+	})
+}
+
+// SetSupplierName sets the "supplier_name" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierName(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierName(v)
+	})
+}
+
+// UpdateSupplierName sets the "supplier_name" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierName() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierName()
+	})
+}
+
+// SetSupplierTaxCode sets the "supplier_tax_code" field.
+func (u *BillingInvoiceUpsertBulk) SetSupplierTaxCode(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSupplierTaxCode(v)
+	})
+}
+
+// UpdateSupplierTaxCode sets the "supplier_tax_code" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSupplierTaxCode() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSupplierTaxCode()
+	})
+}
+
+// ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
+func (u *BillingInvoiceUpsertBulk) ClearSupplierTaxCode() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSupplierTaxCode()
+	})
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerName(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerName(v)
+	})
+}
+
+// UpdateCustomerName sets the "customer_name" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerName() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerName()
+	})
+}
+
+// SetCustomerTimezone sets the "customer_timezone" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerTimezone(v timezone.Timezone) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerTimezone(v)
+	})
+}
+
+// UpdateCustomerTimezone sets the "customer_timezone" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerTimezone() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerTimezone()
+	})
+}
+
+// ClearCustomerTimezone clears the value of the "customer_timezone" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerTimezone() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerTimezone()
+	})
+}
+
+// SetNumber sets the "number" field.
+func (u *BillingInvoiceUpsertBulk) SetNumber(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetNumber(v)
+	})
+}
+
+// UpdateNumber sets the "number" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateNumber() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateNumber()
+	})
+}
+
+// ClearNumber clears the value of the "number" field.
+func (u *BillingInvoiceUpsertBulk) ClearNumber() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearNumber()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *BillingInvoiceUpsertBulk) SetType(v billingentity.InvoiceType) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateType() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateType()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *BillingInvoiceUpsertBulk) SetDescription(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateDescription() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *BillingInvoiceUpsertBulk) ClearDescription() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDescription()
 	})
 }
 
@@ -1288,17 +2988,45 @@ func (u *BillingInvoiceUpsertBulk) ClearVoidedAt() *BillingInvoiceUpsertBulk {
 	})
 }
 
-// SetDueDate sets the "due_date" field.
-func (u *BillingInvoiceUpsertBulk) SetDueDate(v time.Time) *BillingInvoiceUpsertBulk {
+// SetIssuedAt sets the "issued_at" field.
+func (u *BillingInvoiceUpsertBulk) SetIssuedAt(v time.Time) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetDueDate(v)
+		s.SetIssuedAt(v)
 	})
 }
 
-// UpdateDueDate sets the "due_date" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateDueDate() *BillingInvoiceUpsertBulk {
+// UpdateIssuedAt sets the "issued_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateIssuedAt() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateDueDate()
+		s.UpdateIssuedAt()
+	})
+}
+
+// ClearIssuedAt clears the value of the "issued_at" field.
+func (u *BillingInvoiceUpsertBulk) ClearIssuedAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearIssuedAt()
+	})
+}
+
+// SetDueAt sets the "due_at" field.
+func (u *BillingInvoiceUpsertBulk) SetDueAt(v time.Time) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDueAt(v)
+	})
+}
+
+// UpdateDueAt sets the "due_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateDueAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDueAt()
+	})
+}
+
+// ClearDueAt clears the value of the "due_at" field.
+func (u *BillingInvoiceUpsertBulk) ClearDueAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDueAt()
 	})
 }
 
@@ -1344,6 +3072,13 @@ func (u *BillingInvoiceUpsertBulk) UpdatePeriodStart() *BillingInvoiceUpsertBulk
 	})
 }
 
+// ClearPeriodStart clears the value of the "period_start" field.
+func (u *BillingInvoiceUpsertBulk) ClearPeriodStart() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPeriodStart()
+	})
+}
+
 // SetPeriodEnd sets the "period_end" field.
 func (u *BillingInvoiceUpsertBulk) SetPeriodEnd(v time.Time) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -1355,6 +3090,13 @@ func (u *BillingInvoiceUpsertBulk) SetPeriodEnd(v time.Time) *BillingInvoiceUpse
 func (u *BillingInvoiceUpsertBulk) UpdatePeriodEnd() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdatePeriodEnd()
+	})
+}
+
+// ClearPeriodEnd clears the value of the "period_end" field.
+func (u *BillingInvoiceUpsertBulk) ClearPeriodEnd() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPeriodEnd()
 	})
 }
 

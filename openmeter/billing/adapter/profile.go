@@ -28,15 +28,7 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 	}
 
-	dbWorkflowConfig, err := a.db.BillingWorkflowConfig.Create().
-		SetNamespace(input.Namespace).
-		SetCollectionAlignment(input.WorkflowConfig.Collection.Alignment).
-		SetItemCollectionPeriod(input.WorkflowConfig.Collection.Interval.ISOString()).
-		SetInvoiceAutoAdvance(*input.WorkflowConfig.Invoicing.AutoAdvance).
-		SetInvoiceDraftPeriod(input.WorkflowConfig.Invoicing.DraftPeriod.ISOString()).
-		SetInvoiceDueAfter(input.WorkflowConfig.Invoicing.DueAfter.ISOString()).
-		SetInvoiceCollectionMethod(input.WorkflowConfig.Payment.CollectionMethod).
-		Save(ctx)
+	dbWorkflowConfig, err := a.createWorkflowConfig(ctx, input.Namespace, input.WorkflowConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +63,18 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 	return mapProfileFromDB(dbProfile)
 }
 
+func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+	return a.db.BillingWorkflowConfig.Create().
+		SetNamespace(ns).
+		SetCollectionAlignment(input.Collection.Alignment).
+		SetLineCollectionPeriod(input.Collection.Interval.ISOString()).
+		SetInvoiceAutoAdvance(*input.Invoicing.AutoAdvance).
+		SetInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOString()).
+		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
+		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
+		Save(ctx)
+}
+
 func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billingentity.BaseProfile, error) {
 	// This needs to be wrapped, as the service expects this to be atomic
 	if err := input.Validate(); err != nil {
@@ -78,8 +82,8 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 	}
 
 	dbProfile, err := a.db.BillingProfile.Query().
-		Where(billingprofile.Namespace(input.Namespace)).
-		Where(billingprofile.ID(input.ID)).
+		Where(billingprofile.Namespace(input.Profile.Namespace)).
+		Where(billingprofile.ID(input.Profile.ID)).
 		WithWorkflowConfig().First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -94,7 +98,8 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 
 func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.PagedResponse[billingentity.BaseProfile], error) {
 	query := a.db.BillingProfile.Query().
-		Where(billingprofile.Namespace(input.Namespace))
+		Where(billingprofile.Namespace(input.Namespace)).
+		WithWorkflowConfig()
 
 	if !input.IncludeArchived {
 		query = query.Where(billingprofile.DeletedAtIsNil())
@@ -175,7 +180,12 @@ func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		return err
 	}
 
-	profile, err := a.GetProfile(ctx, billing.GetProfileInput(input))
+	profile, err := a.GetProfile(ctx, billing.GetProfileInput{
+		Profile: models.NamespacedID{
+			Namespace: input.Namespace,
+			ID:        input.ID,
+		},
+	})
 	if err != nil {
 		return err
 	}
@@ -232,7 +242,7 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 	updatedWorkflowConfig, err := a.db.BillingWorkflowConfig.UpdateOneID(input.WorkflowConfigID).
 		Where(billingworkflowconfig.Namespace(targetState.Namespace)).
 		SetCollectionAlignment(targetState.WorkflowConfig.Collection.Alignment).
-		SetItemCollectionPeriod(targetState.WorkflowConfig.Collection.Interval.ISOString()).
+		SetLineCollectionPeriod(targetState.WorkflowConfig.Collection.Interval.ISOString()).
 		SetInvoiceAutoAdvance(*targetState.WorkflowConfig.Invoicing.AutoAdvance).
 		SetInvoiceDraftPeriod(targetState.WorkflowConfig.Invoicing.DraftPeriod.ISOString()).
 		SetInvoiceDueAfter(targetState.WorkflowConfig.Invoicing.DueAfter.ISOString()).
@@ -292,8 +302,27 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile,
 	}, nil
 }
 
+func mapWorkflowConfigToDB(wc billingentity.WorkflowConfig) *db.BillingWorkflowConfig {
+	return &db.BillingWorkflowConfig{
+		ID: wc.ID,
+
+		CreatedAt: wc.CreatedAt,
+		UpdatedAt: wc.UpdatedAt,
+		DeletedAt: wc.DeletedAt,
+
+		CollectionAlignment:  wc.Collection.Alignment,
+		LineCollectionPeriod: wc.Collection.Interval.ISOString(),
+		InvoiceAutoAdvance: lo.FromPtrOr(
+			wc.Invoicing.AutoAdvance,
+			*billingentity.DefaultWorkflowConfig.Invoicing.AutoAdvance),
+		InvoiceDraftPeriod:      wc.Invoicing.DraftPeriod.ISOString(),
+		InvoiceDueAfter:         wc.Invoicing.DueAfter.ISOString(),
+		InvoiceCollectionMethod: wc.Payment.CollectionMethod,
+	}
+}
+
 func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billingentity.WorkflowConfig, error) {
-	collectionInterval, err := dbWC.ItemCollectionPeriod.Parse()
+	collectionInterval, err := dbWC.LineCollectionPeriod.Parse()
 	if err != nil {
 		return billingentity.WorkflowConfig{}, fmt.Errorf("cannot parse collection.interval: %w", err)
 	}

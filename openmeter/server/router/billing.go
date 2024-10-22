@@ -3,7 +3,10 @@ package router
 import (
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 )
 
 // List customer overrides
@@ -33,7 +36,12 @@ func (a *Router) BillingUpsertCustomerOverride(w http.ResponseWriter, r *http.Re
 // List invoices
 // (GET /api/v1/billing/invoices)
 func (a *Router) BillingListInvoices(w http.ResponseWriter, r *http.Request, params api.BillingListInvoicesParams) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.BillingListInvoices(w, r, params)
+		return
+	}
+
+	a.billingHandler.ListInvoices().With(params).ServeHTTP(w, r)
 }
 
 // List invoices
@@ -56,7 +64,8 @@ func (a *Router) BillingDeleteInvoiceByCustomerInvoiceId(w http.ResponseWriter, 
 
 // Get an invoice
 // (GET /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId})
-func (a *Router) BillingGetInvoiceByCustomerInvoiceId(w http.ResponseWriter, r *http.Request, customerIdOrKey string, invoiceId string) {
+func (a *Router) BillingGetInvoiceByCustomerInvoiceId(w http.ResponseWriter, r *http.Request, customerIdOrKey string, invoiceId string, params api.BillingGetInvoiceByCustomerInvoiceIdParams) {
+	// TODO: make sure we expand lines if there's no expand query param
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -96,10 +105,15 @@ func (a *Router) BillingInvoiceWorkflowAdvance(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create a new pending item
+// Create a new  item
 // (POST /api/v1/billing/invoices/{customerIdOrKey}/items)
-func (a *Router) BillingCreatePendingItemByCustomer(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	w.WriteHeader(http.StatusNotImplemented)
+func (a *Router) BillingCreateLineByCustomer(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	if !a.config.BillingEnabled {
+		unimplemented.BillingCreateLineByCustomer(w, r, customerIdOrKey)
+		return
+	}
+
+	a.billingHandler.CreateLineByCustomer().With(customerIdOrKey).ServeHTTP(w, r)
 }
 
 // (GET /api/v1/billing/profile)
@@ -136,13 +150,16 @@ func (a *Router) BillingArchiveProfile(w http.ResponseWriter, r *http.Request, i
 
 // Get a billing profile by ID
 // (GET /api/v1/billing/profile/{id})
-func (a *Router) BillingGetProfile(w http.ResponseWriter, r *http.Request, id string) {
+func (a *Router) BillingGetProfile(w http.ResponseWriter, r *http.Request, id string, params api.BillingGetProfileParams) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingGetProfile(w, r, id)
+		unimplemented.BillingGetProfile(w, r, id, params)
 		return
 	}
 
-	a.billingHandler.GetProfile().With(id).ServeHTTP(w, r)
+	a.billingHandler.GetProfile().With(httpdriver.GetProfileParams{
+		ID:     id,
+		Expand: lo.FromPtrOr(params.Expand, nil),
+	}).ServeHTTP(w, r)
 }
 
 // Update a billing profile

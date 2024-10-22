@@ -76,7 +76,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
 	BillingInvoicesInverseTable = "billing_invoices"
 	// BillingInvoicesColumn is the table column denoting the billing_invoices relation/edge.
-	BillingInvoicesColumn = "billing_profile_id"
+	BillingInvoicesColumn = "source_billing_profile_id"
 	// BillingCustomerOverrideTable is the table that holds the billing_customer_override relation/edge.
 	BillingCustomerOverrideTable = "billing_customer_overrides"
 	// BillingCustomerOverrideInverseTable is the table name for the BillingCustomerOverride entity.

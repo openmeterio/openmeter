@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type BillingProfile struct {
@@ -66,19 +67,19 @@ func (BillingProfile) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.From("tax_app", App.Type).
-			Ref("tax_app").
+			Ref("billing_profile_tax_app").
 			Field("tax_app_id").
 			Unique().
 			Immutable().
 			Required(),
 		edge.From("invoicing_app", App.Type).
-			Ref("invoicing_app").
+			Ref("billing_profile_invoicing_app").
 			Field("invoicing_app_id").
 			Unique().
 			Immutable().
 			Required(),
 		edge.From("payment_app", App.Type).
-			Ref("payment_app").
+			Ref("billing_profile_payment_app").
 			Field("payment_app_id").
 			Unique().
 			Immutable().
@@ -111,7 +112,7 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.Enum("collection_alignment").
 			GoType(billingentity.AlignmentKind("")),
 
-		field.String("item_collection_period").GoType(datex.ISOString("")),
+		field.String("line_collection_period").GoType(datex.ISOString("")),
 
 		field.Bool("invoice_auto_advance"),
 
@@ -177,7 +178,7 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.String("item_collection_period").
+		field.String("line_collection_period").
 			GoType(datex.ISOString("")).
 			Optional().
 			Nillable(),
@@ -225,30 +226,19 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 	}
 }
 
-type BillingInvoiceItem struct {
+type BillingInvoiceLine struct {
 	ent.Schema
 }
 
-func (BillingInvoiceItem) Mixin() []ent.Mixin {
+func (BillingInvoiceLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
-		entutils.MetadataAnnotationsMixin{},
+		entutils.ResourceMixin{},
 	}
 }
 
-func (BillingInvoiceItem) Fields() []ent.Field {
+func (BillingInvoiceLine) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("invoice_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				"postgres": "char(26)",
-			}),
-		field.String("customer_id").
-			NotEmpty().
-			Immutable().
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
@@ -260,22 +250,11 @@ func (BillingInvoiceItem) Fields() []ent.Field {
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").
-			GoType(billingentity.InvoiceItemType("")),
+			GoType(billingentity.InvoiceLineType("")),
 
-		field.String("name").
-			NotEmpty(),
+		field.Enum("status").
+			GoType(billingentity.InvoiceLineStatus("")),
 
-		// Quantity is only required for static items
-		field.Other("quantity", alpacadecimal.Decimal{}).
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}),
-		field.Other("unit_price", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}),
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().
@@ -283,29 +262,71 @@ func (BillingInvoiceItem) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "varchar(3)",
 			}),
-		field.JSON("tax_code_override", billingentity.TaxOverrides{}).
+
+		// Quantity is optional as for usage-based billing we can only persist this value,
+		// when the invoice is issued
+		field.Other("quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+
+		field.JSON("tax_overrides", &billingentity.TaxOverrides{}).
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
+			}).
+			Optional(),
+	}
+}
+
+func (BillingInvoiceLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id"),
+	}
+}
+
+func (BillingInvoiceLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice", BillingInvoice.Type).
+			Ref("billing_invoice_lines").
+			Field("invoice_id").
+			Unique().
+			Required(),
+		edge.To("billing_invoice_manual_lines", BillingInvoiceManualLineConfig.Type).
+			StorageKey(edge.Column("manual_line_config_id")).
+			Unique(),
+	}
+}
+
+type BillingInvoiceManualLineConfig struct {
+	ent.Schema
+}
+
+func (BillingInvoiceManualLineConfig) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+	}
+}
+
+func (BillingInvoiceManualLineConfig) Fields() []ent.Field {
+	return []ent.Field{
+		// Either coming from the
+		field.Other("unit_price", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
 			}),
 	}
 }
 
-func (BillingInvoiceItem) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "id"),
-		index.Fields("namespace", "invoice_id"),
-		index.Fields("namespace", "customer_id"),
-	}
-}
-
-func (BillingInvoiceItem) Edges() []ent.Edge {
+func (BillingInvoiceManualLineConfig) Edgexs() []ent.Edge {
 	return []ent.Edge{
-		edge.From("billing_invoice", BillingInvoice.Type).
-			Ref("billing_invoice_items").
-			Field("invoice_id").
-			Unique(),
-		// TODO[dependency]: Customer edge, as soon as customer entities are ready
-
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("billing_invoice_manual_lines").
+			Field("id").
+			Unique().
+			Required(),
 	}
 }
 
@@ -315,20 +336,47 @@ type BillingInvoice struct {
 
 func (BillingInvoice) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		// This cannot be a resource mixin as the invoice doesn't have a name field
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},
+		entutils.TimeMixin{},
+		entutils.CustomerAddressMixin{
+			FieldPrefix: "supplier",
+		},
+		entutils.CustomerAddressMixin{
+			FieldPrefix: "customer",
+		},
 	}
 }
 
 func (BillingInvoice) Fields() []ent.Field {
 	return []ent.Field{
-		// Invoice number
-		field.String("series").
+		// Customer/supplier
+		field.String("supplier_name").
+			NotEmpty(),
+
+		field.String("supplier_tax_code").
 			Optional().
 			Nillable(),
-		field.String("code").
+
+		field.String("customer_name").
+			NotEmpty(),
+
+		field.String("customer_timezone").
+			GoType(timezone.Timezone("")).
+			Optional().
+			Nillable(),
+
+		// Invoice number
+		field.String("number").
+			Optional().
+			Nillable(),
+
+		field.Enum("type").
+			GoType(billingentity.InvoiceType("")),
+
+		field.String("description").
 			Optional().
 			Nillable(),
 
@@ -338,34 +386,68 @@ func (BillingInvoice) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}).
 			Immutable(),
-		field.String("billing_profile_id").
+
+		field.String("source_billing_profile_id").
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
 		field.Time("voided_at").
-			Optional(),
+			Optional().
+			Nillable(),
+
+		// issued_at can be in the future in case of pre-issuing invoices
+		field.Time("issued_at").
+			Optional().
+			Nillable(),
+
 		field.String("currency").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
 				"postgres": "varchar(3)",
 			}),
 
-		field.Time("due_date"),
+		field.Time("due_at").
+			Optional().
+			Nillable(),
+
 		field.Enum("status").
 			GoType(billingentity.InvoiceStatus("")),
 
+		// Cloned profile settings
 		field.String("workflow_config_id").
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
 
-		// TODO[later]: Add either provider annotations or typed provider status fields
+		field.String("tax_app_id").
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("invoicing_app_id").
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("payment_app_id").
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 
-		field.Time("period_start"),
-		field.Time("period_end"),
+		// These fields are optional as they are calculated from the invoice lines, which might not
+		// be present on an invoice.
+		field.Time("period_start").
+			Optional().
+			Nillable(),
+
+		field.Time("period_end").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -373,18 +455,14 @@ func (BillingInvoice) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "customer_id"),
-		index.Fields("namespace", "due_date"),
-		index.Fields("namespace", "status"),
-		// Some countries require per seller uniqueness, but that's something we can't enforce here
-		index.Fields("namespace", "customer_id", "series", "code").Unique(),
 	}
 }
 
 func (BillingInvoice) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("billing_profile", BillingProfile.Type).
+		edge.From("source_billing_profile", BillingProfile.Type).
 			Ref("billing_invoices").
-			Field("billing_profile_id").
+			Field("source_billing_profile_id").
 			Required().
 			Unique().
 			Immutable(), // Billing profile changes are forbidden => invoice must be voided in this case
@@ -393,6 +471,30 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Field("workflow_config_id").
 			Unique().
 			Required(),
-		edge.To("billing_invoice_items", BillingInvoiceItem.Type),
+		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.From("billing_invoice_customer", Customer.Type).
+			Ref("billing_invoice").
+			Field("customer_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("tax_app", App.Type).
+			Ref("billing_invoice_tax_app").
+			Field("tax_app_id").
+			Unique().
+			Immutable().
+			Required(),
+		edge.From("invoicing_app", App.Type).
+			Ref("billing_invoice_invoicing_app").
+			Field("invoicing_app_id").
+			Unique().
+			Immutable().
+			Required(),
+		edge.From("payment_app", App.Type).
+			Ref("billing_invoice_payment_app").
+			Field("payment_app_id").
+			Unique().
+			Immutable().
+			Required(),
 	}
 }

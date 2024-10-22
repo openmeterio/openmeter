@@ -242,8 +242,7 @@ type Profile struct {
 	BaseProfile
 
 	// Optionaly expanded fields
-	Apps     *ProfileApps             `json:"-"`
-	Customer *customerentity.Customer `json:"-"`
+	Apps *ProfileApps `json:"-"`
 }
 
 type ProfileApps struct {
@@ -312,4 +311,11 @@ func (i ProfileAppReferences) Validate() error {
 	}
 
 	return nil
+}
+
+type InvoiceWorkflow struct {
+	AppReferences          ProfileAppReferences `json:"appReferences"`
+	Apps                   *ProfileApps         `json:"apps,omitempty"`
+	SourceBillingProfileID string               `json:"sourceBillingProfileId,omitempty"`
+	WorkflowConfig         WorkflowConfig       `json:"workflow"`
 }

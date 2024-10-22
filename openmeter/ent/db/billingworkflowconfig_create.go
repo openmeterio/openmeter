@@ -81,9 +81,9 @@ func (bwcc *BillingWorkflowConfigCreate) SetCollectionAlignment(bk billingentity
 	return bwcc
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (bwcc *BillingWorkflowConfigCreate) SetItemCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetItemCollectionPeriod(ds)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (bwcc *BillingWorkflowConfigCreate) SetLineCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetLineCollectionPeriod(ds)
 	return bwcc
 }
 
@@ -236,8 +236,8 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
-	if _, ok := bwcc.mutation.ItemCollectionPeriod(); !ok {
-		return &ValidationError{Name: "item_collection_period", err: errors.New(`db: missing required field "BillingWorkflowConfig.item_collection_period"`)}
+	if _, ok := bwcc.mutation.LineCollectionPeriod(); !ok {
+		return &ValidationError{Name: "line_collection_period", err: errors.New(`db: missing required field "BillingWorkflowConfig.line_collection_period"`)}
 	}
 	if _, ok := bwcc.mutation.InvoiceAutoAdvance(); !ok {
 		return &ValidationError{Name: "invoice_auto_advance", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_auto_advance"`)}
@@ -312,9 +312,9 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = value
 	}
-	if value, ok := bwcc.mutation.ItemCollectionPeriod(); ok {
-		_spec.SetField(billingworkflowconfig.FieldItemCollectionPeriod, field.TypeString, value)
-		_node.ItemCollectionPeriod = value
+	if value, ok := bwcc.mutation.LineCollectionPeriod(); ok {
+		_spec.SetField(billingworkflowconfig.FieldLineCollectionPeriod, field.TypeString, value)
+		_node.LineCollectionPeriod = value
 	}
 	if value, ok := bwcc.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -458,15 +458,15 @@ func (u *BillingWorkflowConfigUpsert) UpdateCollectionAlignment() *BillingWorkfl
 	return u
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (u *BillingWorkflowConfigUpsert) SetItemCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldItemCollectionPeriod, v)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (u *BillingWorkflowConfigUpsert) SetLineCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldLineCollectionPeriod, v)
 	return u
 }
 
-// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateItemCollectionPeriod() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldItemCollectionPeriod)
+// UpdateLineCollectionPeriod sets the "line_collection_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateLineCollectionPeriod() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldLineCollectionPeriod)
 	return u
 }
 
@@ -621,17 +621,17 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionAlignment() *BillingWor
 	})
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (u *BillingWorkflowConfigUpsertOne) SetItemCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertOne {
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (u *BillingWorkflowConfigUpsertOne) SetLineCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetItemCollectionPeriod(v)
+		s.SetLineCollectionPeriod(v)
 	})
 }
 
-// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateItemCollectionPeriod() *BillingWorkflowConfigUpsertOne {
+// UpdateLineCollectionPeriod sets the "line_collection_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateLineCollectionPeriod() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateItemCollectionPeriod()
+		s.UpdateLineCollectionPeriod()
 	})
 }
 
@@ -961,17 +961,17 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionAlignment() *BillingWo
 	})
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetItemCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertBulk {
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetLineCollectionPeriod(v datex.ISOString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetItemCollectionPeriod(v)
+		s.SetLineCollectionPeriod(v)
 	})
 }
 
-// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateItemCollectionPeriod() *BillingWorkflowConfigUpsertBulk {
+// UpdateLineCollectionPeriod sets the "line_collection_period" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateLineCollectionPeriod() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateItemCollectionPeriod()
+		s.UpdateLineCollectionPeriod()
 	})
 }
 

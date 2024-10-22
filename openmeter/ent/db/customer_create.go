@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -306,6 +307,21 @@ func (cc *CustomerCreate) SetBillingCustomerOverride(b *BillingCustomerOverride)
 	return cc.SetBillingCustomerOverrideID(b.ID)
 }
 
+// AddBillingInvoiceIDs adds the "billing_invoice" edge to the BillingInvoice entity by IDs.
+func (cc *CustomerCreate) AddBillingInvoiceIDs(ids ...string) *CustomerCreate {
+	cc.mutation.AddBillingInvoiceIDs(ids...)
+	return cc
+}
+
+// AddBillingInvoice adds the "billing_invoice" edges to the BillingInvoice entity.
+func (cc *CustomerCreate) AddBillingInvoice(b ...*BillingInvoice) *CustomerCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cc.AddBillingInvoiceIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cc *CustomerCreate) Mutation() *CustomerMutation {
 	return cc.mutation
@@ -377,6 +393,11 @@ func (cc *CustomerCreate) check() error {
 	if v, ok := cc.mutation.BillingAddressCountry(); ok {
 		if err := customer.BillingAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
+		}
+	}
+	if v, ok := cc.mutation.Timezone(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "timezone", err: fmt.Errorf(`db: validator failed for field "Customer.timezone": %w`, err)}
 		}
 	}
 	if v, ok := cc.mutation.Currency(); ok {
@@ -529,6 +550,22 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

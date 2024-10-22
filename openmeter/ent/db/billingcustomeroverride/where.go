@@ -97,10 +97,10 @@ func BillingProfileID(v string) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldBillingProfileID, v))
 }
 
-// ItemCollectionPeriod applies equality check predicate on the "item_collection_period" field. It's identical to ItemCollectionPeriodEQ.
-func ItemCollectionPeriod(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriod applies equality check predicate on the "line_collection_period" field. It's identical to LineCollectionPeriodEQ.
+func LineCollectionPeriod(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldLineCollectionPeriod, vc))
 }
 
 // InvoiceAutoAdvance applies equality check predicate on the "invoice_auto_advance" field. It's identical to InvoiceAutoAdvanceEQ.
@@ -495,98 +495,98 @@ func CollectionAlignmentNotNil() predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldCollectionAlignment))
 }
 
-// ItemCollectionPeriodEQ applies the EQ predicate on the "item_collection_period" field.
-func ItemCollectionPeriodEQ(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodEQ applies the EQ predicate on the "line_collection_period" field.
+func LineCollectionPeriodEQ(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodNEQ applies the NEQ predicate on the "item_collection_period" field.
-func ItemCollectionPeriodNEQ(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodNEQ applies the NEQ predicate on the "line_collection_period" field.
+func LineCollectionPeriodNEQ(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodIn applies the In predicate on the "item_collection_period" field.
-func ItemCollectionPeriodIn(vs ...datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodIn applies the In predicate on the "line_collection_period" field.
+func LineCollectionPeriodIn(vs ...datex.ISOString) predicate.BillingCustomerOverride {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.BillingCustomerOverride(sql.FieldIn(FieldItemCollectionPeriod, v...))
+	return predicate.BillingCustomerOverride(sql.FieldIn(FieldLineCollectionPeriod, v...))
 }
 
-// ItemCollectionPeriodNotIn applies the NotIn predicate on the "item_collection_period" field.
-func ItemCollectionPeriodNotIn(vs ...datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodNotIn applies the NotIn predicate on the "line_collection_period" field.
+func LineCollectionPeriodNotIn(vs ...datex.ISOString) predicate.BillingCustomerOverride {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.BillingCustomerOverride(sql.FieldNotIn(FieldItemCollectionPeriod, v...))
+	return predicate.BillingCustomerOverride(sql.FieldNotIn(FieldLineCollectionPeriod, v...))
 }
 
-// ItemCollectionPeriodGT applies the GT predicate on the "item_collection_period" field.
-func ItemCollectionPeriodGT(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodGT applies the GT predicate on the "line_collection_period" field.
+func LineCollectionPeriodGT(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldGT(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldGT(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodGTE applies the GTE predicate on the "item_collection_period" field.
-func ItemCollectionPeriodGTE(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodGTE applies the GTE predicate on the "line_collection_period" field.
+func LineCollectionPeriodGTE(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldGTE(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldGTE(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodLT applies the LT predicate on the "item_collection_period" field.
-func ItemCollectionPeriodLT(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodLT applies the LT predicate on the "line_collection_period" field.
+func LineCollectionPeriodLT(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldLT(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldLT(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodLTE applies the LTE predicate on the "item_collection_period" field.
-func ItemCollectionPeriodLTE(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodLTE applies the LTE predicate on the "line_collection_period" field.
+func LineCollectionPeriodLTE(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldLTE(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldLTE(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodContains applies the Contains predicate on the "item_collection_period" field.
-func ItemCollectionPeriodContains(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodContains applies the Contains predicate on the "line_collection_period" field.
+func LineCollectionPeriodContains(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldContains(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldContains(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodHasPrefix applies the HasPrefix predicate on the "item_collection_period" field.
-func ItemCollectionPeriodHasPrefix(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodHasPrefix applies the HasPrefix predicate on the "line_collection_period" field.
+func LineCollectionPeriodHasPrefix(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldHasPrefix(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldHasPrefix(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodHasSuffix applies the HasSuffix predicate on the "item_collection_period" field.
-func ItemCollectionPeriodHasSuffix(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodHasSuffix applies the HasSuffix predicate on the "line_collection_period" field.
+func LineCollectionPeriodHasSuffix(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldHasSuffix(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldHasSuffix(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodIsNil applies the IsNil predicate on the "item_collection_period" field.
-func ItemCollectionPeriodIsNil() predicate.BillingCustomerOverride {
-	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldItemCollectionPeriod))
+// LineCollectionPeriodIsNil applies the IsNil predicate on the "line_collection_period" field.
+func LineCollectionPeriodIsNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldLineCollectionPeriod))
 }
 
-// ItemCollectionPeriodNotNil applies the NotNil predicate on the "item_collection_period" field.
-func ItemCollectionPeriodNotNil() predicate.BillingCustomerOverride {
-	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldItemCollectionPeriod))
+// LineCollectionPeriodNotNil applies the NotNil predicate on the "line_collection_period" field.
+func LineCollectionPeriodNotNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldLineCollectionPeriod))
 }
 
-// ItemCollectionPeriodEqualFold applies the EqualFold predicate on the "item_collection_period" field.
-func ItemCollectionPeriodEqualFold(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodEqualFold applies the EqualFold predicate on the "line_collection_period" field.
+func LineCollectionPeriodEqualFold(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldEqualFold(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldEqualFold(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodContainsFold applies the ContainsFold predicate on the "item_collection_period" field.
-func ItemCollectionPeriodContainsFold(v datex.ISOString) predicate.BillingCustomerOverride {
+// LineCollectionPeriodContainsFold applies the ContainsFold predicate on the "line_collection_period" field.
+func LineCollectionPeriodContainsFold(v datex.ISOString) predicate.BillingCustomerOverride {
 	vc := string(v)
-	return predicate.BillingCustomerOverride(sql.FieldContainsFold(FieldItemCollectionPeriod, vc))
+	return predicate.BillingCustomerOverride(sql.FieldContainsFold(FieldLineCollectionPeriod, vc))
 }
 
 // InvoiceAutoAdvanceEQ applies the EQ predicate on the "invoice_auto_advance" field.

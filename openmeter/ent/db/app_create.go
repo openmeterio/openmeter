@@ -15,6 +15,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 )
 
@@ -155,49 +156,94 @@ func (ac *AppCreate) AddCustomerApps(a ...*AppCustomer) *AppCreate {
 	return ac.AddCustomerAppIDs(ids...)
 }
 
-// AddTaxAppIDs adds the "tax_app" edge to the BillingProfile entity by IDs.
-func (ac *AppCreate) AddTaxAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddTaxAppIDs(ids...)
+// AddBillingProfileTaxAppIDs adds the "billing_profile_tax_app" edge to the BillingProfile entity by IDs.
+func (ac *AppCreate) AddBillingProfileTaxAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddBillingProfileTaxAppIDs(ids...)
 	return ac
 }
 
-// AddTaxApp adds the "tax_app" edges to the BillingProfile entity.
-func (ac *AppCreate) AddTaxApp(b ...*BillingProfile) *AppCreate {
+// AddBillingProfileTaxApp adds the "billing_profile_tax_app" edges to the BillingProfile entity.
+func (ac *AppCreate) AddBillingProfileTaxApp(b ...*BillingProfile) *AppCreate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return ac.AddTaxAppIDs(ids...)
+	return ac.AddBillingProfileTaxAppIDs(ids...)
 }
 
-// AddInvoicingAppIDs adds the "invoicing_app" edge to the BillingProfile entity by IDs.
-func (ac *AppCreate) AddInvoicingAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddInvoicingAppIDs(ids...)
+// AddBillingProfileInvoicingAppIDs adds the "billing_profile_invoicing_app" edge to the BillingProfile entity by IDs.
+func (ac *AppCreate) AddBillingProfileInvoicingAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddBillingProfileInvoicingAppIDs(ids...)
 	return ac
 }
 
-// AddInvoicingApp adds the "invoicing_app" edges to the BillingProfile entity.
-func (ac *AppCreate) AddInvoicingApp(b ...*BillingProfile) *AppCreate {
+// AddBillingProfileInvoicingApp adds the "billing_profile_invoicing_app" edges to the BillingProfile entity.
+func (ac *AppCreate) AddBillingProfileInvoicingApp(b ...*BillingProfile) *AppCreate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return ac.AddInvoicingAppIDs(ids...)
+	return ac.AddBillingProfileInvoicingAppIDs(ids...)
 }
 
-// AddPaymentAppIDs adds the "payment_app" edge to the BillingProfile entity by IDs.
-func (ac *AppCreate) AddPaymentAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddPaymentAppIDs(ids...)
+// AddBillingProfilePaymentAppIDs adds the "billing_profile_payment_app" edge to the BillingProfile entity by IDs.
+func (ac *AppCreate) AddBillingProfilePaymentAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddBillingProfilePaymentAppIDs(ids...)
 	return ac
 }
 
-// AddPaymentApp adds the "payment_app" edges to the BillingProfile entity.
-func (ac *AppCreate) AddPaymentApp(b ...*BillingProfile) *AppCreate {
+// AddBillingProfilePaymentApp adds the "billing_profile_payment_app" edges to the BillingProfile entity.
+func (ac *AppCreate) AddBillingProfilePaymentApp(b ...*BillingProfile) *AppCreate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return ac.AddPaymentAppIDs(ids...)
+	return ac.AddBillingProfilePaymentAppIDs(ids...)
+}
+
+// AddBillingInvoiceTaxAppIDs adds the "billing_invoice_tax_app" edge to the BillingInvoice entity by IDs.
+func (ac *AppCreate) AddBillingInvoiceTaxAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddBillingInvoiceTaxAppIDs(ids...)
+	return ac
+}
+
+// AddBillingInvoiceTaxApp adds the "billing_invoice_tax_app" edges to the BillingInvoice entity.
+func (ac *AppCreate) AddBillingInvoiceTaxApp(b ...*BillingInvoice) *AppCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ac.AddBillingInvoiceTaxAppIDs(ids...)
+}
+
+// AddBillingInvoiceInvoicingAppIDs adds the "billing_invoice_invoicing_app" edge to the BillingInvoice entity by IDs.
+func (ac *AppCreate) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return ac
+}
+
+// AddBillingInvoiceInvoicingApp adds the "billing_invoice_invoicing_app" edges to the BillingInvoice entity.
+func (ac *AppCreate) AddBillingInvoiceInvoicingApp(b ...*BillingInvoice) *AppCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ac.AddBillingInvoiceInvoicingAppIDs(ids...)
+}
+
+// AddBillingInvoicePaymentAppIDs adds the "billing_invoice_payment_app" edge to the BillingInvoice entity by IDs.
+func (ac *AppCreate) AddBillingInvoicePaymentAppIDs(ids ...string) *AppCreate {
+	ac.mutation.AddBillingInvoicePaymentAppIDs(ids...)
+	return ac
+}
+
+// AddBillingInvoicePaymentApp adds the "billing_invoice_payment_app" edges to the BillingInvoice entity.
+func (ac *AppCreate) AddBillingInvoicePaymentApp(b ...*BillingInvoice) *AppCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ac.AddBillingInvoicePaymentAppIDs(ids...)
 }
 
 // Mutation returns the AppMutation object of the builder.
@@ -373,12 +419,12 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.TaxAppIDs(); len(nodes) > 0 {
+	if nodes := ac.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.TaxAppTable,
-			Columns: []string{app.TaxAppColumn},
+			Table:   app.BillingProfileTaxAppTable,
+			Columns: []string{app.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -389,12 +435,12 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.InvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := ac.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.InvoicingAppTable,
-			Columns: []string{app.InvoicingAppColumn},
+			Table:   app.BillingProfileInvoicingAppTable,
+			Columns: []string{app.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -405,15 +451,63 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.PaymentAppIDs(); len(nodes) > 0 {
+	if nodes := ac.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.PaymentAppTable,
-			Columns: []string{app.PaymentAppColumn},
+			Table:   app.BillingProfilePaymentAppTable,
+			Columns: []string{app.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.BillingInvoiceTaxAppTable,
+			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.BillingInvoiceInvoicingAppTable,
+			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   app.BillingInvoicePaymentAppTable,
+			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

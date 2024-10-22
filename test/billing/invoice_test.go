@@ -2,8 +2,6 @@ package billing_test
 
 import (
 	"context"
-	"log/slog"
-	"sort"
 	"testing"
 	"time"
 
@@ -15,10 +13,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/billing/gobldriver"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type InvoicingTestSuite struct {
@@ -29,7 +27,7 @@ func TestInvoicing(t *testing.T) {
 	suite.Run(t, new(InvoicingTestSuite))
 }
 
-func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
+func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	namespace := "ns-create-invoice-workflow"
 	now := time.Now().Truncate(time.Microsecond)
 	periodEnd := now.Add(-time.Hour)
@@ -68,6 +66,7 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 	// Given we have a default profile for the namespace
 
+	var billingProfile billingentity.Profile
 	s.T().Run("create default profile", func(t *testing.T) {
 		minimalCreateProfileInput := minimalCreateProfileInputTemplate
 		minimalCreateProfileInput.Namespace = namespace
@@ -76,135 +75,254 @@ func (s *InvoicingTestSuite) TestPendingInvoiceValidation() {
 
 		require.NoError(t, err)
 		require.NotNil(t, profile)
+		billingProfile = *profile
 	})
 
-	var items []billingentity.InvoiceItem
-	var HUFItem billingentity.InvoiceItem
+	var items []billingentity.Line
+	var HUFItem billingentity.Line
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
 
-		items, err = s.BillingService.CreateInvoiceItems(ctx,
-			billing.CreateInvoiceItemsInput{
-				InvoiceID: nil,
-				Namespace: namespace,
-				Items: []billingentity.InvoiceItem{
+		res, err := s.BillingService.CreateInvoiceLines(ctx,
+			billing.CreateInvoiceLinesInput{
+				Namespace:       namespace,
+				CustomerKeyOrID: customerEntity.ID,
+				Lines: []billingentity.Line{
 					{
-						Namespace:   namespace,
-						CustomerID:  customerEntity.ID,
-						PeriodStart: periodStart,
-						PeriodEnd:   periodEnd,
+						LineBase: billingentity.LineBase{
+							Namespace: namespace,
+							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
 
-						InvoiceAt: issueAt,
+							InvoiceAt: issueAt,
 
-						Type: billingentity.InvoiceItemTypeStatic,
+							Type: billingentity.InvoiceLineTypeManualFee,
 
-						Name:      "Test item - USD",
-						Quantity:  lo.ToPtr(alpacadecimal.NewFromFloat(1)),
-						UnitPrice: alpacadecimal.NewFromFloat(100),
-						Currency:  currencyx.Code(currency.USD),
+							Name:     "Test item - USD",
+							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
+							Currency: currencyx.Code(currency.USD),
 
-						Metadata: map[string]string{
-							"key": "value",
+							Metadata: map[string]string{
+								"key": "value",
+							},
+						},
+						ManualFee: &billingentity.ManualFeeLine{
+							Price: alpacadecimal.NewFromFloat(100),
 						},
 					},
 					{
-						Namespace:   namespace,
-						CustomerID:  customerEntity.ID,
-						PeriodStart: periodStart,
-						PeriodEnd:   periodEnd,
+						LineBase: billingentity.LineBase{
+							Namespace: namespace,
+							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
 
-						InvoiceAt: issueAt,
+							InvoiceAt: issueAt,
 
-						Type: billingentity.InvoiceItemTypeStatic,
+							Type: billingentity.InvoiceLineTypeManualFee,
 
-						Name:      "Test item - HUF",
-						Quantity:  lo.ToPtr(alpacadecimal.NewFromFloat(3)),
-						UnitPrice: alpacadecimal.NewFromFloat(200),
-						Currency:  currencyx.Code(currency.HUF),
+							Name:     "Test item - HUF",
+							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(3)),
+							Currency: currencyx.Code(currency.HUF),
+						},
+						ManualFee: &billingentity.ManualFeeLine{
+							Price: alpacadecimal.NewFromFloat(200),
+						},
 					},
 				},
 			})
 
 		// Then we should have the items created
 		require.NoError(s.T(), err)
-		require.Len(s.T(), items, 2)
-		require.Equal(s.T(), items[0], billingentity.InvoiceItem{
-			ID:         items[0].ID,
-			Namespace:  namespace,
-			CustomerID: customerEntity.ID,
+		items = res.Lines
 
-			PeriodStart: periodStart,
-			PeriodEnd:   periodEnd,
-
-			InvoiceAt: issueAt,
-
-			Type: billingentity.InvoiceItemTypeStatic,
-
-			Name:      "Test item - USD",
-			Quantity:  lo.ToPtr(alpacadecimal.NewFromFloat(1)),
-			UnitPrice: alpacadecimal.NewFromFloat(100),
-			Currency:  currencyx.Code(currency.USD),
-
-			CreatedAt: items[0].CreatedAt,
-			UpdatedAt: items[0].UpdatedAt,
-
-			Metadata: map[string]string{
-				"key": "value",
+		// Then we should have an usd invoice automatically created
+		usdInvoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Page: pagination.Page{
+				PageNumber: 1,
+				PageSize:   10,
 			},
+
+			Namespace:  namespace,
+			Customers:  []string{customerEntity.ID},
+			Expand:     billing.InvoiceExpandAll,
+			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
 		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), usdInvoices.Items, 1)
+		usdInvoice := usdInvoices.Items[0]
+
+		expectedUSDLine := billingentity.Line{
+			LineBase: billingentity.LineBase{
+				ID:        items[0].ID,
+				Namespace: namespace,
+
+				Period: billingentity.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
+
+				InvoiceID: usdInvoice.ID,
+				InvoiceAt: issueAt,
+
+				Type: billingentity.InvoiceLineTypeManualFee,
+
+				Name:     "Test item - USD",
+				Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
+				Currency: currencyx.Code(currency.USD),
+
+				CreatedAt: usdInvoice.Lines[0].CreatedAt,
+				UpdatedAt: usdInvoice.Lines[0].UpdatedAt,
+
+				Metadata: map[string]string{
+					"key": "value",
+				},
+			},
+			ManualFee: &billingentity.ManualFeeLine{
+				Price: alpacadecimal.NewFromFloat(100),
+			},
+		}
+		// Let's make sure that the workflow config is cloned
+		require.NotEqual(s.T(), usdInvoice.Workflow.WorkflowConfig.ID, billingProfile.WorkflowConfig.ID)
+
+		require.Equal(s.T(), usdInvoice, billingentity.Invoice{
+			Namespace: namespace,
+			ID:        usdInvoice.ID,
+
+			Type:     billingentity.InvoiceTypeStandard,
+			Currency: currencyx.Code(currency.USD),
+			Status:   billingentity.InvoiceStatusGathering,
+
+			CreatedAt: usdInvoice.CreatedAt,
+			UpdatedAt: usdInvoice.UpdatedAt,
+
+			Workflow: &billingentity.InvoiceWorkflow{
+				WorkflowConfig: billingentity.WorkflowConfig{
+					ID:        usdInvoice.Workflow.WorkflowConfig.ID,
+					CreatedAt: usdInvoice.Workflow.WorkflowConfig.CreatedAt,
+					UpdatedAt: usdInvoice.Workflow.WorkflowConfig.UpdatedAt,
+
+					Timezone:   billingProfile.WorkflowConfig.Timezone,
+					Collection: billingProfile.WorkflowConfig.Collection,
+					Invoicing:  billingProfile.WorkflowConfig.Invoicing,
+					Payment:    billingProfile.WorkflowConfig.Payment,
+				},
+				SourceBillingProfileID: billingProfile.ID,
+				AppReferences:          *billingProfile.AppReferences,
+				Apps:                   billingProfile.Apps,
+			},
+
+			Customer: billingentity.InvoiceCustomer{
+				CustomerID: customerEntity.ID,
+
+				Name:           customerEntity.Name,
+				BillingAddress: customerEntity.BillingAddress,
+			},
+			Supplier: billingProfile.Supplier,
+
+			Lines: []billingentity.Line{expectedUSDLine},
+		})
+
+		require.Len(s.T(), items, 2)
+		// Validate that the create returns the expected items
+		items[0].CreatedAt = expectedUSDLine.CreatedAt
+		items[0].UpdatedAt = expectedUSDLine.UpdatedAt
+		require.Equal(s.T(), items[0], expectedUSDLine)
 		require.NotEmpty(s.T(), items[1].ID)
 
 		HUFItem = items[1]
 	})
 
-	var pendingInvoices []billingentity.InvoiceWithValidation
-	var USDInvoice billingentity.InvoiceWithValidation
+	s.T().Run("CreateInvoiceItems - HUF", func(t *testing.T) {
+		// Then a HUF item is also created
+		require.NotNil(s.T(), HUFItem.ID)
 
-	s.T().Run("Pending invoices", func(t *testing.T) {
-		// When we get the pending invoices
-		pendingInvoices, err = s.BillingService.GetPendingInvoiceItems(ctx, customerentity.CustomerID{
-			Namespace: namespace,
-			ID:        customerEntity.ID,
+		// Then we have a different invoice for HUF
+		hufInvoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Page: pagination.Page{
+				PageNumber: 1,
+				PageSize:   10,
+			},
+
+			Namespace:  namespace,
+			Customers:  []string{customerEntity.ID},
+			Expand:     billing.InvoiceExpandAll,
+			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies: []currencyx.Code{currencyx.Code(currency.HUF)},
 		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), hufInvoices.Items, 1)
 
-		// Then we should receive the one invoice per currency
-		require.NoError(t, err)
-		require.NotNil(t, pendingInvoices)
-		require.Len(t, pendingInvoices, 2)
-
-		sort.SliceStable(pendingInvoices, func(i, j int) bool {
-			return pendingInvoices[i].Invoice.Currency < pendingInvoices[j].Invoice.Currency
-		})
-
-		for _, pendingInvoice := range pendingInvoices {
-			pendingInvoice.Invoice.Customer.CreatedAt = customerEntity.CreatedAt
-			pendingInvoice.Invoice.Customer.UpdatedAt = customerEntity.UpdatedAt
-
-			require.EqualValues(t, billingentity.InvoiceCustomer(*customerEntity), pendingInvoice.Invoice.Customer)
-		}
-
-		require.EqualValues(t, HUFItem.ID, pendingInvoices[0].Invoice.Items[0].ID)
-
-		USDInvoice = pendingInvoices[1]
+		// Then we have one line item for the invoice
+		require.Len(s.T(), hufInvoices.Items[0].Lines, 1)
 	})
 
-	s.T().Run("Pending invoice - GOBL validation", func(t *testing.T) {
-		// When we validate the invoice with GOBL
-		gobl, err := gobldriver.NewDriver(gobldriver.DriverConfig{
-			Logger: slog.Default(),
+	s.T().Run("Expand scenarios - no expand", func(t *testing.T) {
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Page: pagination.Page{
+				PageNumber: 1,
+				PageSize:   10,
+			},
+
+			Namespace:  namespace,
+			Customers:  []string{customerEntity.ID},
+			Expand:     billing.InvoiceExpand{},
+			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
 		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+		invoice := invoices.Items[0]
 
-		// Then we should get no validation errors
-		require.NoError(t, err)
-		require.NotNil(t, gobl)
+		require.Len(s.T(), invoice.Lines, 0, "no lines should be returned")
+		require.Nil(s.T(), invoice.Workflow, "no workflow should be returned")
+	})
 
-		invoice, err := gobl.Generate(context.Background(), USDInvoice)
-		require.NoError(t, err)
+	s.T().Run("Expand scenarios - no app expand", func(t *testing.T) {
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Page: pagination.Page{
+				PageNumber: 1,
+				PageSize:   10,
+			},
 
-		validationErrors, err := gobldriver.LookupValidationErrors(invoice)
-		require.NoError(t, err)
+			Namespace: namespace,
+			Customers: []string{customerEntity.ID},
+			Expand: billing.InvoiceExpand{
+				Workflow: true,
+			},
+			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+		invoice := invoices.Items[0]
 
-		require.False(t, validationErrors.HasErrors(), "no validation errors expected")
+		require.Len(s.T(), invoice.Lines, 0, "no lines should be returned")
+		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
+		require.Nil(s.T(), invoice.Workflow.Apps, "apps should not be resolved")
+	})
+
+	s.T().Run("Expand scenarios - app expand", func(t *testing.T) {
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Page: pagination.Page{
+				PageNumber: 1,
+				PageSize:   10,
+			},
+
+			Namespace: namespace,
+			Customers: []string{customerEntity.ID},
+			Expand: billing.InvoiceExpand{
+				Workflow:     true,
+				WorkflowApps: true,
+			},
+			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+		invoice := invoices.Items[0]
+
+		require.Len(s.T(), invoice.Lines, 0, "no lines should be returned")
+		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
+		require.NotNil(s.T(), invoice.Workflow.Apps, "apps should  be resolved")
+		require.NotNil(s.T(), invoice.Workflow.Apps.Tax, "apps should be resolved")
+		require.NotNil(s.T(), invoice.Workflow.Apps.Invoicing, "apps should be resolved")
+		require.NotNil(s.T(), invoice.Workflow.Apps.Payment, "apps should be resolved")
 	})
 }

@@ -11,9 +11,14 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingInvoice is the model entity for the BillingInvoice schema.
@@ -23,36 +28,82 @@ type BillingInvoice struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Metadata holds the value of the "metadata" field.
-	Metadata map[string]string `json:"metadata,omitempty"`
-	// Series holds the value of the "series" field.
-	Series *string `json:"series,omitempty"`
-	// Code holds the value of the "code" field.
-	Code *string `json:"code,omitempty"`
+	// SupplierAddressCountry holds the value of the "supplier_address_country" field.
+	SupplierAddressCountry *models.CountryCode `json:"supplier_address_country,omitempty"`
+	// SupplierAddressPostalCode holds the value of the "supplier_address_postal_code" field.
+	SupplierAddressPostalCode *string `json:"supplier_address_postal_code,omitempty"`
+	// SupplierAddressState holds the value of the "supplier_address_state" field.
+	SupplierAddressState *string `json:"supplier_address_state,omitempty"`
+	// SupplierAddressCity holds the value of the "supplier_address_city" field.
+	SupplierAddressCity *string `json:"supplier_address_city,omitempty"`
+	// SupplierAddressLine1 holds the value of the "supplier_address_line1" field.
+	SupplierAddressLine1 *string `json:"supplier_address_line1,omitempty"`
+	// SupplierAddressLine2 holds the value of the "supplier_address_line2" field.
+	SupplierAddressLine2 *string `json:"supplier_address_line2,omitempty"`
+	// SupplierAddressPhoneNumber holds the value of the "supplier_address_phone_number" field.
+	SupplierAddressPhoneNumber *string `json:"supplier_address_phone_number,omitempty"`
+	// CustomerAddressCountry holds the value of the "customer_address_country" field.
+	CustomerAddressCountry *models.CountryCode `json:"customer_address_country,omitempty"`
+	// CustomerAddressPostalCode holds the value of the "customer_address_postal_code" field.
+	CustomerAddressPostalCode *string `json:"customer_address_postal_code,omitempty"`
+	// CustomerAddressState holds the value of the "customer_address_state" field.
+	CustomerAddressState *string `json:"customer_address_state,omitempty"`
+	// CustomerAddressCity holds the value of the "customer_address_city" field.
+	CustomerAddressCity *string `json:"customer_address_city,omitempty"`
+	// CustomerAddressLine1 holds the value of the "customer_address_line1" field.
+	CustomerAddressLine1 *string `json:"customer_address_line1,omitempty"`
+	// CustomerAddressLine2 holds the value of the "customer_address_line2" field.
+	CustomerAddressLine2 *string `json:"customer_address_line2,omitempty"`
+	// CustomerAddressPhoneNumber holds the value of the "customer_address_phone_number" field.
+	CustomerAddressPhoneNumber *string `json:"customer_address_phone_number,omitempty"`
+	// SupplierName holds the value of the "supplier_name" field.
+	SupplierName string `json:"supplier_name,omitempty"`
+	// SupplierTaxCode holds the value of the "supplier_tax_code" field.
+	SupplierTaxCode *string `json:"supplier_tax_code,omitempty"`
+	// CustomerName holds the value of the "customer_name" field.
+	CustomerName string `json:"customer_name,omitempty"`
+	// CustomerTimezone holds the value of the "customer_timezone" field.
+	CustomerTimezone *timezone.Timezone `json:"customer_timezone,omitempty"`
+	// Number holds the value of the "number" field.
+	Number *string `json:"number,omitempty"`
+	// Type holds the value of the "type" field.
+	Type billingentity.InvoiceType `json:"type,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
-	// BillingProfileID holds the value of the "billing_profile_id" field.
-	BillingProfileID string `json:"billing_profile_id,omitempty"`
+	// SourceBillingProfileID holds the value of the "source_billing_profile_id" field.
+	SourceBillingProfileID string `json:"source_billing_profile_id,omitempty"`
 	// VoidedAt holds the value of the "voided_at" field.
-	VoidedAt time.Time `json:"voided_at,omitempty"`
+	VoidedAt *time.Time `json:"voided_at,omitempty"`
+	// IssuedAt holds the value of the "issued_at" field.
+	IssuedAt *time.Time `json:"issued_at,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency string `json:"currency,omitempty"`
-	// DueDate holds the value of the "due_date" field.
-	DueDate time.Time `json:"due_date,omitempty"`
+	Currency currencyx.Code `json:"currency,omitempty"`
+	// DueAt holds the value of the "due_at" field.
+	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
 	Status billingentity.InvoiceStatus `json:"status,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
+	// TaxAppID holds the value of the "tax_app_id" field.
+	TaxAppID string `json:"tax_app_id,omitempty"`
+	// InvoicingAppID holds the value of the "invoicing_app_id" field.
+	InvoicingAppID string `json:"invoicing_app_id,omitempty"`
+	// PaymentAppID holds the value of the "payment_app_id" field.
+	PaymentAppID string `json:"payment_app_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
-	PeriodStart time.Time `json:"period_start,omitempty"`
+	PeriodStart *time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
-	PeriodEnd time.Time `json:"period_end,omitempty"`
+	PeriodEnd *time.Time `json:"period_end,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceQuery when eager-loading is set.
 	Edges        BillingInvoiceEdges `json:"edges"`
@@ -61,26 +112,34 @@ type BillingInvoice struct {
 
 // BillingInvoiceEdges holds the relations/edges for other nodes in the graph.
 type BillingInvoiceEdges struct {
-	// BillingProfile holds the value of the billing_profile edge.
-	BillingProfile *BillingProfile `json:"billing_profile,omitempty"`
+	// SourceBillingProfile holds the value of the source_billing_profile edge.
+	SourceBillingProfile *BillingProfile `json:"source_billing_profile,omitempty"`
 	// BillingWorkflowConfig holds the value of the billing_workflow_config edge.
 	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
-	// BillingInvoiceItems holds the value of the billing_invoice_items edge.
-	BillingInvoiceItems []*BillingInvoiceItem `json:"billing_invoice_items,omitempty"`
+	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
+	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// BillingInvoiceCustomer holds the value of the billing_invoice_customer edge.
+	BillingInvoiceCustomer *Customer `json:"billing_invoice_customer,omitempty"`
+	// TaxApp holds the value of the tax_app edge.
+	TaxApp *App `json:"tax_app,omitempty"`
+	// InvoicingApp holds the value of the invoicing_app edge.
+	InvoicingApp *App `json:"invoicing_app,omitempty"`
+	// PaymentApp holds the value of the payment_app edge.
+	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [7]bool
 }
 
-// BillingProfileOrErr returns the BillingProfile value or an error if the edge
+// SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e BillingInvoiceEdges) BillingProfileOrErr() (*BillingProfile, error) {
-	if e.BillingProfile != nil {
-		return e.BillingProfile, nil
+func (e BillingInvoiceEdges) SourceBillingProfileOrErr() (*BillingProfile, error) {
+	if e.SourceBillingProfile != nil {
+		return e.SourceBillingProfile, nil
 	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: billingprofile.Label}
 	}
-	return nil, &NotLoadedError{edge: "billing_profile"}
+	return nil, &NotLoadedError{edge: "source_billing_profile"}
 }
 
 // BillingWorkflowConfigOrErr returns the BillingWorkflowConfig value or an error if the edge
@@ -94,13 +153,57 @@ func (e BillingInvoiceEdges) BillingWorkflowConfigOrErr() (*BillingWorkflowConfi
 	return nil, &NotLoadedError{edge: "billing_workflow_config"}
 }
 
-// BillingInvoiceItemsOrErr returns the BillingInvoiceItems value or an error if the edge
+// BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e BillingInvoiceEdges) BillingInvoiceItemsOrErr() ([]*BillingInvoiceItem, error) {
+func (e BillingInvoiceEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
 	if e.loadedTypes[2] {
-		return e.BillingInvoiceItems, nil
+		return e.BillingInvoiceLines, nil
 	}
-	return nil, &NotLoadedError{edge: "billing_invoice_items"}
+	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
+}
+
+// BillingInvoiceCustomerOrErr returns the BillingInvoiceCustomer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
+	if e.BillingInvoiceCustomer != nil {
+		return e.BillingInvoiceCustomer, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: customer.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_invoice_customer"}
+}
+
+// TaxAppOrErr returns the TaxApp value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
+	if e.TaxApp != nil {
+		return e.TaxApp, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_app"}
+}
+
+// InvoicingAppOrErr returns the InvoicingApp value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
+	if e.InvoicingApp != nil {
+		return e.InvoicingApp, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "invoicing_app"}
+}
+
+// PaymentAppOrErr returns the PaymentApp value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
+	if e.PaymentApp != nil {
+		return e.PaymentApp, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: app.Label}
+	}
+	return nil, &NotLoadedError{edge: "payment_app"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -110,9 +213,9 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoice.FieldMetadata:
 			values[i] = new([]byte)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSeries, billinginvoice.FieldCode, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldCustomerTimezone, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
 			values[i] = new(sql.NullString)
-		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldDueDate, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
+		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -141,6 +244,14 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.Namespace = value.String
 			}
+		case billinginvoice.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bi.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
 		case billinginvoice.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -160,27 +271,149 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 				bi.DeletedAt = new(time.Time)
 				*bi.DeletedAt = value.Time
 			}
-		case billinginvoice.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bi.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
-			}
-		case billinginvoice.FieldSeries:
+		case billinginvoice.FieldSupplierAddressCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field series", values[i])
+				return fmt.Errorf("unexpected type %T for field supplier_address_country", values[i])
 			} else if value.Valid {
-				bi.Series = new(string)
-				*bi.Series = value.String
+				bi.SupplierAddressCountry = new(models.CountryCode)
+				*bi.SupplierAddressCountry = models.CountryCode(value.String)
 			}
-		case billinginvoice.FieldCode:
+		case billinginvoice.FieldSupplierAddressPostalCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field code", values[i])
+				return fmt.Errorf("unexpected type %T for field supplier_address_postal_code", values[i])
 			} else if value.Valid {
-				bi.Code = new(string)
-				*bi.Code = value.String
+				bi.SupplierAddressPostalCode = new(string)
+				*bi.SupplierAddressPostalCode = value.String
+			}
+		case billinginvoice.FieldSupplierAddressState:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_state", values[i])
+			} else if value.Valid {
+				bi.SupplierAddressState = new(string)
+				*bi.SupplierAddressState = value.String
+			}
+		case billinginvoice.FieldSupplierAddressCity:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_city", values[i])
+			} else if value.Valid {
+				bi.SupplierAddressCity = new(string)
+				*bi.SupplierAddressCity = value.String
+			}
+		case billinginvoice.FieldSupplierAddressLine1:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_line1", values[i])
+			} else if value.Valid {
+				bi.SupplierAddressLine1 = new(string)
+				*bi.SupplierAddressLine1 = value.String
+			}
+		case billinginvoice.FieldSupplierAddressLine2:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_line2", values[i])
+			} else if value.Valid {
+				bi.SupplierAddressLine2 = new(string)
+				*bi.SupplierAddressLine2 = value.String
+			}
+		case billinginvoice.FieldSupplierAddressPhoneNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_address_phone_number", values[i])
+			} else if value.Valid {
+				bi.SupplierAddressPhoneNumber = new(string)
+				*bi.SupplierAddressPhoneNumber = value.String
+			}
+		case billinginvoice.FieldCustomerAddressCountry:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_country", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressCountry = new(models.CountryCode)
+				*bi.CustomerAddressCountry = models.CountryCode(value.String)
+			}
+		case billinginvoice.FieldCustomerAddressPostalCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_postal_code", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressPostalCode = new(string)
+				*bi.CustomerAddressPostalCode = value.String
+			}
+		case billinginvoice.FieldCustomerAddressState:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_state", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressState = new(string)
+				*bi.CustomerAddressState = value.String
+			}
+		case billinginvoice.FieldCustomerAddressCity:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_city", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressCity = new(string)
+				*bi.CustomerAddressCity = value.String
+			}
+		case billinginvoice.FieldCustomerAddressLine1:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_line1", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressLine1 = new(string)
+				*bi.CustomerAddressLine1 = value.String
+			}
+		case billinginvoice.FieldCustomerAddressLine2:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_line2", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressLine2 = new(string)
+				*bi.CustomerAddressLine2 = value.String
+			}
+		case billinginvoice.FieldCustomerAddressPhoneNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_address_phone_number", values[i])
+			} else if value.Valid {
+				bi.CustomerAddressPhoneNumber = new(string)
+				*bi.CustomerAddressPhoneNumber = value.String
+			}
+		case billinginvoice.FieldSupplierName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_name", values[i])
+			} else if value.Valid {
+				bi.SupplierName = value.String
+			}
+		case billinginvoice.FieldSupplierTaxCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field supplier_tax_code", values[i])
+			} else if value.Valid {
+				bi.SupplierTaxCode = new(string)
+				*bi.SupplierTaxCode = value.String
+			}
+		case billinginvoice.FieldCustomerName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_name", values[i])
+			} else if value.Valid {
+				bi.CustomerName = value.String
+			}
+		case billinginvoice.FieldCustomerTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_timezone", values[i])
+			} else if value.Valid {
+				bi.CustomerTimezone = new(timezone.Timezone)
+				*bi.CustomerTimezone = timezone.Timezone(value.String)
+			}
+		case billinginvoice.FieldNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field number", values[i])
+			} else if value.Valid {
+				bi.Number = new(string)
+				*bi.Number = value.String
+			}
+		case billinginvoice.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				bi.Type = billingentity.InvoiceType(value.String)
+			}
+		case billinginvoice.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				bi.Description = new(string)
+				*bi.Description = value.String
 			}
 		case billinginvoice.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -188,29 +421,38 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.CustomerID = value.String
 			}
-		case billinginvoice.FieldBillingProfileID:
+		case billinginvoice.FieldSourceBillingProfileID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field billing_profile_id", values[i])
+				return fmt.Errorf("unexpected type %T for field source_billing_profile_id", values[i])
 			} else if value.Valid {
-				bi.BillingProfileID = value.String
+				bi.SourceBillingProfileID = value.String
 			}
 		case billinginvoice.FieldVoidedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field voided_at", values[i])
 			} else if value.Valid {
-				bi.VoidedAt = value.Time
+				bi.VoidedAt = new(time.Time)
+				*bi.VoidedAt = value.Time
+			}
+		case billinginvoice.FieldIssuedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field issued_at", values[i])
+			} else if value.Valid {
+				bi.IssuedAt = new(time.Time)
+				*bi.IssuedAt = value.Time
 			}
 		case billinginvoice.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				bi.Currency = value.String
+				bi.Currency = currencyx.Code(value.String)
 			}
-		case billinginvoice.FieldDueDate:
+		case billinginvoice.FieldDueAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field due_date", values[i])
+				return fmt.Errorf("unexpected type %T for field due_at", values[i])
 			} else if value.Valid {
-				bi.DueDate = value.Time
+				bi.DueAt = new(time.Time)
+				*bi.DueAt = value.Time
 			}
 		case billinginvoice.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -224,17 +466,37 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.WorkflowConfigID = value.String
 			}
+		case billinginvoice.FieldTaxAppID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_app_id", values[i])
+			} else if value.Valid {
+				bi.TaxAppID = value.String
+			}
+		case billinginvoice.FieldInvoicingAppID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_id", values[i])
+			} else if value.Valid {
+				bi.InvoicingAppID = value.String
+			}
+		case billinginvoice.FieldPaymentAppID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_app_id", values[i])
+			} else if value.Valid {
+				bi.PaymentAppID = value.String
+			}
 		case billinginvoice.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_start", values[i])
 			} else if value.Valid {
-				bi.PeriodStart = value.Time
+				bi.PeriodStart = new(time.Time)
+				*bi.PeriodStart = value.Time
 			}
 		case billinginvoice.FieldPeriodEnd:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_end", values[i])
 			} else if value.Valid {
-				bi.PeriodEnd = value.Time
+				bi.PeriodEnd = new(time.Time)
+				*bi.PeriodEnd = value.Time
 			}
 		default:
 			bi.selectValues.Set(columns[i], values[i])
@@ -249,9 +511,9 @@ func (bi *BillingInvoice) Value(name string) (ent.Value, error) {
 	return bi.selectValues.Get(name)
 }
 
-// QueryBillingProfile queries the "billing_profile" edge of the BillingInvoice entity.
-func (bi *BillingInvoice) QueryBillingProfile() *BillingProfileQuery {
-	return NewBillingInvoiceClient(bi.config).QueryBillingProfile(bi)
+// QuerySourceBillingProfile queries the "source_billing_profile" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QuerySourceBillingProfile() *BillingProfileQuery {
+	return NewBillingInvoiceClient(bi.config).QuerySourceBillingProfile(bi)
 }
 
 // QueryBillingWorkflowConfig queries the "billing_workflow_config" edge of the BillingInvoice entity.
@@ -259,9 +521,29 @@ func (bi *BillingInvoice) QueryBillingWorkflowConfig() *BillingWorkflowConfigQue
 	return NewBillingInvoiceClient(bi.config).QueryBillingWorkflowConfig(bi)
 }
 
-// QueryBillingInvoiceItems queries the "billing_invoice_items" edge of the BillingInvoice entity.
-func (bi *BillingInvoice) QueryBillingInvoiceItems() *BillingInvoiceItemQuery {
-	return NewBillingInvoiceClient(bi.config).QueryBillingInvoiceItems(bi)
+// QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceClient(bi.config).QueryBillingInvoiceLines(bi)
+}
+
+// QueryBillingInvoiceCustomer queries the "billing_invoice_customer" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QueryBillingInvoiceCustomer() *CustomerQuery {
+	return NewBillingInvoiceClient(bi.config).QueryBillingInvoiceCustomer(bi)
+}
+
+// QueryTaxApp queries the "tax_app" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QueryTaxApp() *AppQuery {
+	return NewBillingInvoiceClient(bi.config).QueryTaxApp(bi)
+}
+
+// QueryInvoicingApp queries the "invoicing_app" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QueryInvoicingApp() *AppQuery {
+	return NewBillingInvoiceClient(bi.config).QueryInvoicingApp(bi)
+}
+
+// QueryPaymentApp queries the "payment_app" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QueryPaymentApp() *AppQuery {
+	return NewBillingInvoiceClient(bi.config).QueryPaymentApp(bi)
 }
 
 // Update returns a builder for updating this BillingInvoice.
@@ -290,6 +572,9 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(bi.Namespace)
 	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", bi.Metadata))
+	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(bi.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -301,33 +586,128 @@ func (bi *BillingInvoice) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", bi.Metadata))
+	if v := bi.SupplierAddressCountry; v != nil {
+		builder.WriteString("supplier_address_country=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	if v := bi.Series; v != nil {
-		builder.WriteString("series=")
+	if v := bi.SupplierAddressPostalCode; v != nil {
+		builder.WriteString("supplier_address_postal_code=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bi.Code; v != nil {
-		builder.WriteString("code=")
+	if v := bi.SupplierAddressState; v != nil {
+		builder.WriteString("supplier_address_state=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.SupplierAddressCity; v != nil {
+		builder.WriteString("supplier_address_city=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.SupplierAddressLine1; v != nil {
+		builder.WriteString("supplier_address_line1=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.SupplierAddressLine2; v != nil {
+		builder.WriteString("supplier_address_line2=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.SupplierAddressPhoneNumber; v != nil {
+		builder.WriteString("supplier_address_phone_number=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressCountry; v != nil {
+		builder.WriteString("customer_address_country=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressPostalCode; v != nil {
+		builder.WriteString("customer_address_postal_code=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressState; v != nil {
+		builder.WriteString("customer_address_state=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressCity; v != nil {
+		builder.WriteString("customer_address_city=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressLine1; v != nil {
+		builder.WriteString("customer_address_line1=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressLine2; v != nil {
+		builder.WriteString("customer_address_line2=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.CustomerAddressPhoneNumber; v != nil {
+		builder.WriteString("customer_address_phone_number=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("supplier_name=")
+	builder.WriteString(bi.SupplierName)
+	builder.WriteString(", ")
+	if v := bi.SupplierTaxCode; v != nil {
+		builder.WriteString("supplier_tax_code=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("customer_name=")
+	builder.WriteString(bi.CustomerName)
+	builder.WriteString(", ")
+	if v := bi.CustomerTimezone; v != nil {
+		builder.WriteString("customer_timezone=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bi.Number; v != nil {
+		builder.WriteString("number=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", bi.Type))
+	builder.WriteString(", ")
+	if v := bi.Description; v != nil {
+		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(bi.CustomerID)
 	builder.WriteString(", ")
-	builder.WriteString("billing_profile_id=")
-	builder.WriteString(bi.BillingProfileID)
+	builder.WriteString("source_billing_profile_id=")
+	builder.WriteString(bi.SourceBillingProfileID)
 	builder.WriteString(", ")
-	builder.WriteString("voided_at=")
-	builder.WriteString(bi.VoidedAt.Format(time.ANSIC))
+	if v := bi.VoidedAt; v != nil {
+		builder.WriteString("voided_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := bi.IssuedAt; v != nil {
+		builder.WriteString("issued_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
-	builder.WriteString(bi.Currency)
+	builder.WriteString(fmt.Sprintf("%v", bi.Currency))
 	builder.WriteString(", ")
-	builder.WriteString("due_date=")
-	builder.WriteString(bi.DueDate.Format(time.ANSIC))
+	if v := bi.DueAt; v != nil {
+		builder.WriteString("due_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", bi.Status))
@@ -335,11 +715,24 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bi.WorkflowConfigID)
 	builder.WriteString(", ")
-	builder.WriteString("period_start=")
-	builder.WriteString(bi.PeriodStart.Format(time.ANSIC))
+	builder.WriteString("tax_app_id=")
+	builder.WriteString(bi.TaxAppID)
 	builder.WriteString(", ")
-	builder.WriteString("period_end=")
-	builder.WriteString(bi.PeriodEnd.Format(time.ANSIC))
+	builder.WriteString("invoicing_app_id=")
+	builder.WriteString(bi.InvoicingAppID)
+	builder.WriteString(", ")
+	builder.WriteString("payment_app_id=")
+	builder.WriteString(bi.PaymentAppID)
+	builder.WriteString(", ")
+	if v := bi.PeriodStart; v != nil {
+		builder.WriteString("period_start=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := bi.PeriodEnd; v != nil {
+		builder.WriteString("period_end=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

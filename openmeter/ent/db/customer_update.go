@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -355,6 +356,21 @@ func (cu *CustomerUpdate) SetBillingCustomerOverride(b *BillingCustomerOverride)
 	return cu.SetBillingCustomerOverrideID(b.ID)
 }
 
+// AddBillingInvoiceIDs adds the "billing_invoice" edge to the BillingInvoice entity by IDs.
+func (cu *CustomerUpdate) AddBillingInvoiceIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.AddBillingInvoiceIDs(ids...)
+	return cu
+}
+
+// AddBillingInvoice adds the "billing_invoice" edges to the BillingInvoice entity.
+func (cu *CustomerUpdate) AddBillingInvoice(b ...*BillingInvoice) *CustomerUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cu.AddBillingInvoiceIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
@@ -408,6 +424,27 @@ func (cu *CustomerUpdate) ClearBillingCustomerOverride() *CustomerUpdate {
 	return cu
 }
 
+// ClearBillingInvoice clears all "billing_invoice" edges to the BillingInvoice entity.
+func (cu *CustomerUpdate) ClearBillingInvoice() *CustomerUpdate {
+	cu.mutation.ClearBillingInvoice()
+	return cu
+}
+
+// RemoveBillingInvoiceIDs removes the "billing_invoice" edge to BillingInvoice entities by IDs.
+func (cu *CustomerUpdate) RemoveBillingInvoiceIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.RemoveBillingInvoiceIDs(ids...)
+	return cu
+}
+
+// RemoveBillingInvoice removes "billing_invoice" edges to BillingInvoice entities.
+func (cu *CustomerUpdate) RemoveBillingInvoice(b ...*BillingInvoice) *CustomerUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cu.RemoveBillingInvoiceIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (cu *CustomerUpdate) Save(ctx context.Context) (int, error) {
 	cu.defaults()
@@ -449,6 +486,11 @@ func (cu *CustomerUpdate) check() error {
 	if v, ok := cu.mutation.BillingAddressCountry(); ok {
 		if err := customer.BillingAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
+		}
+	}
+	if v, ok := cu.mutation.Timezone(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "timezone", err: fmt.Errorf(`db: validator failed for field "Customer.timezone": %w`, err)}
 		}
 	}
 	if v, ok := cu.mutation.Currency(); ok {
@@ -667,6 +709,51 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.BillingInvoiceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedBillingInvoiceIDs(); len(nodes) > 0 && !cu.mutation.BillingInvoiceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1015,6 +1102,21 @@ func (cuo *CustomerUpdateOne) SetBillingCustomerOverride(b *BillingCustomerOverr
 	return cuo.SetBillingCustomerOverrideID(b.ID)
 }
 
+// AddBillingInvoiceIDs adds the "billing_invoice" edge to the BillingInvoice entity by IDs.
+func (cuo *CustomerUpdateOne) AddBillingInvoiceIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.AddBillingInvoiceIDs(ids...)
+	return cuo
+}
+
+// AddBillingInvoice adds the "billing_invoice" edges to the BillingInvoice entity.
+func (cuo *CustomerUpdateOne) AddBillingInvoice(b ...*BillingInvoice) *CustomerUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cuo.AddBillingInvoiceIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
@@ -1066,6 +1168,27 @@ func (cuo *CustomerUpdateOne) RemoveSubjects(c ...*CustomerSubjects) *CustomerUp
 func (cuo *CustomerUpdateOne) ClearBillingCustomerOverride() *CustomerUpdateOne {
 	cuo.mutation.ClearBillingCustomerOverride()
 	return cuo
+}
+
+// ClearBillingInvoice clears all "billing_invoice" edges to the BillingInvoice entity.
+func (cuo *CustomerUpdateOne) ClearBillingInvoice() *CustomerUpdateOne {
+	cuo.mutation.ClearBillingInvoice()
+	return cuo
+}
+
+// RemoveBillingInvoiceIDs removes the "billing_invoice" edge to BillingInvoice entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveBillingInvoiceIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.RemoveBillingInvoiceIDs(ids...)
+	return cuo
+}
+
+// RemoveBillingInvoice removes "billing_invoice" edges to BillingInvoice entities.
+func (cuo *CustomerUpdateOne) RemoveBillingInvoice(b ...*BillingInvoice) *CustomerUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cuo.RemoveBillingInvoiceIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1122,6 +1245,11 @@ func (cuo *CustomerUpdateOne) check() error {
 	if v, ok := cuo.mutation.BillingAddressCountry(); ok {
 		if err := customer.BillingAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
+		}
+	}
+	if v, ok := cuo.mutation.Timezone(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "timezone", err: fmt.Errorf(`db: validator failed for field "Customer.timezone": %w`, err)}
 		}
 	}
 	if v, ok := cuo.mutation.Currency(); ok {
@@ -1357,6 +1485,51 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.BillingInvoiceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedBillingInvoiceIDs(); len(nodes) > 0 && !cuo.mutation.BillingInvoiceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingInvoiceTable,
+			Columns: []string{customer.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

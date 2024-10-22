@@ -54,6 +54,8 @@ const (
 	EdgeSubjects = "subjects"
 	// EdgeBillingCustomerOverride holds the string denoting the billing_customer_override edge name in mutations.
 	EdgeBillingCustomerOverride = "billing_customer_override"
+	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
+	EdgeBillingInvoice = "billing_invoice"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// AppsTable is the table that holds the apps relation/edge.
@@ -77,6 +79,13 @@ const (
 	BillingCustomerOverrideInverseTable = "billing_customer_overrides"
 	// BillingCustomerOverrideColumn is the table column denoting the billing_customer_override relation/edge.
 	BillingCustomerOverrideColumn = "customer_id"
+	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
+	BillingInvoiceTable = "billing_invoices"
+	// BillingInvoiceInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoiceInverseTable = "billing_invoices"
+	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
+	BillingInvoiceColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -250,6 +259,20 @@ func ByBillingCustomerOverrideField(field string, opts ...sql.OrderTermOption) O
 		sqlgraph.OrderByNeighborTerms(s, newBillingCustomerOverrideStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByBillingInvoiceCount orders the results by billing_invoice count.
+func ByBillingInvoiceCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceStep(), opts...)
+	}
+}
+
+// ByBillingInvoice orders the results by billing_invoice terms.
+func ByBillingInvoice(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -269,5 +292,12 @@ func newBillingCustomerOverrideStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingCustomerOverrideInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, BillingCustomerOverrideTable, BillingCustomerOverrideColumn),
+	)
+}
+func newBillingInvoiceStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceTable, BillingInvoiceColumn),
 	)
 }

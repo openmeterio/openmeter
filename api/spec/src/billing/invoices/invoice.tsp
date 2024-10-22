@@ -40,10 +40,10 @@ scalar InvoiceNumber extends string;
  * tax: Special tax configuration for billing.
  *    -> The prices include is the meaningful part, but we should make that an array, let's see if we need this as we implement more features.
  */
-@summary("Invoice summary represents an extract of the invoice object")
-@friendlyName("BillingInvoiceSummary")
+@summary("Invoice represents an invoice in the system.")
+@friendlyName("BillingInvoice")
 model Invoice {
-  ...OmitProperties<global.Resource, "updatedAt">;
+  ...OmitProperties<global.Resource, "updatedAt" | "name">;
 
   /**
    * Timestamp of when the resource was last updated.
@@ -56,7 +56,7 @@ model Invoice {
   updatedAt: DateTime;
 
   @visibility("read", "query")
-  type?: InvoiceType;
+  type: InvoiceType;
 
   @summary("The taxable entity supplying the goods or services.")
   @visibility("read", "query", "update")
@@ -106,6 +106,28 @@ model Invoice {
   @visibility("read", "query")
   issuedAt?: DateTime;
 
+  @summary("Due time of the fulfillment of the invoice.")
+  @visibility("read", "query")
+  dueAt?: DateTime;
+
+  @summary("The period the invoice covers. If the invoice has no line items, it's not set.")
+  period?: Period;
+
+  /**
+   * The time the invoice was voided.
+   *
+   * If the invoice was voided, this field will be set to the time the invoice was voided.
+   */
+  @summary("The time the invoice was voided.")
+  @visibility("read", "query")
+  voidedAt?: DateTime;
+
+  /**
+   * The workflow associated with the invoice.
+   *
+   * It is always a snapshot of the workflow settings at the time of invoice creation. The
+   * field is optional as it should be explicitly requested with expand options.
+   */
   @summary("The workflow settings associated with this invoice")
   @visibility("read", "query", "update")
   workflow?: InvoiceWorkflowSettings;
@@ -115,7 +137,7 @@ model Invoice {
   // TODO: we might want to group this by subscription, so that we don't have to add individual references
   // per line item, however that poses a problem, when a manually added line-item is added, as that should also be
   // bound to a subscription.
-  lines?: Line[];
+  lines?: InvoiceLine[];
 
   @summary("Discounts or allowances applied to the complete invoice.")
   @visibility("read", "query") // Seperate API endpoint is available for updating
@@ -128,25 +150,24 @@ model Invoice {
 
 @friendlyName("BillingInvoiceWorkflowSettings")
 model InvoiceWorkflowSettings {
-  /**
-   * updatedAt is the time when the invoice workflow was last updated.
-   */
-  @summary("Should the invoice auto advance to the next status?")
-  autoAdvance: boolean;
+  @summary("The apps that will be used to orchestrate the invoice's workflow.")
+  apps?: OpenMeter.Billing.ProfileAppsOrReference;
 
   /**
-   * The invoice stays in the draft status until this time.
+   * sourceBillingProfileID is the billing profile on which the workflow was based on.
    *
-   * If auto advance is disabled the value will be empty.
+   * The profile is snapshotted on invoice creation, after which it can be altered independently
+   * of the profile itself.
    */
-  draftUtil?: DateTime;
+  @summary("The billing profile on which the workflow was based on.")
+  sourceBillingProfileID: ULID;
 
-  /**
-   * The period after which the invoice is due.
-   */
-  @encode(DurationKnownEncoding.ISO8601)
-  @example("P1D")
-  dueAfter?: string = "P7D";
+  @summary("The workflow details used by this invoice.")
+  workflow: OpenMeter.Billing.WorkflowSettings;
+
+  @summary("Timezone of the invoice's date fields.")
+  @visibility("read", "query")
+  timezone: string;
 }
 
 /**
@@ -194,7 +215,7 @@ enum InvoiceType {
   standard: "standard",
 
   @summary("Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.")
-  credit_note: "credit-note",
+  creditNote: "credit_note",
 }
 
 @friendlyName("BillingInvoiceDiscount")
@@ -217,19 +238,25 @@ model Discount {
 
 @summary("UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.")
 @friendlyName("BillingInvoiceLine")
+@discriminator("type")
 union InvoiceLine {
-  unitPrice: UnitPriceLine,
+  flatFeeLine: FlatFeeLine,
+  manualFeeLine: ManualFeeLine,
 }
 
 @summary("LineTypes represents the different types of lines that can be used in an invoice.")
 @friendlyName("BillingLineTypes")
 enum LineTypes {
-  /*
-   * The line represents a product or service that is sold to the customer.
-   *
-   * If the item is a single charge or based on a metered value it doesn't matter from the invoicing perspective.
-   */
-  unitPrice: "unit_price",
+  ...RateCardType,
+  manualFee: "manual_fee",
+}
+
+@summary("Line status specifies the status of the line.")
+@friendlyName("BillingLineStatus")
+enum LineStatus {
+  valid: "valid",
+  deleted: "deleted",
+  split: "split",
 }
 
 /**
@@ -240,10 +267,15 @@ enum LineTypes {
 @discriminator("type")
 @friendlyName("BillingLine")
 model Line {
+  ...OmitProperties<global.Resource, "id">;
+
   @visibility("read", "query", "update")
   id: ULID;
 
   type: LineTypes;
+
+  @visibility("read", "query")
+  status: LineStatus;
 
   @summary("Discounts applied to this line.")
   discounts?: LineDiscount[];
@@ -251,9 +283,18 @@ model Line {
   @summary("Charges applied to this line.")
   charges?: LineCharge[];
 
+  @summary("The invoice this item belongs to.")
+  invoice?: InvoiceReference;
+
+  @summary("The currency of this line")
+  currency: CurrencyCode;
+
   @summary("Map of taxes to be applied and used in the invoice totals.")
   @visibility("read", "query") // Tax is handled by the tax provider, we only need to show the output of that here
   taxes?: TaxItem[];
+
+  @summary("Tax overrides specify the tax configuration for this line.")
+  taxOverrides?: OpenMeter.ProductCatalog.TaxConfig | null;
 
   @visibility("read")
   @summary("Total sum of the line, including discounts and charges.")
@@ -261,6 +302,22 @@ model Line {
 
   @summary("Period of the line item applies to for revenue recognition pruposes.")
   period: Period;
+
+  @summary("The time this line item should be invoiced.")
+  invoiceAt: DateTime;
+
+  @summary("Quantity of the item being sold.")
+  quantity?: Numeric;
+}
+
+@summary("Reference to an invoice.")
+@friendlyName("BillingInvoiceReference")
+model InvoiceReference {
+  @summary("The ID of the invoice.")
+  id: ULID;
+
+  @summary("The number of the invoice.")
+  number?: InvoiceNumber;
 }
 
 @summary("Period represents a time range.")
@@ -274,19 +331,29 @@ model Period {
 }
 
 /**
- * UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+ * BillingFlatFeeLine represents a line item that is sold to the customer as a flat fee.
  *
- * This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+ * This object represents an item added via subscriptions.
  */
-@friendlyName("BillingUnitPriceLine")
-model UnitPriceLine extends Line {
-  type: LineTypes.unitPrice;
+@friendlyName("BillingFlatFeeLine")
+model FlatFeeLine {
+  ...OmitProperties<Line, "type">;
+  type: LineTypes.flatFee;
 
   @summary("Details about what is being sold.")
-  item: RateCard;
+  item: RateCardFlatFee;
+}
 
-  @summary("Quantity of the item being sold.")
-  quantity: Numeric;
+/**
+ * BillingManualFeeLine represents a line item that is sold to the customer as a manually added fee.
+ */
+@friendlyName("BillingManualFeeLine")
+model ManualFeeLine {
+  ...OmitProperties<Line, "type">;
+  type: LineTypes.manualFee;
+
+  @summary("Price of the item being sold.")
+  price: Money;
 }
 
 @summary("GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.")

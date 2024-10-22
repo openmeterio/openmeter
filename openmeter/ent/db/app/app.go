@@ -36,12 +36,18 @@ const (
 	FieldIsDefault = "is_default"
 	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
 	EdgeCustomerApps = "customer_apps"
-	// EdgeTaxApp holds the string denoting the tax_app edge name in mutations.
-	EdgeTaxApp = "tax_app"
-	// EdgeInvoicingApp holds the string denoting the invoicing_app edge name in mutations.
-	EdgeInvoicingApp = "invoicing_app"
-	// EdgePaymentApp holds the string denoting the payment_app edge name in mutations.
-	EdgePaymentApp = "payment_app"
+	// EdgeBillingProfileTaxApp holds the string denoting the billing_profile_tax_app edge name in mutations.
+	EdgeBillingProfileTaxApp = "billing_profile_tax_app"
+	// EdgeBillingProfileInvoicingApp holds the string denoting the billing_profile_invoicing_app edge name in mutations.
+	EdgeBillingProfileInvoicingApp = "billing_profile_invoicing_app"
+	// EdgeBillingProfilePaymentApp holds the string denoting the billing_profile_payment_app edge name in mutations.
+	EdgeBillingProfilePaymentApp = "billing_profile_payment_app"
+	// EdgeBillingInvoiceTaxApp holds the string denoting the billing_invoice_tax_app edge name in mutations.
+	EdgeBillingInvoiceTaxApp = "billing_invoice_tax_app"
+	// EdgeBillingInvoiceInvoicingApp holds the string denoting the billing_invoice_invoicing_app edge name in mutations.
+	EdgeBillingInvoiceInvoicingApp = "billing_invoice_invoicing_app"
+	// EdgeBillingInvoicePaymentApp holds the string denoting the billing_invoice_payment_app edge name in mutations.
+	EdgeBillingInvoicePaymentApp = "billing_invoice_payment_app"
 	// Table holds the table name of the app in the database.
 	Table = "apps"
 	// CustomerAppsTable is the table that holds the customer_apps relation/edge.
@@ -51,27 +57,48 @@ const (
 	CustomerAppsInverseTable = "app_customers"
 	// CustomerAppsColumn is the table column denoting the customer_apps relation/edge.
 	CustomerAppsColumn = "app_id"
-	// TaxAppTable is the table that holds the tax_app relation/edge.
-	TaxAppTable = "billing_profiles"
-	// TaxAppInverseTable is the table name for the BillingProfile entity.
+	// BillingProfileTaxAppTable is the table that holds the billing_profile_tax_app relation/edge.
+	BillingProfileTaxAppTable = "billing_profiles"
+	// BillingProfileTaxAppInverseTable is the table name for the BillingProfile entity.
 	// It exists in this package in order to avoid circular dependency with the "billingprofile" package.
-	TaxAppInverseTable = "billing_profiles"
-	// TaxAppColumn is the table column denoting the tax_app relation/edge.
-	TaxAppColumn = "tax_app_id"
-	// InvoicingAppTable is the table that holds the invoicing_app relation/edge.
-	InvoicingAppTable = "billing_profiles"
-	// InvoicingAppInverseTable is the table name for the BillingProfile entity.
+	BillingProfileTaxAppInverseTable = "billing_profiles"
+	// BillingProfileTaxAppColumn is the table column denoting the billing_profile_tax_app relation/edge.
+	BillingProfileTaxAppColumn = "tax_app_id"
+	// BillingProfileInvoicingAppTable is the table that holds the billing_profile_invoicing_app relation/edge.
+	BillingProfileInvoicingAppTable = "billing_profiles"
+	// BillingProfileInvoicingAppInverseTable is the table name for the BillingProfile entity.
 	// It exists in this package in order to avoid circular dependency with the "billingprofile" package.
-	InvoicingAppInverseTable = "billing_profiles"
-	// InvoicingAppColumn is the table column denoting the invoicing_app relation/edge.
-	InvoicingAppColumn = "invoicing_app_id"
-	// PaymentAppTable is the table that holds the payment_app relation/edge.
-	PaymentAppTable = "billing_profiles"
-	// PaymentAppInverseTable is the table name for the BillingProfile entity.
+	BillingProfileInvoicingAppInverseTable = "billing_profiles"
+	// BillingProfileInvoicingAppColumn is the table column denoting the billing_profile_invoicing_app relation/edge.
+	BillingProfileInvoicingAppColumn = "invoicing_app_id"
+	// BillingProfilePaymentAppTable is the table that holds the billing_profile_payment_app relation/edge.
+	BillingProfilePaymentAppTable = "billing_profiles"
+	// BillingProfilePaymentAppInverseTable is the table name for the BillingProfile entity.
 	// It exists in this package in order to avoid circular dependency with the "billingprofile" package.
-	PaymentAppInverseTable = "billing_profiles"
-	// PaymentAppColumn is the table column denoting the payment_app relation/edge.
-	PaymentAppColumn = "payment_app_id"
+	BillingProfilePaymentAppInverseTable = "billing_profiles"
+	// BillingProfilePaymentAppColumn is the table column denoting the billing_profile_payment_app relation/edge.
+	BillingProfilePaymentAppColumn = "payment_app_id"
+	// BillingInvoiceTaxAppTable is the table that holds the billing_invoice_tax_app relation/edge.
+	BillingInvoiceTaxAppTable = "billing_invoices"
+	// BillingInvoiceTaxAppInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoiceTaxAppInverseTable = "billing_invoices"
+	// BillingInvoiceTaxAppColumn is the table column denoting the billing_invoice_tax_app relation/edge.
+	BillingInvoiceTaxAppColumn = "tax_app_id"
+	// BillingInvoiceInvoicingAppTable is the table that holds the billing_invoice_invoicing_app relation/edge.
+	BillingInvoiceInvoicingAppTable = "billing_invoices"
+	// BillingInvoiceInvoicingAppInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoiceInvoicingAppInverseTable = "billing_invoices"
+	// BillingInvoiceInvoicingAppColumn is the table column denoting the billing_invoice_invoicing_app relation/edge.
+	BillingInvoiceInvoicingAppColumn = "invoicing_app_id"
+	// BillingInvoicePaymentAppTable is the table that holds the billing_invoice_payment_app relation/edge.
+	BillingInvoicePaymentAppTable = "billing_invoices"
+	// BillingInvoicePaymentAppInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoicePaymentAppInverseTable = "billing_invoices"
+	// BillingInvoicePaymentAppColumn is the table column denoting the billing_invoice_payment_app relation/edge.
+	BillingInvoicePaymentAppColumn = "payment_app_id"
 )
 
 // Columns holds all SQL columns for app fields.
@@ -181,45 +208,87 @@ func ByCustomerApps(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByTaxAppCount orders the results by tax_app count.
-func ByTaxAppCount(opts ...sql.OrderTermOption) OrderOption {
+// ByBillingProfileTaxAppCount orders the results by billing_profile_tax_app count.
+func ByBillingProfileTaxAppCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newTaxAppStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newBillingProfileTaxAppStep(), opts...)
 	}
 }
 
-// ByTaxApp orders the results by tax_app terms.
-func ByTaxApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByBillingProfileTaxApp orders the results by billing_profile_tax_app terms.
+func ByBillingProfileTaxApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newTaxAppStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newBillingProfileTaxAppStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByInvoicingAppCount orders the results by invoicing_app count.
-func ByInvoicingAppCount(opts ...sql.OrderTermOption) OrderOption {
+// ByBillingProfileInvoicingAppCount orders the results by billing_profile_invoicing_app count.
+func ByBillingProfileInvoicingAppCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newInvoicingAppStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newBillingProfileInvoicingAppStep(), opts...)
 	}
 }
 
-// ByInvoicingApp orders the results by invoicing_app terms.
-func ByInvoicingApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByBillingProfileInvoicingApp orders the results by billing_profile_invoicing_app terms.
+func ByBillingProfileInvoicingApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newInvoicingAppStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newBillingProfileInvoicingAppStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByPaymentAppCount orders the results by payment_app count.
-func ByPaymentAppCount(opts ...sql.OrderTermOption) OrderOption {
+// ByBillingProfilePaymentAppCount orders the results by billing_profile_payment_app count.
+func ByBillingProfilePaymentAppCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newPaymentAppStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newBillingProfilePaymentAppStep(), opts...)
 	}
 }
 
-// ByPaymentApp orders the results by payment_app terms.
-func ByPaymentApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByBillingProfilePaymentApp orders the results by billing_profile_payment_app terms.
+func ByBillingProfilePaymentApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPaymentAppStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newBillingProfilePaymentAppStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingInvoiceTaxAppCount orders the results by billing_invoice_tax_app count.
+func ByBillingInvoiceTaxAppCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceTaxAppStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceTaxApp orders the results by billing_invoice_tax_app terms.
+func ByBillingInvoiceTaxApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceTaxAppStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingInvoiceInvoicingAppCount orders the results by billing_invoice_invoicing_app count.
+func ByBillingInvoiceInvoicingAppCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceInvoicingAppStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceInvoicingApp orders the results by billing_invoice_invoicing_app terms.
+func ByBillingInvoiceInvoicingApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceInvoicingAppStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingInvoicePaymentAppCount orders the results by billing_invoice_payment_app count.
+func ByBillingInvoicePaymentAppCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoicePaymentAppStep(), opts...)
+	}
+}
+
+// ByBillingInvoicePaymentApp orders the results by billing_invoice_payment_app terms.
+func ByBillingInvoicePaymentApp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoicePaymentAppStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newCustomerAppsStep() *sqlgraph.Step {
@@ -229,24 +298,45 @@ func newCustomerAppsStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, CustomerAppsTable, CustomerAppsColumn),
 	)
 }
-func newTaxAppStep() *sqlgraph.Step {
+func newBillingProfileTaxAppStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(TaxAppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, TaxAppTable, TaxAppColumn),
+		sqlgraph.To(BillingProfileTaxAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingProfileTaxAppTable, BillingProfileTaxAppColumn),
 	)
 }
-func newInvoicingAppStep() *sqlgraph.Step {
+func newBillingProfileInvoicingAppStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(InvoicingAppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, InvoicingAppTable, InvoicingAppColumn),
+		sqlgraph.To(BillingProfileInvoicingAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingProfileInvoicingAppTable, BillingProfileInvoicingAppColumn),
 	)
 }
-func newPaymentAppStep() *sqlgraph.Step {
+func newBillingProfilePaymentAppStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(PaymentAppInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, PaymentAppTable, PaymentAppColumn),
+		sqlgraph.To(BillingProfilePaymentAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingProfilePaymentAppTable, BillingProfilePaymentAppColumn),
+	)
+}
+func newBillingInvoiceTaxAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceTaxAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceTaxAppTable, BillingInvoiceTaxAppColumn),
+	)
+}
+func newBillingInvoiceInvoicingAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceInvoicingAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceInvoicingAppTable, BillingInvoiceInvoicingAppColumn),
+	)
+}
+func newBillingInvoicePaymentAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoicePaymentAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicePaymentAppTable, BillingInvoicePaymentAppColumn),
 	)
 }

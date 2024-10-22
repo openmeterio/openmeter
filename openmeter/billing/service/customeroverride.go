@@ -20,8 +20,10 @@ func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.Crea
 
 	adapterOverride, err := entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.CustomerOverride, error) {
 		existingOverride, err := txAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Namespace:  input.Namespace,
-			CustomerID: input.CustomerID,
+			Customer: customerentity.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
 
 			IncludeDeleted: true,
 		})
@@ -84,8 +86,10 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 
 	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.CustomerOverride, error) {
 		existingOverride, err := txAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Namespace:  input.Namespace,
-			CustomerID: input.CustomerID,
+			Customer: customerentity.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
 		})
 		if err != nil {
 			return nil, err
@@ -124,8 +128,10 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	adapterOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Namespace:  input.Namespace,
-		CustomerID: input.CustomerID,
+		Customer: customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
 
 		IncludeDeleted: false,
 	})
@@ -153,8 +159,10 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
 		existingOverride, err := txAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Namespace:  input.Namespace,
-			CustomerID: input.CustomerID,
+			Customer: customerentity.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
 
 			IncludeDeleted: true,
 		})
@@ -227,8 +235,10 @@ func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter bi
 // This function does not perform validations or customer entity overrides.
 func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adapter billing.Adapter, input billing.GetProfileWithCustomerOverrideInput) (*billingentity.Profile, error) {
 	adapterOverride, err := adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Namespace:  input.Namespace,
-		CustomerID: input.CustomerID,
+		Customer: customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -255,7 +265,7 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 			}
 		}
 
-		return s.resolveBaseProfile(ctx, defaultProfile)
+		return s.resolveProfileApps(ctx, defaultProfile)
 	}
 
 	// We have an active override, let's see what's the baseline profile
@@ -269,7 +279,7 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 			return nil, err
 		}
 
-		baselineProfile, err = s.resolveBaseProfile(ctx, defaultBaseProfile)
+		baselineProfile, err = s.resolveProfileApps(ctx, defaultBaseProfile)
 		if err != nil {
 			return nil, err
 		}
@@ -302,7 +312,7 @@ func (s *Service) resolveCustomerOverride(ctx context.Context, input *billingent
 	out := *input
 
 	if input.Profile != nil {
-		profile, err := s.resolveBaseProfile(ctx, &input.Profile.BaseProfile)
+		profile, err := s.resolveProfileApps(ctx, &input.Profile.BaseProfile)
 		if err != nil {
 			return nil, err
 		}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -90,6 +91,8 @@ type ListProfilesResult = pagination.PagedResponse[billingentity.Profile]
 type ListProfilesInput struct {
 	pagination.Page
 
+	Expand ProfileExpand
+
 	Namespace       string
 	IncludeArchived bool
 	OrderBy         api.BillingProfileOrderBy
@@ -105,6 +108,22 @@ func (i ListProfilesInput) Validate() error {
 		return fmt.Errorf("error validating page: %w", err)
 	}
 
+	if err := i.Expand.Validate(); err != nil {
+		return fmt.Errorf("error validating expand: %w", err)
+	}
+
+	return nil
+}
+
+type ProfileExpand struct {
+	Apps bool
+}
+
+var ProfileExpandAll = ProfileExpand{
+	Apps: true,
+}
+
+func (e ProfileExpand) Validate() error {
 	return nil
 }
 
@@ -137,10 +156,21 @@ func (i genericNamespaceID) Validate() error {
 	return nil
 }
 
-type GetProfileInput genericNamespaceID
+type GetProfileInput struct {
+	Profile models.NamespacedID
+	Expand  ProfileExpand
+}
 
 func (i GetProfileInput) Validate() error {
-	return genericNamespaceID(i).Validate()
+	if i.Profile.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Profile.ID == "" {
+		return errors.New("id is required")
+	}
+
+	return nil
 }
 
 type DeleteProfileInput genericNamespaceID

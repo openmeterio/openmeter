@@ -35,8 +35,8 @@ type BillingCustomerOverride struct {
 	BillingProfileID *string `json:"billing_profile_id,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment *billingentity.AlignmentKind `json:"collection_alignment,omitempty"`
-	// ItemCollectionPeriod holds the value of the "item_collection_period" field.
-	ItemCollectionPeriod *datex.ISOString `json:"item_collection_period,omitempty"`
+	// LineCollectionPeriod holds the value of the "line_collection_period" field.
+	LineCollectionPeriod *datex.ISOString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
 	InvoiceAutoAdvance *bool `json:"invoice_auto_advance,omitempty"`
 	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
@@ -91,7 +91,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingcustomeroverride.FieldInvoiceAutoAdvance:
 			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldItemCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -161,12 +161,12 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 				bco.CollectionAlignment = new(billingentity.AlignmentKind)
 				*bco.CollectionAlignment = billingentity.AlignmentKind(value.String)
 			}
-		case billingcustomeroverride.FieldItemCollectionPeriod:
+		case billingcustomeroverride.FieldLineCollectionPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field item_collection_period", values[i])
+				return fmt.Errorf("unexpected type %T for field line_collection_period", values[i])
 			} else if value.Valid {
-				bco.ItemCollectionPeriod = new(datex.ISOString)
-				*bco.ItemCollectionPeriod = datex.ISOString(value.String)
+				bco.LineCollectionPeriod = new(datex.ISOString)
+				*bco.LineCollectionPeriod = datex.ISOString(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -269,8 +269,8 @@ func (bco *BillingCustomerOverride) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.ItemCollectionPeriod; v != nil {
-		builder.WriteString("item_collection_period=")
+	if v := bco.LineCollectionPeriod; v != nil {
+		builder.WriteString("line_collection_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
