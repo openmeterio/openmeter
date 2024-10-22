@@ -1,3 +1,8 @@
+import "@typespec/http";
+import "../types.tsp";
+import "./ratecards.tsp";
+import "./subscription.tsp";
+
 namespace OpenMeter.ProductCatalog;
 
 using TypeSpec.Http;
@@ -71,16 +76,13 @@ model Plan {
  */
 @friendlyName("PlanPhase")
 model PlanPhase {
-  ...OmitProperties<UniqueResource, "id">;
+  ...SubscriptionPhaseCreateInput;
+  ...OmitProperties<Resource, "id">;
 
   /**
-   * Interval after the subscription starts to transition to the phase.
-   * When null, the phase starts immediately after the subscription starts.
+   * Unique key among the plan phases. Used to reference the phase in the subscription & plan.
    */
-  @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1Y1D"))
-  @summary("Interval")
-  interval: duration | null;
+  key: Key;
 
   /**
    * The rate cards of the plan.
@@ -88,63 +90,12 @@ model PlanPhase {
   @summary("Rate cards")
   rateCards: RateCard[];
 
-  /**
-   * The discount on the plan.
-   */
-  @summary("Discount")
-  discount?: PlanDiscount;
-
-  // NOTE(chrisgacsal): variants is going to be implemented in future releases
   // /**
   //  * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
   //  */
   // @summary("Variants")
   // variants?: PlanVariantOverridePreset[] = #[];
 }
-
-/**
- * A discount on plan. One of: percentage or amount.
- */
-@friendlyName("PlanDiscount")
-@discriminator("type")
-union PlanDiscount {
-  @summary("Percentage discount")
-  percentage: PlanDiscountPercentage,
-
-  // @summary("Amount discount")
-  // amount: PlanDiscountAmount,
-}
-
-/**
- * Percentage discount on plan.
- */
-@friendlyName("PlanDiscountPercentage")
-model PlanDiscountPercentage {
-  ...DiscountPercentage;
-
-  /**
-   * The rate cards that the discount applies to.
-   * When not specified, the discount applies to all rate cards.
-   */
-  @summary("Applies To")
-  appliesToRateCards?: Key[];
-}
-
-// NOTE(chrisgacsal): variants is going to be implemented in future releases
-// /**
-//  * Amount discount on plan.
-//  */
-// @friendlyName("PlanDiscountAmount")
-// model PlanDiscountAmount {
-//   ...DiscountAmount;
-
-//   /**
-//    * The rate cards that the discount applies to.
-//    * When not specified, the discount applies to all rate cards.
-//    */
-//   @summary("Applies To")
-//   appliesToRateCards?: Key[];
-// }
 
 /**
  * A plan variant.
@@ -193,18 +144,18 @@ model PlanVariantOverridePreset {
     @summary("Remove rate card")
     remove?: Key[];
 
-    /**
-     * Update rate cards in the plan.
-     */
-    @summary("Update rate card")
-    update?: Record<RateCardOverride>;
+    // /**
+    //  * Update rate cards in the plan.
+    //  */
+    // @summary("Update rate card")
+    // update?: Record<RateCardOverride>;
   };
 
   /**
    * The discount on the plan.
    */
   @summary("Discount")
-  discount?: PlanDiscount;
+  discount?: AppliedDiscount;
 }
 
 /**
