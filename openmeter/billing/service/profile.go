@@ -54,14 +54,14 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		invocingApp, err := s.validateAppReference(ctx, input.Namespace, input.Apps.Invoicing, appentitybase.CapabilityTypeInvoiceCustomers)
 		if err != nil {
 			return nil, billing.ValidationError{
-				Err: fmt.Errorf("error resolving tax app: %w", err),
+				Err: fmt.Errorf("error resolving invocing app: %w", err),
 			}
 		}
 
 		paymentsApp, err := s.validateAppReference(ctx, input.Namespace, input.Apps.Payment, appentitybase.CapabilityTypeCollectPayments)
 		if err != nil {
 			return nil, billing.ValidationError{
-				Err: fmt.Errorf("error resolving tax app: %w", err),
+				Err: fmt.Errorf("error resolving payments app: %w", err),
 			}
 		}
 
@@ -349,7 +349,7 @@ func (s *Service) resolveBaseProfile(ctx context.Context, input *billingentity.B
 		ID:        input.AppReferences.Invoicing.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("cannot resolve tax app: %w", err)
+		return nil, fmt.Errorf("cannot resolve invoicing app: %w", err)
 	}
 	out.Apps.Invoicing = invoiceApp
 
@@ -358,7 +358,7 @@ func (s *Service) resolveBaseProfile(ctx context.Context, input *billingentity.B
 		ID:        input.AppReferences.Payment.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("cannot resolve tax app: %w", err)
+		return nil, fmt.Errorf("cannot resolve payments app: %w", err)
 	}
 	out.Apps.Payment = paymentApp
 

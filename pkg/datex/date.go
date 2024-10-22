@@ -35,7 +35,7 @@ type Period struct {
 	period.Period
 }
 
-// FromDuration creates an IMPRECISE Period from a time.Duration
+// FromDuration creates a Period from a time.Duration
 func FromDuration(d time.Duration) Period {
 	return Period{period.NewOf(d).Normalise(false)}
 }

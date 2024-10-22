@@ -29,6 +29,10 @@ func (a AutoProvisionInput) Validate() error {
 	return nil
 }
 
+// AutoProvision creates a new default sandbox app if it doesn't exist, otherwise returns the existing one.
+//
+// We install the sandbox app by default in the system, so that the user can start trying out the system
+// right away.
 func AutoProvision(ctx context.Context, input AutoProvisionInput) (appentity.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
@@ -47,7 +51,7 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (appentity.App
 			defaultApp, err = input.AppService.CreateApp(ctx, appentity.CreateAppInput{
 				Namespace:   input.Namespace,
 				Name:        "Sandbox",
-				Description: "Sandbox app",
+				Description: "OpenMeter Sandbox App to be used for testing purposes.",
 				Type:        appentitybase.AppTypeSandbox,
 			})
 			if err != nil {
