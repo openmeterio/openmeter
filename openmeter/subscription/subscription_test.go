@@ -36,7 +36,7 @@ func TestTransformation(t *testing.T) {
 		assert.Equal(t, currTime, out[1].AppliedAt)
 		assert.Equal(t, 0, out[0].BatchIndex)
 		assert.Equal(t, 1, out[1].BatchIndex)
-		assert.Equal(t, "/phases/phase1/items/item1", out[0].Path)
-		assert.Equal(t, "/phases/phase1/items/item2", out[1].Path)
+		assert.Equal(t, "/phases/phase1/items/item1", string(out[0].Path()))
+		assert.Equal(t, "/phases/phase1/items/item2", string(out[1].Path()))
 	})
 }

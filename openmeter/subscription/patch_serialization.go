@@ -7,7 +7,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
-type AnyPatch struct {
+type AnyValuePatch interface {
+	ValueAsAny() any
+}
+
+// wPatch is used to serialize patches
+type wPatch struct {
 	Op    string `json:"operation"`
 	Path  string `json:"path"`
 	Value any    `json:"value,omitempty"`
@@ -15,43 +20,37 @@ type AnyPatch struct {
 
 // Serialization of patches
 
-func serialize(val Patch) ([]byte, error) {
-	p := &AnyPatch{
+func asWPatch(val Patch) *wPatch {
+	p := &wPatch{
 		Op:   string(val.Op()),
 		Path: string(val.Path()),
 	}
 
-	return json.Marshal(p)
-}
-
-func serializeVal[T any](val ValuePatch[T]) ([]byte, error) {
-	p := &AnyPatch{
-		Op:    string(val.Op()),
-		Path:  string(val.Path()),
-		Value: val.Value(),
+	if v, ok := val.(AnyValuePatch); ok {
+		p.Value = v.ValueAsAny()
 	}
 
-	return json.Marshal(p)
+	return p
 }
 
 func (p PatchAddItem) MarshalJSON() ([]byte, error) {
-	return serializeVal(p)
+	return json.Marshal(asWPatch(p))
 }
 
 func (p PatchRemoveItem) MarshalJSON() ([]byte, error) {
-	return serialize(p)
+	return json.Marshal(asWPatch(p))
 }
 
 func (p PatchAddPhase) MarshalJSON() ([]byte, error) {
-	return serializeVal(p)
+	return json.Marshal(asWPatch(p))
 }
 
 func (p PatchRemovePhase) MarshalJSON() ([]byte, error) {
-	return serialize(p)
+	return json.Marshal(asWPatch(p))
 }
 
 func (p PatchExtendPhase) MarshalJSON() ([]byte, error) {
-	return serializeVal(p)
+	return json.Marshal(asWPatch(p))
 }
 
 type rPatch struct {

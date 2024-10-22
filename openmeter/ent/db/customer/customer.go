@@ -52,6 +52,8 @@ const (
 	EdgeSubjects = "subjects"
 	// EdgeBillingCustomerOverride holds the string denoting the billing_customer_override edge name in mutations.
 	EdgeBillingCustomerOverride = "billing_customer_override"
+	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
+	EdgeSubscription = "subscription"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// AppsTable is the table that holds the apps relation/edge.
@@ -75,6 +77,13 @@ const (
 	BillingCustomerOverrideInverseTable = "billing_customer_overrides"
 	// BillingCustomerOverrideColumn is the table column denoting the billing_customer_override relation/edge.
 	BillingCustomerOverrideColumn = "customer_id"
+	// SubscriptionTable is the table that holds the subscription relation/edge.
+	SubscriptionTable = "subscriptions"
+	// SubscriptionInverseTable is the table name for the Subscription entity.
+	// It exists in this package in order to avoid circular dependency with the "subscription" package.
+	SubscriptionInverseTable = "subscriptions"
+	// SubscriptionColumn is the table column denoting the subscription relation/edge.
+	SubscriptionColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -242,6 +251,20 @@ func ByBillingCustomerOverrideField(field string, opts ...sql.OrderTermOption) O
 		sqlgraph.OrderByNeighborTerms(s, newBillingCustomerOverrideStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySubscriptionCount orders the results by subscription count.
+func BySubscriptionCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionStep(), opts...)
+	}
+}
+
+// BySubscription orders the results by subscription terms.
+func BySubscription(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -261,5 +284,12 @@ func newBillingCustomerOverrideStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingCustomerOverrideInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, BillingCustomerOverrideTable, BillingCustomerOverrideColumn),
+	)
+}
+func newSubscriptionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionTable, SubscriptionColumn),
 	)
 }

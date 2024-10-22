@@ -52,7 +52,7 @@ type command struct {
 	transactionManager transaction.Creator
 }
 
-func NewConnector() Command {
+func NewCommand() Command {
 	return &command{}
 }
 
@@ -74,7 +74,10 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 	}
 
 	// If user has a plan right now return an error
-	_, err = c.repo.GetCustomerSubscription(ctx, req.CustomerID)
+	_, err = c.repo.GetCustomerSubscription(ctx, models.NamespacedID{
+		ID:        req.CustomerID,
+		Namespace: req.Namespace,
+	})
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*NotFoundError](err); !ok {
 			return def, err
@@ -117,7 +120,7 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 
 	return transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (Subscription, error) {
 		// Create subscription entity
-		sub, err := c.repo.CreateSubscription(ctx, spec.GetCreateInput())
+		sub, err := c.repo.CreateSubscription(ctx, req.Namespace, spec.GetCreateInput())
 		if err != nil {
 			return def, err
 		}
@@ -135,7 +138,10 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 		if err != nil {
 			return def, fmt.Errorf("failed to transform patches for repository: %w", err)
 		}
-		_, err = c.repo.CreateSubscriptionPatches(ctx, sub.ID, patchInputs)
+		_, err = c.repo.CreateSubscriptionPatches(ctx, models.NamespacedID{
+			ID:        sub.ID,
+			Namespace: sub.Namespace,
+		}, patchInputs)
 		if err != nil {
 			return def, fmt.Errorf("failed to create subscription patches: %w", err)
 		}
@@ -240,8 +246,8 @@ func (c *command) Cancel(ctx context.Context, subscriptionID string, at time.Tim
 }
 
 type Query interface {
-	Get(ctx context.Context, subscriptionID string) (Subscription, error)
-	Expand(ctx context.Context, subscriptionID string) (SubscriptionView, error)
+	Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
+	Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
 }
 
 type query struct {
@@ -258,15 +264,15 @@ func NewQuery() Query {
 	return &query{}
 }
 
-func (q *query) Get(ctx context.Context, subscriptionID string) (Subscription, error) {
-	sub, err := q.repo.GetSubscription(ctx, subscriptionID)
+func (q *query) Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error) {
+	sub, err := q.repo.GetSubscription(ctx, models.NamespacedID{})
 	if err != nil {
 		return Subscription{}, err
 	}
 	return sub, nil
 }
 
-func (q *query) Expand(ctx context.Context, subscriptionID string) (SubscriptionView, error) {
+func (q *query) Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error) {
 	currentTime := clock.Now()
 	sub, err := q.Get(ctx, subscriptionID)
 	if err != nil {

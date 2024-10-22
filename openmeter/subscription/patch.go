@@ -154,6 +154,7 @@ type Patch interface {
 type ValuePatch[T any] interface {
 	Patch
 	Value() T
+	AnyValuePatch
 }
 
 func ToApplies(p Patch, _ int) Applies {
@@ -175,6 +176,10 @@ func (a PatchAddItem) Path() PatchPath {
 }
 
 func (a PatchAddItem) Value() SubscriptionItemSpec {
+	return a.CreateInput
+}
+
+func (a PatchAddItem) ValueAsAny() any {
 	return a.CreateInput
 }
 
@@ -284,6 +289,10 @@ func (a PatchAddPhase) Value() CreateSubscriptionPhaseInput {
 	return a.CreateInput
 }
 
+func (a PatchAddPhase) ValueAsAny() any {
+	return a.CreateInput
+}
+
 var _ ValuePatch[CreateSubscriptionPhaseInput] = PatchAddPhase{}
 
 func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
@@ -369,6 +378,10 @@ func (e PatchExtendPhase) Path() PatchPath {
 }
 
 func (e PatchExtendPhase) Value() datex.Period {
+	return e.Duration
+}
+
+func (e PatchExtendPhase) ValueAsAny() any {
 	return e.Duration
 }
 

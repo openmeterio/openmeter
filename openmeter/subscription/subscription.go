@@ -53,25 +53,15 @@ type CreateSubscriptionPatchInput struct {
 	AppliedAt  time.Time `json:"appliedAt,omitempty"`
 	BatchIndex int       `json:"batchIndex,omitempty"`
 
-	Operation string          `json:"operation,omitempty"`
-	Path      string          `json:"path,omitempty"`
-	Value     json.RawMessage `json:"value,omitempty"`
+	Patch
 }
 
 func TransformPatchesForRepository(patches []Patch, appliedAt time.Time) ([]CreateSubscriptionPatchInput, error) {
 	var res []CreateSubscriptionPatchInput
 
 	for i, p := range patches {
-		var pi CreateSubscriptionPatchInput
-
-		bytes, err := json.Marshal(p)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize patch: %w", err)
-		}
-
-		err = json.Unmarshal(bytes, &pi)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize patch: %w", err)
+		pi := CreateSubscriptionPatchInput{
+			Patch: p,
 		}
 
 		pi.AppliedAt = appliedAt
@@ -102,7 +92,7 @@ type SubscriptionPatch struct {
 }
 
 func (s *SubscriptionPatch) AsPatch() (any, error) {
-	p := &AnyPatch{
+	p := &wPatch{
 		Op:    s.Operation,
 		Path:  s.Path,
 		Value: s.Value,
