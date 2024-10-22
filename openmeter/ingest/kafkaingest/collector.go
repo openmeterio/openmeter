@@ -12,21 +12,26 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
 type Collector struct {
-	Producer      *kafka.Producer
-	Serializer    serializer.Serializer
-	TopicResolver topicresolver.Resolver
+	Producer         *kafka.Producer
+	Serializer       serializer.Serializer
+	TopicResolver    topicresolver.Resolver
+	TopicProvisioner pkgkafka.TopicProvisioner
+	TopicPartitions  int
 }
 
 func NewCollector(
 	producer *kafka.Producer,
 	serializer serializer.Serializer,
 	resolver topicresolver.Resolver,
+	provisioner pkgkafka.TopicProvisioner,
+	partitions int,
 ) (*Collector, error) {
 	if producer == nil {
 		return nil, fmt.Errorf("producer is required")
@@ -38,10 +43,16 @@ func NewCollector(
 		return nil, fmt.Errorf("topic name resolver is required")
 	}
 
+	if provisioner == nil {
+		return nil, fmt.Errorf("topic provisioner is required")
+	}
+
 	return &Collector{
-		Producer:      producer,
-		Serializer:    serializer,
-		TopicResolver: resolver,
+		Producer:         producer,
+		Serializer:       serializer,
+		TopicResolver:    resolver,
+		TopicProvisioner: provisioner,
+		TopicPartitions:  partitions,
 	}, nil
 }
 
@@ -50,6 +61,15 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 	topicName, err := s.TopicResolver.Resolve(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to resolve namespace to topic name: %w", err)
+	}
+
+	// Make sure topic is provisioned
+	err = s.TopicProvisioner.Provision(ctx, pkgkafka.TopicConfig{
+		Name:       topicName,
+		Partitions: s.TopicPartitions,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to provision topic: %w", err)
 	}
 
 	key, err := s.Serializer.SerializeKey(topicName, ev)

@@ -64,11 +64,18 @@ func NewNamespacedTopicResolver(config config.Configuration) (*topicresolver.Nam
 	return topicResolver, nil
 }
 
-func NewKafkaIngestCollector(producer *kafka.Producer, topicResolver topicresolver.Resolver) (*kafkaingest.Collector, error) {
+func NewKafkaIngestCollector(
+	config config.KafkaIngestConfiguration,
+	producer *kafka.Producer,
+	topicResolver topicresolver.Resolver,
+	topicProvisioner pkgkafka.TopicProvisioner,
+) (*kafkaingest.Collector, error) {
 	collector, err := kafkaingest.NewCollector(
 		producer,
 		serializer.NewJSONSerializer(),
 		topicResolver,
+		topicProvisioner,
+		config.Partitions,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kafka ingest: %w", err)

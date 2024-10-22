@@ -166,7 +166,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup()
 		return Application{}, nil, err
 	}
-	collector, err := common.NewKafkaIngestCollector(producer, namespacedTopicResolver)
+	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner)
 	if err != nil {
 		cleanup6()
 		cleanup5()
