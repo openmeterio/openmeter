@@ -77,6 +77,7 @@ model Plan {
 @friendlyName("PlanPhase")
 model PlanPhase {
   ...SubscriptionPhaseCreateInput;
+  ...OmitProperties<Resource, "id">;
 
   /**
    * Unique key among the plan phases. Used to reference the phase in the subscription & plan.
@@ -89,17 +90,11 @@ model PlanPhase {
   @summary("Rate cards")
   rateCards: RateCard[];
 
-  /**
-   * The discount on the plan.
-   */
-  @summary("Discount")
-  discount?: AppliedDiscount;
-
-  /**
-   * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
-   */
-  @summary("Variants")
-  variants?: PlanVariantOverridePreset[] = #[];
+  // /**
+  //  * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
+  //  */
+  // @summary("Variants")
+  // variants?: PlanVariantOverridePreset[] = #[];
 }
 
 /**
