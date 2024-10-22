@@ -2884,7 +2884,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateStripeCheckoutSessionResponse'
+                $ref: '#/components/schemas/CreateStripeCheckoutSessionResult'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -8734,7 +8734,7 @@ components:
           items:
             type: string
       description: Create Stripe checkout session options
-    CreateStripeCheckoutSessionResponse:
+    CreateStripeCheckoutSessionResult:
       type: object
       required:
         - customerId

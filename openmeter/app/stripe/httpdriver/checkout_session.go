@@ -21,7 +21,7 @@ import (
 
 type (
 	CreateAppStripeCheckoutSessionRequest  = appstripeentity.CreateCheckoutSessionInput
-	CreateAppStripeCheckoutSessionResponse = api.CreateStripeCheckoutSessionResponse
+	CreateAppStripeCheckoutSessionResponse = api.CreateStripeCheckoutSessionResult
 	CreateAppStripeCheckoutSessionHandler  httptransport.Handler[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse]
 )
 
