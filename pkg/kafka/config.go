@@ -57,10 +57,7 @@ type CommonConfigParams struct {
 }
 
 func (c CommonConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
-	m := kafka.ConfigMap{
-		// Required for logging
-		"go.logs.channel.enable": true,
-	}
+	m := kafka.ConfigMap{}
 
 	if err := m.SetKey("bootstrap.servers", c.Brokers); err != nil {
 		return nil, err
@@ -251,6 +248,8 @@ func (c ConsumerConfigParams) Validate() error {
 
 func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 	m := kafka.ConfigMap{
+		// Required for logging
+		"go.logs.channel.enable":          true,
 		"go.application.rebalance.enable": true,
 	}
 
@@ -326,7 +325,10 @@ func (p ProducerConfigParams) Validate() error {
 }
 
 func (p ProducerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
-	m := kafka.ConfigMap{}
+	m := kafka.ConfigMap{
+		// Required for logging
+		"go.logs.channel.enable": true,
+	}
 
 	if p.Partitioner != "" {
 		if err := m.SetKey("partitioner", p.Partitioner); err != nil {
@@ -384,6 +386,33 @@ func (c ProducerConfig) Validate() error {
 	validators := []ConfigValidator{
 		c.CommonConfigParams,
 		c.ProducerConfigParams,
+	}
+
+	for _, validator := range validators {
+		if err := validator.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+var (
+	_ ConfigMapper    = (*AdminConfig)(nil)
+	_ ConfigValidator = (*AdminConfig)(nil)
+)
+
+type AdminConfig struct {
+	CommonConfigParams
+}
+
+func (c AdminConfig) AsConfigMap() (kafka.ConfigMap, error) {
+	return c.CommonConfigParams.AsConfigMap()
+}
+
+func (c AdminConfig) Validate() error {
+	validators := []ConfigValidator{
+		c.CommonConfigParams,
 	}
 
 	for _, validator := range validators {
