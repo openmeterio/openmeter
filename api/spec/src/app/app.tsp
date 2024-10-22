@@ -58,6 +58,7 @@ model ListAppsRequest extends PaginatedQuery {}
 /**
  * Type of the app.
  */
+@friendlyName("AppType")
 enum Type {
   Stripe: "stripe",
 }

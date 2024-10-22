@@ -2996,7 +2996,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/OpenMeter.App.Type'
+            $ref: '#/components/schemas/AppType'
       responses:
         '200':
           description: The request has succeeded.
@@ -3124,7 +3124,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/OpenMeter.App.Type'
+            $ref: '#/components/schemas/AppType'
       responses:
         '200':
           description: The request has succeeded.
@@ -6873,14 +6873,14 @@ components:
       required: true
       description: The type of the app to install.
       schema:
-        $ref: '#/components/schemas/OpenMeter.App.Type'
+        $ref: '#/components/schemas/AppType'
     MarketplaceOAuth2InstallAuthorizeRequest.type:
       name: type
       in: path
       required: true
       description: The type of the app to install.
       schema:
-        $ref: '#/components/schemas/OpenMeter.App.Type'
+        $ref: '#/components/schemas/AppType'
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -7331,6 +7331,11 @@ components:
         - ready
         - unauthorized
       description: App installed status.
+    AppType:
+      type: string
+      enum:
+        - stripe
+      description: Type of the app.
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -8538,7 +8543,7 @@ components:
           title: The ID of the app, if not specified the type is used to find the default app
         type:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.Type'
+            - $ref: '#/components/schemas/AppType'
           title: The type of the app, if specified the default app is used
       description: AppReference can be used to reference an app during creation only.
     BillingWorkflowCollectionAlignment:
@@ -10316,7 +10321,7 @@ components:
       properties:
         type:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.Type'
+            - $ref: '#/components/schemas/AppType'
           description: The app's type
         name:
           type: string
@@ -11290,11 +11295,6 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    OpenMeter.App.Type:
-      type: string
-      enum:
-        - stripe
-      description: Type of the app.
     Percentage:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?%$
