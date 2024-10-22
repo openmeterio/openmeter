@@ -65,11 +65,12 @@ func NewKafkaTopicProvisionerConfig(
 	settings config.TopicProvisionerConfig,
 ) pkgkafka.TopicProvisionerConfig {
 	return pkgkafka.TopicProvisionerConfig{
-		AdminClient: adminClient,
-		Logger:      logger,
-		Meter:       meter,
-		CacheSize:   settings.CacheSize,
-		CacheTTL:    settings.CacheTTL,
+		AdminClient:     adminClient,
+		Logger:          logger,
+		Meter:           meter,
+		CacheSize:       settings.CacheSize,
+		CacheTTL:        settings.CacheTTL,
+		ProtectedTopics: settings.ProtectedTopics,
 	}
 }
 

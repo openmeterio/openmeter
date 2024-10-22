@@ -37,8 +37,13 @@ type TopicProvisioner interface {
 	DeProvision(ctx context.Context, topics ...string) error
 }
 
+type AdminClient interface {
+	CreateTopics(ctx context.Context, topics []kafka.TopicSpecification, options ...kafka.CreateTopicsAdminOption) ([]kafka.TopicResult, error)
+	DeleteTopics(ctx context.Context, topics []string, options ...kafka.DeleteTopicsAdminOption) ([]kafka.TopicResult, error)
+}
+
 type TopicProvisionerConfig struct {
-	AdminClient *kafka.AdminClient
+	AdminClient AdminClient
 	Logger      *slog.Logger
 	Meter       metric.Meter
 
@@ -49,6 +54,9 @@ type TopicProvisionerConfig struct {
 	// CacheTTL stores maximum time an entries is kept in cache before being evicted.
 	// Setting it to 0 disables cache entry expiration.
 	CacheTTL time.Duration
+
+	// ProtectedTopics defines a list of topics which are protected from deletion.
+	ProtectedTopics []string
 }
 
 // NewTopicProvisioner returns a new TopicProvisioner.
@@ -65,9 +73,15 @@ func NewTopicProvisioner(config TopicProvisionerConfig) (TopicProvisioner, error
 		return nil, errors.New("meter is required")
 	}
 
+	protectedTopics := make(map[string]struct{}, len(config.ProtectedTopics))
+	for _, protectedTopic := range config.ProtectedTopics {
+		protectedTopics[protectedTopic] = struct{}{}
+	}
+
 	provisioner := &topicProvisioner{
-		client: config.AdminClient,
-		logger: config.Logger,
+		client:          config.AdminClient,
+		logger:          config.Logger,
+		protectedTopics: protectedTopics,
 	}
 
 	provisioner.cache = expirable.NewLRU[string, struct{}](config.CacheSize, provisioner.evictCallback, config.CacheTTL)
@@ -128,9 +142,11 @@ var _ TopicProvisioner = (*topicProvisioner)(nil)
 // to keep track of topics which have been already provisioned. This allows the provisioner being called multiple times with the same
 // set of topics without need for extra round-trip to Kafka brokers for sub-sequential calls.
 type topicProvisioner struct {
-	client *kafka.AdminClient
+	client AdminClient
 	logger *slog.Logger
 	cache  *expirable.LRU[string, struct{}]
+
+	protectedTopics map[string]struct{}
 
 	metrics struct {
 		// Errors
@@ -233,13 +249,25 @@ func (p *topicProvisioner) DeProvision(ctx context.Context, topics ...string) er
 		return nil
 	}
 
+	topicsToDelete := make([]string, 0, len(topics))
 	for _, topic := range topics {
 		if topic == "" {
-			return fmt.Errorf("invalid topic name %q", topic)
+			p.logger.Warn("skip topic: empty topic name", "topic", topic)
+
+			continue
 		}
+
+		// Skip protected topics to avoid accidental deletion
+		if _, ok := p.protectedTopics[topic]; ok {
+			p.logger.Info("skip topic: protected topic", "topic", topic)
+
+			continue
+		}
+
+		topicsToDelete = append(topicsToDelete, topic)
 	}
 
-	results, err := p.client.DeleteTopics(ctx, topics)
+	results, err := p.client.DeleteTopics(ctx, topicsToDelete)
 	if err != nil {
 		p.metrics.Errors.Add(ctx, 1, metric.WithAttributes(attribute.String("scope", "client")))
 
