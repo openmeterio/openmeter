@@ -52,6 +52,16 @@ type Tx struct {
 	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
 	// NotificationRule is the client for interacting with the NotificationRule builders.
 	NotificationRule *NotificationRuleClient
+	// Subscription is the client for interacting with the Subscription builders.
+	Subscription *SubscriptionClient
+	// SubscriptionPatch is the client for interacting with the SubscriptionPatch builders.
+	SubscriptionPatch *SubscriptionPatchClient
+	// SubscriptionPatchValueAddItem is the client for interacting with the SubscriptionPatchValueAddItem builders.
+	SubscriptionPatchValueAddItem *SubscriptionPatchValueAddItemClient
+	// SubscriptionPatchValueAddPhase is the client for interacting with the SubscriptionPatchValueAddPhase builders.
+	SubscriptionPatchValueAddPhase *SubscriptionPatchValueAddPhaseClient
+	// SubscriptionPatchValueExtendPhase is the client for interacting with the SubscriptionPatchValueExtendPhase builders.
+	SubscriptionPatchValueExtendPhase *SubscriptionPatchValueExtendPhaseClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 
@@ -204,6 +214,11 @@ func (tx *Tx) init() {
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)
 	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)
 	tx.NotificationRule = NewNotificationRuleClient(tx.config)
+	tx.Subscription = NewSubscriptionClient(tx.config)
+	tx.SubscriptionPatch = NewSubscriptionPatchClient(tx.config)
+	tx.SubscriptionPatchValueAddItem = NewSubscriptionPatchValueAddItemClient(tx.config)
+	tx.SubscriptionPatchValueAddPhase = NewSubscriptionPatchValueAddPhaseClient(tx.config)
+	tx.SubscriptionPatchValueExtendPhase = NewSubscriptionPatchValueExtendPhaseClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }
 
