@@ -9,6 +9,7 @@ aggregation:
 sink:
   minCommitCount: 1
   namespaceRefetch: 1s
+  namespaceRefetchTimeout: 1s
   kafka:
     brokers: kafka:9092
     brokerAddressFamily: v4
