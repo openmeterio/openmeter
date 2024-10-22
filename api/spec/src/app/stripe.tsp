@@ -41,7 +41,7 @@ interface AppStripe {
   @operationId("createStripeCheckoutSession")
   createCheckoutSession(@body body: CreateStripeCheckoutSessionRequest): {
     @statusCode _: 201;
-    @body body: CreateStripeCheckoutSessionResponse;
+    @body body: CreateStripeCheckoutSessionResult;
   } | NotFoundError | CommonErrors;
 }
 
@@ -111,8 +111,8 @@ model CreateStripeCheckoutSessionRequestOptions {
 /**
  * Create Stripe Checkout Session response.
  */
-@friendlyName("CreateStripeCheckoutSessionResponse")
-model CreateStripeCheckoutSessionResponse {
+@friendlyName("CreateStripeCheckoutSessionResult")
+model CreateStripeCheckoutSessionResult {
   /**
    * The OpenMeter customer ID.
    */

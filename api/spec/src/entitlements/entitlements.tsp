@@ -59,7 +59,7 @@ interface Entitlements {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
-  ): Entitlement[] | OpenMeter.PaginatedResponse<Entitlement> | OpenMeter.CommonErrors;
+  ): ListEntitlementsResult | OpenMeter.CommonErrors;
 
   /**
    * Get entitlement by id.
@@ -70,6 +70,15 @@ interface Entitlements {
     @path
     entitlementId: ULID,
   ): Entitlement | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+}
+
+// TODO: Remove in v2
+
+@oneOf
+@friendlyName("ListEntitlementsResult")
+union ListEntitlementsResult {
+  Entitlement[],
+  OpenMeter.PaginatedResponse<Entitlement>,
 }
 
 /**

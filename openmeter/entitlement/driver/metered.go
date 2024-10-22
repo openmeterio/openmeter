@@ -90,7 +90,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			req.GrantInput = meteredentitlement.CreateEntitlementGrantInputs{
 				CreateGrantInput: credit.CreateGrantInput{
 					Amount:      apiGrant.Amount,
-					Priority:    uint8(defaultx.WithDefault(apiGrant.Priority, 0)),
+					Priority:    defaultx.WithDefault(apiGrant.Priority, 0),
 					EffectiveAt: apiGrant.EffectiveAt,
 					Expiration: grant.ExpirationPeriod{
 						Count:    uint8(apiGrant.Expiration.Count),
@@ -363,7 +363,7 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 		},
 		Id:                grant.ID,
 		Metadata:          &grant.Metadata,
-		Priority:          convert.ToPointer(int8(grant.Priority)),
+		Priority:          convert.ToPointer(grant.Priority),
 		UpdatedAt:         grant.UpdatedAt,
 		DeletedAt:         grant.DeletedAt,
 		EntitlementId:     grant.EntitlementID,

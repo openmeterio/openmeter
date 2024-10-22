@@ -11,7 +11,7 @@ namespace OpenMeter;
  * Additional properties specific to the problem type may be present.
  */
 @error
-@extension("x-go-type", "models.Problem")
+@extension("x-go-type", "models.StatusProblem")
 @extension(
   "x-go-type-import",
   {

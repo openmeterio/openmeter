@@ -2162,11 +2162,7 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - type: array
-                    items:
-                      $ref: '#/components/schemas/Entitlement'
-                  - $ref: '#/components/schemas/EntitlementPaginatedResponse'
+                $ref: '#/components/schemas/ListEntitlementsResult'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -2500,11 +2496,7 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - type: array
-                    items:
-                      $ref: '#/components/schemas/Feature'
-                  - $ref: '#/components/schemas/FeaturePaginatedResponse'
+                $ref: '#/components/schemas/ListFeaturesResult'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -2892,7 +2884,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateStripeCheckoutSessionResponse'
+                $ref: '#/components/schemas/CreateStripeCheckoutSessionResult'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -3004,7 +2996,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/OpenMeter.App.Type'
+            $ref: '#/components/schemas/AppType'
       responses:
         '200':
           description: The request has succeeded.
@@ -3132,7 +3124,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/OpenMeter.App.Type'
+            $ref: '#/components/schemas/AppType'
       responses:
         '200':
           description: The request has succeeded.
@@ -6881,14 +6873,14 @@ components:
       required: true
       description: The type of the app to install.
       schema:
-        $ref: '#/components/schemas/OpenMeter.App.Type'
+        $ref: '#/components/schemas/AppType'
     MarketplaceOAuth2InstallAuthorizeRequest.type:
       name: type
       in: path
       required: true
       description: The type of the app to install.
       schema:
-        $ref: '#/components/schemas/OpenMeter.App.Type'
+        $ref: '#/components/schemas/AppType'
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -7339,6 +7331,11 @@ components:
         - ready
         - unauthorized
       description: App installed status.
+    AppType:
+      type: string
+      enum:
+        - stripe
+      description: Type of the app.
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -8546,7 +8543,7 @@ components:
           title: The ID of the app, if not specified the type is used to find the default app
         type:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.Type'
+            - $ref: '#/components/schemas/AppType'
           title: The type of the app, if specified the default app is used
       description: AppReference can be used to reference an app during creation only.
     BillingWorkflowCollectionAlignment:
@@ -8737,7 +8734,7 @@ components:
           items:
             type: string
       description: Create Stripe checkout session options
-    CreateStripeCheckoutSessionResponse:
+    CreateStripeCheckoutSessionResult:
       type: object
       required:
         - customerId
@@ -9266,7 +9263,7 @@ components:
           description: The amount to grant. Should be a positive number.
         priority:
           type: integer
-          format: int8
+          format: uint8
           example: 1
           minimum: 1
           maximum: 255
@@ -9355,7 +9352,7 @@ components:
           description: The amount to grant. Should be a positive number.
         priority:
           type: integer
-          format: int8
+          format: uint8
           example: 1
           minimum: 1
           maximum: 255
@@ -10301,6 +10298,18 @@ components:
             $ref: '#/components/schemas/BillingInvoiceSummary'
           description: The items in the current page.
       description: Paginated response
+    ListEntitlementsResult:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/components/schemas/Entitlement'
+        - $ref: '#/components/schemas/EntitlementPaginatedResponse'
+    ListFeaturesResult:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        - $ref: '#/components/schemas/FeaturePaginatedResponse'
     MarketplaceListing:
       type: object
       required:
@@ -10312,7 +10321,7 @@ components:
       properties:
         type:
           allOf:
-            - $ref: '#/components/schemas/OpenMeter.App.Type'
+            - $ref: '#/components/schemas/AppType'
           description: The app's type
         name:
           type: string
@@ -11286,11 +11295,6 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    OpenMeter.App.Type:
-      type: string
-      enum:
-        - stripe
-      description: Type of the app.
     Percentage:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?%$
@@ -12754,7 +12758,7 @@ components:
         Additional properties specific to the problem type may be present.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
-      x-go-type: models.Problem
+      x-go-type: models.StatusProblem
     UnitPrice:
       type: object
       required:
