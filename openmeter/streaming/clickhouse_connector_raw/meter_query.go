@@ -132,7 +132,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 	query.Select(selectColumns...)
 	query.From(tableName)
 	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
-	query.Where(query.Equal(getColumn("meter"), d.Meter.GetID()))
+	query.Where(query.Equal(getColumn("type"), d.Meter.EventType))
 
 	if len(d.Subject) > 0 {
 		mapFunc := func(subject string) string {
