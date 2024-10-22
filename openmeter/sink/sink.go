@@ -480,7 +480,7 @@ func (s *Sink) updateTopicSubscription(_ context.Context, metadataTimeout time.D
 	}
 
 	if len(topics) == 0 {
-		logger.Debug("no topics found to be subscribed to", "regexp", s.namespaceTopicRegexp.String())
+		logger.Warn("no topics found to be subscribed to", "regexp", s.namespaceTopicRegexp.String())
 
 		return nil
 	}
