@@ -4,8 +4,10 @@ default:
 
 generate:
     dagger call generate server export --path api
-    GOWORK=off go generate ./cmd/... # TODO: move this to dagger?
-    # TODO: generate clients
+
+    # TODO: move this to dagger?
+    GOWORK=off go generate ./cmd/...
+    go generate ./api/client/go
 
 # tag and release a new version
 release:
