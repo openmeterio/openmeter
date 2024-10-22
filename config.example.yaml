@@ -151,3 +151,11 @@ svix:
 #    #	* "largest","latest","end": automatically reset the offset to the largest offset
 #    #	* "error":  trigger an error (ERR__AUTO_OFFSET_RESET) which is retrieved by consuming messages and checking 'message->err'.
 #    autoOffsetReset: "error"
+#    # partitionAssignmentStrategy defines one or more partition assignment strategies.
+#    # The elected group leader will use a strategy supported by all members of the group to assign partitions to group members.
+#    # If there is more than one eligible strategy, preference is determined by the order of this list (strategies earlier in the list have higher priority).
+#    # Cooperative and non-cooperative (eager) strategies must not be mixed.
+#    partitionAssignmentStrategy:
+#      - range
+#      - roundrobin
+#      - cooperative-sticky

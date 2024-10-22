@@ -48,7 +48,7 @@ func TestConsumerConfig(t *testing.T) {
 					EnableAutoCommit:            true,
 					EnableAutoOffsetStore:       true,
 					AutoOffsetReset:             AutoOffsetResetLatest,
-					PartitionAssignmentStrategy: "cooperative-sticky",
+					PartitionAssignmentStrategy: PartitionAssignmentStrategies{PartitionAssignmentStrategyCooperativeSticky},
 				},
 			},
 			ExpectedError:           nil,
@@ -73,7 +73,7 @@ func TestConsumerConfig(t *testing.T) {
 				"enable.auto.commit":                 true,
 				"enable.auto.offset.store":           true,
 				"auto.offset.reset":                  AutoOffsetResetLatest,
-				"partition.assignment.strategy":      "cooperative-sticky",
+				"partition.assignment.strategy":      PartitionAssignmentStrategies{PartitionAssignmentStrategyCooperativeSticky},
 			},
 		},
 	}

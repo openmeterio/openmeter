@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/samber/lo"
 )
 
 type ConfigValidator interface {
@@ -214,8 +215,8 @@ type ConsumerConfigParams struct {
 	// The elected group leader will use a strategy supported by all members of the group to assign partitions to group members.
 	// If there is more than one eligible strategy, preference is determined by the order of this list (strategies earlier in the list have higher priority).
 	// Cooperative and non-cooperative (eager) strategies must not be mixed.
-	// Available strategies: range, roundrobin, cooperative-sticky.
-	PartitionAssignmentStrategy string
+	// Available strategies: PartitionAssignmentStrategyRange, PartitionAssignmentStrategyRoundRobin, PartitionAssignmentStrategyCooperativeSticky.
+	PartitionAssignmentStrategy PartitionAssignmentStrategies
 
 	// The maximum delay between invocations of poll() when using consumer group management.
 	// This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
@@ -234,13 +235,14 @@ func (c ConsumerConfigParams) Validate() error {
 		return errors.New("invalid auto offset reset")
 	}
 
-	if c.PartitionAssignmentStrategy != "" {
-		strategies := strings.Split(c.PartitionAssignmentStrategy, ",")
+	if len(c.PartitionAssignmentStrategy) > 0 {
+		if !lo.Every(PartitionAssignmentStrategyValues, c.PartitionAssignmentStrategy) {
+			return errors.New("invalid partition assignment strategies")
+		}
 
-		for _, strategy := range strategies {
-			if !slices.Contains([]string{"range", "roundrobin", "cooperative-sticky"}, strategy) {
-				return fmt.Errorf("invalid partition assignment strategy: %s", strategy)
-			}
+		if lo.Some(EagerPartitionAssignmentStrategyValues, c.PartitionAssignmentStrategy) &&
+			lo.Some(CooperativePartitionAssignmentStrategyValues, c.PartitionAssignmentStrategy) {
+			return errors.New("invalid partition assignment strategies: eager and cooperative strategies must no be mixed")
 		}
 	}
 
@@ -296,7 +298,7 @@ func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 		}
 	}
 
-	if c.PartitionAssignmentStrategy != "" {
+	if len(c.PartitionAssignmentStrategy) > 0 {
 		if err := m.SetKey("partition.assignment.strategy", c.PartitionAssignmentStrategy); err != nil {
 			return nil, err
 		}
@@ -786,4 +788,77 @@ func (s *AutoOffsetReset) UnmarshalJSON(data []byte) error {
 
 func (s AutoOffsetReset) String() string {
 	return string(s)
+}
+
+var PartitionAssignmentStrategyValues = ValidValues[PartitionAssignmentStrategy]{
+	PartitionAssignmentStrategyRange,
+	PartitionAssignmentStrategyRoundRobin,
+	PartitionAssignmentStrategyCooperativeSticky,
+}
+
+var EagerPartitionAssignmentStrategyValues = ValidValues[PartitionAssignmentStrategy]{
+	PartitionAssignmentStrategyRange,
+	PartitionAssignmentStrategyRoundRobin,
+}
+
+var CooperativePartitionAssignmentStrategyValues = ValidValues[PartitionAssignmentStrategy]{
+	PartitionAssignmentStrategyCooperativeSticky,
+}
+
+var _ configValue = (*PartitionAssignmentStrategy)(nil)
+
+type PartitionAssignmentStrategy string
+
+func (c PartitionAssignmentStrategy) String() string {
+	return string(c)
+}
+
+func (c *PartitionAssignmentStrategy) UnmarshalText(text []byte) error {
+	switch strings.ToLower(strings.TrimSpace(string(text))) {
+	case "range":
+		*c = PartitionAssignmentStrategyRange
+	case "roundrobin":
+		*c = PartitionAssignmentStrategyRoundRobin
+	case "cooperative-sticky":
+		*c = PartitionAssignmentStrategyCooperativeSticky
+
+	default:
+		return fmt.Errorf("invalid partition assignment strategy: %s", text)
+	}
+
+	return nil
+}
+
+func (c *PartitionAssignmentStrategy) UnmarshalJSON(data []byte) error {
+	return c.UnmarshalText(data)
+}
+
+const (
+	// PartitionAssignmentStrategyRange assigns partitions on a per-topic basis.
+	PartitionAssignmentStrategyRange PartitionAssignmentStrategy = "range"
+	// PartitionAssignmentStrategyRoundRobin assigns partitions to consumers in a round-robin fashion.
+	PartitionAssignmentStrategyRoundRobin PartitionAssignmentStrategy = "roundrobin"
+	// PartitionAssignmentStrategyCooperativeSticky guarantees an assignment that is maximally balanced while preserving
+	// as many existing partition assignments as possible while allowing cooperative rebalancing.
+	PartitionAssignmentStrategyCooperativeSticky PartitionAssignmentStrategy = "cooperative-sticky"
+)
+
+var _ fmt.Stringer = (PartitionAssignmentStrategies)(nil)
+
+// PartitionAssignmentStrategies one or more partition assignment strategies.
+// If there is more than one eligible strategy, preference is determined by the configured order of strategies.
+// IMPORTANT: cooperative and non-cooperative (eager) strategies must NOT be mixed.
+type PartitionAssignmentStrategies []PartitionAssignmentStrategy
+
+func (p PartitionAssignmentStrategies) String() string {
+	if len(p) > 0 {
+		pp := make([]string, len(p))
+		for idx, v := range p {
+			pp[idx] = v.String()
+		}
+
+		return strings.Join(pp, ",")
+	}
+
+	return ""
 }
