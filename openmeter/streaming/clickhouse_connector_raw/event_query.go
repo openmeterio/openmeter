@@ -36,7 +36,13 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("stored_at", "DateTime")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
-	sb.SQL("ORDER BY (namespace, time, type, subject)")
+	// Lowest cardinality columns we always filter on goes to the most left.
+	// ClickHouse always picks partition first so we always filter time by month.
+	// Theoritically we could add toStartOfHour(time) to the order sooner than subject
+	// but we bet on that a typical namespace has more subjects than hours in a month.
+	// Subject is an optional filter so it won't always help to reduce number of rows scanned.
+	// Finally we add time not just to speed up queries but also to keep data on the disk together.
+	sb.SQL("ORDER BY (namespace, type, subject, toStartOfHour(time))")
 
 	sql, _ := sb.Build()
 	return sql
