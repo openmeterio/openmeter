@@ -44,7 +44,7 @@ interface Features {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<FeatureOrderBy>,
-  ): Feature[] | OpenMeter.PaginatedResponse<Feature> | OpenMeter.CommonErrors;
+  ): ListFeaturesResult | OpenMeter.CommonErrors;
 
   /**
    * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
@@ -118,6 +118,15 @@ model FeatureCreateInputs {
   @summary("Meter group by filters")
   @example(#{ `model`: "gpt-4", type: "input" })
   meterGroupByFilters?: Record<string>;
+}
+
+// TODO: Remove in v2
+
+@oneOf
+@friendlyName("ListFeaturesResult")
+union ListFeaturesResult {
+  Feature[],
+  OpenMeter.PaginatedResponse<Feature>,
 }
 
 /**

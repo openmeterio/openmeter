@@ -2162,11 +2162,7 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - type: array
-                    items:
-                      $ref: '#/components/schemas/Entitlement'
-                  - $ref: '#/components/schemas/EntitlementPaginatedResponse'
+                $ref: '#/components/schemas/ListEntitlementsResult'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -2500,11 +2496,7 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - type: array
-                    items:
-                      $ref: '#/components/schemas/Feature'
-                  - $ref: '#/components/schemas/FeaturePaginatedResponse'
+                $ref: '#/components/schemas/ListFeaturesResult'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -10301,6 +10293,18 @@ components:
             $ref: '#/components/schemas/BillingInvoiceSummary'
           description: The items in the current page.
       description: Paginated response
+    ListEntitlementsResult:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/components/schemas/Entitlement'
+        - $ref: '#/components/schemas/EntitlementPaginatedResponse'
+    ListFeaturesResult:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        - $ref: '#/components/schemas/FeaturePaginatedResponse'
     MarketplaceListing:
       type: object
       required:
