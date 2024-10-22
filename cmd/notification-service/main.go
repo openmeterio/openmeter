@@ -67,9 +67,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger := initializeLogger(conf)
-
-	app, cleanup, err := initializeApplication(ctx, conf, logger)
+	app, cleanup, err := initializeApplication(ctx, conf)
 	if err != nil {
 		slog.Error("failed to initialize application", "error", err)
 
@@ -80,6 +78,8 @@ func main() {
 	defer cleanup()
 
 	app.SetGlobals()
+
+	logger := app.Logger
 
 	// Validate service prerequisites
 

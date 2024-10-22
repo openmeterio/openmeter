@@ -25,11 +25,13 @@ import (
 
 // Injectors from wire.go:
 
-func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
+func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
-	metricsTelemetryConfig := telemetryConfig.Metrics
+	logTelemetryConfig := telemetryConfig.Log
 	commonMetadata := metadata(conf)
 	resource := common.NewTelemetryResource(commonMetadata)
+	logger := common.NewLogger(logTelemetryConfig, resource)
+	metricsTelemetryConfig := telemetryConfig.Metrics
 	meterProvider, cleanup, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
 		return Application{}, nil, err
@@ -57,7 +59,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
-	logTelemetryConfig := telemetryConfig.Log
 	meter := common.NewMeter(meterProvider, commonMetadata)
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
 	v3 := common.SinkWorkerProvisionTopics(eventsConfiguration)
@@ -113,6 +114,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		TelemetryServer:   v2,
 		FlushHandler:      flushEventHandler,
 		TopicProvisioner:  topicProvisioner,
+		Logger:            logger,
 		Meter:             meter,
 		Tracer:            tracer,
 	}
@@ -122,16 +124,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		cleanup2()
 		cleanup()
 	}, nil
-}
-
-// TODO: is this necessary? Do we need a logger first?
-func initializeLogger(conf config.Configuration) *slog.Logger {
-	telemetryConfig := conf.Telemetry
-	logTelemetryConfig := telemetryConfig.Log
-	commonMetadata := metadata(conf)
-	resource := common.NewTelemetryResource(commonMetadata)
-	logger := common.NewLogger(logTelemetryConfig, resource)
-	return logger
 }
 
 // wire.go:
@@ -146,6 +138,7 @@ type Application struct {
 	FlushHandler     flushhandler.FlushEventHandler
 	TopicProvisioner kafka2.TopicProvisioner
 
+	Logger *slog.Logger
 	Meter  metric.Meter
 	Tracer trace.Tracer
 }

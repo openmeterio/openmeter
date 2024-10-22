@@ -18,11 +18,13 @@ import (
 
 // Injectors from wire.go:
 
-func initializeApplication(ctx context.Context, conf config.Configuration, logger *slog.Logger) (Application, func(), error) {
+func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
-	metricsTelemetryConfig := telemetryConfig.Metrics
+	logTelemetryConfig := telemetryConfig.Log
 	commonMetadata := metadata(conf)
 	resource := common.NewTelemetryResource(commonMetadata)
+	logger := common.NewLogger(logTelemetryConfig, resource)
+	metricsTelemetryConfig := telemetryConfig.Metrics
 	meterProvider, cleanup, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
 		return Application{}, nil, err
@@ -61,7 +63,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
-	logTelemetryConfig := telemetryConfig.Log
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
 	subscriber, err := common.BalanceWorkerSubscriber(balanceWorkerConfiguration, brokerOptions)
 	if err != nil {
@@ -174,6 +175,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 		GlobalInitializer: globalInitializer,
 		Migrator:          migrator,
 		Runner:            runner,
+		Logger:            logger,
 	}
 	return application, func() {
 		cleanup6()
@@ -185,22 +187,14 @@ func initializeApplication(ctx context.Context, conf config.Configuration, logge
 	}, nil
 }
 
-// TODO: is this necessary? Do we need a logger first?
-func initializeLogger(conf config.Configuration) *slog.Logger {
-	telemetryConfig := conf.Telemetry
-	logTelemetryConfig := telemetryConfig.Log
-	commonMetadata := metadata(conf)
-	resource := common.NewTelemetryResource(commonMetadata)
-	logger := common.NewLogger(logTelemetryConfig, resource)
-	return logger
-}
-
 // wire.go:
 
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 	common.Runner
+
+	Logger *slog.Logger
 }
 
 func metadata(conf config.Configuration) common.Metadata {
