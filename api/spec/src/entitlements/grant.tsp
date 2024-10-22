@@ -144,7 +144,7 @@ model GrantCreateInput {
   @minValue(1)
   @maxValue(255)
   @example(1)
-  priority?: int8;
+  priority?: uint8;
 
   /**
    * Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).

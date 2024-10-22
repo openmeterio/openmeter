@@ -9263,7 +9263,7 @@ components:
           description: The amount to grant. Should be a positive number.
         priority:
           type: integer
-          format: int8
+          format: uint8
           example: 1
           minimum: 1
           maximum: 255
@@ -9352,7 +9352,7 @@ components:
           description: The amount to grant. Should be a positive number.
         priority:
           type: integer
-          format: int8
+          format: uint8
           example: 1
           minimum: 1
           maximum: 255

@@ -637,7 +637,7 @@ func TestCredit(t *testing.T) {
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt := time.Now().Truncate(time.Minute)
 
-		priority := int8(1)
+		priority := uint8(1)
 		maxRolloverAmount := 100.0
 		minRolloverAmount := 0.0
 
