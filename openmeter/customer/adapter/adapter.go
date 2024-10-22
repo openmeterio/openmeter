@@ -10,6 +10,7 @@ import (
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -66,4 +67,13 @@ func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, e
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
+}
+
+func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
+	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	return &adapter{
+		db:        txClient.Client(),
+		logger:    a.logger,
+		observers: a.observers,
+	}
 }
