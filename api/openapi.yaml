@@ -12754,7 +12754,7 @@ components:
         Additional properties specific to the problem type may be present.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
-      x-go-type: models.Problem
+      x-go-type: models.StatusProblem
     UnitPrice:
       type: object
       required:
