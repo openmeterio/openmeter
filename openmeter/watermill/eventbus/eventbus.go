@@ -2,6 +2,8 @@ package eventbus
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"testing"
@@ -11,17 +13,49 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/app/config"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
+type TopicMapping struct {
+	IngestEventsTopic string
+	SystemEventsTopic string
+}
+
+func (t TopicMapping) Validate() error {
+	if t.IngestEventsTopic == "" {
+		return errors.New("ingest events topic is required")
+	}
+
+	if t.SystemEventsTopic == "" {
+		return errors.New("system events topic is required")
+	}
+
+	return nil
+}
+
 type Options struct {
 	Publisher              message.Publisher
-	Config                 config.EventsConfiguration
+	TopicMapping           TopicMapping
 	Logger                 *slog.Logger
 	MarshalerTransformFunc marshaler.TransformFunc
+}
+
+func (o Options) Validate() error {
+	if o.Publisher == nil {
+		return errors.New("publisher is required")
+	}
+
+	if err := o.TopicMapping.Validate(); err != nil {
+		return fmt.Errorf("topic mapping: %w", err)
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	return nil
 }
 
 type Publisher interface {
@@ -82,6 +116,10 @@ func (p contextPublisher) PublishIfNoError(event marshaler.Event, err error) err
 }
 
 func New(opts Options) (Publisher, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+
 	marshaler := marshaler.New(opts.MarshalerTransformFunc)
 
 	ingestVersionSubsystemPrefix := ingestevents.EventVersionSubsystem + "."
@@ -90,9 +128,9 @@ func New(opts Options) (Publisher, error) {
 		GeneratePublishTopic: func(params cqrs.GenerateEventPublishTopicParams) (string, error) {
 			switch {
 			case strings.HasPrefix(params.EventName, ingestVersionSubsystemPrefix):
-				return opts.Config.IngestEvents.Topic, nil
+				return opts.TopicMapping.IngestEventsTopic, nil
 			default:
-				return opts.Config.SystemEvents.Topic, nil
+				return opts.TopicMapping.SystemEventsTopic, nil
 			}
 		},
 
@@ -112,13 +150,9 @@ func New(opts Options) (Publisher, error) {
 func NewMock(t *testing.T) Publisher {
 	eventBus, err := New(Options{
 		Publisher: &noop.Publisher{},
-		Config: config.EventsConfiguration{
-			SystemEvents: config.EventSubsystemConfiguration{
-				Topic: "test",
-			},
-			IngestEvents: config.EventSubsystemConfiguration{
-				Topic: "test",
-			},
+		TopicMapping: TopicMapping{
+			IngestEventsTopic: "test",
+			SystemEventsTopic: "test",
 		},
 		Logger: slog.Default(),
 	})

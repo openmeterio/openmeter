@@ -78,7 +78,7 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 
 	eventPublisher, err := eventbus.New(eventbus.Options{
 		Publisher:              eventPublisherDriver,
-		Config:                 conf.Events,
+		TopicMapping:           conf.Events.EventBusTopicMapping(),
 		Logger:                 logger,
 		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
 	})
