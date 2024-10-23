@@ -189,19 +189,6 @@ namespace OpenMeterCloud.ProductCatalog {
   @tag("Plan (Experimental)")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}
 
-  @route("/api/v1/plans/{planId}/publish")
-  @tag("Plan (Experimental)")
-  interface PlanPublishById extends OpenMeter.ProductCatalog.PlanPublish {}
-
-  @route("/api/v1/plans/{planId}/unpublish")
-  @tag("Plan (Experimental)")
-  interface PlanUnpublishById extends OpenMeter.ProductCatalog.PlanUnpublish {}
-
-  @route("/api/v1/plans/{planId}/next")
-  @tag("Plan (Experimental)")
-  interface PlanNewDraftVersion
-    extends OpenMeter.ProductCatalog.PlanNewDraftVersion {}
-
   @route("/api/v1/plans/{planId}/phases")
   @tag("Plan (Experimental)")
   interface PlanByIdPhases extends OpenMeter.ProductCatalog.PlanPhases {}

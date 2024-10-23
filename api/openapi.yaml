@@ -4725,6 +4725,81 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanCreate'
+  /api/v1/plans/{planIdOrKey}/next:
+    post:
+      operationId: newDraftPlan
+      summary: New draft plan
+      description: |-
+        Create a new draft version from plan.
+        It returns error if there is already a plan in draft or planId does not reference the latest published version.
+      parameters:
+        - name: planIdOrKey
+          in: path
+          required: true
+          schema:
+            anyOf:
+              - type: string
+                example: 01G65Z755AFWAKHE12NY0CQ9FH
+                pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+                description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              - type: string
+                minLength: 1
+                maxLength: 64
+                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+                description: A key is a unique string that is used to identify a resource.
+            x-go-type: string
+          x-go-type: string
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
   /api/v1/plans/{planId}:
     put:
       operationId: updatePlan
@@ -4885,81 +4960,6 @@ paths:
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '404':
-          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Plan (Experimental)
-  /api/v1/plans/{planId}/next:
-    post:
-      operationId: newDraftPlan
-      summary: New draft plan
-      description: |-
-        Create a new draft version from plan.
-        It returns error if there is already a plan in draft or planId does not reference the latest published version.
-      parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            anyOf:
-              - type: string
-                example: 01G65Z755AFWAKHE12NY0CQ9FH
-                pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-                description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              - type: string
-                minLength: 1
-                maxLength: 64
-                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-                description: A key is a unique string that is used to identify a resource.
-            x-go-type: string
-          x-go-type: string
-      responses:
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Plan'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
