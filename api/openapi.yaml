@@ -12568,6 +12568,21 @@ components:
             type: string
           description: The setup intent metadata.
       description: Stripe setup intent.
+    StripeTaxConfig:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          example: txcd_10000000
+          pattern: ^txcd_\d{8}$
+          description: |-
+            Product tax code.
+
+            See: https://docs.stripe.com/tax/tax-codes
+          title: Tax code
+      description: A tax config for Stripe.
     StripeWebhookEvent:
       type: object
       required:
@@ -12742,18 +12757,11 @@ components:
       type: object
       properties:
         stripe:
-          type: object
-          properties:
-            code:
-              type: string
-              example: txcd_10000000
-              pattern: ^txcd_\d{8}$
-              title: Tax code
-          required:
-            - code
+          allOf:
+            - $ref: '#/components/schemas/StripeTaxConfig'
           description: Stripe tax config.
           title: Stripe tax config
-      description: A tax config.
+      description: Set of provider specific tax configs.
     TieredPriceMode:
       type: string
       enum:
