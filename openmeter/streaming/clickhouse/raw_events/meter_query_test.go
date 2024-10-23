@@ -23,8 +23,9 @@ func TestQueryMeter(t *testing.T) {
 	}{
 		{
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -46,8 +47,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate all available data
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -64,8 +66,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate with count aggregation
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -82,8 +85,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data from start
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -101,8 +105,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data between period
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -121,8 +126,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data between period, groupped by window size
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -142,8 +148,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data between period in a different timezone, groupped by window size
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -164,8 +171,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data for a single subject
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -184,8 +192,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data for a single subject and group by additional fields
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -204,8 +213,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data for a multiple subjects
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -224,8 +234,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data with filtering for a single group and single value
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -243,8 +254,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data with filtering for a single group and multiple values
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -262,8 +274,9 @@ func TestQueryMeter(t *testing.T) {
 		},
 		{ // Aggregate data with filtering for multiple groups and multiple values
 			query: queryMeter{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
@@ -307,8 +320,9 @@ func TestListMeterSubjects(t *testing.T) {
 	}{
 		{
 			query: listMeterSubjectsQuery{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",
@@ -320,8 +334,9 @@ func TestListMeterSubjects(t *testing.T) {
 		},
 		{
 			query: listMeterSubjectsQuery{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",
@@ -334,8 +349,9 @@ func TestListMeterSubjects(t *testing.T) {
 		},
 		{
 			query: listMeterSubjectsQuery{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
 				Meter: models.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",

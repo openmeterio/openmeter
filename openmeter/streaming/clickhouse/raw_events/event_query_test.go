@@ -16,7 +16,8 @@ func TestCreateEventsTable(t *testing.T) {
 	}{
 		{
 			data: createEventsTable{
-				Database: "openmeter",
+				Database:        "openmeter",
+				EventsTableName: "om_events",
 			},
 			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, validation_error String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
 		},
@@ -44,49 +45,54 @@ func TestQueryEventsTable(t *testing.T) {
 	}{
 		{
 			query: queryEventsTable{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
-				Limit:     100,
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Limit:           100,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
 		},
 		{
 			query: queryEventsTable{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
-				Limit:     100,
-				Subject:   &subjectFilter,
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Limit:           100,
+				Subject:         &subjectFilter,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject = ? ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace", subjectFilter},
 		},
 		{
 			query: queryEventsTable{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
-				Limit:     100,
-				ID:        &idFilter,
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Limit:           100,
+				ID:              &idFilter,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND id LIKE ? ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace", "%event-id-1%"},
 		},
 		{
 			query: queryEventsTable{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
-				Limit:     100,
-				HasError:  &hasErrorTrue,
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Limit:           100,
+				HasError:        &hasErrorTrue,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND notEmpty(validation_error) = 1 ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
 		},
 		{
 			query: queryEventsTable{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
-				Limit:     100,
-				HasError:  &hasErrorFalse,
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Limit:           100,
+				HasError:        &hasErrorFalse,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND empty(validation_error) = 1 ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
@@ -113,9 +119,10 @@ func TestQueryEventsCount(t *testing.T) {
 	}{
 		{
 			query: queryCountEvents{
-				Database:  "openmeter",
-				Namespace: "my_namespace",
-				From:      from,
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				From:            from,
 			},
 			wantSQL:  "SELECT count() as count, subject, notEmpty(validation_error) as is_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? GROUP BY subject, is_error",
 			wantArgs: []interface{}{"my_namespace", from.Unix()},
@@ -137,7 +144,8 @@ func TestInsertEventsQuery(t *testing.T) {
 	now := time.Now()
 
 	query := InsertEventsQuery{
-		Database: "database",
+		Database:        "database",
+		EventsTableName: "om_events",
 		Events: []streaming.RawEvent{
 			{
 				Namespace:  "my_namespace",

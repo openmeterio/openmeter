@@ -21,13 +21,15 @@ var _ streaming.Connector = (*Connector)(nil)
 
 // Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type Connector struct {
-	config ConnectorConfig
+	config      ConnectorConfig
+	eventsTable string
 }
 
 type ConnectorConfig struct {
 	Logger              *slog.Logger
 	ClickHouse          clickhouse.Conn
 	Database            string
+	EventsTableName     string
 	AsyncInsert         bool
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
@@ -44,6 +46,10 @@ func (c ConnectorConfig) Validate() error {
 
 	if c.Database == "" {
 		return fmt.Errorf("database is required")
+	}
+
+	if c.EventsTableName == "" {
+		return fmt.Errorf("events table is required")
 	}
 
 	return nil
@@ -175,9 +181,10 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	// Insert raw events
 	query := InsertEventsQuery{
-		Database:      c.config.Database,
-		Events:        rawEvents,
-		QuerySettings: c.config.InsertQuerySettings,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Events:          rawEvents,
+		QuerySettings:   c.config.InsertQuerySettings,
 	}
 	sql, args := query.ToSQL()
 
@@ -201,7 +208,8 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 func (c *Connector) createEventsTable(ctx context.Context) error {
 	table := createEventsTable{
-		Database: c.config.Database,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
@@ -214,16 +222,17 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 
 func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	table := queryEventsTable{
-		Database:       c.config.Database,
-		Namespace:      namespace,
-		From:           params.From,
-		To:             params.To,
-		IngestedAtFrom: params.IngestedAtFrom,
-		IngestedAtTo:   params.IngestedAtTo,
-		ID:             params.ID,
-		Subject:        params.Subject,
-		HasError:       params.HasError,
-		Limit:          params.Limit,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		From:            params.From,
+		To:              params.To,
+		IngestedAtFrom:  params.IngestedAtFrom,
+		IngestedAtTo:    params.IngestedAtTo,
+		ID:              params.ID,
+		Subject:         params.Subject,
+		HasError:        params.HasError,
+		Limit:           params.Limit,
 	}
 
 	sql, args := table.toSQL()
@@ -291,9 +300,10 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 
 func (c *Connector) queryCountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
 	table := queryCountEvents{
-		Database:  c.config.Database,
-		Namespace: namespace,
-		From:      params.From,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		From:            params.From,
 	}
 
 	sql, args := table.toSQL()
@@ -324,16 +334,17 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 
 func (c *Connector) queryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	queryMeter := queryMeter{
-		Database:       c.config.Database,
-		Namespace:      namespace,
-		Meter:          meter,
-		From:           params.From,
-		To:             params.To,
-		Subject:        params.FilterSubject,
-		FilterGroupBy:  params.FilterGroupBy,
-		GroupBy:        params.GroupBy,
-		WindowSize:     params.WindowSize,
-		WindowTimeZone: params.WindowTimeZone,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		Meter:           meter,
+		From:            params.From,
+		To:              params.To,
+		Subject:         params.FilterSubject,
+		FilterGroupBy:   params.FilterGroupBy,
+		GroupBy:         params.GroupBy,
+		WindowSize:      params.WindowSize,
+		WindowTimeZone:  params.WindowTimeZone,
 	}
 
 	values := []models.MeterQueryRow{}
@@ -410,11 +421,12 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 
 func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, from *time.Time, to *time.Time) ([]string, error) {
 	query := listMeterSubjectsQuery{
-		Database:  c.config.Database,
-		Namespace: namespace,
-		Meter:     meter,
-		From:      from,
-		To:        to,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		Meter:           meter,
+		From:            from,
+		To:              to,
 	}
 
 	sql, args := query.toSQL()

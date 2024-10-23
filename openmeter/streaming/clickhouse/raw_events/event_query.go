@@ -11,15 +11,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-const EventsTableName = "om_events"
-
 // Create Events Table
 type createEventsTable struct {
-	Database string
+	Database        string
+	EventsTableName string
 }
 
 func (d createEventsTable) toSQL() string {
-	tableName := GetEventsTableName(d.Database)
+	tableName := getTableName(d.Database, d.EventsTableName)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
@@ -50,20 +49,21 @@ func (d createEventsTable) toSQL() string {
 
 // Query Events Table
 type queryEventsTable struct {
-	Database       string
-	Namespace      string
-	From           *time.Time
-	To             *time.Time
-	IngestedAtFrom *time.Time
-	IngestedAtTo   *time.Time
-	ID             *string
-	Subject        *string
-	HasError       *bool
-	Limit          int
+	Database        string
+	EventsTableName string
+	Namespace       string
+	From            *time.Time
+	To              *time.Time
+	IngestedAtFrom  *time.Time
+	IngestedAtTo    *time.Time
+	ID              *string
+	Subject         *string
+	HasError        *bool
+	Limit           int
 }
 
 func (d queryEventsTable) toSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(d.Database)
+	tableName := getTableName(d.Database, d.EventsTableName)
 	where := []string{}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -106,13 +106,14 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 }
 
 type queryCountEvents struct {
-	Database  string
-	Namespace string
-	From      time.Time
+	Database        string
+	EventsTableName string
+	Namespace       string
+	From            time.Time
 }
 
 func (d queryCountEvents) toSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(d.Database)
+	tableName := getTableName(d.Database, d.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("count() as count", "subject", "notEmpty(validation_error) as is_error")
@@ -128,13 +129,14 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 
 // Insert Events Query
 type InsertEventsQuery struct {
-	Database      string
-	Events        []streaming.RawEvent
-	QuerySettings map[string]string
+	Database        string
+	EventsTableName string
+	Events          []streaming.RawEvent
+	QuerySettings   map[string]string
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(q.Database)
+	tableName := getTableName(q.Database, q.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
@@ -169,6 +171,6 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 	return sql, args
 }
 
-func GetEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), EventsTableName)
+func getTableName(database string, tableName string) string {
+	return fmt.Sprintf("%s.%s", database, tableName)
 }

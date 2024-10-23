@@ -36,6 +36,8 @@ type AggregationConfiguration struct {
 	Engine     AggregationEngine
 	ClickHouse ClickHouseAggregationConfiguration
 
+	EventsTableName string
+
 	// Set true for ClickHouse first store the incoming inserts into an in-memory buffer
 	// before flushing them regularly to disk.
 	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
@@ -74,6 +76,10 @@ func (c AggregationConfiguration) Validate() error {
 
 	if err := c.Engine.Validate(); err != nil {
 		return fmt.Errorf("engine: %w", err)
+	}
+
+	if c.EventsTableName == "" {
+		return errors.New("events table is required")
 	}
 
 	if c.AsyncInsertWait && !c.AsyncInsert {
@@ -170,6 +176,7 @@ func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Optio
 // ConfigureAggregation configures some defaults in the Viper instance.
 func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.engine", AggregationEngineClickHouseMV)
+	v.SetDefault("aggregation.eventsTableName", "om_events")
 	v.SetDefault("aggregation.asyncInsert", false)
 	v.SetDefault("aggregation.asyncInsertWait", false)
 

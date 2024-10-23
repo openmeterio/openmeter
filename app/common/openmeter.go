@@ -53,6 +53,7 @@ func NewStreamingConnector(
 		connector, err = raw_events.NewConnector(ctx, raw_events.ConnectorConfig{
 			ClickHouse:          clickHouse,
 			Database:            conf.ClickHouse.Database,
+			EventsTableName:     conf.EventsTableName,
 			Logger:              logger,
 			AsyncInsert:         conf.AsyncInsert,
 			AsyncInsertWait:     conf.AsyncInsertWait,
@@ -66,6 +67,7 @@ func NewStreamingConnector(
 		connector, err = materialized_view.NewConnector(ctx, materialized_view.ConnectorConfig{
 			ClickHouse:          clickHouse,
 			Database:            conf.ClickHouse.Database,
+			EventsTableName:     conf.EventsTableName,
 			Logger:              logger,
 			AsyncInsert:         conf.AsyncInsert,
 			AsyncInsertWait:     conf.AsyncInsertWait,

@@ -28,6 +28,7 @@ type ConnectorConfig struct {
 	Logger               *slog.Logger
 	ClickHouse           clickhouse.Conn
 	Database             string
+	EventsTableName      string
 	Meters               meter.Repository
 	CreateOrReplaceMeter bool
 	PopulateMeter        bool
@@ -50,6 +51,10 @@ func (c ConnectorConfig) Validate() error {
 		return fmt.Errorf("database is required")
 	}
 
+	if c.EventsTableName == "" {
+		return fmt.Errorf("events table name is required")
+	}
+
 	if c.Meters == nil {
 		return fmt.Errorf("meters repository is required")
 	}
@@ -66,6 +71,7 @@ func NewConnector(ctx context.Context, config ConnectorConfig) (*Connector, erro
 		Logger:              config.Logger,
 		ClickHouse:          config.ClickHouse,
 		Database:            config.Database,
+		EventsTableName:     config.EventsTableName,
 		AsyncInsert:         config.AsyncInsert,
 		AsyncInsertWait:     config.AsyncInsertWait,
 		InsertQuerySettings: config.InsertQuerySettings,
@@ -241,14 +247,15 @@ func (c *Connector) createMeterView(ctx context.Context, namespace string, meter
 	}
 
 	view := createMeterView{
-		Populate:      c.config.PopulateMeter,
-		Database:      c.config.Database,
-		Namespace:     namespace,
-		MeterSlug:     meter.Slug,
-		Aggregation:   meter.Aggregation,
-		EventType:     meter.EventType,
-		ValueProperty: meter.ValueProperty,
-		GroupBy:       meter.GroupBy,
+		Populate:        c.config.PopulateMeter,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		MeterSlug:       meter.Slug,
+		Aggregation:     meter.Aggregation,
+		EventType:       meter.EventType,
+		ValueProperty:   meter.ValueProperty,
+		GroupBy:         meter.GroupBy,
 	}
 	sql, args, err := view.toSQL()
 	if err != nil {

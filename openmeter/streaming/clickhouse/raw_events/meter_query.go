@@ -14,21 +14,22 @@ import (
 )
 
 type queryMeter struct {
-	Database       string
-	Namespace      string
-	Meter          models.Meter
-	Subject        []string
-	FilterGroupBy  map[string][]string
-	From           *time.Time
-	To             *time.Time
-	GroupBy        []string
-	WindowSize     *models.WindowSize
-	WindowTimeZone *time.Location
+	Database        string
+	EventsTableName string
+	Namespace       string
+	Meter           models.Meter
+	Subject         []string
+	FilterGroupBy   map[string][]string
+	From            *time.Time
+	To              *time.Time
+	GroupBy         []string
+	WindowSize      *models.WindowSize
+	WindowTimeZone  *time.Location
 }
 
 func (d queryMeter) toSQL() (string, []interface{}, error) {
-	tableName := GetEventsTableName(d.Database)
-	getColumn := columnFactory(EventsTableName)
+	tableName := getTableName(d.Database, d.EventsTableName)
+	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
 
 	var selectColumns, groupByColumns, where []string
@@ -199,15 +200,16 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 }
 
 type listMeterSubjectsQuery struct {
-	Database  string
-	Namespace string
-	Meter     models.Meter
-	From      *time.Time
-	To        *time.Time
+	Database        string
+	EventsTableName string
+	Namespace       string
+	Meter           models.Meter
+	From            *time.Time
+	To              *time.Time
 }
 
 func (d listMeterSubjectsQuery) toSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(d.Database)
+	tableName := getTableName(d.Database, d.EventsTableName)
 
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
 	sb.Select("DISTINCT subject")

@@ -9,7 +9,6 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -20,13 +19,14 @@ type column struct {
 }
 
 type createMeterView struct {
-	Database      string
-	Aggregation   models.MeterAggregation
-	Namespace     string
-	MeterSlug     string
-	EventType     string
-	ValueProperty string
-	GroupBy       map[string]string
+	Database        string
+	EventsTableName string
+	Aggregation     models.MeterAggregation
+	Namespace       string
+	MeterSlug       string
+	EventType       string
+	ValueProperty   string
+	GroupBy         map[string]string
 	// Populate creates the materialized view with data from the events table
 	// This is not safe to use in production as requires to stop ingestion
 	Populate bool
@@ -103,7 +103,7 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 }
 
 func (d createMeterView) toSelectSQL() (string, error) {
-	eventsTableName := raw_events.GetEventsTableName(d.Database)
+	eventsTableName := getTableName(d.Database, d.EventsTableName)
 
 	aggStateFn := ""
 	switch d.Aggregation {
@@ -363,4 +363,8 @@ func columnFactory(alias string) func(string) string {
 	return func(column string) string {
 		return fmt.Sprintf("%s.%s", alias, column)
 	}
+}
+
+func getTableName(database string, tableName string) string {
+	return fmt.Sprintf("%s.%s", database, tableName)
 }
