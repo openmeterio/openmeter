@@ -91,50 +91,44 @@ interface Plans {
   delete(@path planId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-}
 
-@route("/api/v1/plans/{planId}/publish")
-@tag("Plan (Experimental)")
-interface PlanPublish {
   /**
    * Publish a new plan.
    */
   @post
+  @route("/{planId}/publish")
+  @sharedRoute
   @operationId("publishPlan")
   @summary("Publish plan")
   publish(@path planId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-}
 
-@route("/api/v1/plans/{planId}/unpublish")
-@tag("Plan (Experimental)")
-interface PlanUnpublish {
   /**
    * Unpublish a new plan.
    */
   @post
+  @route("/{planId}/unpublish")
+  @sharedRoute
   @operationId("unpublishPlan")
   @summary("Unpublish plan")
   unpublish(@path planId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-}
 
-@route("/api/v1/plans/{planId}/next")
-@tag("Plan (Experimental)")
-interface PlanNewDraftVersion {
   /**
    * Create a new draft version from plan.
    * It returns error if there is already a plan in draft or planId does not reference the latest published version.
    */
   @post
+  @route("/{planIdOrKey}/next")
+  @sharedRoute
   @operationId("newDraftPlan")
   @summary("New draft plan")
   next(
     @extension("x-go-type", "string")
     @path
-    planId: PlanIdOrKey,
+    planIdOrKey: PlanIdOrKey,
   ): {
     @statusCode _: 201;
     @bodyRoot body: Plan;

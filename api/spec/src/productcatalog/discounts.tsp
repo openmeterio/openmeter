@@ -6,8 +6,8 @@ namespace OpenMeter.ProductCatalog;
 @friendlyName("DiscountType")
 enum DiscountType {
   percentage: "percentage",
-  amount: "amount",
-  usage: "usage",
+  // amount: "amount",
+  // usage: "usage",
 }
 
 /**
@@ -35,12 +35,14 @@ model DiscountPercentage {
   /**
    * The type of the discount.
    */
+  @visibility("read", "create")
   @summary("Type")
   type: DiscountType.percentage;
 
   /**
    * The percentage of the discount.
    */
+  @visibility("read", "create", "update")
   @summary("Percentage")
   @minValue(0)
   @maxValue(100)
