@@ -1867,16 +1867,18 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
-  /api/v1/customers/{customerIdOrKey}:
+  /api/v1/customers/{id}:
     get:
       operationId: getCustomer
-      description: Get a customer by ID or key.
+      description: Get a customer by ID.
       parameters:
-        - name: customerIdOrKey
+        - name: id
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/CustomerIdentifier'
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
         '200':
           description: The request has succeeded.
@@ -1930,13 +1932,15 @@ paths:
         - Customers
     put:
       operationId: updateCustomer
-      description: Update a customer by ID or key.
+      description: Update a customer by ID.
       parameters:
-        - name: customerIdOrKey
+        - name: id
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/CustomerIdentifier'
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
         '200':
           description: The request has succeeded.
@@ -1996,13 +2000,15 @@ paths:
               $ref: '#/components/schemas/Customer'
     delete:
       operationId: deleteCustomer
-      description: Delete a customer by ID or key.
+      description: Delete a customer by ID.
       parameters:
-        - name: customerIdOrKey
+        - name: id
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/CustomerIdentifier'
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
         '200':
           description: The request has succeeded.
@@ -8958,19 +8964,6 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
       description: Create Stripe checkout session customer ID.
-    CustomerIdentifier:
-      anyOf:
-        - type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-        - type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A key is a unique string that is used to identify a resource.
-      description: A unique customer identifier.
-      x-go-type: string
     CustomerList:
       type: object
       required:
@@ -12582,7 +12575,7 @@ components:
 
             See: https://docs.stripe.com/tax/tax-codes
           title: Tax code
-      description: A tax config for Stripe.
+      description: The tax config for Stripe.
     StripeWebhookEvent:
       type: object
       required:
