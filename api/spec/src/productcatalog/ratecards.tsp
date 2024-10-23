@@ -23,12 +23,13 @@ model RateCardBase<T extends RateCardType> {
    * The type of the RateCard.
    */
   @visibility("read", "create")
-  @summary("Channel Type")
+  @summary("RateCard type")
   type: T;
 
   /**
    * The feature the customer is entitled to use.
    */
+  @visibility("read", "create", "update")
   @summary("Feature key")
   featureKey?: Key;
 
@@ -36,6 +37,7 @@ model RateCardBase<T extends RateCardType> {
    * The entitlement of the rate card.
    * Only available when featureKey is set.
    */
+  @visibility("read", "create", "update")
   @summary("Entitlement template")
   entitlementTemplate?: RateCardEntitlement;
 
@@ -43,6 +45,7 @@ model RateCardBase<T extends RateCardType> {
    * The tax config of the rate card.
    * When undefined, the tax config of the feature or the default tax config of the plan is used.
    */
+  @visibility("read", "create", "update")
   @summary("Tax config")
   taxConfig?: OpenMeter.Billing.TaxConfig;
 }
@@ -67,8 +70,8 @@ model RateCardFlatFee {
 
   /**
    * The billing cadence of the rate card.
-   * When null, the rate card is a one-time purchase.
    */
+  @visibility("read", "create", "update")
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
   billingCadence: duration | null;
@@ -77,6 +80,7 @@ model RateCardFlatFee {
    * The price of the rate card.
    * When null, the feature or service is free.
    */
+  @visibility("read", "create", "update")
   @summary("Price")
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
   price: FlatPriceWithPaymentTerm | null;
@@ -99,7 +103,9 @@ model RateCardUsageBased {
 
   /**
    * The billing cadence of the rate card.
+   * When null, the rate card is a one-time purchase.
    */
+  @visibility("read", "create", "update")
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
   billingCadence: duration;
@@ -108,6 +114,7 @@ model RateCardUsageBased {
    * The price of the rate card.
    * When null, the feature or service is free.
    */
+  @visibility("read", "create", "update")
   @summary("Price")
   @example(#{ type: PriceType.unit, amount: "0.01", minimumAmount: "100" })
   price:
@@ -116,11 +123,12 @@ model RateCardUsageBased {
     | FlatPriceWithPaymentTerm
     | null;
 
-  /**
-   * The discount of the rate card.
-   */
-  @summary("Discount")
-  discount?: Discount;
+  // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
+  // /**
+  //  * The discount of the rate card.
+  //  */
+  // @summary("Discount")
+  // discount?: Discount;
 }
 
 /**
@@ -180,7 +188,8 @@ model RateCardMeteredEntitlement {
    * The interval of the metered entitlement.
    * Defaults to the billing cadence of the rate card.
    */
-  @summary("Interval")
+  @visibility("read", "create", "update")
+  @summary("Usage Period")
   @encode(DurationKnownEncoding.ISO8601)
   usagePeriod?: duration;
 }

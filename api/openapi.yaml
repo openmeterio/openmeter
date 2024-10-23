@@ -9040,32 +9040,6 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
-    Discount:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/DiscountPercentage'
-      description: |-
-        A discount on a price.
-        One of: percentage, amount, or usage.
-    DiscountPercentage:
-      type: object
-      required:
-        - type
-        - percentage
-      properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the discount.
-          title: Type
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: The percentage of the discount.
-          title: Percentage
-      description: Percentage discount.
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -12071,7 +12045,7 @@ components:
           enum:
             - flat_fee
           description: The type of the RateCard.
-          title: Channel Type
+          title: RateCard type
         featureKey:
           type: string
           minLength: 1
@@ -12097,9 +12071,7 @@ components:
           type: string
           format: duration
           nullable: true
-          description: |-
-            The billing cadence of the rate card.
-            When null, the rate card is a one-time purchase.
+          description: The billing cadence of the rate card.
           title: Billing cadence
         price:
           type: object
@@ -12159,7 +12131,7 @@ components:
           description: |-
             The interval of the metered entitlement.
             Defaults to the billing cadence of the rate card.
-          title: Interval
+          title: Usage Period
       description: The entitlement template with a metered entitlement.
     RateCardStaticEntitlement:
       type: object
@@ -12241,7 +12213,7 @@ components:
           enum:
             - usage_based
           description: The type of the RateCard.
-          title: Channel Type
+          title: RateCard type
         featureKey:
           type: string
           minLength: 1
@@ -12266,7 +12238,9 @@ components:
         billingCadence:
           type: string
           format: duration
-          description: The billing cadence of the rate card.
+          description: |-
+            The billing cadence of the rate card.
+            When null, the rate card is a one-time purchase.
           title: Billing cadence
         price:
           anyOf:
@@ -12287,11 +12261,6 @@ components:
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
-        discount:
-          allOf:
-            - $ref: '#/components/schemas/Discount'
-          description: The discount of the rate card.
-          title: Discount
       description: A usage-based rate card defines a price based on usage.
     RecurringPeriod:
       type: object
