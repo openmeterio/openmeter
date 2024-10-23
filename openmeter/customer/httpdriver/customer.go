@@ -165,13 +165,13 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 type (
 	DeleteCustomerRequest  = customerentity.DeleteCustomerInput
 	DeleteCustomerResponse = interface{}
-	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, api.CustomerIdentifier]
+	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, string]
 )
 
 // DeleteCustomer returns a handler for deleting a customer.
 func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID api.CustomerIdentifier) (DeleteCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerID string) (DeleteCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeleteCustomerRequest{}, err
@@ -202,13 +202,13 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 type (
 	GetCustomerRequest  = customerentity.GetCustomerInput
 	GetCustomerResponse = api.Customer
-	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, api.CustomerIdentifier]
+	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, string]
 )
 
 // GetCustomer returns a handler for getting a customer.
 func (h *handler) GetCustomer() GetCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID api.CustomerIdentifier) (GetCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerID string) (GetCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetCustomerRequest{}, err

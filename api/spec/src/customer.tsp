@@ -32,35 +32,31 @@ interface Customers {
   list(...ListCustomersParams): Paginated<Customer>[] | CommonErrors;
 
   /**
-   * Get a customer by ID or key.
+   * Get a customer by ID.
    */
   @get
-  @route("/{customerIdOrKey}")
+  @route("/{id}")
   @operationId("getCustomer")
-  get(
-    @path customerIdOrKey: CustomerIdentifier,
-  ): Customer | NotFoundError | CommonErrors;
+  get(@path id: ULID): Customer | NotFoundError | CommonErrors;
 
   /**
-   * Update a customer by ID or key.
+   * Update a customer by ID.
    */
   @put
-  @route("/{customerIdOrKey}")
+  @route("/{id}")
   @operationId("updateCustomer")
   update(
-    @path customerIdOrKey: CustomerIdentifier,
+    @path id: ULID,
     @body customer: Customer,
   ): Customer | NotFoundError | CommonErrors;
 
   /**
-   * Delete a customer by ID or key.
+   * Delete a customer by ID.
    */
   @delete
-  @route("/{customerIdOrKey}")
+  @route("/{id}")
   @operationId("deleteCustomer")
-  delete(
-    @path customerIdOrKey: CustomerIdentifier,
-  ): Customer | NotFoundError | CommonErrors;
+  delete(@path id: ULID): Customer | NotFoundError | CommonErrors;
 }
 
 /**
@@ -73,16 +69,6 @@ model ListCustomersParams extends PaginatedQuery {
    */
   @query
   includeDeleted?: boolean = false;
-}
-
-/**
- * A unique customer identifier.
- */
-@extension("x-go-type", "string")
-@friendlyName("CustomerIdentifier")
-union CustomerIdentifier {
-  ULID,
-  Key,
 }
 
 /**

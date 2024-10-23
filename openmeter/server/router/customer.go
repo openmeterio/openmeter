@@ -20,18 +20,18 @@ func (a *Router) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 
 // Delete a customer
 // (DELETE /api/v1/customer/customers/{customerId})
-func (a *Router) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerID api.CustomerIdentifier) {
+func (a *Router) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerID string) {
 	a.customerHandler.DeleteCustomer().With(customerID).ServeHTTP(w, r)
 }
 
 // Get customer
 // (GET /api/v1/customer/customers/{customerId})
-func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerID api.CustomerIdentifier) {
+func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerID string) {
 	a.customerHandler.GetCustomer().With(customerID).ServeHTTP(w, r)
 }
 
 // Update customer
 // (PUT /api/v1/customer/customers/{customerId})
-func (a *Router) UpdateCustomer(w http.ResponseWriter, r *http.Request, customerID api.CustomerIdentifier) {
+func (a *Router) UpdateCustomer(w http.ResponseWriter, r *http.Request, customerID string) {
 	a.customerHandler.UpdateCustomer().With(customerID).ServeHTTP(w, r)
 }
