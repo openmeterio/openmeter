@@ -125,6 +125,7 @@ func TestComplete(t *testing.T) {
 				BlockBufferSize: 10,
 			},
 			Engine:          AggregationEngineClickHouseMV,
+			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
 		},
