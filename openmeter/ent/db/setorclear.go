@@ -1596,6 +1596,34 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *PriceUpdate) SetOrClearDeletedAt(value *time.Time) *PriceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PriceUpdateOne) SetOrClearDeletedAt(value *time.Time) *PriceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PriceUpdate) SetOrClearActiveTo(value *time.Time) *PriceUpdate {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *PriceUpdateOne) SetOrClearActiveTo(value *time.Time) *PriceUpdateOne {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -1636,6 +1664,20 @@ func (u *SubscriptionUpdateOne) SetOrClearActiveTo(value *time.Time) *Subscripti
 		return u.ClearActiveTo()
 	}
 	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionEntitlementUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionEntitlementUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionEntitlementUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionEntitlementUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *SubscriptionPatchUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPatchUpdate {

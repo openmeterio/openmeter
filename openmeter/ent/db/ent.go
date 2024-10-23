@@ -38,7 +38,9 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/price"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
@@ -128,7 +130,9 @@ func checkColumn(table, column string) error {
 			dbplan.Table:                            dbplan.ValidColumn,
 			planphase.Table:                         planphase.ValidColumn,
 			planratecard.Table:                      planratecard.ValidColumn,
+			price.Table:                             price.ValidColumn,
 			subscription.Table:                      subscription.ValidColumn,
+			subscriptionentitlement.Table:           subscriptionentitlement.ValidColumn,
 			subscriptionpatch.Table:                 subscriptionpatch.ValidColumn,
 			subscriptionpatchvalueadditem.Table:     subscriptionpatchvalueadditem.ValidColumn,
 			subscriptionpatchvalueaddphase.Table:    subscriptionpatchvalueaddphase.ValidColumn,

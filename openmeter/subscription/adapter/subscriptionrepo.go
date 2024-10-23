@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	dbsubscriptionpatch "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
@@ -12,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type subscriptionRepo struct {

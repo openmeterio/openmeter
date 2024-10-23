@@ -13,7 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/price"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -151,6 +153,36 @@ func (sc *SubscriptionCreate) AddSubscriptionPatches(s ...*SubscriptionPatch) *S
 		ids[i] = s[i].ID
 	}
 	return sc.AddSubscriptionPatchIDs(ids...)
+}
+
+// AddPriceIDs adds the "prices" edge to the Price entity by IDs.
+func (sc *SubscriptionCreate) AddPriceIDs(ids ...string) *SubscriptionCreate {
+	sc.mutation.AddPriceIDs(ids...)
+	return sc
+}
+
+// AddPrices adds the "prices" edges to the Price entity.
+func (sc *SubscriptionCreate) AddPrices(p ...*Price) *SubscriptionCreate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return sc.AddPriceIDs(ids...)
+}
+
+// AddEntitlementIDs adds the "entitlements" edge to the SubscriptionEntitlement entity by IDs.
+func (sc *SubscriptionCreate) AddEntitlementIDs(ids ...string) *SubscriptionCreate {
+	sc.mutation.AddEntitlementIDs(ids...)
+	return sc
+}
+
+// AddEntitlements adds the "entitlements" edges to the SubscriptionEntitlement entity.
+func (sc *SubscriptionCreate) AddEntitlements(s ...*SubscriptionEntitlement) *SubscriptionCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return sc.AddEntitlementIDs(ids...)
 }
 
 // SetCustomer sets the "customer" edge to the Customer entity.
@@ -346,6 +378,38 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatch.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.PricesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.EntitlementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

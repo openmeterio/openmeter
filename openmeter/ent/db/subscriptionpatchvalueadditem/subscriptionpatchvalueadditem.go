@@ -24,8 +24,6 @@ const (
 	FieldFeatureKey = "feature_key"
 	// FieldCreateEntitlementEntitlementType holds the string denoting the create_entitlement_entitlement_type field in the database.
 	FieldCreateEntitlementEntitlementType = "create_entitlement_entitlement_type"
-	// FieldCreateEntitlementMeasureUsageFrom holds the string denoting the create_entitlement_measure_usage_from field in the database.
-	FieldCreateEntitlementMeasureUsageFrom = "create_entitlement_measure_usage_from"
 	// FieldCreateEntitlementIssueAfterReset holds the string denoting the create_entitlement_issue_after_reset field in the database.
 	FieldCreateEntitlementIssueAfterReset = "create_entitlement_issue_after_reset"
 	// FieldCreateEntitlementIssueAfterResetPriority holds the string denoting the create_entitlement_issue_after_reset_priority field in the database.
@@ -34,12 +32,12 @@ const (
 	FieldCreateEntitlementIsSoftLimit = "create_entitlement_is_soft_limit"
 	// FieldCreateEntitlementPreserveOverageAtReset holds the string denoting the create_entitlement_preserve_overage_at_reset field in the database.
 	FieldCreateEntitlementPreserveOverageAtReset = "create_entitlement_preserve_overage_at_reset"
+	// FieldCreateEntitlementUsagePeriodIsoDuration holds the string denoting the create_entitlement_usage_period_iso_duration field in the database.
+	FieldCreateEntitlementUsagePeriodIsoDuration = "create_entitlement_usage_period_iso_duration"
 	// FieldCreateEntitlementConfig holds the string denoting the create_entitlement_config field in the database.
 	FieldCreateEntitlementConfig = "create_entitlement_config"
-	// FieldCreateEntitlementUsagePeriodInterval holds the string denoting the create_entitlement_usage_period_interval field in the database.
-	FieldCreateEntitlementUsagePeriodInterval = "create_entitlement_usage_period_interval"
-	// FieldCreateEntitlementUsagePeriodAnchor holds the string denoting the create_entitlement_usage_period_anchor field in the database.
-	FieldCreateEntitlementUsagePeriodAnchor = "create_entitlement_usage_period_anchor"
+	// FieldCreatePriceKey holds the string denoting the create_price_key field in the database.
+	FieldCreatePriceKey = "create_price_key"
 	// FieldCreatePriceValue holds the string denoting the create_price_value field in the database.
 	FieldCreatePriceValue = "create_price_value"
 	// EdgeSubscriptionPatch holds the string denoting the subscription_patch edge name in mutations.
@@ -64,14 +62,13 @@ var Columns = []string{
 	FieldItemKey,
 	FieldFeatureKey,
 	FieldCreateEntitlementEntitlementType,
-	FieldCreateEntitlementMeasureUsageFrom,
 	FieldCreateEntitlementIssueAfterReset,
 	FieldCreateEntitlementIssueAfterResetPriority,
 	FieldCreateEntitlementIsSoftLimit,
 	FieldCreateEntitlementPreserveOverageAtReset,
+	FieldCreateEntitlementUsagePeriodIsoDuration,
 	FieldCreateEntitlementConfig,
-	FieldCreateEntitlementUsagePeriodInterval,
-	FieldCreateEntitlementUsagePeriodAnchor,
+	FieldCreatePriceKey,
 	FieldCreatePriceValue,
 }
 
@@ -136,11 +133,6 @@ func ByCreateEntitlementEntitlementType(opts ...sql.OrderTermOption) OrderOption
 	return sql.OrderByField(FieldCreateEntitlementEntitlementType, opts...).ToFunc()
 }
 
-// ByCreateEntitlementMeasureUsageFrom orders the results by the create_entitlement_measure_usage_from field.
-func ByCreateEntitlementMeasureUsageFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreateEntitlementMeasureUsageFrom, opts...).ToFunc()
-}
-
 // ByCreateEntitlementIssueAfterReset orders the results by the create_entitlement_issue_after_reset field.
 func ByCreateEntitlementIssueAfterReset(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreateEntitlementIssueAfterReset, opts...).ToFunc()
@@ -161,14 +153,14 @@ func ByCreateEntitlementPreserveOverageAtReset(opts ...sql.OrderTermOption) Orde
 	return sql.OrderByField(FieldCreateEntitlementPreserveOverageAtReset, opts...).ToFunc()
 }
 
-// ByCreateEntitlementUsagePeriodInterval orders the results by the create_entitlement_usage_period_interval field.
-func ByCreateEntitlementUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreateEntitlementUsagePeriodInterval, opts...).ToFunc()
+// ByCreateEntitlementUsagePeriodIsoDuration orders the results by the create_entitlement_usage_period_iso_duration field.
+func ByCreateEntitlementUsagePeriodIsoDuration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreateEntitlementUsagePeriodIsoDuration, opts...).ToFunc()
 }
 
-// ByCreateEntitlementUsagePeriodAnchor orders the results by the create_entitlement_usage_period_anchor field.
-func ByCreateEntitlementUsagePeriodAnchor(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreateEntitlementUsagePeriodAnchor, opts...).ToFunc()
+// ByCreatePriceKey orders the results by the create_price_key field.
+func ByCreatePriceKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatePriceKey, opts...).ToFunc()
 }
 
 // ByCreatePriceValue orders the results by the create_price_value field.

@@ -16,6 +16,7 @@ type Price struct {
 	ItemKey        string `json:"itemKey,omitempty"`
 
 	// String representation of the numerical fix point decimal value
+	// TODO: how do we want to represent this?
 	Value string `json:"value,omitempty"`
 }
 
@@ -29,4 +30,13 @@ type Spec struct {
 	PhaseKey string `json:"phaseKey,omitempty"`
 	ItemKey  string `json:"itemKey,omitempty"`
 	Value    string `json:"value,omitempty"`
+	Key      string `json:"key,omitempty"`
+}
+
+type NotFoundError struct {
+	ID string
+}
+
+func (e NotFoundError) Error() string {
+	return "price with id " + e.ID + " not found"
 }

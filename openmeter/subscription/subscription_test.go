@@ -3,9 +3,10 @@ package subscription_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTransformation(t *testing.T) {

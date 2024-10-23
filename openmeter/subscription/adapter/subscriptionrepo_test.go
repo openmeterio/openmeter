@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
@@ -12,13 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPatchParsing(t *testing.T) {
-	t.Run("Should create and retreive same patches", func(t *testing.T) {
+	t.Run("Should create and retrieve same patches", func(t *testing.T) {
 		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
 		clock.SetTime(now)
 
@@ -34,8 +34,7 @@ func TestPatchParsing(t *testing.T) {
 		cus := customerRepo.CreateExampleCustomer(t)
 		sub := repo.CreateExampleSubscription(t, cus.ID)
 
-		mFrom := &entitlement.MeasureUsageFromInput{}
-		mFrom.FromTime(now)
+		uPDur, _ := datex.ISOString("P1M").Parse()
 
 		startAfter, _ := datex.ISOString("P1M").Parse()
 		extendBy, _ := datex.ISOString("P1D").Parse()
@@ -62,12 +61,9 @@ func TestPatchParsing(t *testing.T) {
 								IssueAfterReset:         lo.ToPtr(100.0),
 								PreserveOverageAtReset:  lo.ToPtr(true),
 								IssueAfterResetPriority: lo.ToPtr(uint8(1)),
-								MeasureUsageFrom:        mFrom,
-								IsSoftLimit:             lo.ToPtr(true),
-								UsagePeriod: &entitlement.UsagePeriod{
-									Anchor:   now,
-									Interval: recurrence.RecurrencePeriodMonth,
-								},
+								// MeasureUsageFrom:        mFrom,
+								UsagePeriodISODuration: &uPDur,
+								IsSoftLimit:            lo.ToPtr(true),
 							},
 						},
 					},
@@ -128,6 +124,7 @@ func TestPatchParsing(t *testing.T) {
 								PhaseKey: "test",
 								ItemKey:  "test",
 								Value:    "100.0",
+								Key:      "test",
 							},
 						},
 					},

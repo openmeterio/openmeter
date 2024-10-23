@@ -80,7 +80,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 			t := clock.Now()
 
 			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
-				Where(entitlementActiveAt(t)...).
+				Where(EntitlementActiveAt(t)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(t), db_entitlement.DeletedAtIsNil()),
 					db_entitlement.SubjectKey(subjectKey),
@@ -245,7 +245,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
 			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
-				Where(entitlementActiveAt(at)...).
+				Where(EntitlementActiveAt(at)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 					db_entitlement.SubjectKey(string(subjectKey)),
@@ -485,7 +485,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
 			query := withLatestUsageReset(repo.db.Entitlement.Query(), namespaces).
-				Where(entitlementActiveAt(expiredBefore)...).
+				Where(EntitlementActiveAt(expiredBefore)...).
 				Where(
 					db_entitlement.CurrentUsagePeriodEndNotNil(),
 					db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
@@ -551,7 +551,7 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 				)
 
 			if includeDeletedAfter.Before(now) || includeDeletedAfter.Equal(now) {
-				query = query.Where(entitlementActiveAt(now)...)
+				query = query.Where(EntitlementActiveAt(now)...)
 			} else {
 				query = query.Where(entitlementActiveBetween(includeDeletedAfter, now)...)
 			}
@@ -624,7 +624,8 @@ func entitlementActiveBetween(from, to time.Time) []predicate.Entitlement {
 	}
 }
 
-func entitlementActiveAt(at time.Time) []predicate.Entitlement {
+// EntitlementActiveAt is exposed to be used for subscription adapter
+func EntitlementActiveAt(at time.Time) []predicate.Entitlement {
 	return []predicate.Entitlement{
 		db_entitlement.Or(
 			// If activeFrom is nil activity starts at creation time

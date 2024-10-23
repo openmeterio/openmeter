@@ -116,8 +116,6 @@ func (PlanRateCard) Mixin() []ent.Mixin {
 	}
 }
 
-type Price string
-
 func (PlanRateCard) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("type").

@@ -2,16 +2,15 @@ package adapter
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) {
@@ -25,9 +24,9 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 			Namespace: sub.Namespace,
 		},
 		ManagedModel: models.ManagedModel{
-			CreatedAt: sub.CreatedAt,
-			UpdatedAt: sub.UpdatedAt,
-			DeletedAt: sub.DeletedAt,
+			CreatedAt: sub.CreatedAt.UTC(),
+			UpdatedAt: sub.UpdatedAt.UTC(),
+			DeletedAt: convert.SafeToUTC(sub.DeletedAt),
 		},
 		CreateSubscriptionInput: subscription.CreateSubscriptionInput{
 			Plan: subscription.PlanRef{
@@ -37,8 +36,8 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 			CustomerId: sub.CustomerID,
 			Currency:   sub.Currency,
 			CadencedModel: models.CadencedModel{
-				ActiveFrom: sub.ActiveFrom,
-				ActiveTo:   sub.ActiveTo,
+				ActiveFrom: sub.ActiveFrom.UTC(),
+				ActiveTo:   convert.SafeToUTC(sub.ActiveTo),
 			},
 		},
 	}, nil
@@ -104,29 +103,35 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 				PreserveOverageAtReset:  val.CreateEntitlementPreserveOverageAtReset,
 			}
 
-			if val.CreateEntitlementMeasureUsageFrom != nil {
-				m := &entitlement.MeasureUsageFromInput{}
-				// We ignore the error
-				err = m.FromTime(*val.CreateEntitlementMeasureUsageFrom)
+			if val.CreateEntitlementUsagePeriodIsoDuration != nil {
+				dur, err := datex.ISOString(*val.CreateEntitlementUsagePeriodIsoDuration).Parse()
 				if err != nil {
-					return subscription.SubscriptionPatch{}, fmt.Errorf("failed to map measure usage from: %w", err)
+					return subscription.SubscriptionPatch{}, fmt.Errorf("failed to parse usage period duration: %w", err)
 				}
-				p.CreateInput.CreateEntitlementInput.MeasureUsageFrom = m
+				p.CreateInput.CreateEntitlementInput.UsagePeriodISODuration = &dur
 			}
 
-			if val.CreateEntitlementUsagePeriodInterval != nil && val.CreateEntitlementUsagePeriodAnchor != nil {
-				p.CreateInput.CreateEntitlementInput.UsagePeriod = &entitlement.UsagePeriod{
-					Anchor:   val.CreateEntitlementUsagePeriodAnchor.In(time.UTC),
-					Interval: recurrence.RecurrenceInterval(*val.CreateEntitlementUsagePeriodInterval),
-				}
-			}
+			// if val.CreateEntitlementMeasureUsageFrom != nil {
+			// 	m := &entitlement.MeasureUsageFromInput{}
+			// 	// We ignore the error
+			// 	err = m.FromTime(*val.CreateEntitlementMeasureUsageFrom)
+			// 	if err != nil {
+			// 		return subscription.SubscriptionPatch{}, fmt.Errorf("failed to map measure usage from: %w", err)
+			// 	}
+			// 	p.CreateInput.CreateEntitlementInput.MeasureUsageFrom = m
+			// }
 		}
 
-		if val.CreatePriceValue != nil {
+		if val.CreatePriceKey != nil || val.CreatePriceValue != nil {
+			if val.CreatePriceKey == nil || val.CreatePriceValue == nil {
+				return subscription.SubscriptionPatch{}, fmt.Errorf("both price key and value must be defined if price is defined")
+			}
+
 			p.CreateInput.CreatePriceInput = &price.Spec{
 				Value:    *val.CreatePriceValue,
 				PhaseKey: val.PhaseKey,
 				ItemKey:  val.ItemKey,
+				Key:      *val.CreatePriceKey,
 			}
 		}
 
@@ -234,9 +239,9 @@ func mapPatchesToCreates(subscriptionID models.NamespacedID, patches []subscript
 				if v := val.CreateEntitlementInput; v != nil {
 					s.SetCreateEntitlementEntitlementType(string(v.EntitlementType))
 
-					if v := val.CreateEntitlementInput.MeasureUsageFrom; v != nil {
-						s.SetCreateEntitlementMeasureUsageFrom(v.Get())
-					}
+					// if v := val.CreateEntitlementInput.MeasureUsageFrom; v != nil {
+					// 	s.SetCreateEntitlementMeasureUsageFrom(v.Get())
+					// }
 					if v := val.CreateEntitlementInput.IssueAfterReset; v != nil {
 						s.SetCreateEntitlementIssueAfterReset(*v)
 					}
@@ -252,17 +257,16 @@ func mapPatchesToCreates(subscriptionID models.NamespacedID, patches []subscript
 					if v := val.CreateEntitlementInput.Config; v != nil {
 						s.SetCreateEntitlementConfig(v)
 					}
-					if v := val.CreateEntitlementInput.UsagePeriod; v != nil {
-						s.SetCreateEntitlementUsagePeriodAnchor(v.Anchor)
-						s.SetCreateEntitlementUsagePeriodInterval(string(v.Interval))
+					if v := val.CreateEntitlementInput.UsagePeriodISODuration; v != nil {
+						s.SetCreateEntitlementUsagePeriodIsoDuration(v.String())
 					}
 				}
 
 				if v := val.CreatePriceInput; v != nil {
 					s.SetCreatePriceValue(v.Value)
+					s.SetCreatePriceKey(v.Key)
 				}
 			}
-
 		} else if patches[i].Op() == subscription.PatchOperationAdd && patches[i].Path().Type() == subscription.PatchPathTypePhase {
 			p, ok := patches[i].Patch.(subscription.PatchAddPhase)
 			if !ok {

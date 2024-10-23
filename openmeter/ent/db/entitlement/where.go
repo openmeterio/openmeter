@@ -1119,6 +1119,29 @@ func HasBalanceSnapshotWith(preds ...predicate.BalanceSnapshot) predicate.Entitl
 	})
 }
 
+// HasSubscription applies the HasEdge predicate on the "subscription" edge.
+func HasSubscription() predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, SubscriptionTable, SubscriptionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionWith applies the HasEdge predicate on the "subscription" edge with a given conditions (other predicates).
+func HasSubscriptionWith(preds ...predicate.SubscriptionEntitlement) predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := newSubscriptionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasFeature applies the HasEdge predicate on the "feature" edge.
 func HasFeature() predicate.Entitlement {
 	return predicate.Entitlement(func(s *sql.Selector) {

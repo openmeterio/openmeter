@@ -63,6 +63,8 @@ const (
 	EdgeGrant = "grant"
 	// EdgeBalanceSnapshot holds the string denoting the balance_snapshot edge name in mutations.
 	EdgeBalanceSnapshot = "balance_snapshot"
+	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
+	EdgeSubscription = "subscription"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
 	// Table holds the table name of the entitlement in the database.
@@ -88,6 +90,13 @@ const (
 	BalanceSnapshotInverseTable = "balance_snapshots"
 	// BalanceSnapshotColumn is the table column denoting the balance_snapshot relation/edge.
 	BalanceSnapshotColumn = "owner_id"
+	// SubscriptionTable is the table that holds the subscription relation/edge.
+	SubscriptionTable = "subscription_entitlements"
+	// SubscriptionInverseTable is the table name for the SubscriptionEntitlement entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionentitlement" package.
+	SubscriptionInverseTable = "subscription_entitlements"
+	// SubscriptionColumn is the table column denoting the subscription relation/edge.
+	SubscriptionColumn = "entitlement_id"
 	// FeatureTable is the table that holds the feature relation/edge.
 	FeatureTable = "entitlements"
 	// FeatureInverseTable is the table name for the Feature entity.
@@ -344,6 +353,13 @@ func ByBalanceSnapshot(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// BySubscriptionField orders the results by subscription field.
+func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByFeatureField orders the results by feature field.
 func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -369,6 +385,13 @@ func newBalanceSnapshotStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BalanceSnapshotInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BalanceSnapshotTable, BalanceSnapshotColumn),
+	)
+}
+func newSubscriptionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, SubscriptionTable, SubscriptionColumn),
 	)
 }
 func newFeatureStep() *sqlgraph.Step {

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 type PatchConflictError struct {
@@ -430,7 +431,6 @@ func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 				return &PatchValidationError{Msg: fmt.Sprintf("failed to extend phase %s: %s", p.PhaseKey, err)}
 			}
 			sortedPhases[i].StartAfter = sa
-
 		}
 	}
 

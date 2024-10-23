@@ -52,11 +52,15 @@ type Subscription struct {
 type SubscriptionEdges struct {
 	// SubscriptionPatches holds the value of the subscription_patches edge.
 	SubscriptionPatches []*SubscriptionPatch `json:"subscription_patches,omitempty"`
+	// Prices holds the value of the prices edge.
+	Prices []*Price `json:"prices,omitempty"`
+	// Entitlements holds the value of the entitlements edge.
+	Entitlements []*SubscriptionEntitlement `json:"entitlements,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [4]bool
 }
 
 // SubscriptionPatchesOrErr returns the SubscriptionPatches value or an error if the edge
@@ -68,12 +72,30 @@ func (e SubscriptionEdges) SubscriptionPatchesOrErr() ([]*SubscriptionPatch, err
 	return nil, &NotLoadedError{edge: "subscription_patches"}
 }
 
+// PricesOrErr returns the Prices value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionEdges) PricesOrErr() ([]*Price, error) {
+	if e.loadedTypes[1] {
+		return e.Prices, nil
+	}
+	return nil, &NotLoadedError{edge: "prices"}
+}
+
+// EntitlementsOrErr returns the Entitlements value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionEdges) EntitlementsOrErr() ([]*SubscriptionEntitlement, error) {
+	if e.loadedTypes[2] {
+		return e.Entitlements, nil
+	}
+	return nil, &NotLoadedError{edge: "entitlements"}
+}
+
 // CustomerOrErr returns the Customer value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e SubscriptionEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -199,6 +221,16 @@ func (s *Subscription) Value(name string) (ent.Value, error) {
 // QuerySubscriptionPatches queries the "subscription_patches" edge of the Subscription entity.
 func (s *Subscription) QuerySubscriptionPatches() *SubscriptionPatchQuery {
 	return NewSubscriptionClient(s.config).QuerySubscriptionPatches(s)
+}
+
+// QueryPrices queries the "prices" edge of the Subscription entity.
+func (s *Subscription) QueryPrices() *PriceQuery {
+	return NewSubscriptionClient(s.config).QueryPrices(s)
+}
+
+// QueryEntitlements queries the "entitlements" edge of the Subscription entity.
+func (s *Subscription) QueryEntitlements() *SubscriptionEntitlementQuery {
+	return NewSubscriptionClient(s.config).QueryEntitlements(s)
 }
 
 // QueryCustomer queries the "customer" edge of the Subscription entity.

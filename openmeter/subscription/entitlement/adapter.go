@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/annotations"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type EntitlementSubscriptionAdapter struct {
@@ -21,8 +23,16 @@ type EntitlementSubscriptionAdapter struct {
 
 var _ subscription.EntitlementAdapter = &EntitlementSubscriptionAdapter{}
 
-func NewEntitlementSubscriptionAdapter() *EntitlementSubscriptionAdapter {
-	return &EntitlementSubscriptionAdapter{}
+func NewEntitlementSubscriptionAdapter(
+	entitlementConnector entitlement.Connector,
+	repo Repository,
+	txCreator transaction.Creator,
+) *EntitlementSubscriptionAdapter {
+	return &EntitlementSubscriptionAdapter{
+		entitlementConnector: entitlementConnector,
+		repo:                 repo,
+		txCreator:            txCreator,
+	}
 }
 
 func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context, ref subscription.SubscriptionItemRef, input entitlement.CreateEntitlementInputs) (*subscription.SubscriptionEntitlement, error) {
@@ -32,7 +42,7 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 
 	at := *input.ActiveFrom
 
-	ent, err := a.GetForItem(ctx, ref, at)
+	ent, err := a.GetForItem(ctx, input.Namespace, ref, at)
 	if err == nil {
 		return nil, &AlreadyExistsError{
 			ItemRef:       ref,
@@ -62,6 +72,10 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 			return nil, err
 		}
 
+		if sEnt == nil {
+			return nil, fmt.Errorf("subscription entitlement is nil")
+		}
+
 		return &subscription.SubscriptionEntitlement{
 			Entitlement: *ent,
 			ItemRef:     sEnt.SubscriptionItemRef,
@@ -73,8 +87,8 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 	})
 }
 
-func (a *EntitlementSubscriptionAdapter) GetForItem(ctx context.Context, ref subscription.SubscriptionItemRef, at time.Time) (*subscription.SubscriptionEntitlement, error) {
-	sE, err := a.repo.GetBySubscriptionItem(ctx, ref, at)
+func (a *EntitlementSubscriptionAdapter) GetForItem(ctx context.Context, namespace string, ref subscription.SubscriptionItemRef, at time.Time) (*subscription.SubscriptionEntitlement, error) {
+	sE, err := a.repo.GetBySubscriptionItem(ctx, namespace, ref, at)
 	if err != nil {
 		return nil, err
 	}
@@ -103,5 +117,45 @@ func (a *EntitlementSubscriptionAdapter) GetForItem(ctx context.Context, ref sub
 }
 
 func (a *EntitlementSubscriptionAdapter) GetForSubscription(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]subscription.SubscriptionEntitlement, error) {
-	panic("implement me")
+	sEnts, err := a.repo.GetForSubscription(ctx, subscriptionID, at)
+	if err != nil {
+		return nil, err
+	}
+
+	var ents pagination.PagedResponse[entitlement.Entitlement]
+
+	if len(sEnts) > 0 {
+		ents, err = a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+			IDs:        lo.Map(sEnts, func(s SubscriptionEntitlement, _ int) string { return s.EntitlementId }),
+			Namespaces: []string{subscriptionID.Namespace},
+			Page:       pagination.Page{}, // zero value so all entitlements are fetched
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Entitlements of SubscriptionEntitlements: %w", err)
+		}
+	}
+
+	if len(ents.Items) != len(sEnts) {
+		return nil, fmt.Errorf("entitlement count mismatch, expected %d, got %d", len(sEnts), len(ents.Items))
+	}
+
+	subEnts := make([]subscription.SubscriptionEntitlement, 0, len(sEnts))
+	for i, sEnt := range sEnts {
+		ent := ents.Items[i]
+
+		if ent.ActiveFrom == nil {
+			return nil, fmt.Errorf("entitlement active from is nil, entitlement doesn't have cadence")
+		}
+
+		subEnts = append(subEnts, subscription.SubscriptionEntitlement{
+			Entitlement: ent,
+			ItemRef:     sEnt.SubscriptionItemRef,
+			Cadence: models.CadencedModel{
+				ActiveFrom: *ent.ActiveFrom,
+				ActiveTo:   ent.ActiveTo,
+			},
+		})
+	}
+
+	return subEnts, nil
 }

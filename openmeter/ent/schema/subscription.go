@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -42,6 +43,8 @@ func (Subscription) Indexes() []ent.Index {
 func (Subscription) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("subscription_patches", SubscriptionPatch.Type),
+		edge.To("prices", Price.Type),
+		edge.To("entitlements", SubscriptionEntitlement.Type),
 		edge.From("customer", Customer.Type).Field("customer_id").Ref("subscription").Immutable().Unique().Required(),
 	}
 }

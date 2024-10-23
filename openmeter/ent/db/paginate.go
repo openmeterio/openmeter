@@ -1163,6 +1163,54 @@ var _ pagination.Paginator[*PlanRateCard] = (*PlanRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (pr *PriceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Price], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	pr.ctx.Offset = &zero
+	pr.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := pr.Clone()
+	pagedQuery := pr
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*Price]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*Price] = (*PriceQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (s *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Subscription], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1208,6 +1256,54 @@ func (s *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 // type check
 var _ pagination.Paginator[*Subscription] = (*SubscriptionQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (se *SubscriptionEntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionEntitlement], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	se.ctx.Offset = &zero
+	se.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := se.Clone()
+	pagedQuery := se
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*SubscriptionEntitlement]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*SubscriptionEntitlement] = (*SubscriptionEntitlementQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.

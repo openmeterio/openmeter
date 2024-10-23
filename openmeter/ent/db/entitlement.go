@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -75,11 +76,13 @@ type EntitlementEdges struct {
 	Grant []*Grant `json:"grant,omitempty"`
 	// BalanceSnapshot holds the value of the balance_snapshot edge.
 	BalanceSnapshot []*BalanceSnapshot `json:"balance_snapshot,omitempty"`
+	// Subscription holds the value of the subscription edge.
+	Subscription *SubscriptionEntitlement `json:"subscription,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // UsageResetOrErr returns the UsageReset value or an error if the edge
@@ -109,12 +112,23 @@ func (e EntitlementEdges) BalanceSnapshotOrErr() ([]*BalanceSnapshot, error) {
 	return nil, &NotLoadedError{edge: "balance_snapshot"}
 }
 
+// SubscriptionOrErr returns the Subscription value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EntitlementEdges) SubscriptionOrErr() (*SubscriptionEntitlement, error) {
+	if e.Subscription != nil {
+		return e.Subscription, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: subscriptionentitlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription"}
+}
+
 // FeatureOrErr returns the Feature value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e EntitlementEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -326,6 +340,11 @@ func (e *Entitlement) QueryGrant() *GrantQuery {
 // QueryBalanceSnapshot queries the "balance_snapshot" edge of the Entitlement entity.
 func (e *Entitlement) QueryBalanceSnapshot() *BalanceSnapshotQuery {
 	return NewEntitlementClient(e.config).QueryBalanceSnapshot(e)
+}
+
+// QuerySubscription queries the "subscription" edge of the Entitlement entity.
+func (e *Entitlement) QuerySubscription() *SubscriptionEntitlementQuery {
+	return NewEntitlementClient(e.config).QuerySubscription(e)
 }
 
 // QueryFeature queries the "feature" edge of the Entitlement entity.

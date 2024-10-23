@@ -85,9 +85,6 @@ func (spvaiu *SubscriptionPatchValueAddItemUpdate) sqlSave(ctx context.Context) 
 	if spvaiu.mutation.CreateEntitlementEntitlementTypeCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, field.TypeString)
 	}
-	if spvaiu.mutation.CreateEntitlementMeasureUsageFromCleared() {
-		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom, field.TypeTime)
-	}
 	if spvaiu.mutation.CreateEntitlementIssueAfterResetCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset, field.TypeFloat64)
 	}
@@ -100,14 +97,14 @@ func (spvaiu *SubscriptionPatchValueAddItemUpdate) sqlSave(ctx context.Context) 
 	if spvaiu.mutation.CreateEntitlementPreserveOverageAtResetCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset, field.TypeBool)
 	}
+	if spvaiu.mutation.CreateEntitlementUsagePeriodIsoDurationCleared() {
+		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration, field.TypeString)
+	}
 	if spvaiu.mutation.CreateEntitlementConfigCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementConfig, field.TypeJSON)
 	}
-	if spvaiu.mutation.CreateEntitlementUsagePeriodIntervalCleared() {
-		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval, field.TypeString)
-	}
-	if spvaiu.mutation.CreateEntitlementUsagePeriodAnchorCleared() {
-		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor, field.TypeTime)
+	if spvaiu.mutation.CreatePriceKeyCleared() {
+		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreatePriceKey, field.TypeString)
 	}
 	if spvaiu.mutation.CreatePriceValueCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreatePriceValue, field.TypeString)
@@ -220,9 +217,6 @@ func (spvaiuo *SubscriptionPatchValueAddItemUpdateOne) sqlSave(ctx context.Conte
 	if spvaiuo.mutation.CreateEntitlementEntitlementTypeCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, field.TypeString)
 	}
-	if spvaiuo.mutation.CreateEntitlementMeasureUsageFromCleared() {
-		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom, field.TypeTime)
-	}
 	if spvaiuo.mutation.CreateEntitlementIssueAfterResetCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset, field.TypeFloat64)
 	}
@@ -235,14 +229,14 @@ func (spvaiuo *SubscriptionPatchValueAddItemUpdateOne) sqlSave(ctx context.Conte
 	if spvaiuo.mutation.CreateEntitlementPreserveOverageAtResetCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset, field.TypeBool)
 	}
+	if spvaiuo.mutation.CreateEntitlementUsagePeriodIsoDurationCleared() {
+		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration, field.TypeString)
+	}
 	if spvaiuo.mutation.CreateEntitlementConfigCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementConfig, field.TypeJSON)
 	}
-	if spvaiuo.mutation.CreateEntitlementUsagePeriodIntervalCleared() {
-		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval, field.TypeString)
-	}
-	if spvaiuo.mutation.CreateEntitlementUsagePeriodAnchorCleared() {
-		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor, field.TypeTime)
+	if spvaiuo.mutation.CreatePriceKeyCleared() {
+		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreatePriceKey, field.TypeString)
 	}
 	if spvaiuo.mutation.CreatePriceValueCleared() {
 		_spec.ClearField(subscriptionpatchvalueadditem.FieldCreatePriceValue, field.TypeString)

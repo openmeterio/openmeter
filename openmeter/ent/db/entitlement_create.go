@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -324,6 +325,25 @@ func (ec *EntitlementCreate) AddBalanceSnapshot(b ...*BalanceSnapshot) *Entitlem
 	return ec.AddBalanceSnapshotIDs(ids...)
 }
 
+// SetSubscriptionID sets the "subscription" edge to the SubscriptionEntitlement entity by ID.
+func (ec *EntitlementCreate) SetSubscriptionID(id string) *EntitlementCreate {
+	ec.mutation.SetSubscriptionID(id)
+	return ec
+}
+
+// SetNillableSubscriptionID sets the "subscription" edge to the SubscriptionEntitlement entity by ID if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableSubscriptionID(id *string) *EntitlementCreate {
+	if id != nil {
+		ec = ec.SetSubscriptionID(*id)
+	}
+	return ec
+}
+
+// SetSubscription sets the "subscription" edge to the SubscriptionEntitlement entity.
+func (ec *EntitlementCreate) SetSubscription(s *SubscriptionEntitlement) *EntitlementCreate {
+	return ec.SetSubscriptionID(s.ID)
+}
+
 // SetFeature sets the "feature" edge to the Feature entity.
 func (ec *EntitlementCreate) SetFeature(f *Feature) *EntitlementCreate {
 	return ec.SetFeatureID(f.ID)
@@ -586,6 +606,22 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   entitlement.SubscriptionTable,
+			Columns: []string{entitlement.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

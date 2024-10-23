@@ -38,6 +38,10 @@ const (
 	FieldCurrency = "currency"
 	// EdgeSubscriptionPatches holds the string denoting the subscription_patches edge name in mutations.
 	EdgeSubscriptionPatches = "subscription_patches"
+	// EdgePrices holds the string denoting the prices edge name in mutations.
+	EdgePrices = "prices"
+	// EdgeEntitlements holds the string denoting the entitlements edge name in mutations.
+	EdgeEntitlements = "entitlements"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// Table holds the table name of the subscription in the database.
@@ -49,6 +53,20 @@ const (
 	SubscriptionPatchesInverseTable = "subscription_patches"
 	// SubscriptionPatchesColumn is the table column denoting the subscription_patches relation/edge.
 	SubscriptionPatchesColumn = "subscription_id"
+	// PricesTable is the table that holds the prices relation/edge.
+	PricesTable = "prices"
+	// PricesInverseTable is the table name for the Price entity.
+	// It exists in this package in order to avoid circular dependency with the "price" package.
+	PricesInverseTable = "prices"
+	// PricesColumn is the table column denoting the prices relation/edge.
+	PricesColumn = "subscription_id"
+	// EntitlementsTable is the table that holds the entitlements relation/edge.
+	EntitlementsTable = "subscription_entitlements"
+	// EntitlementsInverseTable is the table name for the SubscriptionEntitlement entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionentitlement" package.
+	EntitlementsInverseTable = "subscription_entitlements"
+	// EntitlementsColumn is the table column denoting the entitlements relation/edge.
+	EntitlementsColumn = "subscription_id"
 	// CustomerTable is the table that holds the customer relation/edge.
 	CustomerTable = "subscriptions"
 	// CustomerInverseTable is the table name for the Customer entity.
@@ -177,6 +195,34 @@ func BySubscriptionPatches(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 	}
 }
 
+// ByPricesCount orders the results by prices count.
+func ByPricesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPricesStep(), opts...)
+	}
+}
+
+// ByPrices orders the results by prices terms.
+func ByPrices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPricesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByEntitlementsCount orders the results by entitlements count.
+func ByEntitlementsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newEntitlementsStep(), opts...)
+	}
+}
+
+// ByEntitlements orders the results by entitlements terms.
+func ByEntitlements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newEntitlementsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByCustomerField orders the results by customer field.
 func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -188,6 +234,20 @@ func newSubscriptionPatchesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionPatchesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionPatchesTable, SubscriptionPatchesColumn),
+	)
+}
+func newPricesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PricesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PricesTable, PricesColumn),
+	)
+}
+func newEntitlementsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(EntitlementsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementsTable, EntitlementsColumn),
 	)
 }
 func newCustomerStep() *sqlgraph.Step {

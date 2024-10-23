@@ -62,8 +62,12 @@ type Tx struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// Price is the client for interacting with the Price builders.
+	Price *PriceClient
 	// Subscription is the client for interacting with the Subscription builders.
 	Subscription *SubscriptionClient
+	// SubscriptionEntitlement is the client for interacting with the SubscriptionEntitlement builders.
+	SubscriptionEntitlement *SubscriptionEntitlementClient
 	// SubscriptionPatch is the client for interacting with the SubscriptionPatch builders.
 	SubscriptionPatch *SubscriptionPatchClient
 	// SubscriptionPatchValueAddItem is the client for interacting with the SubscriptionPatchValueAddItem builders.
@@ -229,7 +233,9 @@ func (tx *Tx) init() {
 	tx.Plan = NewPlanClient(tx.config)
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)
 	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
+	tx.Price = NewPriceClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)
+	tx.SubscriptionEntitlement = NewSubscriptionEntitlementClient(tx.config)
 	tx.SubscriptionPatch = NewSubscriptionPatchClient(tx.config)
 	tx.SubscriptionPatchValueAddItem = NewSubscriptionPatchValueAddItemClient(tx.config)
 	tx.SubscriptionPatchValueAddPhase = NewSubscriptionPatchValueAddPhaseClient(tx.config)

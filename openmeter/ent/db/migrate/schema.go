@@ -1289,6 +1289,62 @@ var (
 			},
 		},
 	}
+	// PricesColumns holds the columns for the "prices" table.
+	PricesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "active_from", Type: field.TypeTime},
+		{Name: "active_to", Type: field.TypeTime, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "phase_key", Type: field.TypeString},
+		{Name: "item_key", Type: field.TypeString},
+		{Name: "value", Type: field.TypeString, SchemaType: map[string]string{"postgresql": "numeric"}},
+		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// PricesTable holds the schema information for the "prices" table.
+	PricesTable = &schema.Table{
+		Name:       "prices",
+		Columns:    PricesColumns,
+		PrimaryKey: []*schema.Column{PricesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "prices_subscriptions_prices",
+				Columns:    []*schema.Column{PricesColumns[11]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "price_id",
+				Unique:  true,
+				Columns: []*schema.Column{PricesColumns[0]},
+			},
+			{
+				Name:    "price_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{PricesColumns[1]},
+			},
+			{
+				Name:    "price_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{PricesColumns[1], PricesColumns[0]},
+			},
+			{
+				Name:    "price_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{PricesColumns[1], PricesColumns[11]},
+			},
+			{
+				Name:    "price_namespace_subscription_id_key",
+				Unique:  false,
+				Columns: []*schema.Column{PricesColumns[1], PricesColumns[11], PricesColumns[7]},
+			},
+		},
+	}
 	// SubscriptionsColumns holds the columns for the "subscriptions" table.
 	SubscriptionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1337,6 +1393,70 @@ var (
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[11]},
+			},
+		},
+	}
+	// SubscriptionEntitlementsColumns holds the columns for the "subscription_entitlements" table.
+	SubscriptionEntitlementsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_phase_key", Type: field.TypeString},
+		{Name: "subscription_item_key", Type: field.TypeString},
+		{Name: "entitlement_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionEntitlementsTable holds the schema information for the "subscription_entitlements" table.
+	SubscriptionEntitlementsTable = &schema.Table{
+		Name:       "subscription_entitlements",
+		Columns:    SubscriptionEntitlementsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionEntitlementsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_entitlements_entitlements_subscription",
+				Columns:    []*schema.Column{SubscriptionEntitlementsColumns[7]},
+				RefColumns: []*schema.Column{EntitlementsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "subscription_entitlements_subscriptions_entitlements",
+				Columns:    []*schema.Column{SubscriptionEntitlementsColumns[8]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionentitlement_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionEntitlementsColumns[0]},
+			},
+			{
+				Name:    "subscriptionentitlement_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionEntitlementsColumns[1]},
+			},
+			{
+				Name:    "subscriptionentitlement_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionEntitlementsColumns[1], SubscriptionEntitlementsColumns[0]},
+			},
+			{
+				Name:    "subscriptionentitlement_namespace_entitlement_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionEntitlementsColumns[1], SubscriptionEntitlementsColumns[7]},
+			},
+			{
+				Name:    "subscriptionentitlement_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionEntitlementsColumns[1], SubscriptionEntitlementsColumns[8]},
+			},
+			{
+				Name:    "subscriptionentitlement_namespace_subscription_id_subscription_phase_key_subscription_item_key",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionEntitlementsColumns[1], SubscriptionEntitlementsColumns[8], SubscriptionEntitlementsColumns[5], SubscriptionEntitlementsColumns[6]},
 			},
 		},
 	}
@@ -1398,14 +1518,13 @@ var (
 		{Name: "item_key", Type: field.TypeString},
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "create_entitlement_entitlement_type", Type: field.TypeString, Nullable: true},
-		{Name: "create_entitlement_measure_usage_from", Type: field.TypeTime, Nullable: true},
 		{Name: "create_entitlement_issue_after_reset", Type: field.TypeFloat64, Nullable: true},
 		{Name: "create_entitlement_issue_after_reset_priority", Type: field.TypeUint8, Nullable: true},
 		{Name: "create_entitlement_is_soft_limit", Type: field.TypeBool, Nullable: true},
 		{Name: "create_entitlement_preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
+		{Name: "create_entitlement_usage_period_iso_duration", Type: field.TypeString, Nullable: true},
 		{Name: "create_entitlement_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "create_entitlement_usage_period_interval", Type: field.TypeString, Nullable: true},
-		{Name: "create_entitlement_usage_period_anchor", Type: field.TypeTime, Nullable: true},
+		{Name: "create_price_key", Type: field.TypeString, Nullable: true},
 		{Name: "create_price_value", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -1417,7 +1536,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_patch_value_add_items_subscription_patches_value_add_item",
-				Columns:    []*schema.Column{SubscriptionPatchValueAddItemsColumns[15]},
+				Columns:    []*schema.Column{SubscriptionPatchValueAddItemsColumns[14]},
 				RefColumns: []*schema.Column{SubscriptionPatchesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1441,7 +1560,7 @@ var (
 			{
 				Name:    "subscriptionpatchvalueadditem_namespace_subscription_patch_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionPatchValueAddItemsColumns[1], SubscriptionPatchValueAddItemsColumns[15]},
+				Columns: []*schema.Column{SubscriptionPatchValueAddItemsColumns[1], SubscriptionPatchValueAddItemsColumns[14]},
 			},
 		},
 	}
@@ -1657,7 +1776,9 @@ var (
 		PlansTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
+		PricesTable,
 		SubscriptionsTable,
+		SubscriptionEntitlementsTable,
 		SubscriptionPatchesTable,
 		SubscriptionPatchValueAddItemsTable,
 		SubscriptionPatchValueAddPhasesTable,
@@ -1697,7 +1818,10 @@ func init() {
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
+	PricesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
+	SubscriptionEntitlementsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	SubscriptionEntitlementsTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	SubscriptionPatchesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionPatchesTable.Annotation = &entsql.Annotation{
 		Table: "subscription_patches",

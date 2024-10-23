@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -76,20 +75,6 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreateEntitlementE
 	return spvaic
 }
 
-// SetCreateEntitlementMeasureUsageFrom sets the "create_entitlement_measure_usage_from" field.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreateEntitlementMeasureUsageFrom(t time.Time) *SubscriptionPatchValueAddItemCreate {
-	spvaic.mutation.SetCreateEntitlementMeasureUsageFrom(t)
-	return spvaic
-}
-
-// SetNillableCreateEntitlementMeasureUsageFrom sets the "create_entitlement_measure_usage_from" field if the given value is not nil.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreateEntitlementMeasureUsageFrom(t *time.Time) *SubscriptionPatchValueAddItemCreate {
-	if t != nil {
-		spvaic.SetCreateEntitlementMeasureUsageFrom(*t)
-	}
-	return spvaic
-}
-
 // SetCreateEntitlementIssueAfterReset sets the "create_entitlement_issue_after_reset" field.
 func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreateEntitlementIssueAfterReset(f float64) *SubscriptionPatchValueAddItemCreate {
 	spvaic.mutation.SetCreateEntitlementIssueAfterReset(f)
@@ -146,36 +131,36 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreateEntitlementP
 	return spvaic
 }
 
+// SetCreateEntitlementUsagePeriodIsoDuration sets the "create_entitlement_usage_period_iso_duration" field.
+func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreateEntitlementUsagePeriodIsoDuration(s string) *SubscriptionPatchValueAddItemCreate {
+	spvaic.mutation.SetCreateEntitlementUsagePeriodIsoDuration(s)
+	return spvaic
+}
+
+// SetNillableCreateEntitlementUsagePeriodIsoDuration sets the "create_entitlement_usage_period_iso_duration" field if the given value is not nil.
+func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreateEntitlementUsagePeriodIsoDuration(s *string) *SubscriptionPatchValueAddItemCreate {
+	if s != nil {
+		spvaic.SetCreateEntitlementUsagePeriodIsoDuration(*s)
+	}
+	return spvaic
+}
+
 // SetCreateEntitlementConfig sets the "create_entitlement_config" field.
 func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreateEntitlementConfig(u []uint8) *SubscriptionPatchValueAddItemCreate {
 	spvaic.mutation.SetCreateEntitlementConfig(u)
 	return spvaic
 }
 
-// SetCreateEntitlementUsagePeriodInterval sets the "create_entitlement_usage_period_interval" field.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreateEntitlementUsagePeriodInterval(s string) *SubscriptionPatchValueAddItemCreate {
-	spvaic.mutation.SetCreateEntitlementUsagePeriodInterval(s)
+// SetCreatePriceKey sets the "create_price_key" field.
+func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreatePriceKey(s string) *SubscriptionPatchValueAddItemCreate {
+	spvaic.mutation.SetCreatePriceKey(s)
 	return spvaic
 }
 
-// SetNillableCreateEntitlementUsagePeriodInterval sets the "create_entitlement_usage_period_interval" field if the given value is not nil.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreateEntitlementUsagePeriodInterval(s *string) *SubscriptionPatchValueAddItemCreate {
+// SetNillableCreatePriceKey sets the "create_price_key" field if the given value is not nil.
+func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreatePriceKey(s *string) *SubscriptionPatchValueAddItemCreate {
 	if s != nil {
-		spvaic.SetCreateEntitlementUsagePeriodInterval(*s)
-	}
-	return spvaic
-}
-
-// SetCreateEntitlementUsagePeriodAnchor sets the "create_entitlement_usage_period_anchor" field.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreateEntitlementUsagePeriodAnchor(t time.Time) *SubscriptionPatchValueAddItemCreate {
-	spvaic.mutation.SetCreateEntitlementUsagePeriodAnchor(t)
-	return spvaic
-}
-
-// SetNillableCreateEntitlementUsagePeriodAnchor sets the "create_entitlement_usage_period_anchor" field if the given value is not nil.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreateEntitlementUsagePeriodAnchor(t *time.Time) *SubscriptionPatchValueAddItemCreate {
-	if t != nil {
-		spvaic.SetCreateEntitlementUsagePeriodAnchor(*t)
+		spvaic.SetCreatePriceKey(*s)
 	}
 	return spvaic
 }
@@ -347,10 +332,6 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) createSpec() (*SubscriptionPa
 		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, field.TypeString, value)
 		_node.CreateEntitlementEntitlementType = &value
 	}
-	if value, ok := spvaic.mutation.CreateEntitlementMeasureUsageFrom(); ok {
-		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom, field.TypeTime, value)
-		_node.CreateEntitlementMeasureUsageFrom = &value
-	}
 	if value, ok := spvaic.mutation.CreateEntitlementIssueAfterReset(); ok {
 		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset, field.TypeFloat64, value)
 		_node.CreateEntitlementIssueAfterReset = &value
@@ -367,17 +348,17 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) createSpec() (*SubscriptionPa
 		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset, field.TypeBool, value)
 		_node.CreateEntitlementPreserveOverageAtReset = &value
 	}
+	if value, ok := spvaic.mutation.CreateEntitlementUsagePeriodIsoDuration(); ok {
+		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration, field.TypeString, value)
+		_node.CreateEntitlementUsagePeriodIsoDuration = &value
+	}
 	if value, ok := spvaic.mutation.CreateEntitlementConfig(); ok {
 		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementConfig, field.TypeJSON, value)
 		_node.CreateEntitlementConfig = value
 	}
-	if value, ok := spvaic.mutation.CreateEntitlementUsagePeriodInterval(); ok {
-		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval, field.TypeString, value)
-		_node.CreateEntitlementUsagePeriodInterval = &value
-	}
-	if value, ok := spvaic.mutation.CreateEntitlementUsagePeriodAnchor(); ok {
-		_spec.SetField(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor, field.TypeTime, value)
-		_node.CreateEntitlementUsagePeriodAnchor = &value
+	if value, ok := spvaic.mutation.CreatePriceKey(); ok {
+		_spec.SetField(subscriptionpatchvalueadditem.FieldCreatePriceKey, field.TypeString, value)
+		_node.CreatePriceKey = &value
 	}
 	if value, ok := spvaic.mutation.CreatePriceValue(); ok {
 		_spec.SetField(subscriptionpatchvalueadditem.FieldCreatePriceValue, field.TypeString, value)
@@ -487,9 +468,6 @@ func (u *SubscriptionPatchValueAddItemUpsertOne) UpdateNewValues() *Subscription
 		if _, exists := u.create.mutation.CreateEntitlementEntitlementType(); exists {
 			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType)
 		}
-		if _, exists := u.create.mutation.CreateEntitlementMeasureUsageFrom(); exists {
-			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom)
-		}
 		if _, exists := u.create.mutation.CreateEntitlementIssueAfterReset(); exists {
 			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset)
 		}
@@ -502,14 +480,14 @@ func (u *SubscriptionPatchValueAddItemUpsertOne) UpdateNewValues() *Subscription
 		if _, exists := u.create.mutation.CreateEntitlementPreserveOverageAtReset(); exists {
 			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset)
 		}
+		if _, exists := u.create.mutation.CreateEntitlementUsagePeriodIsoDuration(); exists {
+			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration)
+		}
 		if _, exists := u.create.mutation.CreateEntitlementConfig(); exists {
 			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementConfig)
 		}
-		if _, exists := u.create.mutation.CreateEntitlementUsagePeriodInterval(); exists {
-			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval)
-		}
-		if _, exists := u.create.mutation.CreateEntitlementUsagePeriodAnchor(); exists {
-			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor)
+		if _, exists := u.create.mutation.CreatePriceKey(); exists {
+			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreatePriceKey)
 		}
 		if _, exists := u.create.mutation.CreatePriceValue(); exists {
 			s.SetIgnore(subscriptionpatchvalueadditem.FieldCreatePriceValue)
@@ -746,9 +724,6 @@ func (u *SubscriptionPatchValueAddItemUpsertBulk) UpdateNewValues() *Subscriptio
 			if _, exists := b.mutation.CreateEntitlementEntitlementType(); exists {
 				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType)
 			}
-			if _, exists := b.mutation.CreateEntitlementMeasureUsageFrom(); exists {
-				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom)
-			}
 			if _, exists := b.mutation.CreateEntitlementIssueAfterReset(); exists {
 				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset)
 			}
@@ -761,14 +736,14 @@ func (u *SubscriptionPatchValueAddItemUpsertBulk) UpdateNewValues() *Subscriptio
 			if _, exists := b.mutation.CreateEntitlementPreserveOverageAtReset(); exists {
 				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementPreserveOverageAtReset)
 			}
+			if _, exists := b.mutation.CreateEntitlementUsagePeriodIsoDuration(); exists {
+				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration)
+			}
 			if _, exists := b.mutation.CreateEntitlementConfig(); exists {
 				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementConfig)
 			}
-			if _, exists := b.mutation.CreateEntitlementUsagePeriodInterval(); exists {
-				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval)
-			}
-			if _, exists := b.mutation.CreateEntitlementUsagePeriodAnchor(); exists {
-				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor)
+			if _, exists := b.mutation.CreatePriceKey(); exists {
+				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreatePriceKey)
 			}
 			if _, exists := b.mutation.CreatePriceValue(); exists {
 				s.SetIgnore(subscriptionpatchvalueadditem.FieldCreatePriceValue)

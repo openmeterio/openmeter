@@ -80,16 +80,15 @@ func (SubscriptionPatchValueAddItem) Fields() []ent.Field {
 		field.String("item_key").NotEmpty().Immutable(),
 		field.String("feature_key").Optional().Nillable().Immutable(),
 		field.String("create_entitlement_entitlement_type").Optional().Nillable().Immutable(),
-		field.Time("create_entitlement_measure_usage_from").Optional().Nillable().Immutable(),
 		field.Float("create_entitlement_issue_after_reset").Optional().Nillable().Immutable(),
 		field.Uint8("create_entitlement_issue_after_reset_priority").Optional().Nillable().Immutable(),
 		field.Bool("create_entitlement_is_soft_limit").Optional().Nillable().Immutable(),
 		field.Bool("create_entitlement_preserve_overage_at_reset").Optional().Nillable().Immutable(),
+		field.String("create_entitlement_usage_period_iso_duration").Optional().Nillable().Immutable(),
 		field.JSON("create_entitlement_config", []byte{}).SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}).Optional().Immutable(),
-		field.String("create_entitlement_usage_period_interval").Optional().Nillable().Immutable(),
-		field.Time("create_entitlement_usage_period_anchor").Optional().Nillable().Immutable(),
+		field.String("create_price_key").Optional().Nillable().Immutable(),
 		field.String("create_price_value").SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}).Optional().Nillable().Immutable(),

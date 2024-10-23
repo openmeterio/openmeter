@@ -21,6 +21,8 @@ type Period struct {
 	period.Period
 }
 
+// FIXME: clean up add and subtract
+
 func (p Period) Add(p2 Period) (Period, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))
@@ -28,6 +30,16 @@ func (p Period) Add(p2 Period) (Period, error) {
 		return Period{}, err
 	}
 	p3, err := p.Period.Add(per2)
+	return Period{p3}, err
+}
+
+func (p Period) Subtract(p2 Period) (Period, error) {
+	s2 := period.ISOString(p2.String())
+	per2, err := period.Parse(string(s2))
+	if err != nil {
+		return Period{}, err
+	}
+	p3, err := p.Period.Subtract(per2)
 	return Period{p3}, err
 }
 

@@ -5,12 +5,15 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 // Spec is the complete generic specification of how a Subscription (sub)Entity should look like.
@@ -132,14 +135,16 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 }
 
 type CreateSubscriptionEntitlementSpec struct {
-	EntitlementType         entitlement.EntitlementType        `json:"type"`
-	MeasureUsageFrom        *entitlement.MeasureUsageFromInput `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset         *float64                           `json:"issueAfterReset,omitempty"`
-	IssueAfterResetPriority *uint8                             `json:"issueAfterResetPriority,omitempty"`
-	IsSoftLimit             *bool                              `json:"isSoftLimit,omitempty"`
-	Config                  []byte                             `json:"config,omitempty"`
-	UsagePeriod             *entitlement.UsagePeriod           `json:"usagePeriod,omitempty"`
-	PreserveOverageAtReset  *bool                              `json:"preserveOverageAtReset,omitempty"`
+	EntitlementType entitlement.EntitlementType `json:"type"`
+	// TODO: Add way to specify MeasureUsageFrom
+	// explanation: MeasureUsageFrom cannot have a time.Time anchor when creating from plan. The enum value would also most likely be different.
+	IssueAfterReset         *float64 `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8   `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool    `json:"isSoftLimit,omitempty"`
+	Config                  []byte   `json:"config,omitempty"`
+	// Explanation: UsagePeriod cannot have a time.Time anchor when creating from plan
+	UsagePeriodISODuration *datex.Period `json:"usagePeriodPeriod,omitempty"`
+	PreserveOverageAtReset *bool         `json:"preserveOverageAtReset,omitempty"`
 }
 
 func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
@@ -148,21 +153,30 @@ func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
 	subjectKey string,
 	cadence models.CadencedModel,
 ) (*entitlement.CreateEntitlementInputs, error) {
-	return &entitlement.CreateEntitlementInputs{
+	inputs := &entitlement.CreateEntitlementInputs{
 		Namespace:               namespace,
 		FeatureKey:              &featureKey,
 		SubjectKey:              subjectKey,
 		EntitlementType:         s.EntitlementType,
-		MeasureUsageFrom:        s.MeasureUsageFrom,
 		IssueAfterReset:         s.IssueAfterReset,
 		IssueAfterResetPriority: s.IssueAfterResetPriority,
 		IsSoftLimit:             s.IsSoftLimit,
 		Config:                  s.Config,
-		UsagePeriod:             s.UsagePeriod,
 		PreserveOverageAtReset:  s.PreserveOverageAtReset,
 		ActiveFrom:              &cadence.ActiveFrom,
 		ActiveTo:                cadence.ActiveTo,
-	}, nil
+	}
+
+	if s.UsagePeriodISODuration != nil {
+		// FIXME: using cadence.ActiveFrom won't work for upgrade/downgrade scenarios & other cases where partial periods or usage sharing is needed
+		usagePeriod, err := recurrence.FromISODuration(s.UsagePeriodISODuration, cadence.ActiveFrom)
+		if err != nil {
+			return nil, fmt.Errorf("couldnt compute UsagePeriod: %w", err)
+		}
+		inputs.UsagePeriod = lo.ToPtr(entitlement.UsagePeriod(usagePeriod))
+	}
+
+	return inputs, nil
 }
 
 type CreateSubscriptionItemPlanInput struct {
@@ -198,6 +212,50 @@ func (s SubscriptionItemSpec) HasFeature() bool {
 }
 
 func (s *SubscriptionItemSpec) Validate() error {
+	if s.CreatePriceInput != nil {
+		if s.CreatePriceInput.ItemKey != s.ItemKey {
+			return &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+					},
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+						"CreatePriceInput",
+						"ItemKey",
+					},
+				},
+				Msg: "ItemKey in CreatePriceInput must match ItemKey",
+			}
+		}
+		if s.CreatePriceInput.PhaseKey != s.PhaseKey {
+			return &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+					},
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+						"CreatePriceInput",
+						"PhaseKey",
+					},
+				},
+				Msg: "PhaseKey in CreatePriceInput must match PhaseKey",
+			}
+		}
+	}
 	if s.CreateEntitlementInput != nil {
 		if s.FeatureKey == nil {
 			return &SpecValidationError{
@@ -221,6 +279,44 @@ func (s *SubscriptionItemSpec) Validate() error {
 			}
 		}
 	}
+	if s.FeatureKey == nil {
+		if s.CreatePriceInput == nil {
+			return &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+						"FeatureKey",
+					},
+				},
+				Msg: "FeatureKey is required for Item when Price is not defiend",
+			}
+		}
+
+		if s.CreatePriceInput.Key != s.ItemKey {
+			return &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+					},
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						s.ItemKey,
+						"CreatePriceInput",
+						"Key",
+					},
+				},
+				Msg: "ItemKey must match Price Key when feature is not present",
+			}
+		}
+	}
 
 	// TODO: implement
 	return nil
@@ -234,11 +330,22 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 		Phases:                          make(map[string]*SubscriptionPhaseSpec),
 	}
 
-	if len(p.Phases()) == 0 {
-		return nil, fmt.Errorf("plan %s version %d has no phases", p.Key(), p.Version())
+	if len(p.GetPhases()) == 0 {
+		return nil, fmt.Errorf("plan %s version %d has no phases", p.GetKey(), p.GetVersionNumber())
 	}
 
-	for _, planPhase := range p.Phases() {
+	// Validate that the plan phases are returned in order
+	planPhases := p.GetPhases()
+	for i := range planPhases {
+		if i == 0 {
+			continue
+		}
+		if diff, err := planPhases[i].ToCreateSubscriptionPhasePlanInput().StartAfter.Subtract(planPhases[i-1].ToCreateSubscriptionPhasePlanInput().StartAfter); err != nil || diff.IsNegative() {
+			return nil, fmt.Errorf("phases %s and %s of plan %s version %d are in the wrong order", planPhases[i].GetKey(), planPhases[i-1].GetKey(), p.GetKey(), p.GetVersionNumber())
+		}
+	}
+
+	for _, planPhase := range planPhases {
 		phase := SubscriptionPhaseSpec{
 			CreateSubscriptionPhaseInput: CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: planPhase.ToCreateSubscriptionPhasePlanInput(),
@@ -248,27 +355,32 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 			Items: make(map[string]*SubscriptionItemSpec),
 		}
 
-		if len(planPhase.RateCards()) == 0 {
-			return nil, fmt.Errorf("phase %s of plan %s version %d has no rate cards", phase.PhaseKey, p.Key(), p.Version())
+		if len(planPhase.GetRateCards()) == 0 {
+			return nil, fmt.Errorf("phase %s of plan %s version %d has no rate cards", phase.PhaseKey, p.GetKey(), p.GetVersionNumber())
 		}
 
-		for _, rateCard := range planPhase.RateCards() {
+		for _, rateCard := range planPhase.GetRateCards() {
 			item := SubscriptionItemSpec{
 				CreateSubscriptionItemPlanInput: rateCard.ToCreateSubscriptionItemPlanInput(),
 			}
 
 			if _, exists := phase.Items[item.ItemKey]; exists {
-				return nil, fmt.Errorf("duplicate item key %s in phase %s of plan %s version %d", item.ItemKey, phase.PhaseKey, p.Key(), p.Version())
+				return nil, fmt.Errorf("duplicate item key %s in phase %s of plan %s version %d", item.ItemKey, phase.PhaseKey, p.GetKey(), p.GetVersionNumber())
 			}
 
 			phase.Items[item.ItemKey] = &item
 		}
 
 		if _, exists := spec.Phases[phase.PhaseKey]; exists {
-			return nil, fmt.Errorf("duplicate phase key %s in plan %s version %d", phase.PhaseKey, p.Key(), p.Version())
+			return nil, fmt.Errorf("duplicate phase key %s in plan %s version %d", phase.PhaseKey, p.GetKey(), p.GetVersionNumber())
 		}
 
 		spec.Phases[phase.PhaseKey] = &phase
+	}
+
+	// Lets validate the spec
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("spec validation failed: %w", err)
 	}
 
 	return spec, nil
@@ -300,7 +412,6 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 		if err = s.Validate(); err != nil {
 			return fmt.Errorf("patch %d failed during validation: %w", i, err)
 		}
-
 	}
 	return nil
 }

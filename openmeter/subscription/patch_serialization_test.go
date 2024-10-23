@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
 )
 
 func assertSame(t *testing.T, in json.Marshaler) {
@@ -87,6 +88,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 						PhaseKey: "asd",
 						ItemKey:  "asd2",
 						Value:    "1.0",
+						Key:      "asd",
 					},
 				},
 			},

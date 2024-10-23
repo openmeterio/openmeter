@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -31,8 +30,6 @@ type SubscriptionPatchValueAddItem struct {
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// CreateEntitlementEntitlementType holds the value of the "create_entitlement_entitlement_type" field.
 	CreateEntitlementEntitlementType *string `json:"create_entitlement_entitlement_type,omitempty"`
-	// CreateEntitlementMeasureUsageFrom holds the value of the "create_entitlement_measure_usage_from" field.
-	CreateEntitlementMeasureUsageFrom *time.Time `json:"create_entitlement_measure_usage_from,omitempty"`
 	// CreateEntitlementIssueAfterReset holds the value of the "create_entitlement_issue_after_reset" field.
 	CreateEntitlementIssueAfterReset *float64 `json:"create_entitlement_issue_after_reset,omitempty"`
 	// CreateEntitlementIssueAfterResetPriority holds the value of the "create_entitlement_issue_after_reset_priority" field.
@@ -41,12 +38,12 @@ type SubscriptionPatchValueAddItem struct {
 	CreateEntitlementIsSoftLimit *bool `json:"create_entitlement_is_soft_limit,omitempty"`
 	// CreateEntitlementPreserveOverageAtReset holds the value of the "create_entitlement_preserve_overage_at_reset" field.
 	CreateEntitlementPreserveOverageAtReset *bool `json:"create_entitlement_preserve_overage_at_reset,omitempty"`
+	// CreateEntitlementUsagePeriodIsoDuration holds the value of the "create_entitlement_usage_period_iso_duration" field.
+	CreateEntitlementUsagePeriodIsoDuration *string `json:"create_entitlement_usage_period_iso_duration,omitempty"`
 	// CreateEntitlementConfig holds the value of the "create_entitlement_config" field.
 	CreateEntitlementConfig []uint8 `json:"create_entitlement_config,omitempty"`
-	// CreateEntitlementUsagePeriodInterval holds the value of the "create_entitlement_usage_period_interval" field.
-	CreateEntitlementUsagePeriodInterval *string `json:"create_entitlement_usage_period_interval,omitempty"`
-	// CreateEntitlementUsagePeriodAnchor holds the value of the "create_entitlement_usage_period_anchor" field.
-	CreateEntitlementUsagePeriodAnchor *time.Time `json:"create_entitlement_usage_period_anchor,omitempty"`
+	// CreatePriceKey holds the value of the "create_price_key" field.
+	CreatePriceKey *string `json:"create_price_key,omitempty"`
 	// CreatePriceValue holds the value of the "create_price_value" field.
 	CreatePriceValue *string `json:"create_price_value,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -88,10 +85,8 @@ func (*SubscriptionPatchValueAddItem) scanValues(columns []string) ([]any, error
 			values[i] = new(sql.NullFloat64)
 		case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
 			values[i] = new(sql.NullInt64)
-		case subscriptionpatchvalueadditem.FieldID, subscriptionpatchvalueadditem.FieldNamespace, subscriptionpatchvalueadditem.FieldSubscriptionPatchID, subscriptionpatchvalueadditem.FieldPhaseKey, subscriptionpatchvalueadditem.FieldItemKey, subscriptionpatchvalueadditem.FieldFeatureKey, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval, subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		case subscriptionpatchvalueadditem.FieldID, subscriptionpatchvalueadditem.FieldNamespace, subscriptionpatchvalueadditem.FieldSubscriptionPatchID, subscriptionpatchvalueadditem.FieldPhaseKey, subscriptionpatchvalueadditem.FieldItemKey, subscriptionpatchvalueadditem.FieldFeatureKey, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration, subscriptionpatchvalueadditem.FieldCreatePriceKey, subscriptionpatchvalueadditem.FieldCreatePriceValue:
 			values[i] = new(sql.NullString)
-		case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
-			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -151,13 +146,6 @@ func (spvai *SubscriptionPatchValueAddItem) assignValues(columns []string, value
 				spvai.CreateEntitlementEntitlementType = new(string)
 				*spvai.CreateEntitlementEntitlementType = value.String
 			}
-		case subscriptionpatchvalueadditem.FieldCreateEntitlementMeasureUsageFrom:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field create_entitlement_measure_usage_from", values[i])
-			} else if value.Valid {
-				spvai.CreateEntitlementMeasureUsageFrom = new(time.Time)
-				*spvai.CreateEntitlementMeasureUsageFrom = value.Time
-			}
 		case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterReset:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field create_entitlement_issue_after_reset", values[i])
@@ -186,6 +174,13 @@ func (spvai *SubscriptionPatchValueAddItem) assignValues(columns []string, value
 				spvai.CreateEntitlementPreserveOverageAtReset = new(bool)
 				*spvai.CreateEntitlementPreserveOverageAtReset = value.Bool
 			}
+		case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field create_entitlement_usage_period_iso_duration", values[i])
+			} else if value.Valid {
+				spvai.CreateEntitlementUsagePeriodIsoDuration = new(string)
+				*spvai.CreateEntitlementUsagePeriodIsoDuration = value.String
+			}
 		case subscriptionpatchvalueadditem.FieldCreateEntitlementConfig:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field create_entitlement_config", values[i])
@@ -194,19 +189,12 @@ func (spvai *SubscriptionPatchValueAddItem) assignValues(columns []string, value
 					return fmt.Errorf("unmarshal field create_entitlement_config: %w", err)
 				}
 			}
-		case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodInterval:
+		case subscriptionpatchvalueadditem.FieldCreatePriceKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field create_entitlement_usage_period_interval", values[i])
+				return fmt.Errorf("unexpected type %T for field create_price_key", values[i])
 			} else if value.Valid {
-				spvai.CreateEntitlementUsagePeriodInterval = new(string)
-				*spvai.CreateEntitlementUsagePeriodInterval = value.String
-			}
-		case subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodAnchor:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field create_entitlement_usage_period_anchor", values[i])
-			} else if value.Valid {
-				spvai.CreateEntitlementUsagePeriodAnchor = new(time.Time)
-				*spvai.CreateEntitlementUsagePeriodAnchor = value.Time
+				spvai.CreatePriceKey = new(string)
+				*spvai.CreatePriceKey = value.String
 			}
 		case subscriptionpatchvalueadditem.FieldCreatePriceValue:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -278,11 +266,6 @@ func (spvai *SubscriptionPatchValueAddItem) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := spvai.CreateEntitlementMeasureUsageFrom; v != nil {
-		builder.WriteString("create_entitlement_measure_usage_from=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
 	if v := spvai.CreateEntitlementIssueAfterReset; v != nil {
 		builder.WriteString("create_entitlement_issue_after_reset=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -303,17 +286,17 @@ func (spvai *SubscriptionPatchValueAddItem) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("create_entitlement_config=")
-	builder.WriteString(fmt.Sprintf("%v", spvai.CreateEntitlementConfig))
-	builder.WriteString(", ")
-	if v := spvai.CreateEntitlementUsagePeriodInterval; v != nil {
-		builder.WriteString("create_entitlement_usage_period_interval=")
+	if v := spvai.CreateEntitlementUsagePeriodIsoDuration; v != nil {
+		builder.WriteString("create_entitlement_usage_period_iso_duration=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := spvai.CreateEntitlementUsagePeriodAnchor; v != nil {
-		builder.WriteString("create_entitlement_usage_period_anchor=")
-		builder.WriteString(v.Format(time.ANSIC))
+	builder.WriteString("create_entitlement_config=")
+	builder.WriteString(fmt.Sprintf("%v", spvai.CreateEntitlementConfig))
+	builder.WriteString(", ")
+	if v := spvai.CreatePriceKey; v != nil {
+		builder.WriteString("create_price_key=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := spvai.CreatePriceValue; v != nil {

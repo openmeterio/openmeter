@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -213,6 +214,25 @@ func (eu *EntitlementUpdate) AddBalanceSnapshot(b ...*BalanceSnapshot) *Entitlem
 	return eu.AddBalanceSnapshotIDs(ids...)
 }
 
+// SetSubscriptionID sets the "subscription" edge to the SubscriptionEntitlement entity by ID.
+func (eu *EntitlementUpdate) SetSubscriptionID(id string) *EntitlementUpdate {
+	eu.mutation.SetSubscriptionID(id)
+	return eu
+}
+
+// SetNillableSubscriptionID sets the "subscription" edge to the SubscriptionEntitlement entity by ID if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableSubscriptionID(id *string) *EntitlementUpdate {
+	if id != nil {
+		eu = eu.SetSubscriptionID(*id)
+	}
+	return eu
+}
+
+// SetSubscription sets the "subscription" edge to the SubscriptionEntitlement entity.
+func (eu *EntitlementUpdate) SetSubscription(s *SubscriptionEntitlement) *EntitlementUpdate {
+	return eu.SetSubscriptionID(s.ID)
+}
+
 // Mutation returns the EntitlementMutation object of the builder.
 func (eu *EntitlementUpdate) Mutation() *EntitlementMutation {
 	return eu.mutation
@@ -279,6 +299,12 @@ func (eu *EntitlementUpdate) RemoveBalanceSnapshot(b ...*BalanceSnapshot) *Entit
 		ids[i] = b[i].ID
 	}
 	return eu.RemoveBalanceSnapshotIDs(ids...)
+}
+
+// ClearSubscription clears the "subscription" edge to the SubscriptionEntitlement entity.
+func (eu *EntitlementUpdate) ClearSubscription() *EntitlementUpdate {
+	eu.mutation.ClearSubscription()
+	return eu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -543,6 +569,35 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if eu.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   entitlement.SubscriptionTable,
+			Columns: []string{entitlement.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   entitlement.SubscriptionTable,
+			Columns: []string{entitlement.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, eu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{entitlement.Label}
@@ -744,6 +799,25 @@ func (euo *EntitlementUpdateOne) AddBalanceSnapshot(b ...*BalanceSnapshot) *Enti
 	return euo.AddBalanceSnapshotIDs(ids...)
 }
 
+// SetSubscriptionID sets the "subscription" edge to the SubscriptionEntitlement entity by ID.
+func (euo *EntitlementUpdateOne) SetSubscriptionID(id string) *EntitlementUpdateOne {
+	euo.mutation.SetSubscriptionID(id)
+	return euo
+}
+
+// SetNillableSubscriptionID sets the "subscription" edge to the SubscriptionEntitlement entity by ID if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableSubscriptionID(id *string) *EntitlementUpdateOne {
+	if id != nil {
+		euo = euo.SetSubscriptionID(*id)
+	}
+	return euo
+}
+
+// SetSubscription sets the "subscription" edge to the SubscriptionEntitlement entity.
+func (euo *EntitlementUpdateOne) SetSubscription(s *SubscriptionEntitlement) *EntitlementUpdateOne {
+	return euo.SetSubscriptionID(s.ID)
+}
+
 // Mutation returns the EntitlementMutation object of the builder.
 func (euo *EntitlementUpdateOne) Mutation() *EntitlementMutation {
 	return euo.mutation
@@ -810,6 +884,12 @@ func (euo *EntitlementUpdateOne) RemoveBalanceSnapshot(b ...*BalanceSnapshot) *E
 		ids[i] = b[i].ID
 	}
 	return euo.RemoveBalanceSnapshotIDs(ids...)
+}
+
+// ClearSubscription clears the "subscription" edge to the SubscriptionEntitlement entity.
+func (euo *EntitlementUpdateOne) ClearSubscription() *EntitlementUpdateOne {
+	euo.mutation.ClearSubscription()
+	return euo
 }
 
 // Where appends a list predicates to the EntitlementUpdate builder.
@@ -1097,6 +1177,35 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   entitlement.SubscriptionTable,
+			Columns: []string{entitlement.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   entitlement.SubscriptionTable,
+			Columns: []string{entitlement.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

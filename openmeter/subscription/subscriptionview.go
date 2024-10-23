@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -42,7 +43,13 @@ func (s *subscriptionView) Sub() Subscription {
 }
 
 func (s *subscriptionView) Phases() []SubscriptionPhaseView {
-	panic("implement me")
+	// Map phases to interface
+	phases := make([]SubscriptionPhaseView, 0, len(s.phases))
+	for _, p := range s.phases {
+		phases = append(phases, &p)
+	}
+
+	return phases
 }
 
 type subscriptionPhaseView struct {
@@ -59,11 +66,17 @@ func (s *subscriptionPhaseView) Key() string {
 
 func (s *subscriptionPhaseView) ActiveFrom() time.Time {
 	t, _ := s.spec.StartAfter.AddTo(s.subscription.ActiveFrom)
-	return t
+	return t.UTC()
 }
 
 func (s *subscriptionPhaseView) Items() []SubscriptionItemView {
-	panic("implement me")
+	// Map items to interface
+	items := make([]SubscriptionItemView, 0, len(s.items))
+	for _, i := range s.items {
+		items = append(items, &i)
+	}
+
+	return items
 }
 
 type subscriptionItemView struct {
@@ -165,6 +178,17 @@ func NewSubscriptionView(
 		phase.items = items
 		phases = append(phases, phase)
 	}
+
+	// Lets sort phases by start time
+	slices.SortStableFunc(phases, func(i, j subscriptionPhaseView) int {
+		if i.ActiveFrom().Before(j.ActiveFrom()) {
+			return -1
+		} else if i.ActiveFrom().After(j.ActiveFrom()) {
+			return 1
+		} else {
+			return 0
+		}
+	})
 
 	sv.phases = phases
 	return &sv, nil

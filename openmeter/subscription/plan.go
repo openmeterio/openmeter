@@ -12,22 +12,26 @@ type PlanAdapter interface {
 	GetVersion(ctx context.Context, planKey string, version int) (Plan, error)
 }
 
+// All methods are expected to return stable values.
 type RateCard interface {
 	ToCreateSubscriptionItemPlanInput() CreateSubscriptionItemPlanInput
-	Key() string
+	GetKey() string
 }
 
+// All methods are expected to return stable values.
 type PlanPhase interface {
 	ToCreateSubscriptionPhasePlanInput() CreateSubscriptionPhasePlanInput
-	RateCards() []RateCard
-	Key() string
+	GetRateCards() []RateCard
+	GetKey() string
 }
 
+// All methods are expected to return stable values.
 type Plan interface {
 	ToCreateSubscriptionPlanInput() CreateSubscriptionPlanInput
-	Phases() []PlanPhase
-	Key() string
-	Version() int
+	// Phases are expected to be returned in the order they activate.
+	GetPhases() []PlanPhase
+	GetKey() string
+	GetVersionNumber() int
 }
 
 type PlanNotFoundError struct {

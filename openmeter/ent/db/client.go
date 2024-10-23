@@ -39,7 +39,9 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/price"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
@@ -102,8 +104,12 @@ type Client struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// Price is the client for interacting with the Price builders.
+	Price *PriceClient
 	// Subscription is the client for interacting with the Subscription builders.
 	Subscription *SubscriptionClient
+	// SubscriptionEntitlement is the client for interacting with the SubscriptionEntitlement builders.
+	SubscriptionEntitlement *SubscriptionEntitlementClient
 	// SubscriptionPatch is the client for interacting with the SubscriptionPatch builders.
 	SubscriptionPatch *SubscriptionPatchClient
 	// SubscriptionPatchValueAddItem is the client for interacting with the SubscriptionPatchValueAddItem builders.
@@ -149,7 +155,9 @@ func (c *Client) init() {
 	c.Plan = NewPlanClient(c.config)
 	c.PlanPhase = NewPlanPhaseClient(c.config)
 	c.PlanRateCard = NewPlanRateCardClient(c.config)
+	c.Price = NewPriceClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
+	c.SubscriptionEntitlement = NewSubscriptionEntitlementClient(c.config)
 	c.SubscriptionPatch = NewSubscriptionPatchClient(c.config)
 	c.SubscriptionPatchValueAddItem = NewSubscriptionPatchValueAddItemClient(c.config)
 	c.SubscriptionPatchValueAddPhase = NewSubscriptionPatchValueAddPhaseClient(c.config)
@@ -271,7 +279,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Plan:                              NewPlanClient(cfg),
 		PlanPhase:                         NewPlanPhaseClient(cfg),
 		PlanRateCard:                      NewPlanRateCardClient(cfg),
+		Price:                             NewPriceClient(cfg),
 		Subscription:                      NewSubscriptionClient(cfg),
+		SubscriptionEntitlement:           NewSubscriptionEntitlementClient(cfg),
 		SubscriptionPatch:                 NewSubscriptionPatchClient(cfg),
 		SubscriptionPatchValueAddItem:     NewSubscriptionPatchValueAddItemClient(cfg),
 		SubscriptionPatchValueAddPhase:    NewSubscriptionPatchValueAddPhaseClient(cfg),
@@ -320,7 +330,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Plan:                              NewPlanClient(cfg),
 		PlanPhase:                         NewPlanPhaseClient(cfg),
 		PlanRateCard:                      NewPlanRateCardClient(cfg),
+		Price:                             NewPriceClient(cfg),
 		Subscription:                      NewSubscriptionClient(cfg),
+		SubscriptionEntitlement:           NewSubscriptionEntitlementClient(cfg),
 		SubscriptionPatch:                 NewSubscriptionPatchClient(cfg),
 		SubscriptionPatchValueAddItem:     NewSubscriptionPatchValueAddItemClient(cfg),
 		SubscriptionPatchValueAddPhase:    NewSubscriptionPatchValueAddPhaseClient(cfg),
@@ -361,9 +373,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
 		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
-		c.PlanRateCard, c.Subscription, c.SubscriptionPatch,
-		c.SubscriptionPatchValueAddItem, c.SubscriptionPatchValueAddPhase,
-		c.SubscriptionPatchValueExtendPhase, c.UsageReset,
+		c.PlanRateCard, c.Price, c.Subscription, c.SubscriptionEntitlement,
+		c.SubscriptionPatch, c.SubscriptionPatchValueAddItem,
+		c.SubscriptionPatchValueAddPhase, c.SubscriptionPatchValueExtendPhase,
+		c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -379,9 +392,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
 		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
-		c.PlanRateCard, c.Subscription, c.SubscriptionPatch,
-		c.SubscriptionPatchValueAddItem, c.SubscriptionPatchValueAddPhase,
-		c.SubscriptionPatchValueExtendPhase, c.UsageReset,
+		c.PlanRateCard, c.Price, c.Subscription, c.SubscriptionEntitlement,
+		c.SubscriptionPatch, c.SubscriptionPatchValueAddItem,
+		c.SubscriptionPatchValueAddPhase, c.SubscriptionPatchValueExtendPhase,
+		c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -438,8 +452,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlanPhase.mutate(ctx, m)
 	case *PlanRateCardMutation:
 		return c.PlanRateCard.mutate(ctx, m)
+	case *PriceMutation:
+		return c.Price.mutate(ctx, m)
 	case *SubscriptionMutation:
 		return c.Subscription.mutate(ctx, m)
+	case *SubscriptionEntitlementMutation:
+		return c.SubscriptionEntitlement.mutate(ctx, m)
 	case *SubscriptionPatchMutation:
 		return c.SubscriptionPatch.mutate(ctx, m)
 	case *SubscriptionPatchValueAddItemMutation:
@@ -3129,6 +3147,22 @@ func (c *EntitlementClient) QueryBalanceSnapshot(e *Entitlement) *BalanceSnapsho
 	return query
 }
 
+// QuerySubscription queries the subscription edge of a Entitlement.
+func (c *EntitlementClient) QuerySubscription(e *Entitlement) *SubscriptionEntitlementQuery {
+	query := (&SubscriptionEntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
+			sqlgraph.To(subscriptionentitlement.Table, subscriptionentitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, entitlement.SubscriptionTable, entitlement.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryFeature queries the feature edge of a Entitlement.
 func (c *EntitlementClient) QueryFeature(e *Entitlement) *FeatureQuery {
 	query := (&FeatureClient{config: c.config}).Query()
@@ -4591,6 +4625,155 @@ func (c *PlanRateCardClient) mutate(ctx context.Context, m *PlanRateCardMutation
 	}
 }
 
+// PriceClient is a client for the Price schema.
+type PriceClient struct {
+	config
+}
+
+// NewPriceClient returns a client for the Price from the given config.
+func NewPriceClient(c config) *PriceClient {
+	return &PriceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `price.Hooks(f(g(h())))`.
+func (c *PriceClient) Use(hooks ...Hook) {
+	c.hooks.Price = append(c.hooks.Price, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `price.Intercept(f(g(h())))`.
+func (c *PriceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Price = append(c.inters.Price, interceptors...)
+}
+
+// Create returns a builder for creating a Price entity.
+func (c *PriceClient) Create() *PriceCreate {
+	mutation := newPriceMutation(c.config, OpCreate)
+	return &PriceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Price entities.
+func (c *PriceClient) CreateBulk(builders ...*PriceCreate) *PriceCreateBulk {
+	return &PriceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PriceClient) MapCreateBulk(slice any, setFunc func(*PriceCreate, int)) *PriceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PriceCreateBulk{err: fmt.Errorf("calling to PriceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PriceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PriceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Price.
+func (c *PriceClient) Update() *PriceUpdate {
+	mutation := newPriceMutation(c.config, OpUpdate)
+	return &PriceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PriceClient) UpdateOne(pr *Price) *PriceUpdateOne {
+	mutation := newPriceMutation(c.config, OpUpdateOne, withPrice(pr))
+	return &PriceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PriceClient) UpdateOneID(id string) *PriceUpdateOne {
+	mutation := newPriceMutation(c.config, OpUpdateOne, withPriceID(id))
+	return &PriceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Price.
+func (c *PriceClient) Delete() *PriceDelete {
+	mutation := newPriceMutation(c.config, OpDelete)
+	return &PriceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PriceClient) DeleteOne(pr *Price) *PriceDeleteOne {
+	return c.DeleteOneID(pr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PriceClient) DeleteOneID(id string) *PriceDeleteOne {
+	builder := c.Delete().Where(price.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PriceDeleteOne{builder}
+}
+
+// Query returns a query builder for Price.
+func (c *PriceClient) Query() *PriceQuery {
+	return &PriceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePrice},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Price entity by its id.
+func (c *PriceClient) Get(ctx context.Context, id string) (*Price, error) {
+	return c.Query().Where(price.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PriceClient) GetX(ctx context.Context, id string) *Price {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubscription queries the subscription edge of a Price.
+func (c *PriceClient) QuerySubscription(pr *Price) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(price.Table, price.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, price.SubscriptionTable, price.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PriceClient) Hooks() []Hook {
+	return c.hooks.Price
+}
+
+// Interceptors returns the client interceptors.
+func (c *PriceClient) Interceptors() []Interceptor {
+	return c.inters.Price
+}
+
+func (c *PriceClient) mutate(ctx context.Context, m *PriceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PriceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PriceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PriceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PriceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown Price mutation op: %q", m.Op())
+	}
+}
+
 // SubscriptionClient is a client for the Subscription schema.
 type SubscriptionClient struct {
 	config
@@ -4715,6 +4898,38 @@ func (c *SubscriptionClient) QuerySubscriptionPatches(s *Subscription) *Subscrip
 	return query
 }
 
+// QueryPrices queries the prices edge of a Subscription.
+func (c *SubscriptionClient) QueryPrices(s *Subscription) *PriceQuery {
+	query := (&PriceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(price.Table, price.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.PricesTable, subscription.PricesColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEntitlements queries the entitlements edge of a Subscription.
+func (c *SubscriptionClient) QueryEntitlements(s *Subscription) *SubscriptionEntitlementQuery {
+	query := (&SubscriptionEntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(subscriptionentitlement.Table, subscriptionentitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.EntitlementsTable, subscription.EntitlementsColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCustomer queries the customer edge of a Subscription.
 func (c *SubscriptionClient) QueryCustomer(s *Subscription) *CustomerQuery {
 	query := (&CustomerClient{config: c.config}).Query()
@@ -4753,6 +4968,171 @@ func (c *SubscriptionClient) mutate(ctx context.Context, m *SubscriptionMutation
 		return (&SubscriptionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown Subscription mutation op: %q", m.Op())
+	}
+}
+
+// SubscriptionEntitlementClient is a client for the SubscriptionEntitlement schema.
+type SubscriptionEntitlementClient struct {
+	config
+}
+
+// NewSubscriptionEntitlementClient returns a client for the SubscriptionEntitlement from the given config.
+func NewSubscriptionEntitlementClient(c config) *SubscriptionEntitlementClient {
+	return &SubscriptionEntitlementClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `subscriptionentitlement.Hooks(f(g(h())))`.
+func (c *SubscriptionEntitlementClient) Use(hooks ...Hook) {
+	c.hooks.SubscriptionEntitlement = append(c.hooks.SubscriptionEntitlement, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `subscriptionentitlement.Intercept(f(g(h())))`.
+func (c *SubscriptionEntitlementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SubscriptionEntitlement = append(c.inters.SubscriptionEntitlement, interceptors...)
+}
+
+// Create returns a builder for creating a SubscriptionEntitlement entity.
+func (c *SubscriptionEntitlementClient) Create() *SubscriptionEntitlementCreate {
+	mutation := newSubscriptionEntitlementMutation(c.config, OpCreate)
+	return &SubscriptionEntitlementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SubscriptionEntitlement entities.
+func (c *SubscriptionEntitlementClient) CreateBulk(builders ...*SubscriptionEntitlementCreate) *SubscriptionEntitlementCreateBulk {
+	return &SubscriptionEntitlementCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SubscriptionEntitlementClient) MapCreateBulk(slice any, setFunc func(*SubscriptionEntitlementCreate, int)) *SubscriptionEntitlementCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SubscriptionEntitlementCreateBulk{err: fmt.Errorf("calling to SubscriptionEntitlementClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SubscriptionEntitlementCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SubscriptionEntitlementCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SubscriptionEntitlement.
+func (c *SubscriptionEntitlementClient) Update() *SubscriptionEntitlementUpdate {
+	mutation := newSubscriptionEntitlementMutation(c.config, OpUpdate)
+	return &SubscriptionEntitlementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SubscriptionEntitlementClient) UpdateOne(se *SubscriptionEntitlement) *SubscriptionEntitlementUpdateOne {
+	mutation := newSubscriptionEntitlementMutation(c.config, OpUpdateOne, withSubscriptionEntitlement(se))
+	return &SubscriptionEntitlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SubscriptionEntitlementClient) UpdateOneID(id string) *SubscriptionEntitlementUpdateOne {
+	mutation := newSubscriptionEntitlementMutation(c.config, OpUpdateOne, withSubscriptionEntitlementID(id))
+	return &SubscriptionEntitlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SubscriptionEntitlement.
+func (c *SubscriptionEntitlementClient) Delete() *SubscriptionEntitlementDelete {
+	mutation := newSubscriptionEntitlementMutation(c.config, OpDelete)
+	return &SubscriptionEntitlementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SubscriptionEntitlementClient) DeleteOne(se *SubscriptionEntitlement) *SubscriptionEntitlementDeleteOne {
+	return c.DeleteOneID(se.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SubscriptionEntitlementClient) DeleteOneID(id string) *SubscriptionEntitlementDeleteOne {
+	builder := c.Delete().Where(subscriptionentitlement.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SubscriptionEntitlementDeleteOne{builder}
+}
+
+// Query returns a query builder for SubscriptionEntitlement.
+func (c *SubscriptionEntitlementClient) Query() *SubscriptionEntitlementQuery {
+	return &SubscriptionEntitlementQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSubscriptionEntitlement},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SubscriptionEntitlement entity by its id.
+func (c *SubscriptionEntitlementClient) Get(ctx context.Context, id string) (*SubscriptionEntitlement, error) {
+	return c.Query().Where(subscriptionentitlement.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SubscriptionEntitlementClient) GetX(ctx context.Context, id string) *SubscriptionEntitlement {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubscription queries the subscription edge of a SubscriptionEntitlement.
+func (c *SubscriptionEntitlementClient) QuerySubscription(se *SubscriptionEntitlement) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := se.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionentitlement.Table, subscriptionentitlement.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionentitlement.SubscriptionTable, subscriptionentitlement.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(se.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEntitlement queries the entitlement edge of a SubscriptionEntitlement.
+func (c *SubscriptionEntitlementClient) QueryEntitlement(se *SubscriptionEntitlement) *EntitlementQuery {
+	query := (&EntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := se.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionentitlement.Table, subscriptionentitlement.FieldID, id),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionentitlement.EntitlementTable, subscriptionentitlement.EntitlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(se.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SubscriptionEntitlementClient) Hooks() []Hook {
+	return c.hooks.SubscriptionEntitlement
+}
+
+// Interceptors returns the client interceptors.
+func (c *SubscriptionEntitlementClient) Interceptors() []Interceptor {
+	return c.inters.SubscriptionEntitlement
+}
+
+func (c *SubscriptionEntitlementClient) mutate(ctx context.Context, m *SubscriptionEntitlementMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SubscriptionEntitlementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SubscriptionEntitlementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SubscriptionEntitlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SubscriptionEntitlementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown SubscriptionEntitlement mutation op: %q", m.Op())
 	}
 }
 
@@ -5557,8 +5937,8 @@ type (
 		BillingInvoiceManualLineConfig, BillingInvoiceValidationIssue, BillingProfile,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanPhase, PlanRateCard, Subscription,
-		SubscriptionPatch, SubscriptionPatchValueAddItem,
+		NotificationRule, Plan, PlanPhase, PlanRateCard, Price, Subscription,
+		SubscriptionEntitlement, SubscriptionPatch, SubscriptionPatchValueAddItem,
 		SubscriptionPatchValueAddPhase, SubscriptionPatchValueExtendPhase,
 		UsageReset []ent.Hook
 	}
@@ -5568,8 +5948,8 @@ type (
 		BillingInvoiceManualLineConfig, BillingInvoiceValidationIssue, BillingProfile,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanPhase, PlanRateCard, Subscription,
-		SubscriptionPatch, SubscriptionPatchValueAddItem,
+		NotificationRule, Plan, PlanPhase, PlanRateCard, Price, Subscription,
+		SubscriptionEntitlement, SubscriptionPatch, SubscriptionPatchValueAddItem,
 		SubscriptionPatchValueAddPhase, SubscriptionPatchValueExtendPhase,
 		UsageReset []ent.Interceptor
 	}

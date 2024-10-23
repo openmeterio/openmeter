@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type NewSubscriptionRequest struct {
@@ -22,10 +24,7 @@ type NewSubscriptionRequest struct {
 	CustomerID string
 	Currency   currencyx.Code
 
-	Plan struct {
-		Key     string
-		Version int
-	}
+	Plan PlanRef
 
 	// The SubscriptionItem customizations compared to the plan
 	ItemCustomization []Patch
@@ -45,15 +44,31 @@ type command struct {
 	priceConnector  price.Connector
 	customerService customer.Service
 	// adapters
-	billingAdapter     BillingAdapter
 	planAdapter        PlanAdapter
 	entitlementAdapter EntitlementAdapter
 	// framework
 	transactionManager transaction.Creator
 }
 
-func NewCommand() Command {
-	return &command{}
+func NewCommand(
+	repo Repository,
+	// connectors
+	priceConnector price.Connector,
+	customerService customer.Service,
+	// adapters
+	planAdapter PlanAdapter,
+	entitlementAdapter EntitlementAdapter,
+	// framework
+	transactionManager transaction.Creator,
+) Command {
+	return &command{
+		repo:               repo,
+		priceConnector:     priceConnector,
+		customerService:    customerService,
+		planAdapter:        planAdapter,
+		entitlementAdapter: entitlementAdapter,
+		transactionManager: transactionManager,
+	}
 }
 
 func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error) {
@@ -133,7 +148,7 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 			}
 		}
 
-		// Once everything is succesful, lets save the patches
+		// Once everything is successful, lets save the patches
 		patchInputs, err := TransformPatchesForRepository(req.ItemCustomization, currentTime)
 		if err != nil {
 			return def, fmt.Errorf("failed to transform patches for repository: %w", err)
@@ -175,8 +190,10 @@ func (c *command) createPhase(ctx context.Context, sub Subscription, cust custom
 	}
 
 	cadence := models.CadencedModel{
-		ActiveFrom: phaseStartTime,
-		ActiveTo:   phaseEndTime,
+		ActiveFrom: phaseStartTime.UTC(),
+		ActiveTo: convert.SafeDeRef(phaseEndTime, func(t time.Time) *time.Time {
+			return lo.ToPtr(t.UTC())
+		}),
 	}
 
 	return transaction.RunWithNoValue(ctx, c.transactionManager, func(ctx context.Context) error {
@@ -217,7 +234,7 @@ func (c *command) createPhase(ctx context.Context, sub Subscription, cust custom
 			}
 			// Create Price
 			if item.CreatePriceInput != nil {
-				// TODO: link price to Item & Phase
+				// Correct linking of price input to item & phase happens during spec validation
 				_, err := c.priceConnector.Create(ctx, price.CreateInput{
 					SubscriptionId: models.NamespacedID{
 						Namespace: sub.Namespace,
@@ -260,12 +277,26 @@ type query struct {
 	entitlementAdapter EntitlementAdapter
 }
 
-func NewQuery() Query {
-	return &query{}
+func NewQuery(
+	repo Repository,
+	// connectors
+	priceConnector price.Connector,
+	featureConnector feature.FeatureConnector,
+	// adapters
+	planAdapter PlanAdapter,
+	entitlementAdapter EntitlementAdapter,
+) Query {
+	return &query{
+		repo:               repo,
+		priceConnector:     priceConnector,
+		featureConnector:   featureConnector,
+		planAdapter:        planAdapter,
+		entitlementAdapter: entitlementAdapter,
+	}
 }
 
 func (q *query) Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error) {
-	sub, err := q.repo.GetSubscription(ctx, models.NamespacedID{})
+	sub, err := q.repo.GetSubscription(ctx, subscriptionID)
 	if err != nil {
 		return Subscription{}, err
 	}
@@ -335,6 +366,9 @@ func (q *query) Expand(ctx context.Context, subscriptionID models.NamespacedID) 
 		Namespace: sub.Namespace,
 		ID:        sub.ID,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	view, err := NewSubscriptionView(sub, spec, ents, prices)
 

@@ -3,9 +3,10 @@ package datex_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestISOOperations(t *testing.T) {

@@ -3,8 +3,6 @@
 package subscriptionpatchvalueadditem
 
 import (
-	"time"
-
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -95,11 +93,6 @@ func CreateEntitlementEntitlementType(v string) predicate.SubscriptionPatchValue
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementEntitlementType, v))
 }
 
-// CreateEntitlementMeasureUsageFrom applies equality check predicate on the "create_entitlement_measure_usage_from" field. It's identical to CreateEntitlementMeasureUsageFromEQ.
-func CreateEntitlementMeasureUsageFrom(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
 // CreateEntitlementIssueAfterReset applies equality check predicate on the "create_entitlement_issue_after_reset" field. It's identical to CreateEntitlementIssueAfterResetEQ.
 func CreateEntitlementIssueAfterReset(v float64) predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementIssueAfterReset, v))
@@ -120,14 +113,14 @@ func CreateEntitlementPreserveOverageAtReset(v bool) predicate.SubscriptionPatch
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementPreserveOverageAtReset, v))
 }
 
-// CreateEntitlementUsagePeriodInterval applies equality check predicate on the "create_entitlement_usage_period_interval" field. It's identical to CreateEntitlementUsagePeriodIntervalEQ.
-func CreateEntitlementUsagePeriodInterval(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreateEntitlementUsagePeriodIsoDuration applies equality check predicate on the "create_entitlement_usage_period_iso_duration" field. It's identical to CreateEntitlementUsagePeriodIsoDurationEQ.
+func CreateEntitlementUsagePeriodIsoDuration(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementUsagePeriodIsoDuration, v))
 }
 
-// CreateEntitlementUsagePeriodAnchor applies equality check predicate on the "create_entitlement_usage_period_anchor" field. It's identical to CreateEntitlementUsagePeriodAnchorEQ.
-func CreateEntitlementUsagePeriodAnchor(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementUsagePeriodAnchor, v))
+// CreatePriceKey applies equality check predicate on the "create_price_key" field. It's identical to CreatePriceKeyEQ.
+func CreatePriceKey(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreatePriceKey, v))
 }
 
 // CreatePriceValue applies equality check predicate on the "create_price_value" field. It's identical to CreatePriceValueEQ.
@@ -545,56 +538,6 @@ func CreateEntitlementEntitlementTypeContainsFold(v string) predicate.Subscripti
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldContainsFold(FieldCreateEntitlementEntitlementType, v))
 }
 
-// CreateEntitlementMeasureUsageFromEQ applies the EQ predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromEQ(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
-// CreateEntitlementMeasureUsageFromNEQ applies the NEQ predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromNEQ(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNEQ(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
-// CreateEntitlementMeasureUsageFromIn applies the In predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromIn(vs ...time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIn(FieldCreateEntitlementMeasureUsageFrom, vs...))
-}
-
-// CreateEntitlementMeasureUsageFromNotIn applies the NotIn predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromNotIn(vs ...time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotIn(FieldCreateEntitlementMeasureUsageFrom, vs...))
-}
-
-// CreateEntitlementMeasureUsageFromGT applies the GT predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromGT(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGT(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
-// CreateEntitlementMeasureUsageFromGTE applies the GTE predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromGTE(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGTE(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
-// CreateEntitlementMeasureUsageFromLT applies the LT predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromLT(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLT(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
-// CreateEntitlementMeasureUsageFromLTE applies the LTE predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromLTE(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLTE(FieldCreateEntitlementMeasureUsageFrom, v))
-}
-
-// CreateEntitlementMeasureUsageFromIsNil applies the IsNil predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromIsNil() predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreateEntitlementMeasureUsageFrom))
-}
-
-// CreateEntitlementMeasureUsageFromNotNil applies the NotNil predicate on the "create_entitlement_measure_usage_from" field.
-func CreateEntitlementMeasureUsageFromNotNil() predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreateEntitlementMeasureUsageFrom))
-}
-
 // CreateEntitlementIssueAfterResetEQ applies the EQ predicate on the "create_entitlement_issue_after_reset" field.
 func CreateEntitlementIssueAfterResetEQ(v float64) predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementIssueAfterReset, v))
@@ -735,6 +678,81 @@ func CreateEntitlementPreserveOverageAtResetNotNil() predicate.SubscriptionPatch
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreateEntitlementPreserveOverageAtReset))
 }
 
+// CreateEntitlementUsagePeriodIsoDurationEQ applies the EQ predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationEQ(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationNEQ applies the NEQ predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationNEQ(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldNEQ(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationIn applies the In predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldIn(FieldCreateEntitlementUsagePeriodIsoDuration, vs...))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationNotIn applies the NotIn predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationNotIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotIn(FieldCreateEntitlementUsagePeriodIsoDuration, vs...))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationGT applies the GT predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationGT(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldGT(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationGTE applies the GTE predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationGTE(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldGTE(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationLT applies the LT predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationLT(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldLT(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationLTE applies the LTE predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationLTE(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldLTE(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationContains applies the Contains predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationContains(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldContains(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationHasPrefix applies the HasPrefix predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationHasPrefix(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasPrefix(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationHasSuffix applies the HasSuffix predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationHasSuffix(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasSuffix(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationIsNil applies the IsNil predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationIsNil() predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreateEntitlementUsagePeriodIsoDuration))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationNotNil applies the NotNil predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationNotNil() predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreateEntitlementUsagePeriodIsoDuration))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationEqualFold applies the EqualFold predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationEqualFold(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldEqualFold(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
+// CreateEntitlementUsagePeriodIsoDurationContainsFold applies the ContainsFold predicate on the "create_entitlement_usage_period_iso_duration" field.
+func CreateEntitlementUsagePeriodIsoDurationContainsFold(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldContainsFold(FieldCreateEntitlementUsagePeriodIsoDuration, v))
+}
+
 // CreateEntitlementConfigIsNil applies the IsNil predicate on the "create_entitlement_config" field.
 func CreateEntitlementConfigIsNil() predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreateEntitlementConfig))
@@ -745,129 +763,79 @@ func CreateEntitlementConfigNotNil() predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreateEntitlementConfig))
 }
 
-// CreateEntitlementUsagePeriodIntervalEQ applies the EQ predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalEQ(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyEQ applies the EQ predicate on the "create_price_key" field.
+func CreatePriceKeyEQ(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalNEQ applies the NEQ predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalNEQ(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNEQ(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyNEQ applies the NEQ predicate on the "create_price_key" field.
+func CreatePriceKeyNEQ(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldNEQ(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalIn applies the In predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIn(FieldCreateEntitlementUsagePeriodInterval, vs...))
+// CreatePriceKeyIn applies the In predicate on the "create_price_key" field.
+func CreatePriceKeyIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldIn(FieldCreatePriceKey, vs...))
 }
 
-// CreateEntitlementUsagePeriodIntervalNotIn applies the NotIn predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalNotIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotIn(FieldCreateEntitlementUsagePeriodInterval, vs...))
+// CreatePriceKeyNotIn applies the NotIn predicate on the "create_price_key" field.
+func CreatePriceKeyNotIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotIn(FieldCreatePriceKey, vs...))
 }
 
-// CreateEntitlementUsagePeriodIntervalGT applies the GT predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalGT(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGT(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyGT applies the GT predicate on the "create_price_key" field.
+func CreatePriceKeyGT(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldGT(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalGTE applies the GTE predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalGTE(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGTE(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyGTE applies the GTE predicate on the "create_price_key" field.
+func CreatePriceKeyGTE(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldGTE(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalLT applies the LT predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalLT(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLT(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyLT applies the LT predicate on the "create_price_key" field.
+func CreatePriceKeyLT(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldLT(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalLTE applies the LTE predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalLTE(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLTE(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyLTE applies the LTE predicate on the "create_price_key" field.
+func CreatePriceKeyLTE(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldLTE(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalContains applies the Contains predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalContains(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldContains(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyContains applies the Contains predicate on the "create_price_key" field.
+func CreatePriceKeyContains(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldContains(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalHasPrefix applies the HasPrefix predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalHasPrefix(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasPrefix(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyHasPrefix applies the HasPrefix predicate on the "create_price_key" field.
+func CreatePriceKeyHasPrefix(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasPrefix(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalHasSuffix applies the HasSuffix predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalHasSuffix(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasSuffix(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyHasSuffix applies the HasSuffix predicate on the "create_price_key" field.
+func CreatePriceKeyHasSuffix(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasSuffix(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalIsNil applies the IsNil predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalIsNil() predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreateEntitlementUsagePeriodInterval))
+// CreatePriceKeyIsNil applies the IsNil predicate on the "create_price_key" field.
+func CreatePriceKeyIsNil() predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreatePriceKey))
 }
 
-// CreateEntitlementUsagePeriodIntervalNotNil applies the NotNil predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalNotNil() predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreateEntitlementUsagePeriodInterval))
+// CreatePriceKeyNotNil applies the NotNil predicate on the "create_price_key" field.
+func CreatePriceKeyNotNil() predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreatePriceKey))
 }
 
-// CreateEntitlementUsagePeriodIntervalEqualFold applies the EqualFold predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalEqualFold(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEqualFold(FieldCreateEntitlementUsagePeriodInterval, v))
+// CreatePriceKeyEqualFold applies the EqualFold predicate on the "create_price_key" field.
+func CreatePriceKeyEqualFold(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldEqualFold(FieldCreatePriceKey, v))
 }
 
-// CreateEntitlementUsagePeriodIntervalContainsFold applies the ContainsFold predicate on the "create_entitlement_usage_period_interval" field.
-func CreateEntitlementUsagePeriodIntervalContainsFold(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldContainsFold(FieldCreateEntitlementUsagePeriodInterval, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorEQ applies the EQ predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorEQ(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreateEntitlementUsagePeriodAnchor, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorNEQ applies the NEQ predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorNEQ(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNEQ(FieldCreateEntitlementUsagePeriodAnchor, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorIn applies the In predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorIn(vs ...time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIn(FieldCreateEntitlementUsagePeriodAnchor, vs...))
-}
-
-// CreateEntitlementUsagePeriodAnchorNotIn applies the NotIn predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorNotIn(vs ...time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotIn(FieldCreateEntitlementUsagePeriodAnchor, vs...))
-}
-
-// CreateEntitlementUsagePeriodAnchorGT applies the GT predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorGT(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGT(FieldCreateEntitlementUsagePeriodAnchor, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorGTE applies the GTE predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorGTE(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGTE(FieldCreateEntitlementUsagePeriodAnchor, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorLT applies the LT predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorLT(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLT(FieldCreateEntitlementUsagePeriodAnchor, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorLTE applies the LTE predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorLTE(v time.Time) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLTE(FieldCreateEntitlementUsagePeriodAnchor, v))
-}
-
-// CreateEntitlementUsagePeriodAnchorIsNil applies the IsNil predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorIsNil() predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreateEntitlementUsagePeriodAnchor))
-}
-
-// CreateEntitlementUsagePeriodAnchorNotNil applies the NotNil predicate on the "create_entitlement_usage_period_anchor" field.
-func CreateEntitlementUsagePeriodAnchorNotNil() predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreateEntitlementUsagePeriodAnchor))
+// CreatePriceKeyContainsFold applies the ContainsFold predicate on the "create_price_key" field.
+func CreatePriceKeyContainsFold(v string) predicate.SubscriptionPatchValueAddItem {
+	return predicate.SubscriptionPatchValueAddItem(sql.FieldContainsFold(FieldCreatePriceKey, v))
 }
 
 // CreatePriceValueEQ applies the EQ predicate on the "create_price_value" field.

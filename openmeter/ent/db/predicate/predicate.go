@@ -133,8 +133,14 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// Price is the predicate function for price builders.
+type Price func(*sql.Selector)
+
 // Subscription is the predicate function for subscription builders.
 type Subscription func(*sql.Selector)
+
+// SubscriptionEntitlement is the predicate function for subscriptionentitlement builders.
+type SubscriptionEntitlement func(*sql.Selector)
 
 // SubscriptionPatch is the predicate function for subscriptionpatch builders.
 type SubscriptionPatch func(*sql.Selector)

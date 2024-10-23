@@ -12,7 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/price"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionentitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
 )
 
@@ -102,6 +104,36 @@ func (su *SubscriptionUpdate) AddSubscriptionPatches(s ...*SubscriptionPatch) *S
 	return su.AddSubscriptionPatchIDs(ids...)
 }
 
+// AddPriceIDs adds the "prices" edge to the Price entity by IDs.
+func (su *SubscriptionUpdate) AddPriceIDs(ids ...string) *SubscriptionUpdate {
+	su.mutation.AddPriceIDs(ids...)
+	return su
+}
+
+// AddPrices adds the "prices" edges to the Price entity.
+func (su *SubscriptionUpdate) AddPrices(p ...*Price) *SubscriptionUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return su.AddPriceIDs(ids...)
+}
+
+// AddEntitlementIDs adds the "entitlements" edge to the SubscriptionEntitlement entity by IDs.
+func (su *SubscriptionUpdate) AddEntitlementIDs(ids ...string) *SubscriptionUpdate {
+	su.mutation.AddEntitlementIDs(ids...)
+	return su
+}
+
+// AddEntitlements adds the "entitlements" edges to the SubscriptionEntitlement entity.
+func (su *SubscriptionUpdate) AddEntitlements(s ...*SubscriptionEntitlement) *SubscriptionUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return su.AddEntitlementIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (su *SubscriptionUpdate) Mutation() *SubscriptionMutation {
 	return su.mutation
@@ -126,6 +158,48 @@ func (su *SubscriptionUpdate) RemoveSubscriptionPatches(s ...*SubscriptionPatch)
 		ids[i] = s[i].ID
 	}
 	return su.RemoveSubscriptionPatchIDs(ids...)
+}
+
+// ClearPrices clears all "prices" edges to the Price entity.
+func (su *SubscriptionUpdate) ClearPrices() *SubscriptionUpdate {
+	su.mutation.ClearPrices()
+	return su
+}
+
+// RemovePriceIDs removes the "prices" edge to Price entities by IDs.
+func (su *SubscriptionUpdate) RemovePriceIDs(ids ...string) *SubscriptionUpdate {
+	su.mutation.RemovePriceIDs(ids...)
+	return su
+}
+
+// RemovePrices removes "prices" edges to Price entities.
+func (su *SubscriptionUpdate) RemovePrices(p ...*Price) *SubscriptionUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return su.RemovePriceIDs(ids...)
+}
+
+// ClearEntitlements clears all "entitlements" edges to the SubscriptionEntitlement entity.
+func (su *SubscriptionUpdate) ClearEntitlements() *SubscriptionUpdate {
+	su.mutation.ClearEntitlements()
+	return su
+}
+
+// RemoveEntitlementIDs removes the "entitlements" edge to SubscriptionEntitlement entities by IDs.
+func (su *SubscriptionUpdate) RemoveEntitlementIDs(ids ...string) *SubscriptionUpdate {
+	su.mutation.RemoveEntitlementIDs(ids...)
+	return su
+}
+
+// RemoveEntitlements removes "entitlements" edges to SubscriptionEntitlement entities.
+func (su *SubscriptionUpdate) RemoveEntitlements(s ...*SubscriptionEntitlement) *SubscriptionUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return su.RemoveEntitlementIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -250,6 +324,96 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if su.mutation.PricesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedPricesIDs(); len(nodes) > 0 && !su.mutation.PricesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.PricesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if su.mutation.EntitlementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedEntitlementsIDs(); len(nodes) > 0 && !su.mutation.EntitlementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.EntitlementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscription.Label}
@@ -343,6 +507,36 @@ func (suo *SubscriptionUpdateOne) AddSubscriptionPatches(s ...*SubscriptionPatch
 	return suo.AddSubscriptionPatchIDs(ids...)
 }
 
+// AddPriceIDs adds the "prices" edge to the Price entity by IDs.
+func (suo *SubscriptionUpdateOne) AddPriceIDs(ids ...string) *SubscriptionUpdateOne {
+	suo.mutation.AddPriceIDs(ids...)
+	return suo
+}
+
+// AddPrices adds the "prices" edges to the Price entity.
+func (suo *SubscriptionUpdateOne) AddPrices(p ...*Price) *SubscriptionUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return suo.AddPriceIDs(ids...)
+}
+
+// AddEntitlementIDs adds the "entitlements" edge to the SubscriptionEntitlement entity by IDs.
+func (suo *SubscriptionUpdateOne) AddEntitlementIDs(ids ...string) *SubscriptionUpdateOne {
+	suo.mutation.AddEntitlementIDs(ids...)
+	return suo
+}
+
+// AddEntitlements adds the "entitlements" edges to the SubscriptionEntitlement entity.
+func (suo *SubscriptionUpdateOne) AddEntitlements(s ...*SubscriptionEntitlement) *SubscriptionUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return suo.AddEntitlementIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (suo *SubscriptionUpdateOne) Mutation() *SubscriptionMutation {
 	return suo.mutation
@@ -367,6 +561,48 @@ func (suo *SubscriptionUpdateOne) RemoveSubscriptionPatches(s ...*SubscriptionPa
 		ids[i] = s[i].ID
 	}
 	return suo.RemoveSubscriptionPatchIDs(ids...)
+}
+
+// ClearPrices clears all "prices" edges to the Price entity.
+func (suo *SubscriptionUpdateOne) ClearPrices() *SubscriptionUpdateOne {
+	suo.mutation.ClearPrices()
+	return suo
+}
+
+// RemovePriceIDs removes the "prices" edge to Price entities by IDs.
+func (suo *SubscriptionUpdateOne) RemovePriceIDs(ids ...string) *SubscriptionUpdateOne {
+	suo.mutation.RemovePriceIDs(ids...)
+	return suo
+}
+
+// RemovePrices removes "prices" edges to Price entities.
+func (suo *SubscriptionUpdateOne) RemovePrices(p ...*Price) *SubscriptionUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return suo.RemovePriceIDs(ids...)
+}
+
+// ClearEntitlements clears all "entitlements" edges to the SubscriptionEntitlement entity.
+func (suo *SubscriptionUpdateOne) ClearEntitlements() *SubscriptionUpdateOne {
+	suo.mutation.ClearEntitlements()
+	return suo
+}
+
+// RemoveEntitlementIDs removes the "entitlements" edge to SubscriptionEntitlement entities by IDs.
+func (suo *SubscriptionUpdateOne) RemoveEntitlementIDs(ids ...string) *SubscriptionUpdateOne {
+	suo.mutation.RemoveEntitlementIDs(ids...)
+	return suo
+}
+
+// RemoveEntitlements removes "entitlements" edges to SubscriptionEntitlement entities.
+func (suo *SubscriptionUpdateOne) RemoveEntitlements(s ...*SubscriptionEntitlement) *SubscriptionUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return suo.RemoveEntitlementIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionUpdate builder.
@@ -514,6 +750,96 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatch.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.PricesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedPricesIDs(); len(nodes) > 0 && !suo.mutation.PricesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.PricesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.PricesTable,
+			Columns: []string{subscription.PricesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(price.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.EntitlementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedEntitlementsIDs(); len(nodes) > 0 && !suo.mutation.EntitlementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.EntitlementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.EntitlementsTable,
+			Columns: []string{subscription.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionentitlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

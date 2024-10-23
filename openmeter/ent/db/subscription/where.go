@@ -689,6 +689,52 @@ func HasSubscriptionPatchesWith(preds ...predicate.SubscriptionPatch) predicate.
 	})
 }
 
+// HasPrices applies the HasEdge predicate on the "prices" edge.
+func HasPrices() predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PricesTable, PricesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPricesWith applies the HasEdge predicate on the "prices" edge with a given conditions (other predicates).
+func HasPricesWith(preds ...predicate.Price) predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := newPricesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasEntitlements applies the HasEdge predicate on the "entitlements" edge.
+func HasEntitlements() predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, EntitlementsTable, EntitlementsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasEntitlementsWith applies the HasEdge predicate on the "entitlements" edge with a given conditions (other predicates).
+func HasEntitlementsWith(preds ...predicate.SubscriptionEntitlement) predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := newEntitlementsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasCustomer applies the HasEdge predicate on the "customer" edge.
 func HasCustomer() predicate.Subscription {
 	return predicate.Subscription(func(s *sql.Selector) {
