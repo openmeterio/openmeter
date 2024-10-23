@@ -170,7 +170,7 @@ func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string,
 	return rows, nil
 }
 
-func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent) error {
 	var err error
 
 	// Insert raw events

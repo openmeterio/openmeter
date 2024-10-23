@@ -98,7 +98,7 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return rows, nil
 }
 
-func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
 	return nil
 }
 

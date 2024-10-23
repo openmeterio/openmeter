@@ -15,15 +15,7 @@ type SinkMessage struct {
 	Serialized   *serializer.CloudEventsKafkaPayload
 	Status       ProcessingStatus
 	// Meters contains the list of meters this message affects
-	Meters      []models.Meter
-	MeterEvents []MeterEvent
-}
-
-type MeterEvent struct {
-	Meter       *models.Meter
-	Value       float64
-	ValueString string
-	GroupBy     map[string]string
+	Meters []models.Meter
 }
 
 type ProcessingState int8

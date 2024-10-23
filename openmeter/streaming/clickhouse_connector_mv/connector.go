@@ -94,8 +94,8 @@ func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
-	return c.rawEventConnector.BatchInsert(ctx, rawEvents, meterEvents)
+func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent) error {
+	return c.rawEventConnector.BatchInsert(ctx, rawEvents)
 }
 
 func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {

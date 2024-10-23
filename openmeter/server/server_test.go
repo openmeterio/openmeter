@@ -118,7 +118,7 @@ func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespac
 	return []string{"s1"}, nil
 }
 
-func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent, meterEvents []streaming.MeterEvent) error {
+func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
 	return nil
 }
 

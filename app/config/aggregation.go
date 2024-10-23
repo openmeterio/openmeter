@@ -18,12 +18,10 @@ const (
 	AggregationEngineClickHouseRaw AggregationEngine = "clickhouse_raw"
 	// MV engine maintains and queries materialized views
 	AggregationEngineClickHouseMV AggregationEngine = "clickhouse_mv"
-	// Parse engine parses events by meters and stores them in a separate unified meter events table
-	AggregationEngineClickHouseParse AggregationEngine = "clickhouse_parse"
 )
 
 func (e AggregationEngine) Values() []AggregationEngine {
-	return []AggregationEngine{AggregationEngineClickHouseRaw, AggregationEngineClickHouseMV, AggregationEngineClickHouseParse}
+	return []AggregationEngine{AggregationEngineClickHouseRaw, AggregationEngineClickHouseMV}
 }
 
 func (e AggregationEngine) Validate() error {
@@ -42,7 +40,7 @@ type AggregationConfiguration struct {
 	// before flushing them regularly to disk.
 	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
 	AsyncInsert bool
-	// Set true if you want an insert statement to return with an acknowledgment immediatelyy
+	// Set true if you want an insert statement to return with an acknowledgment immediately
 	// without waiting for the data got inserted into the buffer.
 	// Setting true can cause silent errors that you need to monitor separately.
 	AsyncInsertWait bool

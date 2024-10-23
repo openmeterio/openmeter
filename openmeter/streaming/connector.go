@@ -50,15 +50,6 @@ type RawEvent struct {
 	StoredAt        time.Time
 }
 
-// Meter Event represents a single event related to a meter
-type MeterEvent struct {
-	RawEvent
-	Meter       string
-	Value       float64
-	ValueString string
-	GroupBy     map[string]string
-}
-
 type Connector interface {
 	namespace.Handler
 
@@ -68,6 +59,6 @@ type Connector interface {
 	DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error
 	QueryMeter(ctx context.Context, namespace string, meter models.Meter, params QueryParams) ([]models.MeterQueryRow, error)
 	ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params ListMeterSubjectsParams) ([]string, error)
-	BatchInsert(ctx context.Context, events []RawEvent, meterEvents []MeterEvent) error
+	BatchInsert(ctx context.Context, events []RawEvent) error
 	// Add more methods as needed ...
 }

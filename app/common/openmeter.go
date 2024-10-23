@@ -23,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_mv"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_parse"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
@@ -79,18 +78,6 @@ func NewStreamingConnector(
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init clickhouse mv engine: %w", err)
-		}
-	case config.AggregationEngineClickHouseParse:
-		connector, err = clickhouse_connector_parse.NewClickhouseConnector(ctx, clickhouse_connector_parse.ClickhouseConnectorConfig{
-			ClickHouse:          clickHouse,
-			Database:            conf.ClickHouse.Database,
-			Logger:              logger,
-			AsyncInsert:         conf.AsyncInsert,
-			AsyncInsertWait:     conf.AsyncInsertWait,
-			InsertQuerySettings: conf.InsertQuerySettings,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init clickhouse parse engine: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("invalid aggregation engine: %s", conf.Engine)

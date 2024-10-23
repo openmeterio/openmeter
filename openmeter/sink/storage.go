@@ -42,7 +42,6 @@ type ClickHouseStorage struct {
 // BatchInsert inserts multiple messages into ClickHouse.
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	var rawEvents []streaming.RawEvent
-	var meterEvents []streaming.MeterEvent
 
 	for _, message := range messages {
 		var eventErr string
@@ -81,22 +80,9 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 		}
 
 		rawEvents = append(rawEvents, rawEvent)
-
-		// Meter events per meter
-		for _, meterEvent := range message.MeterEvents {
-			meterEvent := streaming.MeterEvent{
-				RawEvent:    rawEvent,
-				Meter:       meterEvent.Meter.GetID(),
-				Value:       meterEvent.Value,
-				ValueString: meterEvent.ValueString,
-				GroupBy:     meterEvent.GroupBy,
-			}
-
-			meterEvents = append(meterEvents, meterEvent)
-		}
 	}
 
-	if err := c.config.Streaming.BatchInsert(ctx, rawEvents, meterEvents); err != nil {
+	if err := c.config.Streaming.BatchInsert(ctx, rawEvents); err != nil {
 		return fmt.Errorf("failed to store events: %w", err)
 	}
 
