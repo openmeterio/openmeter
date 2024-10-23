@@ -234,11 +234,11 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 		Phases:                          make(map[string]*SubscriptionPhaseSpec),
 	}
 
-	if len(p.Phases()) == 0 {
-		return nil, fmt.Errorf("plan %s version %d has no phases", p.Key(), p.Version())
+	if len(p.GetPhases()) == 0 {
+		return nil, fmt.Errorf("plan %s version %d has no phases", p.GetKey(), p.GetVersionNumber())
 	}
 
-	for _, planPhase := range p.Phases() {
+	for _, planPhase := range p.GetPhases() {
 		phase := SubscriptionPhaseSpec{
 			CreateSubscriptionPhaseInput: CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: planPhase.ToCreateSubscriptionPhasePlanInput(),
@@ -248,24 +248,24 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 			Items: make(map[string]*SubscriptionItemSpec),
 		}
 
-		if len(planPhase.RateCards()) == 0 {
-			return nil, fmt.Errorf("phase %s of plan %s version %d has no rate cards", phase.PhaseKey, p.Key(), p.Version())
+		if len(planPhase.GetRateCards()) == 0 {
+			return nil, fmt.Errorf("phase %s of plan %s version %d has no rate cards", phase.PhaseKey, p.GetKey(), p.GetVersionNumber())
 		}
 
-		for _, rateCard := range planPhase.RateCards() {
+		for _, rateCard := range planPhase.GetRateCards() {
 			item := SubscriptionItemSpec{
 				CreateSubscriptionItemPlanInput: rateCard.ToCreateSubscriptionItemPlanInput(),
 			}
 
 			if _, exists := phase.Items[item.ItemKey]; exists {
-				return nil, fmt.Errorf("duplicate item key %s in phase %s of plan %s version %d", item.ItemKey, phase.PhaseKey, p.Key(), p.Version())
+				return nil, fmt.Errorf("duplicate item key %s in phase %s of plan %s version %d", item.ItemKey, phase.PhaseKey, p.GetKey(), p.GetVersionNumber())
 			}
 
 			phase.Items[item.ItemKey] = &item
 		}
 
 		if _, exists := spec.Phases[phase.PhaseKey]; exists {
-			return nil, fmt.Errorf("duplicate phase key %s in plan %s version %d", phase.PhaseKey, p.Key(), p.Version())
+			return nil, fmt.Errorf("duplicate phase key %s in plan %s version %d", phase.PhaseKey, p.GetKey(), p.GetVersionNumber())
 		}
 
 		spec.Phases[phase.PhaseKey] = &phase

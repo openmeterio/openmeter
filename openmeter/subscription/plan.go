@@ -14,20 +14,20 @@ type PlanAdapter interface {
 
 type RateCard interface {
 	ToCreateSubscriptionItemPlanInput() CreateSubscriptionItemPlanInput
-	Key() string
+	GetKey() string
 }
 
 type PlanPhase interface {
 	ToCreateSubscriptionPhasePlanInput() CreateSubscriptionPhasePlanInput
-	RateCards() []RateCard
-	Key() string
+	GetRateCards() []RateCard
+	GetKey() string
 }
 
 type Plan interface {
 	ToCreateSubscriptionPlanInput() CreateSubscriptionPlanInput
-	Phases() []PlanPhase
-	Key() string
-	Version() int
+	GetPhases() []PlanPhase
+	GetKey() string
+	GetVersionNumber() int
 }
 
 type PlanNotFoundError struct {

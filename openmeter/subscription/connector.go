@@ -45,7 +45,6 @@ type command struct {
 	priceConnector  price.Connector
 	customerService customer.Service
 	// adapters
-	billingAdapter     BillingAdapter
 	planAdapter        PlanAdapter
 	entitlementAdapter EntitlementAdapter
 	// framework
