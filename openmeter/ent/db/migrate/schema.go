@@ -1129,9 +1129,9 @@ var (
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "phase_key", Type: field.TypeString},
-		{Name: "start_after_iso", Type: field.TypeString, SchemaType: map[string]string{"postgres": "interval"}},
+		{Name: "start_after_iso", Type: field.TypeString},
 		{Name: "create_discount", Type: field.TypeBool},
-		{Name: "create_discount_applies_to", Type: field.TypeJSON},
+		{Name: "create_discount_applies_to", Type: field.TypeJSON, Nullable: true},
 		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionPatchValueAddPhasesTable holds the schema information for the "subscription_patch_value_add_phases" table.
@@ -1175,7 +1175,7 @@ var (
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "phase_key", Type: field.TypeString},
-		{Name: "extend_duration", Type: field.TypeString, SchemaType: map[string]string{"postgres": "interval"}},
+		{Name: "extend_duration_iso", Type: field.TypeString},
 		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionPatchValueExtendPhasesTable holds the schema information for the "subscription_patch_value_extend_phases" table.

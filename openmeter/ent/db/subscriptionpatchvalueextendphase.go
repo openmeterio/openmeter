@@ -23,8 +23,8 @@ type SubscriptionPatchValueExtendPhase struct {
 	SubscriptionPatchID string `json:"subscription_patch_id,omitempty"`
 	// PhaseKey holds the value of the "phase_key" field.
 	PhaseKey string `json:"phase_key,omitempty"`
-	// ExtendDuration holds the value of the "extend_duration" field.
-	ExtendDuration string `json:"extend_duration,omitempty"`
+	// ExtendDurationIso holds the value of the "extend_duration_iso" field.
+	ExtendDurationIso string `json:"extend_duration_iso,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionPatchValueExtendPhaseQuery when eager-loading is set.
 	Edges        SubscriptionPatchValueExtendPhaseEdges `json:"edges"`
@@ -56,7 +56,7 @@ func (*SubscriptionPatchValueExtendPhase) scanValues(columns []string) ([]any, e
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionpatchvalueextendphase.FieldID, subscriptionpatchvalueextendphase.FieldNamespace, subscriptionpatchvalueextendphase.FieldSubscriptionPatchID, subscriptionpatchvalueextendphase.FieldPhaseKey, subscriptionpatchvalueextendphase.FieldExtendDuration:
+		case subscriptionpatchvalueextendphase.FieldID, subscriptionpatchvalueextendphase.FieldNamespace, subscriptionpatchvalueextendphase.FieldSubscriptionPatchID, subscriptionpatchvalueextendphase.FieldPhaseKey, subscriptionpatchvalueextendphase.FieldExtendDurationIso:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -97,11 +97,11 @@ func (spvep *SubscriptionPatchValueExtendPhase) assignValues(columns []string, v
 			} else if value.Valid {
 				spvep.PhaseKey = value.String
 			}
-		case subscriptionpatchvalueextendphase.FieldExtendDuration:
+		case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field extend_duration", values[i])
+				return fmt.Errorf("unexpected type %T for field extend_duration_iso", values[i])
 			} else if value.Valid {
-				spvep.ExtendDuration = value.String
+				spvep.ExtendDurationIso = value.String
 			}
 		default:
 			spvep.selectValues.Set(columns[i], values[i])
@@ -153,8 +153,8 @@ func (spvep *SubscriptionPatchValueExtendPhase) String() string {
 	builder.WriteString("phase_key=")
 	builder.WriteString(spvep.PhaseKey)
 	builder.WriteString(", ")
-	builder.WriteString("extend_duration=")
-	builder.WriteString(spvep.ExtendDuration)
+	builder.WriteString("extend_duration_iso=")
+	builder.WriteString(spvep.ExtendDurationIso)
 	builder.WriteByte(')')
 	return builder.String()
 }

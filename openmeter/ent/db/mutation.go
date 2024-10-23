@@ -25840,10 +25840,24 @@ func (m *SubscriptionPatchValueAddPhaseMutation) AppendedCreateDiscountAppliesTo
 	return m.appendcreate_discount_applies_to, true
 }
 
+// ClearCreateDiscountAppliesTo clears the value of the "create_discount_applies_to" field.
+func (m *SubscriptionPatchValueAddPhaseMutation) ClearCreateDiscountAppliesTo() {
+	m.create_discount_applies_to = nil
+	m.appendcreate_discount_applies_to = nil
+	m.clearedFields[subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo] = struct{}{}
+}
+
+// CreateDiscountAppliesToCleared returns if the "create_discount_applies_to" field was cleared in this mutation.
+func (m *SubscriptionPatchValueAddPhaseMutation) CreateDiscountAppliesToCleared() bool {
+	_, ok := m.clearedFields[subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo]
+	return ok
+}
+
 // ResetCreateDiscountAppliesTo resets all changes to the "create_discount_applies_to" field.
 func (m *SubscriptionPatchValueAddPhaseMutation) ResetCreateDiscountAppliesTo() {
 	m.create_discount_applies_to = nil
 	m.appendcreate_discount_applies_to = nil
+	delete(m.clearedFields, subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo)
 }
 
 // ClearSubscriptionPatch clears the "subscription_patch" edge to the SubscriptionPatch entity.
@@ -26047,7 +26061,11 @@ func (m *SubscriptionPatchValueAddPhaseMutation) AddField(name string, value ent
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *SubscriptionPatchValueAddPhaseMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo) {
+		fields = append(fields, subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -26060,6 +26078,11 @@ func (m *SubscriptionPatchValueAddPhaseMutation) FieldCleared(name string) bool 
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *SubscriptionPatchValueAddPhaseMutation) ClearField(name string) error {
+	switch name {
+	case subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo:
+		m.ClearCreateDiscountAppliesTo()
+		return nil
+	}
 	return fmt.Errorf("unknown SubscriptionPatchValueAddPhase nullable field %s", name)
 }
 
@@ -26171,7 +26194,7 @@ type SubscriptionPatchValueExtendPhaseMutation struct {
 	id                        *string
 	namespace                 *string
 	phase_key                 *string
-	extend_duration           *string
+	extend_duration_iso       *string
 	clearedFields             map[string]struct{}
 	subscription_patch        *string
 	clearedsubscription_patch bool
@@ -26392,40 +26415,40 @@ func (m *SubscriptionPatchValueExtendPhaseMutation) ResetPhaseKey() {
 	m.phase_key = nil
 }
 
-// SetExtendDuration sets the "extend_duration" field.
-func (m *SubscriptionPatchValueExtendPhaseMutation) SetExtendDuration(s string) {
-	m.extend_duration = &s
+// SetExtendDurationIso sets the "extend_duration_iso" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) SetExtendDurationIso(s string) {
+	m.extend_duration_iso = &s
 }
 
-// ExtendDuration returns the value of the "extend_duration" field in the mutation.
-func (m *SubscriptionPatchValueExtendPhaseMutation) ExtendDuration() (r string, exists bool) {
-	v := m.extend_duration
+// ExtendDurationIso returns the value of the "extend_duration_iso" field in the mutation.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ExtendDurationIso() (r string, exists bool) {
+	v := m.extend_duration_iso
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldExtendDuration returns the old "extend_duration" field's value of the SubscriptionPatchValueExtendPhase entity.
+// OldExtendDurationIso returns the old "extend_duration_iso" field's value of the SubscriptionPatchValueExtendPhase entity.
 // If the SubscriptionPatchValueExtendPhase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionPatchValueExtendPhaseMutation) OldExtendDuration(ctx context.Context) (v string, err error) {
+func (m *SubscriptionPatchValueExtendPhaseMutation) OldExtendDurationIso(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldExtendDuration is only allowed on UpdateOne operations")
+		return v, errors.New("OldExtendDurationIso is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldExtendDuration requires an ID field in the mutation")
+		return v, errors.New("OldExtendDurationIso requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldExtendDuration: %w", err)
+		return v, fmt.Errorf("querying old value for OldExtendDurationIso: %w", err)
 	}
-	return oldValue.ExtendDuration, nil
+	return oldValue.ExtendDurationIso, nil
 }
 
-// ResetExtendDuration resets all changes to the "extend_duration" field.
-func (m *SubscriptionPatchValueExtendPhaseMutation) ResetExtendDuration() {
-	m.extend_duration = nil
+// ResetExtendDurationIso resets all changes to the "extend_duration_iso" field.
+func (m *SubscriptionPatchValueExtendPhaseMutation) ResetExtendDurationIso() {
+	m.extend_duration_iso = nil
 }
 
 // ClearSubscriptionPatch clears the "subscription_patch" edge to the SubscriptionPatch entity.
@@ -26499,8 +26522,8 @@ func (m *SubscriptionPatchValueExtendPhaseMutation) Fields() []string {
 	if m.phase_key != nil {
 		fields = append(fields, subscriptionpatchvalueextendphase.FieldPhaseKey)
 	}
-	if m.extend_duration != nil {
-		fields = append(fields, subscriptionpatchvalueextendphase.FieldExtendDuration)
+	if m.extend_duration_iso != nil {
+		fields = append(fields, subscriptionpatchvalueextendphase.FieldExtendDurationIso)
 	}
 	return fields
 }
@@ -26516,8 +26539,8 @@ func (m *SubscriptionPatchValueExtendPhaseMutation) Field(name string) (ent.Valu
 		return m.SubscriptionPatchID()
 	case subscriptionpatchvalueextendphase.FieldPhaseKey:
 		return m.PhaseKey()
-	case subscriptionpatchvalueextendphase.FieldExtendDuration:
-		return m.ExtendDuration()
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		return m.ExtendDurationIso()
 	}
 	return nil, false
 }
@@ -26533,8 +26556,8 @@ func (m *SubscriptionPatchValueExtendPhaseMutation) OldField(ctx context.Context
 		return m.OldSubscriptionPatchID(ctx)
 	case subscriptionpatchvalueextendphase.FieldPhaseKey:
 		return m.OldPhaseKey(ctx)
-	case subscriptionpatchvalueextendphase.FieldExtendDuration:
-		return m.OldExtendDuration(ctx)
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		return m.OldExtendDurationIso(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionPatchValueExtendPhase field %s", name)
 }
@@ -26565,12 +26588,12 @@ func (m *SubscriptionPatchValueExtendPhaseMutation) SetField(name string, value 
 		}
 		m.SetPhaseKey(v)
 		return nil
-	case subscriptionpatchvalueextendphase.FieldExtendDuration:
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetExtendDuration(v)
+		m.SetExtendDurationIso(v)
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase field %s", name)
@@ -26630,8 +26653,8 @@ func (m *SubscriptionPatchValueExtendPhaseMutation) ResetField(name string) erro
 	case subscriptionpatchvalueextendphase.FieldPhaseKey:
 		m.ResetPhaseKey()
 		return nil
-	case subscriptionpatchvalueextendphase.FieldExtendDuration:
-		m.ResetExtendDuration()
+	case subscriptionpatchvalueextendphase.FieldExtendDurationIso:
+		m.ResetExtendDurationIso()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPatchValueExtendPhase field %s", name)

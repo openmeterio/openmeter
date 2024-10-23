@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 )
 
 type subscriptionRepo struct {
@@ -103,7 +105,7 @@ func (r *subscriptionRepo) CreateSubscription(ctx context.Context, namespace str
 func (r *subscriptionRepo) GetSubscriptionPatches(ctx context.Context, subscriptionID models.NamespacedID) ([]subscription.SubscriptionPatch, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) ([]subscription.SubscriptionPatch, error) {
 		// Should we validate that the subscription is active?
-		res, err := repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().
+		res, err := repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().WithValueExtendPhase().
 			Where(
 				dbsubscriptionpatch.SubscriptionID(subscriptionID.ID),
 			).All(ctx)
@@ -126,32 +128,87 @@ func (r *subscriptionRepo) GetSubscriptionPatches(ctx context.Context, subscript
 
 func (r *subscriptionRepo) CreateSubscriptionPatches(ctx context.Context, subscriptionID models.NamespacedID, patches []subscription.CreateSubscriptionPatchInput) ([]subscription.SubscriptionPatch, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) ([]subscription.SubscriptionPatch, error) {
-		dbPatches, err := repo.db.SubscriptionPatch.MapCreateBulk(patches, func(spc *db.SubscriptionPatchCreate, i int) {
-			spc.
-				SetSubscriptionID(subscriptionID.ID).
-				SetNamespace(subscriptionID.Namespace).
-				SetAppliedAt(patches[i].AppliedAt).
-				SetBatchIndex(patches[i].BatchIndex).
-				SetOperation(string(patches[i].Op())).
-				SetPath(string(patches[i].Path()))
-
-			if patches[i].Op() == subscription.PatchOperationAdd && patches[i].Path().Type() == subscription.PatchPathTypeItem {
-				spc.SetValueAddItem(&db.SubscriptionPatchValueAddItem{
-					// TODO: map
-				})
-				panic("mapping not implemented")
-			} else if patches[i].Op() == subscription.PatchOperationAdd && patches[i].Path().Type() == subscription.PatchPathTypePhase {
-				spc.SetValueAddPhase(&db.SubscriptionPatchValueAddPhase{
-					// TODO: map
-				})
-				panic("mapping not implemented")
-			} else if patches[i].Op() == subscription.PatchOperationExtend && patches[i].Path().Type() == subscription.PatchPathTypePhase {
-				spc.SetValueExtendPhase(&db.SubscriptionPatchValueExtendPhase{
-					// TODO: map
-				})
-				panic("mapping not implemented")
+		// Validate batchIndexes are unique.
+		// This is needed as later we match the value patches to the patches via the batch index
+		batchIndexes := make(map[int]struct{})
+		for _, p := range patches {
+			if _, exists := batchIndexes[p.BatchIndex]; exists {
+				return nil, fmt.Errorf("duplicate batch index %d", p.BatchIndex)
 			}
+			batchIndexes[p.BatchIndex] = struct{}{}
+		}
+
+		creates, err := mapPatchesToCreates(subscriptionID, patches)
+		if err != nil {
+			return nil, err
+		}
+
+		// First we create the patches
+		dbPatches, err := repo.db.SubscriptionPatch.MapCreateBulk(creates, func(spc *db.SubscriptionPatchCreate, i int) {
+			creates[i].patch(spc)
 		}).Save(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// Then we create the getter util so the Value Patches can reference the patch ID
+		sortedDBPatches := make([]*db.SubscriptionPatch, len(dbPatches))
+		copy(sortedDBPatches, dbPatches)
+		slices.SortStableFunc(sortedDBPatches, func(i, j *db.SubscriptionPatch) int {
+			return i.BatchIndex - j.BatchIndex
+		})
+
+		getPatch := func(batchIndex int) *db.SubscriptionPatch {
+			return sortedDBPatches[batchIndex]
+		}
+
+		// Then we create each of the values
+		addItemPatch := lo.Filter(creates, func(c patchCreator, _ int) bool {
+			return c.addItem != nil
+		})
+
+		if len(addItemPatch) > 0 {
+			_, err = repo.db.SubscriptionPatchValueAddItem.MapCreateBulk(addItemPatch, func(spc *db.SubscriptionPatchValueAddItemCreate, i int) {
+				addItemPatch[i].addItem(spc, getPatch)
+			}).Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		addPhasePatch := lo.Filter(creates, func(c patchCreator, _ int) bool {
+			return c.addPhase != nil
+		})
+
+		if len(addPhasePatch) > 0 {
+			_, err = repo.db.SubscriptionPatchValueAddPhase.MapCreateBulk(addPhasePatch, func(spc *db.SubscriptionPatchValueAddPhaseCreate, i int) {
+				addPhasePatch[i].addPhase(spc, getPatch)
+			}).Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		extendPhasePatch := lo.Filter(creates, func(c patchCreator, _ int) bool {
+			return c.extendPhase != nil
+		})
+
+		if len(extendPhasePatch) > 0 {
+			_, err = repo.db.SubscriptionPatchValueExtendPhase.MapCreateBulk(extendPhasePatch, func(spc *db.SubscriptionPatchValueExtendPhaseCreate, i int) {
+				extendPhasePatch[i].extendPhase(spc, getPatch)
+			}).Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// We have to refetch the patches to also load the edges, otherwise mapping would fail
+		// Alternatively we could map them here in memory but that probably would not be worth the complication
+		dbPatches, err = repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().WithValueExtendPhase().Where(
+			dbsubscriptionpatch.IDIn(lo.Map(dbPatches, func(p *db.SubscriptionPatch, _ int) string {
+				return p.ID
+			})...),
+		).All(ctx)
 		if err != nil {
 			return nil, err
 		}

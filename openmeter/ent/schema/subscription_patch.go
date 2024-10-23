@@ -76,7 +76,6 @@ func (SubscriptionPatchValueAddItem) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("subscription_patch_id").NotEmpty().Immutable(),
 		// Data properties
-		// Add
 		field.String("phase_key").NotEmpty().Immutable(),
 		field.String("item_key").NotEmpty().Immutable(),
 		field.String("feature_key").Optional().Nillable().Immutable(),
@@ -126,11 +125,9 @@ func (SubscriptionPatchValueAddPhase) Fields() []ent.Field {
 		field.String("subscription_patch_id").NotEmpty().Immutable(),
 		// Data Properties
 		field.String("phase_key").NotEmpty().Immutable(),
-		field.String("start_after_iso").SchemaType(map[string]string{
-			dialect.Postgres: "interval",
-		}).Immutable(),
+		field.String("start_after_iso").Immutable(),
 		field.Bool("create_discount").Immutable(),
-		field.Strings("create_discount_applies_to").Immutable(),
+		field.Strings("create_discount_applies_to").Optional().Immutable(),
 	}
 }
 
@@ -163,9 +160,7 @@ func (SubscriptionPatchValueExtendPhase) Fields() []ent.Field {
 		field.String("subscription_patch_id").NotEmpty().Immutable(),
 		// Data Properties
 		field.String("phase_key").NotEmpty().Immutable(),
-		field.String("extend_duration").SchemaType(map[string]string{
-			dialect.Postgres: "interval",
-		}).Immutable(),
+		field.String("extend_duration_iso").Immutable(),
 	}
 }
 

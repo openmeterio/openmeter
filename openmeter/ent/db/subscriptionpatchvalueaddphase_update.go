@@ -79,6 +79,9 @@ func (spvapu *SubscriptionPatchValueAddPhaseUpdate) sqlSave(ctx context.Context)
 			}
 		}
 	}
+	if spvapu.mutation.CreateDiscountAppliesToCleared() {
+		_spec.ClearField(subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo, field.TypeJSON)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, spvapu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionpatchvalueaddphase.Label}
@@ -180,6 +183,9 @@ func (spvapuo *SubscriptionPatchValueAddPhaseUpdateOne) sqlSave(ctx context.Cont
 				ps[i](selector)
 			}
 		}
+	}
+	if spvapuo.mutation.CreateDiscountAppliesToCleared() {
+		_spec.ClearField(subscriptionpatchvalueaddphase.FieldCreateDiscountAppliesTo, field.TypeJSON)
 	}
 	_node = &SubscriptionPatchValueAddPhase{config: spvapuo.config}
 	_spec.Assign = _node.assignValues

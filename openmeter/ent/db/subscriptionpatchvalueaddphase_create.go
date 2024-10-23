@@ -151,9 +151,6 @@ func (spvapc *SubscriptionPatchValueAddPhaseCreate) check() error {
 	if _, ok := spvapc.mutation.CreateDiscount(); !ok {
 		return &ValidationError{Name: "create_discount", err: errors.New(`db: missing required field "SubscriptionPatchValueAddPhase.create_discount"`)}
 	}
-	if _, ok := spvapc.mutation.CreateDiscountAppliesTo(); !ok {
-		return &ValidationError{Name: "create_discount_applies_to", err: errors.New(`db: missing required field "SubscriptionPatchValueAddPhase.create_discount_applies_to"`)}
-	}
 	if len(spvapc.mutation.SubscriptionPatchIDs()) == 0 {
 		return &ValidationError{Name: "subscription_patch", err: errors.New(`db: missing required edge "SubscriptionPatchValueAddPhase.subscription_patch"`)}
 	}

@@ -31,5 +31,5 @@ func (p Period) Add(p2 Period) (Period, error) {
 
 // FromDuration creates an IMPRECISE Period from a time.Duration
 func FromDuration(d time.Duration) Period {
-	return Period{period.NewOf(d).Normalise(false)}
+	return Period{period.NewOf(d).Normalise(false).Simplify(false)}
 }

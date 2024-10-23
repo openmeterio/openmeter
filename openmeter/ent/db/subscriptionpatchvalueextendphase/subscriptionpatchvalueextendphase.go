@@ -18,8 +18,8 @@ const (
 	FieldSubscriptionPatchID = "subscription_patch_id"
 	// FieldPhaseKey holds the string denoting the phase_key field in the database.
 	FieldPhaseKey = "phase_key"
-	// FieldExtendDuration holds the string denoting the extend_duration field in the database.
-	FieldExtendDuration = "extend_duration"
+	// FieldExtendDurationIso holds the string denoting the extend_duration_iso field in the database.
+	FieldExtendDurationIso = "extend_duration_iso"
 	// EdgeSubscriptionPatch holds the string denoting the subscription_patch edge name in mutations.
 	EdgeSubscriptionPatch = "subscription_patch"
 	// Table holds the table name of the subscriptionpatchvalueextendphase in the database.
@@ -39,7 +39,7 @@ var Columns = []string{
 	FieldNamespace,
 	FieldSubscriptionPatchID,
 	FieldPhaseKey,
-	FieldExtendDuration,
+	FieldExtendDurationIso,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -86,9 +86,9 @@ func ByPhaseKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPhaseKey, opts...).ToFunc()
 }
 
-// ByExtendDuration orders the results by the extend_duration field.
-func ByExtendDuration(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExtendDuration, opts...).ToFunc()
+// ByExtendDurationIso orders the results by the extend_duration_iso field.
+func ByExtendDurationIso(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExtendDurationIso, opts...).ToFunc()
 }
 
 // BySubscriptionPatchField orders the results by subscription_patch field.

@@ -41,9 +41,9 @@ func (spvepc *SubscriptionPatchValueExtendPhaseCreate) SetPhaseKey(s string) *Su
 	return spvepc
 }
 
-// SetExtendDuration sets the "extend_duration" field.
-func (spvepc *SubscriptionPatchValueExtendPhaseCreate) SetExtendDuration(s string) *SubscriptionPatchValueExtendPhaseCreate {
-	spvepc.mutation.SetExtendDuration(s)
+// SetExtendDurationIso sets the "extend_duration_iso" field.
+func (spvepc *SubscriptionPatchValueExtendPhaseCreate) SetExtendDurationIso(s string) *SubscriptionPatchValueExtendPhaseCreate {
+	spvepc.mutation.SetExtendDurationIso(s)
 	return spvepc
 }
 
@@ -133,8 +133,8 @@ func (spvepc *SubscriptionPatchValueExtendPhaseCreate) check() error {
 			return &ValidationError{Name: "phase_key", err: fmt.Errorf(`db: validator failed for field "SubscriptionPatchValueExtendPhase.phase_key": %w`, err)}
 		}
 	}
-	if _, ok := spvepc.mutation.ExtendDuration(); !ok {
-		return &ValidationError{Name: "extend_duration", err: errors.New(`db: missing required field "SubscriptionPatchValueExtendPhase.extend_duration"`)}
+	if _, ok := spvepc.mutation.ExtendDurationIso(); !ok {
+		return &ValidationError{Name: "extend_duration_iso", err: errors.New(`db: missing required field "SubscriptionPatchValueExtendPhase.extend_duration_iso"`)}
 	}
 	if len(spvepc.mutation.SubscriptionPatchIDs()) == 0 {
 		return &ValidationError{Name: "subscription_patch", err: errors.New(`db: missing required edge "SubscriptionPatchValueExtendPhase.subscription_patch"`)}
@@ -183,9 +183,9 @@ func (spvepc *SubscriptionPatchValueExtendPhaseCreate) createSpec() (*Subscripti
 		_spec.SetField(subscriptionpatchvalueextendphase.FieldPhaseKey, field.TypeString, value)
 		_node.PhaseKey = value
 	}
-	if value, ok := spvepc.mutation.ExtendDuration(); ok {
-		_spec.SetField(subscriptionpatchvalueextendphase.FieldExtendDuration, field.TypeString, value)
-		_node.ExtendDuration = value
+	if value, ok := spvepc.mutation.ExtendDurationIso(); ok {
+		_spec.SetField(subscriptionpatchvalueextendphase.FieldExtendDurationIso, field.TypeString, value)
+		_node.ExtendDurationIso = value
 	}
 	if nodes := spvepc.mutation.SubscriptionPatchIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -282,8 +282,8 @@ func (u *SubscriptionPatchValueExtendPhaseUpsertOne) UpdateNewValues() *Subscrip
 		if _, exists := u.create.mutation.PhaseKey(); exists {
 			s.SetIgnore(subscriptionpatchvalueextendphase.FieldPhaseKey)
 		}
-		if _, exists := u.create.mutation.ExtendDuration(); exists {
-			s.SetIgnore(subscriptionpatchvalueextendphase.FieldExtendDuration)
+		if _, exists := u.create.mutation.ExtendDurationIso(); exists {
+			s.SetIgnore(subscriptionpatchvalueextendphase.FieldExtendDurationIso)
 		}
 	}))
 	return u
@@ -508,8 +508,8 @@ func (u *SubscriptionPatchValueExtendPhaseUpsertBulk) UpdateNewValues() *Subscri
 			if _, exists := b.mutation.PhaseKey(); exists {
 				s.SetIgnore(subscriptionpatchvalueextendphase.FieldPhaseKey)
 			}
-			if _, exists := b.mutation.ExtendDuration(); exists {
-				s.SetIgnore(subscriptionpatchvalueextendphase.FieldExtendDuration)
+			if _, exists := b.mutation.ExtendDurationIso(); exists {
+				s.SetIgnore(subscriptionpatchvalueextendphase.FieldExtendDurationIso)
 			}
 		}
 	}))

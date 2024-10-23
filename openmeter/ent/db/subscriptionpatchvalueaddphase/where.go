@@ -358,6 +358,16 @@ func CreateDiscountNEQ(v bool) predicate.SubscriptionPatchValueAddPhase {
 	return predicate.SubscriptionPatchValueAddPhase(sql.FieldNEQ(FieldCreateDiscount, v))
 }
 
+// CreateDiscountAppliesToIsNil applies the IsNil predicate on the "create_discount_applies_to" field.
+func CreateDiscountAppliesToIsNil() predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldIsNull(FieldCreateDiscountAppliesTo))
+}
+
+// CreateDiscountAppliesToNotNil applies the NotNil predicate on the "create_discount_applies_to" field.
+func CreateDiscountAppliesToNotNil() predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldNotNull(FieldCreateDiscountAppliesTo))
+}
+
 // HasSubscriptionPatch applies the HasEdge predicate on the "subscription_patch" edge.
 func HasSubscriptionPatch() predicate.SubscriptionPatchValueAddPhase {
 	return predicate.SubscriptionPatchValueAddPhase(func(s *sql.Selector) {

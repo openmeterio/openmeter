@@ -78,9 +78,9 @@ func PhaseKey(v string) predicate.SubscriptionPatchValueExtendPhase {
 	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEQ(FieldPhaseKey, v))
 }
 
-// ExtendDuration applies equality check predicate on the "extend_duration" field. It's identical to ExtendDurationEQ.
-func ExtendDuration(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEQ(FieldExtendDuration, v))
+// ExtendDurationIso applies equality check predicate on the "extend_duration_iso" field. It's identical to ExtendDurationIsoEQ.
+func ExtendDurationIso(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEQ(FieldExtendDurationIso, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -278,69 +278,69 @@ func PhaseKeyContainsFold(v string) predicate.SubscriptionPatchValueExtendPhase 
 	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldContainsFold(FieldPhaseKey, v))
 }
 
-// ExtendDurationEQ applies the EQ predicate on the "extend_duration" field.
-func ExtendDurationEQ(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEQ(FieldExtendDuration, v))
+// ExtendDurationIsoEQ applies the EQ predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoEQ(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEQ(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationNEQ applies the NEQ predicate on the "extend_duration" field.
-func ExtendDurationNEQ(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldNEQ(FieldExtendDuration, v))
+// ExtendDurationIsoNEQ applies the NEQ predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoNEQ(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldNEQ(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationIn applies the In predicate on the "extend_duration" field.
-func ExtendDurationIn(vs ...string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldIn(FieldExtendDuration, vs...))
+// ExtendDurationIsoIn applies the In predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoIn(vs ...string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldIn(FieldExtendDurationIso, vs...))
 }
 
-// ExtendDurationNotIn applies the NotIn predicate on the "extend_duration" field.
-func ExtendDurationNotIn(vs ...string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldNotIn(FieldExtendDuration, vs...))
+// ExtendDurationIsoNotIn applies the NotIn predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoNotIn(vs ...string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldNotIn(FieldExtendDurationIso, vs...))
 }
 
-// ExtendDurationGT applies the GT predicate on the "extend_duration" field.
-func ExtendDurationGT(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldGT(FieldExtendDuration, v))
+// ExtendDurationIsoGT applies the GT predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoGT(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldGT(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationGTE applies the GTE predicate on the "extend_duration" field.
-func ExtendDurationGTE(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldGTE(FieldExtendDuration, v))
+// ExtendDurationIsoGTE applies the GTE predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoGTE(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldGTE(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationLT applies the LT predicate on the "extend_duration" field.
-func ExtendDurationLT(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldLT(FieldExtendDuration, v))
+// ExtendDurationIsoLT applies the LT predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoLT(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldLT(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationLTE applies the LTE predicate on the "extend_duration" field.
-func ExtendDurationLTE(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldLTE(FieldExtendDuration, v))
+// ExtendDurationIsoLTE applies the LTE predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoLTE(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldLTE(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationContains applies the Contains predicate on the "extend_duration" field.
-func ExtendDurationContains(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldContains(FieldExtendDuration, v))
+// ExtendDurationIsoContains applies the Contains predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoContains(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldContains(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationHasPrefix applies the HasPrefix predicate on the "extend_duration" field.
-func ExtendDurationHasPrefix(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldHasPrefix(FieldExtendDuration, v))
+// ExtendDurationIsoHasPrefix applies the HasPrefix predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoHasPrefix(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldHasPrefix(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationHasSuffix applies the HasSuffix predicate on the "extend_duration" field.
-func ExtendDurationHasSuffix(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldHasSuffix(FieldExtendDuration, v))
+// ExtendDurationIsoHasSuffix applies the HasSuffix predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoHasSuffix(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldHasSuffix(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationEqualFold applies the EqualFold predicate on the "extend_duration" field.
-func ExtendDurationEqualFold(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEqualFold(FieldExtendDuration, v))
+// ExtendDurationIsoEqualFold applies the EqualFold predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoEqualFold(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldEqualFold(FieldExtendDurationIso, v))
 }
 
-// ExtendDurationContainsFold applies the ContainsFold predicate on the "extend_duration" field.
-func ExtendDurationContainsFold(v string) predicate.SubscriptionPatchValueExtendPhase {
-	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldContainsFold(FieldExtendDuration, v))
+// ExtendDurationIsoContainsFold applies the ContainsFold predicate on the "extend_duration_iso" field.
+func ExtendDurationIsoContainsFold(v string) predicate.SubscriptionPatchValueExtendPhase {
+	return predicate.SubscriptionPatchValueExtendPhase(sql.FieldContainsFold(FieldExtendDurationIso, v))
 }
 
 // HasSubscriptionPatch applies the HasEdge predicate on the "subscription_patch" edge.
