@@ -309,19 +309,17 @@ jobs:
             engine.stderr.log
           retention-days: 14
 
-  # e2e2:
-  #   name: E2E2
-  #   runs-on:
-  #     - depot-ubuntu-latest-16
-  #     - dagger-0.13.5
+  e2e2:
+    name: E2E2
+    runs-on: depot-ubuntu-latest-16,dagger=0.13.5
 
-  #   steps:
-  #     # Required as a workaround for Dagger to properly detect Git metadata
-  #     - name: Checkout repository
-  #       uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+    steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
-  #     - name: Run pipeline
-  #       run: dagger call etoe
+      - name: Run pipeline
+        run: dagger call etoe
 
   dagger:
     name: CI
@@ -356,16 +354,14 @@ jobs:
             engine.stderr.log
           retention-days: 14
 
-  # dagger2:
-  #   name: CI2
-  #   runs-on:
-  #     - depot-ubuntu-latest-16
-  #     - dagger-0.13.5
+  dagger2:
+    name: CI2
+    runs-on: depot-ubuntu-latest-16,dagger=0.13.5
 
-  #   steps:
-  #     # Required as a workaround for Dagger to properly detect Git metadata
-  #     - name: Checkout repository
-  #       uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+    steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
-  #     - name: Run pipeline
-  #       run: dagger call ci
+      - name: Run pipeline
+        run: dagger call ci
