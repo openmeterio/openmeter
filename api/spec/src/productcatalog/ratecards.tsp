@@ -47,7 +47,7 @@ model RateCardBase<T extends RateCardType> {
    */
   @visibility("read", "create", "update")
   @summary("Tax config")
-  taxConfig?: OpenMeter.Billing.TaxConfig;
+  taxConfig?: TaxConfig;
 }
 
 /**

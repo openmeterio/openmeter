@@ -5,13 +5,14 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
+using OpenMeter.ProductCatalog;
 
 namespace Invoices;
 
 @friendlyName("BillingTaxItem")
 model TaxItem {
   @summary("Tax provider configuration.")
-  config?: OpenMeter.Billing.TaxConfig;
+  config?: TaxConfig;
 
   @summary("Percent defines the percentage set manually or determined from the rate\nkey (calculated if rate present). A nil percent implies that this tax combo\nis **exempt** from tax.")
   percent?: Percentage;
