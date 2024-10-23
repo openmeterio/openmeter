@@ -13,6 +13,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeobserver "github.com/openmeterio/openmeter/openmeter/app/stripe/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -114,4 +115,16 @@ func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, e
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
+}
+
+func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
+	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	// Should we re-register the observers? Adapter is overloaded, does too much
+	return &adapter{
+		db:                  txClient.Client(),
+		appService:          a.appService,
+		customerService:     a.customerService,
+		secretService:       a.secretService,
+		stripeClientFactory: a.stripeClientFactory,
+	}
 }

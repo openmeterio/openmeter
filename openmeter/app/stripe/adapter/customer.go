@@ -12,40 +12,42 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 // GetStripeCustomerData gets stripe customer data
 func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerAppData, error) {
-	if err := input.Validate(); err != nil {
-		return appstripeentity.CustomerAppData{}, appstripe.ValidationError{
-			Err: fmt.Errorf("error getting stripe customer data: %w", err),
-		}
-	}
-
-	stripeCustomerDBEntity, err := a.db.AppStripeCustomer.
-		Query().
-		Where(appstripecustomerdb.Namespace(input.AppID.Namespace)).
-		Where(appstripecustomerdb.AppID(input.AppID.ID)).
-		Where(appstripecustomerdb.CustomerID(input.CustomerID.ID)).
-		Only(ctx)
-	if err != nil {
-		if entdb.IsNotFound(err) {
-			return appstripeentity.CustomerAppData{}, app.CustomerPreConditionError{
-				AppID:      input.AppID,
-				AppType:    appentitybase.AppTypeStripe,
-				CustomerID: input.CustomerID,
-				Condition:  "customer has no data for stripe app",
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripeentity.CustomerAppData, error) {
+		if err := input.Validate(); err != nil {
+			return appstripeentity.CustomerAppData{}, appstripe.ValidationError{
+				Err: fmt.Errorf("error getting stripe customer data: %w", err),
 			}
 		}
 
-		return appstripeentity.CustomerAppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
-	}
+		stripeCustomerDBEntity, err := repo.db.AppStripeCustomer.
+			Query().
+			Where(appstripecustomerdb.Namespace(input.AppID.Namespace)).
+			Where(appstripecustomerdb.AppID(input.AppID.ID)).
+			Where(appstripecustomerdb.CustomerID(input.CustomerID.ID)).
+			Only(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return appstripeentity.CustomerAppData{}, app.CustomerPreConditionError{
+					AppID:      input.AppID,
+					AppType:    appentitybase.AppTypeStripe,
+					CustomerID: input.CustomerID,
+					Condition:  "customer has no data for stripe app",
+				}
+			}
 
-	return appstripeentity.CustomerAppData{
-		StripeCustomerID:             stripeCustomerDBEntity.StripeCustomerID,
-		StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
-	}, nil
+			return appstripeentity.CustomerAppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
+		}
+
+		return appstripeentity.CustomerAppData{
+			StripeCustomerID:             stripeCustomerDBEntity.StripeCustomerID,
+			StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
+		}, nil
+	})
 }
 
 // UpsertStripeCustomerData upserts stripe customer data
@@ -56,16 +58,16 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		}
 	}
 
-	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		err := a.customerService.UpsertAppCustomer(ctx, customerentity.UpsertAppCustomerInput{
+	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+		err := repo.customerService.UpsertAppCustomer(ctx, customerentity.UpsertAppCustomerInput{
 			AppID:      input.AppID,
 			CustomerID: input.CustomerID,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to upsert app customer: %w", err)
+			return nil, fmt.Errorf("failed to upsert app customer: %w", err)
 		}
 
-		err = a.db.AppStripeCustomer.
+		err = repo.db.AppStripeCustomer.
 			Create().
 			SetNamespace(input.AppID.Namespace).
 			SetStripeAppID(input.AppID.ID).
@@ -76,11 +78,13 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 			UpdateStripeCustomerID().
 			Exec(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to upsert app stripe customer data: %w", err)
+			return nil, fmt.Errorf("failed to upsert app stripe customer data: %w", err)
 		}
 
-		return nil
+		return nil, nil
 	})
+
+	return err
 }
 
 // DeleteStripeCustomerData deletes stripe customer data
@@ -91,8 +95,8 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 		}
 	}
 
-	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		query := a.db.AppStripeCustomer.
+	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+		query := repo.db.AppStripeCustomer.
 			Delete().
 			Where(
 				appstripecustomerdb.Namespace(input.CustomerID.Namespace),
@@ -105,11 +109,12 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 
 		_, err := query.Exec(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to delete app stripe customer data: %w", err)
+			return nil, fmt.Errorf("failed to delete app stripe customer data: %w", err)
 		}
 
-		return nil
+		return nil, nil
 	})
+	return err
 }
 
 // createStripeCustomer creates a new stripe customer
