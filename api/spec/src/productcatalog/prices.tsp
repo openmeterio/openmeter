@@ -55,11 +55,13 @@ union PricePaymentTerm {
  */
 @friendlyName("FlatPrice")
 model FlatPrice {
+  @visibility("read", "create")
   type: PriceType.flat;
 
   /**
    * The amount of the flat price.
    */
+  @visibility("read", "create", "update")
   amount: Money;
 }
 
@@ -82,11 +84,13 @@ model FlatPriceWithPaymentTerm {
  */
 @friendlyName("UnitPrice")
 model UnitPrice {
+  @visibility("read", "create")
   type: PriceType.unit;
 
   /**
    * The amount of the unit price.
    */
+  @visibility("read", "create", "update")
   amount: Money;
 }
 
@@ -104,6 +108,7 @@ enum TieredPriceMode {
  */
 @friendlyName("TieredPrice")
 model TieredPrice {
+  @visibility("read", "create")
   type: PriceType.tiered;
 
   /**
@@ -111,12 +116,16 @@ model TieredPrice {
    * - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
    * - In `graduated` tiering, pricing can change as the quantity grows.
    */
+  @visibility("read", "create", "update")
+  @summary("Mode")
   mode: TieredPriceMode;
 
   /**
    * The tiers of the tiered price.
    * At least one price component is required in each tier.
    */
+  @visibility("read", "create", "update")
+  @summary("Tiers")
   @minItems(1)
   tiers: PriceTier[];
 }
@@ -131,18 +140,21 @@ model PriceTier {
    * Up to and including to this quantity will be contained in the tier.
    * If null, the tier is open-ended.
    */
+  @visibility("read", "create", "update")
   @summary("Up to quantity")
   upToAmount: float64 | null;
 
   /**
    * The flat price component of the tier.
    */
+  @visibility("read", "create", "update")
   @summary("Flat price component")
   flatPrice: FlatPrice | null;
 
   /**
    * The unit price component of the tier.
    */
+  @visibility("read", "create", "update")
   @summary("Unit price component")
   unitPrice: UnitPrice | null;
 }
@@ -156,12 +168,14 @@ model SpendCommitments {
   /**
    * The customer is committed to spend at least the amount.
    */
+  @visibility("read", "create", "update")
   @summary("Minimum amount")
   minimumAmount?: Money;
 
   /**
    * The customer is limited to spend at most the amount.
    */
+  @visibility("read", "create", "update")
   @summary("Maximum amount")
   maximumAmount?: Money;
 }

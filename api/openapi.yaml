@@ -12778,6 +12778,7 @@ components:
             Defines if the tiering mode is volume-based or graduated:
             - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
             - In `graduated` tiering, pricing can change as the quantity grows.
+          title: Mode
         tiers:
           type: array
           items:
@@ -12786,6 +12787,7 @@ components:
           description: |-
             The tiers of the tiered price.
             At least one price component is required in each tier.
+          title: Tiers
         minimumAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
