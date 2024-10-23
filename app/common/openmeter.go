@@ -22,8 +22,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_mv"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/materialized_view"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -50,7 +50,7 @@ func NewStreamingConnector(
 
 	switch conf.Engine {
 	case config.AggregationEngineClickHouseRaw:
-		connector, err = clickhouse_connector_raw.NewClickhouseConnector(ctx, clickhouse_connector_raw.ClickhouseConnectorConfig{
+		connector, err = raw_events.NewConnector(ctx, raw_events.ConnectorConfig{
 			ClickHouse:          clickHouse,
 			Database:            conf.ClickHouse.Database,
 			Logger:              logger,
@@ -63,7 +63,7 @@ func NewStreamingConnector(
 		}
 
 	case config.AggregationEngineClickHouseMV:
-		connector, err = clickhouse_connector_mv.NewClickhouseConnector(ctx, clickhouse_connector_mv.ClickhouseConnectorConfig{
+		connector, err = materialized_view.NewConnector(ctx, materialized_view.ConnectorConfig{
 			ClickHouse:          clickHouse,
 			Database:            conf.ClickHouse.Database,
 			Logger:              logger,

@@ -1,4 +1,4 @@
-package clickhouse_connector_raw
+package raw_events
 
 import (
 	_ "embed"
@@ -38,7 +38,7 @@ func (d createEventsTable) toSQL() string {
 	sb.SQL("PARTITION BY toYYYYMM(time)")
 	// Lowest cardinality columns we always filter on goes to the most left.
 	// ClickHouse always picks partition first so we always filter time by month.
-	// Theoritically we could add toStartOfHour(time) to the order sooner than subject
+	// Theoretically we could add toStartOfHour(time) to the order sooner than subject
 	// but we bet on that a typical namespace has more subjects than hours in a month.
 	// Subject is an optional filter so it won't always help to reduce number of rows scanned.
 	// Finally we add time not just to speed up queries but also to keep data on the disk together.

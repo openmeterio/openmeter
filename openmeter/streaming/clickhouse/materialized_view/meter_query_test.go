@@ -1,4 +1,4 @@
-package clickhouse_connector_mv
+package materialized_view
 
 import (
 	"testing"

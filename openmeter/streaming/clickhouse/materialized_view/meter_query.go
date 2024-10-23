@@ -1,4 +1,4 @@
-package clickhouse_connector_mv
+package materialized_view
 
 import (
 	_ "embed"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 
-	raw_event_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -103,7 +103,7 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 }
 
 func (d createMeterView) toSelectSQL() (string, error) {
-	eventsTableName := raw_event_connector.GetEventsTableName(d.Database)
+	eventsTableName := raw_events.GetEventsTableName(d.Database)
 
 	aggStateFn := ""
 	switch d.Aggregation {

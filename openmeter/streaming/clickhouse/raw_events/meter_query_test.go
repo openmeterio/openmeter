@@ -1,4 +1,4 @@
-package clickhouse_connector_raw
+package raw_events
 
 import (
 	"testing"

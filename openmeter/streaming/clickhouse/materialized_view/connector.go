@@ -1,4 +1,4 @@
-package clickhouse_connector_mv
+package materialized_view
 
 import (
 	"context"
@@ -12,19 +12,19 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	raw_event_connector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector_raw"
+	raw_events "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ streaming.Connector = (*ClickhouseConnector)(nil)
+var _ streaming.Connector = (*Connector)(nil)
 
-// ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
-type ClickhouseConnector struct {
-	config            ClickhouseConnectorConfig
-	rawEventConnector *raw_event_connector.ClickhouseConnector
+// Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
+type Connector struct {
+	config            ConnectorConfig
+	rawEventConnector *raw_events.Connector
 }
 
-type ClickhouseConnectorConfig struct {
+type ConnectorConfig struct {
 	Logger               *slog.Logger
 	ClickHouse           clickhouse.Conn
 	Database             string
@@ -37,7 +37,7 @@ type ClickhouseConnectorConfig struct {
 	QueryRawEvents       bool
 }
 
-func (c ClickhouseConnectorConfig) Validate() error {
+func (c ConnectorConfig) Validate() error {
 	if c.Logger == nil {
 		return fmt.Errorf("logger is required")
 	}
@@ -57,12 +57,12 @@ func (c ClickhouseConnectorConfig) Validate() error {
 	return nil
 }
 
-func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
+func NewConnector(ctx context.Context, config ConnectorConfig) (*Connector, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	rawEventConnector, err := raw_event_connector.NewClickhouseConnector(ctx, raw_event_connector.ClickhouseConnectorConfig{
+	rawEventConnector, err := raw_events.NewConnector(ctx, raw_events.ConnectorConfig{
 		Logger:              config.Logger,
 		ClickHouse:          config.ClickHouse,
 		Database:            config.Database,
@@ -74,7 +74,7 @@ func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfi
 		return nil, fmt.Errorf("create raw event connector: %w", err)
 	}
 
-	connector := &ClickhouseConnector{
+	connector := &Connector{
 		config:            config,
 		rawEventConnector: rawEventConnector,
 	}
@@ -82,11 +82,11 @@ func NewClickhouseConnector(ctx context.Context, config ClickhouseConnectorConfi
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
+func (c *Connector) CreateNamespace(ctx context.Context, namespace string) error {
 	return nil
 }
 
-func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string) error {
+func (c *Connector) DeleteNamespace(ctx context.Context, namespace string) error {
 	err := c.deleteNamespace(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("delete namespace in clickhouse: %w", err)
@@ -94,19 +94,19 @@ func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent) error {
+func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent) error {
 	return c.rawEventConnector.BatchInsert(ctx, rawEvents)
 }
 
-func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+func (c *Connector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
 	return c.rawEventConnector.CountEvents(ctx, namespace, params)
 }
 
-func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+func (c *Connector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	return c.rawEventConnector.ListEvents(ctx, namespace, params)
 }
 
-func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
@@ -122,7 +122,7 @@ func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
@@ -142,7 +142,7 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -181,7 +181,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	return values, nil
 }
 
-func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -209,7 +209,7 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 // DeleteNamespace deletes the namespace related resources from Clickhouse
 // We don't delete the events table as it it reused between namespaces
 // We only delete the materialized views for the meters
-func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace string) error {
+func (c *Connector) deleteNamespace(ctx context.Context, namespace string) error {
 	// Retrieve meters belonging to the namespace
 	meters, err := c.config.Meters.ListMeters(ctx, namespace)
 	if err != nil {
@@ -230,7 +230,7 @@ func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) createMeterView(ctx context.Context, namespace string, meter models.Meter) error {
 	// CreateOrReplace is used to force the recreation of the materialized view
 	// This is not safe to use in production as it will drop the existing views
 	if c.config.CreateOrReplaceMeter {
@@ -262,7 +262,7 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter models.Meter) error {
 	query := deleteMeterView{
 		Database:  c.config.Database,
 		Namespace: namespace,
@@ -283,7 +283,7 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		Namespace:      namespace,
@@ -366,7 +366,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	return values, nil
 }
 
-func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	query := listMeterViewSubjects{
 		Database:  c.config.Database,
 		Namespace: namespace,
