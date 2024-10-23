@@ -21,8 +21,7 @@ var _ streaming.Connector = (*Connector)(nil)
 
 // Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type Connector struct {
-	config      ConnectorConfig
-	eventsTable string
+	config ConnectorConfig
 }
 
 type ConnectorConfig struct {
