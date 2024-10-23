@@ -21,6 +21,176 @@ export interface paths {
     /** @description Stripe webhook. */
     post: operations['appStripeWebhook']
   }
+  '/api/v1/billing/customer': {
+    /**
+     * List customer overrides
+     * @description List customer overrides
+     */
+    get: operations['billingListCustomerOverrides']
+  }
+  '/api/v1/billing/customer/{customerIdOrKey}': {
+    /**
+     * Get a customer override
+     * @description Get a customer override by id.
+     */
+    get: operations['billingGetCustomerOverrideById']
+    /**
+     * Create/update a customer override
+     * @description Create/update a new customer override.
+     */
+    post: operations['billingUpsertCustomerOverride']
+    /**
+     * Delete a customer override
+     * @description Delete a customer override by id.
+     */
+    delete: operations['billingDeleteCustomerOverride']
+  }
+  '/api/v1/billing/invoices': {
+    /**
+     * List invoices
+     * @description List invoices
+     */
+    get: operations['billingListInvoices']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}': {
+    /**
+     * List invoices
+     * @description List invoices for a specific customer
+     */
+    get: operations['billingListInvoicesByCustomer']
+    /**
+     * Create an invoice
+     * @description Create a new invoice from the pending items.
+     *
+     * This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
+     *
+     * When creating an invoice, the pending items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
+     *
+     * New pending items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+     */
+    post: operations['billingCreateInvoice']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}': {
+    /**
+     * Get an invoice
+     * @description Get an invoice by ID.
+     */
+    get: operations['billingGetInvoiceByCustomerInvoiceId']
+    /**
+     * Delete an invoice
+     * @description Delete an invoice
+     *
+     * Only invoices that are in the draft (or earlier) status can be deleted.
+     */
+    delete: operations['billingDeleteInvoiceByCustomerInvoiceId']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/approve': {
+    /**
+     * Send the invoice to the customer
+     * @description Approve an invoice and start executing the payment workflow.
+     *
+     * This call instantly sends the invoice to the customer using the configured billing profile app.
+     *
+     * This call is valid in two invoice statuses:
+     * - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
+     * - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
+     */
+    post: operations['billingApproveInvoice']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/lines/{lineId}': {
+    /**
+     * Update an invoice line
+     * @description Update an invoice line
+     */
+    put: operations['billingUpdateInvoiceLine']
+    /**
+     * Delete an invoice line
+     * @description Delete an invoice line
+     */
+    delete: operations['billingDeleteInvoiceLine']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/tax/recalculate': {
+    /**
+     * Recalculate an invoice's tax amounts
+     * @description Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
+     *
+     * Note: charges might apply, depending on the tax provider.
+     */
+    post: operations['billingRecalculateInvoiceTax']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/void': {
+    /**
+     * Void an invoice
+     * @description Void an invoice
+     *
+     * Only invoices that have been alread issued can be voided.
+     *
+     * Voiding an invoice will mark it as voided, the user can specify how to handle the voided items.
+     */
+    post: operations['billingVoidInvoice']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/workflow/advance': {
+    /**
+     * Advance the invoice's state to the next status
+     * @description Retry advancing the invoice's state to the next status.
+     *
+     * The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
+     *
+     * This call can be used to retry advancing the invoice's state to the next status if the previous attempt failed.
+     *
+     * This call is valid in the following invoice statuses:
+     * - `draft_sync_failed`
+     * - `issuing_failed`
+     * - `validation_failed`
+     */
+    post: operations['billingInvoiceWorkflowAdvance']
+  }
+  '/api/v1/billing/invoices/{customerIdOrKey}/items': {
+    /**
+     * Create a new pending item
+     * @description Create a new pending line item (charge).
+     *
+     * This call is used to create a new pending line item for the customer without explicitly
+     * assigning it to an invoice.
+     *
+     * The item will be either allocated to an existing invoice in gathering state or a new invoice is
+     * created for the item.
+     *
+     * A new invoice will be created if:
+     * - there is no invoice in gathering state
+     * - the currency of the item doesn't match the currency of any invoices in gathering state
+     */
+    post: operations['billingCreatePendingItemByCustomer']
+  }
+  '/api/v1/billing/profile': {
+    /** @description List all billing profiles */
+    get: operations['billingListProfiles']
+    /**
+     * Create a new billing profile
+     * @description Create a new billing profile
+     *
+     * Billing profiles are representations of a customer's billing information. Customer overrides
+     * can be applied to a billing profile to customize the billing behavior for a specific customer.
+     */
+    post: operations['billingCreateProfile']
+  }
+  '/api/v1/billing/profile/{id}': {
+    /**
+     * Get a billing profile by ID
+     * @description Get a billing profile by ID
+     */
+    get: operations['billingGetProfile']
+    /**
+     * Update a billing profile
+     * @description Update a billing profile
+     */
+    put: operations['billingUpdateProfile']
+    /**
+     * Archive a billing profile
+     * @description Archive a billing profile
+     */
+    delete: operations['billingArchiveProfile']
+  }
   '/api/v1/customers': {
     /** @description List customers. */
     get: operations['listCustomers']
@@ -242,6 +412,90 @@ export interface paths {
      */
     post: operations['receiveSvixOperationalEvent']
   }
+  '/api/v1/plans': {
+    /**
+     * List plans
+     * @description List all plans.
+     */
+    get: operations['listPlans']
+    /**
+     * Create a plan
+     * @description Create a new plan.
+     */
+    post: operations['createPlan']
+  }
+  '/api/v1/plans/{planId}': {
+    /**
+     * Get plan
+     * @description Get a plan by id or key. The latest published version is returned if latter is used.
+     */
+    get: operations['getPlan']
+    /**
+     * Update a plan
+     * @description Update plan by id.
+     */
+    put: operations['updatePlan']
+    /**
+     * Delete plan
+     * @description Soft delete plan by plan.id.
+     *
+     * Once a plan is deleted it cannot be undeleted.
+     */
+    delete: operations['deletePlan']
+  }
+  '/api/v1/plans/{planId}/next': {
+    /**
+     * New draft plan
+     * @description Create a new draft version from plan.
+     * It returns error if there is already a plan in draft or planId does not reference the latest published version.
+     */
+    post: operations['newDraftPlan']
+  }
+  '/api/v1/plans/{planId}/phases': {
+    /**
+     * List phases in plan
+     * @description List all phases in plan.
+     */
+    get: operations['listPlanPhases']
+    /**
+     * Create new phase in plan
+     * @description Create new phase in plan.
+     */
+    post: operations['createPlanPhases']
+  }
+  '/api/v1/plans/{planId}/phases/{planPhaseKey}': {
+    /**
+     * Get phase for plan
+     * @description Get phase in plan.
+     */
+    get: operations['getPlanPhases']
+    /**
+     * Update phase in plan
+     * @description Update phase in plan.
+     */
+    put: operations['updatePlanPhases']
+    /**
+     * Delete phase for plan
+     * @description Delete phase in plan.
+     *
+     * Once a phase is deleted it cannot be undeleted.
+     */
+    delete: operations['deletePlanPhases']
+  }
+  '/api/v1/plans/{planId}/publish': {
+    /**
+     * Publish plan
+     * @description Publish a new plan.
+     */
+    post: operations['publishPlan']
+  }
+  '/api/v1/plans/{planId}/unpublish': {
+    /**
+     * Unpublish plan
+     * @description Unpublish a new plan.
+     */
+    post: operations['unpublishPlan']
+  }
   '/api/v1/portal/meters/{meterSlug}/query': {
     /** @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers. */
     get: operations['queryPortalMeter']
@@ -380,7 +634,9 @@ export interface components {
      * @description App.
      * One of: stripe
      */
-    App: components['schemas']['StripeApp']
+    App:
+      | components['schemas']['StripeApp']
+      | components['schemas']['SandboxApp']
     /**
      * @description Abstract base model for installed apps.
      *
@@ -433,7 +689,7 @@ export interface components {
       /** @description The marketplace listing that this installed app is based on. */
       listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['OpenMeter.App.AppStatus']
+      status: components['schemas']['AppStatus']
     }
     /**
      * @description App capability.
@@ -477,6 +733,16 @@ export interface components {
       /** @description The items in the page. */
       items: components['schemas']['App'][]
     }
+    /**
+     * @description App installed status.
+     * @enum {string}
+     */
+    AppStatus: 'ready' | 'unauthorized'
+    /**
+     * @description Type of the app.
+     * @enum {string}
+     */
+    AppType: 'stripe' | 'sandbox'
     /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
     BadRequestProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The balance history window. */
@@ -494,6 +760,913 @@ export interface components {
        * @example 100
        */
       balanceAtStart: number
+    }
+    /** @description Response for creating a pending charge */
+    BillingCreatePendingItemResponse: {
+      /** The created pending charge */
+      item: components['schemas']['BillingInvoiceLine']
+      /** The invoice the item was added to */
+      invoice: components['schemas']['BillingInvoiceSummary']
+    }
+    BillingCreditNoteOriginalInvoiceRef: WithRequired<
+      {
+        /** @enum {string} */
+        type: 'credit_node_original_invoice'
+        /**
+         * IssueAt reflects the time the document was issued.
+         * Format: date-time
+         * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+         * @example "2023-01-01T01:01:01.001Z"
+         */
+        issuedAt?: string
+        /** (Serial) Number of the referenced document. */
+        number?: components['schemas']['BillingInvoiceNumber']
+        /**
+         * Link to the source document.
+         * Format: uri
+         */
+        url: string
+      } & components['schemas']['BillingGenericDocumentRef'],
+      'type' | 'url'
+    >
+    /** @description Customer specific workflow overrides. */
+    BillingCustomerOverride: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      workflow: components['schemas']['BillingCustomerWorkflowOverride']
+      /**
+       * @description The billing profile this override is associated with.
+       *
+       * If not provided, the default billing profile is chosen if available.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      billingProfile?: string
+    }
+    /**
+     * @description Order by options for customers.
+     * @enum {string}
+     */
+    BillingCustomerOverrideOrderBy: 'id'
+    BillingCustomerWorkflowOverride: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /** The collection settings for this workflow */
+      collection?: components['schemas']['BillingWorkflowCollectionSettings']
+      /** The invoicing settings for this workflow */
+      invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
+      /** The payment settings for this workflow */
+      payment?: components['schemas']['BillingWorkflowPaymentSettings']
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /** The tax app used for this workflow */
+      taxApp: {
+        type: 'BillingCustomerWorkflowOverride'
+      } & Omit<components['schemas']['App'], 'type'>
+      /** The invoicing app used for this workflow */
+      invoicingApp: {
+        type: 'BillingCustomerWorkflowOverride'
+      } & Omit<components['schemas']['App'], 'type'>
+      /** The payment app used for this workflow */
+      paymentApp: {
+        type: 'BillingCustomerWorkflowOverride'
+      } & Omit<components['schemas']['App'], 'type'>
+    }
+    BillingCustomerWorkflowOverrideCreate: {
+      /** The collection settings for this workflow */
+      collection?: components['schemas']['BillingWorkflowCollectionSettings']
+      /** The invoicing settings for this workflow */
+      invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
+      /** The payment settings for this workflow */
+      payment?: components['schemas']['BillingWorkflowPaymentSettings']
+    }
+    /** DocumentRef is used to describe a reference to an existing document (invoice). */
+    BillingDocumentRef: components['schemas']['BillingCreditNoteOriginalInvoiceRef']
+    /** @enum {string} */
+    BillingDocumentRefType: 'credit_node_original_invoice'
+    /** DueDate contains an amount that should be paid by the given date. */
+    BillingDueDate: {
+      /**
+       * When the payment is due.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      dueAt: string
+      /** Other details to take into account for the due date. */
+      notes?: string
+      /** How much needs to be paid by the date. */
+      amount: components['schemas']['Numeric']
+      /** Percentage of the total that should be paid by the date. */
+      percent?: components['schemas']['Percentage']
+      /** If different from the parent document's base currency. */
+      currency?: components['schemas']['CurrencyCode']
+    }
+    /**
+     * DocumentRef is used to describe an existing document or a specific part of it's contents.
+     * @description Omitted fields:
+     * period: Tax period in which the referred document had an effect required by some tax regimes and formats.
+     * stamps: Seals of approval from other organisations that may need to be listed.
+     * ext: 	Extensions for additional codes that may be required.
+     */
+    BillingGenericDocumentRef: {
+      /** Type of the document referenced. */
+      type: components['schemas']['BillingDocumentRefType']
+      /** Human readable description on why this reference is here or needs to be used. */
+      reason?: string
+      /** Additional details about the document. */
+      description?: string
+    }
+    /** Terms defines when we expect the customer to pay, or have paid, for the contents of the document. */
+    BillingGenericPaymentTerms: {
+      /** Type of terms to be applied. */
+      type: components['schemas']['BillingPaymentTermType']
+      /** Text detail of the chosen payment terms. */
+      detail?: string
+      /** Description of the conditions for payment. */
+      notes?: string
+    }
+    BillingInvoiceCreateInput: {
+      /** @description The pending items to include in the invoice, if not provided all pending items will be included. */
+      IncludePendingItems?: string[]
+    }
+    /** Discount represents an allowance applied to the complete document independent from the individual lines. */
+    BillingInvoiceDiscount: {
+      /** Base represents the value used as a base for percent calculations instead of the invoice's sum of lines. */
+      base?: components['schemas']['Numeric']
+      /** Percentage to apply to the base or invoice's sum. */
+      percent?: components['schemas']['Percentage']
+      /** Amount to apply (calculated if percent present). */
+      amount: components['schemas']['Numeric']
+      /** Text description as to why the discount was applied */
+      reason?: string
+    }
+    /**
+     * @description InvoiceExpand specifies the parts of the invoice to expand in the list output.
+     * @enum {string}
+     */
+    BillingInvoiceExpand: 'lines' | 'customer' | 'supplier' | 'preceding' | '*'
+    /** UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price. */
+    BillingInvoiceLine: components['schemas']['BillingUnitPriceLine']
+    /** UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price. */
+    BillingInvoiceLineCreate: components['schemas']['BillingUnitPriceLineCreate']
+    /** UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price. */
+    BillingInvoiceLineCreateOrUpdate: components['schemas']['BillingUnitPriceLineCreateOrUpdate']
+    /**
+     * @description InvoiceNumber is a unique identifier for the invoice, generated by the
+     * invoicing app.
+     *
+     * The uniqueness depends on a lot of factors:
+     * - app setting (unique per app or unique per customer)
+     * - multiple app scenarios (multiple apps generating invoices with the same prefix)
+     * @example INV-2024-01-01-01
+     */
+    BillingInvoiceNumber: string
+    /**
+     * @description InvoiceOrderBy specifies the ordering options for invoice listing.
+     * @enum {string}
+     */
+    BillingInvoiceOrderBy:
+      | 'customer.name'
+      | 'issuedAt'
+      | 'status'
+      | 'createdAt'
+      | 'updatedAt'
+    /** Payment contains details as to how the invoice should be paid. */
+    BillingInvoicePayment: {
+      terms?: components['schemas']['BillingPaymentTerms']
+    }
+    /**
+     * @description InvoiceStatus describes the status of an invoice.
+     * @enum {string}
+     */
+    BillingInvoiceStatus:
+      | 'gathering'
+      | 'review'
+      | 'issued'
+      | 'payment_received'
+      | 'manual_approval_required'
+      | 'validation_failed'
+    /** Invoice summary represents an extract of the invoice object */
+    BillingInvoiceSummary: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       *
+       * For updates the updatedAt field is used to detect conflicts.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      type?: components['schemas']['BillingInvoiceType']
+      /** The taxable entity supplying the goods or services. */
+      supplier: components['schemas']['BillingParty']
+      /** Legal entity receiving the goods or services. */
+      customer: components['schemas']['BillingParty']
+      /**
+       * (Serial) Number of the invoice
+       * @description Number specifies the human readable key used to reference this Invoice.
+       *
+       * The number only gets populated after the invoice had been issued.
+       *
+       * Please note that the number is (depending on the upstream settings) either unique for the
+       * whole organization or unique for the customer, or in multi (stripe) account setups unique for the
+       * account.
+       */
+      number?: components['schemas']['BillingInvoiceNumber']
+      /** Currency for all invoice totals. */
+      currency: components['schemas']['CurrencyCode']
+      /** Key information regarding previous invoices and potentially details as to why they were corrected. */
+      preceding?: components['schemas']['BillingDocumentRef'][]
+      /** Summary of all the invoice totals, including taxes (calculated). */
+      totals: components['schemas']['BillingInvoiceTotals']
+      /** The status of the invoice. */
+      status: components['schemas']['BillingInvoiceStatus']
+      /**
+       * The time the invoice was issued.
+       * Format: date-time
+       * @description The time the invoice was issued.
+       *
+       * Depending on the status of the invoice this can mean multiple things:
+       * - draft, gathering: The time the invoice will be issued based on the workflow settings.
+       * - issued: The time the invoice was issued.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      issuedAt?: string
+      /** The workflow settings associated with this invoice */
+      workflow?: components['schemas']['BillingInvoiceWorkflowSettings']
+      /** List of invoice lines representing each of the items sold to the customer. */
+      lines?: components['schemas']['BillingLine'][]
+      /** Discounts or allowances applied to the complete invoice. */
+      discounts?: components['schemas']['BillingInvoiceDiscount'][]
+      /** Information on when, how, and to whom the invoice should be paid. */
+      payment?: components['schemas']['BillingInvoicePayment']
+    }
+    /** Totals contains the summaries of all calculations for the invoice. */
+    BillingInvoiceTotals: {
+      /** Sum of all line item sums */
+      sum: components['schemas']['Numeric']
+      /** Sum of all document level discounts */
+      discount?: components['schemas']['Numeric']
+      /** Sum of all document level charges */
+      charge?: components['schemas']['Numeric']
+      /** If prices include tax, this is the total tax included in the price. */
+      taxIncluded?: components['schemas']['Numeric']
+      /** Sum of all line sums minus the discounts, plus the charges, without tax. */
+      total: components['schemas']['Numeric']
+      /** Total amount of tax to apply to the invoice. */
+      tax?: components['schemas']['Numeric']
+      /** Grand total after all taxes have been applied. */
+      totalWithTax: components['schemas']['Numeric']
+      /** Rounding amount to apply to the invoice in case the total and payable amounts don't quite match. */
+      rounding?: components['schemas']['Numeric']
+      /** Total amount to be paid after applying taxes and outlays. */
+      payable: components['schemas']['Numeric']
+      /** Total amount already paid in advance. */
+      advance?: components['schemas']['Numeric']
+      /** How much actually needs to be paid now. */
+      due?: components['schemas']['Numeric']
+    }
+    /** @enum {string} */
+    BillingInvoiceType: 'standard' | 'credit-note'
+    BillingInvoiceWorkflowSettings: {
+      /**
+       * Should the invoice auto advance to the next status?
+       * @description updatedAt is the time when the invoice workflow was last updated.
+       */
+      autoAdvance: boolean
+      /**
+       * Format: date-time
+       * @description The invoice stays in the draft status until this time.
+       *
+       * If auto advance is disabled the value will be empty.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      draftUtil?: string
+      /**
+       * Format: ISO8601
+       * @description The period after which the invoice is due.
+       * @default P7D
+       * @example P1D
+       */
+      dueAfter?: string
+    }
+    /**
+     * @description Line represents a single item or service sold to the customer.
+     *
+     * This is a base class for all line types, and should not be used directly.
+     */
+    BillingLine: {
+      /**
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      type: components['schemas']['BillingLineTypes']
+      /** Discounts applied to this line. */
+      discounts?: components['schemas']['BillingLineDiscount'][]
+      /** Charges applied to this line. */
+      charges?: components['schemas']['BillingLineCharge'][]
+      /** Map of taxes to be applied and used in the invoice totals. */
+      taxes?: components['schemas']['BillingTaxItem'][]
+      /** Total sum of the line, including discounts and charges. */
+      total: components['schemas']['Numeric']
+      /** Period of the line item applies to for revenue recognition pruposes. */
+      period: components['schemas']['BillingPeriod']
+    }
+    /** LineCharge represents an amount added to the line, and will be applied before taxes. */
+    BillingLineCharge: {
+      /**
+       * Percent
+       * @description Percentage if fixed amount not applied
+       */
+      percent?: components['schemas']['Percentage']
+      /**
+       * Amount
+       * @description Fixed discount amount to apply (calculated if percent present).
+       */
+      amount: components['schemas']['Numeric']
+      /** Reason code. */
+      code?: string
+      /** Text description as to why the discount was applied. */
+      reason?: string
+    }
+    /**
+     * @description Line represents a single item or service sold to the customer.
+     *
+     * This is a base class for all line types, and should not be used directly.
+     */
+    BillingLineCreate: {
+      type: components['schemas']['BillingLineTypes']
+      /** Discounts applied to this line. */
+      discounts?: components['schemas']['BillingLineDiscount'][]
+      /** Charges applied to this line. */
+      charges?: components['schemas']['BillingLineCharge'][]
+      /** Period of the line item applies to for revenue recognition pruposes. */
+      period: components['schemas']['BillingPeriod']
+    }
+    /**
+     * @description Line represents a single item or service sold to the customer.
+     *
+     * This is a base class for all line types, and should not be used directly.
+     */
+    BillingLineCreateOrUpdate: {
+      /**
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      type: components['schemas']['BillingLineTypes']
+      /** Discounts applied to this line. */
+      discounts?: components['schemas']['BillingLineDiscount'][]
+      /** Charges applied to this line. */
+      charges?: components['schemas']['BillingLineCharge'][]
+      /** Period of the line item applies to for revenue recognition pruposes. */
+      period: components['schemas']['BillingPeriod']
+    }
+    /** LineDiscount represents an amount deducted from the line, and will be applied before taxes. */
+    BillingLineDiscount: {
+      /**
+       * Percent
+       * @description Percentage if fixed amount not applied
+       */
+      percent?: components['schemas']['Percentage']
+      /**
+       * Amount
+       * @description Fixed discount amount to apply (calculated if percent present).
+       */
+      amount: components['schemas']['Numeric']
+      /** Reason code. */
+      code?: string
+      /** Text description as to why the discount was applied. */
+      reason?: string
+    }
+    /**
+     * LineTypes represents the different types of lines that can be used in an invoice.
+     * @enum {string}
+     */
+    BillingLineTypes: 'unit_price'
+    /** Party represents a person or business entity. */
+    BillingParty: {
+      /**
+       * ID of the party.
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /** Legal name or representation of the organization. */
+      name?: string
+      /** The entity's legal ID code used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes. */
+      taxId?: components['schemas']['BillingTaxIdentity']
+      /** Regular post addresses for where information should be sent if needed. */
+      addresses?: components['schemas']['Address'][]
+    }
+    /** Party represents a person or business entity. */
+    BillingPartyCreate: {
+      /** Legal name or representation of the organization. */
+      name?: string
+      /** The entity's legal ID code used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes. */
+      taxId?: components['schemas']['BillingTaxIdentity']
+      /** Regular post addresses for where information should be sent if needed. */
+      addresses?: components['schemas']['Address'][]
+    }
+    /** PaymentTermDueDate defines the terms for payment on a specific date. */
+    BillingPaymentTermDueDate: WithRequired<
+      {
+        type: 'due_date'
+        /**
+         * Type of terms to be applied.
+         * @enum {string}
+         */
+        type: 'due_date'
+        /** When the payment is due. */
+        dueAt: components['schemas']['BillingDueDate'][]
+        /** Other details to take into account for the payment */
+        notes?: string
+      } & Omit<components['schemas']['BillingGenericPaymentTerms'], 'type'>,
+      'type' | 'dueAt'
+    >
+    /** PaymentTermInstant defines the terms for payment on receipt of invoice. */
+    BillingPaymentTermInstant: WithRequired<
+      {
+        type: 'BillingPaymentTermInstant'
+        /**
+         * Type of terms to be applied.
+         * @enum {string}
+         */
+        type: 'instant'
+      } & Omit<components['schemas']['BillingGenericPaymentTerms'], 'type'>,
+      'type'
+    >
+    /**
+     * PaymentPaymentTermType defines the type of terms to be applied.
+     * @enum {string}
+     */
+    BillingPaymentTermType: 'due_date' | 'instant'
+    /** PaymentTerms defines the terms for payment. */
+    BillingPaymentTerms:
+      | components['schemas']['BillingPaymentTermInstant']
+      | components['schemas']['BillingPaymentTermDueDate']
+    /** Period represents a time range. */
+    BillingPeriod: {
+      /**
+       * Start of the period.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      start: string
+      /**
+       * End of the period.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      end: string
+    }
+    /** @description Profile represents a billing profile */
+    BillingProfile: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * Last update time of the resource
+       * Format: date-time
+       * @description When the resource was last updated.
+       *
+       * For updates this field must be set to the last update time to detect conflicts.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /** The name and contact information for the supplier this billing profile represents */
+      supplier: components['schemas']['BillingParty']
+      /** The billing workflow settings for this profile */
+      workflow: components['schemas']['BillingWorkflow']
+      /** The applications used by this billing profile */
+      apps: components['schemas']['BillingProfileApps']
+      /** Is this the default profile? */
+      default: boolean
+    }
+    /** @description ProfileApps represents the applications used by a billing profile */
+    BillingProfileApps: {
+      /** The tax app used for this workflow */
+      tax: {
+        type: 'BillingProfileApps'
+      } & Omit<components['schemas']['App'], 'type'>
+      /** The invoicing app used for this workflow */
+      invoicing: {
+        type: 'BillingProfileApps'
+      } & Omit<components['schemas']['App'], 'type'>
+      /** The payment app used for this workflow */
+      payment: {
+        type: 'BillingProfileApps'
+      } & Omit<components['schemas']['App'], 'type'>
+    }
+    /** @description ProfileCreateAppsInput represents the input for creating a billing profile's apps */
+    BillingProfileCreateAppsInput: {
+      /** The tax app used for this workflow */
+      tax: components['schemas']['BillingWorkflowAppIdOrType']
+      /** The invoicing app used for this workflow */
+      invoicing: components['schemas']['BillingWorkflowAppIdOrType']
+      /** The payment app used for this workflow */
+      payment: components['schemas']['BillingWorkflowAppIdOrType']
+    }
+    /** @description ProfileCreateInput represents the input for creating a billing profile */
+    BillingProfileCreateInput: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /** The name and contact information for the supplier this billing profile represents */
+      supplier: components['schemas']['BillingPartyCreate']
+      /** The billing workflow settings for this profile */
+      workflow: components['schemas']['BillingWorkflow']
+      /** Is this the default profile? */
+      default: boolean
+      apps: components['schemas']['BillingProfileCreateAppsInput']
+    }
+    /** @description Profile represents a billing profile */
+    BillingProfileCreateOrUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Last update time of the resource
+       * Format: date-time
+       * @description When the resource was last updated.
+       *
+       * For updates this field must be set to the last update time to detect conflicts.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /** The name and contact information for the supplier this billing profile represents */
+      supplier: components['schemas']['BillingParty']
+      /** The billing workflow settings for this profile */
+      workflow: components['schemas']['BillingWorkflow']
+      /** Is this the default profile? */
+      default: boolean
+    }
+    /**
+     * @description ProfileOrderBy specifies the ordering options for profiles
+     * @enum {string}
+     */
+    BillingProfileOrderBy: 'createdAt' | 'updatedAt' | 'default' | 'name'
+    /** @enum {string} */
+    BillingTaxBehavior: 'inclusive' | 'exclusive'
+    BillingTaxIdentificationCode: string
+    /** Identity stores the details required to identify an entity for tax purposes in a specific country. */
+    BillingTaxIdentity: {
+      /** Normalized tax code shown on the original identity document. */
+      code?: components['schemas']['BillingTaxIdentificationCode']
+    }
+    BillingTaxItem: {
+      /** Tax provider configuration. */
+      config?: components['schemas']['TaxConfig']
+      /**
+       * Percent defines the percentage set manually or determined from the rate
+       * key (calculated if rate present). A nil percent implies that this tax combo
+       * is **exempt** from tax.
+       */
+      percent?: components['schemas']['Percentage']
+      /** Some countries require an additional surcharge (calculated if rate present). */
+      surcharge?: components['schemas']['Numeric']
+      /** Is the tax item inclusive or exclusive of the base amount. */
+      behavior?: components['schemas']['BillingTaxBehavior']
+    }
+    /**
+     * @description UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+     *
+     * This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+     */
+    BillingUnitPriceLine: WithRequired<
+      {
+        type: 'unit_price'
+        /** @enum {string} */
+        type: 'unit_price'
+        /** Details about what is being sold. */
+        item: {
+          type: 'BillingUnitPriceLine'
+        } & Omit<components['schemas']['RateCard'], 'type'>
+        /** Quantity of the item being sold. */
+        quantity: components['schemas']['Numeric']
+      } & Omit<components['schemas']['BillingLine'], 'type'>,
+      'type' | 'item' | 'quantity'
+    >
+    /**
+     * @description UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+     *
+     * This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+     */
+    BillingUnitPriceLineCreate: WithRequired<
+      {
+        type: 'BillingUnitPriceLineCreate'
+        /** @enum {string} */
+        type: 'unit_price'
+        /** Details about what is being sold. */
+        item: {
+          type: 'BillingUnitPriceLineCreate'
+        } & Omit<components['schemas']['RateCard'], 'type'>
+        /** Quantity of the item being sold. */
+        quantity: components['schemas']['Numeric']
+      } & Omit<components['schemas']['BillingLineCreate'], 'type'>,
+      'type' | 'item' | 'quantity'
+    >
+    /**
+     * @description UnitPriceLine represents a line item that is sold to the customer based on a unit price.
+     *
+     * This is analogous to gobl's Line model, with the addition of the type and some metadata fields.
+     */
+    BillingUnitPriceLineCreateOrUpdate: WithRequired<
+      {
+        type: 'BillingUnitPriceLineCreateOrUpdate'
+        /** @enum {string} */
+        type: 'unit_price'
+        /** Details about what is being sold. */
+        item: {
+          type: 'BillingUnitPriceLineCreateOrUpdate'
+        } & Omit<components['schemas']['RateCard'], 'type'>
+        /** Quantity of the item being sold. */
+        quantity: components['schemas']['Numeric']
+      } & Omit<components['schemas']['BillingLineCreateOrUpdate'], 'type'>,
+      'type' | 'item' | 'quantity'
+    >
+    /** @description InvoiceVoidAction describes how to handle the voided items. */
+    BillingVoidInvoiceAction: {
+      /** How much of the total items to be voided? (e.g. 100% means all charges are voided) */
+      percentage: components['schemas']['Percentage']
+      /** How to handle the voided items, default: pending */
+      action: components['schemas']['BillingVoidInvoiceItemAction']
+    }
+    /** @description Request to void an invoice */
+    BillingVoidInvoiceInput: {
+      /**
+       * The action to take on the voided items
+       * @description The action to take on the voided items.
+       */
+      action: components['schemas']['BillingVoidInvoiceItemAction']
+      /**
+       * The reason for voiding the invoice
+       * @description The reason for voiding the invoice.
+       */
+      reason: string
+      /**
+       * @description Per line item overrides for the action.
+       *
+       * If not specified, the `action` will be applied to all items.
+       */
+      itemOverrides:
+        | components['schemas']['BillingVoidInvoiceItemOverride'][]
+        | null
+    }
+    /**
+     * VoidInvoiceItemAction describes how to handle the voidied item in the invoice.
+     * @enum {string}
+     */
+    BillingVoidInvoiceItemAction: 'discard' | 'pending' | 'pending_next_cycle'
+    /** @description VoidInvoiceItemOverride describes how to handle a specific item in the invoice when voiding. */
+    BillingVoidInvoiceItemOverride: {
+      /**
+       * The item ID to override
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      itemId: string
+      /** The action to take on the item */
+      action: components['schemas']['BillingVoidInvoiceAction']
+    }
+    /** @description Workflow represents a billing workflow */
+    BillingWorkflow: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /** The collection settings for this workflow */
+      collection?: components['schemas']['BillingWorkflowCollectionSettings']
+      /** The invoicing settings for this workflow */
+      invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
+      /** The payment settings for this workflow */
+      payment?: components['schemas']['BillingWorkflowPaymentSettings']
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+    }
+    /**
+     * @description AppIdOrType can be used to reference an app during creation only.
+     *
+     * This can be either an AppType or the ULID of an app.
+     */
+    BillingWorkflowAppIdOrType: string
+    /**
+     * Collection alignment
+     * @description CollectionAlignment specifies when the pending line items should be collected into
+     * an invoice.
+     * @enum {string}
+     */
+    BillingWorkflowCollectionAlignment: 'subscription'
+    /**
+     * Collection method
+     * @description CollectionMethod specifies how the invoice should be collected (automatic vs manual)
+     * @enum {string}
+     */
+    BillingWorkflowCollectionMethod: 'charge_automatically' | 'send_invoice'
+    /** Workflow collection specifies how to collect the pending items for an invoice */
+    BillingWorkflowCollectionSettings: {
+      /**
+       * @description When to collect the pending line items into an invoice.
+       * @default subscription
+       */
+      alignment?: components['schemas']['BillingWorkflowCollectionAlignment']
+      /**
+       * Format: ISO8601
+       * @description The interval for collecting the pending line items into an invoice.
+       * @default PT1H
+       * @example P1D
+       */
+      interval?: string
+    }
+    /**
+     * Workflow invoice settings
+     * @description WorkflowInvoice represents the invoice settings for a billing workflow
+     */
+    BillingWorkflowInvoicingSettings: {
+      /**
+       * @description Whether to automatically issue the invoice after the draftPeriod has passed.
+       * @default true
+       */
+      autoAdvance?: boolean
+      /**
+       * Format: ISO8601
+       * @description The period for the invoice to be kept in draft status for manual reviews.
+       * @default P1D
+       * @example P1D
+       */
+      draftPeriod?: string
+      /**
+       * Format: ISO8601
+       * @description The period after which the invoice is due.
+       * @default P7D
+       * @example P1D
+       */
+      dueAfter?: string
+    }
+    /**
+     * Workflow payment settings
+     * @description WorkflowPaymentSettings represents the payment settings for a billing workflow
+     */
+    BillingWorkflowPaymentSettings: {
+      /** @default charge_automatically */
+      collectionMethod?: components['schemas']['BillingWorkflowCollectionMethod']
     }
     /** @description Stripe CheckoutSession.custom_text */
     CheckoutSessionCustomTextAfterSubmitParams: {
@@ -566,7 +1739,7 @@ export interface components {
       paymentMethodTypes?: string[]
     }
     /** @description Create Stripe Checkout Session response. */
-    CreateStripeCheckoutSessionResponse: {
+    CreateStripeCheckoutSessionResult: {
       /**
        * @description The OpenMeter customer ID.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -722,6 +1895,26 @@ export interface components {
       /** @description The items in the page. */
       items: components['schemas']['Customer'][]
     }
+    /** @description Paginated response */
+    CustomerOverridePaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['BillingCustomerOverride'][]
+    }
     /**
      * @description Mapping to attribute metered usage to the customer.
      * One customer can have multiple subjects,
@@ -733,6 +1926,25 @@ export interface components {
        * @description The subjects that are attributed to the customer.
        */
       subjectKeys: string[]
+    }
+    /**
+     * @description A discount on a price.
+     * One of: percentage, amount, or usage.
+     */
+    Discount: components['schemas']['DiscountPercentage']
+    /** @description Percentage discount. */
+    DiscountPercentage: {
+      /**
+       * Type
+       * @description The type of the discount.
+       * @enum {string}
+       */
+      type: 'percentage'
+      /**
+       * Percentage
+       * @description The percentage of the discount.
+       */
+      percentage: number
     }
     /**
      * @description Entitlement templates are used to define the entitlements of a plan.
@@ -914,7 +2126,7 @@ export interface components {
        */
       amount: number
       /**
-       * Format: int8
+       * Format: uint8
        * @description The priority of the grant. Grants with higher priority are applied first.
        * Priority is a positive decimal numbers. With lower numbers indicating higher importance.
        * For example, a priority of 1 is more urgent than a priority of 2.
@@ -995,7 +2207,7 @@ export interface components {
        */
       amount: number
       /**
-       * Format: int8
+       * Format: uint8
        * @description The priority of the grant. Grants with higher priority are applied first.
        * Priority is a positive decimal numbers. With lower numbers indicating higher importance.
        * For example, a priority of 1 is more urgent than a priority of 2.
@@ -1391,7 +2603,7 @@ export interface components {
        * @description Describes the subject of the event in the context of the event producer (identified by source).
        * @example customer-id
        */
-      subject?: string
+      subject: string
       /**
        * Format: date-time
        * @description Timestamp of when the occurrence happened. Must adhere to RFC 3339.
@@ -1570,6 +2782,26 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Feature'][]
     }
+    /** @description Flat price. */
+    FlatPrice: {
+      /** @enum {string} */
+      type: 'flat'
+      /** @description The amount of the flat price. */
+      amount: components['schemas']['Numeric']
+    }
+    /** @description Flat price with payment term. */
+    FlatPriceWithPaymentTerm: {
+      /** @enum {string} */
+      type: 'flat'
+      /** @description The amount of the flat price. */
+      amount: components['schemas']['Numeric']
+      /**
+       * @description The payment term of the flat price.
+       * Defaults to in advance.
+       * @default in_advance
+       */
+      paymentTerm?: components['schemas']['PricePaymentTerm']
+    }
     /** @description The server understood the request but refuses to authorize it. */
     ForbiddenProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The server, while acting as a gateway or proxy, did not receive a timely response from an upstream server it needed to access in order to complete the request. */
@@ -1700,6 +2932,32 @@ export interface components {
     }
     /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
     InternalServerErrorProblemResponse: components['schemas']['UnexpectedProblemResponse']
+    /** @description Paginated response */
+    InvoicePaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['BillingInvoiceSummary'][]
+    }
+    ListEntitlementsResult:
+      | components['schemas']['Entitlement'][]
+      | components['schemas']['EntitlementPaginatedResponse']
+    ListFeaturesResult:
+      | components['schemas']['Feature'][]
+      | components['schemas']['FeaturePaginatedResponse']
     /**
      * @description A marketplace listing.
      * Represent an available app in the app marketplace that can be installed to the organization.
@@ -1734,7 +2992,7 @@ export interface components {
      */
     MarketplaceListing: {
       /** @description The app's type */
-      type: components['schemas']['OpenMeter.App.Type']
+      type: components['schemas']['AppType']
       /** @description The app's name. */
       name: string
       /** @description The app's description. */
@@ -1757,13 +3015,13 @@ export interface components {
     }
     /** @description Measure usage from */
     MeasureUsageFrom:
-      | components['schemas']['MeasureUsageFromEnum']
+      | components['schemas']['MeasureUsageFromPreset']
       | components['schemas']['MeasureUsageFromTime']
     /**
      * @description Start of measurement options
      * @enum {string}
      */
-    MeasureUsageFromEnum: 'CURRENT_PERIOD_START' | 'NOW'
+    MeasureUsageFromPreset: 'CURRENT_PERIOD_START' | 'NOW'
     /**
      * Format: date-time
      * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
@@ -1830,7 +3088,7 @@ export interface components {
        * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
        * @example $.tokens
        */
-      valueProperty: string
+      valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
@@ -1850,6 +3108,65 @@ export interface components {
      * @enum {string}
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX'
+    /**
+     * @description A meter is a configuration that defines how to match and aggregate events.
+     * @example {
+     *   "slug": "tokens_total",
+     *   "description": "AI Token Usage",
+     *   "aggregation": "SUM",
+     *   "windowSize": "MINUTE",
+     *   "eventType": "prompt",
+     *   "valueProperty": "$.tokens",
+     *   "groupBy": {
+     *     "model": "$.model",
+     *     "type": "$.type"
+     *   }
+     * }
+     */
+    MeterCreate: {
+      /**
+       * @description A unique, human-readable identifier for the meter.
+       * Must consist only alphanumeric and underscore characters.
+       * @example tokens_total
+       */
+      slug: string
+      /**
+       * @description A description of the meter.
+       * @example AI Token Usage
+       */
+      description?: string
+      /** @example SUM */
+      aggregation: components['schemas']['MeterAggregation']
+      /** @example MINUTE */
+      windowSize: components['schemas']['WindowSize']
+      /**
+       * @description The event type to aggregate.
+       * @example prompt
+       */
+      eventType: string
+      /**
+       * @description JSONPath expression to extract the value from the ingested event's data property.
+       *
+       * The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+       *
+       * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+       * @example $.tokens
+       */
+      valueProperty?: string
+      /**
+       * @description Named JSONPath expressions to extract the group by values from the event data.
+       *
+       * Keys must be unique and consist only alphanumeric and underscore characters.
+       *
+       * TODO: add key format enforcement
+       * @example {
+       *   "type": "$.type"
+       * }
+       */
+      groupBy?: {
+        [key: string]: string
+      }
+    }
     /**
      * @description The result of a meter query.
      * @example {
@@ -2167,12 +3484,10 @@ export interface components {
     /** @description The delivery status of the notification event. */
     NotificationEventDeliveryStatus: {
       /**
-       * Delivery State
        * @description Delivery state of the notification event to the channel.
        * @example SUCCESS
-       * @enum {string}
        */
-      state: 'SUCCESS' | 'FAILED' | 'SENDING' | 'PENDING'
+      state: components['schemas']['NotificationEventDeliveryStatusState']
       /**
        * State Reason
        * @description The reason of the last deliverry state update.
@@ -2192,6 +3507,16 @@ export interface components {
        */
       channel: components['schemas']['NotificationChannelMeta']
     }
+    /**
+     * Delivery State
+     * @description The delivery state of the notification event to the channel.
+     * @enum {string}
+     */
+    NotificationEventDeliveryStatusState:
+      | 'SUCCESS'
+      | 'FAILED'
+      | 'SENDING'
+      | 'PENDING'
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -2337,13 +3662,17 @@ export interface components {
        */
       value: number
       /**
-       * Threshold Type
        * @description Type of the threshold.
        * @example NUMBER
-       * @enum {string}
        */
-      type: 'PERCENT' | 'NUMBER'
+      type: components['schemas']['NotificationRuleBalanceThresholdValueType']
     }
+    /**
+     * Notification balance threshold type
+     * @description Type of the rule in the balance threshold specification.
+     * @enum {string}
+     */
+    NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
     /** @description Union type for requests creating new notification rule with certain type. */
     NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
     /**
@@ -2371,6 +3700,8 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['NotificationRule'][]
     }
+    /** @description Numeric represents an arbitrary precision number. */
+    Numeric: string
     /**
      * @description OAuth2 authorization code grant error types.
      * @enum {string}
@@ -2383,32 +3714,8 @@ export interface components {
       | 'invalid_scope'
       | 'server_error'
       | 'temporarily_unavailable'
-    /**
-     * @description App installed status.
-     * @enum {string}
-     */
-    'OpenMeter.App.AppStatus': 'ready' | 'unauthorized'
-    /**
-     * @description Stripe payment intent status.
-     * @enum {string}
-     */
-    'OpenMeter.App.StripePaymentIntentStatus':
-      | 'canceled'
-      | 'processing'
-      | 'requires_action'
-      | 'requires_confirmation'
-      | 'requires_payment_method'
-      | 'succeeded'
-    /**
-     * @description Type of the app.
-     * @enum {string}
-     */
-    'OpenMeter.App.Type': 'stripe'
-    /**
-     * @description The order direction.
-     * @enum {string}
-     */
-    Order: 'ASC' | 'DESC'
+    /** @description Numeric representation of a percentage */
+    Percentage: string
     /** @description A period with a start and end time. */
     Period: {
       /**
@@ -2423,6 +3730,406 @@ export interface components {
        * @example "2023-02-01T01:01:01.001Z"
        */
       to: string
+    }
+    /**
+     * @description Order by options for plan phases.
+     * @enum {string}
+     */
+    PhasesOrderBy: 'key'
+    /** @description Plans provide a template for subscriptions. */
+    Plan: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
+       * Version
+       * @description Version of the plan. Incremented when the plan is updated.
+       * @default 1
+       */
+      version: number
+      /**
+       * Currency
+       * @description The currency code of the plan.
+       * @default USD
+       */
+      currency: components['schemas']['CurrencyCode']
+      /**
+       * Effective start date
+       * Format: date-time
+       * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      effectiveFrom?: string
+      /**
+       * Effective end date
+       * Format: date-time
+       * @description The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      effectiveTo?: string
+      /**
+       * Status
+       * @description The status of the plan.
+       * Computed based on the effective start and end dates:
+       * - draft = no effectiveStartDate
+       * - active = effectiveStartDate <= now < effectiveEndDate
+       * - archived / inactive = effectiveEndDate <= now
+       */
+      status: components['schemas']['PlanStatus']
+      /**
+       * Plan phases
+       * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+       * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+       */
+      phases: components['schemas']['PlanPhase'][]
+    }
+    /** @description Resource create operation model. */
+    PlanCreate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
+       * Currency
+       * @description The currency code of the plan.
+       * @default USD
+       */
+      currency: components['schemas']['CurrencyCode']
+      /**
+       * Effective start date
+       * Format: date-time
+       * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      effectiveFrom?: string
+      /**
+       * Effective end date
+       * Format: date-time
+       * @description The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      effectiveTo?: string
+      /**
+       * Plan phases
+       * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+       * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+       */
+      phases: components['schemas']['PlanPhase'][]
+    }
+    /** @description A discount on plan. One of: percentage or amount. */
+    PlanDiscount: components['schemas']['PlanDiscountPercentage']
+    /** @description Percentage discount on plan. */
+    PlanDiscountPercentage: {
+      /**
+       * Type
+       * @description The type of the discount.
+       * @enum {string}
+       */
+      type: 'percentage'
+      /**
+       * Percentage
+       * @description The percentage of the discount.
+       */
+      percentage: number
+      /**
+       * Applies To
+       * @description The rate cards that the discount applies to.
+       * When not specified, the discount applies to all rate cards.
+       */
+      appliesToRateCards?: string[]
+    }
+    /**
+     * @description Order by options for plans.
+     * @enum {string}
+     */
+    PlanOrderBy: 'id' | 'key'
+    /** @description Paginated response */
+    PlanPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['Plan'][]
+    }
+    /** @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses. */
+    PlanPhase: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
+       * Interval
+       * Format: duration
+       * @description Interval after the subscription starts to transition to the phase.
+       * When null, the phase starts immediately after the subscription starts.
+       * @example P1Y1D
+       */
+      interval: string | null
+      /**
+       * Rate cards
+       * @description The rate cards of the plan.
+       */
+      rateCards: components['schemas']['RateCard'][]
+      /**
+       * Discount
+       * @description The discount on the plan.
+       */
+      discount?: components['schemas']['PlanDiscount']
+    }
+    /** @description Resource create operation model. */
+    PlanPhaseCreate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
+       * Interval
+       * Format: duration
+       * @description Interval after the subscription starts to transition to the phase.
+       * When null, the phase starts immediately after the subscription starts.
+       * @example P1Y1D
+       */
+      interval: string | null
+      /**
+       * Rate cards
+       * @description The rate cards of the plan.
+       */
+      rateCards: components['schemas']['RateCard'][]
+      /**
+       * Discount
+       * @description The discount on the plan.
+       */
+      discount?: components['schemas']['PlanDiscount']
+    }
+    /** @description Paginated response */
+    PlanPhasePaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['PlanPhase'][]
+    }
+    /** @description Resource create or update operation model. */
+    PlanPhaseUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name?: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Interval
+       * Format: duration
+       * @description Interval after the subscription starts to transition to the phase.
+       * When null, the phase starts immediately after the subscription starts.
+       * @example P1Y1D
+       */
+      interval?: string | null
+      /**
+       * Rate cards
+       * @description The rate cards of the plan.
+       */
+      rateCards?: components['schemas']['RateCard'][]
+      /**
+       * Discount
+       * @description The discount on the plan.
+       */
+      discount?: components['schemas']['PlanDiscount']
+    }
+    /**
+     * @description The status of a plan.
+     * @enum {string}
+     */
+    PlanStatus: 'draft' | 'active' | 'archived'
+    /** @description Resource create or update operation model. */
+    PlanUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name?: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Currency
+       * @description The currency code of the plan.
+       * @default USD
+       */
+      currency?: components['schemas']['CurrencyCode']
+      /**
+       * Effective start date
+       * Format: date-time
+       * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      effectiveFrom?: string
+      /**
+       * Effective end date
+       * Format: date-time
+       * @description The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      effectiveTo?: string
+      /**
+       * Plan phases
+       * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+       * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+       */
+      phases?: components['schemas']['PlanPhase'][]
     }
     /**
      * @description A consumer portal token.
@@ -2466,6 +4173,302 @@ export interface components {
     }
     /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
     PreconditionFailedProblemResponse: components['schemas']['UnexpectedProblemResponse']
+    /**
+     * @description The payment term of a flat price.
+     * One of: in_advance or in_arrears.
+     * @enum {string}
+     */
+    PricePaymentTerm: 'in_advance' | 'in_arrears'
+    /**
+     * @description A price tier.
+     * At least one price component is required in each tier.
+     */
+    PriceTier: {
+      /**
+       * Up to quantity
+       * Format: double
+       * @description Up to and including to this quantity will be contained in the tier.
+       * If null, the tier is open-ended.
+       */
+      upToAmount: number | null
+      /**
+       * Flat price component
+       * @description The flat price component of the tier.
+       */
+      flatPrice: components['schemas']['FlatPrice'] | null
+      /**
+       * Unit price component
+       * @description The unit price component of the tier.
+       */
+      unitPrice: components['schemas']['UnitPrice'] | null
+    }
+    /** @description Paginated response */
+    ProfilePaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['BillingProfile'][]
+    }
+    /** @description A rate card defines the pricing and entitlement of a feature or service. */
+    RateCard:
+      | components['schemas']['RateCardFlatFee']
+      | components['schemas']['RateCardUsageBased']
+    /** @description Entitlement template of a boolean entitlement. */
+    RateCardBooleanEntitlement: {
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /** @enum {string} */
+      type: 'boolean'
+    }
+    /**
+     * @description Entitlement templates are used to define the entitlements of a plan.
+     * Features are omitted from the entitlement template, as they are defined in the rate card.
+     */
+    RateCardEntitlement:
+      | components['schemas']['RateCardMeteredEntitlement']
+      | components['schemas']['RateCardStaticEntitlement']
+      | components['schemas']['RateCardBooleanEntitlement']
+    /** @description A flat fee rate card defines a one-time purchase or a recurring fee. */
+    RateCardFlatFee: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
+       * Channel Type
+       * @description The type of the RateCard.
+       * @enum {string}
+       */
+      type: 'flat_fee'
+      /**
+       * Feature key
+       * @description The feature the customer is entitled to use.
+       */
+      featureKey?: string
+      /**
+       * Entitlement template
+       * @description The entitlement of the rate card.
+       * Only available when featureKey is set.
+       */
+      entitlementTemplate?: {
+        type: 'RateCardFlatFee'
+      } & Omit<components['schemas']['RateCardEntitlement'], 'type'>
+      /**
+       * Tax config
+       * @description The tax config of the rate card.
+       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The billing cadence of the rate card.
+       * When null, the rate card is a one-time purchase.
+       */
+      billingCadence: string | null
+      /**
+       * Price
+       * @description The price of the rate card.
+       * When null, the feature or service is free.
+       * @example {}
+       */
+      price: components['schemas']['FlatPriceWithPaymentTerm'] | null
+    }
+    /** @description The entitlement template with a metered entitlement. */
+    RateCardMeteredEntitlement: {
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /** @enum {string} */
+      type: 'metered'
+      /**
+       * Soft limit
+       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
+       * @default false
+       */
+      isSoftLimit?: boolean
+      /**
+       * Initial grant amount
+       * Format: double
+       * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+       * If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       * That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       * Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+       */
+      issueAfterReset?: number
+      /**
+       * Issue grant after reset priority
+       * Format: uint8
+       * @description Defines the grant priority for the default grant.
+       * @default 1
+       */
+      issueAfterResetPriority?: number
+      /**
+       * Preserve overage at reset
+       * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
+       * @default false
+       */
+      preserveOverageAtReset?: boolean
+      /**
+       * Interval
+       * Format: duration
+       * @description The interval of the metered entitlement.
+       * Defaults to the billing cadence of the rate card.
+       */
+      usagePeriod?: string
+    }
+    /** @description Entitlement template of a static entitlement. */
+    RateCardStaticEntitlement: {
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /** @enum {string} */
+      type: 'static'
+      /**
+       * Format: json
+       * @description The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+       * @example { "integrations": ["github"] }
+       */
+      config: string
+    }
+    /** @description A usage-based rate card defines a price based on usage. */
+    RateCardUsageBased: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
+       * Channel Type
+       * @description The type of the RateCard.
+       * @enum {string}
+       */
+      type: 'usage_based'
+      /**
+       * Feature key
+       * @description The feature the customer is entitled to use.
+       */
+      featureKey?: string
+      /**
+       * Entitlement template
+       * @description The entitlement of the rate card.
+       * Only available when featureKey is set.
+       */
+      entitlementTemplate?: {
+        type: 'RateCardUsageBased'
+      } & Omit<components['schemas']['RateCardEntitlement'], 'type'>
+      /**
+       * Tax config
+       * @description The tax config of the rate card.
+       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The billing cadence of the rate card.
+       */
+      billingCadence: string
+      /**
+       * Price
+       * @description The price of the rate card.
+       * When null, the feature or service is free.
+       * @example {}
+       */
+      price:
+        | (components['schemas']['UnitPriceWithCommitments'] | null)
+        | (components['schemas']['TieredPriceWithCommitments'] | null)
+        | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
+      /**
+       * Discount
+       * @description The discount of the rate card.
+       */
+      discount?: components['schemas']['Discount']
+    }
     /**
      * @description Recurring period with an interval and an anchor.
      * @example {
@@ -2535,8 +4538,66 @@ export interface components {
        */
       preserveOverage?: boolean
     }
+    SandboxApp: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /** @description The marketplace listing that this installed app is based on. */
+      listing: components['schemas']['MarketplaceListing']
+      /** @description Status of the app connection. */
+      status: components['schemas']['AppStatus']
+      /**
+       * @description The app's type is Sandbox.
+       * @enum {string}
+       */
+      type: 'sandbox'
+    }
     /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
     ServiceUnavailableProblemResponse: components['schemas']['UnexpectedProblemResponse']
+    /**
+     * @description The order direction.
+     * @enum {string}
+     */
+    SortOrder: 'ASC' | 'DESC'
     /**
      * @description A installed Stripe app object.
      * @example {
@@ -2622,7 +4683,7 @@ export interface components {
       /** @description The marketplace listing that this installed app is based on. */
       listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['OpenMeter.App.AppStatus']
+      status: components['schemas']['AppStatus']
       /**
        * @description The app's type is Stripe.
        * @enum {string}
@@ -2638,12 +4699,23 @@ export interface components {
      * @enum {string}
      */
     StripeCheckoutSessionMode: 'setup'
+    /**
+     * @description Stripe payment intent status.
+     * @enum {string}
+     */
+    StripePaymentIntentStatus:
+      | 'canceled'
+      | 'processing'
+      | 'requires_action'
+      | 'requires_confirmation'
+      | 'requires_payment_method'
+      | 'succeeded'
     /** @description Stripe setup intent. */
     StripeSetupIntent: {
       /** @description The setup intent id. */
       id: string
       /** @description The setup intent status. */
-      status: components['schemas']['OpenMeter.App.StripePaymentIntentStatus']
+      status: components['schemas']['StripePaymentIntentStatus']
       /** @description The setup intent payment method. */
       payment_method?: string
       /** @description The setup intent payment method types. */
@@ -2720,7 +4792,7 @@ export interface components {
        * @description A human-readable display name for the subject.
        * @example Customer Name
        */
-      displayName?: string
+      displayName?: string | null
       /** @example {} */
       metadata?: {
         [key: string]: unknown
@@ -2763,7 +4835,7 @@ export interface components {
        * @description A human-readable display name for the subject.
        * @example Customer Name
        */
-      displayName?: string
+      displayName?: string | null
       /** @example {} */
       metadata?: {
         [key: string]: unknown
@@ -2806,6 +4878,51 @@ export interface components {
         [key: string]: string
       }
     }
+    /** @description A tax config. */
+    TaxConfig: {
+      /**
+       * Stripe tax config
+       * @description Stripe tax config.
+       */
+      stripe?: {
+        /**
+         * Tax code
+         * @example txcd_10000000
+         */
+        code: string
+      }
+    }
+    /**
+     * @description The mode of the tiered price.
+     * @enum {string}
+     */
+    TieredPriceMode: 'volume' | 'graduated'
+    /** @description Tiered price with spend commitments. */
+    TieredPriceWithCommitments: {
+      /** @enum {string} */
+      type: 'tiered'
+      /**
+       * @description Defines if the tiering mode is volume-based or graduated:
+       * - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+       * - In `graduated` tiering, pricing can change as the quantity grows.
+       */
+      mode: components['schemas']['TieredPriceMode']
+      /**
+       * @description The tiers of the tiered price.
+       * At least one price component is required in each tier.
+       */
+      tiers: components['schemas']['PriceTier'][]
+      /**
+       * Minimum amount
+       * @description The customer is committed to spend at least the amount.
+       */
+      minimumAmount?: components['schemas']['Numeric']
+      /**
+       * Maximum amount
+       * @description The customer is limited to spend at most the amount.
+       */
+      maximumAmount?: components['schemas']['Numeric']
+    }
     /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
     UnauthorizedProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
@@ -2844,6 +4961,30 @@ export interface components {
       instance: string
       [key: string]: (string | number) | undefined
     }
+    /** @description Unit price. */
+    UnitPrice: {
+      /** @enum {string} */
+      type: 'unit'
+      /** @description The amount of the unit price. */
+      amount: components['schemas']['Numeric']
+    }
+    /** @description Unit price with spend commitments. */
+    UnitPriceWithCommitments: {
+      /** @enum {string} */
+      type: 'unit'
+      /** @description The amount of the unit price. */
+      amount: components['schemas']['Numeric']
+      /**
+       * Minimum amount
+       * @description The customer is committed to spend at least the amount.
+       */
+      minimumAmount?: components['schemas']['Numeric']
+      /**
+       * Maximum amount
+       * @description The customer is limited to spend at most the amount.
+       */
+      maximumAmount?: components['schemas']['Numeric']
+    }
     /**
      * @description Aggregation window size.
      * @enum {string}
@@ -2864,18 +5005,30 @@ export interface components {
   }
   responses: never
   parameters: {
+    'BillingInvoiceListParams.expand'?: components['schemas']['BillingInvoiceExpand'][]
+    'BillingInvoiceListParams.issuedAfter'?: string
+    'BillingInvoiceListParams.issuedBefore'?: string
+    'BillingInvoiceListParams.statuses'?: components['schemas']['BillingInvoiceStatus'][]
     /** @description The order direction. */
-    'EntitlementOrderByOrdering.order'?: components['schemas']['Order']
+    'CustomerOverrideOrderByOrdering.order'?: components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'CustomerOverrideOrderByOrdering.orderBy'?: components['schemas']['BillingCustomerOverrideOrderBy']
+    /** @description The order direction. */
+    'EntitlementOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'EntitlementOrderByOrdering.orderBy'?: components['schemas']['EntitlementOrderBy']
     /** @description The order direction. */
-    'FeatureOrderByOrdering.order'?: components['schemas']['Order']
+    'FeatureOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'FeatureOrderByOrdering.orderBy'?: components['schemas']['FeatureOrderBy']
     /** @description The order direction. */
-    'GrantOrderByOrdering.order'?: components['schemas']['Order']
+    'GrantOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'GrantOrderByOrdering.orderBy'?: components['schemas']['GrantOrderBy']
+    /** @description The order direction. */
+    'InvoiceOrderByOrdering.order'?: components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'InvoiceOrderByOrdering.orderBy'?: components['schemas']['BillingInvoiceOrderBy']
     /**
      * @description Number of items to return.
      *
@@ -2889,9 +5042,9 @@ export interface components {
      */
     'LimitOffset.offset'?: number
     /** @description The type of the app to install. */
-    'MarketplaceApiKeyInstallRequest.type': components['schemas']['OpenMeter.App.Type']
+    'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
     /** @description The type of the app to install. */
-    'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['OpenMeter.App.Type']
+    'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['AppType']
     /** @description Simple filter for group bys with exact match. */
     'MeterQuery.filterGroupBy'?: {
       [key: string]: string
@@ -2923,15 +5076,15 @@ export interface components {
      */
     'MeterQuery.windowTimeZone'?: string
     /** @description The order direction. */
-    'NotificationChannelOrderByOrdering.order'?: components['schemas']['Order']
+    'NotificationChannelOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationChannelOrderByOrdering.orderBy'?: components['schemas']['NotificationChannelOrderBy']
     /** @description The order direction. */
-    'NotificationEventOrderByOrdering.order'?: components['schemas']['Order']
+    'NotificationEventOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationEventOrderByOrdering.orderBy'?: components['schemas']['NotificationEventOrderBy']
     /** @description The order direction. */
-    'NotificationRuleOrderByOrdering.order'?: components['schemas']['Order']
+    'NotificationRuleOrderByOrdering.order'?: components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationRuleOrderByOrdering.orderBy'?: components['schemas']['NotificationRuleOrderBy']
     /**
@@ -2979,6 +5132,18 @@ export interface components {
      * Default is 100.
      */
     'Pagination.pageSize'?: number
+    /** @description The order direction. */
+    'PhasesOrderByOrdering.order'?: components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'PhasesOrderByOrdering.orderBy'?: components['schemas']['PhasesOrderBy']
+    /** @description The order direction. */
+    'PlanOrderByOrdering.order'?: components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'PlanOrderByOrdering.orderBy'?: components['schemas']['PlanOrderBy']
+    /** @description The order direction. */
+    'ProfileOrderByOrdering.order'?: components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'ProfileOrderByOrdering.orderBy'?: components['schemas']['BillingProfileOrderBy']
     /** @description Include deleted customers. */
     queryCustomerList?: boolean
   }
@@ -3177,6 +5342,1356 @@ export interface operations {
         content: {
           'application/json': components['schemas']['StripeWebhookResponse']
         }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * List customer overrides
+   * @description List customer overrides
+   */
+  billingListCustomerOverrides: {
+    parameters: {
+      query?: {
+        billingProfile?: string[]
+        page?: components['parameters']['Pagination.page']
+        pageSize?: components['parameters']['Pagination.pageSize']
+        offset?: components['parameters']['LimitOffset.offset']
+        limit?: components['parameters']['LimitOffset.limit']
+        order?: components['parameters']['CustomerOverrideOrderByOrdering.order']
+        orderBy?: components['parameters']['CustomerOverrideOrderByOrdering.orderBy']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['CustomerOverridePaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Get a customer override
+   * @description Get a customer override by id.
+   */
+  billingGetCustomerOverrideById: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingCustomerOverride']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Create/update a customer override
+   * @description Create/update a new customer override.
+   */
+  billingUpsertCustomerOverride: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingCustomerWorkflowOverrideCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingCustomerOverride']
+        }
+      }
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['BillingCustomerOverride']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Delete a customer override
+   * @description Delete a customer override by id.
+   */
+  billingDeleteCustomerOverride: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * List invoices
+   * @description List invoices
+   */
+  billingListInvoices: {
+    parameters: {
+      query?: {
+        customers?: string[]
+        statuses?: components['parameters']['BillingInvoiceListParams.statuses']
+        issuedAfter?: components['parameters']['BillingInvoiceListParams.issuedAfter']
+        issuedBefore?: components['parameters']['BillingInvoiceListParams.issuedBefore']
+        expand?: components['parameters']['BillingInvoiceListParams.expand']
+        page?: components['parameters']['Pagination.page']
+        pageSize?: components['parameters']['Pagination.pageSize']
+        offset?: components['parameters']['LimitOffset.offset']
+        limit?: components['parameters']['LimitOffset.limit']
+        order?: components['parameters']['InvoiceOrderByOrdering.order']
+        orderBy?: components['parameters']['InvoiceOrderByOrdering.orderBy']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['InvoicePaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * List invoices
+   * @description List invoices for a specific customer
+   */
+  billingListInvoicesByCustomer: {
+    parameters: {
+      query?: {
+        statuses?: components['parameters']['BillingInvoiceListParams.statuses']
+        issuedAfter?: components['parameters']['BillingInvoiceListParams.issuedAfter']
+        issuedBefore?: components['parameters']['BillingInvoiceListParams.issuedBefore']
+        expand?: components['parameters']['BillingInvoiceListParams.expand']
+        page?: components['parameters']['Pagination.page']
+        pageSize?: components['parameters']['Pagination.pageSize']
+        offset?: components['parameters']['LimitOffset.offset']
+        limit?: components['parameters']['LimitOffset.limit']
+        order?: components['parameters']['InvoiceOrderByOrdering.order']
+        orderBy?: components['parameters']['InvoiceOrderByOrdering.orderBy']
+      }
+      path: {
+        customerIdOrKey: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['InvoicePaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Create an invoice
+   * @description Create a new invoice from the pending items.
+   *
+   * This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
+   *
+   * When creating an invoice, the pending items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
+   *
+   * New pending items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+   */
+  billingCreateInvoice: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingInvoiceCreateInput']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceSummary']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Get an invoice
+   * @description Get an invoice by ID.
+   */
+  billingGetInvoiceByCustomerInvoiceId: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceSummary']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Delete an invoice
+   * @description Delete an invoice
+   *
+   * Only invoices that are in the draft (or earlier) status can be deleted.
+   */
+  billingDeleteInvoiceByCustomerInvoiceId: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Send the invoice to the customer
+   * @description Approve an invoice and start executing the payment workflow.
+   *
+   * This call instantly sends the invoice to the customer using the configured billing profile app.
+   *
+   * This call is valid in two invoice statuses:
+   * - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
+   * - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
+   */
+  billingApproveInvoice: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceSummary']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Update an invoice line
+   * @description Update an invoice line
+   */
+  billingUpdateInvoiceLine: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+        lineId: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingInvoiceLineCreateOrUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceLine']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Delete an invoice line
+   * @description Delete an invoice line
+   */
+  billingDeleteInvoiceLine: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+        lineId: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Recalculate an invoice's tax amounts
+   * @description Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
+   *
+   * Note: charges might apply, depending on the tax provider.
+   */
+  billingRecalculateInvoiceTax: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceSummary']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Void an invoice
+   * @description Void an invoice
+   *
+   * Only invoices that have been alread issued can be voided.
+   *
+   * Voiding an invoice will mark it as voided, the user can specify how to handle the voided items.
+   */
+  billingVoidInvoice: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingVoidInvoiceInput']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceSummary']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Advance the invoice's state to the next status
+   * @description Retry advancing the invoice's state to the next status.
+   *
+   * The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
+   *
+   * This call can be used to retry advancing the invoice's state to the next status if the previous attempt failed.
+   *
+   * This call is valid in the following invoice statuses:
+   * - `draft_sync_failed`
+   * - `issuing_failed`
+   * - `validation_failed`
+   */
+  billingInvoiceWorkflowAdvance: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+        invoiceId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingInvoiceSummary']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Create a new pending item
+   * @description Create a new pending line item (charge).
+   *
+   * This call is used to create a new pending line item for the customer without explicitly
+   * assigning it to an invoice.
+   *
+   * The item will be either allocated to an existing invoice in gathering state or a new invoice is
+   * created for the item.
+   *
+   * A new invoice will be created if:
+   * - there is no invoice in gathering state
+   * - the currency of the item doesn't match the currency of any invoices in gathering state
+   */
+  billingCreatePendingItemByCustomer: {
+    parameters: {
+      path: {
+        customerIdOrKey: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingInvoiceLineCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['BillingCreatePendingItemResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /** @description List all billing profiles */
+  billingListProfiles: {
+    parameters: {
+      query?: {
+        includeArchived?: boolean
+        page?: components['parameters']['Pagination.page']
+        pageSize?: components['parameters']['Pagination.pageSize']
+        offset?: components['parameters']['LimitOffset.offset']
+        limit?: components['parameters']['LimitOffset.limit']
+        order?: components['parameters']['ProfileOrderByOrdering.order']
+        orderBy?: components['parameters']['ProfileOrderByOrdering.orderBy']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['ProfilePaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Create a new billing profile
+   * @description Create a new billing profile
+   *
+   * Billing profiles are representations of a customer's billing information. Customer overrides
+   * can be applied to a billing profile to customize the billing behavior for a specific customer.
+   */
+  billingCreateProfile: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingProfileCreateInput']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['BillingProfile']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Get a billing profile by ID
+   * @description Get a billing profile by ID
+   */
+  billingGetProfile: {
+    parameters: {
+      path: {
+        id: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingProfile']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Update a billing profile
+   * @description Update a billing profile
+   */
+  billingUpdateProfile: {
+    parameters: {
+      path: {
+        id: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingProfileCreateOrUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['BillingProfile']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Archive a billing profile
+   * @description Archive a billing profile
+   */
+  billingArchiveProfile: {
+    parameters: {
+      path: {
+        id: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
@@ -3598,9 +7113,7 @@ export interface operations {
       /** @description The request has succeeded. */
       200: {
         content: {
-          'application/json':
-            | components['schemas']['Entitlement'][]
-            | components['schemas']['EntitlementPaginatedResponse']
+          'application/json': components['schemas']['ListEntitlementsResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -3875,9 +7388,7 @@ export interface operations {
       /** @description The request has succeeded. */
       200: {
         content: {
-          'application/json':
-            | components['schemas']['Feature'][]
-            | components['schemas']['FeaturePaginatedResponse']
+          'application/json': components['schemas']['ListFeaturesResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -4247,7 +7758,7 @@ export interface operations {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
         content: {
-          'application/json': components['schemas']['CreateStripeCheckoutSessionResponse']
+          'application/json': components['schemas']['CreateStripeCheckoutSessionResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -4351,7 +7862,7 @@ export interface operations {
   getMarketplaceListing: {
     parameters: {
       path: {
-        type: components['schemas']['OpenMeter.App.Type']
+        type: components['schemas']['AppType']
       }
     }
     responses: {
@@ -4414,6 +7925,12 @@ export interface operations {
            * For example, the Stripe API key.
            */
           apiKey: string
+          /**
+           * @description Name of the application to install.
+           *
+           * If not set defaults to the marketplace item's description.
+           */
+          name?: string
         }
       }
     }
@@ -4469,7 +7986,7 @@ export interface operations {
   marketplaceOAuth2InstallGetURL: {
     parameters: {
       path: {
-        type: components['schemas']['OpenMeter.App.Type']
+        type: components['schemas']['AppType']
       }
     }
     responses: {
@@ -4628,7 +8145,7 @@ export interface operations {
   createMeter: {
     requestBody: {
       content: {
-        'application/json': components['schemas']['Meter']
+        'application/json': components['schemas']['MeterCreate']
       }
     }
     responses: {
@@ -5323,7 +8840,7 @@ export interface operations {
       /** @description The request has succeeded. */
       200: {
         content: {
-          'application/json': components['schemas']['Event']
+          'application/json': components['schemas']['NotificationEvent']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -5706,7 +9223,7 @@ export interface operations {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
         content: {
-          'application/json': components['schemas']['Event']
+          'application/json': components['schemas']['NotificationEvent']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -5784,6 +9301,815 @@ export interface operations {
       403: {
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * List plans
+   * @description List all plans.
+   */
+  listPlans: {
+    parameters: {
+      query?: {
+        /**
+         * @description Include deleted plans in response.
+         *
+         * Usage: `?includeDeleted=true`
+         */
+        includeDeleted?: boolean
+        /** @description Filter by plan.id attribute */
+        id?: string[]
+        /** @description Filter by plan.key attribute */
+        key?: string[]
+        /** @description Filter by plan.key and plan.version attributes */
+        keyVersion?: {
+          [key: string]: number
+        }
+        page?: components['parameters']['Pagination.page']
+        pageSize?: components['parameters']['Pagination.pageSize']
+        order?: components['parameters']['PlanOrderByOrdering.order']
+        orderBy?: components['parameters']['PlanOrderByOrdering.orderBy']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['PlanPaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Create a plan
+   * @description Create a new plan.
+   */
+  createPlan: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['Plan']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Get plan
+   * @description Get a plan by id or key. The latest published version is returned if latter is used.
+   */
+  getPlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Plan']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Update a plan
+   * @description Update plan by id.
+   */
+  updatePlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Plan']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Delete plan
+   * @description Soft delete plan by plan.id.
+   *
+   * Once a plan is deleted it cannot be undeleted.
+   */
+  deletePlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * New draft plan
+   * @description Create a new draft version from plan.
+   * It returns error if there is already a plan in draft or planId does not reference the latest published version.
+   */
+  newDraftPlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['Plan']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * List phases in plan
+   * @description List all phases in plan.
+   */
+  listPlanPhases: {
+    parameters: {
+      query?: {
+        /** @description Filter by phase.key attribute */
+        key?: string[]
+        page?: components['parameters']['Pagination.page']
+        pageSize?: components['parameters']['Pagination.pageSize']
+        order?: components['parameters']['PhasesOrderByOrdering.order']
+        orderBy?: components['parameters']['PhasesOrderByOrdering.orderBy']
+      }
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['PlanPhasePaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Create new phase in plan
+   * @description Create new phase in plan.
+   */
+  createPlanPhases: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanPhaseCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['PlanPhase']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Get phase for plan
+   * @description Get phase in plan.
+   */
+  getPlanPhases: {
+    parameters: {
+      path: {
+        planId: string
+        planPhaseKey: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['PlanPhase']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Update phase in plan
+   * @description Update phase in plan.
+   */
+  updatePlanPhases: {
+    parameters: {
+      path: {
+        planId: string
+        planPhaseKey: string
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanPhaseUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['PlanPhase']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Delete phase for plan
+   * @description Delete phase in plan.
+   *
+   * Once a phase is deleted it cannot be undeleted.
+   */
+  deletePlanPhases: {
+    parameters: {
+      path: {
+        planId: string
+        planPhaseKey: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Publish plan
+   * @description Publish a new plan.
+   */
+  publishPlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * Unpublish plan
+   * @description Unpublish a new plan.
+   */
+  unpublishPlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -6326,7 +10652,7 @@ export interface operations {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
         content: {
-          'application/json': components['schemas']['EntitlementCreateInputs']
+          'application/json': components['schemas']['Entitlement']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
