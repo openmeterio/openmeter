@@ -57,7 +57,7 @@ func NewEventBusPublisher(
 ) (eventbus.Publisher, error) {
 	eventBusPublisher, err := eventbus.New(eventbus.Options{
 		Publisher:              publisher,
-		Config:                 conf,
+		TopicMapping:           conf.EventBusTopicMapping(),
 		Logger:                 logger,
 		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
 	})

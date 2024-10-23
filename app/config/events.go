@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
@@ -17,6 +18,13 @@ type EventsConfiguration struct {
 
 func (c EventsConfiguration) Validate() error {
 	return c.SystemEvents.Validate()
+}
+
+func (c EventsConfiguration) EventBusTopicMapping() eventbus.TopicMapping {
+	return eventbus.TopicMapping{
+		IngestEventsTopic: c.IngestEvents.Topic,
+		SystemEventsTopic: c.SystemEvents.Topic,
+	}
 }
 
 type EventSubsystemConfiguration struct {
