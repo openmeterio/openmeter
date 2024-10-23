@@ -40,6 +40,12 @@ telemetry:
 entitlements:
   enabled: true
 
+billing:
+  enabled: true
+
+apps:
+  enabled: true
+
 # System event generation
 events:
   enabled: false

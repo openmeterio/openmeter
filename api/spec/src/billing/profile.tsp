@@ -78,6 +78,8 @@ interface Profiles {
 enum ProfileOrderBy {
   createdAt: "createdAt",
   updatedAt: "updatedAt",
+  default: "default",
+  name: "name",
 }
 
 /**
@@ -85,7 +87,16 @@ enum ProfileOrderBy {
  */
 @friendlyName("BillingProfile")
 model Profile {
-  ...global.Resource;
+  ...OmitProperties<global.Resource, "updatedAt">;
+
+  /**
+   * When the resource was last updated.
+   *
+   * For updates this field must be set to the last update time to detect conflicts.
+   */
+  @summary("Last update time of the resource")
+  @visibility("read", "query", "update")
+  updatedAt: DateTime;
 
   @summary("The name and contact information for the supplier this billing profile represents")
   supplier: Invoices.Party;
@@ -93,8 +104,27 @@ model Profile {
   @summary("The billing workflow settings for this profile")
   workflow: Workflow;
 
+  @summary("The applications used by this billing profile")
+  @visibility("read", "query")
+  apps: ProfileApps;
+
   @summary("Is this the default profile?")
   default: boolean;
+}
+
+/**
+ * ProfileApps represents the applications used by a billing profile
+ */
+@friendlyName("BillingProfileApps")
+model ProfileApps {
+  @summary("The tax app used for this workflow")
+  tax: OpenMeter.App.App;
+
+  @summary("The invoicing app used for this workflow")
+  invoicing: OpenMeter.App.App;
+
+  @summary("The payment app used for this workflow")
+  payment: OpenMeter.App.App;
 }
 
 /**
@@ -116,67 +146,78 @@ model Workflow {
 
 @friendlyName("BillingWorkflowSettings")
 model WorkflowSettings {
+  @summary("The collection settings for this workflow")
+  collection?: WorkflowCollectionSettings;
+
+  @summary("The invoicing settings for this workflow")
+  invoicing?: WorkflowInvoicingSettings;
+
+  @summary("The payment settings for this workflow")
+  payment?: WorkflowPaymentSettings;
+}
+
+@summary("Workflow collection specifies how to collect the pending items for an invoice")
+@friendlyName("BillingWorkflowCollectionSettings")
+model WorkflowCollectionSettings {
   /**
    * When to collect the pending line items into an invoice.
    */
-  collectionAlignment?: CollectionAlignment = CollectionAlignment.subscription;
+  alignment?: CollectionAlignment = CollectionAlignment.subscription;
 
   /**
-   * The period for collecting the pending line items into an invoice.
+   * The interval for collecting the pending line items into an invoice.
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
-  itemCollectionPeriod?: string = "PT1H";
-
-  invoice?: WorkflowInvoice;
-
-  @summary("The tax app used for this workflow")
-  taxApp: OpenMeter.App.App;
-
-  @summary("The invoicing app used for this workflow")
-  invoicingApp: OpenMeter.App.App;
-
-  @summary("The payment app used for this workflow")
-  paymentApp: OpenMeter.App.App;
+  interval?: string = "PT1H";
 }
 
 /**
- * AppReference can be used to reference an app during creation only.
+ * WorkflowPaymentSettings represents the payment settings for a billing workflow
  */
-@friendlyName("BillingWorkflowAppReference")
-model AppReference {
-  @summary("The ID of the app, if not specified the type is used to find the default app")
-  id?: ULID;
-
-  @summary("The type of the app, if specified the default app is used")
-  type?: OpenMeter.App.Type;
+@summary("Workflow payment settings")
+@friendlyName("BillingWorkflowPaymentSettings")
+model WorkflowPaymentSettings {
+  collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
 }
+
+@summary("App reference type specifies the type of reference inside an app reference")
+@friendlyName("BillingWorkflowAppReferenceType")
+enum AppReferenceType {
+  appId: "app_id",
+  appType: "app_type",
+}
+
+/**
+ * AppIdOrType can be used to reference an app during creation only.
+ *
+ * This can be either an AppType or the ULID of an app.
+ */
+@friendlyName("BillingWorkflowAppIdOrType")
+scalar AppIdOrType extends string;
 
 /**
  * ProfileCreateInput represents the input for creating a billing profile
  */
 @friendlyName("BillingProfileCreateInput")
 model ProfileCreateInput {
-  ...OmitProperties<Profile, "workflow">;
-  workflow: WorkflowCreateInput;
+  ...OmitProperties<Profile, "apps">;
+  apps: ProfileCreateAppsInput;
 }
 
 /**
- * WorkflowCreate represents the workflow settings for creation of a billing profile
+ * ProfileCreateAppsInput represents the input for creating a billing profile's apps
  */
-@friendlyName("BillingWorkflowCreateInput")
-model WorkflowCreateInput {
-  ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
+@friendlyName("BillingProfileCreateAppsInput")
+model ProfileCreateAppsInput {
+  @summary("The tax app used for this workflow")
+  tax: AppIdOrType;
 
-  // provider settings for creation (update is not supported)
-  @visibility("create")
-  taxApp?: AppReference;
+  @summary("The invoicing app used for this workflow")
+  invoicing: AppIdOrType;
 
-  @visibility("create")
-  invoicingApp?: AppReference;
-
-  @visibility("create")
-  paymentApp?: AppReference;
+  @summary("The payment app used for this workflow")
+  payment: AppIdOrType;
 }
 
 /**
@@ -196,8 +237,8 @@ enum CollectionAlignment {
  * WorkflowInvoice represents the invoice settings for a billing workflow
  */
 @summary("Workflow invoice settings")
-@friendlyName("BillingWorkflowInvoice")
-model WorkflowInvoice {
+@friendlyName("BillingWorkflowInvoicingSettings")
+model WorkflowInvoicingSettings {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
    */
@@ -216,21 +257,6 @@ model WorkflowInvoice {
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
   dueAfter?: string = "P7D";
-
-  /**
-   * The method to collect the invoice.
-   */
-  collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
-
-  /**
-   * The resolution of the line items in the invoice.
-   */
-  itemResolution?: ItemResolution = ItemResolution.period;
-
-  /**
-   * Whether to create one line item per subject in the invoice.
-   */
-  itemPerSubject?: boolean = true;
 }
 
 /**

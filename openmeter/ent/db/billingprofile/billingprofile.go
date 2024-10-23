@@ -3,12 +3,10 @@
 package billingprofile
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 )
 
 const (
@@ -44,24 +42,32 @@ const (
 	FieldSupplierAddressLine2 = "supplier_address_line2"
 	// FieldSupplierAddressPhoneNumber holds the string denoting the supplier_address_phone_number field in the database.
 	FieldSupplierAddressPhoneNumber = "supplier_address_phone_number"
-	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
-	FieldTaxProvider = "tax_provider"
-	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
-	FieldInvoicingProvider = "invoicing_provider"
-	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
-	FieldPaymentProvider = "payment_provider"
+	// FieldTaxAppID holds the string denoting the tax_app_id field in the database.
+	FieldTaxAppID = "tax_app_id"
+	// FieldInvoicingAppID holds the string denoting the invoicing_app_id field in the database.
+	FieldInvoicingAppID = "invoicing_app_id"
+	// FieldPaymentAppID holds the string denoting the payment_app_id field in the database.
+	FieldPaymentAppID = "payment_app_id"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
 	// FieldDefault holds the string denoting the default field in the database.
 	FieldDefault = "default"
 	// FieldSupplierName holds the string denoting the supplier_name field in the database.
 	FieldSupplierName = "supplier_name"
+	// FieldSupplierTaxCode holds the string denoting the supplier_tax_code field in the database.
+	FieldSupplierTaxCode = "supplier_tax_code"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
 	// EdgeBillingCustomerOverride holds the string denoting the billing_customer_override edge name in mutations.
 	EdgeBillingCustomerOverride = "billing_customer_override"
 	// EdgeWorkflowConfig holds the string denoting the workflow_config edge name in mutations.
 	EdgeWorkflowConfig = "workflow_config"
+	// EdgeTaxApp holds the string denoting the tax_app edge name in mutations.
+	EdgeTaxApp = "tax_app"
+	// EdgeInvoicingApp holds the string denoting the invoicing_app edge name in mutations.
+	EdgeInvoicingApp = "invoicing_app"
+	// EdgePaymentApp holds the string denoting the payment_app edge name in mutations.
+	EdgePaymentApp = "payment_app"
 	// Table holds the table name of the billingprofile in the database.
 	Table = "billing_profiles"
 	// BillingInvoicesTable is the table that holds the billing_invoices relation/edge.
@@ -85,6 +91,27 @@ const (
 	WorkflowConfigInverseTable = "billing_workflow_configs"
 	// WorkflowConfigColumn is the table column denoting the workflow_config relation/edge.
 	WorkflowConfigColumn = "workflow_config_id"
+	// TaxAppTable is the table that holds the tax_app relation/edge.
+	TaxAppTable = "billing_profiles"
+	// TaxAppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	TaxAppInverseTable = "apps"
+	// TaxAppColumn is the table column denoting the tax_app relation/edge.
+	TaxAppColumn = "tax_app_id"
+	// InvoicingAppTable is the table that holds the invoicing_app relation/edge.
+	InvoicingAppTable = "billing_profiles"
+	// InvoicingAppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	InvoicingAppInverseTable = "apps"
+	// InvoicingAppColumn is the table column denoting the invoicing_app relation/edge.
+	InvoicingAppColumn = "invoicing_app_id"
+	// PaymentAppTable is the table that holds the payment_app relation/edge.
+	PaymentAppTable = "billing_profiles"
+	// PaymentAppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	PaymentAppInverseTable = "apps"
+	// PaymentAppColumn is the table column denoting the payment_app relation/edge.
+	PaymentAppColumn = "payment_app_id"
 )
 
 // Columns holds all SQL columns for billingprofile fields.
@@ -104,12 +131,13 @@ var Columns = []string{
 	FieldSupplierAddressLine1,
 	FieldSupplierAddressLine2,
 	FieldSupplierAddressPhoneNumber,
-	FieldTaxProvider,
-	FieldInvoicingProvider,
-	FieldPaymentProvider,
+	FieldTaxAppID,
+	FieldInvoicingAppID,
+	FieldPaymentAppID,
 	FieldWorkflowConfigID,
 	FieldDefault,
 	FieldSupplierName,
+	FieldSupplierTaxCode,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -142,36 +170,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// TaxProviderValidator is a validator for the "tax_provider" field enum values. It is called by the builders before save.
-func TaxProviderValidator(tp provider.TaxProvider) error {
-	switch tp {
-	case "openmeter_sandbox", "stripe":
-		return nil
-	default:
-		return fmt.Errorf("billingprofile: invalid enum value for tax_provider field: %q", tp)
-	}
-}
-
-// InvoicingProviderValidator is a validator for the "invoicing_provider" field enum values. It is called by the builders before save.
-func InvoicingProviderValidator(ip provider.InvoicingProvider) error {
-	switch ip {
-	case "openmeter_sandbox", "stripe":
-		return nil
-	default:
-		return fmt.Errorf("billingprofile: invalid enum value for invoicing_provider field: %q", ip)
-	}
-}
-
-// PaymentProviderValidator is a validator for the "payment_provider" field enum values. It is called by the builders before save.
-func PaymentProviderValidator(pp provider.PaymentProvider) error {
-	switch pp {
-	case "openmeter_sandbox", "stripe_payments":
-		return nil
-	default:
-		return fmt.Errorf("billingprofile: invalid enum value for payment_provider field: %q", pp)
-	}
-}
 
 // OrderOption defines the ordering options for the BillingProfile queries.
 type OrderOption func(*sql.Selector)
@@ -246,19 +244,19 @@ func BySupplierAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSupplierAddressPhoneNumber, opts...).ToFunc()
 }
 
-// ByTaxProvider orders the results by the tax_provider field.
-func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
+// ByTaxAppID orders the results by the tax_app_id field.
+func ByTaxAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxAppID, opts...).ToFunc()
 }
 
-// ByInvoicingProvider orders the results by the invoicing_provider field.
-func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
+// ByInvoicingAppID orders the results by the invoicing_app_id field.
+func ByInvoicingAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppID, opts...).ToFunc()
 }
 
-// ByPaymentProvider orders the results by the payment_provider field.
-func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
+// ByPaymentAppID orders the results by the payment_app_id field.
+func ByPaymentAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentAppID, opts...).ToFunc()
 }
 
 // ByWorkflowConfigID orders the results by the workflow_config_id field.
@@ -274,6 +272,11 @@ func ByDefault(opts ...sql.OrderTermOption) OrderOption {
 // BySupplierName orders the results by the supplier_name field.
 func BySupplierName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSupplierName, opts...).ToFunc()
+}
+
+// BySupplierTaxCode orders the results by the supplier_tax_code field.
+func BySupplierTaxCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierTaxCode, opts...).ToFunc()
 }
 
 // ByBillingInvoicesCount orders the results by billing_invoices count.
@@ -310,6 +313,27 @@ func ByWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newWorkflowConfigStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxAppField orders the results by tax_app field.
+func ByTaxAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxAppStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByInvoicingAppField orders the results by invoicing_app field.
+func ByInvoicingAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newInvoicingAppStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPaymentAppField orders the results by payment_app field.
+func ByPaymentAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPaymentAppStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoicesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -329,5 +353,26 @@ func newWorkflowConfigStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(WorkflowConfigInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, WorkflowConfigTable, WorkflowConfigColumn),
+	)
+}
+func newTaxAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxAppTable, TaxAppColumn),
+	)
+}
+func newInvoicingAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(InvoicingAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, InvoicingAppTable, InvoicingAppColumn),
+	)
+}
+func newPaymentAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PaymentAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PaymentAppTable, PaymentAppColumn),
 	)
 }

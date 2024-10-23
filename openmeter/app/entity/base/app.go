@@ -11,7 +11,8 @@ import (
 type AppType string
 
 const (
-	AppTypeStripe AppType = "stripe"
+	AppTypeStripe  AppType = "stripe"
+	AppTypeSandbox AppType = "sandbox"
 )
 
 // AppStatus represents the status of an app
@@ -78,7 +79,7 @@ func (a AppBase) GetMetadata() map[string]string {
 }
 
 // ValidateCapabilities validates if the app can run for the given capabilities
-func (a AppBase) ValidateCapabilities(capabilities []CapabilityType) error {
+func (a AppBase) ValidateCapabilities(capabilities ...CapabilityType) error {
 	for _, capability := range capabilities {
 		found := false
 

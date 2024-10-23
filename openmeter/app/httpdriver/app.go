@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -49,13 +50,21 @@ func (h *handler) ListApps() ListAppsHandler {
 				return ListAppsResponse{}, fmt.Errorf("failed to list apps: %w", err)
 			}
 
+			items := make([]api.App, 0, len(result.Items))
+			for _, item := range result.Items {
+				app, err := MapAppToAPI(item)
+				if err != nil {
+					return ListAppsResponse{}, fmt.Errorf("failed to map app to api: %w", err)
+				}
+
+				items = append(items, app)
+			}
+
 			return ListAppsResponse{
 				Page:       result.Page.PageNumber,
 				PageSize:   result.Page.PageSize,
 				TotalCount: result.TotalCount,
-				Items: lo.Map(result.Items, func(item appentity.App, _ int) api.App {
-					return mapAppToAPI(item)
-				}),
+				Items:      items,
 			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListAppsResponse](http.StatusOK),
@@ -95,7 +104,7 @@ func (h *handler) GetApp() GetAppHandler {
 				return GetAppResponse{}, fmt.Errorf("failed to get app: %w", err)
 			}
 
-			return mapAppToAPI(app), nil
+			return MapAppToAPI(app)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAppResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -145,30 +154,41 @@ func (h *handler) UninstallApp() UninstallAppHandler {
 	)
 }
 
-func mapAppToAPI(item appentity.App) api.App {
+func MapAppToAPI(item appentity.App) (api.App, error) {
 	switch item.GetType() {
 	case appentitybase.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
-		return mapStripeAppToAPI(stripeApp)
+
+		app := api.App{}
+		if err := app.FromStripeApp(mapStripeAppToAPI(stripeApp)); err != nil {
+			return app, err
+		}
+
+		return app, nil
+	case appentitybase.AppTypeSandbox:
+		sandboxApp := item.(appsandbox.App)
+
+		app := api.App{}
+		if err := app.FromSandboxApp(mapSandboxAppToAPI(sandboxApp)); err != nil {
+			return app, err
+		}
+
+		return app, nil
 	default:
-		apiApp := api.App{
-			Id:        item.GetID().ID,
-			Type:      api.StripeAppType(item.GetType()),
-			Name:      item.GetName(),
-			Status:    api.AppStatus(item.GetStatus()),
-			Listing:   mapMarketplaceListing(item.GetListing()),
-			CreatedAt: item.GetAppBase().CreatedAt,
-			UpdatedAt: item.GetAppBase().UpdatedAt,
-			DeletedAt: item.GetAppBase().DeletedAt,
-		}
+		return api.App{}, fmt.Errorf("unsupported app type: %s", item.GetType())
+	}
+}
 
-		apiApp.Description = item.GetDescription()
-
-		if item.GetMetadata() != nil {
-			apiApp.Metadata = lo.ToPtr(item.GetMetadata())
-		}
-
-		return apiApp
+func mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
+	return api.SandboxApp{
+		Id:        app.GetID().ID,
+		Type:      api.SandboxAppTypeSandbox,
+		Name:      app.GetName(),
+		Status:    api.AppStatus(app.GetStatus()),
+		Listing:   mapMarketplaceListing(app.GetListing()),
+		CreatedAt: app.CreatedAt,
+		UpdatedAt: app.UpdatedAt,
+		DeletedAt: app.DeletedAt,
 	}
 }
 
