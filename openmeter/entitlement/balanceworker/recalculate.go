@@ -29,8 +29,12 @@ const (
 
 	defaultLRUCacheSize = 10_000
 
-	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
-	metricNameRecalculationJobCalculationTime = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
+	metricNameRecalculationTime               = "openmeter.balance_worker.entitlement_recalculation_time_ms"
+	metricNameRecalculationJobCalculationTime = "openmeter.balance_worker.entitlement_recalculation_job_calculation_time_ms"
+
+	// TODO: remove old metrics once not used anymore
+	metricNameRecalculationTimeOld               = "balance_worker.entitlement_recalculation_time_ms"
+	metricNameRecalculationJobCalculationTimeOld = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
 
 	metricAttributeKeyEntitltementType = "entitlement_type"
 )
@@ -39,7 +43,7 @@ type RecalculatorOptions struct {
 	Entitlement     *registry.Entitlement
 	SubjectResolver SubjectResolver
 	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Meter           metric.Meter
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -51,7 +55,7 @@ func (o RecalculatorOptions) Validate() error {
 		return errors.New("missing event bus")
 	}
 
-	if o.MetricMeter == nil {
+	if o.Meter == nil {
 		return errors.New("missing metric meter")
 	}
 
@@ -66,6 +70,10 @@ type Recalculator struct {
 
 	metricRecalculationTime                 metric.Int64Histogram
 	metricRecalculationJobRecalculationTime metric.Int64Histogram
+
+	// TODO: remove old metrics once not used anymore
+	metricRecalculationTimeOld                 metric.Int64Histogram
+	metricRecalculationJobRecalculationTimeOld metric.Int64Histogram
 }
 
 func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
@@ -83,7 +91,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.MetricMeter.Int64Histogram(
+	metricRecalculationTime, err := opts.Meter.Int64Histogram(
 		metricNameRecalculationTime,
 		metric.WithDescription("Entitlement recalculation time"),
 	)
@@ -91,8 +99,24 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
-	metricRecalculationJobRecalculationTime, err := opts.MetricMeter.Int64Histogram(
+	metricRecalculationJobRecalculationTime, err := opts.Meter.Int64Histogram(
 		metricNameRecalculationJobCalculationTime,
+		metric.WithDescription("Time takes to recalculate the entitlements including the necessary data fetches"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
+	}
+
+	metricRecalculationTimeOld, err := opts.Meter.Int64Histogram(
+		metricNameRecalculationTimeOld,
+		metric.WithDescription("Entitlement recalculation time"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
+	}
+
+	metricRecalculationJobRecalculationTimeOld, err := opts.Meter.Int64Histogram(
+		metricNameRecalculationJobCalculationTimeOld,
 		metric.WithDescription("Time takes to recalculate the entitlements including the necessary data fetches"),
 	)
 	if err != nil {
@@ -105,6 +129,8 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		subjectCache:                            subjectCache,
 		metricRecalculationTime:                 metricRecalculationTime,
 		metricRecalculationJobRecalculationTime: metricRecalculationJobRecalculationTime,
+		metricRecalculationTimeOld:              metricRecalculationTimeOld,
+		metricRecalculationJobRecalculationTimeOld: metricRecalculationJobRecalculationTimeOld,
 	}, nil
 }
 
@@ -136,7 +162,15 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 			errs = errors.Join(errs, fmt.Errorf("error sending event for entitlement [id=%s]: %w", ent.ID, err))
 		}
 
-		r.metricRecalculationJobRecalculationTime.Record(ctx,
+		r.metricRecalculationJobRecalculationTime.Record(
+			ctx,
+			time.Since(start).Milliseconds(),
+			metric.WithAttributes(
+				attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
+			),
+		)
+
+		r.metricRecalculationJobRecalculationTimeOld.Record(ctx,
 			time.Since(start).Milliseconds(),
 			metric.WithAttributes(
 				attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
@@ -203,7 +237,15 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 		return fmt.Errorf("failed to get entitlement value: %w", err)
 	}
 
-	r.metricRecalculationTime.Record(ctx,
+	r.metricRecalculationTime.Record(
+		ctx,
+		time.Since(calculatedAt).Milliseconds(),
+		metric.WithAttributes(
+			attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
+		),
+	)
+
+	r.metricRecalculationTimeOld.Record(ctx,
 		time.Since(calculatedAt).Milliseconds(),
 		metric.WithAttributes(
 			attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
