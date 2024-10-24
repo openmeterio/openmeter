@@ -305,9 +305,6 @@ model Line {
 
   @summary("The time this line item should be invoiced.")
   invoiceAt: DateTime;
-
-  @summary("Quantity of the item being sold.")
-  quantity?: Numeric;
 }
 
 @summary("Reference to an invoice.")
@@ -354,6 +351,9 @@ model ManualFeeLine {
 
   @summary("Price of the item being sold.")
   price: Money;
+
+  @summary("Quantity of the item being sold.")
+  quantity: Numeric;
 }
 
 @summary("GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.")

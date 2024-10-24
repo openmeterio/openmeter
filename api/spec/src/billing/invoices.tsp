@@ -19,7 +19,7 @@ interface InvoiceEndpoints {
   list(
     @query
     @summary("Filter by the customer ID or key")
-    customers?: Array<ULIDOrKey>,
+    customers?: Array<ULID>,
 
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,

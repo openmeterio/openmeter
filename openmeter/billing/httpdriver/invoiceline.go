@@ -96,7 +96,7 @@ func mapCreateLineToEntity(line api.BillingInvoiceLineCreateItem, ns string) (bi
 }
 
 func mapCreateManualFeeLineToEntity(line api.BillingManualFeeLineCreateItem, ns string) (billingentity.Line, error) {
-	qty, err := mapStringPtrToDecimal(line.Quantity)
+	qty, err := alpacadecimal.NewFromString(line.Quantity)
 	if err != nil {
 		return billingentity.Line{}, fmt.Errorf("failed to map quantity: %w", err)
 	}
@@ -130,10 +130,10 @@ func mapCreateManualFeeLineToEntity(line api.BillingManualFeeLineCreateItem, ns 
 
 			InvoiceAt:    line.InvoiceAt,
 			TaxOverrides: mapTaxConfigToEntity(line.TaxOverrides),
-			Quantity:     qty,
 		},
 		ManualFee: &billingentity.ManualFeeLine{
-			Price: price,
+			Price:    price,
+			Quantity: qty,
 		},
 	}, nil
 }
@@ -168,19 +168,6 @@ func mapTaxOverridesToAPI(to *billingentity.TaxOverrides) *api.TaxConfig {
 	}
 
 	return out
-}
-
-func mapStringPtrToDecimal(s *string) (*alpacadecimal.Decimal, error) {
-	if s == nil {
-		return nil, nil
-	}
-
-	qty, err := alpacadecimal.NewFromString(*s)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse decimal: %w", err)
-	}
-
-	return &qty, nil
 }
 
 func mapBillingLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
@@ -222,7 +209,7 @@ func mapManualFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, err
 		},
 
 		Price:        line.ManualFee.Price.String(),
-		Quantity:     lo.ToPtr(line.Quantity.String()),
+		Quantity:     line.ManualFee.Quantity.String(),
 		TaxOverrides: mapTaxOverridesToAPI(line.TaxOverrides),
 	}
 

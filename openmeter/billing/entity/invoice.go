@@ -146,7 +146,7 @@ type Invoice struct {
 	// This is required so that we are not modifying the invoice after it has been sent to the customer.
 	Customer InvoiceCustomer  `json:"customer"`
 	Supplier SupplierContact  `json:"supplier"`
-	Workflow *InvoiceWorkflow `json:"workflow"`
+	Workflow *InvoiceWorkflow `json:"workflow,omitempty"`
 
 	// Line items
 	Lines []Line `json:"lines,omitempty"`

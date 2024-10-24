@@ -78,7 +78,7 @@ type LineBase struct {
 	Metadata    map[string]string `json:"metadata"`
 	Name        string            `json:"name"`
 	Type        InvoiceLineType   `json:"type"`
-	Description *string           `json:"description"`
+	Description *string           `json:"description,omitempty"`
 
 	InvoiceID string         `json:"invoiceID,omitempty"`
 	Currency  currencyx.Code `json:"currency"`
@@ -96,8 +96,7 @@ type LineBase struct {
 
 	TaxOverrides *TaxOverrides `json:"taxOverrides,omitempty"`
 
-	Quantity *alpacadecimal.Decimal `json:"quantity"`
-	Total    alpacadecimal.Decimal  `json:"total"`
+	Total alpacadecimal.Decimal `json:"total"`
 }
 
 func (i LineBase) Validate() error {
@@ -130,6 +129,8 @@ func (i LineBase) Validate() error {
 
 type ManualFeeLine struct {
 	Price alpacadecimal.Decimal
+
+	Quantity alpacadecimal.Decimal `json:"quantity"`
 }
 
 type Line struct {
@@ -160,12 +161,8 @@ func (i Line) ValidateManualFee() error {
 		return errors.New("price should be greater than zero")
 	}
 
-	if i.Quantity == nil {
-		return errors.New("quantity is required")
-	}
-
-	if !i.Quantity.IsPositive() {
-		return errors.New("quantity should be greater than zero")
+	if !i.ManualFee.Quantity.IsPositive() {
+		return errors.New("quantity should be positive required")
 	}
 
 	// TODO: Validate currency specifics

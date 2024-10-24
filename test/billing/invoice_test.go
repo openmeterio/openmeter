@@ -99,7 +99,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							Type: billingentity.InvoiceLineTypeManualFee,
 
 							Name:     "Test item - USD",
-							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
 							Currency: currencyx.Code(currency.USD),
 
 							Metadata: map[string]string{
@@ -107,7 +106,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							},
 						},
 						ManualFee: &billingentity.ManualFeeLine{
-							Price: alpacadecimal.NewFromFloat(100),
+							Price:    alpacadecimal.NewFromFloat(100),
+							Quantity: alpacadecimal.NewFromFloat(1),
 						},
 					},
 					{
@@ -120,11 +120,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							Type: billingentity.InvoiceLineTypeManualFee,
 
 							Name:     "Test item - HUF",
-							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(3)),
 							Currency: currencyx.Code(currency.HUF),
 						},
 						ManualFee: &billingentity.ManualFeeLine{
-							Price: alpacadecimal.NewFromFloat(200),
+							Price:    alpacadecimal.NewFromFloat(200),
+							Quantity: alpacadecimal.NewFromFloat(3),
 						},
 					},
 				},
@@ -164,7 +164,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Type: billingentity.InvoiceLineTypeManualFee,
 
 				Name:     "Test item - USD",
-				Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
 				Currency: currencyx.Code(currency.USD),
 
 				CreatedAt: usdInvoice.Lines[0].CreatedAt,
@@ -175,7 +174,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				},
 			},
 			ManualFee: &billingentity.ManualFeeLine{
-				Price: alpacadecimal.NewFromFloat(100),
+				Price:    alpacadecimal.NewFromFloat(100),
+				Quantity: alpacadecimal.NewFromFloat(1),
 			},
 		}
 		// Let's make sure that the workflow config is cloned

@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -30,7 +33,6 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			SetName(line.Name).
 			SetCurrency(line.Currency).
 			SetTaxOverrides(line.TaxOverrides).
-			SetNillableQuantity(line.Quantity).
 			SetMetadata(line.Metadata)
 
 		edges := db.BillingInvoiceLineEdges{}
@@ -46,7 +48,9 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 				return nil, err
 			}
 
-			newEnt = newEnt.SetBillingInvoiceManualLines(newManualLineConfig)
+			newEnt = newEnt.SetBillingInvoiceManualLines(newManualLineConfig).
+				SetQuantity(line.ManualFee.Quantity)
+
 			edges.BillingInvoiceManualLines = newManualLineConfig
 		default:
 			return nil, fmt.Errorf("unsupported type: %s", line.Type)
@@ -101,7 +105,6 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) billingentity.Line {
 			Name: dbLine.Name,
 
 			Type:     dbLine.Type,
-			Quantity: dbLine.Quantity,
 			Currency: dbLine.Currency,
 
 			TaxOverrides: dbLine.TaxOverrides,
@@ -111,7 +114,8 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) billingentity.Line {
 	switch dbLine.Type {
 	case billingentity.InvoiceLineTypeManualFee:
 		invoiceLine.ManualFee = &billingentity.ManualFeeLine{
-			Price: dbLine.Edges.BillingInvoiceManualLines.UnitPrice,
+			Price:    dbLine.Edges.BillingInvoiceManualLines.UnitPrice,
+			Quantity: lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
 		}
 	}
 

@@ -482,9 +482,8 @@ paths:
           required: true
           schema:
             type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -545,14 +544,9 @@ paths:
             type: array
             items:
               type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: |-
-                ULID (Universally Unique Lexicographically Sortable Identifier).
-                A key is a unique string that is used to identify a resource.
-
-                TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: ULID (Universally Unique Lexicographically Sortable Identifier).
             title: Filter by the customer ID or key
           explode: false
         - $ref: '#/components/parameters/BillingInvoiceListParams.statuses'
@@ -7711,10 +7705,6 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: The time this line item should be invoiced.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
         type:
           type: string
           enum:
@@ -7787,10 +7777,6 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: The time this line item should be invoiced.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
         type:
           type: string
           enum:
@@ -7869,10 +7855,6 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: The time this line item should be invoiced.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
         type:
           type: string
           enum:
@@ -8365,6 +8347,7 @@ components:
         - invoiceAt
         - type
         - price
+        - quantity
       properties:
         name:
           type: string
@@ -8454,10 +8437,6 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: The time this line item should be invoiced.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
         type:
           type: string
           enum:
@@ -8466,6 +8445,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Price of the item being sold.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
       description: BillingManualFeeLine represents a line item that is sold to the customer as a manually added fee.
     BillingManualFeeLineCreateItem:
       type: object
@@ -8476,6 +8459,7 @@ components:
         - invoiceAt
         - type
         - price
+        - quantity
       properties:
         name:
           type: string
@@ -8527,10 +8511,6 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: The time this line item should be invoiced.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
         type:
           type: string
           enum:
@@ -8539,6 +8519,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Price of the item being sold.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
       description: BillingManualFeeLine represents a line item that is sold to the customer as a manually added fee.
     BillingManualFeeLineCreateOrUpdate:
       type: object
@@ -8550,6 +8534,7 @@ components:
         - invoiceAt
         - type
         - price
+        - quantity
       properties:
         name:
           type: string
@@ -8606,10 +8591,6 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: The time this line item should be invoiced.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
         type:
           type: string
           enum:
@@ -8618,6 +8599,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Price of the item being sold.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
       description: BillingManualFeeLine represents a line item that is sold to the customer as a manually added fee.
     BillingParty:
       type: object

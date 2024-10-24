@@ -20,7 +20,7 @@ type CreateWorkflowConfigInput struct {
 type CreateProfileInput struct {
 	Namespace   string                        `json:"namespace"`
 	Name        string                        `json:"name"`
-	Description *string                       `json:"description"`
+	Description *string                       `json:"description,omitempty"`
 	Metadata    map[string]string             `json:"metadata"`
 	Supplier    billingentity.SupplierContact `json:"supplier"`
 	Default     bool                          `json:"default"`

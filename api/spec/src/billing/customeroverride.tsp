@@ -71,7 +71,7 @@ interface CustomerOverrides {
   @operationId("billingDeleteCustomerOverride")
   delete(
     @path
-    customerId: ULIDOrKey,
+    customerId: ULID,
   ): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
