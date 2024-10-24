@@ -39,7 +39,7 @@ type RecalculatorOptions struct {
 	Entitlement     *registry.Entitlement
 	SubjectResolver SubjectResolver
 	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Meter           metric.Meter
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -51,7 +51,7 @@ func (o RecalculatorOptions) Validate() error {
 		return errors.New("missing event bus")
 	}
 
-	if o.MetricMeter == nil {
+	if o.Meter == nil {
 		return errors.New("missing metric meter")
 	}
 
@@ -83,7 +83,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.MetricMeter.Int64Histogram(
+	metricRecalculationTime, err := opts.Meter.Int64Histogram(
 		metricNameRecalculationTime,
 		metric.WithDescription("Entitlement recalculation time"),
 	)
@@ -91,7 +91,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
-	metricRecalculationJobRecalculationTime, err := opts.MetricMeter.Int64Histogram(
+	metricRecalculationJobRecalculationTime, err := opts.Meter.Int64Histogram(
 		metricNameRecalculationJobCalculationTime,
 		metric.WithDescription("Time takes to recalculate the entitlements including the necessary data fetches"),
 	)

@@ -26,13 +26,13 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 
 			logger := slog.Default()
 
-			metricMeter := otel.GetMeterProvider().Meter(otelNameRecalculateBalanceSnapshot)
+			meter := otel.GetMeterProvider().Meter(otelNameRecalculateBalanceSnapshot)
 
 			entitlementConnectors, err := initEntitlements(
 				cmd.Context(),
 				conf,
 				logger,
-				metricMeter,
+				meter,
 				otelNameRecalculateBalanceSnapshot,
 			)
 			if err != nil {
@@ -44,7 +44,7 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 			recalculator, err := balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{
 				Entitlement: entitlementConnectors.Registry,
 				EventBus:    entitlementConnectors.EventBus,
-				MetricMeter: metricMeter,
+				Meter:       meter,
 			})
 			if err != nil {
 				return err
