@@ -100,6 +100,14 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
 
+	w.metricRecalculationTime.Record(
+		ctx,
+		time.Since(calculationStart).Milliseconds(),
+		metric.WithAttributes(
+			attribute.String(metricAttributeKeyEntitltementType, string(entitlementEntity.EntitlementType)),
+		),
+	)
+
 	w.metricRecalculationTimeOld.Record(ctx, time.Since(calculationStart).Milliseconds(), metric.WithAttributes(
 		attribute.String(metricAttributeKeyEntitltementType, string(entitlementEntity.EntitlementType)),
 	))

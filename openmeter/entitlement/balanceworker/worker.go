@@ -66,6 +66,9 @@ type Worker struct {
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
+	metricRecalculationTime metric.Int64Histogram
+
+	// TODO: remove old metrics once not used anymore
 	metricRecalculationTimeOld metric.Int64Histogram
 }
 
@@ -73,6 +76,14 @@ func New(opts WorkerOptions) (*Worker, error) {
 	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
+	}
+
+	metricRecalculationTime, err := opts.Router.MetricMeter.Int64Histogram(
+		metricNameRecalculationTime,
+		metric.WithDescription("Entitlement recalculation time"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
 	metricRecalculationTimeOld, err := opts.Router.MetricMeter.Int64Histogram(
@@ -89,6 +100,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 
+		metricRecalculationTime:    metricRecalculationTime,
 		metricRecalculationTimeOld: metricRecalculationTimeOld,
 	}
 
