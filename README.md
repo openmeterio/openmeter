@@ -152,6 +152,20 @@ Run linters:
 make lint
 ```
 
+### Tools
+
+Run Docker Compose with dev profile to enable UI for Kafka and ClickHouse:
+
+```sh
+docker compose --profile dev up
+```
+
+If you are seeing ghcr.io denied error, login to ghcr.io using a GitHub personal access token:
+
+```sh
+docker login ghcr.io
+```
+
 ## Roadmap
 
 Visit our website at [https://openmeter.io](https://openmeter.io#roadmap) for our public roadmap.
