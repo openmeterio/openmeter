@@ -15,9 +15,12 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	slogmulti "github.com/samber/slog-multi"
+	realotelslog "go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -61,13 +64,47 @@ func NewTelemetryResource(metadata Metadata) *resource.Resource {
 	return res
 }
 
-func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource) *slog.Logger {
-	return slog.New(slogmulti.Pipe(
-		otelslog.ResourceMiddleware(res),
-		otelslog.NewHandler,
-		contextx.NewLogHandler,
-		operation.NewLogHandler,
-	).Handler(conf.NewHandler(os.Stdout)))
+func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res *resource.Resource) (*sdklog.LoggerProvider, func(), error) {
+	loggerProvider, err := conf.NewLoggerProvider(ctx, res)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Trace provider: %w", err)
+	}
+
+	return loggerProvider, func() {
+		// Use dedicated context with timeout for shutdown as parent context might be canceled
+		// by the time the execution reaches this stage.
+		ctx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
+		defer cancel()
+
+		if err := loggerProvider.ForceFlush(ctx); err != nil {
+			// no logger initialized at this point yet, so we are using the global logger
+			slog.Error("flushing logger provider", slog.String("error", err.Error()))
+		}
+
+		if err := loggerProvider.Shutdown(ctx); err != nil {
+			// no logger initialized at this point yet, so we are using the global logger
+			slog.Error("shutting down logger provider", slog.String("error", err.Error()))
+		}
+	}, nil
+}
+
+func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata) *slog.Logger {
+	return slog.New(
+		slogmulti.Pipe(
+			// Common handlers
+			contextx.NewLogHandler,
+			operation.NewLogHandler,
+		).Handler(slogmulti.Fanout(
+			// Original logger (with otel context middleware)
+			slogmulti.Pipe(
+				otelslog.ResourceMiddleware(res),
+				otelslog.NewHandler,
+			).Handler(conf.NewHandler(os.Stdout)),
+
+			// Otel logger
+			realotelslog.NewHandler(metadata.OpenTelemetryName, realotelslog.WithLoggerProvider(loggerProvider)),
+		)),
+	)
 }
 
 func NewMeterProvider(ctx context.Context, conf config.MetricsTelemetryConfig, res *resource.Resource, logger *slog.Logger) (*sdkmetric.MeterProvider, func(), error) {

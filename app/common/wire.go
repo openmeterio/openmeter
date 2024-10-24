@@ -2,7 +2,9 @@ package common
 
 import (
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -83,6 +85,8 @@ var KafkaTopic = wire.NewSet(
 var Telemetry = wire.NewSet(
 	NewTelemetryResource,
 
+	NewLoggerProvider,
+	wire.Bind(new(log.LoggerProvider), new(*sdklog.LoggerProvider)),
 	NewLogger,
 
 	NewMeterProvider,
