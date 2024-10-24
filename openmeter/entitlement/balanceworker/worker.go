@@ -66,7 +66,7 @@ type Worker struct {
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
-	metricRecalculationTime metric.Int64Histogram
+	metricRecalculationTimeOld metric.Int64Histogram
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -75,8 +75,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.Router.MetricMeter.Int64Histogram(
-		metricNameRecalculationTime,
+	metricRecalculationTimeOld, err := opts.Router.MetricMeter.Int64Histogram(
+		metricNameRecalculationTimeOld,
 		metric.WithDescription("Entitlement recalculation time"),
 	)
 	if err != nil {
@@ -89,7 +89,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 
-		metricRecalculationTime: metricRecalculationTime,
+		metricRecalculationTimeOld: metricRecalculationTimeOld,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
