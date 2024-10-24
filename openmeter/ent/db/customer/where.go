@@ -1372,6 +1372,29 @@ func HasBillingCustomerOverrideWith(preds ...predicate.BillingCustomerOverride) 
 	})
 }
 
+// HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.
+func HasBillingInvoice() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceTable, BillingInvoiceColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoiceWith applies the HasEdge predicate on the "billing_invoice" edge with a given conditions (other predicates).
+func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newBillingInvoiceStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Customer) predicate.Customer {
 	return predicate.Customer(sql.AndPredicates(predicates...))

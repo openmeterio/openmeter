@@ -25,12 +25,12 @@ interface CustomerOverrides {
    * Create/update a new customer override.
    */
   @post
-  @route("/{customerIdOrKey}")
+  @route("/{customerId}")
   @summary("Create/update a customer override")
   @operationId("billingUpsertCustomerOverride")
   upsert(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @body
     request: CustomerWorkflowOverride,
@@ -54,24 +54,24 @@ interface CustomerOverrides {
    * Get a customer override by id.
    */
   @get
-  @route("/{customerIdOrKey}")
+  @route("/{customerId}")
   @summary("Get a customer override")
   @operationId("billingGetCustomerOverrideById")
   get(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
   ): CustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete a customer override by id.
    */
   @delete
-  @route("/{customerIdOrKey}")
+  @route("/{customerId}")
   @summary("Delete a customer override")
   @operationId("billingDeleteCustomerOverride")
   delete(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
   ): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;

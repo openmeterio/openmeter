@@ -76,6 +76,16 @@ union App {
 }
 
 /**
+ * App reference
+ *
+ * Can be used as a short reference to an app if the full app object is not needed.
+ */
+@friendlyName("AppReference")
+model AppReference {
+  id: ULID;
+}
+
+/**
  * Abstract base model for installed apps.
  *
  * Represent an app installed to the organization.

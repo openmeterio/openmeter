@@ -338,6 +338,7 @@ func main() {
 			Adapter:         adapter,
 			CustomerService: customerService,
 			AppService:      appService,
+			Logger:          logger.With("subsystem", "billing.service"),
 		})
 		if err != nil {
 			logger.Error("failed to initialize billing service", "error", err)

@@ -87,10 +87,10 @@ func DeletedAt(v time.Time) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// ItemCollectionPeriod applies equality check predicate on the "item_collection_period" field. It's identical to ItemCollectionPeriodEQ.
-func ItemCollectionPeriod(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriod applies equality check predicate on the "line_collection_period" field. It's identical to LineCollectionPeriodEQ.
+func LineCollectionPeriod(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldLineCollectionPeriod, vc))
 }
 
 // InvoiceAutoAdvance applies equality check predicate on the "invoice_auto_advance" field. It's identical to InvoiceAutoAdvanceEQ.
@@ -335,88 +335,88 @@ func CollectionAlignmentNotIn(vs ...billingentity.AlignmentKind) predicate.Billi
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldCollectionAlignment, v...))
 }
 
-// ItemCollectionPeriodEQ applies the EQ predicate on the "item_collection_period" field.
-func ItemCollectionPeriodEQ(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodEQ applies the EQ predicate on the "line_collection_period" field.
+func LineCollectionPeriodEQ(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodNEQ applies the NEQ predicate on the "item_collection_period" field.
-func ItemCollectionPeriodNEQ(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodNEQ applies the NEQ predicate on the "line_collection_period" field.
+func LineCollectionPeriodNEQ(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodIn applies the In predicate on the "item_collection_period" field.
-func ItemCollectionPeriodIn(vs ...datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodIn applies the In predicate on the "line_collection_period" field.
+func LineCollectionPeriodIn(vs ...datex.ISOString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldItemCollectionPeriod, v...))
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldLineCollectionPeriod, v...))
 }
 
-// ItemCollectionPeriodNotIn applies the NotIn predicate on the "item_collection_period" field.
-func ItemCollectionPeriodNotIn(vs ...datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodNotIn applies the NotIn predicate on the "line_collection_period" field.
+func LineCollectionPeriodNotIn(vs ...datex.ISOString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldItemCollectionPeriod, v...))
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldLineCollectionPeriod, v...))
 }
 
-// ItemCollectionPeriodGT applies the GT predicate on the "item_collection_period" field.
-func ItemCollectionPeriodGT(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodGT applies the GT predicate on the "line_collection_period" field.
+func LineCollectionPeriodGT(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodGTE applies the GTE predicate on the "item_collection_period" field.
-func ItemCollectionPeriodGTE(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodGTE applies the GTE predicate on the "line_collection_period" field.
+func LineCollectionPeriodGTE(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodLT applies the LT predicate on the "item_collection_period" field.
-func ItemCollectionPeriodLT(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodLT applies the LT predicate on the "line_collection_period" field.
+func LineCollectionPeriodLT(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodLTE applies the LTE predicate on the "item_collection_period" field.
-func ItemCollectionPeriodLTE(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodLTE applies the LTE predicate on the "line_collection_period" field.
+func LineCollectionPeriodLTE(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodContains applies the Contains predicate on the "item_collection_period" field.
-func ItemCollectionPeriodContains(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodContains applies the Contains predicate on the "line_collection_period" field.
+func LineCollectionPeriodContains(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldContains(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldContains(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodHasPrefix applies the HasPrefix predicate on the "item_collection_period" field.
-func ItemCollectionPeriodHasPrefix(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodHasPrefix applies the HasPrefix predicate on the "line_collection_period" field.
+func LineCollectionPeriodHasPrefix(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldHasPrefix(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldHasPrefix(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodHasSuffix applies the HasSuffix predicate on the "item_collection_period" field.
-func ItemCollectionPeriodHasSuffix(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodHasSuffix applies the HasSuffix predicate on the "line_collection_period" field.
+func LineCollectionPeriodHasSuffix(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldHasSuffix(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldHasSuffix(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodEqualFold applies the EqualFold predicate on the "item_collection_period" field.
-func ItemCollectionPeriodEqualFold(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodEqualFold applies the EqualFold predicate on the "line_collection_period" field.
+func LineCollectionPeriodEqualFold(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldEqualFold(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldEqualFold(FieldLineCollectionPeriod, vc))
 }
 
-// ItemCollectionPeriodContainsFold applies the ContainsFold predicate on the "item_collection_period" field.
-func ItemCollectionPeriodContainsFold(v datex.ISOString) predicate.BillingWorkflowConfig {
+// LineCollectionPeriodContainsFold applies the ContainsFold predicate on the "line_collection_period" field.
+func LineCollectionPeriodContainsFold(v datex.ISOString) predicate.BillingWorkflowConfig {
 	vc := string(v)
-	return predicate.BillingWorkflowConfig(sql.FieldContainsFold(FieldItemCollectionPeriod, vc))
+	return predicate.BillingWorkflowConfig(sql.FieldContainsFold(FieldLineCollectionPeriod, vc))
 }
 
 // InvoiceAutoAdvanceEQ applies the EQ predicate on the "invoice_auto_advance" field.

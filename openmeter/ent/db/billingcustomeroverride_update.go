@@ -97,23 +97,23 @@ func (bcou *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCu
 	return bcou
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (bcou *BillingCustomerOverrideUpdate) SetItemCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetItemCollectionPeriod(ds)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (bcou *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetLineCollectionPeriod(ds)
 	return bcou
 }
 
-// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
+// SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
 	if ds != nil {
-		bcou.SetItemCollectionPeriod(*ds)
+		bcou.SetLineCollectionPeriod(*ds)
 	}
 	return bcou
 }
 
-// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearItemCollectionPeriod() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearItemCollectionPeriod()
+// ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearLineCollectionPeriod() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearLineCollectionPeriod()
 	return bcou
 }
 
@@ -294,11 +294,11 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 	if bcou.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
-	if value, ok := bcou.mutation.ItemCollectionPeriod(); ok {
-		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString, value)
+	if value, ok := bcou.mutation.LineCollectionPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
 	}
-	if bcou.mutation.ItemCollectionPeriodCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString)
+	if bcou.mutation.LineCollectionPeriodCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString)
 	}
 	if value, ok := bcou.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -439,23 +439,23 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *Billi
 	return bcouo
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetItemCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetItemCollectionPeriod(ds)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetLineCollectionPeriod(ds)
 	return bcouo
 }
 
-// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
+// SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
 	if ds != nil {
-		bcouo.SetItemCollectionPeriod(*ds)
+		bcouo.SetLineCollectionPeriod(*ds)
 	}
 	return bcouo
 }
 
-// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearItemCollectionPeriod() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearItemCollectionPeriod()
+// ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearLineCollectionPeriod() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearLineCollectionPeriod()
 	return bcouo
 }
 
@@ -666,11 +666,11 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 	if bcouo.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
-	if value, ok := bcouo.mutation.ItemCollectionPeriod(); ok {
-		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString, value)
+	if value, ok := bcouo.mutation.LineCollectionPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
 	}
-	if bcouo.mutation.ItemCollectionPeriodCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString)
+	if bcouo.mutation.LineCollectionPeriodCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString)
 	}
 	if value, ok := bcouo.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)

@@ -114,9 +114,9 @@ func (c *CollectionConfig) Validate() error {
 
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
-	AutoAdvance *bool        `json:"autoAdvance"`
+	AutoAdvance *bool        `json:"autoAdvance,omitempty"`
 	DraftPeriod datex.Period `json:"draftPeriod,omitempty"`
-	DueAfter    datex.Period `json:"dueAfter"`
+	DueAfter    datex.Period `json:"dueAfter,omitempty"`
 }
 
 func (c *InvoicingConfig) Validate() error {
@@ -202,11 +202,11 @@ type BaseProfile struct {
 	Namespace string `json:"namespace"`
 
 	Name        string  `json:"name"`
-	Description *string `json:"description"`
+	Description *string `json:"description,omitempty"`
 
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
-	DeletedAt *time.Time `json:"deletedAt"`
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	WorkflowConfig WorkflowConfig `json:"workflow"`
 
@@ -242,8 +242,7 @@ type Profile struct {
 	BaseProfile
 
 	// Optionaly expanded fields
-	Apps     *ProfileApps             `json:"-"`
-	Customer *customerentity.Customer `json:"-"`
+	Apps *ProfileApps `json:"-"`
 }
 
 type ProfileApps struct {
@@ -312,4 +311,11 @@ func (i ProfileAppReferences) Validate() error {
 	}
 
 	return nil
+}
+
+type InvoiceWorkflow struct {
+	AppReferences          ProfileAppReferences `json:"appReferences"`
+	Apps                   *ProfileApps         `json:"apps,omitempty"`
+	SourceBillingProfileID string               `json:"sourceBillingProfileId,omitempty"`
+	WorkflowConfig         WorkflowConfig       `json:"workflow"`
 }

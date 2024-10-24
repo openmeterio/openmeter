@@ -18,51 +18,105 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldMetadata holds the string denoting the metadata field in the database.
-	FieldMetadata = "metadata"
-	// FieldSeries holds the string denoting the series field in the database.
-	FieldSeries = "series"
-	// FieldCode holds the string denoting the code field in the database.
-	FieldCode = "code"
+	// FieldSupplierAddressCountry holds the string denoting the supplier_address_country field in the database.
+	FieldSupplierAddressCountry = "supplier_address_country"
+	// FieldSupplierAddressPostalCode holds the string denoting the supplier_address_postal_code field in the database.
+	FieldSupplierAddressPostalCode = "supplier_address_postal_code"
+	// FieldSupplierAddressState holds the string denoting the supplier_address_state field in the database.
+	FieldSupplierAddressState = "supplier_address_state"
+	// FieldSupplierAddressCity holds the string denoting the supplier_address_city field in the database.
+	FieldSupplierAddressCity = "supplier_address_city"
+	// FieldSupplierAddressLine1 holds the string denoting the supplier_address_line1 field in the database.
+	FieldSupplierAddressLine1 = "supplier_address_line1"
+	// FieldSupplierAddressLine2 holds the string denoting the supplier_address_line2 field in the database.
+	FieldSupplierAddressLine2 = "supplier_address_line2"
+	// FieldSupplierAddressPhoneNumber holds the string denoting the supplier_address_phone_number field in the database.
+	FieldSupplierAddressPhoneNumber = "supplier_address_phone_number"
+	// FieldCustomerAddressCountry holds the string denoting the customer_address_country field in the database.
+	FieldCustomerAddressCountry = "customer_address_country"
+	// FieldCustomerAddressPostalCode holds the string denoting the customer_address_postal_code field in the database.
+	FieldCustomerAddressPostalCode = "customer_address_postal_code"
+	// FieldCustomerAddressState holds the string denoting the customer_address_state field in the database.
+	FieldCustomerAddressState = "customer_address_state"
+	// FieldCustomerAddressCity holds the string denoting the customer_address_city field in the database.
+	FieldCustomerAddressCity = "customer_address_city"
+	// FieldCustomerAddressLine1 holds the string denoting the customer_address_line1 field in the database.
+	FieldCustomerAddressLine1 = "customer_address_line1"
+	// FieldCustomerAddressLine2 holds the string denoting the customer_address_line2 field in the database.
+	FieldCustomerAddressLine2 = "customer_address_line2"
+	// FieldCustomerAddressPhoneNumber holds the string denoting the customer_address_phone_number field in the database.
+	FieldCustomerAddressPhoneNumber = "customer_address_phone_number"
+	// FieldSupplierName holds the string denoting the supplier_name field in the database.
+	FieldSupplierName = "supplier_name"
+	// FieldSupplierTaxCode holds the string denoting the supplier_tax_code field in the database.
+	FieldSupplierTaxCode = "supplier_tax_code"
+	// FieldCustomerName holds the string denoting the customer_name field in the database.
+	FieldCustomerName = "customer_name"
+	// FieldCustomerTimezone holds the string denoting the customer_timezone field in the database.
+	FieldCustomerTimezone = "customer_timezone"
+	// FieldNumber holds the string denoting the number field in the database.
+	FieldNumber = "number"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
-	// FieldBillingProfileID holds the string denoting the billing_profile_id field in the database.
-	FieldBillingProfileID = "billing_profile_id"
+	// FieldSourceBillingProfileID holds the string denoting the source_billing_profile_id field in the database.
+	FieldSourceBillingProfileID = "source_billing_profile_id"
 	// FieldVoidedAt holds the string denoting the voided_at field in the database.
 	FieldVoidedAt = "voided_at"
+	// FieldIssuedAt holds the string denoting the issued_at field in the database.
+	FieldIssuedAt = "issued_at"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldDueDate holds the string denoting the due_date field in the database.
-	FieldDueDate = "due_date"
+	// FieldDueAt holds the string denoting the due_at field in the database.
+	FieldDueAt = "due_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
+	// FieldTaxAppID holds the string denoting the tax_app_id field in the database.
+	FieldTaxAppID = "tax_app_id"
+	// FieldInvoicingAppID holds the string denoting the invoicing_app_id field in the database.
+	FieldInvoicingAppID = "invoicing_app_id"
+	// FieldPaymentAppID holds the string denoting the payment_app_id field in the database.
+	FieldPaymentAppID = "payment_app_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
 	FieldPeriodEnd = "period_end"
-	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
-	EdgeBillingProfile = "billing_profile"
+	// EdgeSourceBillingProfile holds the string denoting the source_billing_profile edge name in mutations.
+	EdgeSourceBillingProfile = "source_billing_profile"
 	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
 	EdgeBillingWorkflowConfig = "billing_workflow_config"
-	// EdgeBillingInvoiceItems holds the string denoting the billing_invoice_items edge name in mutations.
-	EdgeBillingInvoiceItems = "billing_invoice_items"
+	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
+	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
+	EdgeBillingInvoiceCustomer = "billing_invoice_customer"
+	// EdgeTaxApp holds the string denoting the tax_app edge name in mutations.
+	EdgeTaxApp = "tax_app"
+	// EdgeInvoicingApp holds the string denoting the invoicing_app edge name in mutations.
+	EdgeInvoicingApp = "invoicing_app"
+	// EdgePaymentApp holds the string denoting the payment_app edge name in mutations.
+	EdgePaymentApp = "payment_app"
 	// Table holds the table name of the billinginvoice in the database.
 	Table = "billing_invoices"
-	// BillingProfileTable is the table that holds the billing_profile relation/edge.
-	BillingProfileTable = "billing_invoices"
-	// BillingProfileInverseTable is the table name for the BillingProfile entity.
+	// SourceBillingProfileTable is the table that holds the source_billing_profile relation/edge.
+	SourceBillingProfileTable = "billing_invoices"
+	// SourceBillingProfileInverseTable is the table name for the BillingProfile entity.
 	// It exists in this package in order to avoid circular dependency with the "billingprofile" package.
-	BillingProfileInverseTable = "billing_profiles"
-	// BillingProfileColumn is the table column denoting the billing_profile relation/edge.
-	BillingProfileColumn = "billing_profile_id"
+	SourceBillingProfileInverseTable = "billing_profiles"
+	// SourceBillingProfileColumn is the table column denoting the source_billing_profile relation/edge.
+	SourceBillingProfileColumn = "source_billing_profile_id"
 	// BillingWorkflowConfigTable is the table that holds the billing_workflow_config relation/edge.
 	BillingWorkflowConfigTable = "billing_invoices"
 	// BillingWorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
@@ -70,32 +124,83 @@ const (
 	BillingWorkflowConfigInverseTable = "billing_workflow_configs"
 	// BillingWorkflowConfigColumn is the table column denoting the billing_workflow_config relation/edge.
 	BillingWorkflowConfigColumn = "workflow_config_id"
-	// BillingInvoiceItemsTable is the table that holds the billing_invoice_items relation/edge.
-	BillingInvoiceItemsTable = "billing_invoice_items"
-	// BillingInvoiceItemsInverseTable is the table name for the BillingInvoiceItem entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoiceitem" package.
-	BillingInvoiceItemsInverseTable = "billing_invoice_items"
-	// BillingInvoiceItemsColumn is the table column denoting the billing_invoice_items relation/edge.
-	BillingInvoiceItemsColumn = "invoice_id"
+	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
+	BillingInvoiceLinesTable = "billing_invoice_lines"
+	// BillingInvoiceLinesInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
+	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
+	BillingInvoiceLinesColumn = "invoice_id"
+	// BillingInvoiceCustomerTable is the table that holds the billing_invoice_customer relation/edge.
+	BillingInvoiceCustomerTable = "billing_invoices"
+	// BillingInvoiceCustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	BillingInvoiceCustomerInverseTable = "customers"
+	// BillingInvoiceCustomerColumn is the table column denoting the billing_invoice_customer relation/edge.
+	BillingInvoiceCustomerColumn = "customer_id"
+	// TaxAppTable is the table that holds the tax_app relation/edge.
+	TaxAppTable = "billing_invoices"
+	// TaxAppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	TaxAppInverseTable = "apps"
+	// TaxAppColumn is the table column denoting the tax_app relation/edge.
+	TaxAppColumn = "tax_app_id"
+	// InvoicingAppTable is the table that holds the invoicing_app relation/edge.
+	InvoicingAppTable = "billing_invoices"
+	// InvoicingAppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	InvoicingAppInverseTable = "apps"
+	// InvoicingAppColumn is the table column denoting the invoicing_app relation/edge.
+	InvoicingAppColumn = "invoicing_app_id"
+	// PaymentAppTable is the table that holds the payment_app relation/edge.
+	PaymentAppTable = "billing_invoices"
+	// PaymentAppInverseTable is the table name for the App entity.
+	// It exists in this package in order to avoid circular dependency with the "app" package.
+	PaymentAppInverseTable = "apps"
+	// PaymentAppColumn is the table column denoting the payment_app relation/edge.
+	PaymentAppColumn = "payment_app_id"
 )
 
 // Columns holds all SQL columns for billinginvoice fields.
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
+	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldMetadata,
-	FieldSeries,
-	FieldCode,
+	FieldSupplierAddressCountry,
+	FieldSupplierAddressPostalCode,
+	FieldSupplierAddressState,
+	FieldSupplierAddressCity,
+	FieldSupplierAddressLine1,
+	FieldSupplierAddressLine2,
+	FieldSupplierAddressPhoneNumber,
+	FieldCustomerAddressCountry,
+	FieldCustomerAddressPostalCode,
+	FieldCustomerAddressState,
+	FieldCustomerAddressCity,
+	FieldCustomerAddressLine1,
+	FieldCustomerAddressLine2,
+	FieldCustomerAddressPhoneNumber,
+	FieldSupplierName,
+	FieldSupplierTaxCode,
+	FieldCustomerName,
+	FieldCustomerTimezone,
+	FieldNumber,
+	FieldType,
+	FieldDescription,
 	FieldCustomerID,
-	FieldBillingProfileID,
+	FieldSourceBillingProfileID,
 	FieldVoidedAt,
+	FieldIssuedAt,
 	FieldCurrency,
-	FieldDueDate,
+	FieldDueAt,
 	FieldStatus,
 	FieldWorkflowConfigID,
+	FieldTaxAppID,
+	FieldInvoicingAppID,
+	FieldPaymentAppID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 }
@@ -119,20 +224,38 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// SupplierAddressCountryValidator is a validator for the "supplier_address_country" field. It is called by the builders before save.
+	SupplierAddressCountryValidator func(string) error
+	// CustomerAddressCountryValidator is a validator for the "customer_address_country" field. It is called by the builders before save.
+	CustomerAddressCountryValidator func(string) error
+	// SupplierNameValidator is a validator for the "supplier_name" field. It is called by the builders before save.
+	SupplierNameValidator func(string) error
+	// CustomerNameValidator is a validator for the "customer_name" field. It is called by the builders before save.
+	CustomerNameValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
-	// BillingProfileIDValidator is a validator for the "billing_profile_id" field. It is called by the builders before save.
-	BillingProfileIDValidator func(string) error
+	// SourceBillingProfileIDValidator is a validator for the "source_billing_profile_id" field. It is called by the builders before save.
+	SourceBillingProfileIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
 
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type billingentity.InvoiceType) error {
+	switch _type {
+	case "standard", "credit-note":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for type field: %q", _type)
+	}
+}
+
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s billingentity.InvoiceStatus) error {
 	switch s {
-	case "created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed":
+	case "gathering", "created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for status field: %q", s)
@@ -167,14 +290,109 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// BySeries orders the results by the series field.
-func BySeries(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSeries, opts...).ToFunc()
+// BySupplierAddressCountry orders the results by the supplier_address_country field.
+func BySupplierAddressCountry(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressCountry, opts...).ToFunc()
 }
 
-// ByCode orders the results by the code field.
-func ByCode(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCode, opts...).ToFunc()
+// BySupplierAddressPostalCode orders the results by the supplier_address_postal_code field.
+func BySupplierAddressPostalCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressPostalCode, opts...).ToFunc()
+}
+
+// BySupplierAddressState orders the results by the supplier_address_state field.
+func BySupplierAddressState(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressState, opts...).ToFunc()
+}
+
+// BySupplierAddressCity orders the results by the supplier_address_city field.
+func BySupplierAddressCity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressCity, opts...).ToFunc()
+}
+
+// BySupplierAddressLine1 orders the results by the supplier_address_line1 field.
+func BySupplierAddressLine1(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressLine1, opts...).ToFunc()
+}
+
+// BySupplierAddressLine2 orders the results by the supplier_address_line2 field.
+func BySupplierAddressLine2(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressLine2, opts...).ToFunc()
+}
+
+// BySupplierAddressPhoneNumber orders the results by the supplier_address_phone_number field.
+func BySupplierAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierAddressPhoneNumber, opts...).ToFunc()
+}
+
+// ByCustomerAddressCountry orders the results by the customer_address_country field.
+func ByCustomerAddressCountry(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressCountry, opts...).ToFunc()
+}
+
+// ByCustomerAddressPostalCode orders the results by the customer_address_postal_code field.
+func ByCustomerAddressPostalCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressPostalCode, opts...).ToFunc()
+}
+
+// ByCustomerAddressState orders the results by the customer_address_state field.
+func ByCustomerAddressState(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressState, opts...).ToFunc()
+}
+
+// ByCustomerAddressCity orders the results by the customer_address_city field.
+func ByCustomerAddressCity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressCity, opts...).ToFunc()
+}
+
+// ByCustomerAddressLine1 orders the results by the customer_address_line1 field.
+func ByCustomerAddressLine1(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressLine1, opts...).ToFunc()
+}
+
+// ByCustomerAddressLine2 orders the results by the customer_address_line2 field.
+func ByCustomerAddressLine2(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressLine2, opts...).ToFunc()
+}
+
+// ByCustomerAddressPhoneNumber orders the results by the customer_address_phone_number field.
+func ByCustomerAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerAddressPhoneNumber, opts...).ToFunc()
+}
+
+// BySupplierName orders the results by the supplier_name field.
+func BySupplierName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierName, opts...).ToFunc()
+}
+
+// BySupplierTaxCode orders the results by the supplier_tax_code field.
+func BySupplierTaxCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierTaxCode, opts...).ToFunc()
+}
+
+// ByCustomerName orders the results by the customer_name field.
+func ByCustomerName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerName, opts...).ToFunc()
+}
+
+// ByCustomerTimezone orders the results by the customer_timezone field.
+func ByCustomerTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerTimezone, opts...).ToFunc()
+}
+
+// ByNumber orders the results by the number field.
+func ByNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNumber, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.
@@ -182,9 +400,9 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCustomerID, opts...).ToFunc()
 }
 
-// ByBillingProfileID orders the results by the billing_profile_id field.
-func ByBillingProfileID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldBillingProfileID, opts...).ToFunc()
+// BySourceBillingProfileID orders the results by the source_billing_profile_id field.
+func BySourceBillingProfileID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceBillingProfileID, opts...).ToFunc()
 }
 
 // ByVoidedAt orders the results by the voided_at field.
@@ -192,14 +410,19 @@ func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVoidedAt, opts...).ToFunc()
 }
 
+// ByIssuedAt orders the results by the issued_at field.
+func ByIssuedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIssuedAt, opts...).ToFunc()
+}
+
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
-// ByDueDate orders the results by the due_date field.
-func ByDueDate(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDueDate, opts...).ToFunc()
+// ByDueAt orders the results by the due_at field.
+func ByDueAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDueAt, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.
@@ -212,6 +435,21 @@ func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWorkflowConfigID, opts...).ToFunc()
 }
 
+// ByTaxAppID orders the results by the tax_app_id field.
+func ByTaxAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxAppID, opts...).ToFunc()
+}
+
+// ByInvoicingAppID orders the results by the invoicing_app_id field.
+func ByInvoicingAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppID, opts...).ToFunc()
+}
+
+// ByPaymentAppID orders the results by the payment_app_id field.
+func ByPaymentAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentAppID, opts...).ToFunc()
+}
+
 // ByPeriodStart orders the results by the period_start field.
 func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
@@ -222,10 +460,10 @@ func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
 }
 
-// ByBillingProfileField orders the results by billing_profile field.
-func ByBillingProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+// BySourceBillingProfileField orders the results by source_billing_profile field.
+func BySourceBillingProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingProfileStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newSourceBillingProfileStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -236,24 +474,52 @@ func ByBillingWorkflowConfigField(field string, opts ...sql.OrderTermOption) Ord
 	}
 }
 
-// ByBillingInvoiceItemsCount orders the results by billing_invoice_items count.
-func ByBillingInvoiceItemsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.
+func ByBillingInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceItemsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceLinesStep(), opts...)
 	}
 }
 
-// ByBillingInvoiceItems orders the results by billing_invoice_items terms.
-func ByBillingInvoiceItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByBillingInvoiceLines orders the results by billing_invoice_lines terms.
+func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newBillingProfileStep() *sqlgraph.Step {
+
+// ByBillingInvoiceCustomerField orders the results by billing_invoice_customer field.
+func ByBillingInvoiceCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceCustomerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByTaxAppField orders the results by tax_app field.
+func ByTaxAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxAppStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByInvoicingAppField orders the results by invoicing_app field.
+func ByInvoicingAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newInvoicingAppStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPaymentAppField orders the results by payment_app field.
+func ByPaymentAppField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPaymentAppStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newSourceBillingProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingProfileInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingProfileTable, BillingProfileColumn),
+		sqlgraph.To(SourceBillingProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SourceBillingProfileTable, SourceBillingProfileColumn),
 	)
 }
 func newBillingWorkflowConfigStep() *sqlgraph.Step {
@@ -263,10 +529,38 @@ func newBillingWorkflowConfigStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
 	)
 }
-func newBillingInvoiceItemsStep() *sqlgraph.Step {
+func newBillingInvoiceLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingInvoiceItemsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceItemsTable, BillingInvoiceItemsColumn),
+		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newBillingInvoiceCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceCustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceCustomerTable, BillingInvoiceCustomerColumn),
+	)
+}
+func newTaxAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxAppTable, TaxAppColumn),
+	)
+}
+func newInvoicingAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(InvoicingAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, InvoicingAppTable, InvoicingAppColumn),
+	)
+}
+func newPaymentAppStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PaymentAppInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PaymentAppTable, PaymentAppColumn),
 	)
 }

@@ -12,8 +12,6 @@ DROP TABLE "billing_invoice_items";
 DROP INDEX "billinginvoice_namespace_status";
 -- reverse: create index "billinginvoice_namespace_id" to table: "billing_invoices"
 DROP INDEX "billinginvoice_namespace_id";
--- reverse: create index "billinginvoice_namespace_due_date" to table: "billing_invoices"
-DROP INDEX "billinginvoice_namespace_due_date";
 -- reverse: create index "billinginvoice_namespace_customer_id" to table: "billing_invoices"
 DROP INDEX "billinginvoice_namespace_customer_id";
 -- reverse: create index "billinginvoice_id" to table: "billing_invoices"

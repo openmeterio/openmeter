@@ -19,7 +19,7 @@ interface InvoiceEndpoints {
   list(
     @query
     @summary("Filter by the customer ID or key")
-    customers?: Array<ULIDOrKey>,
+    customers?: Array<ULID>,
 
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
@@ -32,24 +32,24 @@ interface InvoiceEndpoints {
  * CustomerInvoices is a collection of endpoints that allow invoice operations without prior
  * knowledge of the invoice ID.
  */
-@route("/api/v1/billing/invoices/{customerIdOrKey}")
+@route("/api/v1/billing/invoices/{customerId}")
 @tag("Billing (Experimental)")
 interface CustomerInvoicesEndpoints {
   /**
-   * Create a new invoice from the pending items.
+   * Create a new invoice from the pending line items.
    *
    * This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
    *
-   * When creating an invoice, the pending items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
+   * When creating an invoice, the pending line items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
    *
-   * New pending items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+   * New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
    */
   @post
   @summary("Create an invoice")
   @operationId("billingCreateInvoice")
   create(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @body
     request: InvoiceCreateInput,
@@ -65,7 +65,7 @@ interface CustomerInvoicesEndpoints {
   @summary("List invoices")
   @operationId("billingListInvoicesByCustomer")
   listInvoicesByCustomer(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerId: ULID,
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
@@ -78,30 +78,27 @@ interface CustomerInvoicesEndpoints {
    * This call is used to create a new pending line item for the customer without explicitly
    * assigning it to an invoice.
    *
-   * The item will be either allocated to an existing invoice in gathering state or a new invoice is
-   * created for the item.
+   * The line item will be either allocated to an existing invoice in gathering state or a new invoice is
+   * created for the line item.
    *
    * A new invoice will be created if:
    * - there is no invoice in gathering state
-   * - the currency of the item doesn't match the currency of any invoices in gathering state
+   * - the currency of the line item doesn't match the currency of any invoices in gathering state
    */
   @post
-  @route("/items")
-  @summary("Create a new pending item")
-  @operationId("billingCreatePendingItemByCustomer")
-  createPendingItem(
-    @path customerIdOrKey: ULIDOrKey,
-    @body request: Invoices.InvoiceLine,
-  ): {
+  @route("/lines")
+  @summary("Create line items")
+  @operationId("billingCreateLineByCustomer")
+  createLine(@path customerId: ULID, @body request: CreateLinesRequest): {
     @statusCode _: 201;
-    @body body: CreatePendingItemResponse;
+    @body body: CreateLineResult;
   } | OpenMeter.CommonErrors;
 }
 
 /**
  * CustomerInvoice is a collection of endpoints that allow operations on a specific invoice.
  */
-@route("/api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}")
+@route("/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}")
 @tag("Billing (Experimental)")
 interface CustomerInvoiceEndpoints {
   /**
@@ -112,10 +109,13 @@ interface CustomerInvoiceEndpoints {
   @operationId("billingGetInvoiceByCustomerInvoiceId")
   getInvoice(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @path
     invoiceId: ULID,
+
+    @query
+    expand: InvoiceExpand[] = #[InvoiceExpand.lines],
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -128,7 +128,7 @@ interface CustomerInvoiceEndpoints {
   @operationId("billingDeleteInvoiceByCustomerInvoiceId")
   deleteInvoice(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @path
     invoiceId: ULID,
@@ -148,7 +148,7 @@ interface CustomerInvoiceEndpoints {
   @operationId("billingRecalculateInvoiceTax")
   recalculateTax(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @path
     invoiceId: ULID,
@@ -172,7 +172,7 @@ interface CustomerInvoiceEndpoints {
   @operationId("billingApproveInvoice")
   approve(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @path
     invoiceId: ULID,
@@ -186,7 +186,7 @@ interface CustomerInvoiceEndpoints {
    *
    * Only invoices that have been alread issued can be voided.
    *
-   * Voiding an invoice will mark it as voided, the user can specify how to handle the voided items.
+   * Voiding an invoice will mark it as voided, the user can specify how to handle the voided line items.
    */
   @post
   @route("/void")
@@ -194,7 +194,7 @@ interface CustomerInvoiceEndpoints {
   @operationId("billingVoidInvoice")
   voidInvoice(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @path
     invoiceId: ULID,
@@ -224,7 +224,7 @@ interface CustomerInvoiceEndpoints {
   @operationId("billingInvoiceWorkflowAdvance")
   advanceWorkflow(
     @path
-    customerIdOrKey: ULIDOrKey,
+    customerId: ULID,
 
     @path
     invoiceId: ULID,
@@ -243,7 +243,7 @@ interface CustomerInvoiceEndpoints {
   @summary("Delete an invoice line")
   @operationId("billingDeleteInvoiceLine")
   deleteInvoiceLine(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
   ): {
@@ -258,7 +258,7 @@ interface CustomerInvoiceEndpoints {
   @summary("Update an invoice line")
   @operationId("billingUpdateInvoiceLine")
   updateInvoiceLine(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
     @body request: Invoices.InvoiceLine,
@@ -288,15 +288,21 @@ enum InvoiceOrderBy {
 }
 
 /**
+ * CreateLinesRequest is the request for creating manual line items.
+ */
+@friendlyName("BillingCreateLinesRequest")
+model CreateLinesRequest {
+  @summary("The line to create")
+  lines: Invoices.InvoiceLine[];
+}
+
+/**
  * Response for creating a pending charge
  */
-@friendlyName("BillingCreatePendingItemResponse")
-model CreatePendingItemResponse {
-  @summary("The created pending charge")
-  item: Invoices.InvoiceLine;
-
-  @summary("The invoice the item was added to")
-  invoice: Invoices.Invoice;
+@friendlyName("BillingCreateLineResult")
+model CreateLineResult {
+  @summary("The created line items")
+  lines: Invoices.InvoiceLine[];
 }
 
 /**
@@ -305,10 +311,10 @@ model CreatePendingItemResponse {
 @friendlyName("BillingVoidInvoiceInput")
 model VoidInvoiceInput {
   /**
-   * The action to take on the voided items.
+   * The action to take on the voided line items.
    */
-  @summary("The action to take on the voided items")
-  action: VoidInvoiceItemAction;
+  @summary("The action to take on the voided lines.")
+  action: VoidInvoiceAction;
 
   /**
    * The reason for voiding the invoice.
@@ -319,45 +325,45 @@ model VoidInvoiceInput {
   /**
    * Per line item overrides for the action.
    *
-   * If not specified, the `action` will be applied to all items.
+   * If not specified, the `action` will be applied to all line items.
    */
-  itemOverrides: VoidInvoiceItemOverride[] | null;
+  overrides: VoidInvoiceLineOverride[] | null;
 }
 
 /**
- * InvoiceVoidAction describes how to handle the voided items.
+ * InvoiceVoidAction describes how to handle the voided line items.
  */
 @friendlyName("BillingVoidInvoiceAction")
 model VoidInvoiceAction {
-  @summary("How much of the total items to be voided? (e.g. 100% means all charges are voided)")
+  @summary("How much of the total line items to be voided? (e.g. 100% means all charges are voided)")
   percentage: Percentage;
 
-  @summary("How to handle the voided items, default: pending")
-  action: VoidInvoiceItemAction;
+  @summary("How to handle the voided line items, default: pending")
+  action: VoidInvoiceLineAction;
 }
 
-@summary("VoidInvoiceItemAction describes how to handle the voidied item in the invoice.")
-@friendlyName("BillingVoidInvoiceItemAction")
-enum VoidInvoiceItemAction {
-  @summary("The items will never be charged for again")
+@summary("VoidInvoiceLineAction describes how to handle the voidied line item in the invoice.")
+@friendlyName("BillingVoidInvoiceLineAction")
+enum VoidInvoiceLineAction {
+  @summary("The line items will never be charged for again")
   discard: "discard",
 
-  @summary("Queue the items into the pending state, they will be included in the next invoice. (We want to generate an invoice right now)")
+  @summary("Queue the line items into the pending state, they will be included in the next invoice. (We want to generate an invoice right now)")
   pending: "pending",
 
-  @summary("Queue the items into the pending state, they will be included in the next invoice, but not in the current one")
+  @summary("Queue the line items into the pending state, they will be included in the next invoice, but not in the current one")
   pendingNextCycle: "pending_next_cycle",
 }
 
 /**
- * VoidInvoiceItemOverride describes how to handle a specific item in the invoice when voiding.
+ * VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when voiding.
  */
-@friendlyName("BillingVoidInvoiceItemOverride")
-model VoidInvoiceItemOverride {
-  @summary("The item ID to override")
-  itemId: ULID;
+@friendlyName("BillingVoidInvoiceLineOverride")
+model VoidInvoiceLineOverride {
+  @summary("The line item ID to override")
+  lineId: ULID;
 
-  @summary("The action to take on the item")
+  @summary("The action to take on the line item")
   action: VoidInvoiceAction;
 }
 
@@ -387,18 +393,32 @@ model InvoiceListParams {
  * InvoiceExpand specifies the parts of the invoice to expand in the list output.
  */
 @friendlyName("BillingInvoiceExpand")
+@extension(
+  "x-enum-varnames",
+  ["all", "lines", "preceding", "workflow", "workflowApps"]
+)
 enum InvoiceExpand {
-  lines: "lines",
-  customer: "customer",
-  supplier: "supplier",
-  preceding: "preceding",
   all: "*",
+  lines: "lines",
+  preceding: "preceding",
+  workflow: "workflow",
+  workflowApps: "workflow.apps",
 }
 
 @friendlyName("BillingInvoiceCreateInput")
 model InvoiceCreateInput {
   /**
-   * The pending items to include in the invoice, if not provided all pending items will be included.
+   * The pending line items to include in the invoice, if not provided:
+   * - all line items that have invoice_at < asOf will be included
+   * - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
+   *   of the billing cycle
    */
-  IncludePendingItems?: ULID[];
+  IncludePendingLines?: ULID[];
+
+  /**
+   * The time as of which the invoice is created.
+   *
+   * If not provided, the current time is used.
+   */
+  AsOf?: DateTime;
 }

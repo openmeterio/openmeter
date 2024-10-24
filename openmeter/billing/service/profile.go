@@ -12,6 +12,7 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -43,32 +44,15 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 		}
 
-		// let's resolve the applications
-		taxApp, err := s.validateAppReference(ctx, input.Namespace, input.Apps.Tax, appentitybase.CapabilityTypeCalculateTax)
+		resolvedApps, err := s.resolveApps(ctx, input.Namespace, input.Apps)
 		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("error resolving tax app: %w", err),
-			}
+			return nil, err
 		}
 
-		invocingApp, err := s.validateAppReference(ctx, input.Namespace, input.Apps.Invoicing, appentitybase.CapabilityTypeInvoiceCustomers)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("error resolving invocing app: %w", err),
-			}
-		}
-
-		paymentsApp, err := s.validateAppReference(ctx, input.Namespace, input.Apps.Payment, appentitybase.CapabilityTypeCollectPayments)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("error resolving payments app: %w", err),
-			}
-		}
-
-		input.Apps = billing.CreateProfileAppsInput{
-			Tax:       taxApp.Reference,
-			Invoicing: invocingApp.Reference,
-			Payment:   paymentsApp.Reference,
+		input.Apps = billingentity.ProfileAppReferences{
+			Tax:       resolvedApps.Tax.Reference,
+			Invoicing: resolvedApps.Invoicing.Reference,
+			Payment:   resolvedApps.Payment.Reference,
 		}
 
 		profile, err := txAdapter.CreateProfile(ctx, input)
@@ -82,8 +66,43 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 		}
 
-		return s.resolveBaseProfile(ctx, profile)
+		return s.resolveProfileApps(ctx, profile)
 	})
+}
+
+type resolvedApps struct {
+	Tax       *resolvedAppReference
+	Invoicing *resolvedAppReference
+	Payment   *resolvedAppReference
+}
+
+func (s *Service) resolveApps(ctx context.Context, ns string, apps billingentity.ProfileAppReferences) (*resolvedApps, error) {
+	taxApp, err := s.validateAppReference(ctx, ns, apps.Tax, appentitybase.CapabilityTypeCalculateTax)
+	if err != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("error resolving tax app: %w", err),
+		}
+	}
+
+	invocingApp, err := s.validateAppReference(ctx, ns, apps.Invoicing, appentitybase.CapabilityTypeInvoiceCustomers)
+	if err != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("error resolving invocing app: %w", err),
+		}
+	}
+
+	paymentsApp, err := s.validateAppReference(ctx, ns, apps.Payment, appentitybase.CapabilityTypeCollectPayments)
+	if err != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("error resolving payments app: %w", err),
+		}
+	}
+
+	return &resolvedApps{
+		Tax:       taxApp,
+		Invoicing: invocingApp,
+		Payment:   paymentsApp,
+	}, nil
 }
 
 func (s *Service) validateAppReference(ctx context.Context, ns string, ref billingentity.AppReference, capabilities ...appentitybase.CapabilityType) (*resolvedAppReference, error) {
@@ -160,7 +179,7 @@ func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 		return nil, err
 	}
 
-	return s.resolveBaseProfile(ctx, profile)
+	return s.resolveProfileApps(ctx, profile)
 }
 
 func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billingentity.Profile, error) {
@@ -175,7 +194,13 @@ func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput)
 		return nil, err
 	}
 
-	return s.resolveBaseProfile(ctx, profile)
+	if input.Expand.Apps {
+		return s.resolveProfileApps(ctx, profile)
+	}
+
+	return &billingentity.Profile{
+		BaseProfile: *profile,
+	}, nil
 }
 
 func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
@@ -186,7 +211,12 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
-		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput(input))
+		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput{
+			Profile: models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.ID,
+			},
+		})
 		if err != nil {
 			return err
 		}
@@ -246,12 +276,18 @@ func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 	}
 
 	for _, profile := range profiles.Items {
-		resolvedProfile, err := s.resolveBaseProfile(ctx, &profile)
-		if err != nil {
-			return billing.ListProfilesResult{}, fmt.Errorf("error resolving profile: %w", err)
+		finalProfile := billingentity.Profile{
+			BaseProfile: profile,
 		}
 
-		response.Items = append(response.Items, *resolvedProfile)
+		if input.Expand.Apps {
+			resolvedProfile, err := s.resolveProfileApps(ctx, &profile)
+			if err != nil {
+				return billing.ListProfilesResult{}, fmt.Errorf("error resolving profile: %w", err)
+			}
+			finalProfile = *resolvedProfile
+		}
+		response.Items = append(response.Items, finalProfile)
 	}
 
 	return response, nil
@@ -266,8 +302,10 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 
 	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
 		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput{
-			Namespace: input.Namespace,
-			ID:        input.ID,
+			Profile: models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.ID,
+			},
 		})
 		if err != nil {
 			return nil, err
@@ -320,11 +358,11 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		return s.resolveBaseProfile(ctx, profile)
+		return s.resolveProfileApps(ctx, profile)
 	})
 }
 
-func (s *Service) resolveBaseProfile(ctx context.Context, input *billingentity.BaseProfile) (*billingentity.Profile, error) {
+func (s *Service) resolveProfileApps(ctx context.Context, input *billingentity.BaseProfile) (*billingentity.Profile, error) {
 	if input == nil {
 		return nil, nil
 	}

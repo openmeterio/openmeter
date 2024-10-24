@@ -109,16 +109,16 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(bk *bi
 	return bcoc
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (bcoc *BillingCustomerOverrideCreate) SetItemCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetItemCollectionPeriod(ds)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (bcoc *BillingCustomerOverrideCreate) SetLineCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetLineCollectionPeriod(ds)
 	return bcoc
 }
 
-// SetNillableItemCollectionPeriod sets the "item_collection_period" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableItemCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideCreate {
+// SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
+func (bcoc *BillingCustomerOverrideCreate) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideCreate {
 	if ds != nil {
-		bcoc.SetItemCollectionPeriod(*ds)
+		bcoc.SetLineCollectionPeriod(*ds)
 	}
 	return bcoc
 }
@@ -340,9 +340,9 @@ func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverrid
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = &value
 	}
-	if value, ok := bcoc.mutation.ItemCollectionPeriod(); ok {
-		_spec.SetField(billingcustomeroverride.FieldItemCollectionPeriod, field.TypeString, value)
-		_node.ItemCollectionPeriod = &value
+	if value, ok := bcoc.mutation.LineCollectionPeriod(); ok {
+		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
+		_node.LineCollectionPeriod = &value
 	}
 	if value, ok := bcoc.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
@@ -512,21 +512,21 @@ func (u *BillingCustomerOverrideUpsert) ClearCollectionAlignment() *BillingCusto
 	return u
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (u *BillingCustomerOverrideUpsert) SetItemCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsert {
-	u.Set(billingcustomeroverride.FieldItemCollectionPeriod, v)
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (u *BillingCustomerOverrideUpsert) SetLineCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldLineCollectionPeriod, v)
 	return u
 }
 
-// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsert) UpdateItemCollectionPeriod() *BillingCustomerOverrideUpsert {
-	u.SetExcluded(billingcustomeroverride.FieldItemCollectionPeriod)
+// UpdateLineCollectionPeriod sets the "line_collection_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateLineCollectionPeriod() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldLineCollectionPeriod)
 	return u
 }
 
-// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
-func (u *BillingCustomerOverrideUpsert) ClearItemCollectionPeriod() *BillingCustomerOverrideUpsert {
-	u.SetNull(billingcustomeroverride.FieldItemCollectionPeriod)
+// ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
+func (u *BillingCustomerOverrideUpsert) ClearLineCollectionPeriod() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldLineCollectionPeriod)
 	return u
 }
 
@@ -736,24 +736,24 @@ func (u *BillingCustomerOverrideUpsertOne) ClearCollectionAlignment() *BillingCu
 	})
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (u *BillingCustomerOverrideUpsertOne) SetItemCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (u *BillingCustomerOverrideUpsertOne) SetLineCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetItemCollectionPeriod(v)
+		s.SetLineCollectionPeriod(v)
 	})
 }
 
-// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertOne) UpdateItemCollectionPeriod() *BillingCustomerOverrideUpsertOne {
+// UpdateLineCollectionPeriod sets the "line_collection_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateLineCollectionPeriod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateItemCollectionPeriod()
+		s.UpdateLineCollectionPeriod()
 	})
 }
 
-// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
-func (u *BillingCustomerOverrideUpsertOne) ClearItemCollectionPeriod() *BillingCustomerOverrideUpsertOne {
+// ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearLineCollectionPeriod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearItemCollectionPeriod()
+		s.ClearLineCollectionPeriod()
 	})
 }
 
@@ -1142,24 +1142,24 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearCollectionAlignment() *BillingC
 	})
 }
 
-// SetItemCollectionPeriod sets the "item_collection_period" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetItemCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
+// SetLineCollectionPeriod sets the "line_collection_period" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetLineCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.SetItemCollectionPeriod(v)
+		s.SetLineCollectionPeriod(v)
 	})
 }
 
-// UpdateItemCollectionPeriod sets the "item_collection_period" field to the value that was provided on create.
-func (u *BillingCustomerOverrideUpsertBulk) UpdateItemCollectionPeriod() *BillingCustomerOverrideUpsertBulk {
+// UpdateLineCollectionPeriod sets the "line_collection_period" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateLineCollectionPeriod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.UpdateItemCollectionPeriod()
+		s.UpdateLineCollectionPeriod()
 	})
 }
 
-// ClearItemCollectionPeriod clears the value of the "item_collection_period" field.
-func (u *BillingCustomerOverrideUpsertBulk) ClearItemCollectionPeriod() *BillingCustomerOverrideUpsertBulk {
+// ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearLineCollectionPeriod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearItemCollectionPeriod()
+		s.ClearLineCollectionPeriod()
 	})
 }
 

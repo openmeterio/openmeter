@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -81,22 +82,29 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 }
 
 type (
+	GetProfileParams struct {
+		ID     string
+		Expand []api.BillingProfileExpand
+	}
 	GetProfileRequest  = billing.GetProfileInput
 	GetProfileResponse = api.BillingProfile
-	GetProfileHandler  httptransport.HandlerWithArgs[GetProfileRequest, GetProfileResponse, string]
+	GetProfileHandler  httptransport.HandlerWithArgs[GetProfileRequest, GetProfileResponse, GetProfileParams]
 )
 
 func (h *handler) GetProfile() GetProfileHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, id string) (GetProfileRequest, error) {
+		func(ctx context.Context, r *http.Request, params GetProfileParams) (GetProfileRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetProfileRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
 			return GetProfileRequest{
-				Namespace: ns,
-				ID:        id,
+				Profile: models.NamespacedID{
+					Namespace: ns,
+					ID:        params.ID,
+				},
+				Expand: mapProfileExpandToEntity(params.Expand),
 			}, nil
 		},
 		func(ctx context.Context, request GetProfileRequest) (GetProfileResponse, error) {
@@ -263,7 +271,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListProfilesResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("billingArchiveProfile"),
+			httptransport.WithOperationName("billingListProfile"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
@@ -299,7 +307,7 @@ func apiBillingPartyCreateToSupplierContact(c api.BillingPartyCreate) billingent
 
 func apiBillingPartyToSupplierContact(c api.BillingParty) billingentity.SupplierContact {
 	out := billingentity.SupplierContact{
-		ID:   c.Id,
+		ID:   lo.FromPtrOr(c.Id, ""),
 		Name: lo.FromPtrOr(c.Name, ""),
 	}
 
@@ -424,37 +432,111 @@ func MapProfileToApi(p *billingentity.Profile) (api.BillingProfile, error) {
 		Default:     p.Default,
 
 		Name:     p.Name,
-		Supplier: MapSupplierContactToAPI(p.Supplier),
-		Workflow: MapWorkflowConfigToAPI(p.WorkflowConfig),
+		Supplier: mapSupplierContactToAPI(p.Supplier),
+		Workflow: mapWorkflowConfigToAPI(p.WorkflowConfig),
 	}
 
 	if p.Apps != nil {
-		tax, err := appshttpdriver.MapAppToAPI(p.Apps.Tax)
+		apps, err := mapProfileAppsToAPI(p.Apps)
 		if err != nil {
-			return api.BillingProfile{}, fmt.Errorf("cannot map tax app: %w", err)
+			return api.BillingProfile{}, fmt.Errorf("failed to map profile apps: %w", err)
 		}
 
-		invoicing, err := appshttpdriver.MapAppToAPI(p.Apps.Invoicing)
+		if apps != nil {
+			out.Apps = *apps
+		}
+	} else {
+		apps, err := mapProfileAppReferencesToAPI(p.AppReferences)
 		if err != nil {
-			return api.BillingProfile{}, fmt.Errorf("cannot map invoicing app: %w", err)
+			return api.BillingProfile{}, fmt.Errorf("failed to map profile app references: %w", err)
 		}
 
-		payment, err := appshttpdriver.MapAppToAPI(p.Apps.Payment)
-		if err != nil {
-			return api.BillingProfile{}, fmt.Errorf("cannot map payment app: %w", err)
-		}
-
-		out.Apps = api.BillingProfileApps{
-			Tax:       tax,
-			Invoicing: invoicing,
-			Payment:   payment,
+		if apps != nil {
+			out.Apps = *apps
 		}
 	}
 
 	return out, nil
 }
 
-func MapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
+func mapProfileAppsToAPI(a *billingentity.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
+	if a == nil {
+		return nil, nil
+	}
+
+	tax, err := appshttpdriver.MapAppToAPI(a.Tax)
+	if err != nil {
+		return nil, fmt.Errorf("cannot map tax app: %w", err)
+	}
+
+	invoicing, err := appshttpdriver.MapAppToAPI(a.Invoicing)
+	if err != nil {
+		return nil, fmt.Errorf("cannot map invoicing app: %w", err)
+	}
+
+	payment, err := appshttpdriver.MapAppToAPI(a.Payment)
+	if err != nil {
+		return nil, fmt.Errorf("cannot map payment app: %w", err)
+	}
+
+	apps := api.BillingProfileApps{
+		Tax:       tax,
+		Invoicing: invoicing,
+		Payment:   payment,
+	}
+
+	out := api.BillingProfileAppsOrReference{}
+
+	if err := out.FromBillingProfileApps(apps); err != nil {
+		return nil, fmt.Errorf("failed to convert apps to API: %w", err)
+	}
+
+	return &out, nil
+}
+
+func mapProfileAppReferencesToAPI(a *billingentity.ProfileAppReferences) (*api.BillingProfileAppsOrReference, error) {
+	if a == nil {
+		return nil, nil
+	}
+
+	apps := api.BillingProfileAppReferences{
+		Tax: api.AppReference{
+			Id: a.Tax.ID,
+		},
+		Invoicing: api.AppReference{
+			Id: a.Invoicing.ID,
+		},
+		Payment: api.AppReference{
+			Id: a.Payment.ID,
+		},
+	}
+
+	out := api.BillingProfileAppsOrReference{}
+
+	if err := out.FromBillingProfileAppReferences(apps); err != nil {
+		return nil, fmt.Errorf("failed to convert apps to API: %w", err)
+	}
+
+	return &out, nil
+}
+
+func mapProfileExpandToEntity(expand []api.BillingProfileExpand) billing.ProfileExpand {
+	if len(expand) == 0 {
+		return billing.ProfileExpand{}
+	}
+
+	if slices.Contains(expand, api.BillingProfileExpandAll) {
+		return billing.ProfileExpand{
+			Apps: true,
+		}
+	}
+
+	return billing.ProfileExpand{
+		Apps: slices.Contains(expand, api.BillingProfileExpandApps),
+	}
+}
+
+func mapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
 	a := c.Address
 
 	out := api.BillingParty{
@@ -481,13 +563,32 @@ func MapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
 	return out
 }
 
-func MapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow {
+func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow {
 	return api.BillingWorkflow{
 		Id:        c.ID,
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
 		DeletedAt: c.DeletedAt,
 
+		Collection: &api.BillingWorkflowCollectionSettings{
+			Alignment: (*api.BillingWorkflowCollectionAlignment)(lo.EmptyableToPtr(c.Collection.Alignment)),
+			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
+		},
+
+		Invoicing: &api.BillingWorkflowInvoicingSettings{
+			AutoAdvance: c.Invoicing.AutoAdvance,
+			DraftPeriod: lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:    lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+		},
+
+		Payment: &api.BillingWorkflowPaymentSettings{
+			CollectionMethod: (*api.BillingWorkflowCollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+		},
+	}
+}
+
+func mapWorkflowConfigSettingsToAPI(c billingentity.WorkflowConfig) api.BillingWorkflowSettings {
+	return api.BillingWorkflowSettings{
 		Collection: &api.BillingWorkflowCollectionSettings{
 			Alignment: (*api.BillingWorkflowCollectionAlignment)(lo.EmptyableToPtr(c.Collection.Alignment)),
 			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),

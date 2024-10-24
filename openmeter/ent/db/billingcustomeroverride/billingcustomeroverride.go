@@ -30,8 +30,8 @@ const (
 	FieldBillingProfileID = "billing_profile_id"
 	// FieldCollectionAlignment holds the string denoting the collection_alignment field in the database.
 	FieldCollectionAlignment = "collection_alignment"
-	// FieldItemCollectionPeriod holds the string denoting the item_collection_period field in the database.
-	FieldItemCollectionPeriod = "item_collection_period"
+	// FieldLineCollectionPeriod holds the string denoting the line_collection_period field in the database.
+	FieldLineCollectionPeriod = "line_collection_period"
 	// FieldInvoiceAutoAdvance holds the string denoting the invoice_auto_advance field in the database.
 	FieldInvoiceAutoAdvance = "invoice_auto_advance"
 	// FieldInvoiceDraftPeriod holds the string denoting the invoice_draft_period field in the database.
@@ -72,7 +72,7 @@ var Columns = []string{
 	FieldCustomerID,
 	FieldBillingProfileID,
 	FieldCollectionAlignment,
-	FieldItemCollectionPeriod,
+	FieldLineCollectionPeriod,
 	FieldInvoiceAutoAdvance,
 	FieldInvoiceDraftPeriod,
 	FieldInvoiceDueAfter,
@@ -165,9 +165,9 @@ func ByCollectionAlignment(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCollectionAlignment, opts...).ToFunc()
 }
 
-// ByItemCollectionPeriod orders the results by the item_collection_period field.
-func ByItemCollectionPeriod(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldItemCollectionPeriod, opts...).ToFunc()
+// ByLineCollectionPeriod orders the results by the line_collection_period field.
+func ByLineCollectionPeriod(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLineCollectionPeriod, opts...).ToFunc()
 }
 
 // ByInvoiceAutoAdvance orders the results by the invoice_auto_advance field.

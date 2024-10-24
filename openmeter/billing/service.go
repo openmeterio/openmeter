@@ -4,13 +4,12 @@ import (
 	"context"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 type Service interface {
 	ProfileService
 	CustomerOverrideService
-	InvoiceItemService
+	InvoiceLineService
 	InvoiceService
 }
 
@@ -32,14 +31,10 @@ type CustomerOverrideService interface {
 	GetProfileWithCustomerOverride(ctx context.Context, input GetProfileWithCustomerOverrideInput) (*billingentity.ProfileWithCustomerDetails, error)
 }
 
-type InvoiceItemService interface {
-	CreateInvoiceItems(ctx context.Context, input CreateInvoiceItemsInput) ([]billingentity.InvoiceItem, error)
+type InvoiceLineService interface {
+	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) (*CreateInvoiceLinesResponse, error)
 }
 
 type InvoiceService interface {
-	// GetPendingInvoiceItems returns all pending invoice items for a customer
-	// The call can return any number of invoices based on multiple factors:
-	// - The customer has multiple currencies (e.g. USD and EUR)
-	// - [later] The provider can also mandate separate invoices if needed
-	GetPendingInvoiceItems(ctx context.Context, customerID customerentity.CustomerID) ([]billingentity.InvoiceWithValidation, error)
+	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 }

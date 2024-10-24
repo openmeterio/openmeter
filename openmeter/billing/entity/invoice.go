@@ -8,12 +8,12 @@ import (
 	"github.com/invopop/gobl/cbc"
 	"github.com/samber/lo"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
-type InvoiceType cbc.Key
+type InvoiceType string
 
 const (
 	InvoiceTypeStandard   InvoiceType = InvoiceType(bill.InvoiceTypeStandard)
@@ -27,6 +27,17 @@ func (t InvoiceType) Values() []string {
 	}
 }
 
+func (t InvoiceType) Validate() error {
+	for _, status := range t.Values() {
+		if string(t) == status {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid invoice type: %s", t)
+}
+
+// TODO: remove with gobl (once the calculations are in place)
 func (t InvoiceType) CBCKey() cbc.Key {
 	return cbc.Key(t)
 }
@@ -34,6 +45,8 @@ func (t InvoiceType) CBCKey() cbc.Key {
 type InvoiceStatus string
 
 const (
+	// InvoiceStatusGathering is the status of an invoice that is gathering the items to be invoiced.
+	InvoiceStatusGathering InvoiceStatus = "gathering"
 	// InvoiceStatusPendingCreation is the status of an invoice summarizing the pending items.
 	InvoiceStatusPendingCreation InvoiceStatus = "pending_creation"
 	// InvoiceStatusCreated is the status of an invoice that has been created.
@@ -67,6 +80,7 @@ var InvoiceImmutableStatuses = []InvoiceStatus{
 func (s InvoiceStatus) Values() []string {
 	return lo.Map(
 		[]InvoiceStatus{
+			InvoiceStatusGathering,
 			InvoiceStatusCreated,
 			InvoiceStatusDraft,
 			InvoiceStatusDraftSync,
@@ -82,18 +96,32 @@ func (s InvoiceStatus) Values() []string {
 	)
 }
 
-type InvoiceNumber struct {
-	// Number is {SERIES}-{CODE}
+func (s InvoiceStatus) Validate() error {
+	for _, status := range s.Values() {
+		if string(s) == status {
+			return nil
+		}
+	}
 
-	Series string `json:"series"`
-	Code   string `json:"code"`
+	return fmt.Errorf("invalid invoice status: %s", s)
+}
+
+func (s InvoiceStatus) IsMutable() bool {
+	for _, status := range InvoiceImmutableStatuses {
+		if s == status {
+			return false
+		}
+	}
+
+	return true
 }
 
 type Invoice struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`
 
-	InvoiceNumber InvoiceNumber `json:"invoiceNumber"`
+	Number      *string `json:"number,omitempty"`
+	Description *string `json:"description,omitempty"`
 
 	Type InvoiceType `json:"type"`
 
@@ -103,10 +131,9 @@ type Invoice struct {
 	Timezone timezone.Timezone `json:"timezone,omitempty"`
 	Status   InvoiceStatus     `json:"status"`
 
-	PeriodStart time.Time `json:"periodStart,omitempty"`
-	PeriodEnd   time.Time `json:"periodEnd,omitempty"`
+	Period *Period `json:"period,omitempty"`
 
-	DueDate *time.Time `json:"dueDate,omitempty"`
+	DueAt *time.Time `json:"dueDate,omitempty"`
 
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
@@ -117,11 +144,12 @@ type Invoice struct {
 	// Customer is either a snapshot of the contact information of the customer at the time of invoice being sent
 	// or the data from the customer entity (draft state)
 	// This is required so that we are not modifying the invoice after it has been sent to the customer.
-	Profile  Profile         `json:"profile"`
-	Customer InvoiceCustomer `json:"customer"`
+	Customer InvoiceCustomer  `json:"customer"`
+	Supplier SupplierContact  `json:"supplier"`
+	Workflow *InvoiceWorkflow `json:"workflow,omitempty"`
 
 	// Line items
-	Items []InvoiceItem `json:"items,omitempty"`
+	Lines []Line `json:"lines,omitempty"`
 }
 
 type InvoiceWithValidation struct {
@@ -129,7 +157,13 @@ type InvoiceWithValidation struct {
 	ValidationErrors []error
 }
 
-type InvoiceCustomer customerentity.Customer
+type InvoiceCustomer struct {
+	CustomerID string `json:"customerId,omitempty"`
+
+	Name           string             `json:"name"`
+	BillingAddress *models.Address    `json:"billingAddress,omitempty"`
+	Timezone       *timezone.Timezone `json:"timezone,omitempty"`
+}
 
 func (i *InvoiceCustomer) Validate() error {
 	if i.Name == "" {

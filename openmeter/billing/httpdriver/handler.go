@@ -13,6 +13,8 @@ import (
 
 type Handler interface {
 	ProfileHandler
+	InvoiceLineHandler
+	InvoiceHandler
 }
 
 type ProfileHandler interface {
@@ -21,6 +23,14 @@ type ProfileHandler interface {
 	ArchiveProfile() ArchiveProfileHandler
 	UpdateProfile() UpdateProfileHandler
 	ListProfiles() ListProfilesHandler
+}
+
+type InvoiceLineHandler interface {
+	CreateLineByCustomer() CreateLineByCustomerHandler
+}
+
+type InvoiceHandler interface {
+	ListInvoices() ListInvoicesHandler
 }
 
 type handler struct {

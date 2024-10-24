@@ -12,3 +12,8 @@ func (t Timezone) LoadLocation() (*time.Location, error) {
 	}
 	return time.LoadLocation(string(t))
 }
+
+func (t Timezone) Validate() error {
+	_, err := t.LoadLocation()
+	return err
+}

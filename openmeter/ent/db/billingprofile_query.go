@@ -637,7 +637,7 @@ func (bpq *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(billinginvoice.FieldBillingProfileID)
+		query.ctx.AppendFieldOnce(billinginvoice.FieldSourceBillingProfileID)
 	}
 	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billingprofile.BillingInvoicesColumn), fks...))
@@ -647,10 +647,10 @@ func (bpq *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.BillingProfileID
+		fk := n.SourceBillingProfileID
 		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "billing_profile_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "source_billing_profile_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

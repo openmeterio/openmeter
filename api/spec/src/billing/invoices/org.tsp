@@ -30,7 +30,9 @@ namespace Invoices;
 model Party {
   @summary("ID of the party.")
   @visibility("read", "query", "update")
-  id: ULID;
+  // id is null if there's no dedicated entity different from the parent object to store the party (these are not updated directly via
+  // the underlying entity so it's not a problem)
+  id?: ULID;
 
   @summary("Legal name or representation of the organization.")
   name?: string;

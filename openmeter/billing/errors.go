@@ -44,6 +44,7 @@ const (
 	EntityCustomerOverride = "BillingCustomerOverride"
 	EntityCustomer         = "Customer"
 	EntityDefaultProfile   = "DefaultBillingProfile"
+	EntityInvoice          = "Invoice"
 )
 
 type NotFoundError struct {

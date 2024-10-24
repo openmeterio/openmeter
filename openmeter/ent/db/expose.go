@@ -103,7 +103,9 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		BillingInvoice: NewBillingInvoiceClient(config),
 
-		BillingInvoiceItem: NewBillingInvoiceItemClient(config),
+		BillingInvoiceLine: NewBillingInvoiceLineClient(config),
+
+		BillingInvoiceManualLineConfig: NewBillingInvoiceManualLineConfigClient(config),
 
 		BillingProfile: NewBillingProfileClient(config),
 

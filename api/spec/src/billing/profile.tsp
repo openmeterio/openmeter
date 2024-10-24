@@ -15,6 +15,9 @@ interface Profiles {
     @query
     includeArchived?: boolean = false,
 
+    @query
+    expand?: ProfileExpand[],
+
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<ProfileOrderBy>,
@@ -54,6 +57,7 @@ interface Profiles {
   @operationId("billingGetProfile")
   get(
     @path id: string,
+    @query expand?: ProfileExpand[],
   ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -83,6 +87,16 @@ enum ProfileOrderBy {
 }
 
 /**
+ * ProfileExpand details what profile fields to expand
+ */
+@friendlyName("BillingProfileExpand")
+@extension("x-enum-varnames", ["apps", "all"])
+enum ProfileExpand {
+  apps: "apps",
+  all: "*",
+}
+
+/**
  * Profile represents a billing profile
  */
 @friendlyName("BillingProfile")
@@ -106,7 +120,7 @@ model Profile {
 
   @summary("The applications used by this billing profile")
   @visibility("read", "query")
-  apps: ProfileApps;
+  apps: ProfileAppsOrReference;
 
   @summary("Is this the default profile?")
   default: boolean;
@@ -125,6 +139,27 @@ model ProfileApps {
 
   @summary("The payment app used for this workflow")
   payment: OpenMeter.App.App;
+}
+
+/**
+ * ProfileAppsReference represents the references (id, type) to the apps used by a billing profile
+ */
+@friendlyName("BillingProfileAppReferences")
+model ProfileAppReferences {
+  @summary("The tax app used for this workflow")
+  tax: OpenMeter.App.AppReference;
+
+  @summary("The invoicing app used for this workflow")
+  invoicing: OpenMeter.App.AppReference;
+
+  @summary("The payment app used for this workflow")
+  payment: OpenMeter.App.AppReference;
+}
+
+@friendlyName("BillingProfileAppsOrReference")
+union ProfileAppsOrReference {
+  profileApps: ProfileApps,
+  profileAppReferences: ProfileAppReferences,
 }
 
 /**
@@ -156,7 +191,7 @@ model WorkflowSettings {
   payment?: WorkflowPaymentSettings;
 }
 
-@summary("Workflow collection specifies how to collect the pending items for an invoice")
+@summary("Workflow collection specifies how to collect the pending line items for an invoice")
 @friendlyName("BillingWorkflowCollectionSettings")
 model WorkflowCollectionSettings {
   /**
@@ -270,11 +305,11 @@ enum CollectionMethod {
 }
 
 /**
- * ItemResolution specifies how the line items should be resolved in the invoice
+ * LineResolution specifies how the line items should be resolved in the invoice
  */
-@friendlyName("BillingWorkflowItemResolution")
+@friendlyName("BillingWorkflowLineResolution")
 @summary("Item resolution")
-enum ItemResolution {
+enum LineResolution {
   /**
    * Create line items for each day in the billing period.
    */

@@ -659,21 +659,21 @@ func HasCustomerAppsWith(preds ...predicate.AppCustomer) predicate.App {
 	})
 }
 
-// HasTaxApp applies the HasEdge predicate on the "tax_app" edge.
-func HasTaxApp() predicate.App {
+// HasBillingProfileTaxApp applies the HasEdge predicate on the "billing_profile_tax_app" edge.
+func HasBillingProfileTaxApp() predicate.App {
 	return predicate.App(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, TaxAppTable, TaxAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingProfileTaxAppTable, BillingProfileTaxAppColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasTaxAppWith applies the HasEdge predicate on the "tax_app" edge with a given conditions (other predicates).
-func HasTaxAppWith(preds ...predicate.BillingProfile) predicate.App {
+// HasBillingProfileTaxAppWith applies the HasEdge predicate on the "billing_profile_tax_app" edge with a given conditions (other predicates).
+func HasBillingProfileTaxAppWith(preds ...predicate.BillingProfile) predicate.App {
 	return predicate.App(func(s *sql.Selector) {
-		step := newTaxAppStep()
+		step := newBillingProfileTaxAppStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -682,21 +682,21 @@ func HasTaxAppWith(preds ...predicate.BillingProfile) predicate.App {
 	})
 }
 
-// HasInvoicingApp applies the HasEdge predicate on the "invoicing_app" edge.
-func HasInvoicingApp() predicate.App {
+// HasBillingProfileInvoicingApp applies the HasEdge predicate on the "billing_profile_invoicing_app" edge.
+func HasBillingProfileInvoicingApp() predicate.App {
 	return predicate.App(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, InvoicingAppTable, InvoicingAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingProfileInvoicingAppTable, BillingProfileInvoicingAppColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasInvoicingAppWith applies the HasEdge predicate on the "invoicing_app" edge with a given conditions (other predicates).
-func HasInvoicingAppWith(preds ...predicate.BillingProfile) predicate.App {
+// HasBillingProfileInvoicingAppWith applies the HasEdge predicate on the "billing_profile_invoicing_app" edge with a given conditions (other predicates).
+func HasBillingProfileInvoicingAppWith(preds ...predicate.BillingProfile) predicate.App {
 	return predicate.App(func(s *sql.Selector) {
-		step := newInvoicingAppStep()
+		step := newBillingProfileInvoicingAppStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -705,21 +705,90 @@ func HasInvoicingAppWith(preds ...predicate.BillingProfile) predicate.App {
 	})
 }
 
-// HasPaymentApp applies the HasEdge predicate on the "payment_app" edge.
-func HasPaymentApp() predicate.App {
+// HasBillingProfilePaymentApp applies the HasEdge predicate on the "billing_profile_payment_app" edge.
+func HasBillingProfilePaymentApp() predicate.App {
 	return predicate.App(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, PaymentAppTable, PaymentAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingProfilePaymentAppTable, BillingProfilePaymentAppColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasPaymentAppWith applies the HasEdge predicate on the "payment_app" edge with a given conditions (other predicates).
-func HasPaymentAppWith(preds ...predicate.BillingProfile) predicate.App {
+// HasBillingProfilePaymentAppWith applies the HasEdge predicate on the "billing_profile_payment_app" edge with a given conditions (other predicates).
+func HasBillingProfilePaymentAppWith(preds ...predicate.BillingProfile) predicate.App {
 	return predicate.App(func(s *sql.Selector) {
-		step := newPaymentAppStep()
+		step := newBillingProfilePaymentAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingInvoiceTaxApp applies the HasEdge predicate on the "billing_invoice_tax_app" edge.
+func HasBillingInvoiceTaxApp() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceTaxAppTable, BillingInvoiceTaxAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoiceTaxAppWith applies the HasEdge predicate on the "billing_invoice_tax_app" edge with a given conditions (other predicates).
+func HasBillingInvoiceTaxAppWith(preds ...predicate.BillingInvoice) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newBillingInvoiceTaxAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingInvoiceInvoicingApp applies the HasEdge predicate on the "billing_invoice_invoicing_app" edge.
+func HasBillingInvoiceInvoicingApp() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceInvoicingAppTable, BillingInvoiceInvoicingAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoiceInvoicingAppWith applies the HasEdge predicate on the "billing_invoice_invoicing_app" edge with a given conditions (other predicates).
+func HasBillingInvoiceInvoicingAppWith(preds ...predicate.BillingInvoice) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newBillingInvoiceInvoicingAppStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingInvoicePaymentApp applies the HasEdge predicate on the "billing_invoice_payment_app" edge.
+func HasBillingInvoicePaymentApp() predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicePaymentAppTable, BillingInvoicePaymentAppColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoicePaymentAppWith applies the HasEdge predicate on the "billing_invoice_payment_app" edge with a given conditions (other predicates).
+func HasBillingInvoicePaymentAppWith(preds ...predicate.BillingInvoice) predicate.App {
+	return predicate.App(func(s *sql.Selector) {
+		step := newBillingInvoicePaymentAppStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

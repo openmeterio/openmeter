@@ -22,7 +22,7 @@ func (r *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 		SetCustomerID(input.CustomerID).
 		SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 		SetNillableCollectionAlignment(input.Collection.Alignment).
-		SetNillableItemCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
+		SetNillableLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 		SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 		SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
 		SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
@@ -34,8 +34,10 @@ func (r *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 
 	// Let's fetch the override with edges
 	return r.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Namespace:  input.Namespace,
-		CustomerID: input.CustomerID,
+		Customer: customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
 	})
 }
 
@@ -58,7 +60,7 @@ func (r *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 	update := r.db.BillingCustomerOverride.Update().
 		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
 		SetOrClearCollectionAlignment(input.Collection.Alignment).
-		SetOrClearItemCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
+		SetOrClearLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 		SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 		SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
 		SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
@@ -82,15 +84,17 @@ func (r *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 	}
 
 	return r.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Namespace:  input.Namespace,
-		CustomerID: input.CustomerID,
+		Customer: customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
 	})
 }
 
 func (r *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
 	query := r.db.BillingCustomerOverride.Query().
-		Where(billingcustomeroverride.Namespace(input.Namespace)).
-		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
+		Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
+		Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 		WithBillingProfile(func(bpq *db.BillingProfileQuery) {
 			bpq.WithWorkflowConfig()
 		}).
@@ -111,7 +115,7 @@ func (r *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 
 	if dbCustomerOverride.Edges.Customer == nil {
 		return nil, billing.NotFoundError{
-			ID:     input.CustomerID,
+			ID:     input.Customer.ID,
 			Entity: billing.EntityCustomer,
 			Err:    billing.ErrCustomerNotFound,
 		}
@@ -173,7 +177,7 @@ func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 }
 
 func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billingentity.CustomerOverride, error) {
-	collectionInterval, err := dbOverride.ItemCollectionPeriod.ParsePtrOrNil()
+	collectionInterval, err := dbOverride.LineCollectionPeriod.ParsePtrOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse collection.interval: %w", err)
 	}

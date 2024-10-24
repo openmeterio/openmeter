@@ -24,6 +24,25 @@ type Customer struct {
 	Apps             []CustomerApp            `json:"apps"`
 }
 
+func (c Customer) Validate() error {
+	if c.Timezone != nil {
+		if err := c.Timezone.Validate(); err != nil {
+			return ValidationError{
+				Err: err,
+			}
+		}
+	}
+
+	if c.Currency != nil {
+		if err := c.Currency.Validate(); err != nil {
+			return ValidationError{
+				Err: err,
+			}
+		}
+	}
+	return nil
+}
+
 func (c Customer) GetID() CustomerID {
 	return CustomerID{c.Namespace, c.ID}
 }
@@ -117,6 +136,12 @@ func (i CreateCustomerInput) Validate() error {
 		}
 	}
 
+	if err := i.Customer.Validate(); err != nil {
+		return ValidationError{
+			Err: err,
+		}
+	}
+
 	return nil
 }
 
@@ -137,6 +162,12 @@ func (i UpdateCustomerInput) Validate() error {
 	if i.ID == "" {
 		return ValidationError{
 			Err: errors.New("customer id is required"),
+		}
+	}
+
+	if err := i.Customer.Validate(); err != nil {
+		return ValidationError{
+			Err: err,
 		}
 	}
 
