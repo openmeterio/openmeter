@@ -47,6 +47,21 @@ services:
       timeout: 3s
       retries: 30
 
+
+  ch-ui:
+    image: ghcr.io/caioricciuti/ch-ui:latest
+    profiles:
+      - dev
+    depends_on:
+      - clickhouse
+    restart: always
+    ports:
+      - "${CH_UI_PORT:-5521}:5521"
+    environment:
+      VITE_CLICKHOUSE_URL: http://localhost:8123
+      VITE_CLICKHOUSE_USER: default
+      VITE_CLICKHOUSE_PASS: default
+
   # Deduplication
   # docker compose --profile redis up
   redis:
