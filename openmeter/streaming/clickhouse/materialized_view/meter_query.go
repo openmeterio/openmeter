@@ -1,4 +1,4 @@
-package clickhouse_connector
+package materialized_view
 
 import (
 	_ "embed"
@@ -18,120 +18,15 @@ type column struct {
 	Type string
 }
 
-// Create Events Table
-type createEventsTable struct {
-	Database string
-}
-
-func (d createEventsTable) toSQL() string {
-	tableName := GetEventsTableName(d.Database)
-
-	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
-	sb.CreateTable(tableName)
-	sb.IfNotExists()
-	sb.Define("namespace", "String")
-	sb.Define("validation_error", "String")
-	sb.Define("id", "String")
-	sb.Define("type", "LowCardinality(String)")
-	sb.Define("subject", "String")
-	sb.Define("source", "String")
-	sb.Define("time", "DateTime")
-	sb.Define("data", "String")
-	sb.Define("ingested_at", "DateTime")
-	sb.Define("stored_at", "DateTime")
-	sb.SQL("ENGINE = MergeTree")
-	sb.SQL("PARTITION BY toYYYYMM(time)")
-	sb.SQL("ORDER BY (namespace, time, type, subject)")
-
-	sql, _ := sb.Build()
-	return sql
-}
-
-type queryEventsTable struct {
-	Database       string
-	Namespace      string
-	From           *time.Time
-	To             *time.Time
-	IngestedAtFrom *time.Time
-	IngestedAtTo   *time.Time
-	ID             *string
-	Subject        *string
-	HasError       *bool
-	Limit          int
-}
-
-func (d queryEventsTable) toSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(d.Database)
-	where := []string{}
-
-	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
-	query.From(tableName)
-
-	where = append(where, query.Equal("namespace", d.Namespace))
-	if d.From != nil {
-		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
-	}
-	if d.To != nil {
-		where = append(where, query.LessEqualThan("time", d.To.Unix()))
-	}
-	if d.IngestedAtFrom != nil {
-		where = append(where, query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
-	}
-	if d.IngestedAtTo != nil {
-		where = append(where, query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
-	}
-	if d.ID != nil {
-		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
-	}
-	if d.Subject != nil {
-		where = append(where, query.Equal("subject", *d.Subject))
-	}
-	if d.HasError != nil {
-		if *d.HasError {
-			where = append(where, "notEmpty(validation_error) = 1")
-		} else {
-			where = append(where, "empty(validation_error) = 1")
-		}
-	}
-	query.Where(where...)
-
-	query.Desc().OrderBy("time")
-	query.Limit(d.Limit)
-
-	sql, args := query.Build()
-	return sql, args
-}
-
-type queryCountEvents struct {
-	Database  string
-	Namespace string
-	From      time.Time
-}
-
-func (d queryCountEvents) toSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(d.Database)
-
-	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("count() as count", "subject", "notEmpty(validation_error) as is_error")
-	query.From(tableName)
-
-	query.Where(query.Equal("namespace", d.Namespace))
-	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
-	query.GroupBy("subject", "is_error")
-
-	sql, args := query.Build()
-	return sql, args
-}
-
 type createMeterView struct {
-	Database      string
-	Aggregation   models.MeterAggregation
-	Namespace     string
-	MeterSlug     string
-	EventType     string
-	ValueProperty string
-	GroupBy       map[string]string
+	Database        string
+	EventsTableName string
+	Aggregation     models.MeterAggregation
+	Namespace       string
+	MeterSlug       string
+	EventType       string
+	ValueProperty   string
+	GroupBy         map[string]string
 	// Populate creates the materialized view with data from the events table
 	// This is not safe to use in production as requires to stop ingestion
 	Populate bool
@@ -208,7 +103,7 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 }
 
 func (d createMeterView) toSelectSQL() (string, error) {
-	eventsTableName := GetEventsTableName(d.Database)
+	eventsTableName := getTableName(d.Database, d.EventsTableName)
 
 	aggStateFn := ""
 	switch d.Aggregation {
@@ -459,12 +354,8 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}) {
 	return sql, args
 }
 
-func GetEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, EventsTableName)
-}
-
 func GetMeterViewName(database string, namespace string, meterSlug string) string {
-	meterViewName := fmt.Sprintf("%s%s_%s", tablePrefix, namespace, meterSlug)
+	meterViewName := fmt.Sprintf("om_%s_%s", namespace, meterSlug)
 	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), sqlbuilder.Escape(meterViewName))
 }
 
@@ -472,4 +363,8 @@ func columnFactory(alias string) func(string) string {
 	return func(column string) string {
 		return fmt.Sprintf("%s.%s", alias, column)
 	}
+}
+
+func getTableName(database string, tableName string) string {
+	return fmt.Sprintf("%s.%s", database, tableName)
 }

@@ -41,11 +41,11 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 
 		// All metering information is stored in windowSize chunks,
 		// so we cannot do accurate calculations unless we follow that same windowing.
-		meter, err := m.ownerConnector.GetMeter(ctx, owner)
+		ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
 		if err != nil {
 			return nil, err
 		}
-		granularity := meter.WindowSize.Duration()
+		granularity := ownerMeter.Meter.WindowSize.Duration()
 		input.EffectiveAt = input.EffectiveAt.Truncate(granularity)
 		if input.Recurrence != nil {
 			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)
