@@ -23,6 +23,6 @@ jobs:
           verb: call
           args: snapshot --stainless-token env:STAINLESS_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.13.5"
+          version: "0.13.6"
         env:
           STAINLESS_TOKEN: ${{ secrets.STAINLESS_TOKEN }}
