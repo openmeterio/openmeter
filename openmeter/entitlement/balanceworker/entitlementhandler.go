@@ -108,10 +108,6 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 		),
 	)
 
-	w.metricRecalculationTimeOld.Record(ctx, time.Since(calculationStart).Milliseconds(), metric.WithAttributes(
-		attribute.String(metricAttributeKeyEntitltementType, string(entitlementEntity.EntitlementType)),
-	))
-
 	mappedValues, err := entitlementdriver.MapEntitlementValueToAPI(value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map entitlement value: %w", err)
