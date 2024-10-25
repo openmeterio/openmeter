@@ -239,7 +239,7 @@ interface Subscriptions {
   ): SubscriptionExpanded | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   create(
-    @body body: CreateSubscriptionInput,
+    @body body: CreateSubscriptionRequestBody,
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
   /**

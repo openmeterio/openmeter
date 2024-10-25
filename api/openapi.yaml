@@ -6788,7 +6788,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OpenMeter.ProductCatalog.CreateSubscriptionInput'
+              $ref: '#/components/schemas/OpenMeter.ProductCatalog.CreateSubscriptionRequestBody'
   /api/v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription_getSubscription
@@ -12437,7 +12437,7 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    OpenMeter.ProductCatalog.CreateSubscriptionInput:
+    OpenMeter.ProductCatalog.CreateSubscriptionRequestBody:
       type: object
       required:
         - customerId
@@ -12741,28 +12741,13 @@ components:
     PlanPhase:
       type: object
       required:
-        - startAfter
         - name
         - createdAt
         - updatedAt
         - key
         - rateCards
+        - startAfter
       properties:
-        startAfter:
-          type: string
-          format: duration
-          nullable: true
-          example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Start after
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/AppliedDiscount'
-          description: The discounts on the plan.
-          title: Discount
         name:
           type: string
           minLength: 1
@@ -12812,15 +12797,6 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-      description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
-    PlanPhaseCreate:
-      type: object
-      required:
-        - startAfter
-        - name
-        - key
-        - rateCards
-      properties:
         startAfter:
           type: string
           format: duration
@@ -12836,6 +12812,15 @@ components:
             $ref: '#/components/schemas/AppliedDiscount'
           description: The discounts on the plan.
           title: Discount
+      description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+    PlanPhaseCreate:
+      type: object
+      required:
+        - name
+        - key
+        - rateCards
+        - startAfter
+      properties:
         name:
           type: string
           minLength: 1
@@ -12864,6 +12849,21 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
+        startAfter:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: |-
+            Interval after the subscription starts to transition to the phase.
+            When null, the phase starts immediately after the subscription starts.
+          title: Start after
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
+          title: Discount
       description: Resource create operation model.
     PlanPhasePaginatedResponse:
       type: object
@@ -12894,21 +12894,6 @@ components:
     PlanPhaseUpdate:
       type: object
       properties:
-        startAfter:
-          type: string
-          format: duration
-          nullable: true
-          example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Start after
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/AppliedDiscount'
-          description: The discounts on the plan.
-          title: Discount
         name:
           type: string
           minLength: 1
@@ -12937,6 +12922,21 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
+        startAfter:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: |-
+            Interval after the subscription starts to transition to the phase.
+            When null, the phase starts immediately after the subscription starts.
+          title: Start after
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
+          title: Discount
       description: Resource create or update operation model.
     PlanStatus:
       type: string

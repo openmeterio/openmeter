@@ -82,7 +82,7 @@ model SubscriptionPhaseExpanded {
 @friendlyName("SubscriptionPhase")
 model SubscriptionPhase {
   ...VirtualResource;
-  ...OmitProperties<SubscriptionPhaseCreateInput, "startAfter">;
+  ...OmitProperties<SubscriptionPhaseCreate, "startAfter">;
 
   /**
    * The time from which the phase is active.
@@ -91,7 +91,7 @@ model SubscriptionPhase {
 }
 
 @friendlyName("SubscriptionPhaseCreateInput")
-model SubscriptionPhaseCreateInput {
+model SubscriptionPhaseCreate {
   /**
    * Interval after the subscription starts to transition to the phase.
    * When null, the phase starts immediately after the subscription starts.
@@ -167,7 +167,7 @@ model SubscriptionItem {
   };
 }
 
-model CreateSubscriptionInput {
+model CreateSubscriptionRequestBody {
   customerId: ULID;
   plan: {
     key: Key;
@@ -193,7 +193,7 @@ model CreateSubscriptionInput {
 scalar SubscriptionPhasePatchKey extends string;
 
 alias SubscriptionPhasePatch = SubscriptionEditAdd<
-  SubscriptionPhaseCreateInput,
+  SubscriptionPhaseCreate,
   SubscriptionPhasePatchKey
 > | SubscriptionPhaseExtend<
   {

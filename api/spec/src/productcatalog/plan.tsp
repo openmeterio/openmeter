@@ -76,7 +76,6 @@ model Plan {
  */
 @friendlyName("PlanPhase")
 model PlanPhase {
-  ...SubscriptionPhaseCreateInput;
   ...OmitProperties<Resource, "id">;
 
   /**
@@ -89,6 +88,21 @@ model PlanPhase {
    */
   @summary("Rate cards")
   rateCards: RateCard[];
+
+  /**
+   * Interval after the subscription starts to transition to the phase.
+   * When null, the phase starts immediately after the subscription starts.
+   */
+  @summary("Start after")
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1Y1D"))
+  startAfter: duration | null;
+
+  /**
+   * The discounts on the plan.
+   */
+  @summary("Discount")
+  discounts?: AppliedDiscount[];
 
   // /**
   //  * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
