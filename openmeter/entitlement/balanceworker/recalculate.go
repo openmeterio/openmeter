@@ -29,8 +29,8 @@ const (
 
 	defaultLRUCacheSize = 10_000
 
-	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
-	metricNameRecalculationJobCalculationTime = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
+	metricNameRecalculationTime               = "openmeter.balance_worker.entitlement_recalculation_time_ms"
+	metricNameRecalculationJobCalculationTime = "openmeter.balance_worker.entitlement_recalculation_job_calculation_time_ms"
 
 	metricAttributeKeyEntitltementType = "entitlement_type"
 )
@@ -39,7 +39,7 @@ type RecalculatorOptions struct {
 	Entitlement     *registry.Entitlement
 	SubjectResolver SubjectResolver
 	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Meter           metric.Meter
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -51,7 +51,7 @@ func (o RecalculatorOptions) Validate() error {
 		return errors.New("missing event bus")
 	}
 
-	if o.MetricMeter == nil {
+	if o.Meter == nil {
 		return errors.New("missing metric meter")
 	}
 
@@ -83,7 +83,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.MetricMeter.Int64Histogram(
+	metricRecalculationTime, err := opts.Meter.Int64Histogram(
 		metricNameRecalculationTime,
 		metric.WithDescription("Entitlement recalculation time"),
 	)
@@ -91,7 +91,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
-	metricRecalculationJobRecalculationTime, err := opts.MetricMeter.Int64Histogram(
+	metricRecalculationJobRecalculationTime, err := opts.Meter.Int64Histogram(
 		metricNameRecalculationJobCalculationTime,
 		metric.WithDescription("Time takes to recalculate the entitlements including the necessary data fetches"),
 	)
@@ -136,11 +136,13 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 			errs = errors.Join(errs, fmt.Errorf("error sending event for entitlement [id=%s]: %w", ent.ID, err))
 		}
 
-		r.metricRecalculationJobRecalculationTime.Record(ctx,
+		r.metricRecalculationJobRecalculationTime.Record(
+			ctx,
 			time.Since(start).Milliseconds(),
 			metric.WithAttributes(
 				attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
-			))
+			),
+		)
 	}
 
 	return errs
@@ -203,11 +205,13 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 		return fmt.Errorf("failed to get entitlement value: %w", err)
 	}
 
-	r.metricRecalculationTime.Record(ctx,
+	r.metricRecalculationTime.Record(
+		ctx,
 		time.Since(calculatedAt).Milliseconds(),
 		metric.WithAttributes(
 			attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
-		))
+		),
+	)
 
 	mappedValues, err := entitlementdriver.MapEntitlementValueToAPI(value)
 	if err != nil {
