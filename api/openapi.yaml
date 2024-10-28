@@ -12746,7 +12746,7 @@ components:
         - updatedAt
         - key
         - rateCards
-        - startAfter
+        - duration
       properties:
         name:
           type: string
@@ -12797,15 +12797,13 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
+        duration:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Start after
+          description: The duration (length) of the phase.
+          title: Duration
         discounts:
           type: array
           items:
@@ -12819,7 +12817,7 @@ components:
         - name
         - key
         - rateCards
-        - startAfter
+        - duration
       properties:
         name:
           type: string
@@ -12849,15 +12847,13 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
+        duration:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Start after
+          description: The duration (length) of the phase.
+          title: Duration
         discounts:
           type: array
           items:
@@ -12922,15 +12918,13 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
+        duration:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Start after
+          description: The duration (length) of the phase.
+          title: Duration
         discounts:
           type: array
           items:
@@ -12938,6 +12932,22 @@ components:
           description: The discounts on the plan.
           title: Discount
       description: Resource create or update operation model.
+    PlanReference:
+      type: object
+      required:
+        - key
+        - version
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The plan key.
+        version:
+          type: integer
+          description: The plan version.
+      description: Referebces an exact plan.
     PlanStatus:
       type: string
       enum:
@@ -14139,20 +14149,8 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer ID of the subscription.
         plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: The plan Key of the subscription.
-            version:
-              type: integer
-              description: The plan version of the subscription.
-          required:
-            - key
-            - version
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
           description: The base plan of the subscription.
         currency:
           allOf:
@@ -14230,20 +14228,8 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer ID of the subscription.
         plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: The plan Key of the subscription.
-            version:
-              type: integer
-              description: The plan version of the subscription.
-          required:
-            - key
-            - version
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
           description: The base plan of the subscription.
         currency:
           allOf:

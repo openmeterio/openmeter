@@ -1,7 +1,6 @@
 import "@typespec/http";
 import "../types.tsp";
 import "./ratecards.tsp";
-import "./subscription.tsp";
 
 namespace OpenMeter.ProductCatalog;
 
@@ -16,6 +15,22 @@ enum PlanStatus {
   draft: "draft",
   active: "active",
   archived: "archived",
+}
+
+/**
+ * Referebces an exact plan.
+ */
+@friendlyName("PlanReference")
+model PlanReference {
+  /**
+   * The plan key.
+   */
+  key: Key;
+
+  /**
+   * The plan version.
+   */
+  version: integer;
 }
 
 /**
@@ -90,13 +105,12 @@ model PlanPhase {
   rateCards: RateCard[];
 
   /**
-   * Interval after the subscription starts to transition to the phase.
-   * When null, the phase starts immediately after the subscription starts.
+   * The duration (length) of the phase.
    */
-  @summary("Start after")
+  @summary("Duration")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1Y1D"))
-  startAfter: duration | null;
+  duration: duration | null;
 
   /**
    * The discounts on the plan.

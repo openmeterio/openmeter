@@ -42,17 +42,7 @@ model Subscription {
   /**
    * The base plan of the subscription.
    */
-  plan: {
-    /**
-     * The plan Key of the subscription.
-     */
-    key: Key;
-
-    /**
-     * The plan version of the subscription.
-     */
-    version: integer;
-  };
+  plan: PlanReference;
 
   /**
    * The currency code of the subscription.
