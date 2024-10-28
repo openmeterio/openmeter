@@ -16,6 +16,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
+const (
+	// defaultCustomerOverrideCacheSize is the default size of the customer override cache used for upsert operations
+	defaultCustomerOverrideCacheSize = 10_000
+)
+
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
 func (r *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {

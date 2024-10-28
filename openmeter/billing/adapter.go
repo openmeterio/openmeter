@@ -34,6 +34,8 @@ type CustomerOverrideAdapter interface {
 	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error)
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
+	UpsertCustomerOverrideIgnoringTrns(ctx context.Context, input UpsertCustomerOverrideIgnoringTrnsAdapterInput) error
+	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 
 	// UpsertCustomerOverride upserts a customer override ignoring the transactional context, the override
 	// will be empty.
