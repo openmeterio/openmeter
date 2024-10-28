@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -32,13 +31,11 @@ type NewSubscriptionRequest struct {
 	// TODO: Add discounts, either separately or as part of the patch language
 }
 
-type Command interface {
-	Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error)
-	Edit(ctx context.Context, subscriptionID string, patches []Patch) (Subscription, error)
-	Cancel(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error)
+type Connector interface {
+	Command
+	Query
 }
-
-type command struct {
+type commandAndQuery struct {
 	repo Repository
 	// connectors
 	priceConnector  price.Connector
@@ -50,7 +47,7 @@ type command struct {
 	transactionManager transaction.Creator
 }
 
-func NewCommand(
+func NewConnector(
 	repo Repository,
 	// connectors
 	priceConnector price.Connector,
@@ -60,8 +57,8 @@ func NewCommand(
 	entitlementAdapter EntitlementAdapter,
 	// framework
 	transactionManager transaction.Creator,
-) Command {
-	return &command{
+) Connector {
+	return &commandAndQuery{
 		repo:               repo,
 		priceConnector:     priceConnector,
 		customerService:    customerService,
@@ -71,7 +68,13 @@ func NewCommand(
 	}
 }
 
-func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error) {
+type Command interface {
+	Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error)
+	Edit(ctx context.Context, subscriptionID models.NamespacedID, patches []Patch) (Subscription, error)
+	Cancel(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error)
+}
+
+func (c *commandAndQuery) Create(ctx context.Context, req NewSubscriptionRequest) (Subscription, error) {
 	def := Subscription{}
 	currentTime := clock.Now()
 
@@ -165,7 +168,7 @@ func (c *command) Create(ctx context.Context, req NewSubscriptionRequest) (Subsc
 	})
 }
 
-func (c *command) createPhase(ctx context.Context, sub Subscription, cust customerentity.Customer, spec *SubscriptionSpec, phaseKey string) error {
+func (c *commandAndQuery) createPhase(ctx context.Context, sub Subscription, cust customerentity.Customer, spec *SubscriptionSpec, phaseKey string) error {
 	if spec == nil {
 		return fmt.Errorf("spec is nil")
 	}
@@ -254,11 +257,21 @@ func (c *command) createPhase(ctx context.Context, sub Subscription, cust custom
 	})
 }
 
-func (c *command) Edit(ctx context.Context, subscriptionID string, patches []Patch) (Subscription, error) {
+func (c *commandAndQuery) Edit(ctx context.Context, subscriptionID models.NamespacedID, patches []Patch) (Subscription, error) {
+	// Fetch the subscription, check if it exists
+	_, err := c.repo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return Subscription{}, err
+	}
+	// Build the current spec from the Subscription
+	// Apply the patches to the spec
+	// Magic happens here: somehow diff the state and manage every resource
 	panic("implement me")
 }
 
-func (c *command) Cancel(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error) {
+func (c *commandAndQuery) Cancel(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error) {
+	// Notes:
+	// - Cancelation is not just as simple as setting the activeTo to date to the cancelation date on the Subscription: dependent resources have to be mark as either deleted or deactivated too based on what they are (for consistency reasons)
 	panic("implement me")
 }
 
@@ -267,35 +280,7 @@ type Query interface {
 	Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
 }
 
-type query struct {
-	repo Repository
-	// connectors
-	priceConnector   price.Connector
-	featureConnector feature.FeatureConnector
-	// adapters
-	planAdapter        PlanAdapter
-	entitlementAdapter EntitlementAdapter
-}
-
-func NewQuery(
-	repo Repository,
-	// connectors
-	priceConnector price.Connector,
-	featureConnector feature.FeatureConnector,
-	// adapters
-	planAdapter PlanAdapter,
-	entitlementAdapter EntitlementAdapter,
-) Query {
-	return &query{
-		repo:               repo,
-		priceConnector:     priceConnector,
-		featureConnector:   featureConnector,
-		planAdapter:        planAdapter,
-		entitlementAdapter: entitlementAdapter,
-	}
-}
-
-func (q *query) Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error) {
+func (q *commandAndQuery) Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error) {
 	sub, err := q.repo.GetSubscription(ctx, subscriptionID)
 	if err != nil {
 		return Subscription{}, err
@@ -303,7 +288,7 @@ func (q *query) Get(ctx context.Context, subscriptionID models.NamespacedID) (Su
 	return sub, nil
 }
 
-func (q *query) Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error) {
+func (q *commandAndQuery) Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error) {
 	currentTime := clock.Now()
 	sub, err := q.Get(ctx, subscriptionID)
 	if err != nil {

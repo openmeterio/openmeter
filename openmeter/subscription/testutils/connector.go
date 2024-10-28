@@ -52,7 +52,7 @@ func NewCommandAndQuery(t *testing.T, dbDeps *DBDeps) (subscription.Command, sub
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 	customer := NewCustomerService(t, dbDeps)
 
-	command := subscription.NewCommand(
+	connector := subscription.NewConnector(
 		subRepo,
 		priceConnector,
 		customer,
@@ -61,9 +61,7 @@ func NewCommandAndQuery(t *testing.T, dbDeps *DBDeps) (subscription.Command, sub
 		subscriptionEntitlementRepo,
 	)
 
-	query := subscription.NewQuery(subRepo, priceConnector, entitlementRegistry.Feature, planAdapter, entitlementAdapter)
-
-	return command, query, &deps{
+	return connector, connector, &deps{
 		PlanAdapter:        planAdapter,
 		CustomerAdapter:    customerAdapter,
 		FeatureConnector:   NewTestFeatureConnector(entitlementRegistry.Feature),
