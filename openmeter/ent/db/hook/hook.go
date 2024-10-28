@@ -381,6 +381,18 @@ func (f SubscriptionPatchValueExtendPhaseFunc) Mutate(ctx context.Context, m db.
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionPatchValueExtendPhaseMutation", m)
 }
 
+// The SubscriptionPatchValueRemovePhaseFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionPatchValueRemovePhase mutator.
+type SubscriptionPatchValueRemovePhaseFunc func(context.Context, *db.SubscriptionPatchValueRemovePhaseMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionPatchValueRemovePhaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionPatchValueRemovePhaseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionPatchValueRemovePhaseMutation", m)
+}
+
 // The UsageResetFunc type is an adapter to allow the use of ordinary
 // function as UsageReset mutator.
 type UsageResetFunc func(context.Context, *db.UsageResetMutation) (db.Value, error)

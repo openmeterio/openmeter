@@ -47,6 +47,12 @@ func (spvapc *SubscriptionPatchValueAddPhaseCreate) SetStartAfterIso(s string) *
 	return spvapc
 }
 
+// SetDurationIso sets the "duration_iso" field.
+func (spvapc *SubscriptionPatchValueAddPhaseCreate) SetDurationIso(s string) *SubscriptionPatchValueAddPhaseCreate {
+	spvapc.mutation.SetDurationIso(s)
+	return spvapc
+}
+
 // SetCreateDiscount sets the "create_discount" field.
 func (spvapc *SubscriptionPatchValueAddPhaseCreate) SetCreateDiscount(b bool) *SubscriptionPatchValueAddPhaseCreate {
 	spvapc.mutation.SetCreateDiscount(b)
@@ -148,6 +154,9 @@ func (spvapc *SubscriptionPatchValueAddPhaseCreate) check() error {
 	if _, ok := spvapc.mutation.StartAfterIso(); !ok {
 		return &ValidationError{Name: "start_after_iso", err: errors.New(`db: missing required field "SubscriptionPatchValueAddPhase.start_after_iso"`)}
 	}
+	if _, ok := spvapc.mutation.DurationIso(); !ok {
+		return &ValidationError{Name: "duration_iso", err: errors.New(`db: missing required field "SubscriptionPatchValueAddPhase.duration_iso"`)}
+	}
 	if _, ok := spvapc.mutation.CreateDiscount(); !ok {
 		return &ValidationError{Name: "create_discount", err: errors.New(`db: missing required field "SubscriptionPatchValueAddPhase.create_discount"`)}
 	}
@@ -201,6 +210,10 @@ func (spvapc *SubscriptionPatchValueAddPhaseCreate) createSpec() (*SubscriptionP
 	if value, ok := spvapc.mutation.StartAfterIso(); ok {
 		_spec.SetField(subscriptionpatchvalueaddphase.FieldStartAfterIso, field.TypeString, value)
 		_node.StartAfterIso = value
+	}
+	if value, ok := spvapc.mutation.DurationIso(); ok {
+		_spec.SetField(subscriptionpatchvalueaddphase.FieldDurationIso, field.TypeString, value)
+		_node.DurationIso = value
 	}
 	if value, ok := spvapc.mutation.CreateDiscount(); ok {
 		_spec.SetField(subscriptionpatchvalueaddphase.FieldCreateDiscount, field.TypeBool, value)
@@ -307,6 +320,9 @@ func (u *SubscriptionPatchValueAddPhaseUpsertOne) UpdateNewValues() *Subscriptio
 		}
 		if _, exists := u.create.mutation.StartAfterIso(); exists {
 			s.SetIgnore(subscriptionpatchvalueaddphase.FieldStartAfterIso)
+		}
+		if _, exists := u.create.mutation.DurationIso(); exists {
+			s.SetIgnore(subscriptionpatchvalueaddphase.FieldDurationIso)
 		}
 		if _, exists := u.create.mutation.CreateDiscount(); exists {
 			s.SetIgnore(subscriptionpatchvalueaddphase.FieldCreateDiscount)
@@ -539,6 +555,9 @@ func (u *SubscriptionPatchValueAddPhaseUpsertBulk) UpdateNewValues() *Subscripti
 			}
 			if _, exists := b.mutation.StartAfterIso(); exists {
 				s.SetIgnore(subscriptionpatchvalueaddphase.FieldStartAfterIso)
+			}
+			if _, exists := b.mutation.DurationIso(); exists {
+				s.SetIgnore(subscriptionpatchvalueaddphase.FieldDurationIso)
 			}
 			if _, exists := b.mutation.CreateDiscount(); exists {
 				s.SetIgnore(subscriptionpatchvalueaddphase.FieldCreateDiscount)

@@ -159,3 +159,7 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscription(ctx context.Context,
 
 	return subEnts, nil
 }
+
+func (a *EntitlementSubscriptionAdapter) Delete(ctx context.Context, namespace string, ref subscription.SubscriptionItemRef) error {
+	panic("not implemented")
+}

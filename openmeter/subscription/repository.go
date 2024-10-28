@@ -7,6 +7,8 @@ import (
 )
 
 type Repository interface {
+	models.CadencedResourceRepo[Subscription]
+
 	// Returns the current customer subscription
 	GetCustomerSubscription(ctx context.Context, customerID models.NamespacedID) (Subscription, error)
 

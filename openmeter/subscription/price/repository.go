@@ -26,6 +26,7 @@ type Repository interface {
 
 	GetForSubscription(ctx context.Context, subscriptionId models.NamespacedID, filters GetPriceFilters) ([]Price, error)
 	Create(ctx context.Context, input CreateInput) (*Price, error)
+	Delete(ctx context.Context, id models.NamespacedID) error
 }
 
 type repository struct {
@@ -36,6 +37,22 @@ var _ Repository = &repository{}
 
 func NewRepository(db *db.Client) *repository {
 	return &repository{db: db}
+}
+
+func (r *repository) Delete(ctx context.Context, id models.NamespacedID) error {
+	_, err := entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *repository) (interface{}, error) {
+		_, err := repo.db.Price.UpdateOneID(id.ID).
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		if db.IsNotFound(err) {
+			return nil, NotFoundError{ID: id.ID}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete price: %w", err)
+		}
+		return nil, nil
+	})
+	return err
 }
 
 func (r *repository) GetForSubscription(ctx context.Context, subscriptionId models.NamespacedID, filters GetPriceFilters) ([]Price, error) {

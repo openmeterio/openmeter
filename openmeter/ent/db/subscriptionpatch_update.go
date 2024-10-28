@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueremovephase"
 )
 
 // SubscriptionPatchUpdate is the builder for updating SubscriptionPatch entities.
@@ -107,6 +108,25 @@ func (spu *SubscriptionPatchUpdate) SetValueAddPhase(s *SubscriptionPatchValueAd
 	return spu.SetValueAddPhaseID(s.ID)
 }
 
+// SetValueRemovePhaseID sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity by ID.
+func (spu *SubscriptionPatchUpdate) SetValueRemovePhaseID(id string) *SubscriptionPatchUpdate {
+	spu.mutation.SetValueRemovePhaseID(id)
+	return spu
+}
+
+// SetNillableValueRemovePhaseID sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity by ID if the given value is not nil.
+func (spu *SubscriptionPatchUpdate) SetNillableValueRemovePhaseID(id *string) *SubscriptionPatchUpdate {
+	if id != nil {
+		spu = spu.SetValueRemovePhaseID(*id)
+	}
+	return spu
+}
+
+// SetValueRemovePhase sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity.
+func (spu *SubscriptionPatchUpdate) SetValueRemovePhase(s *SubscriptionPatchValueRemovePhase) *SubscriptionPatchUpdate {
+	return spu.SetValueRemovePhaseID(s.ID)
+}
+
 // SetValueExtendPhaseID sets the "value_extend_phase" edge to the SubscriptionPatchValueExtendPhase entity by ID.
 func (spu *SubscriptionPatchUpdate) SetValueExtendPhaseID(id string) *SubscriptionPatchUpdate {
 	spu.mutation.SetValueExtendPhaseID(id)
@@ -140,6 +160,12 @@ func (spu *SubscriptionPatchUpdate) ClearValueAddItem() *SubscriptionPatchUpdate
 // ClearValueAddPhase clears the "value_add_phase" edge to the SubscriptionPatchValueAddPhase entity.
 func (spu *SubscriptionPatchUpdate) ClearValueAddPhase() *SubscriptionPatchUpdate {
 	spu.mutation.ClearValueAddPhase()
+	return spu
+}
+
+// ClearValueRemovePhase clears the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity.
+func (spu *SubscriptionPatchUpdate) ClearValueRemovePhase() *SubscriptionPatchUpdate {
+	spu.mutation.ClearValueRemovePhase()
 	return spu
 }
 
@@ -278,6 +304,35 @@ func (spu *SubscriptionPatchUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if spu.mutation.ValueRemovePhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscriptionpatch.ValueRemovePhaseTable,
+			Columns: []string{subscriptionpatch.ValueRemovePhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueremovephase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.ValueRemovePhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscriptionpatch.ValueRemovePhaseTable,
+			Columns: []string{subscriptionpatch.ValueRemovePhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueremovephase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if spu.mutation.ValueExtendPhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -403,6 +458,25 @@ func (spuo *SubscriptionPatchUpdateOne) SetValueAddPhase(s *SubscriptionPatchVal
 	return spuo.SetValueAddPhaseID(s.ID)
 }
 
+// SetValueRemovePhaseID sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity by ID.
+func (spuo *SubscriptionPatchUpdateOne) SetValueRemovePhaseID(id string) *SubscriptionPatchUpdateOne {
+	spuo.mutation.SetValueRemovePhaseID(id)
+	return spuo
+}
+
+// SetNillableValueRemovePhaseID sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity by ID if the given value is not nil.
+func (spuo *SubscriptionPatchUpdateOne) SetNillableValueRemovePhaseID(id *string) *SubscriptionPatchUpdateOne {
+	if id != nil {
+		spuo = spuo.SetValueRemovePhaseID(*id)
+	}
+	return spuo
+}
+
+// SetValueRemovePhase sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity.
+func (spuo *SubscriptionPatchUpdateOne) SetValueRemovePhase(s *SubscriptionPatchValueRemovePhase) *SubscriptionPatchUpdateOne {
+	return spuo.SetValueRemovePhaseID(s.ID)
+}
+
 // SetValueExtendPhaseID sets the "value_extend_phase" edge to the SubscriptionPatchValueExtendPhase entity by ID.
 func (spuo *SubscriptionPatchUpdateOne) SetValueExtendPhaseID(id string) *SubscriptionPatchUpdateOne {
 	spuo.mutation.SetValueExtendPhaseID(id)
@@ -436,6 +510,12 @@ func (spuo *SubscriptionPatchUpdateOne) ClearValueAddItem() *SubscriptionPatchUp
 // ClearValueAddPhase clears the "value_add_phase" edge to the SubscriptionPatchValueAddPhase entity.
 func (spuo *SubscriptionPatchUpdateOne) ClearValueAddPhase() *SubscriptionPatchUpdateOne {
 	spuo.mutation.ClearValueAddPhase()
+	return spuo
+}
+
+// ClearValueRemovePhase clears the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity.
+func (spuo *SubscriptionPatchUpdateOne) ClearValueRemovePhase() *SubscriptionPatchUpdateOne {
+	spuo.mutation.ClearValueRemovePhase()
 	return spuo
 }
 
@@ -597,6 +677,35 @@ func (spuo *SubscriptionPatchUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueaddphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if spuo.mutation.ValueRemovePhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscriptionpatch.ValueRemovePhaseTable,
+			Columns: []string{subscriptionpatch.ValueRemovePhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueremovephase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.ValueRemovePhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscriptionpatch.ValueRemovePhaseTable,
+			Columns: []string{subscriptionpatch.ValueRemovePhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueremovephase.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

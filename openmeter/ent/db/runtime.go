@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueremovephase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -1176,6 +1177,29 @@ func init() {
 	subscriptionpatchvalueextendphaseDescID := subscriptionpatchvalueextendphaseMixinFields0[0].Descriptor()
 	// subscriptionpatchvalueextendphase.DefaultID holds the default value on creation for the id field.
 	subscriptionpatchvalueextendphase.DefaultID = subscriptionpatchvalueextendphaseDescID.Default.(func() string)
+	subscriptionpatchvalueremovephaseMixin := schema.SubscriptionPatchValueRemovePhase{}.Mixin()
+	subscriptionpatchvalueremovephaseMixinFields0 := subscriptionpatchvalueremovephaseMixin[0].Fields()
+	_ = subscriptionpatchvalueremovephaseMixinFields0
+	subscriptionpatchvalueremovephaseMixinFields1 := subscriptionpatchvalueremovephaseMixin[1].Fields()
+	_ = subscriptionpatchvalueremovephaseMixinFields1
+	subscriptionpatchvalueremovephaseFields := schema.SubscriptionPatchValueRemovePhase{}.Fields()
+	_ = subscriptionpatchvalueremovephaseFields
+	// subscriptionpatchvalueremovephaseDescNamespace is the schema descriptor for namespace field.
+	subscriptionpatchvalueremovephaseDescNamespace := subscriptionpatchvalueremovephaseMixinFields1[0].Descriptor()
+	// subscriptionpatchvalueremovephase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionpatchvalueremovephase.NamespaceValidator = subscriptionpatchvalueremovephaseDescNamespace.Validators[0].(func(string) error)
+	// subscriptionpatchvalueremovephaseDescSubscriptionPatchID is the schema descriptor for subscription_patch_id field.
+	subscriptionpatchvalueremovephaseDescSubscriptionPatchID := subscriptionpatchvalueremovephaseFields[0].Descriptor()
+	// subscriptionpatchvalueremovephase.SubscriptionPatchIDValidator is a validator for the "subscription_patch_id" field. It is called by the builders before save.
+	subscriptionpatchvalueremovephase.SubscriptionPatchIDValidator = subscriptionpatchvalueremovephaseDescSubscriptionPatchID.Validators[0].(func(string) error)
+	// subscriptionpatchvalueremovephaseDescPhaseKey is the schema descriptor for phase_key field.
+	subscriptionpatchvalueremovephaseDescPhaseKey := subscriptionpatchvalueremovephaseFields[1].Descriptor()
+	// subscriptionpatchvalueremovephase.PhaseKeyValidator is a validator for the "phase_key" field. It is called by the builders before save.
+	subscriptionpatchvalueremovephase.PhaseKeyValidator = subscriptionpatchvalueremovephaseDescPhaseKey.Validators[0].(func(string) error)
+	// subscriptionpatchvalueremovephaseDescID is the schema descriptor for id field.
+	subscriptionpatchvalueremovephaseDescID := subscriptionpatchvalueremovephaseMixinFields0[0].Descriptor()
+	// subscriptionpatchvalueremovephase.DefaultID holds the default value on creation for the id field.
+	subscriptionpatchvalueremovephase.DefaultID = subscriptionpatchvalueremovephaseDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0

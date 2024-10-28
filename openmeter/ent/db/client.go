@@ -46,6 +46,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueremovephase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 
 	stdsql "database/sql"
@@ -118,6 +119,8 @@ type Client struct {
 	SubscriptionPatchValueAddPhase *SubscriptionPatchValueAddPhaseClient
 	// SubscriptionPatchValueExtendPhase is the client for interacting with the SubscriptionPatchValueExtendPhase builders.
 	SubscriptionPatchValueExtendPhase *SubscriptionPatchValueExtendPhaseClient
+	// SubscriptionPatchValueRemovePhase is the client for interacting with the SubscriptionPatchValueRemovePhase builders.
+	SubscriptionPatchValueRemovePhase *SubscriptionPatchValueRemovePhaseClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 }
@@ -162,6 +165,7 @@ func (c *Client) init() {
 	c.SubscriptionPatchValueAddItem = NewSubscriptionPatchValueAddItemClient(c.config)
 	c.SubscriptionPatchValueAddPhase = NewSubscriptionPatchValueAddPhaseClient(c.config)
 	c.SubscriptionPatchValueExtendPhase = NewSubscriptionPatchValueExtendPhaseClient(c.config)
+	c.SubscriptionPatchValueRemovePhase = NewSubscriptionPatchValueRemovePhaseClient(c.config)
 	c.UsageReset = NewUsageResetClient(c.config)
 }
 
@@ -286,6 +290,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SubscriptionPatchValueAddItem:     NewSubscriptionPatchValueAddItemClient(cfg),
 		SubscriptionPatchValueAddPhase:    NewSubscriptionPatchValueAddPhaseClient(cfg),
 		SubscriptionPatchValueExtendPhase: NewSubscriptionPatchValueExtendPhaseClient(cfg),
+		SubscriptionPatchValueRemovePhase: NewSubscriptionPatchValueRemovePhaseClient(cfg),
 		UsageReset:                        NewUsageResetClient(cfg),
 	}, nil
 }
@@ -337,6 +342,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SubscriptionPatchValueAddItem:     NewSubscriptionPatchValueAddItemClient(cfg),
 		SubscriptionPatchValueAddPhase:    NewSubscriptionPatchValueAddPhaseClient(cfg),
 		SubscriptionPatchValueExtendPhase: NewSubscriptionPatchValueExtendPhaseClient(cfg),
+		SubscriptionPatchValueRemovePhase: NewSubscriptionPatchValueRemovePhaseClient(cfg),
 		UsageReset:                        NewUsageResetClient(cfg),
 	}, nil
 }
@@ -376,7 +382,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.PlanRateCard, c.Price, c.Subscription, c.SubscriptionEntitlement,
 		c.SubscriptionPatch, c.SubscriptionPatchValueAddItem,
 		c.SubscriptionPatchValueAddPhase, c.SubscriptionPatchValueExtendPhase,
-		c.UsageReset,
+		c.SubscriptionPatchValueRemovePhase, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -395,7 +401,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.PlanRateCard, c.Price, c.Subscription, c.SubscriptionEntitlement,
 		c.SubscriptionPatch, c.SubscriptionPatchValueAddItem,
 		c.SubscriptionPatchValueAddPhase, c.SubscriptionPatchValueExtendPhase,
-		c.UsageReset,
+		c.SubscriptionPatchValueRemovePhase, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -466,6 +472,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionPatchValueAddPhase.mutate(ctx, m)
 	case *SubscriptionPatchValueExtendPhaseMutation:
 		return c.SubscriptionPatchValueExtendPhase.mutate(ctx, m)
+	case *SubscriptionPatchValueRemovePhaseMutation:
+		return c.SubscriptionPatchValueRemovePhase.mutate(ctx, m)
 	case *UsageResetMutation:
 		return c.UsageReset.mutate(ctx, m)
 	default:
@@ -5292,6 +5300,22 @@ func (c *SubscriptionPatchClient) QueryValueAddPhase(sp *SubscriptionPatch) *Sub
 	return query
 }
 
+// QueryValueRemovePhase queries the value_remove_phase edge of a SubscriptionPatch.
+func (c *SubscriptionPatchClient) QueryValueRemovePhase(sp *SubscriptionPatch) *SubscriptionPatchValueRemovePhaseQuery {
+	query := (&SubscriptionPatchValueRemovePhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionpatch.Table, subscriptionpatch.FieldID, id),
+			sqlgraph.To(subscriptionpatchvalueremovephase.Table, subscriptionpatchvalueremovephase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, subscriptionpatch.ValueRemovePhaseTable, subscriptionpatch.ValueRemovePhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryValueExtendPhase queries the value_extend_phase edge of a SubscriptionPatch.
 func (c *SubscriptionPatchClient) QueryValueExtendPhase(sp *SubscriptionPatch) *SubscriptionPatchValueExtendPhaseQuery {
 	query := (&SubscriptionPatchValueExtendPhaseClient{config: c.config}).Query()
@@ -5780,6 +5804,155 @@ func (c *SubscriptionPatchValueExtendPhaseClient) mutate(ctx context.Context, m 
 	}
 }
 
+// SubscriptionPatchValueRemovePhaseClient is a client for the SubscriptionPatchValueRemovePhase schema.
+type SubscriptionPatchValueRemovePhaseClient struct {
+	config
+}
+
+// NewSubscriptionPatchValueRemovePhaseClient returns a client for the SubscriptionPatchValueRemovePhase from the given config.
+func NewSubscriptionPatchValueRemovePhaseClient(c config) *SubscriptionPatchValueRemovePhaseClient {
+	return &SubscriptionPatchValueRemovePhaseClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `subscriptionpatchvalueremovephase.Hooks(f(g(h())))`.
+func (c *SubscriptionPatchValueRemovePhaseClient) Use(hooks ...Hook) {
+	c.hooks.SubscriptionPatchValueRemovePhase = append(c.hooks.SubscriptionPatchValueRemovePhase, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `subscriptionpatchvalueremovephase.Intercept(f(g(h())))`.
+func (c *SubscriptionPatchValueRemovePhaseClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SubscriptionPatchValueRemovePhase = append(c.inters.SubscriptionPatchValueRemovePhase, interceptors...)
+}
+
+// Create returns a builder for creating a SubscriptionPatchValueRemovePhase entity.
+func (c *SubscriptionPatchValueRemovePhaseClient) Create() *SubscriptionPatchValueRemovePhaseCreate {
+	mutation := newSubscriptionPatchValueRemovePhaseMutation(c.config, OpCreate)
+	return &SubscriptionPatchValueRemovePhaseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SubscriptionPatchValueRemovePhase entities.
+func (c *SubscriptionPatchValueRemovePhaseClient) CreateBulk(builders ...*SubscriptionPatchValueRemovePhaseCreate) *SubscriptionPatchValueRemovePhaseCreateBulk {
+	return &SubscriptionPatchValueRemovePhaseCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SubscriptionPatchValueRemovePhaseClient) MapCreateBulk(slice any, setFunc func(*SubscriptionPatchValueRemovePhaseCreate, int)) *SubscriptionPatchValueRemovePhaseCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SubscriptionPatchValueRemovePhaseCreateBulk{err: fmt.Errorf("calling to SubscriptionPatchValueRemovePhaseClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SubscriptionPatchValueRemovePhaseCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SubscriptionPatchValueRemovePhaseCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SubscriptionPatchValueRemovePhase.
+func (c *SubscriptionPatchValueRemovePhaseClient) Update() *SubscriptionPatchValueRemovePhaseUpdate {
+	mutation := newSubscriptionPatchValueRemovePhaseMutation(c.config, OpUpdate)
+	return &SubscriptionPatchValueRemovePhaseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SubscriptionPatchValueRemovePhaseClient) UpdateOne(spvrp *SubscriptionPatchValueRemovePhase) *SubscriptionPatchValueRemovePhaseUpdateOne {
+	mutation := newSubscriptionPatchValueRemovePhaseMutation(c.config, OpUpdateOne, withSubscriptionPatchValueRemovePhase(spvrp))
+	return &SubscriptionPatchValueRemovePhaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SubscriptionPatchValueRemovePhaseClient) UpdateOneID(id string) *SubscriptionPatchValueRemovePhaseUpdateOne {
+	mutation := newSubscriptionPatchValueRemovePhaseMutation(c.config, OpUpdateOne, withSubscriptionPatchValueRemovePhaseID(id))
+	return &SubscriptionPatchValueRemovePhaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SubscriptionPatchValueRemovePhase.
+func (c *SubscriptionPatchValueRemovePhaseClient) Delete() *SubscriptionPatchValueRemovePhaseDelete {
+	mutation := newSubscriptionPatchValueRemovePhaseMutation(c.config, OpDelete)
+	return &SubscriptionPatchValueRemovePhaseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SubscriptionPatchValueRemovePhaseClient) DeleteOne(spvrp *SubscriptionPatchValueRemovePhase) *SubscriptionPatchValueRemovePhaseDeleteOne {
+	return c.DeleteOneID(spvrp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SubscriptionPatchValueRemovePhaseClient) DeleteOneID(id string) *SubscriptionPatchValueRemovePhaseDeleteOne {
+	builder := c.Delete().Where(subscriptionpatchvalueremovephase.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SubscriptionPatchValueRemovePhaseDeleteOne{builder}
+}
+
+// Query returns a query builder for SubscriptionPatchValueRemovePhase.
+func (c *SubscriptionPatchValueRemovePhaseClient) Query() *SubscriptionPatchValueRemovePhaseQuery {
+	return &SubscriptionPatchValueRemovePhaseQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSubscriptionPatchValueRemovePhase},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SubscriptionPatchValueRemovePhase entity by its id.
+func (c *SubscriptionPatchValueRemovePhaseClient) Get(ctx context.Context, id string) (*SubscriptionPatchValueRemovePhase, error) {
+	return c.Query().Where(subscriptionpatchvalueremovephase.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SubscriptionPatchValueRemovePhaseClient) GetX(ctx context.Context, id string) *SubscriptionPatchValueRemovePhase {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubscriptionPatch queries the subscription_patch edge of a SubscriptionPatchValueRemovePhase.
+func (c *SubscriptionPatchValueRemovePhaseClient) QuerySubscriptionPatch(spvrp *SubscriptionPatchValueRemovePhase) *SubscriptionPatchQuery {
+	query := (&SubscriptionPatchClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := spvrp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionpatchvalueremovephase.Table, subscriptionpatchvalueremovephase.FieldID, id),
+			sqlgraph.To(subscriptionpatch.Table, subscriptionpatch.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionpatchvalueremovephase.SubscriptionPatchTable, subscriptionpatchvalueremovephase.SubscriptionPatchColumn),
+		)
+		fromV = sqlgraph.Neighbors(spvrp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SubscriptionPatchValueRemovePhaseClient) Hooks() []Hook {
+	return c.hooks.SubscriptionPatchValueRemovePhase
+}
+
+// Interceptors returns the client interceptors.
+func (c *SubscriptionPatchValueRemovePhaseClient) Interceptors() []Interceptor {
+	return c.inters.SubscriptionPatchValueRemovePhase
+}
+
+func (c *SubscriptionPatchValueRemovePhaseClient) mutate(ctx context.Context, m *SubscriptionPatchValueRemovePhaseMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SubscriptionPatchValueRemovePhaseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SubscriptionPatchValueRemovePhaseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SubscriptionPatchValueRemovePhaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SubscriptionPatchValueRemovePhaseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown SubscriptionPatchValueRemovePhase mutation op: %q", m.Op())
+	}
+}
+
 // UsageResetClient is a client for the UsageReset schema.
 type UsageResetClient struct {
 	config
@@ -5940,7 +6113,7 @@ type (
 		NotificationRule, Plan, PlanPhase, PlanRateCard, Price, Subscription,
 		SubscriptionEntitlement, SubscriptionPatch, SubscriptionPatchValueAddItem,
 		SubscriptionPatchValueAddPhase, SubscriptionPatchValueExtendPhase,
-		UsageReset []ent.Hook
+		SubscriptionPatchValueRemovePhase, UsageReset []ent.Hook
 	}
 	inters struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
@@ -5951,7 +6124,7 @@ type (
 		NotificationRule, Plan, PlanPhase, PlanRateCard, Price, Subscription,
 		SubscriptionEntitlement, SubscriptionPatch, SubscriptionPatchValueAddItem,
 		SubscriptionPatchValueAddPhase, SubscriptionPatchValueExtendPhase,
-		UsageReset []ent.Interceptor
+		SubscriptionPatchValueRemovePhase, UsageReset []ent.Interceptor
 	}
 )
 

@@ -83,6 +83,11 @@ func StartAfterIso(v string) predicate.SubscriptionPatchValueAddPhase {
 	return predicate.SubscriptionPatchValueAddPhase(sql.FieldEQ(FieldStartAfterIso, v))
 }
 
+// DurationIso applies equality check predicate on the "duration_iso" field. It's identical to DurationIsoEQ.
+func DurationIso(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldEQ(FieldDurationIso, v))
+}
+
 // CreateDiscount applies equality check predicate on the "create_discount" field. It's identical to CreateDiscountEQ.
 func CreateDiscount(v bool) predicate.SubscriptionPatchValueAddPhase {
 	return predicate.SubscriptionPatchValueAddPhase(sql.FieldEQ(FieldCreateDiscount, v))
@@ -346,6 +351,71 @@ func StartAfterIsoEqualFold(v string) predicate.SubscriptionPatchValueAddPhase {
 // StartAfterIsoContainsFold applies the ContainsFold predicate on the "start_after_iso" field.
 func StartAfterIsoContainsFold(v string) predicate.SubscriptionPatchValueAddPhase {
 	return predicate.SubscriptionPatchValueAddPhase(sql.FieldContainsFold(FieldStartAfterIso, v))
+}
+
+// DurationIsoEQ applies the EQ predicate on the "duration_iso" field.
+func DurationIsoEQ(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldEQ(FieldDurationIso, v))
+}
+
+// DurationIsoNEQ applies the NEQ predicate on the "duration_iso" field.
+func DurationIsoNEQ(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldNEQ(FieldDurationIso, v))
+}
+
+// DurationIsoIn applies the In predicate on the "duration_iso" field.
+func DurationIsoIn(vs ...string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldIn(FieldDurationIso, vs...))
+}
+
+// DurationIsoNotIn applies the NotIn predicate on the "duration_iso" field.
+func DurationIsoNotIn(vs ...string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldNotIn(FieldDurationIso, vs...))
+}
+
+// DurationIsoGT applies the GT predicate on the "duration_iso" field.
+func DurationIsoGT(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldGT(FieldDurationIso, v))
+}
+
+// DurationIsoGTE applies the GTE predicate on the "duration_iso" field.
+func DurationIsoGTE(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldGTE(FieldDurationIso, v))
+}
+
+// DurationIsoLT applies the LT predicate on the "duration_iso" field.
+func DurationIsoLT(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldLT(FieldDurationIso, v))
+}
+
+// DurationIsoLTE applies the LTE predicate on the "duration_iso" field.
+func DurationIsoLTE(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldLTE(FieldDurationIso, v))
+}
+
+// DurationIsoContains applies the Contains predicate on the "duration_iso" field.
+func DurationIsoContains(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldContains(FieldDurationIso, v))
+}
+
+// DurationIsoHasPrefix applies the HasPrefix predicate on the "duration_iso" field.
+func DurationIsoHasPrefix(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldHasPrefix(FieldDurationIso, v))
+}
+
+// DurationIsoHasSuffix applies the HasSuffix predicate on the "duration_iso" field.
+func DurationIsoHasSuffix(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldHasSuffix(FieldDurationIso, v))
+}
+
+// DurationIsoEqualFold applies the EqualFold predicate on the "duration_iso" field.
+func DurationIsoEqualFold(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldEqualFold(FieldDurationIso, v))
+}
+
+// DurationIsoContainsFold applies the ContainsFold predicate on the "duration_iso" field.
+func DurationIsoContainsFold(v string) predicate.SubscriptionPatchValueAddPhase {
+	return predicate.SubscriptionPatchValueAddPhase(sql.FieldContainsFold(FieldDurationIso, v))
 }
 
 // CreateDiscountEQ applies the EQ predicate on the "create_discount" field.

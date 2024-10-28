@@ -154,5 +154,8 @@ type SubscriptionPatchValueAddPhase func(*sql.Selector)
 // SubscriptionPatchValueExtendPhase is the predicate function for subscriptionpatchvalueextendphase builders.
 type SubscriptionPatchValueExtendPhase func(*sql.Selector)
 
+// SubscriptionPatchValueRemovePhase is the predicate function for subscriptionpatchvalueremovephase builders.
+type SubscriptionPatchValueRemovePhase func(*sql.Selector)
+
 // UsageReset is the predicate function for usagereset builders.
 type UsageReset func(*sql.Selector)

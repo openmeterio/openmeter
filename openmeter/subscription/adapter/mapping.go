@@ -7,7 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -94,7 +93,7 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 
 		// Type is required field for all entitlement types, so we know an entitlement should be defined
 		if val.CreateEntitlementEntitlementType != nil {
-			p.CreateInput.CreateEntitlementInput = &subscription.CreateSubscriptionEntitlementSpec{
+			p.CreateInput.CreateEntitlementInput = &subscription.CreateSubscriptionEntitlementInput{
 				EntitlementType:         entitlement.EntitlementType(*val.CreateEntitlementEntitlementType),
 				IssueAfterReset:         val.CreateEntitlementIssueAfterReset,
 				IssueAfterResetPriority: val.CreateEntitlementIssueAfterResetPriority,
@@ -127,7 +126,7 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 				return subscription.SubscriptionPatch{}, fmt.Errorf("both price key and value must be defined if price is defined")
 			}
 
-			p.CreateInput.CreatePriceInput = &price.Spec{
+			p.CreateInput.CreatePriceInput = &subscription.CreatePriceInput{
 				Value:    *val.CreatePriceValue,
 				PhaseKey: val.PhaseKey,
 				ItemKey:  val.ItemKey,
@@ -147,10 +146,16 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 			return subscription.SubscriptionPatch{}, fmt.Errorf("failed to parse start after: %w", err)
 		}
 
+		duration, err := datex.ISOString(val.DurationIso).Parse()
+		if err != nil {
+			return subscription.SubscriptionPatch{}, fmt.Errorf("failed to parse duration: %w", err)
+		}
+
 		// We use the full patch for type hinting
 		p := subscription.PatchAddPhase{
 			PhaseKey: val.PhaseKey,
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
+				Duration: duration,
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   val.PhaseKey,
 					StartAfter: startAfter,
@@ -163,6 +168,26 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 				PhaseKey:  val.PhaseKey,
 				AppliesTo: val.CreateDiscountAppliesTo,
 			}
+		}
+
+		sp.Value = p.Value()
+	} else if pPath.Type() == subscription.PatchPathTypePhase && pOp == subscription.PatchOperationRemove {
+		val, err := patch.Edges.ValueRemovePhaseOrErr()
+		if err != nil {
+			return subscription.SubscriptionPatch{}, err
+		}
+
+		shift := subscription.RemoveSubscriptionPhaseShifting(val.ShiftBehavior)
+		if err := shift.Validate(); err != nil {
+			return subscription.SubscriptionPatch{}, fmt.Errorf("invalid shift behavior: %w", err)
+		}
+
+		// We use the full patch for type hinting
+		p := subscription.PatchRemovePhase{
+			PhaseKey: val.PhaseKey,
+			RemoveInput: subscription.RemoveSubscriptionPhaseInput{
+				Shift: shift,
+			},
 		}
 
 		sp.Value = p.Value()
@@ -280,7 +305,8 @@ func mapPatchesToCreates(subscriptionID models.NamespacedID, patches []subscript
 				s.SetNamespace(dbPatch.Namespace).
 					SetSubscriptionPatchID(dbPatch.ID).
 					SetPhaseKey(val.PhaseKey).
-					SetStartAfterIso(val.StartAfter.String())
+					SetStartAfterIso(val.StartAfter.String()).
+					SetDurationIso(val.Duration.String())
 
 				if val.CreateDiscountInput != nil {
 					s.SetCreateDiscount(true)

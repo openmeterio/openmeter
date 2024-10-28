@@ -53,6 +53,7 @@ func (SubscriptionPatch) Edges() []ent.Edge {
 		edge.From("subscription", Subscription.Type).Ref("subscription_patches").Field("subscription_id").Unique().Immutable().Required(),
 		edge.To("value_add_item", SubscriptionPatchValueAddItem.Type).Unique(),
 		edge.To("value_add_phase", SubscriptionPatchValueAddPhase.Type).Unique(),
+		edge.To("value_remove_phase", SubscriptionPatchValueRemovePhase.Type).Unique(),
 		edge.To("value_extend_phase", SubscriptionPatchValueExtendPhase.Type).Unique(),
 	}
 }
@@ -125,6 +126,7 @@ func (SubscriptionPatchValueAddPhase) Fields() []ent.Field {
 		// Data Properties
 		field.String("phase_key").NotEmpty().Immutable(),
 		field.String("start_after_iso").Immutable(),
+		field.String("duration_iso").Immutable(),
 		field.Bool("create_discount").Immutable(),
 		field.Strings("create_discount_applies_to").Optional().Immutable(),
 	}
@@ -140,6 +142,39 @@ func (SubscriptionPatchValueAddPhase) Indexes() []ent.Index {
 func (SubscriptionPatchValueAddPhase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("subscription_patch", SubscriptionPatch.Type).Ref("value_add_phase").Field("subscription_patch_id").Immutable().Unique().Required(),
+	}
+}
+
+type SubscriptionPatchValueRemovePhase struct {
+	ent.Schema
+}
+
+func (SubscriptionPatchValueRemovePhase) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+	}
+}
+
+func (SubscriptionPatchValueRemovePhase) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("subscription_patch_id").NotEmpty().Immutable(),
+		// Data Properties
+		field.String("phase_key").NotEmpty().Immutable(),
+		field.Int("shift_behavior").Immutable(),
+	}
+}
+
+func (SubscriptionPatchValueRemovePhase) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id"),
+		index.Fields("namespace", "subscription_patch_id"),
+	}
+}
+
+func (SubscriptionPatchValueRemovePhase) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("subscription_patch", SubscriptionPatch.Type).Ref("value_remove_phase").Field("subscription_patch_id").Immutable().Unique().Required(),
 	}
 }
 

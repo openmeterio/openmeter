@@ -37,6 +37,10 @@ type Connector interface {
 }
 type commandAndQuery struct {
 	repo Repository
+	// managers
+	entitlementManager  EntitlementManager
+	priceManager        PriceManager
+	subscriptionManager SubscriptionManager
 	// connectors
 	priceConnector  price.Connector
 	customerService customer.Service
@@ -49,6 +53,10 @@ type commandAndQuery struct {
 
 func NewConnector(
 	repo Repository,
+	// managers
+	entitlementManager EntitlementManager,
+	priceManager PriceManager,
+	subscriptionManager SubscriptionManager,
 	// connectors
 	priceConnector price.Connector,
 	customerService customer.Service,
@@ -119,6 +127,7 @@ func (c *commandAndQuery) Create(ctx context.Context, req NewSubscriptionRequest
 
 	// Get the default spec based on the Plan
 	spec, err := SpecFromPlan(plan, CreateSubscriptionCustomerInput{
+		Namespace:  req.Namespace,
 		Currency:   req.Currency,
 		CustomerId: req.CustomerID,
 		ActiveFrom: req.ActiveFrom,
@@ -214,7 +223,7 @@ func (c *commandAndQuery) createPhase(ctx context.Context, sub Subscription, cus
 
 				input, err := item.CreateEntitlementInput.ToCreateEntitlementInput(
 					sub.Namespace,
-					*item.FeatureKey,
+					item.FeatureKey,
 					customerSubject,
 					cadence,
 				)
@@ -238,14 +247,11 @@ func (c *commandAndQuery) createPhase(ctx context.Context, sub Subscription, cus
 			// Create Price
 			if item.CreatePriceInput != nil {
 				// Correct linking of price input to item & phase happens during spec validation
-				_, err := c.priceConnector.Create(ctx, price.CreateInput{
-					SubscriptionId: models.NamespacedID{
-						Namespace: sub.Namespace,
-						ID:        sub.ID,
-					},
-					Spec:          *item.CreatePriceInput,
-					CadencedModel: cadence,
-				})
+				_, err := c.priceConnector.Create(ctx, item.CreatePriceInput.ToCreatePriceSpec(
+					sub.Namespace,
+					sub.ID,
+					cadence,
+				).CreateInput)
 				if err != nil {
 					return fmt.Errorf("failed to create price for item %s: %w", item.ItemKey, err)
 				}
@@ -255,18 +261,6 @@ func (c *commandAndQuery) createPhase(ctx context.Context, sub Subscription, cus
 		// TODO: Write discounts!
 		return nil
 	})
-}
-
-func (c *commandAndQuery) Edit(ctx context.Context, subscriptionID models.NamespacedID, patches []Patch) (Subscription, error) {
-	// Fetch the subscription, check if it exists
-	_, err := c.repo.GetSubscription(ctx, subscriptionID)
-	if err != nil {
-		return Subscription{}, err
-	}
-	// Build the current spec from the Subscription
-	// Apply the patches to the spec
-	// Magic happens here: somehow diff the state and manage every resource
-	panic("implement me")
 }
 
 func (c *commandAndQuery) Cancel(ctx context.Context, subscriptionID string, at time.Time) (Subscription, error) {
@@ -288,14 +282,12 @@ func (q *commandAndQuery) Get(ctx context.Context, subscriptionID models.Namespa
 	return sub, nil
 }
 
-func (q *commandAndQuery) Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error) {
-	currentTime := clock.Now()
-	sub, err := q.Get(ctx, subscriptionID)
-	if err != nil {
-		return nil, err
-	}
-
-	patches, err := q.repo.GetSubscriptionPatches(ctx, subscriptionID)
+// Builds the current SubscriptionSpec for an existing Subscription
+func (q *commandAndQuery) getSpec(ctx context.Context, sub Subscription) (*SubscriptionSpec, error) {
+	patches, err := q.repo.GetSubscriptionPatches(ctx, models.NamespacedID{
+		ID:        sub.ID,
+		Namespace: sub.Namespace,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -307,6 +299,7 @@ func (q *commandAndQuery) Expand(ctx context.Context, subscriptionID models.Name
 
 	// Get the default spec based on the Plan
 	spec, err := SpecFromPlan(plan, CreateSubscriptionCustomerInput{
+		Namespace:  sub.Namespace,
 		Currency:   sub.Currency,
 		CustomerId: sub.CustomerId,
 		ActiveFrom: sub.ActiveFrom,
@@ -338,6 +331,33 @@ func (q *commandAndQuery) Expand(ctx context.Context, subscriptionID models.Name
 		return nil, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
+	return spec, nil
+}
+
+func (q *commandAndQuery) Expand(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error) {
+	currentTime := clock.Now()
+
+	sub, err := q.Get(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	cust, err := q.customerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+		Namespace: sub.Namespace,
+		ID:        sub.CustomerId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if cust == nil {
+		return nil, fmt.Errorf("customer is nil")
+	}
+
+	spec, err := q.getSpec(ctx, sub)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get spec: %w", err)
+	}
+
 	// Let's fetch all dependent entities in batches and then match them to the spec
 	ents, err := q.entitlementAdapter.GetForSubscription(ctx, models.NamespacedID{
 		Namespace: sub.Namespace,
@@ -355,7 +375,7 @@ func (q *commandAndQuery) Expand(ctx context.Context, subscriptionID models.Name
 		return nil, err
 	}
 
-	view, err := NewSubscriptionView(sub, spec, ents, prices)
+	view, err := NewSubscriptionView(sub, *cust, spec, ents, prices)
 
 	return view, err
 }

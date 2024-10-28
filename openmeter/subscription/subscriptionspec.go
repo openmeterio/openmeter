@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -30,6 +31,7 @@ type CreateSubscriptionPlanInput struct {
 }
 
 type CreateSubscriptionCustomerInput struct {
+	Namespace  string         `json:"namespace"`
 	CustomerId string         `json:"customerId"`
 	Currency   currencyx.Code `json:"currency"`
 	ActiveFrom time.Time      `json:"activeFrom,omitempty"`
@@ -43,6 +45,10 @@ type SubscriptionSpec struct {
 	Phases map[string]*SubscriptionPhaseSpec
 }
 
+func (s *SubscriptionSpec) Equals(s2 *SubscriptionSpec, checkPhases bool) bool {
+	panic("implement me")
+}
+
 func (s *SubscriptionSpec) GetCreateInput() CreateSubscriptionInput {
 	return CreateSubscriptionInput{
 		Plan:       s.Plan,
@@ -53,6 +59,38 @@ func (s *SubscriptionSpec) GetCreateInput() CreateSubscriptionInput {
 			ActiveTo:   s.ActiveTo,
 		},
 	}
+}
+
+func (s *SubscriptionSpec) GetPhaseCadence(phaseKey string) (models.CadencedModel, error) {
+	var def models.CadencedModel
+	phase, exists := s.Phases[phaseKey]
+	if !exists {
+		return def, fmt.Errorf("phase %s not found", phaseKey)
+	}
+
+	// Lets calculate the phase Cadence for the new spec
+	phaseStartTime, _ := phase.StartAfter.AddTo(s.ActiveFrom)
+	var phaseEndTime *time.Time
+
+	// Find the next phase if any
+	sortedPhaseSpecs := s.GetSortedPhases()
+	for i, p := range sortedPhaseSpecs {
+		if p.PhaseKey == phase.PhaseKey && i+1 < len(sortedPhaseSpecs) {
+			nextPhase := sortedPhaseSpecs[i+1]
+			et, _ := nextPhase.StartAfter.AddTo(s.ActiveFrom)
+			phaseEndTime = &et
+			break
+		}
+	}
+
+	cadence := models.CadencedModel{
+		ActiveFrom: phaseStartTime.UTC(),
+		ActiveTo: convert.SafeDeRef(phaseEndTime, func(t time.Time) *time.Time {
+			return lo.ToPtr(t.UTC())
+		}),
+	}
+
+	return cadence, nil
 }
 
 // GetSortedPhases returns the subscription phase references time sorted order ASC.
@@ -93,7 +131,6 @@ func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpe
 }
 
 func (s *SubscriptionSpec) Validate() error {
-	// TODO: write validation logic for Subscriptions
 	// All consistency checks should happen here
 	for _, phase := range s.Phases {
 		if err := phase.Validate(); err != nil {
@@ -114,7 +151,26 @@ type CreateSubscriptionPhaseCustomerInput struct {
 	CreateDiscountInput *applieddiscount.Spec `json:"createDiscountInput,omitempty"`
 }
 
+type RemoveSubscriptionPhaseShifting int
+
+const (
+	RemoveSubscriptionPhaseShiftNext RemoveSubscriptionPhaseShifting = iota
+	RemoveSubscriptionPhaseShiftPrev
+)
+
+func (s RemoveSubscriptionPhaseShifting) Validate() error {
+	if s != RemoveSubscriptionPhaseShiftNext && s != RemoveSubscriptionPhaseShiftPrev {
+		return fmt.Errorf("invalid RemoveSubscriptionPhaseShifting value %d", s)
+	}
+	return nil
+}
+
+type RemoveSubscriptionPhaseInput struct {
+	Shift RemoveSubscriptionPhaseShifting
+}
+
 type CreateSubscriptionPhaseInput struct {
+	Duration datex.Period `json:"duration"`
 	CreateSubscriptionPhasePlanInput
 	CreateSubscriptionPhaseCustomerInput
 }
@@ -124,9 +180,33 @@ type SubscriptionPhaseSpec struct {
 	Items map[string]*SubscriptionItemSpec
 }
 
+func (s *SubscriptionPhaseSpec) Equals(s2 *SubscriptionPhaseSpec) bool {
+	panic("implement me")
+}
+
 func (s *SubscriptionPhaseSpec) Validate() error {
-	// TODO: implement
 	for _, item := range s.Items {
+		// Let's validate the phase linking is correct
+
+		if item.PhaseKey != s.PhaseKey {
+			return &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+					},
+					{
+						"phaseKey",
+						s.PhaseKey,
+						"itemKey",
+						item.ItemKey,
+						"PhaseKey",
+					},
+				},
+				Msg: "PhaseKey in Item must match Key in Phase",
+			}
+		}
+
 		if err := item.Validate(); err != nil {
 			return fmt.Errorf("item %s validation failed: %w", item.ItemKey, err)
 		}
@@ -134,7 +214,7 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 	return nil
 }
 
-type CreateSubscriptionEntitlementSpec struct {
+type CreateSubscriptionEntitlementInput struct {
 	EntitlementType entitlement.EntitlementType `json:"type"`
 	// TODO: Add way to specify MeasureUsageFrom
 	// explanation: MeasureUsageFrom cannot have a time.Time anchor when creating from plan. The enum value would also most likely be different.
@@ -147,15 +227,45 @@ type CreateSubscriptionEntitlementSpec struct {
 	PreserveOverageAtReset *bool         `json:"preserveOverageAtReset,omitempty"`
 }
 
-func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
+func (s *CreateSubscriptionEntitlementInput) ToSubscriptionEntitlementSpec(
 	namespace string,
-	featureKey string,
+	subscriptionId string,
+	subjectKey string,
+	cadence models.CadencedModel,
+	itemSpec SubscriptionItemSpec,
+) (*SubscriptionEntitlementSpec, error) {
+	entInput, err := s.ToCreateEntitlementInput(namespace, itemSpec.FeatureKey, subjectKey, cadence)
+	if err != nil {
+		return nil, fmt.Errorf("couldnt create CreateEntitlementInput: %w", err)
+	}
+
+	// It must have an entitlement as this is a method of EntitlementInput, so this is an unexpected state
+	if entInput == nil {
+		return nil, fmt.Errorf("unexpected entitlement input is nil")
+	}
+
+	spec := &SubscriptionEntitlementSpec{
+		ItemRef:           itemSpec.GetRef(subscriptionId),
+		Cadence:           cadence,
+		EntitlementInputs: *entInput,
+	}
+
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("spec validation failed: %w", err)
+	}
+
+	return spec, nil
+}
+
+func (s *CreateSubscriptionEntitlementInput) ToCreateEntitlementInput(
+	namespace string,
+	featureKey *string,
 	subjectKey string,
 	cadence models.CadencedModel,
 ) (*entitlement.CreateEntitlementInputs, error) {
 	inputs := &entitlement.CreateEntitlementInputs{
 		Namespace:               namespace,
-		FeatureKey:              &featureKey,
+		FeatureKey:              featureKey,
 		SubjectKey:              subjectKey,
 		EntitlementType:         s.EntitlementType,
 		IssueAfterReset:         s.IssueAfterReset,
@@ -179,16 +289,50 @@ func (s *CreateSubscriptionEntitlementSpec) ToCreateEntitlementInput(
 	return inputs, nil
 }
 
+type CreatePriceSpec struct {
+	CreateInput         price.CreateInput
+	SubscriptionItemRef SubscriptionItemRef
+	Cadence             models.CadencedModel
+}
+
+type CreatePriceInput price.Spec
+
+func (s *CreatePriceInput) ToCreatePriceSpec(
+	namespace string,
+	subscriptionId string,
+	cadence models.CadencedModel,
+) CreatePriceSpec {
+	return CreatePriceSpec{
+		CreateInput: price.CreateInput{
+			Spec:          price.Spec(*s),
+			CadencedModel: cadence,
+			SubscriptionId: models.NamespacedID{
+				Namespace: namespace,
+				ID:        subscriptionId,
+			},
+		},
+		SubscriptionItemRef: SubscriptionItemRef{
+			SubscriptionId: subscriptionId,
+			PhaseKey:       s.PhaseKey,
+			ItemKey:        s.ItemKey,
+		},
+		Cadence: cadence,
+	}
+}
+
 type CreateSubscriptionItemPlanInput struct {
-	PhaseKey               string                             `json:"phaseKey"`
-	ItemKey                string                             `json:"itemKey"`
-	FeatureKey             *string                            `json:"featureKey,omitempty"`
-	CreateEntitlementInput *CreateSubscriptionEntitlementSpec `json:"createEntitlementSpec,omitempty"`
-	CreatePriceInput       *price.Spec                        `json:"createPriceInput,omitempty"`
+	PhaseKey               string                              `json:"phaseKey"`
+	ItemKey                string                              `json:"itemKey"`
+	FeatureKey             *string                             `json:"featureKey,omitempty"`
+	CreateEntitlementInput *CreateSubscriptionEntitlementInput `json:"createEntitlementSpec,omitempty"`
+	CreatePriceInput       *CreatePriceInput                   `json:"createPriceInput,omitempty"`
 }
 
 type SubscriptionItemSpec struct {
 	CreateSubscriptionItemPlanInput
+
+	// expectedPhaseDurationISO is needed to determine that the cycles of entitlements and prices align with the phase
+	expectedPhaseDurationISO *datex.Period
 }
 
 func (s SubscriptionItemSpec) GetRef(subId string) SubscriptionItemRef {
@@ -255,6 +399,7 @@ func (s *SubscriptionItemSpec) Validate() error {
 				Msg: "PhaseKey in CreatePriceInput must match PhaseKey",
 			}
 		}
+		// TODO: validate price cadence once defined
 	}
 	if s.CreateEntitlementInput != nil {
 		if s.FeatureKey == nil {
@@ -276,6 +421,27 @@ func (s *SubscriptionItemSpec) Validate() error {
 					},
 				},
 				Msg: "FeatureKey is required for CreateEntitlementInput",
+			}
+		}
+		if upISO := s.CreateEntitlementInput.UsagePeriodISODuration; upISO != nil && s.expectedPhaseDurationISO != nil {
+			align, err := datex.PeriodsAlign(*s.expectedPhaseDurationISO, *upISO)
+			if err != nil {
+				return fmt.Errorf("failed to check if periods align: %w", err)
+			}
+			if !align {
+				return &SpecValidationError{
+					AffectedKeys: [][]string{
+						{
+							"phaseKey",
+							s.PhaseKey,
+							"itemKey",
+							s.ItemKey,
+							"CreateEntitlementInput",
+							"UsagePeriodISODuration",
+						},
+					},
+					Msg: "Entitlement Usage Period must align with Phase duration",
+				}
 			}
 		}
 	}
@@ -345,7 +511,18 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 		}
 	}
 
-	for _, planPhase := range planPhases {
+	for i, planPhase := range planPhases {
+		// calculate the current phase duration for validations
+		var expectedPhaseDuration *datex.Period
+		if i+1 < len(planPhases) {
+			nextPhase := planPhases[i+1]
+			dur, err := nextPhase.ToCreateSubscriptionPhasePlanInput().StartAfter.Subtract(planPhase.ToCreateSubscriptionPhasePlanInput().StartAfter)
+			if err != nil {
+				return nil, fmt.Errorf("failed to calculate phase duration for phase %s of plan %s version %d: %w", planPhase.GetKey(), p.GetKey(), p.GetVersionNumber(), err)
+			}
+			expectedPhaseDuration = &dur
+		}
+
 		phase := SubscriptionPhaseSpec{
 			CreateSubscriptionPhaseInput: CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: planPhase.ToCreateSubscriptionPhasePlanInput(),
@@ -362,6 +539,7 @@ func SpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (*SubscriptionSpec,
 		for _, rateCard := range planPhase.GetRateCards() {
 			item := SubscriptionItemSpec{
 				CreateSubscriptionItemPlanInput: rateCard.ToCreateSubscriptionItemPlanInput(),
+				expectedPhaseDurationISO:        expectedPhaseDuration,
 			}
 
 			if _, exists := phase.Items[item.ItemKey]; exists {
@@ -403,6 +581,10 @@ type Applies interface {
 	ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error
 }
 
+type Execs interface {
+	Exec() error
+}
+
 func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext) error {
 	for i, patch := range patches {
 		err := patch.ApplyTo(s, context)
@@ -411,6 +593,12 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 		}
 		if err = s.Validate(); err != nil {
 			return fmt.Errorf("patch %d failed during validation: %w", i, err)
+		}
+		if e, ok := patch.(Execs); ok {
+			err = e.Exec()
+			if err != nil {
+				return fmt.Errorf("patch %d failed during execution: %w", i, err)
+			}
 		}
 	}
 	return nil

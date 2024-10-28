@@ -8,6 +8,7 @@ import (
 
 type Connector interface {
 	Create(ctx context.Context, input CreateInput) (*Price, error)
+	Delete(ctx context.Context, id models.NamespacedID) error
 	GetForSubscription(ctx context.Context, subscriptionID models.NamespacedID) ([]Price, error)
 }
 
@@ -26,4 +27,8 @@ func (c *connector) Create(ctx context.Context, input CreateInput) (*Price, erro
 func (c *connector) GetForSubscription(ctx context.Context, subscriptionID models.NamespacedID) ([]Price, error) {
 	// Should we return deleted prices?
 	return c.repo.GetForSubscription(ctx, subscriptionID, GetPriceFilters{IncludeDeleted: false})
+}
+
+func (c *connector) Delete(ctx context.Context, id models.NamespacedID) error {
+	return c.repo.Delete(ctx, id)
 }

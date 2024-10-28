@@ -3,12 +3,15 @@
 package datex
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
 )
+
+const MAX_SAFE_ITERATION_COUNT = 1_000_000
 
 type ISOString period.ISOString
 
@@ -58,6 +61,43 @@ func (i *ISOString) ParsePtrOrNil() (*Period, error) {
 }
 
 // FromDuration creates a Period from a time.Duration
+func PeriodsAlign(larger Period, smaller Period) (bool, error) {
+	p, err := larger.Subtract(smaller)
+	if err != nil {
+		return false, err
+	}
+
+	if p.Sign() == -1 {
+		return false, fmt.Errorf("smaller period is larger than larger period")
+	}
+
+	per := smaller
+	for i := 1; i < MAX_SAFE_ITERATION_COUNT; i++ {
+		per, err = per.Add(smaller)
+		if err != nil {
+			return false, err
+		}
+
+		diff, err := larger.Subtract(per)
+		if err != nil {
+			return false, err
+		}
+
+		// It's an exact match
+		if diff.Sign() == 0 {
+			return true, nil
+		}
+
+		// We've overshot without a match
+		if diff.Sign() == -1 {
+			return false, nil
+		}
+	}
+
+	return false, nil
+}
+
+// FromDuration creates an IMPRECISE Period from a time.Duration
 func FromDuration(d time.Duration) Period {
 	return Period{period.NewOf(d).Normalise(false).Simplify(false)}
 }

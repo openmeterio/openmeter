@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueremovephase"
 )
 
 // SubscriptionPatchCreate is the builder for creating a SubscriptionPatch entity.
@@ -166,6 +167,25 @@ func (spc *SubscriptionPatchCreate) SetNillableValueAddPhaseID(id *string) *Subs
 // SetValueAddPhase sets the "value_add_phase" edge to the SubscriptionPatchValueAddPhase entity.
 func (spc *SubscriptionPatchCreate) SetValueAddPhase(s *SubscriptionPatchValueAddPhase) *SubscriptionPatchCreate {
 	return spc.SetValueAddPhaseID(s.ID)
+}
+
+// SetValueRemovePhaseID sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity by ID.
+func (spc *SubscriptionPatchCreate) SetValueRemovePhaseID(id string) *SubscriptionPatchCreate {
+	spc.mutation.SetValueRemovePhaseID(id)
+	return spc
+}
+
+// SetNillableValueRemovePhaseID sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity by ID if the given value is not nil.
+func (spc *SubscriptionPatchCreate) SetNillableValueRemovePhaseID(id *string) *SubscriptionPatchCreate {
+	if id != nil {
+		spc = spc.SetValueRemovePhaseID(*id)
+	}
+	return spc
+}
+
+// SetValueRemovePhase sets the "value_remove_phase" edge to the SubscriptionPatchValueRemovePhase entity.
+func (spc *SubscriptionPatchCreate) SetValueRemovePhase(s *SubscriptionPatchValueRemovePhase) *SubscriptionPatchCreate {
+	return spc.SetValueRemovePhaseID(s.ID)
 }
 
 // SetValueExtendPhaseID sets the "value_extend_phase" edge to the SubscriptionPatchValueExtendPhase entity by ID.
@@ -399,6 +419,22 @@ func (spc *SubscriptionPatchCreate) createSpec() (*SubscriptionPatch, *sqlgraph.
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueaddphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := spc.mutation.ValueRemovePhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscriptionpatch.ValueRemovePhaseTable,
+			Columns: []string{subscriptionpatch.ValueRemovePhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionpatchvalueremovephase.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

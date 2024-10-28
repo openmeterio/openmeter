@@ -1570,6 +1570,7 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "phase_key", Type: field.TypeString},
 		{Name: "start_after_iso", Type: field.TypeString},
+		{Name: "duration_iso", Type: field.TypeString},
 		{Name: "create_discount", Type: field.TypeBool},
 		{Name: "create_discount_applies_to", Type: field.TypeJSON, Nullable: true},
 		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1582,7 +1583,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_patch_value_add_phases_subscription_patches_value_add_phase",
-				Columns:    []*schema.Column{SubscriptionPatchValueAddPhasesColumns[6]},
+				Columns:    []*schema.Column{SubscriptionPatchValueAddPhasesColumns[7]},
 				RefColumns: []*schema.Column{SubscriptionPatchesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1606,7 +1607,7 @@ var (
 			{
 				Name:    "subscriptionpatchvalueaddphase_namespace_subscription_patch_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[1], SubscriptionPatchValueAddPhasesColumns[6]},
+				Columns: []*schema.Column{SubscriptionPatchValueAddPhasesColumns[1], SubscriptionPatchValueAddPhasesColumns[7]},
 			},
 		},
 	}
@@ -1651,6 +1652,50 @@ var (
 				Name:    "subscriptionpatchvalueextendphase_namespace_subscription_patch_id",
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionPatchValueExtendPhasesColumns[1], SubscriptionPatchValueExtendPhasesColumns[4]},
+			},
+		},
+	}
+	// SubscriptionPatchValueRemovePhasesColumns holds the columns for the "subscription_patch_value_remove_phases" table.
+	SubscriptionPatchValueRemovePhasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "phase_key", Type: field.TypeString},
+		{Name: "shift_behavior", Type: field.TypeInt},
+		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionPatchValueRemovePhasesTable holds the schema information for the "subscription_patch_value_remove_phases" table.
+	SubscriptionPatchValueRemovePhasesTable = &schema.Table{
+		Name:       "subscription_patch_value_remove_phases",
+		Columns:    SubscriptionPatchValueRemovePhasesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionPatchValueRemovePhasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_patch_value_remove_phases_subscription_patches_value_remove_phase",
+				Columns:    []*schema.Column{SubscriptionPatchValueRemovePhasesColumns[4]},
+				RefColumns: []*schema.Column{SubscriptionPatchesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionpatchvalueremovephase_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionPatchValueRemovePhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueremovephase_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueRemovePhasesColumns[1]},
+			},
+			{
+				Name:    "subscriptionpatchvalueremovephase_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueRemovePhasesColumns[1], SubscriptionPatchValueRemovePhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionpatchvalueremovephase_namespace_subscription_patch_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPatchValueRemovePhasesColumns[1], SubscriptionPatchValueRemovePhasesColumns[4]},
 			},
 		},
 	}
@@ -1783,6 +1828,7 @@ var (
 		SubscriptionPatchValueAddItemsTable,
 		SubscriptionPatchValueAddPhasesTable,
 		SubscriptionPatchValueExtendPhasesTable,
+		SubscriptionPatchValueRemovePhasesTable,
 		UsageResetsTable,
 		NotificationChannelRulesTable,
 		NotificationEventDeliveryStatusEventsTable,
@@ -1829,6 +1875,7 @@ func init() {
 	SubscriptionPatchValueAddItemsTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
 	SubscriptionPatchValueAddPhasesTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
 	SubscriptionPatchValueExtendPhasesTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
+	SubscriptionPatchValueRemovePhasesTable.ForeignKeys[0].RefTable = SubscriptionPatchesTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable
 	NotificationChannelRulesTable.ForeignKeys[1].RefTable = NotificationRulesTable

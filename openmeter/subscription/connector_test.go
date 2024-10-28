@@ -11,7 +11,6 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -124,23 +123,23 @@ func TestCreation(t *testing.T) {
 					if entSpec != nil {
 						ent, exists := foundRateCards[j].Entitlement()
 						require.True(t, exists)
-						assert.Equal(t, entSpec.EntitlementType, ent.EntitlementType)
+						assert.Equal(t, entSpec.EntitlementType, ent.Entitlement.EntitlementType)
 						// To simplify here we expect the ExamplePlan to have UsagePeriodISODuration set to 1 month
 						require.Equal(t, entSpec.UsagePeriodISODuration, &subscriptiontestutils.ISOMonth)
-						assert.Equal(t, recurrence.RecurrencePeriodMonth, ent.UsagePeriod.Interval)
+						assert.Equal(t, recurrence.RecurrencePeriodMonth, ent.Entitlement.UsagePeriod.Interval)
 						// Validate that entitlement UsagePeriod matches expected by anchor which is the phase start time
-						assert.Equal(t, foundPhase.ActiveFrom(), ent.UsagePeriod.Anchor)
+						assert.Equal(t, foundPhase.ActiveFrom(), ent.Entitlement.UsagePeriod.Anchor)
 
 						// Validate that entitlement activeFrom is the same as the phase activeFrom
-						require.NotNil(t, ent.ActiveFrom)
-						assert.Equal(t, foundPhase.ActiveFrom(), *ent.ActiveFrom)
+						require.NotNil(t, ent.Entitlement.ActiveFrom)
+						assert.Equal(t, foundPhase.ActiveFrom(), *ent.Entitlement.ActiveFrom)
 
 						// Validate that the entitlement is only active until the phase is scheduled to be
 						if i < len(planPhases)-1 {
 							nextPhase := planPhases[i+1]
 							nextPhaseStart, _ := nextPhase.ToCreateSubscriptionPhasePlanInput().StartAfter.AddTo(foundSub.ActiveFrom)
-							require.NotNil(t, ent.ActiveTo)
-							assert.Equal(t, nextPhaseStart.UTC(), *ent.ActiveTo)
+							require.NotNil(t, ent.Entitlement.ActiveTo)
+							assert.Equal(t, nextPhaseStart.UTC(), *ent.Entitlement.ActiveTo)
 						}
 					}
 
@@ -343,7 +342,7 @@ func TestCreation(t *testing.T) {
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								PhaseKey: "test-phase-2",
 								ItemKey:  "added-ratecard",
-								CreatePriceInput: &price.Spec{
+								CreatePriceInput: &subscription.CreatePriceInput{
 									PhaseKey: "test-phase-2",
 									ItemKey:  "added-ratecard",
 									Value:    "500",

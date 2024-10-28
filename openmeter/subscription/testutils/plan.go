@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -56,7 +55,7 @@ var ExamplePlan = &Plan{
 						PhaseKey:   "test-phase-2",
 						ItemKey:    "test-rate-card-1",
 						FeatureKey: lo.ToPtr(ExampleFeatureKey),
-						CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementSpec{
+						CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementInput{
 							EntitlementType:        entitlement.EntitlementTypeMetered,
 							IssueAfterReset:        lo.ToPtr(1000.0),
 							UsagePeriodISODuration: &ISOMonth,
@@ -68,7 +67,7 @@ var ExamplePlan = &Plan{
 					SubscriptionItemCreateInput: subscription.CreateSubscriptionItemPlanInput{
 						PhaseKey: "test-phase-2",
 						ItemKey:  "test-rate-card-2",
-						CreatePriceInput: &price.Spec{
+						CreatePriceInput: &subscription.CreatePriceInput{
 							PhaseKey: "test-phase-2",
 							ItemKey:  "test-rate-card-2",
 							Value:    "100",

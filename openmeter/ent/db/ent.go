@@ -45,6 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueremovephase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -137,6 +138,7 @@ func checkColumn(table, column string) error {
 			subscriptionpatchvalueadditem.Table:     subscriptionpatchvalueadditem.ValidColumn,
 			subscriptionpatchvalueaddphase.Table:    subscriptionpatchvalueaddphase.ValidColumn,
 			subscriptionpatchvalueextendphase.Table: subscriptionpatchvalueextendphase.ValidColumn,
+			subscriptionpatchvalueremovephase.Table: subscriptionpatchvalueremovephase.ValidColumn,
 			usagereset.Table:                        usagereset.ValidColumn,
 		})
 	})

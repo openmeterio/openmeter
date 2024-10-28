@@ -14,6 +14,16 @@ type PlanRef struct {
 	Version int    `json:"version"`
 }
 
+func (p PlanRef) Equals(p2 PlanRef) bool {
+	if p.Key != p2.Key {
+		return false
+	}
+	if p.Version != p2.Version {
+		return false
+	}
+	return true
+}
+
 type SubscriptionItemRef struct {
 	SubscriptionId string `json:"subscriptionId"`
 	PhaseKey       string `json:"phaseKey"`

@@ -40,6 +40,8 @@ const (
 	EdgeValueAddItem = "value_add_item"
 	// EdgeValueAddPhase holds the string denoting the value_add_phase edge name in mutations.
 	EdgeValueAddPhase = "value_add_phase"
+	// EdgeValueRemovePhase holds the string denoting the value_remove_phase edge name in mutations.
+	EdgeValueRemovePhase = "value_remove_phase"
 	// EdgeValueExtendPhase holds the string denoting the value_extend_phase edge name in mutations.
 	EdgeValueExtendPhase = "value_extend_phase"
 	// Table holds the table name of the subscriptionpatch in the database.
@@ -65,6 +67,13 @@ const (
 	ValueAddPhaseInverseTable = "subscription_patch_value_add_phases"
 	// ValueAddPhaseColumn is the table column denoting the value_add_phase relation/edge.
 	ValueAddPhaseColumn = "subscription_patch_id"
+	// ValueRemovePhaseTable is the table that holds the value_remove_phase relation/edge.
+	ValueRemovePhaseTable = "subscription_patch_value_remove_phases"
+	// ValueRemovePhaseInverseTable is the table name for the SubscriptionPatchValueRemovePhase entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionpatchvalueremovephase" package.
+	ValueRemovePhaseInverseTable = "subscription_patch_value_remove_phases"
+	// ValueRemovePhaseColumn is the table column denoting the value_remove_phase relation/edge.
+	ValueRemovePhaseColumn = "subscription_patch_id"
 	// ValueExtendPhaseTable is the table that holds the value_extend_phase relation/edge.
 	ValueExtendPhaseTable = "subscription_patch_value_extend_phases"
 	// ValueExtendPhaseInverseTable is the table name for the SubscriptionPatchValueExtendPhase entity.
@@ -192,6 +201,13 @@ func ByValueAddPhaseField(field string, opts ...sql.OrderTermOption) OrderOption
 	}
 }
 
+// ByValueRemovePhaseField orders the results by value_remove_phase field.
+func ByValueRemovePhaseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newValueRemovePhaseStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByValueExtendPhaseField orders the results by value_extend_phase field.
 func ByValueExtendPhaseField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -217,6 +233,13 @@ func newValueAddPhaseStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ValueAddPhaseInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ValueAddPhaseTable, ValueAddPhaseColumn),
+	)
+}
+func newValueRemovePhaseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ValueRemovePhaseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ValueRemovePhaseTable, ValueRemovePhaseColumn),
 	)
 }
 func newValueExtendPhaseStep() *sqlgraph.Step {

@@ -5,19 +5,29 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 )
 
 type SubscriptionView interface {
 	Sub() Subscription
+	Customer() customerentity.Customer
 	Phases() []SubscriptionPhaseView
+	// Returns the Spec for the Subscription.
+	// .Validate() guarantees that the spec matches the View.
+	AsSpec() *SubscriptionSpec
+	Validate(includePhases bool) error
 }
 
 type SubscriptionPhaseView interface {
 	Key() string
 	ActiveFrom() time.Time
 	Items() []SubscriptionItemView
+
+	// Returns the Spec for the Phase.
+	// .Validate() guarantees that the spec matches the View.
+	AsSpec() *SubscriptionPhaseSpec
+	Validate(includeItems bool) error
 }
 
 type SubscriptionItemView interface {
@@ -27,11 +37,17 @@ type SubscriptionItemView interface {
 	Price() (price.Price, bool)
 	// The feature referenced here might since have been archived (both the exact version of the feature under the same key as present when the item was specced, but also the key itself)
 	FeatureKey() (string, bool)
-	Entitlement() (entitlement.Entitlement, bool)
+	Entitlement() (SubscriptionEntitlement, bool)
+
+	// Returns the Spec for the Item.
+	// .Validate() guarantees that the spec matches the View.
+	AsSpec() *SubscriptionItemSpec
+	Validate() error
 }
 
 type subscriptionView struct {
 	subscription     Subscription
+	customer         customerentity.Customer
 	subscriptionSpec *SubscriptionSpec
 	phases           []subscriptionPhaseView
 }
@@ -42,6 +58,10 @@ func (s *subscriptionView) Sub() Subscription {
 	return s.subscription
 }
 
+func (s *subscriptionView) Customer() customerentity.Customer {
+	return s.customer
+}
+
 func (s *subscriptionView) Phases() []SubscriptionPhaseView {
 	// Map phases to interface
 	phases := make([]SubscriptionPhaseView, 0, len(s.phases))
@@ -50,6 +70,41 @@ func (s *subscriptionView) Phases() []SubscriptionPhaseView {
 	}
 
 	return phases
+}
+
+func (s *subscriptionView) AsSpec() *SubscriptionSpec {
+	return s.subscriptionSpec
+}
+
+func (s *subscriptionView) Validate(includePhases bool) error {
+	spec := s.AsSpec()
+	if spec == nil {
+		return fmt.Errorf("subscription has no spec")
+	}
+	if spec.ActiveFrom != s.subscription.ActiveFrom {
+		return fmt.Errorf("subscription active from %v does not match spec active from %v", s.subscription.ActiveFrom, spec.ActiveFrom)
+	}
+	if spec.ActiveTo != s.subscription.ActiveTo {
+		return fmt.Errorf("subscription active to %v does not match spec active to %v", s.subscription.ActiveTo, spec.ActiveTo)
+	}
+	if spec.CustomerId != s.subscription.CustomerId {
+		return fmt.Errorf("subscription customer id %s does not match spec customer id %s", s.subscription.CustomerId, spec.CustomerId)
+	}
+	if spec.Currency != s.subscription.Currency {
+		return fmt.Errorf("subscription currency %s does not match spec currency %s", s.subscription.Currency, spec.Currency)
+	}
+	if !spec.Plan.Equals(s.subscription.Plan) {
+		return fmt.Errorf("subscription plan %v does not match spec plan %v", s.subscription.Plan, spec.Plan)
+	}
+
+	if includePhases {
+		for _, phase := range s.phases {
+			if err := phase.Validate(true); err != nil {
+				return fmt.Errorf("phase %s is invalid: %w", phase.spec.PhaseKey, err)
+			}
+		}
+	}
+	return nil
 }
 
 type subscriptionPhaseView struct {
@@ -79,12 +134,31 @@ func (s *subscriptionPhaseView) Items() []SubscriptionItemView {
 	return items
 }
 
+func (s *subscriptionPhaseView) AsSpec() *SubscriptionPhaseSpec {
+	return s.spec
+}
+
+func (s *subscriptionPhaseView) Validate(includeItems bool) error {
+	spec := s.AsSpec()
+	if spec == nil {
+		return fmt.Errorf("phase %s has no spec", s.spec.PhaseKey)
+	}
+	if includeItems {
+		for _, item := range s.items {
+			if err := item.Validate(); err != nil {
+				return fmt.Errorf("item %s in phase %s is invalid: %w", item.spec.ItemKey, s.spec.PhaseKey, err)
+			}
+		}
+	}
+	return nil
+}
+
 type subscriptionItemView struct {
 	subscription Subscription
 	spec         *SubscriptionItemSpec
 
 	price       *price.Price
-	entitlement *entitlement.Entitlement
+	entitlement *SubscriptionEntitlement
 }
 
 var _ SubscriptionItemView = (*subscriptionItemView)(nil)
@@ -111,21 +185,77 @@ func (s *subscriptionItemView) FeatureKey() (string, bool) {
 	return *s.spec.FeatureKey, true
 }
 
-func (s *subscriptionItemView) Entitlement() (entitlement.Entitlement, bool) {
+func (s *subscriptionItemView) Entitlement() (SubscriptionEntitlement, bool) {
 	if s.entitlement == nil {
-		return entitlement.Entitlement{}, false
+		return SubscriptionEntitlement{}, false
 	}
 	return *s.entitlement, true
 }
 
+func (s *subscriptionItemView) AsSpec() *SubscriptionItemSpec {
+	return s.spec
+}
+
+func (s *subscriptionItemView) Validate() error {
+	spec := s.AsSpec()
+	if spec == nil {
+		return fmt.Errorf("item %s in phase %s has no spec", s.spec.ItemKey, s.spec.PhaseKey)
+	}
+
+	if spec.HasEntitlement() != (s.entitlement != nil) {
+		return fmt.Errorf("item %s should have entitlement: %t, but has: %t", s.spec.ItemKey, s.spec.HasEntitlement(), s.entitlement != nil)
+	}
+	if s.entitlement != nil {
+		if spec.ItemKey != s.entitlement.ItemRef.ItemKey {
+			return fmt.Errorf("item %s should match entitlement item key %s", s.spec.ItemKey, s.entitlement.ItemRef.ItemKey)
+		}
+		if spec.PhaseKey != s.entitlement.ItemRef.PhaseKey {
+			return fmt.Errorf("item %s should match entitlement phase key %s", s.spec.ItemKey, s.entitlement.ItemRef.PhaseKey)
+		}
+		if err := s.entitlement.Validate(); err != nil {
+			return fmt.Errorf("entitlement for item %s is invalid: %w", s.spec.ItemKey, err)
+		}
+	}
+	if spec.HasPrice() != (s.price != nil) {
+		return fmt.Errorf("item %s should have price: %t, but has: %t", s.spec.ItemKey, s.spec.HasPrice(), s.price != nil)
+	}
+	if s.price != nil {
+		if s.price.SubscriptionId != s.subscription.ID {
+			return fmt.Errorf("item %s should match price subscription id %s", s.spec.ItemKey, s.subscription.ID)
+		}
+		if s.price.PhaseKey != s.spec.PhaseKey {
+			return fmt.Errorf("item %s should match price phase key %s", s.spec.ItemKey, s.price.PhaseKey)
+		}
+		if s.price.ItemKey != s.spec.ItemKey {
+			return fmt.Errorf("item %s should match price item key %s", s.spec.ItemKey, s.price.ItemKey)
+		}
+		if spec.CreatePriceInput.ItemKey != s.price.ItemKey {
+			return fmt.Errorf("item %s should match price item key %s", s.spec.ItemKey, s.price.ItemKey)
+		}
+		if spec.CreatePriceInput.PhaseKey != s.price.PhaseKey {
+			return fmt.Errorf("item %s should match price phase key %s", s.spec.ItemKey, s.price.PhaseKey)
+		}
+		if spec.CreatePriceInput.Key != s.price.Key {
+			return fmt.Errorf("item %s should match price key %s", s.spec.ItemKey, s.price.Key)
+		}
+		if spec.CreatePriceInput.Value != s.price.Value {
+			return fmt.Errorf("item %s should match price value %s", s.spec.ItemKey, s.price.Value)
+		}
+	}
+
+	return nil
+}
+
 func NewSubscriptionView(
 	sub Subscription,
+	cust customerentity.Customer,
 	spec *SubscriptionSpec,
 	ents []SubscriptionEntitlement,
 	prices []price.Price,
 ) (SubscriptionView, error) {
 	sv := subscriptionView{
 		subscription:     sub,
+		customer:         cust,
 		subscriptionSpec: spec,
 	}
 
@@ -146,7 +276,7 @@ func NewSubscriptionView(
 			// Find matching entitlement
 			for _, ent := range ents {
 				if item.spec.GetRef(item.subscription.ID).Equals(ent.ItemRef) {
-					item.entitlement = &ent.Entitlement
+					item.entitlement = &ent
 				}
 			}
 

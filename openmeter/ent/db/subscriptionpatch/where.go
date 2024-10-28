@@ -659,6 +659,29 @@ func HasValueAddPhaseWith(preds ...predicate.SubscriptionPatchValueAddPhase) pre
 	})
 }
 
+// HasValueRemovePhase applies the HasEdge predicate on the "value_remove_phase" edge.
+func HasValueRemovePhase() predicate.SubscriptionPatch {
+	return predicate.SubscriptionPatch(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ValueRemovePhaseTable, ValueRemovePhaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasValueRemovePhaseWith applies the HasEdge predicate on the "value_remove_phase" edge with a given conditions (other predicates).
+func HasValueRemovePhaseWith(preds ...predicate.SubscriptionPatchValueRemovePhase) predicate.SubscriptionPatch {
+	return predicate.SubscriptionPatch(func(s *sql.Selector) {
+		step := newValueRemovePhaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasValueExtendPhase applies the HasEdge predicate on the "value_extend_phase" edge.
 func HasValueExtendPhase() predicate.SubscriptionPatch {
 	return predicate.SubscriptionPatch(func(s *sql.Selector) {

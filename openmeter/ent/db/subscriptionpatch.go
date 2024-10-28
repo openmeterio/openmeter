@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueaddphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueextendphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueremovephase"
 )
 
 // SubscriptionPatch is the model entity for the SubscriptionPatch schema.
@@ -56,11 +57,13 @@ type SubscriptionPatchEdges struct {
 	ValueAddItem *SubscriptionPatchValueAddItem `json:"value_add_item,omitempty"`
 	// ValueAddPhase holds the value of the value_add_phase edge.
 	ValueAddPhase *SubscriptionPatchValueAddPhase `json:"value_add_phase,omitempty"`
+	// ValueRemovePhase holds the value of the value_remove_phase edge.
+	ValueRemovePhase *SubscriptionPatchValueRemovePhase `json:"value_remove_phase,omitempty"`
 	// ValueExtendPhase holds the value of the value_extend_phase edge.
 	ValueExtendPhase *SubscriptionPatchValueExtendPhase `json:"value_extend_phase,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // SubscriptionOrErr returns the Subscription value or an error if the edge
@@ -96,12 +99,23 @@ func (e SubscriptionPatchEdges) ValueAddPhaseOrErr() (*SubscriptionPatchValueAdd
 	return nil, &NotLoadedError{edge: "value_add_phase"}
 }
 
+// ValueRemovePhaseOrErr returns the ValueRemovePhase value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SubscriptionPatchEdges) ValueRemovePhaseOrErr() (*SubscriptionPatchValueRemovePhase, error) {
+	if e.ValueRemovePhase != nil {
+		return e.ValueRemovePhase, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: subscriptionpatchvalueremovephase.Label}
+	}
+	return nil, &NotLoadedError{edge: "value_remove_phase"}
+}
+
 // ValueExtendPhaseOrErr returns the ValueExtendPhase value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e SubscriptionPatchEdges) ValueExtendPhaseOrErr() (*SubscriptionPatchValueExtendPhase, error) {
 	if e.ValueExtendPhase != nil {
 		return e.ValueExtendPhase, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: subscriptionpatchvalueextendphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "value_extend_phase"}
@@ -230,6 +244,11 @@ func (sp *SubscriptionPatch) QueryValueAddItem() *SubscriptionPatchValueAddItemQ
 // QueryValueAddPhase queries the "value_add_phase" edge of the SubscriptionPatch entity.
 func (sp *SubscriptionPatch) QueryValueAddPhase() *SubscriptionPatchValueAddPhaseQuery {
 	return NewSubscriptionPatchClient(sp.config).QueryValueAddPhase(sp)
+}
+
+// QueryValueRemovePhase queries the "value_remove_phase" edge of the SubscriptionPatch entity.
+func (sp *SubscriptionPatch) QueryValueRemovePhase() *SubscriptionPatchValueRemovePhaseQuery {
+	return NewSubscriptionPatchClient(sp.config).QueryValueRemovePhase(sp)
 }
 
 // QueryValueExtendPhase queries the "value_extend_phase" edge of the SubscriptionPatch entity.

@@ -76,6 +76,8 @@ type Tx struct {
 	SubscriptionPatchValueAddPhase *SubscriptionPatchValueAddPhaseClient
 	// SubscriptionPatchValueExtendPhase is the client for interacting with the SubscriptionPatchValueExtendPhase builders.
 	SubscriptionPatchValueExtendPhase *SubscriptionPatchValueExtendPhaseClient
+	// SubscriptionPatchValueRemovePhase is the client for interacting with the SubscriptionPatchValueRemovePhase builders.
+	SubscriptionPatchValueRemovePhase *SubscriptionPatchValueRemovePhaseClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 
@@ -240,6 +242,7 @@ func (tx *Tx) init() {
 	tx.SubscriptionPatchValueAddItem = NewSubscriptionPatchValueAddItemClient(tx.config)
 	tx.SubscriptionPatchValueAddPhase = NewSubscriptionPatchValueAddPhaseClient(tx.config)
 	tx.SubscriptionPatchValueExtendPhase = NewSubscriptionPatchValueExtendPhaseClient(tx.config)
+	tx.SubscriptionPatchValueRemovePhase = NewSubscriptionPatchValueRemovePhaseClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }
 

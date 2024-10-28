@@ -52,8 +52,15 @@ func NewCommandAndQuery(t *testing.T, dbDeps *DBDeps) (subscription.Command, sub
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 	customer := NewCustomerService(t, dbDeps)
 
+	entitlementManager := subscription.NewEntitlementManager(entitlementAdapter)
+	priceManager := subscription.NewPriceManager(priceConnector)
+	subscriptionManager := subscription.NewSubscriptionManager(subRepo)
+
 	connector := subscription.NewConnector(
 		subRepo,
+		entitlementManager,
+		priceManager,
+		subscriptionManager,
 		priceConnector,
 		customer,
 		planAdapter,

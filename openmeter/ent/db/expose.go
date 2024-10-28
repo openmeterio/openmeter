@@ -151,6 +151,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		SubscriptionPatchValueExtendPhase: NewSubscriptionPatchValueExtendPhaseClient(config),
 
+		SubscriptionPatchValueRemovePhase: NewSubscriptionPatchValueRemovePhaseClient(config),
+
 		UsageReset: NewUsageResetClient(config),
 	}
 }

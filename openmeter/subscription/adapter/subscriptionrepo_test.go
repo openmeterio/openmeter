@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -56,7 +55,7 @@ func TestPatchParsing(t *testing.T) {
 							PhaseKey:   "test",
 							ItemKey:    "test",
 							FeatureKey: lo.ToPtr("feature-1"),
-							CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementSpec{
+							CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementInput{
 								EntitlementType:         entitlement.EntitlementTypeMetered,
 								IssueAfterReset:         lo.ToPtr(100.0),
 								PreserveOverageAtReset:  lo.ToPtr(true),
@@ -81,7 +80,7 @@ func TestPatchParsing(t *testing.T) {
 							PhaseKey:   "test",
 							ItemKey:    "test",
 							FeatureKey: lo.ToPtr("feature-1"),
-							CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementSpec{
+							CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementInput{
 								EntitlementType: entitlement.EntitlementTypeStatic,
 								Config:          []byte(`{"key": "value"}`),
 							},
@@ -101,7 +100,7 @@ func TestPatchParsing(t *testing.T) {
 							PhaseKey:   "test",
 							ItemKey:    "test",
 							FeatureKey: lo.ToPtr("feature-1"),
-							CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementSpec{
+							CreateEntitlementInput: &subscription.CreateSubscriptionEntitlementInput{
 								EntitlementType: entitlement.EntitlementTypeBoolean,
 							},
 						},
@@ -120,7 +119,7 @@ func TestPatchParsing(t *testing.T) {
 							PhaseKey:   "test",
 							ItemKey:    "test",
 							FeatureKey: lo.ToPtr("feature-1"),
-							CreatePriceInput: &price.Spec{
+							CreatePriceInput: &subscription.CreatePriceInput{
 								PhaseKey: "test",
 								ItemKey:  "test",
 								Value:    "100.0",

@@ -26,6 +26,8 @@ type SubscriptionPatchValueAddPhase struct {
 	PhaseKey string `json:"phase_key,omitempty"`
 	// StartAfterIso holds the value of the "start_after_iso" field.
 	StartAfterIso string `json:"start_after_iso,omitempty"`
+	// DurationIso holds the value of the "duration_iso" field.
+	DurationIso string `json:"duration_iso,omitempty"`
 	// CreateDiscount holds the value of the "create_discount" field.
 	CreateDiscount bool `json:"create_discount,omitempty"`
 	// CreateDiscountAppliesTo holds the value of the "create_discount_applies_to" field.
@@ -65,7 +67,7 @@ func (*SubscriptionPatchValueAddPhase) scanValues(columns []string) ([]any, erro
 			values[i] = new([]byte)
 		case subscriptionpatchvalueaddphase.FieldCreateDiscount:
 			values[i] = new(sql.NullBool)
-		case subscriptionpatchvalueaddphase.FieldID, subscriptionpatchvalueaddphase.FieldNamespace, subscriptionpatchvalueaddphase.FieldSubscriptionPatchID, subscriptionpatchvalueaddphase.FieldPhaseKey, subscriptionpatchvalueaddphase.FieldStartAfterIso:
+		case subscriptionpatchvalueaddphase.FieldID, subscriptionpatchvalueaddphase.FieldNamespace, subscriptionpatchvalueaddphase.FieldSubscriptionPatchID, subscriptionpatchvalueaddphase.FieldPhaseKey, subscriptionpatchvalueaddphase.FieldStartAfterIso, subscriptionpatchvalueaddphase.FieldDurationIso:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -111,6 +113,12 @@ func (spvap *SubscriptionPatchValueAddPhase) assignValues(columns []string, valu
 				return fmt.Errorf("unexpected type %T for field start_after_iso", values[i])
 			} else if value.Valid {
 				spvap.StartAfterIso = value.String
+			}
+		case subscriptionpatchvalueaddphase.FieldDurationIso:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field duration_iso", values[i])
+			} else if value.Valid {
+				spvap.DurationIso = value.String
 			}
 		case subscriptionpatchvalueaddphase.FieldCreateDiscount:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -178,6 +186,9 @@ func (spvap *SubscriptionPatchValueAddPhase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("start_after_iso=")
 	builder.WriteString(spvap.StartAfterIso)
+	builder.WriteString(", ")
+	builder.WriteString("duration_iso=")
+	builder.WriteString(spvap.DurationIso)
 	builder.WriteString(", ")
 	builder.WriteString("create_discount=")
 	builder.WriteString(fmt.Sprintf("%v", spvap.CreateDiscount))

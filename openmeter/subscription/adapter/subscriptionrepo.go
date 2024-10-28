@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -26,6 +27,24 @@ func NewSubscriptionRepo(db *db.Client) *subscriptionRepo {
 	return &subscriptionRepo{
 		db: db,
 	}
+}
+
+func (r *subscriptionRepo) EndCadence(ctx context.Context, id string, at time.Time) (*subscription.Subscription, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
+		ent, err := repo.db.Subscription.UpdateOneID(id).SetActiveTo(at).Save(ctx)
+		if db.IsNotFound(err) {
+			return nil, &subscription.NotFoundError{
+				ID: id,
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		sub, err := MapDBSubscription(ent)
+
+		return lo.ToPtr(sub), err
+	})
 }
 
 func (r *subscriptionRepo) GetCustomerSubscription(ctx context.Context, customerID models.NamespacedID) (subscription.Subscription, error) {

@@ -115,6 +115,35 @@ type Entitlement struct {
 	Config []byte `json:"config,omitempty"`
 }
 
+func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
+	i := CreateEntitlementInputs{
+		Namespace:       e.Namespace,
+		FeatureID:       &e.FeatureID,
+		FeatureKey:      &e.FeatureKey,
+		SubjectKey:      e.SubjectKey,
+		EntitlementType: e.EntitlementType,
+		Metadata:        e.Metadata,
+		ActiveFrom:      e.ActiveFrom,
+		ActiveTo:        e.ActiveTo,
+		// MeasureUsageFrom:        &MeasureUsageFromInput{ts: e.MeasureUsageFrom},
+		IssueAfterReset:         e.IssueAfterReset,
+		IssueAfterResetPriority: e.IssueAfterResetPriority,
+		IsSoftLimit:             e.IsSoftLimit,
+		Config:                  e.Config,
+		UsagePeriod:             e.UsagePeriod,
+		PreserveOverageAtReset:  e.PreserveOverageAtReset,
+	}
+
+	if e.MeasureUsageFrom != nil {
+		mu := &MeasureUsageFromInput{}
+		// FIXME: manage error
+		_ = mu.FromTime(*e.MeasureUsageFrom)
+		i.MeasureUsageFrom = mu
+	}
+
+	return i
+}
+
 // ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
 func (e Entitlement) ActiveFromTime() time.Time {
 	return defaultx.WithDefault(e.ActiveFrom, e.CreatedAt)
