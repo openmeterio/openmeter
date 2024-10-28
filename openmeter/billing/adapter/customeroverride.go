@@ -14,6 +14,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
+const (
+	// defaultCustomerOverrideCacheSize is the default size of the customer override cache used for upsert operations
+	defaultCustomerOverrideCacheSize = 10_000
+)
+
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
 func (r *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
@@ -176,6 +181,58 @@ func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 	return customerIDs, nil
 }
 
+func (r *adapter) UpsertCustomerOverrideIgnoringTrns(ctx context.Context, input billing.UpsertCustomerOverrideIgnoringTrnsAdapterInput) error {
+	if val, ok := r.upsertCustomerOverrideCache.Get(input.ID); ok {
+		if val.Namespace == input.Namespace {
+			return nil
+		}
+	}
+
+	ent, err := r.db.BillingCustomerOverride.Query().
+		Where(billingcustomeroverride.CustomerID(input.ID)).
+		Where(billingcustomeroverride.Namespace(input.Namespace)).
+		First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			ent, err = r.db.BillingCustomerOverride.Create().
+				SetNamespace(input.Namespace).
+				SetCustomerID(input.ID).
+				Save(ctx)
+			if err != nil {
+				// Most probably a conflict caused by concurrent upserts => let's try to fetch again
+				ent, err = r.db.BillingCustomerOverride.Query().
+					Where(billingcustomeroverride.CustomerID(input.ID)).
+					Where(billingcustomeroverride.Namespace(input.Namespace)).
+					First(ctx)
+				if err != nil {
+					return err
+				}
+
+				// Let's update the cache
+				r.upsertCustomerOverrideCache.Add(input.ID, ent)
+				return nil
+			}
+
+			// Let's update the cache
+			r.upsertCustomerOverrideCache.Add(input.ID, ent)
+			return nil
+		}
+		return err
+	}
+	r.upsertCustomerOverrideCache.Add(input.ID, ent)
+	return nil
+}
+
+func (r *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
+	_, err := r.db.BillingCustomerOverride.Query().
+		Where(billingcustomeroverride.CustomerID(input.ID)).
+		Where(billingcustomeroverride.Namespace(input.Namespace)).
+		ForUpdate().
+		First(ctx)
+
+	return err
+}
+
 func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billingentity.CustomerOverride, error) {
 	collectionInterval, err := dbOverride.LineCollectionPeriod.ParsePtrOrNil()
 	if err != nil {
@@ -195,6 +252,13 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 	baseProfile, err := mapProfileFromDB(dbOverride.Edges.BillingProfile)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map profile: %w", err)
+	}
+
+	var profile *billingentity.Profile
+	if baseProfile != nil {
+		profile = &billingentity.Profile{
+			BaseProfile: *baseProfile,
+		}
 	}
 
 	return &billingentity.CustomerOverride{
@@ -220,8 +284,6 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 			CollectionMethod: dbOverride.InvoiceCollectionMethod,
 		},
 
-		Profile: &billingentity.Profile{
-			BaseProfile: *baseProfile,
-		},
+		Profile: profile,
 	}, nil
 }

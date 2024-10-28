@@ -3,14 +3,15 @@ package billing
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 )
 
 type CreateInvoiceLinesInput struct {
-	CustomerKeyOrID string
-	Namespace       string
-	Lines           []billingentity.Line
+	CustomerID string
+	Namespace  string
+	Lines      []billingentity.Line
 }
 
 func (c CreateInvoiceLinesInput) Validate() error {
@@ -18,7 +19,7 @@ func (c CreateInvoiceLinesInput) Validate() error {
 		return errors.New("namespace is required")
 	}
 
-	if c.CustomerKeyOrID == "" {
+	if c.CustomerID == "" {
 		return errors.New("customer key or ID is required")
 	}
 
@@ -56,4 +57,40 @@ func (c CreateInvoiceLinesAdapterInput) Validate() error {
 
 type CreateInvoiceLinesResponse struct {
 	Lines []billingentity.Line
+}
+
+type ListInvoiceLinesAdapterInput struct {
+	Namespace string
+
+	CustomerID      string
+	InvoiceStatuses []billingentity.InvoiceStatus
+	InvoiceAtBefore *time.Time
+
+	LineIDs []string
+}
+
+func (g ListInvoiceLinesAdapterInput) Validate() error {
+	if g.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	return nil
+}
+
+type AssociateLinesToInvoiceAdapterInput struct {
+	Invoice billingentity.InvoiceID
+
+	LineIDs []string
+}
+
+func (i AssociateLinesToInvoiceAdapterInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("invoice: %w", err)
+	}
+
+	if len(i.LineIDs) == 0 {
+		return errors.New("line ids are required")
+	}
+
+	return nil
 }

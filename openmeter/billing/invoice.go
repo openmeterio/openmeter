@@ -8,8 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -37,7 +37,7 @@ func (e InvoiceExpand) Validate() error {
 }
 
 type GetInvoiceByIdInput struct {
-	Invoice models.NamespacedID
+	Invoice billingentity.InvoiceID
 	Expand  InvoiceExpand
 }
 
@@ -52,6 +52,29 @@ func (i GetInvoiceByIdInput) Validate() error {
 
 	return nil
 }
+
+type genericMultiInvoiceInput struct {
+	Namespace  string
+	InvoiceIDs []string
+}
+
+func (i genericMultiInvoiceInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if len(i.InvoiceIDs) == 0 {
+		return errors.New("invoice IDs are required")
+	}
+
+	return nil
+}
+
+type (
+	DeleteInvoicesAdapterInput       = genericMultiInvoiceInput
+	LockInvoicesForUpdateInput       = genericMultiInvoiceInput
+	AssociatedLineCountsAdapterInput = genericMultiInvoiceInput
+)
 
 type ListInvoicesInput struct {
 	pagination.Page
@@ -131,3 +154,29 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 }
 
 type CreateInvoiceAdapterRespone = billingentity.Invoice
+
+type CreateInvoiceAsOfInput struct {
+	Customer customerentity.CustomerID
+
+	// IncludePendingLines is a list of line IDs that should be included in the invoice.
+	// If nil, only asof is considered to collect the pending items.
+	// If the array is empty, an empty invoice is created.
+	IncludePendingLines *[]string
+	AsOf                *time.Time
+}
+
+func (i CreateInvoiceAsOfInput) Validate() error {
+	if err := i.Customer.Validate(); err != nil {
+		return fmt.Errorf("customer: %w", err)
+	}
+
+	if i.AsOf != nil && i.AsOf.After(clock.Now()) {
+		return errors.New("asOf must be in the past")
+	}
+
+	return nil
+}
+
+type AssociatedLineCountsAdapterResponse struct {
+	Counts map[billingentity.InvoiceID]int64
+}

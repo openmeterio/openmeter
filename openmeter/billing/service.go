@@ -37,4 +37,6 @@ type InvoiceLineService interface {
 
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
+	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (billingentity.Invoice, error)
+	CreateInvoiceAsOf(ctx context.Context, input CreateInvoiceAsOfInput) ([]billingentity.Invoice, error)
 }

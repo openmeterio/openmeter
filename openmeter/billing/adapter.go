@@ -34,16 +34,23 @@ type CustomerOverrideAdapter interface {
 	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error)
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
+	UpsertCustomerOverrideIgnoringTrns(ctx context.Context, input UpsertCustomerOverrideIgnoringTrnsAdapterInput) error
+	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 
 	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error)
 }
 
 type InvoiceLineAdapter interface {
 	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesAdapterInput) (*CreateInvoiceLinesResponse, error)
+	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]billingentity.Line, error)
+	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) error
 }
 
 type InvoiceAdapter interface {
 	CreateInvoice(ctx context.Context, input CreateInvoiceAdapterInput) (CreateInvoiceAdapterRespone, error)
 	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (billingentity.Invoice, error)
+	LockInvoicesForUpdate(ctx context.Context, input LockInvoicesForUpdateInput) error
+	DeleteInvoices(ctx context.Context, input DeleteInvoicesAdapterInput) error
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
+	AssociatedLineCounts(ctx context.Context, input AssociatedLineCountsAdapterInput) (AssociatedLineCountsAdapterResponse, error)
 }

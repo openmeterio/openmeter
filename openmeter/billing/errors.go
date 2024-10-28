@@ -45,6 +45,7 @@ const (
 	EntityCustomer         = "Customer"
 	EntityDefaultProfile   = "DefaultBillingProfile"
 	EntityInvoice          = "Invoice"
+	EntityInvoiceLine      = "InvoiceLine"
 )
 
 type NotFoundError struct {

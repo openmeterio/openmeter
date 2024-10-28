@@ -3,13 +3,14 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ billing.Service = (*Service)(nil)
@@ -61,17 +62,22 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func Transaction[R any](ctx context.Context, creator billing.Adapter, cb func(ctx context.Context, tx billing.Adapter) (R, error)) (R, error) {
-	return transaction.Run(ctx, creator, func(ctx context.Context) (R, error) {
-		return entutils.TransactingRepo[R, billing.Adapter](ctx, creator, cb)
-	})
-}
+// TransactingRepoForGatheringInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
+// an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
+// invoice, that doesn't exist yet.
+func TransactingRepoForGatheringInvoiceManipulation[T any](ctx context.Context, adapter billing.Adapter, customer customerentity.CustomerID, fn func(ctx context.Context, txAdapter billing.Adapter) (T, error)) (T, error) {
+	err := adapter.UpsertCustomerOverrideIgnoringTrns(ctx, customer)
+	if err != nil {
+		var empty T
+		return empty, fmt.Errorf("upserting customer override: %w", err)
+	}
 
-func TransactionWithNoValue(ctx context.Context, creator billing.Adapter, cb func(ctx context.Context, tx billing.Adapter) error) error {
-	return transaction.RunWithNoValue(ctx, creator, func(ctx context.Context) error {
-		_, err := entutils.TransactingRepo[interface{}, billing.Adapter](ctx, creator, func(ctx context.Context, rep billing.Adapter) (interface{}, error) {
-			return nil, cb(ctx, rep)
-		})
-		return err
+	return entutils.TransactingRepo(ctx, adapter, func(ctx context.Context, txAdapter billing.Adapter) (T, error) {
+		if err := txAdapter.LockCustomerForUpdate(ctx, customer); err != nil {
+			var empty T
+			return empty, fmt.Errorf("locking customer for update: %w", err)
+		}
+
+		return fn(ctx, txAdapter)
 	})
 }

@@ -116,6 +116,12 @@ func (s InvoiceStatus) IsMutable() bool {
 	return true
 }
 
+type InvoiceID models.NamespacedID
+
+func (i InvoiceID) Validate() error {
+	return models.NamespacedID(i).Validate()
+}
+
 type Invoice struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`

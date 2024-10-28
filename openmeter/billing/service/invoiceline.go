@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -23,36 +24,44 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billing.CreateInvoiceLinesResponse, error) {
-		// let's resolve the customer's settings
-		customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  input.Namespace,
-			CustomerID: input.CustomerKeyOrID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("fetching customer profile: %w", err)
-		}
-
-		for i, line := range input.Lines {
-			updatedLine, err := s.upsertLineInvoice(ctx, txAdapter, line, input, customerProfile)
+	return TransactingRepoForGatheringInvoiceManipulation(
+		ctx,
+		s.adapter,
+		customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
+		func(ctx context.Context, txAdapter billing.Adapter) (*billing.CreateInvoiceLinesResponse, error) {
+			// let's resolve the customer's settings
+			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+				Namespace:  input.Namespace,
+				CustomerID: input.CustomerID,
+			})
 			if err != nil {
-				return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
+				return nil, fmt.Errorf("fetching customer profile: %w", err)
 			}
 
-			input.Lines[i] = updatedLine
-		}
+			// TODO: we should optimize this as this does O(n) queries for invoices per line
+			for i, line := range input.Lines {
+				updatedLine, err := s.upsertLineInvoice(ctx, txAdapter, line, input, customerProfile)
+				if err != nil {
+					return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
+				}
 
-		// Create the invoice Lines
-		lines, err := txAdapter.CreateInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
-			Namespace: input.Namespace,
-			Lines:     input.Lines,
+				input.Lines[i] = updatedLine
+			}
+
+			// Create the invoice Lines
+			lines, err := txAdapter.CreateInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+				Namespace: input.Namespace,
+				Lines:     input.Lines,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("creating invoice Line: %w", err)
+			}
+
+			return lines, nil
 		})
-		if err != nil {
-			return nil, fmt.Errorf("creating invoice Line: %w", err)
-		}
-
-		return lines, nil
-	})
 }
 
 func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapter, line billingentity.Line, input billing.CreateInvoiceLinesInput, customerProfile *billingentity.ProfileWithCustomerDetails) (billingentity.Line, error) {
@@ -62,7 +71,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 	if line.InvoiceID != "" {
 		// We would want to attach the line to an existing invoice
 		invoice, err := txAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-			Invoice: models.NamespacedID{
+			Invoice: billingentity.InvoiceID{
 				ID:        line.InvoiceID,
 				Namespace: input.Namespace,
 			},
@@ -95,7 +104,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 			PageNumber: 1,
 			PageSize:   10,
 		},
-		Customers:  []string{input.CustomerKeyOrID},
+		Customers:  []string{input.CustomerID},
 		Namespace:  input.Namespace,
 		Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
 		Currencies: []currencyx.Code{line.Currency},
@@ -130,9 +139,37 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 			// have multiple gathering invoices for the same customer.
 			// This is a rare case, but we should log it at least, later we can implement a call that
 			// merges these invoices (it's fine to just move the Lines to the first invoice)
-			s.logger.Warn("more than one pending invoice found", "customer", input.CustomerKeyOrID, "namespace", input.Namespace)
+			s.logger.Warn("more than one pending invoice found", "customer", input.CustomerID, "namespace", input.Namespace)
 		}
 	}
 
 	return line, nil
+}
+
+func (s *Service) associateLinesToInvoice(ctx context.Context, txAdapter billing.Adapter, invoice billingentity.Invoice, lines []billingentity.Line) error {
+	for _, line := range lines {
+		if line.InvoiceID == invoice.ID {
+			return billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: line already associated with invoice[%s]", line.ID, invoice.ID),
+			}
+		}
+	}
+
+	// Associate the lines to the invoice
+	err := txAdapter.AssociateLinesToInvoice(ctx, billing.AssociateLinesToInvoiceAdapterInput{
+		Invoice: billingentity.InvoiceID{
+			ID:        invoice.ID,
+			Namespace: invoice.Namespace,
+		},
+
+		LineIDs: lo.Map(lines, func(l billingentity.Line, _ int) string {
+			return l.ID
+		}),
+	})
+	if err != nil {
+		return err
+	}
+
+	// TODO[later]: Here we need to recalculate any line specific fields for both invoices
+	return nil
 }
