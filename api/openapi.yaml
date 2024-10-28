@@ -7022,6 +7022,7 @@ paths:
                     required:
                       - op
                       - path
+                      - value
                     properties:
                       op:
                         type: string
@@ -7030,6 +7031,13 @@ paths:
                       path:
                         type: string
                         pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+                      value:
+                        type: object
+                        properties:
+                          shift:
+                            $ref: '#/components/schemas/RemovePhaseShifting'
+                        required:
+                          - shift
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription
@@ -12746,7 +12754,7 @@ components:
         - updatedAt
         - key
         - rateCards
-        - duration
+        - startAfter
       properties:
         name:
           type: string
@@ -12797,12 +12805,12 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        duration:
+        startAfter:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: The duration (length) of the phase.
+          description: The time after which the plan starts compared to subscription start
           title: Duration
         discounts:
           type: array
@@ -12817,7 +12825,7 @@ components:
         - name
         - key
         - rateCards
-        - duration
+        - startAfter
       properties:
         name:
           type: string
@@ -12847,12 +12855,12 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        duration:
+        startAfter:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: The duration (length) of the phase.
+          description: The time after which the plan starts compared to subscription start
           title: Duration
         discounts:
           type: array
@@ -12918,12 +12926,12 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        duration:
+        startAfter:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: The duration (length) of the phase.
+          description: The time after which the plan starts compared to subscription start
           title: Duration
         discounts:
           type: array
@@ -13673,6 +13681,11 @@ components:
       description: |-
         The unit of time for the interval.
         One of: `day`, `week`, `month`, or `year`.
+    RemovePhaseShifting:
+      type: string
+      enum:
+        - Next
+        - Prev
     ResetEntitlementUsageInput:
       type: object
       properties:
@@ -14362,6 +14375,7 @@ components:
       type: object
       required:
         - startAfter
+        - duration
       properties:
         startAfter:
           type: string
@@ -14372,6 +14386,12 @@ components:
             Interval after the subscription starts to transition to the phase.
             When null, the phase starts immediately after the subscription starts.
           title: Start after
+        duration:
+          type: string
+          format: duration
+          example: P1M
+          description: The intended duration of the new phase.
+          title: Duration
         discounts:
           type: array
           items:
@@ -14385,6 +14405,7 @@ components:
         - createdAt
         - updatedAt
         - key
+        - duration
         - activeFrom
         - items
       properties:
@@ -14431,6 +14452,12 @@ components:
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A locally unique identifier for the resource.
+        duration:
+          type: string
+          format: duration
+          example: P1M
+          description: The intended duration of the new phase.
+          title: Duration
         discounts:
           type: array
           items:

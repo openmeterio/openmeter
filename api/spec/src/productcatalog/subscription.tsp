@@ -92,6 +92,14 @@ model SubscriptionPhaseCreate {
   startAfter: duration | null;
 
   /**
+   * The intended duration of the new phase.
+   */
+  @summary("Duration")
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1M"))
+  duration: duration;
+
+  /**
    * The discounts on the plan.
    */
   @summary("Discount")
@@ -182,6 +190,19 @@ model CreateSubscriptionRequestBody {
 @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
 scalar SubscriptionPhasePatchKey extends string;
 
+@friendlyName("RemovePhaseShifting")
+enum RemovePhaseShifting {
+  /**
+   * Shifts all subsequent phases to start sonner by the deleted phase's length
+   */
+  Next,
+
+  /**
+   * Extends the previous phase to end later by the deleted phase's length
+   */
+  Prev,
+}
+
 alias SubscriptionPhasePatch = SubscriptionEditAdd<
   SubscriptionPhaseCreate,
   SubscriptionPhasePatchKey
@@ -191,7 +212,12 @@ alias SubscriptionPhasePatch = SubscriptionEditAdd<
     extendBy: duration;
   },
   SubscriptionPhasePatchKey
-> | SubscriptionEditRemove<SubscriptionPhasePatchKey>;
+> | SubscriptionEditRemoveWithValue<
+  {
+    shift: RemovePhaseShifting;
+  },
+  SubscriptionPhasePatchKey
+>;
 
 @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+\\/items\\/[a-zA-Z0-9\\-]+$")
 scalar SubscriptionItemPatchKey extends string;
@@ -218,4 +244,10 @@ model SubscriptionPhaseExtend<T, K extends string> {
 model SubscriptionEditRemove<K extends string> {
   `op`: "remove";
   path: K;
+}
+
+model SubscriptionEditRemoveWithValue<T, K extends string> {
+  `op`: "remove";
+  path: K;
+  value: T;
 }
