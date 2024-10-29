@@ -17,7 +17,6 @@ import (
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -130,12 +129,12 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 		}
 
 		// Get the webhook secret
-		secret, err := a.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: stripeApp.Namespace,
-				ID:        stripeApp.WebhookSecret,
-			},
-		})
+		appID := appentitybase.AppID{
+			Namespace: stripeApp.Namespace,
+			ID:        stripeApp.ID,
+		}
+
+		secret, err := a.secretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.WebhookSecret, appstripeentity.WebhookSecretKey))
 		if err != nil {
 			return secretentity.Secret{}, fmt.Errorf("failed to get webhook secret: %w", err)
 		}
@@ -323,12 +322,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		input.StripeCustomerID = &stripeCustomerId
 
 		// Get Stripe API Key
-		apiKeySecret, err := repo.secretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: stripeApp.Namespace,
-				ID:        stripeApp.APIKey,
-			},
-		})
+		apiKeySecret, err := repo.secretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.APIKey, appstripeentity.APIKeySecretKey))
 		if err != nil {
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
 		}

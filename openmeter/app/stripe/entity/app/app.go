@@ -14,7 +14,6 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -91,12 +90,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	}
 
 	// Get Stripe API Key
-	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.GetAppSecretInput{
-		NamespacedID: models.NamespacedID{
-			Namespace: stripeAppData.APIKey.Namespace,
-			ID:        stripeAppData.APIKey.ID,
-		},
-	})
+	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.NewSecretID(a.GetID(), stripeAppData.APIKey.ID, appstripeentity.APIKeySecretKey))
 	if err != nil {
 		return fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}

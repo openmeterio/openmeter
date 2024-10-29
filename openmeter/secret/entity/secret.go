@@ -29,13 +29,13 @@ func NewSecretID(appID appentitybase.AppID, id string, key string) SecretID {
 func (i SecretID) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
 		return ValidationError{
-			Err: fmt.Errorf("secret %w", err),
+			Err: fmt.Errorf("secret: %w", err),
 		}
 	}
 
 	if err := i.AppID.Validate(); err != nil {
 		return ValidationError{
-			Err: fmt.Errorf("secret app id %w", err),
+			Err: fmt.Errorf("secret app id: %w", err),
 		}
 	}
 
