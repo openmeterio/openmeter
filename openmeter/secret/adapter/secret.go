@@ -15,8 +15,8 @@ func (a adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateA
 			Namespace: input.AppID.Namespace,
 			ID:        input.Value,
 		},
-		// AppID: input.AppID,
-		// Key: input.Key,
+		AppID: input.AppID,
+		Key:   input.Key,
 	}, nil
 }
 
@@ -29,8 +29,8 @@ func (a adapter) GetAppSecret(ctx context.Context, input secretentity.GetAppSecr
 				Namespace: input.Namespace,
 				ID:        input.ID,
 			},
-			// AppID: input.AppID,
-			// Key: input.Key,
+			AppID: input.AppID,
+			Key:   input.Key,
 		},
 		Value: input.ID,
 	}, nil
