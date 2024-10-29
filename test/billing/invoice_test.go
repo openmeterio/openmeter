@@ -502,7 +502,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: lo.ToPtr([]string{line2ID}),
+			IncludePendingLines: []string{line2ID},
 			AsOf:                lo.ToPtr(line1IssueAt.Add(time.Minute)),
 		})
 
@@ -517,7 +517,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: lo.ToPtr([]string{line2ID}),
+			IncludePendingLines: []string{line2ID},
 			AsOf:                lo.ToPtr(now),
 		})
 
@@ -537,20 +537,5 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
 		require.Len(s.T(), gatheringInvoice.Lines, 0, "deleted gathering invoice is empty")
-	})
-
-	s.Run("When include pending lines is an empty array", func() {
-		invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
-			Customer: customerentity.CustomerID{
-				ID:        customerEntity.ID,
-				Namespace: customerEntity.Namespace,
-			},
-			IncludePendingLines: lo.ToPtr([]string{}),
-		})
-
-		// Then we should have the invoice created
-		require.NoError(s.T(), err)
-		// Without any items
-		require.Len(s.T(), invoice, 0)
 	})
 }

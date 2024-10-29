@@ -158,10 +158,7 @@ type CreateInvoiceAdapterRespone = billingentity.Invoice
 type CreateInvoiceInput struct {
 	Customer customerentity.CustomerID
 
-	// IncludePendingLines is a list of line IDs that should be included in the invoice.
-	// If nil, only asof is considered to collect the pending items.
-	// If the array is empty, an empty invoice is created.
-	IncludePendingLines *[]string
+	IncludePendingLines []string
 	AsOf                *time.Time
 }
 

@@ -101,16 +101,19 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				return l.InvoiceID
 			}))
 
-			if len(sourceInvoiceIDs) > 0 {
-				// let's lock the source gathering invoices, so that no other staging call can add items to them in
-				// case we would need to delete them
-				err = txAdapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
-					Namespace:  input.Customer.Namespace,
-					InvoiceIDs: sourceInvoiceIDs,
-				})
-				if err != nil {
-					return nil, fmt.Errorf("locking gathering invoices: %w", err)
+			if len(sourceInvoiceIDs) == 0 {
+				return nil, billing.ValidationError{
+					Err: fmt.Errorf("no source lines found"),
 				}
+			}
+
+			// let's lock the source gathering invoices, so that no other invoice operation can interfere
+			err = txAdapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
+				Namespace:  input.Customer.Namespace,
+				InvoiceIDs: sourceInvoiceIDs,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("locking gathering invoices: %w", err)
 			}
 
 			linesByCurrency := lo.GroupBy(inScopeLines, func(line billingentity.Line) currencyx.Code {
@@ -195,17 +198,12 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 
 func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceInput, txAdapter billing.Adapter, asOf time.Time) ([]billingentity.Line, error) {
 	if input.IncludePendingLines != nil {
-		if len(*input.IncludePendingLines) == 0 {
-			// We would like to create an empty invoice
-			return []billingentity.Line{}, nil
-		}
-
 		inScopeLines, err := txAdapter.ListInvoiceLines(ctx,
 			billing.ListInvoiceLinesAdapterInput{
 				Namespace:  input.Customer.Namespace,
 				CustomerID: input.Customer.ID,
 
-				LineIDs: *input.IncludePendingLines,
+				LineIDs: input.IncludePendingLines,
 			})
 		if err != nil {
 			return nil, fmt.Errorf("resolving in scope lines: %w", err)
@@ -223,12 +221,12 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 		}
 
 		// all lines must be found
-		if len(inScopeLines) != len(*input.IncludePendingLines) {
+		if len(inScopeLines) != len(input.IncludePendingLines) {
 			includedLines := lo.Map(inScopeLines, func(l billingentity.Line, _ int) string {
 				return l.ID
 			})
 
-			missingIDs := lo.Without(*input.IncludePendingLines, includedLines...)
+			missingIDs := lo.Without(input.IncludePendingLines, includedLines...)
 
 			return nil, billing.NotFoundError{
 				ID:     strings.Join(missingIDs, ","),
