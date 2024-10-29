@@ -11,8 +11,8 @@ import (
 // SecretID represents a secret identifier.
 type SecretID struct {
 	models.NamespacedID
-	// AppID appentitybase.AppID
-	// Key string
+	AppID appentitybase.AppID
+	Key   string
 }
 
 func NewSecretID(appID appentitybase.AppID, id string, key string) SecretID {
@@ -21,8 +21,8 @@ func NewSecretID(appID appentitybase.AppID, id string, key string) SecretID {
 			Namespace: appID.Namespace,
 			ID:        id,
 		},
-		// AppID: appID,
-		// Key: key,
+		AppID: appID,
+		Key:   key,
 	}
 }
 
@@ -33,17 +33,17 @@ func (i SecretID) Validate() error {
 		}
 	}
 
-	// if err := i.AppID.Validate(); err != nil {
-	// 	return ValidationError{
-	// 		Err: fmt.Errorf("secret app id %w", err),
-	// 	}
-	// }
+	if err := i.AppID.Validate(); err != nil {
+		return ValidationError{
+			Err: fmt.Errorf("secret app id %w", err),
+		}
+	}
 
-	// if i.Key == "" {
-	// 	return ValidationError{
-	// 		Err: errors.New("secret key is required"),
-	// 	}
-	// }
+	if i.Key == "" {
+		return ValidationError{
+			Err: errors.New("secret key is required"),
+		}
+	}
 
 	return nil
 }
