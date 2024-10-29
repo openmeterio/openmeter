@@ -2,8 +2,10 @@ package billingadapter
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -176,6 +178,33 @@ func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 	return customerIDs, nil
 }
 
+func (r *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
+	err := r.db.BillingCustomerOverride.Create().
+		SetNamespace(input.Namespace).
+		SetCustomerID(input.ID).
+		OnConflict(
+			entsql.DoNothing(),
+		).
+		Exec(ctx)
+	if err != nil {
+		// The do nothing returns no lines, so we have the record ready
+		if err == sql.ErrNoRows {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (r *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
+	_, err := r.db.BillingCustomerOverride.Query().
+		Where(billingcustomeroverride.CustomerID(input.ID)).
+		Where(billingcustomeroverride.Namespace(input.Namespace)).
+		ForUpdate().
+		First(ctx)
+
+	return err
+}
+
 func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billingentity.CustomerOverride, error) {
 	collectionInterval, err := dbOverride.LineCollectionPeriod.ParsePtrOrNil()
 	if err != nil {
@@ -195,6 +224,13 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 	baseProfile, err := mapProfileFromDB(dbOverride.Edges.BillingProfile)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map profile: %w", err)
+	}
+
+	var profile *billingentity.Profile
+	if baseProfile != nil {
+		profile = &billingentity.Profile{
+			BaseProfile: *baseProfile,
+		}
 	}
 
 	return &billingentity.CustomerOverride{
@@ -220,8 +256,6 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 			CollectionMethod: dbOverride.InvoiceCollectionMethod,
 		},
 
-		Profile: &billingentity.Profile{
-			BaseProfile: *baseProfile,
-		},
+		Profile: profile,
 	}, nil
 }

@@ -152,3 +152,8 @@ type HasCustomerOverrideReferencingProfileAdapterInput genericNamespaceID
 func (i HasCustomerOverrideReferencingProfileAdapterInput) Validate() error {
 	return genericNamespaceID(i).Validate()
 }
+
+type (
+	UpsertCustomerOverrideAdapterInput = customerentity.CustomerID
+	LockCustomerForUpdateAdapterInput  = customerentity.CustomerID
+)

@@ -24,7 +24,7 @@ type (
 
 func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerKeyOrId string) (CreateLineByCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerID string) (CreateLineByCustomerRequest, error) {
 			body := api.BillingCreateLineByCustomerJSONRequestBody{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
@@ -46,9 +46,9 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 			}
 
 			return CreateLineByCustomerRequest{
-				CustomerKeyOrID: customerKeyOrId,
-				Namespace:       ns,
-				Lines:           lines,
+				CustomerID: customerID,
+				Namespace:  ns,
+				Lines:      lines,
 			}, nil
 		},
 		func(ctx context.Context, request CreateLineByCustomerRequest) (CreateLineByCustomerResponse, error) {

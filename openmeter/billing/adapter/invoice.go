@@ -2,7 +2,9 @@ package billingadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -12,6 +14,8 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -53,6 +57,57 @@ func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	}
 
 	return mapInvoiceFromDB(*invoice, in.Expand)
+}
+
+func (r *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockInvoicesForUpdateInput) error {
+	if err := input.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	ids, err := r.db.BillingInvoice.Query().
+		Where(billinginvoice.IDIn(input.InvoiceIDs...)).
+		Where(billinginvoice.Namespace(input.Namespace)).
+		ForUpdate().
+		Select(billinginvoice.FieldID).
+		Strings(ctx)
+	if err != nil {
+		return err
+	}
+
+	missingIds := lo.Without(input.InvoiceIDs, ids...)
+	if len(missingIds) > 0 {
+		return billing.NotFoundError{
+			Entity: billing.EntityInvoice,
+			ID:     strings.Join(missingIds, ","),
+			Err:    fmt.Errorf("cannot select invoices for update"),
+		}
+	}
+
+	return nil
+}
+
+func (r *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoicesAdapterInput) error {
+	if err := input.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	nAffected, err := r.db.BillingInvoice.Update().
+		Where(billinginvoice.IDIn(input.InvoiceIDs...)).
+		Where(billinginvoice.Namespace(input.Namespace)).
+		SetDeletedAt(clock.Now()).
+		Save(ctx)
+
+	if nAffected != len(input.InvoiceIDs) {
+		return billing.ValidationError{
+			Err: errors.New("invoices failed to delete"),
+		}
+	}
+
+	return err
 }
 
 // expandLineItems adds the required edges to the query so that line items can be properly mapped
@@ -215,6 +270,50 @@ func (r *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 	newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
 	return mapInvoiceFromDB(*newInvoice, billing.InvoiceExpandAll)
+}
+
+type lineCountQueryOut struct {
+	InvoiceID string `json:"invoice_id"`
+	Count     int64  `json:"count"`
+}
+
+func (r *adapter) AssociatedLineCounts(ctx context.Context, input billing.AssociatedLineCountsAdapterInput) (billing.AssociatedLineCountsAdapterResponse, error) {
+	queryOut := []lineCountQueryOut{}
+
+	err := r.db.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.DeletedAtIsNil()).
+		Where(billinginvoiceline.Namespace(input.Namespace)).
+		Where(billinginvoiceline.InvoiceIDIn(input.InvoiceIDs...)).
+		Where(billinginvoiceline.StatusIn(billingentity.InvoiceLineStatusValid)).
+		GroupBy(billinginvoiceline.FieldInvoiceID).
+		Aggregate(
+			db.Count(),
+		).
+		Scan(ctx, &queryOut)
+	if err != nil {
+		return billing.AssociatedLineCountsAdapterResponse{}, err
+	}
+
+	res := lo.Associate(queryOut, func(q lineCountQueryOut) (billingentity.InvoiceID, int64) {
+		return billingentity.InvoiceID{
+			Namespace: input.Namespace,
+			ID:        q.InvoiceID,
+		}, q.Count
+	})
+
+	for _, invoiceID := range input.InvoiceIDs {
+		id := billingentity.InvoiceID{
+			Namespace: input.Namespace,
+			ID:        invoiceID,
+		}
+		if _, found := res[id]; !found {
+			res[id] = 0
+		}
+	}
+
+	return billing.AssociatedLineCountsAdapterResponse{
+		Counts: res,
+	}, nil
 }
 
 func mapInvoiceFromDB(invoice db.BillingInvoice, expand billing.InvoiceExpand) (billingentity.Invoice, error) {
