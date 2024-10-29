@@ -29,7 +29,7 @@ interface Customers {
    */
   @get
   @operationId("listCustomers")
-  list(...ListCustomersParams): Paginated<Customer>[] | CommonErrors;
+  list(...ListCustomersParams): Paginated<Customer> | CommonErrors;
 
   /**
    * Get a customer by ID.
