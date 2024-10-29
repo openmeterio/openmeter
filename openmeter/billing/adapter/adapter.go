@@ -37,19 +37,16 @@ func New(config Config) (billing.Adapter, error) {
 	}
 
 	return &adapter{
-		db:            config.Client,
-		dbWithoutTrns: config.Client,
-		logger:        config.Logger,
+		db:     config.Client,
+		logger: config.Logger,
 	}, nil
 }
 
 var _ billing.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db *entdb.Client
-	// dbWithoutTrns is used to execute any upsert operations outside of ctx driven transactions
-	dbWithoutTrns *entdb.Client
-	logger        *slog.Logger
+	db     *entdb.Client
+	logger *slog.Logger
 }
 
 func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
@@ -66,8 +63,7 @@ func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) billing.Adap
 	txDb := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 
 	return &adapter{
-		db:            txDb.Client(),
-		dbWithoutTrns: a.dbWithoutTrns,
-		logger:        a.logger,
+		db:     txDb.Client(),
+		logger: a.logger,
 	}
 }

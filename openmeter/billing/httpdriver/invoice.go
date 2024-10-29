@@ -37,7 +37,13 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				Customers: lo.FromPtrOr(input.Customers, nil),
 				Statuses: lo.Map(
 					lo.FromPtrOr(input.Statuses, nil),
-					func(status api.BillingInvoiceStatus, _ int) billingentity.InvoiceStatus {
+					func(status api.BillingInvoiceStatus, _ int) string {
+						return string(status)
+					},
+				),
+				ExtendedStatuses: lo.Map(
+					lo.FromPtrOr(input.ExtendedStatuses, nil),
+					func(status api.BillingInvoiceExtendedStatus, _ int) billingentity.InvoiceStatus {
 						return billingentity.InvoiceStatus(status)
 					},
 				),
@@ -108,13 +114,14 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 	out := api.BillingInvoice{
 		Id: invoice.ID,
 
-		CreatedAt: invoice.CreatedAt,
-		UpdatedAt: invoice.UpdatedAt,
-		DeletedAt: invoice.DeletedAt,
-		IssuedAt:  invoice.IssuedAt,
-		VoidedAt:  invoice.VoidedAt,
-		DueAt:     invoice.DueAt,
-		Period:    mapPeriodToAPI(invoice.Period),
+		CreatedAt:  invoice.CreatedAt,
+		UpdatedAt:  invoice.UpdatedAt,
+		DeletedAt:  invoice.DeletedAt,
+		IssuedAt:   invoice.IssuedAt,
+		VoidedAt:   invoice.VoidedAt,
+		DueAt:      invoice.DueAt,
+		DraftUntil: invoice.DraftUntil,
+		Period:     mapPeriodToAPI(invoice.Period),
 
 		Currency: string(invoice.Currency),
 		Customer: mapInvoiceCustomerToAPI(invoice.Customer),
@@ -123,7 +130,16 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 		Description: invoice.Description,
 		Metadata:    lo.EmptyableToPtr(invoice.Metadata),
 
-		Status:   api.BillingInvoiceStatus(invoice.Status),
+		Status: api.BillingInvoiceStatus(invoice.Status.ShortStatus()),
+		StatusDetails: api.BillingInvoiceStatusDetails{
+			Failed:         invoice.StatusDetails.Failed,
+			Immutable:      invoice.StatusDetails.Immutable,
+			ExtendedStatus: api.BillingInvoiceExtendedStatus(invoice.Status),
+
+			AvailableActions: lo.Map(invoice.StatusDetails.AvailableActions, func(a billingentity.InvoiceAction, _ int) api.BillingInvoiceAction {
+				return api.BillingInvoiceAction(a)
+			}),
+		},
 		Supplier: mapSupplierContactToAPI(invoice.Supplier),
 		// TODO[OM-942]: This needs to be (re)implemented
 		Totals: api.BillingInvoiceTotals{},
@@ -136,7 +152,7 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 		out.Workflow = &api.BillingInvoiceWorkflowSettings{
 			Apps:                   apps,
 			SourceBillingProfileID: invoice.Workflow.SourceBillingProfileID,
-			Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.WorkflowConfig),
+			Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config),
 			Timezone:               string(invoice.Timezone),
 		}
 	}
@@ -189,13 +205,13 @@ func mapInvoiceCustomerToAPI(c billingentity.InvoiceCustomer) api.BillingParty {
 	}
 }
 
-func mapInvoiceExpandToEntity(expand []api.BillingInvoiceExpand) billing.InvoiceExpand {
+func mapInvoiceExpandToEntity(expand []api.BillingInvoiceExpand) billingentity.InvoiceExpand {
 	if len(expand) == 0 {
-		return billing.InvoiceExpand{}
+		return billingentity.InvoiceExpand{}
 	}
 
 	if slices.Contains(expand, api.BillingInvoiceExpandAll) {
-		return billing.InvoiceExpand{
+		return billingentity.InvoiceExpand{
 			Lines:        true,
 			Preceding:    true,
 			Workflow:     true,
@@ -203,7 +219,7 @@ func mapInvoiceExpandToEntity(expand []api.BillingInvoiceExpand) billing.Invoice
 		}
 	}
 
-	return billing.InvoiceExpand{
+	return billingentity.InvoiceExpand{
 		Lines:        slices.Contains(expand, api.BillingInvoiceExpandLines),
 		Preceding:    slices.Contains(expand, api.BillingInvoiceExpandPreceding),
 		Workflow:     slices.Contains(expand, api.BillingInvoiceExpandWorkflow),

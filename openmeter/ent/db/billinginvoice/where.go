@@ -212,6 +212,11 @@ func IssuedAt(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldIssuedAt, v))
 }
 
+// DraftUntil applies equality check predicate on the "draft_until" field. It's identical to DraftUntilEQ.
+func DraftUntil(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldDraftUntil, v))
+}
+
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v currencyx.Code) predicate.BillingInvoice {
 	vc := string(v)
@@ -2253,6 +2258,56 @@ func IssuedAtIsNil() predicate.BillingInvoice {
 // IssuedAtNotNil applies the NotNil predicate on the "issued_at" field.
 func IssuedAtNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldIssuedAt))
+}
+
+// DraftUntilEQ applies the EQ predicate on the "draft_until" field.
+func DraftUntilEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldDraftUntil, v))
+}
+
+// DraftUntilNEQ applies the NEQ predicate on the "draft_until" field.
+func DraftUntilNEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldDraftUntil, v))
+}
+
+// DraftUntilIn applies the In predicate on the "draft_until" field.
+func DraftUntilIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldDraftUntil, vs...))
+}
+
+// DraftUntilNotIn applies the NotIn predicate on the "draft_until" field.
+func DraftUntilNotIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldDraftUntil, vs...))
+}
+
+// DraftUntilGT applies the GT predicate on the "draft_until" field.
+func DraftUntilGT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldDraftUntil, v))
+}
+
+// DraftUntilGTE applies the GTE predicate on the "draft_until" field.
+func DraftUntilGTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldDraftUntil, v))
+}
+
+// DraftUntilLT applies the LT predicate on the "draft_until" field.
+func DraftUntilLT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldDraftUntil, v))
+}
+
+// DraftUntilLTE applies the LTE predicate on the "draft_until" field.
+func DraftUntilLTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldDraftUntil, v))
+}
+
+// DraftUntilIsNil applies the IsNil predicate on the "draft_until" field.
+func DraftUntilIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldDraftUntil))
+}
+
+// DraftUntilNotNil applies the NotNil predicate on the "draft_until" field.
+func DraftUntilNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldDraftUntil))
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.

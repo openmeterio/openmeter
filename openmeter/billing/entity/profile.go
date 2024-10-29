@@ -26,21 +26,6 @@ const (
 	AlignmentKindSubscription AlignmentKind = "subscription"
 )
 
-var DefaultWorkflowConfig = WorkflowConfig{
-	Collection: CollectionConfig{
-		Alignment: AlignmentKindSubscription,
-		Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
-	},
-	Invoicing: InvoicingConfig{
-		AutoAdvance: lo.ToPtr(true),
-		DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
-		DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
-	},
-	Payment: PaymentConfig{
-		CollectionMethod: CollectionMethodChargeAutomatically,
-	},
-}
-
 func (k AlignmentKind) Values() []string {
 	return []string{
 		string(AlignmentKindSubscription),
@@ -114,13 +99,13 @@ func (c *CollectionConfig) Validate() error {
 
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
-	AutoAdvance *bool        `json:"autoAdvance,omitempty"`
+	AutoAdvance bool         `json:"autoAdvance,omitempty"`
 	DraftPeriod datex.Period `json:"draftPeriod,omitempty"`
 	DueAfter    datex.Period `json:"dueAfter,omitempty"`
 }
 
 func (c *InvoicingConfig) Validate() error {
-	if c.DraftPeriod.IsNegative() && c.AutoAdvance != nil && *c.AutoAdvance {
+	if c.DraftPeriod.IsNegative() && c.AutoAdvance {
 		return fmt.Errorf("draft period must be greater or equal to 0")
 	}
 
@@ -266,7 +251,7 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 	}
 
 	p.WorkflowConfig.Invoicing = InvoicingConfig{
-		AutoAdvance: lo.CoalesceOrEmpty(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
+		AutoAdvance: lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
 		DraftPeriod: lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
 		DueAfter:    lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
 	}
@@ -317,5 +302,5 @@ type InvoiceWorkflow struct {
 	AppReferences          ProfileAppReferences `json:"appReferences"`
 	Apps                   *ProfileApps         `json:"apps,omitempty"`
 	SourceBillingProfileID string               `json:"sourceBillingProfileId,omitempty"`
-	WorkflowConfig         WorkflowConfig       `json:"workflow"`
+	Config                 WorkflowConfig       `json:"config"`
 }

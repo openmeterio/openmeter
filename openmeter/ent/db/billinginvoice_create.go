@@ -396,6 +396,20 @@ func (bic *BillingInvoiceCreate) SetNillableIssuedAt(t *time.Time) *BillingInvoi
 	return bic
 }
 
+// SetDraftUntil sets the "draft_until" field.
+func (bic *BillingInvoiceCreate) SetDraftUntil(t time.Time) *BillingInvoiceCreate {
+	bic.mutation.SetDraftUntil(t)
+	return bic
+}
+
+// SetNillableDraftUntil sets the "draft_until" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableDraftUntil(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetDraftUntil(*t)
+	}
+	return bic
+}
+
 // SetCurrency sets the "currency" field.
 func (bic *BillingInvoiceCreate) SetCurrency(c currencyx.Code) *BillingInvoiceCreate {
 	bic.mutation.SetCurrency(c)
@@ -858,6 +872,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.IssuedAt(); ok {
 		_spec.SetField(billinginvoice.FieldIssuedAt, field.TypeTime, value)
 		_node.IssuedAt = &value
+	}
+	if value, ok := bic.mutation.DraftUntil(); ok {
+		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
+		_node.DraftUntil = &value
 	}
 	if value, ok := bic.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
@@ -1490,6 +1508,24 @@ func (u *BillingInvoiceUpsert) UpdateIssuedAt() *BillingInvoiceUpsert {
 // ClearIssuedAt clears the value of the "issued_at" field.
 func (u *BillingInvoiceUpsert) ClearIssuedAt() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldIssuedAt)
+	return u
+}
+
+// SetDraftUntil sets the "draft_until" field.
+func (u *BillingInvoiceUpsert) SetDraftUntil(v time.Time) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldDraftUntil, v)
+	return u
+}
+
+// UpdateDraftUntil sets the "draft_until" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateDraftUntil() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldDraftUntil)
+	return u
+}
+
+// ClearDraftUntil clears the value of the "draft_until" field.
+func (u *BillingInvoiceUpsert) ClearDraftUntil() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldDraftUntil)
 	return u
 }
 
@@ -2158,6 +2194,27 @@ func (u *BillingInvoiceUpsertOne) UpdateIssuedAt() *BillingInvoiceUpsertOne {
 func (u *BillingInvoiceUpsertOne) ClearIssuedAt() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearIssuedAt()
+	})
+}
+
+// SetDraftUntil sets the "draft_until" field.
+func (u *BillingInvoiceUpsertOne) SetDraftUntil(v time.Time) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDraftUntil(v)
+	})
+}
+
+// UpdateDraftUntil sets the "draft_until" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateDraftUntil() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDraftUntil()
+	})
+}
+
+// ClearDraftUntil clears the value of the "draft_until" field.
+func (u *BillingInvoiceUpsertOne) ClearDraftUntil() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDraftUntil()
 	})
 }
 
@@ -3006,6 +3063,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateIssuedAt() *BillingInvoiceUpsertBulk {
 func (u *BillingInvoiceUpsertBulk) ClearIssuedAt() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearIssuedAt()
+	})
+}
+
+// SetDraftUntil sets the "draft_until" field.
+func (u *BillingInvoiceUpsertBulk) SetDraftUntil(v time.Time) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDraftUntil(v)
+	})
+}
+
+// UpdateDraftUntil sets the "draft_until" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateDraftUntil() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDraftUntil()
+	})
+}
+
+// ClearDraftUntil clears the value of the "draft_until" field.
+func (u *BillingInvoiceUpsertBulk) ClearDraftUntil() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDraftUntil()
 	})
 }
 

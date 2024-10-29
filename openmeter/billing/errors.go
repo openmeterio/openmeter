@@ -67,6 +67,24 @@ func (e NotFoundError) Unwrap() error {
 	return e.Err
 }
 
+type ConflictError struct {
+	ID     string
+	Entity string
+	Err    error
+}
+
+func (e ConflictError) Error() string {
+	if e.ID == "" {
+		return e.Err.Error()
+	}
+
+	return fmt.Sprintf("%s [%s/%s]", e.Err, e.Entity, e.ID)
+}
+
+func (e ConflictError) Unwrap() error {
+	return e.Err
+}
+
 type genericError struct {
 	Err error
 }

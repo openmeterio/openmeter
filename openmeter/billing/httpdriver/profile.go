@@ -356,7 +356,7 @@ func fromAPIBillingAppIdOrType(i string) billingentity.AppReference {
 }
 
 func fromAPIBillingWorkflow(i api.BillingWorkflow) (billingentity.WorkflowConfig, error) {
-	def := billingentity.DefaultWorkflowConfig
+	def := defaultWorkflowConfig
 
 	if i.Collection == nil {
 		i.Collection = &api.BillingWorkflowCollectionSettings{}
@@ -397,7 +397,7 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billingentity.WorkflowConfig
 		},
 
 		Invoicing: billingentity.InvoicingConfig{
-			AutoAdvance: lo.CoalesceOrEmpty(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
+			AutoAdvance: lo.FromPtrOr(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
 			DraftPeriod: draftPeriod,
 			DueAfter:    dueAfter,
 		},
@@ -576,7 +576,7 @@ func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow 
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance: c.Invoicing.AutoAdvance,
+			AutoAdvance: lo.ToPtr(c.Invoicing.AutoAdvance),
 			DraftPeriod: lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:    lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 		},
@@ -595,7 +595,7 @@ func mapWorkflowConfigSettingsToAPI(c billingentity.WorkflowConfig) api.BillingW
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance: c.Invoicing.AutoAdvance,
+			AutoAdvance: lo.ToPtr(c.Invoicing.AutoAdvance),
 			DraftPeriod: lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:    lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 		},

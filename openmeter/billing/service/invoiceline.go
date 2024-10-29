@@ -104,12 +104,12 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 			PageNumber: 1,
 			PageSize:   10,
 		},
-		Customers:  []string{input.CustomerID},
-		Namespace:  input.Namespace,
-		Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-		Currencies: []currencyx.Code{line.Currency},
-		OrderBy:    api.BillingInvoiceOrderByCreatedAt,
-		Order:      sortx.OrderAsc,
+		Customers:        []string{input.CustomerID},
+		Namespace:        input.Namespace,
+		ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+		Currencies:       []currencyx.Code{line.Currency},
+		OrderBy:          api.BillingInvoiceOrderByCreatedAt,
+		Order:            sortx.OrderAsc,
 	})
 	if err != nil {
 		return line, fmt.Errorf("fetching gathering invoices: %w", err)

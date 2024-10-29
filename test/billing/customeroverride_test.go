@@ -135,7 +135,7 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 		wfConfig := customerProfile.Profile.WorkflowConfig
 
 		require.Equal(t, wfConfig.Collection.Interval, datex.MustParse(t, "PT1H"))
-		require.Equal(t, *wfConfig.Invoicing.AutoAdvance, false)
+		require.Equal(t, wfConfig.Invoicing.AutoAdvance, false)
 		require.Equal(t, wfConfig.Invoicing.DraftPeriod, datex.MustParse(t, "PT2H"))
 		require.Equal(t, wfConfig.Invoicing.DueAfter, datex.MustParse(t, "PT3H"))
 		require.Equal(t, wfConfig.Payment.CollectionMethod, billingentity.CollectionMethodSendInvoice)
@@ -210,9 +210,9 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 		wfConfig := customerProfile.Profile.WorkflowConfig
 
 		require.Equal(t, wfConfig.Collection.Interval, datex.MustParse(s.T(), "PT1H"))
-		require.Equal(t, *wfConfig.Invoicing.AutoAdvance, true)
-		require.Equal(t, wfConfig.Invoicing.DraftPeriod, billingentity.DefaultWorkflowConfig.Invoicing.DraftPeriod)
-		require.Equal(t, wfConfig.Invoicing.DueAfter, billingentity.DefaultWorkflowConfig.Invoicing.DueAfter)
+		require.Equal(t, wfConfig.Invoicing.AutoAdvance, true)
+		require.Equal(t, wfConfig.Invoicing.DraftPeriod, lo.Must(datex.ISOString("P1D").Parse()))
+		require.Equal(t, wfConfig.Invoicing.DueAfter, lo.Must(datex.ISOString("P1W").Parse()))
 		require.Equal(t, wfConfig.Payment.CollectionMethod, billingentity.CollectionMethodChargeAutomatically)
 	})
 }
