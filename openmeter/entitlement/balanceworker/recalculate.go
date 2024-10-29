@@ -147,7 +147,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 }
 
 func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	if ent.DeletedAt != nil {
+	if ent.DeletedAt != nil || (ent.ActiveTo != nil && time.Now().After(*ent.ActiveTo)) {
 		return r.sendEntitlementDeletedEvent(ctx, ent)
 	}
 
