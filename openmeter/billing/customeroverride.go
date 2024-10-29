@@ -154,6 +154,6 @@ func (i HasCustomerOverrideReferencingProfileAdapterInput) Validate() error {
 }
 
 type (
-	UpsertCustomerOverrideIgnoringTrnsAdapterInput = customerentity.CustomerID
-	LockCustomerForUpdateAdapterInput              = customerentity.CustomerID
+	UpsertCustomerOverrideAdapterInput = customerentity.CustomerID
+	LockCustomerForUpdateAdapterInput  = customerentity.CustomerID
 )

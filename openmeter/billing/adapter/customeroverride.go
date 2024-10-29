@@ -178,8 +178,8 @@ func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 	return customerIDs, nil
 }
 
-func (r *adapter) UpsertCustomerOverrideIgnoringTrns(ctx context.Context, input billing.UpsertCustomerOverrideIgnoringTrnsAdapterInput) error {
-	err := r.dbWithoutTrns.BillingCustomerOverride.Create().
+func (r *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
+	err := r.db.BillingCustomerOverride.Create().
 		SetNamespace(input.Namespace).
 		SetCustomerID(input.ID).
 		OnConflict(

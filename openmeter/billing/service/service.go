@@ -71,7 +71,8 @@ func TransactingRepoForGatheringInvoiceManipulation[T any](ctx context.Context, 
 		return empty, fmt.Errorf("validating customer: %w", err)
 	}
 
-	err := adapter.UpsertCustomerOverrideIgnoringTrns(ctx, customer)
+	// NOTE: This should not be in transaction, or we can get a conflict for parallel writes
+	err := adapter.UpsertCustomerOverride(ctx, customer)
 	if err != nil {
 		var empty T
 		return empty, fmt.Errorf("upserting customer override: %w", err)

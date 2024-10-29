@@ -35,17 +35,9 @@ type CustomerOverrideAdapter interface {
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
-	// UpsertCustomerOverrideIgnoringTrns upserts a customer override ignoring the transactional context, the override
+	// UpsertCustomerOverride upserts a customer override ignoring the transactional context, the override
 	// will be empty.
-	//
-	// This allows us to provision a customer override outside of a transactional context, and rely on LockCustomerForUpdate
-	// to coordinate ongoing transactions for a single customer.
-	//
-	// This approach is used for gathering invoices where we can ensure that no more than one gathering invoice
-	// is created per customer, per currency.
-	//
-	// For invoice specific changes the LockInvoicesForUpdate should be used, which will be more performant.
-	UpsertCustomerOverrideIgnoringTrns(ctx context.Context, input UpsertCustomerOverrideIgnoringTrnsAdapterInput) error
+	UpsertCustomerOverride(ctx context.Context, input UpsertCustomerOverrideAdapterInput) error
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 
 	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error)
