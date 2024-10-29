@@ -2,8 +2,10 @@ package billingadapter
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -12,11 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/pkg/clock"
-)
-
-const (
-	// defaultCustomerOverrideCacheSize is the default size of the customer override cache used for upsert operations
-	defaultCustomerOverrideCacheSize = 10_000
 )
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
@@ -182,44 +179,19 @@ func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 }
 
 func (r *adapter) UpsertCustomerOverrideIgnoringTrns(ctx context.Context, input billing.UpsertCustomerOverrideIgnoringTrnsAdapterInput) error {
-	if val, ok := r.upsertCustomerOverrideCache.Get(input.ID); ok {
-		if val.Namespace == input.Namespace {
-			return nil
-		}
-	}
-
-	ent, err := r.db.BillingCustomerOverride.Query().
-		Where(billingcustomeroverride.CustomerID(input.ID)).
-		Where(billingcustomeroverride.Namespace(input.Namespace)).
-		First(ctx)
+	err := r.dbWithoutTrns.BillingCustomerOverride.Create().
+		SetNamespace(input.Namespace).
+		SetCustomerID(input.ID).
+		OnConflict(
+			entsql.DoNothing(),
+		).
+		Exec(ctx)
 	if err != nil {
-		if db.IsNotFound(err) {
-			ent, err = r.db.BillingCustomerOverride.Create().
-				SetNamespace(input.Namespace).
-				SetCustomerID(input.ID).
-				Save(ctx)
-			if err != nil {
-				// Most probably a conflict caused by concurrent upserts => let's try to fetch again
-				ent, err = r.db.BillingCustomerOverride.Query().
-					Where(billingcustomeroverride.CustomerID(input.ID)).
-					Where(billingcustomeroverride.Namespace(input.Namespace)).
-					First(ctx)
-				if err != nil {
-					return err
-				}
-
-				// Let's update the cache
-				r.upsertCustomerOverrideCache.Add(input.ID, ent)
-				return nil
-			}
-
-			// Let's update the cache
-			r.upsertCustomerOverrideCache.Add(input.ID, ent)
+		// The do nothing returns no lines, so we have the record ready
+		if err == sql.ErrNoRows {
 			return nil
 		}
-		return err
 	}
-	r.upsertCustomerOverrideCache.Add(input.ID, ent)
 	return nil
 }
 

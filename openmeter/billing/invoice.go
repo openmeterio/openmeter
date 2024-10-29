@@ -155,7 +155,7 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 
 type CreateInvoiceAdapterRespone = billingentity.Invoice
 
-type CreateInvoiceAsOfInput struct {
+type CreateInvoiceInput struct {
 	Customer customerentity.CustomerID
 
 	// IncludePendingLines is a list of line IDs that should be included in the invoice.
@@ -165,7 +165,7 @@ type CreateInvoiceAsOfInput struct {
 	AsOf                *time.Time
 }
 
-func (i CreateInvoiceAsOfInput) Validate() error {
+func (i CreateInvoiceInput) Validate() error {
 	if err := i.Customer.Validate(); err != nil {
 		return fmt.Errorf("customer: %w", err)
 	}

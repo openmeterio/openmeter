@@ -66,6 +66,11 @@ func New(config Config) (*Service, error) {
 // an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
 // invoice, that doesn't exist yet.
 func TransactingRepoForGatheringInvoiceManipulation[T any](ctx context.Context, adapter billing.Adapter, customer customerentity.CustomerID, fn func(ctx context.Context, txAdapter billing.Adapter) (T, error)) (T, error) {
+	if err := customer.Validate(); err != nil {
+		var empty T
+		return empty, fmt.Errorf("validating customer: %w", err)
+	}
+
 	err := adapter.UpsertCustomerOverrideIgnoringTrns(ctx, customer)
 	if err != nil {
 		var empty T

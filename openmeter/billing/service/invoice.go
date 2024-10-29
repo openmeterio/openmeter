@@ -68,7 +68,7 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	})
 }
 
-func (s *Service) CreateInvoiceAsOf(ctx context.Context, input billing.CreateInvoiceAsOfInput) ([]billingentity.Invoice, error) {
+func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoiceInput) ([]billingentity.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -193,7 +193,7 @@ func (s *Service) CreateInvoiceAsOf(ctx context.Context, input billing.CreateInv
 		})
 }
 
-func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceAsOfInput, txAdapter billing.Adapter, asOf time.Time) ([]billingentity.Line, error) {
+func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceInput, txAdapter billing.Adapter, asOf time.Time) ([]billingentity.Line, error) {
 	if input.IncludePendingLines != nil {
 		if len(*input.IncludePendingLines) == 0 {
 			// We would like to create an empty invoice

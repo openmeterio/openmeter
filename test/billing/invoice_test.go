@@ -431,7 +431,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	}
 
 	s.Run("Creating invoice in the future fails", func() {
-		_, err := s.BillingService.CreateInvoiceAsOf(ctx, billing.CreateInvoiceAsOfInput{
+		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -444,7 +444,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("Creating invoice without any pending lines being available fails", func() {
-		_, err := s.BillingService.CreateInvoiceAsOf(ctx, billing.CreateInvoiceAsOfInput{
+		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -469,7 +469,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When creating an invoice with only item1 included", func() {
-		invoice, err := s.BillingService.CreateInvoiceAsOf(ctx, billing.CreateInvoiceAsOfInput{
+		invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -497,7 +497,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When creating an invoice with only item2 included, but bad asof", func() {
-		_, err := s.BillingService.CreateInvoiceAsOf(ctx, billing.CreateInvoiceAsOfInput{
+		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -512,7 +512,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When creating an invoice with only item2 included", func() {
-		invoice, err := s.BillingService.CreateInvoiceAsOf(ctx, billing.CreateInvoiceAsOfInput{
+		invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -540,7 +540,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When include pending lines is an empty array", func() {
-		invoice, err := s.BillingService.CreateInvoiceAsOf(ctx, billing.CreateInvoiceAsOfInput{
+		invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
