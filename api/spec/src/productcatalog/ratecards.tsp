@@ -22,7 +22,7 @@ model RateCardBase<T extends RateCardType> {
   /**
    * The type of the RateCard.
    */
-  @visibility("read", "create")
+  @visibility("read", "create", "update")
   @summary("RateCard type")
   type: T;
 

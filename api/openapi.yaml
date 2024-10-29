@@ -16,6 +16,7 @@ tags:
   - name: Customers
   - name: Billing (Experimental)
   - name: Plan (Experimental)
+  - name: Subscriptions
   - name: Events
   - name: Meters
   - name: Debug
@@ -6727,6 +6728,547 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
+  /api/v1/subscriptions:
+    post:
+      operationId: Subscriptions_create
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenMeter.ProductCatalog.CreateSubscriptionRequestBody'
+  /api/v1/subscriptions/{subscriptionId}:
+    get:
+      operationId: getSubscription_getSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: expand
+          in: query
+          required: false
+          schema:
+            type: boolean
+            enum:
+              - false
+              - true
+          explode: false
+        - name: at
+          in: query
+          required: false
+          description: The time at which the subscription should be queried. If not provided the current time is used.
+          schema:
+            type: string
+            format: date-time
+            example: 2023-01-01T01:01:01.001Z
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/Subscription'
+                  - $ref: '#/components/schemas/SubscriptionExpanded'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
+    patch:
+      operationId: editSubscription
+      description: |-
+        Batch processing commands for manipulating running subscriptions.
+        The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+
+        Add operations insert a new member based on the creation input without altering the existing members.
+
+        Remove operations remove the member from the collection / document.
+
+        The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                anyOf:
+                  - type: object
+                    required:
+                      - op
+                      - path
+                      - value
+                    properties:
+                      op:
+                        type: string
+                        enum:
+                          - add
+                      path:
+                        type: string
+                        pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+                      value:
+                        $ref: '#/components/schemas/RateCardUpdateItem'
+                  - type: object
+                    required:
+                      - op
+                      - path
+                    properties:
+                      op:
+                        type: string
+                        enum:
+                          - remove
+                      path:
+                        type: string
+                        pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+                  - type: object
+                    required:
+                      - op
+                      - path
+                      - value
+                    properties:
+                      op:
+                        type: string
+                        enum:
+                          - add
+                      path:
+                        type: string
+                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+                      value:
+                        $ref: '#/components/schemas/SubscriptionPhaseCreateInput'
+                  - type: object
+                    required:
+                      - op
+                      - path
+                      - value
+                    properties:
+                      op:
+                        type: string
+                        enum:
+                          - extend
+                      path:
+                        type: string
+                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+                      value:
+                        type: object
+                        properties:
+                          extendBy:
+                            type: string
+                            format: duration
+                        required:
+                          - extendBy
+                  - type: object
+                    required:
+                      - op
+                      - path
+                      - value
+                    properties:
+                      op:
+                        type: string
+                        enum:
+                          - remove
+                      path:
+                        type: string
+                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+                      value:
+                        type: object
+                        properties:
+                          shift:
+                            $ref: '#/components/schemas/RemovePhaseShifting'
+                        required:
+                          - shift
+  /api/v1/subscriptions/{subscriptionId}/cancel:
+    post:
+      operationId: cancelSubscription
+      description: Cancels the subscription.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                effectiveDate:
+                  type: string
+                  format: date-time
+                  example: 2023-01-01T01:01:01.001Z
+                  description: If not provided the subscription is canceled immediately.
+  /api/v1/subscriptions/{subscriptionId}/migrate:
+    post:
+      operationId: migrateSubscription
+      description: Migrates the subscripiton to the procided version of the plan.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetVersion:
+                  type: integer
+                  minimum: 1
+              required:
+                - targetVersion
+  /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
+    post:
+      operationId: unscheduleCancelation
+      description: Cancels the scheduled cancelation.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
 security:
   - {}
   - CloudTokenAuth: []
@@ -7369,6 +7911,71 @@ components:
         - stripe
         - sandbox
       description: Type of the app.
+    AppliedDiscount:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/AppliedDiscountPercentage'
+      description: 'A discount on plan. One of: percentage or amount.'
+    AppliedDiscountPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the discount.
+          title: Type
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        appliesTo:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+            description: A key is a unique string that is used to identify a resource.
+          description: |-
+            The rate cards that the discount applies to.
+            When not specified, the discount applies to all rate cards.
+          title: Applies To
+      description: Percentage discount on plan.
+    AppliedDiscountPercentageUpdateItem:
+      type: object
+      required:
+        - percentage
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        appliesTo:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+            description: A key is a unique string that is used to identify a resource.
+          description: |-
+            The rate cards that the discount applies to.
+            When not specified, the discount applies to all rate cards.
+          title: Applies To
+      description: Percentage discount on plan.
+    AppliedDiscountUpdateItem:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/AppliedDiscountPercentageUpdateItem'
+      description: 'A discount on plan. One of: percentage or amount.'
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -10603,6 +11210,16 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of the flat price.
       description: Flat price.
+    FlatPriceUpdateItem:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the flat price.
+      description: Flat price.
     FlatPriceWithPaymentTerm:
       type: object
       required:
@@ -10613,6 +11230,23 @@ components:
           type: string
           enum:
             - flat
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the flat price.
+        paymentTerm:
+          allOf:
+            - $ref: '#/components/schemas/PricePaymentTerm'
+          description: |-
+            The payment term of the flat price.
+            Defaults to in advance.
+          default: in_advance
+      description: Flat price with payment term.
+    FlatPriceWithPaymentTermUpdateItem:
+      type: object
+      required:
+        - amount
+      properties:
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11811,6 +12445,80 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
+    OpenMeter.ProductCatalog.CreateSubscriptionRequestBody:
+      type: object
+      required:
+        - customerId
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+      properties:
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - type: object
+                required:
+                  - op
+                  - path
+                  - value
+                properties:
+                  op:
+                    type: string
+                    enum:
+                      - add
+                  path:
+                    type: string
+                    pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+                  value:
+                    $ref: '#/components/schemas/RateCard'
+              - type: object
+                required:
+                  - op
+                  - path
+                properties:
+                  op:
+                    type: string
+                    enum:
+                      - remove
+                  path:
+                    type: string
+                    pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
     Percentage:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?%$
@@ -12006,42 +12714,6 @@ components:
             A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
           title: Plan phases
       description: Resource create operation model.
-    PlanDiscount:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/PlanDiscountPercentage'
-      description: 'A discount on plan. One of: percentage or amount.'
-    PlanDiscountPercentage:
-      type: object
-      required:
-        - type
-        - percentage
-      properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the discount.
-          title: Type
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: The percentage of the discount.
-          title: Percentage
-        appliesToRateCards:
-          type: array
-          items:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-            description: A key is a unique string that is used to identify a resource.
-          description: |-
-            The rate cards that the discount applies to.
-            When not specified, the discount applies to all rate cards.
-          title: Applies To
-      description: Percentage discount on plan.
     PlanOrderBy:
       type: string
       enum:
@@ -12081,8 +12753,8 @@ components:
         - createdAt
         - updatedAt
         - key
-        - interval
         - rateCards
+        - startAfter
       properties:
         name:
           type: string
@@ -12126,27 +12798,25 @@ components:
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A semi-unique identifier for the resource.
-          title: Key
-        interval:
-          type: string
-          format: duration
-          nullable: true
-          example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Interval
+          description: Unique key among the plan phases. Used to reference the phase in the subscription & plan.
         rateCards:
           type: array
           items:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        discount:
-          allOf:
-            - $ref: '#/components/schemas/PlanDiscount'
-          description: The discount on the plan.
+        startAfter:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: The time after which the plan starts compared to subscription start
+          title: Duration
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
           title: Discount
       description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
     PlanPhaseCreate:
@@ -12154,8 +12824,8 @@ components:
       required:
         - name
         - key
-        - interval
         - rateCards
+        - startAfter
       properties:
         name:
           type: string
@@ -12178,27 +12848,25 @@ components:
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A semi-unique identifier for the resource.
-          title: Key
-        interval:
-          type: string
-          format: duration
-          nullable: true
-          example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Interval
+          description: Unique key among the plan phases. Used to reference the phase in the subscription & plan.
         rateCards:
           type: array
           items:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        discount:
-          allOf:
-            - $ref: '#/components/schemas/PlanDiscount'
-          description: The discount on the plan.
+        startAfter:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: The time after which the plan starts compared to subscription start
+          title: Duration
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
           title: Discount
       description: Resource create operation model.
     PlanPhasePaginatedResponse:
@@ -12246,27 +12914,48 @@ components:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the resource.
           title: Metadata
-        interval:
+        key:
           type: string
-          format: duration
-          nullable: true
-          example: P1Y1D
-          description: |-
-            Interval after the subscription starts to transition to the phase.
-            When null, the phase starts immediately after the subscription starts.
-          title: Interval
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: Unique key among the plan phases. Used to reference the phase in the subscription & plan.
         rateCards:
           type: array
           items:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        discount:
-          allOf:
-            - $ref: '#/components/schemas/PlanDiscount'
-          description: The discount on the plan.
+        startAfter:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: The time after which the plan starts compared to subscription start
+          title: Duration
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
           title: Discount
       description: Resource create or update operation model.
+    PlanReference:
+      type: object
+      required:
+        - key
+        - version
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The plan key.
+        version:
+          type: integer
+          description: The plan version.
+      description: Referebces an exact plan.
     PlanStatus:
       type: string
       enum:
@@ -12406,6 +13095,38 @@ components:
           type: object
           allOf:
             - $ref: '#/components/schemas/UnitPrice'
+          nullable: true
+          description: The unit price component of the tier.
+          title: Unit price component
+      description: |-
+        A price tier.
+        At least one price component is required in each tier.
+    PriceTierUpdateItem:
+      type: object
+      required:
+        - upToAmount
+        - flatPrice
+        - unitPrice
+      properties:
+        upToAmount:
+          type: number
+          format: double
+          nullable: true
+          description: |-
+            Up to and including to this quantity will be contained in the tier.
+            If null, the tier is open-ended.
+          title: Up to quantity
+        flatPrice:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/FlatPriceUpdateItem'
+          nullable: true
+          description: The flat price component of the tier.
+          title: Flat price component
+        unitPrice:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/UnitPriceUpdateItem'
           nullable: true
           description: The unit price component of the tier.
           title: Unit price component
@@ -12575,6 +13296,74 @@ components:
             When null, the feature or service is free.
           title: Price
       description: A flat fee rate card defines a one-time purchase or a recurring fee.
+    RateCardFlatFeeUpdateItem:
+      type: object
+      required:
+        - name
+        - type
+        - billingCadence
+        - price
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the RateCard.
+          title: RateCard type
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the customer is entitled to use.
+          title: Feature key
+        entitlementTemplate:
+          allOf:
+            - $ref: '#/components/schemas/RateCardEntitlement'
+          description: |-
+            The entitlement of the rate card.
+            Only available when featureKey is set.
+          title: Entitlement template
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the rate card.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
+        billingCadence:
+          type: string
+          format: duration
+          nullable: true
+          description: The billing cadence of the rate card.
+          title: Billing cadence
+        price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/FlatPriceWithPaymentTermUpdateItem'
+          nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+      description: A flat fee rate card defines a one-time purchase or a recurring fee.
     RateCardMeteredEntitlement:
       type: object
       required:
@@ -12644,6 +13433,16 @@ components:
           example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
       description: Entitlement template of a static entitlement.
+    RateCardUpdateItem:
+      oneOf:
+        - $ref: '#/components/schemas/RateCardFlatFeeUpdateItem'
+        - $ref: '#/components/schemas/RateCardUsageBasedUpdateItem'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat_fee: '#/components/schemas/RateCardFlatFeeUpdateItem'
+          usage_based: '#/components/schemas/RateCardUsageBasedUpdateItem'
+      description: A rate card defines the pricing and entitlement of a feature or service.
     RateCardUsageBased:
       type: object
       required:
@@ -12753,6 +13552,84 @@ components:
             When null, the feature or service is free.
           title: Price
       description: A usage-based rate card defines a price based on usage.
+    RateCardUsageBasedUpdateItem:
+      type: object
+      required:
+        - name
+        - type
+        - billingCadence
+        - price
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the RateCard.
+          title: RateCard type
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the customer is entitled to use.
+          title: Feature key
+        entitlementTemplate:
+          allOf:
+            - $ref: '#/components/schemas/RateCardEntitlement'
+          description: |-
+            The entitlement of the rate card.
+            Only available when featureKey is set.
+          title: Entitlement template
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the rate card.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
+        billingCadence:
+          type: string
+          format: duration
+          description: |-
+            The billing cadence of the rate card.
+            When null, the rate card is a one-time purchase.
+          title: Billing cadence
+        price:
+          anyOf:
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/UnitPriceWithCommitmentsUpdateItem'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/TieredPriceWithCommitmentsUpdateItem'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/FlatPriceWithPaymentTermUpdateItem'
+              nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+      description: A usage-based rate card defines a price based on usage.
     RecurringPeriod:
       type: object
       required:
@@ -12804,6 +13681,11 @@ components:
       description: |-
         The unit of time for the interval.
         One of: `day`, `week`, `month`, or `year`.
+    RemovePhaseShifting:
+      type: string
+      enum:
+        - Next
+        - Prev
     ResetEntitlementUsageInput:
       type: object
       properties:
@@ -13219,6 +14101,379 @@ components:
         currentPeriodEnd: 2023-02-01T00:00:00Z
         stripeCustomerId: cus_JMOlctsKV8
       description: A subject is a unique identifier for a user or entity.
+    Subscription:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - customerId
+        - plan
+        - currency
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer ID of the subscription.
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
+          description: The base plan of the subscription.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            The currency code of the subscription.
+            Will be revised once we add multi currency support.
+          title: Currency
+          default: USD
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
+      description: Subscription is an exact subscription instance.
+    SubscriptionExpanded:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - customerId
+        - plan
+        - currency
+        - phases
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer ID of the subscription.
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
+          description: The base plan of the subscription.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            The currency code of the subscription.
+            Will be revised once we add multi currency support.
+          title: Currency
+          default: USD
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionPhaseExpanded'
+      description: Expanded subscription
+    SubscriptionItem:
+      type: object
+      required:
+        - name
+        - createdAt
+        - updatedAt
+        - key
+        - billingCandence
+        - price
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: |-
+            The identifier of the RateCard.
+            SubscriptionItem/RateCard can be identified, it has a reference:
+
+            1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
+            1.1 It can be an ID reference, for an exact version of the Feature (Features can change across versions)
+            1.2 It can be a Key reference, which always refers to the latest (active or inactive) version of a Feature
+
+            2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
+
+            We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item.
+        billingCandence:
+          type: string
+          format: duration
+          nullable: true
+          description: |-
+            The billing cadence of the rate card.
+            When null, the rate card is a one-time purchase.
+          title: Billing cadence
+        price:
+          anyOf:
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/UnitPriceWithCommitments'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/TieredPriceWithCommitments'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+              nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+        included:
+          type: object
+          properties:
+            feature:
+              allOf:
+                - $ref: '#/components/schemas/Feature'
+              description: The feature the customer is entitled to use.
+            entitlement:
+              allOf:
+                - $ref: '#/components/schemas/Entitlement'
+              description: The entitlement of the Subscription Item.
+          required:
+            - feature
+          description: Describes what access is gained via the SubscriptionItem
+      description: The actual contents of the Subscription, what the user gets, what they pay, etc...
+    SubscriptionPhaseCreateInput:
+      type: object
+      required:
+        - startAfter
+        - duration
+      properties:
+        startAfter:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: |-
+            Interval after the subscription starts to transition to the phase.
+            When null, the phase starts immediately after the subscription starts.
+          title: Start after
+        duration:
+          type: string
+          format: duration
+          example: P1M
+          description: The intended duration of the new phase.
+          title: Duration
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscountUpdateItem'
+          description: The discounts on the plan.
+          title: Discount
+    SubscriptionPhaseExpanded:
+      type: object
+      required:
+        - name
+        - createdAt
+        - updatedAt
+        - key
+        - duration
+        - activeFrom
+        - items
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A locally unique identifier for the resource.
+        duration:
+          type: string
+          format: duration
+          example: P1M
+          description: The intended duration of the new phase.
+          title: Duration
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
+          title: Discount
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time from which the phase is active.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionItem'
+      description: Expanded subscription phase
     SvixOperationalWebhookRequest:
       type: object
       required:
@@ -13282,6 +14537,40 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PriceTier'
+          minItems: 1
+          description: |-
+            The tiers of the tiered price.
+            At least one price component is required in each tier.
+          title: Tiers
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Tiered price with spend commitments.
+    TieredPriceWithCommitmentsUpdateItem:
+      type: object
+      required:
+        - mode
+        - tiers
+      properties:
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/TieredPriceMode'
+          description: |-
+            Defines if the tiering mode is volume-based or graduated:
+            - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+            - In `graduated` tiering, pricing can change as the quantity grows.
+          title: Mode
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceTierUpdateItem'
           minItems: 1
           description: |-
             The tiers of the tiered price.
@@ -13362,6 +14651,16 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of the unit price.
       description: Unit price.
+    UnitPriceUpdateItem:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the unit price.
+      description: Unit price.
     UnitPriceWithCommitments:
       type: object
       required:
@@ -13372,6 +14671,26 @@ components:
           type: string
           enum:
             - unit
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the unit price.
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Unit price with spend commitments.
+    UnitPriceWithCommitmentsUpdateItem:
+      type: object
+      required:
+        - amount
+      properties:
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
