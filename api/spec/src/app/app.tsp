@@ -28,7 +28,7 @@ interface Apps {
    */
   @get
   @operationId("listApps")
-  list(...ListAppsRequest): Paginated<App>[] | CommonErrors;
+  list(...ListAppsRequest): Paginated<App> | CommonErrors;
 
   /**
    * Get the app.
