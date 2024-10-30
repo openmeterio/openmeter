@@ -12,8 +12,8 @@ import (
 )
 
 type InvoiceStateMachine struct {
-	Invoice *billingentity.Invoice
-	FSM     *stateless.StateMachine
+	Invoice      *billingentity.Invoice
+	StateMachine *stateless.StateMachine
 }
 
 var (
@@ -39,7 +39,7 @@ func NewInvoiceStateMachine(invoice *billingentity.Invoice) *InvoiceStateMachine
 	// TODO[later]: Delete invoice is not implemented yet
 	// TODO[optimization]: The state machine can be added to sync.Pool to avoid allocations (state is stored in the Invoice entity)
 
-	fsm := stateless.NewStateMachineWithExternalStorage(
+	stateMachine := stateless.NewStateMachineWithExternalStorage(
 		func(ctx context.Context) (stateless.State, error) {
 			return out.Invoice.Status, nil
 		},
@@ -61,18 +61,18 @@ func NewInvoiceStateMachine(invoice *billingentity.Invoice) *InvoiceStateMachine
 	// NOTE: we are not using the substate support of stateless for now, as the
 	// substate inherits all the parent's state transitions resulting in unexpected behavior.
 
-	fsm.Configure(billingentity.InvoiceStatusDraftCreated).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftCreated).
 		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating)
 
-	fsm.Configure(billingentity.InvoiceStatusDraftValidating).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftValidating).
 		Permit(triggerNext, billingentity.InvoiceStatusDraftSyncing).
 		Permit(triggerFailed, billingentity.InvoiceStatusDraftInvalid).
 		OnActive(out.validateDraftInvoice)
 
-	fsm.Configure(billingentity.InvoiceStatusDraftInvalid).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftInvalid).
 		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating)
 
-	fsm.Configure(billingentity.InvoiceStatusDraftSyncing).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncing).
 		Permit(triggerNext,
 			billingentity.InvoiceStatusDraftManualApprovalNeeded,
 			boolFn(not(out.isAutoAdvanceEnabled))).
@@ -82,14 +82,14 @@ func NewInvoiceStateMachine(invoice *billingentity.Invoice) *InvoiceStateMachine
 		Permit(triggerFailed, billingentity.InvoiceStatusDraftSyncFailed).
 		OnActive(out.syncDraftInvoice)
 
-	fsm.Configure(billingentity.InvoiceStatusDraftSyncFailed).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncFailed).
 		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating)
 
-	fsm.Configure(billingentity.InvoiceStatusDraftReadyToIssue).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftReadyToIssue).
 		Permit(triggerNext, billingentity.InvoiceStatusIssuing)
 
 	// Automatic and manual approvals
-	fsm.Configure(billingentity.InvoiceStatusDraftWaitingAutoApproval).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftWaitingAutoApproval).
 		// Manual approval forces the draft invoice to be issued regardless of the review period
 		Permit(triggerApprove, billingentity.InvoiceStatusDraftReadyToIssue).
 		Permit(triggerNext,
@@ -99,23 +99,23 @@ func NewInvoiceStateMachine(invoice *billingentity.Invoice) *InvoiceStateMachine
 
 	// This state is a pre-issuing state where we can halt the execution and execute issuing in the background
 	// if needed
-	fsm.Configure(billingentity.InvoiceStatusDraftManualApprovalNeeded).
+	stateMachine.Configure(billingentity.InvoiceStatusDraftManualApprovalNeeded).
 		Permit(triggerApprove, billingentity.InvoiceStatusDraftReadyToIssue)
 
 	// Issuing state
 
-	fsm.Configure(billingentity.InvoiceStatusIssuing).
+	stateMachine.Configure(billingentity.InvoiceStatusIssuing).
 		Permit(triggerNext, billingentity.InvoiceStatusIssued).
 		Permit(triggerFailed, billingentity.InvoiceStatusIssuingSyncFailed).
 		OnActive(out.issueInvoice)
 
-	fsm.Configure(billingentity.InvoiceStatusIssuingSyncFailed).
+	stateMachine.Configure(billingentity.InvoiceStatusIssuingSyncFailed).
 		Permit(triggerRetry, billingentity.InvoiceStatusIssuing)
 
 	// Issued state (final)
-	fsm.Configure(billingentity.InvoiceStatusIssued)
+	stateMachine.Configure(billingentity.InvoiceStatusIssued)
 
-	out.FSM = fsm
+	out.StateMachine = stateMachine
 
 	return out
 }
@@ -123,15 +123,15 @@ func NewInvoiceStateMachine(invoice *billingentity.Invoice) *InvoiceStateMachine
 func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) billingentity.InvoiceStatusDetails {
 	actions := make([]billingentity.InvoiceAction, 0, 4)
 
-	if ok, err := m.FSM.CanFireCtx(ctx, triggerNext); err == nil && ok {
+	if ok, err := m.StateMachine.CanFireCtx(ctx, triggerNext); err == nil && ok {
 		actions = append(actions, billingentity.InvoiceActionAdvance)
 	}
 
-	if ok, err := m.FSM.CanFireCtx(ctx, triggerRetry); err == nil && ok {
+	if ok, err := m.StateMachine.CanFireCtx(ctx, triggerRetry); err == nil && ok {
 		actions = append(actions, billingentity.InvoiceActionRetry)
 	}
 
-	if ok, err := m.FSM.CanFireCtx(ctx, triggerApprove); err == nil && ok {
+	if ok, err := m.StateMachine.CanFireCtx(ctx, triggerApprove); err == nil && ok {
 		actions = append(actions, billingentity.InvoiceActionApprove)
 	}
 
@@ -146,7 +146,7 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) billingentity.I
 
 func (m *InvoiceStateMachine) ActivateUntilStateStable(ctx context.Context) error {
 	for {
-		canFire, err := m.FSM.CanFireCtx(ctx, triggerNext)
+		canFire, err := m.StateMachine.CanFireCtx(ctx, triggerNext)
 		if err != nil {
 			return err
 		}
@@ -163,28 +163,28 @@ func (m *InvoiceStateMachine) ActivateUntilStateStable(ctx context.Context) erro
 }
 
 func (m *InvoiceStateMachine) CanFire(ctx context.Context, trigger stateless.Trigger) (bool, error) {
-	return m.FSM.CanFireCtx(ctx, trigger)
+	return m.StateMachine.CanFireCtx(ctx, trigger)
 }
 
 // FireAndActivate fires the trigger and activates the new state, if activation fails it automatically
 // transitions to the failed state and activates that.
 func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger stateless.Trigger) error {
-	if err := m.FSM.FireCtx(ctx, trigger); err != nil {
+	if err := m.StateMachine.FireCtx(ctx, trigger); err != nil {
 		return err
 	}
 
-	err := m.FSM.ActivateCtx(ctx)
+	err := m.StateMachine.ActivateCtx(ctx)
 	if err != nil {
 		// There was an error activating the state, we should trigger a transition to the failed state
 		activationError := err
 
 		// TODO[later]: depending on the final implementation, we might want to make this a special error
 		// that signals that the invoice is in an inconsistent state
-		if err := m.FSM.FireCtx(ctx, triggerFailed); err != nil {
+		if err := m.StateMachine.FireCtx(ctx, triggerFailed); err != nil {
 			return fmt.Errorf("failed to transition to failed state: %w", err)
 		}
 
-		if err := m.FSM.ActivateCtx(ctx); err != nil {
+		if err := m.StateMachine.ActivateCtx(ctx); err != nil {
 			return fmt.Errorf("failed to activate failed state: %w", err)
 		}
 

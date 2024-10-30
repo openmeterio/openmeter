@@ -280,7 +280,7 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 	return lines, nil
 }
 
-func (s *Service) getInvoiceFSMWithLock(ctx context.Context, txAdapter billing.Adapter, invoiceID billingentity.InvoiceID) (*InvoiceStateMachine, error) {
+func (s *Service) getInvoiceStatMachineWithLock(ctx context.Context, txAdapter billing.Adapter, invoiceID billingentity.InvoiceID) (*InvoiceStateMachine, error) {
 	// let's lock the invoice for update, we are using the dedicated call, so that
 	// edges won't end up having SELECT FOR UPDATE locks
 	if err := txAdapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
@@ -309,7 +309,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 	}
 
 	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Invoice, error) {
-		fsm, err := s.getInvoiceFSMWithLock(ctx, txAdapter, input)
+		fsm, err := s.getInvoiceStatMachineWithLock(ctx, txAdapter, input)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +340,7 @@ func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoi
 	}
 
 	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Invoice, error) {
-		fsm, err := s.getInvoiceFSMWithLock(ctx, txAdapter, input)
+		fsm, err := s.getInvoiceStatMachineWithLock(ctx, txAdapter, input)
 		if err != nil {
 			return nil, err
 		}
