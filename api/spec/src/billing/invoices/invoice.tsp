@@ -161,6 +161,10 @@ model Invoice {
   @summary("Information on when, how, and to whom the invoice should be paid.")
   @visibility("read", "query") // Seperate API endpoint is available for updating
   payment?: Payment;
+
+  @summary("Validation issues reported by the invoice workflow.")
+  @visibility("read", "query")
+  validationIssues?: ValidationIssue[];
 }
 
 @friendlyName("BillingInvoiceAction")
@@ -528,4 +532,43 @@ model Totals {
 @friendlyName("BillingInvoicePayment")
 model Payment {
   terms?: PaymentTerms;
+}
+
+/**
+ * ValidationIssueSeverity describes the severity of a validation issue.
+ *
+ * Issues with severity "critical" will prevent the invoice from being issued.
+ */
+@friendlyName("BillingValidationIssueSeverity")
+enum ValidationIssueSeverity {
+  critical: "critical",
+  warning: "warning",
+}
+
+/**
+ * ValidationIssue captures any validation issues related to the invoice.
+ *
+ * Issues with severity "critical" will prevent the invoice from being issued.
+ */
+@friendlyName("BillingValidationIssue")
+model ValidationIssue {
+  @summary("The severity of the issue.")
+  severity: ValidationIssueSeverity;
+
+  @summary("The field that the issue is related to, if available in JSON path format.")
+  field?: string;
+
+  @summary("Machine indentifiable code for the issue, if available.")
+  // NOTE: on the long run we might make this an enum, but for now, let's keep it as a string, as
+  // we would need to extract the codes from go code and maybe external systems too.
+  code?: string;
+
+  @summary("Component reporting the issue.")
+  component: string;
+
+  @summary("A human-readable description of the issue.")
+  message: string;
+
+  @summary("Metadata")
+  metadata?: Metadata;
 }

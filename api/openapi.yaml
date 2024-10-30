@@ -8757,6 +8757,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingInvoicePayment'
           title: Information on when, how, and to whom the invoice should be paid.
+        validationIssues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingValidationIssue'
+          title: Validation issues reported by the invoice workflow.
       title: Invoice represents an invoice in the system.
     BillingInvoiceAction:
       type: string
@@ -9745,6 +9750,46 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingTaxBehavior'
           title: Is the tax item inclusive or exclusive of the base amount.
+    BillingValidationIssue:
+      type: object
+      required:
+        - severity
+        - component
+        - message
+      properties:
+        severity:
+          allOf:
+            - $ref: '#/components/schemas/BillingValidationIssueSeverity'
+          title: The severity of the issue.
+        field:
+          type: string
+          title: The field that the issue is related to, if available in JSON path format.
+        code:
+          type: string
+          title: Machine indentifiable code for the issue, if available.
+        component:
+          type: string
+          title: Component reporting the issue.
+        message:
+          type: string
+          title: A human-readable description of the issue.
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          title: Metadata
+      description: |-
+        ValidationIssue captures any validation issues related to the invoice.
+
+        Issues with severity "critical" will prevent the invoice from being issued.
+    BillingValidationIssueSeverity:
+      type: string
+      enum:
+        - critical
+        - warning
+      description: |-
+        ValidationIssueSeverity describes the severity of a validation issue.
+
+        Issues with severity "critical" will prevent the invoice from being issued.
     BillingVoidInvoiceAction:
       type: object
       required:
