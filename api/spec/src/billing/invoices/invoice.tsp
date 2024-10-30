@@ -95,6 +95,10 @@ model Invoice {
   @summary("The status of the invoice.")
   status: InvoiceStatus;
 
+  @visibility("read", "query")
+  @summary("The details of the current invoice status")
+  statusDetails: InvoiceStatusDetails;
+
   /**
    * The time the invoice was issued.
    *
@@ -105,6 +109,17 @@ model Invoice {
   @summary("The time the invoice was issued.")
   @visibility("read", "query")
   issuedAt?: DateTime;
+
+  /**
+   * The time until the invoice is in draft status.
+   *
+   * On draft invoice creation it is calculated from the workflow settings.
+   *
+   * If manual approval is required, the draftUntil time is set.
+   */
+  @summary("The time until the invoice is in draft status.")
+  @visibility("read", "query", "update")
+  draftUntil?: DateTime;
 
   @summary("Due time of the fulfillment of the invoice.")
   @visibility("read", "query")
@@ -148,6 +163,39 @@ model Invoice {
   payment?: Payment;
 }
 
+@friendlyName("BillingInvoiceAction")
+enum InvoiceAction {
+  @summary("Advance the invoice to the next status.")
+  advance: "advance",
+
+  @summary("Approve an invoice that requires manual approval.")
+  approve: "approve",
+
+  @summary("Delete the invoice (only non-issued invoices can be deleted).")
+  delete: "delete",
+
+  @summary("Retry an invoice issuing step that failed.")
+  retry: "retry",
+
+  @summary("Void an already issued invoice.")
+  `void`: "void",
+}
+
+@friendlyName("BillingInvoiceStatusDetails")
+model InvoiceStatusDetails {
+  @summary("Is the invoice editable?")
+  immutable: boolean;
+
+  @summary("Is the invoice in a failed state?")
+  failed: boolean;
+
+  @summary("Extended status information for the invoice.")
+  extendedStatus: InvoiceExtendedStatus;
+
+  @summary("The actions that can be performed on the invoice.")
+  availableActions: InvoiceAction[];
+}
+
 @friendlyName("BillingInvoiceWorkflowSettings")
 model InvoiceWorkflowSettings {
   @summary("The apps that will be used to orchestrate the invoice's workflow.")
@@ -181,29 +229,60 @@ enum InvoiceStatus {
   gathering: "gathering",
 
   /**
-   * The invoice is waiting for review by our partner.
+   * The invoice is in draft status.
    */
-  review: "review",
+  draft: "draft",
+
+  /**
+   * The invoice is in the process of being issued.
+   */
+  issuing: "issuing",
 
   /**
    * The invoice has been issued to the customer.
    */
   issued: "issued",
+}
 
-  /**
-   * The invoice has been paid by the customer.
-   */
-  paymentReceived: "payment_received",
+/**
+ * InvoiceExtendedStatus describes the extended status of an invoice.
+ *
+ * This is used to provide more detailed information about the status of the invoice. Useful for
+ * troubelshooting invoice workflow issues.
+ */
+@friendlyName("BillingInvoiceExtendedStatus")
+enum InvoiceExtendedStatus {
+  ...InvoiceStatus,
 
-  /**
-   * A manual approval is required before the invoice can be issued.
-   */
-  manualApprovalRequired: "manual_approval_required",
+  @summary("The draft is available for processing.")
+  draftCreated: "draft_created",
 
-  /**
-   * There's a validation issue with the invoice.
-   */
-  validationFailed: "validation_failed",
+  @summary("The draft is waiting for manual approval.")
+  draftManualApprovalNeeded: "draft_manual_approval_needed",
+
+  @summary("The draft is being validated.")
+  draftValidating: "draft_validating",
+
+  @summary("The draft is invalid, needs fixes to apps or contents.")
+  draftInvalid: "draft_invalid",
+
+  @summary("The draft is syncing with external systems.")
+  draftSyncing: "draft_syncing",
+
+  @summary("The draft failed to sync with external systems.")
+  draftSyncFailed: "draft_sync_failed",
+
+  @summary("The draft is waiting for auto-approval.")
+  draftWaitingAutoApproval: "draft_waiting_auto_approval",
+
+  @summary("The draft is ready to be issued.")
+  draftReadyToIssue: "draft_ready_to_issue",
+
+  @summary("The draft is being issued.")
+  issuingSyncing: "issuing_syncing",
+
+  @summary("The draft failed to issue.")
+  issuingSyncFailed: "issuing_sync_failed",
 }
 
 /*

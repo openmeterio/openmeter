@@ -549,6 +549,7 @@ paths:
             title: Filter by the customer ID or key
           explode: false
         - $ref: '#/components/parameters/BillingInvoiceListParams.statuses'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.extendedStatuses'
         - $ref: '#/components/parameters/BillingInvoiceListParams.issuedAfter'
         - $ref: '#/components/parameters/BillingInvoiceListParams.issuedBefore'
         - $ref: '#/components/parameters/BillingInvoiceListParams.expand'
@@ -615,6 +616,8 @@ paths:
         When creating an invoice, the pending line items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
 
         New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+
+        The call can return multiple invoices if the pending line items are in different currencies.
       parameters:
         - name: customerId
           in: path
@@ -629,7 +632,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingInvoice'
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillingInvoice'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -687,6 +692,7 @@ paths:
             example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - $ref: '#/components/parameters/BillingInvoiceListParams.statuses'
+        - $ref: '#/components/parameters/BillingInvoiceListParams.extendedStatuses'
         - $ref: '#/components/parameters/BillingInvoiceListParams.issuedAfter'
         - $ref: '#/components/parameters/BillingInvoiceListParams.issuedBefore'
         - $ref: '#/components/parameters/BillingInvoiceListParams.expand'
@@ -847,6 +853,82 @@ paths:
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/advance:
+    post:
+      operationId: billingInvoiceAdvance
+      summary: Advance the invoice's state to the next status
+      description: |-
+        Advance the invoice's state to the next status.
+
+        The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
+
+        The action can be called when the invoice's statusDetails' actions field contain the "advance" action.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -1126,6 +1208,80 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingInvoiceLineCreateOrUpdate'
+  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry:
+    post:
+      operationId: billingInvoiceRetry
+      summary: Retry advancing the invoice after a failed attempt.
+      description: |-
+        Retry advancing the invoice after a failed attempt.
+
+        The action can be called when the invoice's statusDetails' actions field contain the "retry" action.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/tax/recalculate:
     post:
       operationId: billingRecalculateInvoiceTax
@@ -1282,87 +1438,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingVoidInvoiceInput'
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/workflow/advance:
-    post:
-      operationId: billingInvoiceWorkflowAdvance
-      summary: Advance the invoice's state to the next status
-      description: |-
-        Retry advancing the invoice's state to the next status.
-
-        The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
-
-        This call can be used to retry advancing the invoice's state to the next status if the previous attempt failed.
-
-        This call is valid in the following invoice statuses:
-        - `draft_sync_failed`
-        - `issuing_failed`
-        - `validation_failed`
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-        - name: invoiceId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BillingInvoice'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '404':
-          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Billing (Experimental)
   /api/v1/billing/invoices/{customerId}/lines:
     post:
       operationId: billingCreateLineByCustomer
@@ -7281,6 +7356,16 @@ components:
           $ref: '#/components/schemas/BillingInvoiceExpand'
         title: What parts of the list output to expand in listings
       explode: false
+    BillingInvoiceListParams.extendedStatuses:
+      name: extendedStatuses
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/BillingInvoiceExtendedStatus'
+        title: Filter by invoice extended statuses
+      explode: false
     BillingInvoiceListParams.issuedAfter:
       name: issuedAfter
       in: query
@@ -8523,6 +8608,7 @@ components:
         - currency
         - totals
         - status
+        - statusDetails
       properties:
         id:
           type: string
@@ -8603,6 +8689,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceStatus'
           title: The status of the invoice.
+        statusDetails:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceStatusDetails'
+          title: The details of the current invoice status
         issuedAt:
           type: string
           format: date-time
@@ -8614,6 +8704,17 @@ components:
             - draft, gathering: The time the invoice will be issued based on the workflow settings.
             - issued: The time the invoice was issued.
           title: The time the invoice was issued.
+        draftUntil:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: |-
+            The time until the invoice is in draft status.
+
+            On draft invoice creation it is calculated from the workflow settings.
+
+            If manual approval is required, the draftUntil time is set.
+          title: The time until the invoice is in draft status.
         dueAt:
           type: string
           format: date-time
@@ -8657,6 +8758,14 @@ components:
             - $ref: '#/components/schemas/BillingInvoicePayment'
           title: Information on when, how, and to whom the invoice should be paid.
       title: Invoice represents an invoice in the system.
+    BillingInvoiceAction:
+      type: string
+      enum:
+        - advance
+        - approve
+        - delete
+        - retry
+        - void
     BillingInvoiceCreateInput:
       type: object
       properties:
@@ -8716,6 +8825,28 @@ components:
         - preceding
         - workflow
         - workflowApps
+    BillingInvoiceExtendedStatus:
+      type: string
+      enum:
+        - gathering
+        - draft
+        - issuing
+        - issued
+        - draft_created
+        - draft_manual_approval_needed
+        - draft_validating
+        - draft_invalid
+        - draft_syncing
+        - draft_sync_failed
+        - draft_waiting_auto_approval
+        - draft_ready_to_issue
+        - issuing_syncing
+        - issuing_sync_failed
+      description: |-
+        InvoiceExtendedStatus describes the extended status of an invoice.
+
+        This is used to provide more detailed information about the status of the invoice. Useful for
+        troubelshooting invoice workflow issues.
     BillingInvoiceLine:
       anyOf:
         - $ref: '#/components/schemas/BillingFlatFeeLine'
@@ -8793,12 +8924,33 @@ components:
       type: string
       enum:
         - gathering
-        - review
+        - draft
+        - issuing
         - issued
-        - payment_received
-        - manual_approval_required
-        - validation_failed
       description: InvoiceStatus describes the status of an invoice.
+    BillingInvoiceStatusDetails:
+      type: object
+      required:
+        - immutable
+        - failed
+        - extendedStatus
+        - availableActions
+      properties:
+        immutable:
+          type: boolean
+          title: Is the invoice editable?
+        failed:
+          type: boolean
+          title: Is the invoice in a failed state?
+        extendedStatus:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceExtendedStatus'
+          title: Extended status information for the invoice.
+        availableActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceAction'
+          title: The actions that can be performed on the invoice.
     BillingInvoiceTotals:
       type: object
       required:

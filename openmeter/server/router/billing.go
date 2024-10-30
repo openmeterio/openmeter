@@ -100,8 +100,14 @@ func (a *Router) BillingVoidInvoice(w http.ResponseWriter, r *http.Request, cust
 }
 
 // Advance the invoice's state to the next status
-// (POST /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/workflow/advance)
-func (a *Router) BillingInvoiceWorkflowAdvance(w http.ResponseWriter, r *http.Request, customerIdOrKey string, invoiceId string) {
+// (POST /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/advance)
+func (a *Router) BillingInvoiceAdvance(w http.ResponseWriter, r *http.Request, customerIdOrKey string, invoiceId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Retry a failed synchronization step of the invoice
+// (POST /api/v1/billing/invoices/{customerIdOrKey}/invoices/{invoiceId}/retry)
+func (a *Router) BillingInvoiceRetry(w http.ResponseWriter, r *http.Request, customerIdOrKey string, invoiceId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
