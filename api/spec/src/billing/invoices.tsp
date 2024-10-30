@@ -43,6 +43,8 @@ interface CustomerInvoicesEndpoints {
    * When creating an invoice, the pending line items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
    *
    * New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+   *
+   * The call can return multiple invoices if the pending line items are in different currencies.
    */
   @post
   @summary("Create an invoice")
@@ -55,7 +57,7 @@ interface CustomerInvoicesEndpoints {
     request: InvoiceCreateInput,
   ): {
     @statusCode _: 201;
-    @body body: Invoices.Invoice;
+    @body body: Invoices.Invoice[];
   } | OpenMeter.CommonErrors;
 
   /**
@@ -207,22 +209,37 @@ interface CustomerInvoiceEndpoints {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Retry advancing the invoice's state to the next status.
+   * Advance the invoice's state to the next status.
    *
    * The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
    *
-   * This call can be used to retry advancing the invoice's state to the next status if the previous attempt failed.
-   *
-   * This call is valid in the following invoice statuses:
-   * - `draft_sync_failed`
-   * - `issuing_failed`
-   * - `validation_failed`
+   * The action can be called when the invoice's statusDetails' actions field contain the "advance" action.
    */
   @post
-  @route("/workflow/advance")
+  @route("/advance")
   @summary("Advance the invoice's state to the next status")
-  @operationId("billingInvoiceWorkflowAdvance")
-  advanceWorkflow(
+  @operationId("billingInvoiceAdvance")
+  advance(
+    @path
+    customerId: ULID,
+
+    @path
+    invoiceId: ULID,
+  ): {
+    @statusCode _: 200;
+    @body body: Invoices.Invoice;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Retry advancing the invoice after a failed attempt.
+   *
+   * The action can be called when the invoice's statusDetails' actions field contain the "retry" action.
+   */
+  @post
+  @route("/retry")
+  @summary("Retry advancing the invoice after a failed attempt.")
+  @operationId("billingInvoiceRetry")
+  retry(
     @path
     customerId: ULID,
 
@@ -375,6 +392,10 @@ model InvoiceListParams {
   @query
   @summary("Filter by the invoice status")
   statuses?: Array<Invoices.InvoiceStatus>;
+
+  @query
+  @summary("Filter by invoice extended statuses")
+  extendedStatuses?: Array<Invoices.InvoiceExtendedStatus>;
 
   @query
   @summary("Filter by invoice creation time")
