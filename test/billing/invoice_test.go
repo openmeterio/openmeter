@@ -2,6 +2,8 @@ package billing_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -141,11 +144,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace:  namespace,
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.InvoiceExpandAll,
-			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Namespace:        namespace,
+			Customers:        []string{customerEntity.ID},
+			Expand:           billingentity.InvoiceExpandAll,
+			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), usdInvoices.Items, 1)
@@ -179,7 +182,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			},
 		}
 		// Let's make sure that the workflow config is cloned
-		require.NotEqual(s.T(), usdInvoice.Workflow.WorkflowConfig.ID, billingProfile.WorkflowConfig.ID)
+		require.NotEqual(s.T(), usdInvoice.Workflow.Config.ID, billingProfile.WorkflowConfig.ID)
 
 		require.Equal(s.T(), usdInvoice, billingentity.Invoice{
 			Namespace: namespace,
@@ -188,15 +191,18 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			Type:     billingentity.InvoiceTypeStandard,
 			Currency: currencyx.Code(currency.USD),
 			Status:   billingentity.InvoiceStatusGathering,
+			StatusDetails: billingentity.InvoiceStatusDetails{
+				AvailableActions: []billingentity.InvoiceAction{},
+			},
 
 			CreatedAt: usdInvoice.CreatedAt,
 			UpdatedAt: usdInvoice.UpdatedAt,
 
 			Workflow: &billingentity.InvoiceWorkflow{
-				WorkflowConfig: billingentity.WorkflowConfig{
-					ID:        usdInvoice.Workflow.WorkflowConfig.ID,
-					CreatedAt: usdInvoice.Workflow.WorkflowConfig.CreatedAt,
-					UpdatedAt: usdInvoice.Workflow.WorkflowConfig.UpdatedAt,
+				Config: billingentity.WorkflowConfig{
+					ID:        usdInvoice.Workflow.Config.ID,
+					CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
+					UpdatedAt: usdInvoice.Workflow.Config.UpdatedAt,
 
 					Timezone:   billingProfile.WorkflowConfig.Timezone,
 					Collection: billingProfile.WorkflowConfig.Collection,
@@ -217,6 +223,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			Supplier: billingProfile.Supplier,
 
 			Lines: []billingentity.Line{expectedUSDLine},
+
+			ExpandedFields: billingentity.InvoiceExpandAll,
 		})
 
 		require.Len(s.T(), items, 2)
@@ -240,11 +248,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace:  namespace,
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.InvoiceExpandAll,
-			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-			Currencies: []currencyx.Code{currencyx.Code(currency.HUF)},
+			Namespace:        namespace,
+			Customers:        []string{customerEntity.ID},
+			Expand:           billingentity.InvoiceExpandAll,
+			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies:       []currencyx.Code{currencyx.Code(currency.HUF)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), hufInvoices.Items, 1)
@@ -260,11 +268,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace:  namespace,
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.InvoiceExpand{},
-			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Namespace:        namespace,
+			Customers:        []string{customerEntity.ID},
+			Expand:           billingentity.InvoiceExpand{},
+			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
@@ -283,11 +291,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			Namespace: namespace,
 			Customers: []string{customerEntity.ID},
-			Expand: billing.InvoiceExpand{
+			Expand: billingentity.InvoiceExpand{
 				Workflow: true,
 			},
-			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
@@ -307,12 +315,12 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			Namespace: namespace,
 			Customers: []string{customerEntity.ID},
-			Expand: billing.InvoiceExpand{
+			Expand: billingentity.InvoiceExpand{
 				Workflow:     true,
 				WorkflowApps: true,
 			},
-			Statuses:   []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
@@ -488,7 +496,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		// Then we expect that the gathering invoice is still present, with item2
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billingentity.InvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
@@ -532,10 +540,293 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		// Then we expect that the gathering invoice is deleted and empty
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billingentity.InvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
 		require.Len(s.T(), gatheringInvoice.Lines, 0, "deleted gathering invoice is empty")
 	})
+}
+
+type draftInvoiceInput struct {
+	Namespace string
+	Customer  *customerentity.Customer
+}
+
+func (i draftInvoiceInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if err := i.Customer.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Context, in draftInvoiceInput) billingentity.Invoice {
+	namespace := in.Customer.Namespace
+
+	now := time.Now()
+	invoiceAt := now.Add(-time.Second)
+	periodEnd := now.Add(-24 * time.Hour)
+	periodStart := periodEnd.Add(-24 * 30 * time.Hour)
+	// Given we have a default profile for the namespace
+
+	res, err := s.BillingService.CreateInvoiceLines(ctx,
+		billing.CreateInvoiceLinesInput{
+			Namespace:  in.Customer.Namespace,
+			CustomerID: in.Customer.ID,
+			Lines: []billingentity.Line{
+				{
+					LineBase: billingentity.LineBase{
+						Namespace: namespace,
+						Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+
+						InvoiceAt: invoiceAt,
+
+						Type: billingentity.InvoiceLineTypeManualFee,
+
+						Name:     "Test item1",
+						Currency: currencyx.Code(currency.USD),
+
+						Metadata: map[string]string{
+							"key": "value",
+						},
+					},
+					ManualFee: &billingentity.ManualFeeLine{
+						Price:    alpacadecimal.NewFromFloat(100),
+						Quantity: alpacadecimal.NewFromFloat(1),
+					},
+				},
+				{
+					LineBase: billingentity.LineBase{
+						Namespace: namespace,
+						Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+
+						InvoiceAt: invoiceAt,
+
+						Type: billingentity.InvoiceLineTypeManualFee,
+
+						Name:     "Test item2",
+						Currency: currencyx.Code(currency.USD),
+					},
+					ManualFee: &billingentity.ManualFeeLine{
+						Price:    alpacadecimal.NewFromFloat(200),
+						Quantity: alpacadecimal.NewFromFloat(3),
+					},
+				},
+			},
+		})
+
+	require.NoError(s.T(), err)
+	require.Len(s.T(), res.Lines, 2)
+	line1ID := res.Lines[0].ID
+	line2ID := res.Lines[1].ID
+	require.NotEmpty(s.T(), line1ID)
+	require.NotEmpty(s.T(), line2ID)
+
+	invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		Customer: customerentity.CustomerID{
+			ID:        in.Customer.ID,
+			Namespace: in.Customer.Namespace,
+		},
+		AsOf: lo.ToPtr(now),
+	})
+
+	require.NoError(t, err)
+	require.Len(t, invoice, 1)
+	require.Len(t, invoice[0].Lines, 2)
+
+	return invoice[0]
+}
+
+func (s *InvoicingTestSuite) TestInvoicingFlowInstantIssue() {
+	cases := []struct {
+		name           string
+		workflowConfig billingentity.WorkflowConfig
+		advance        func(t *testing.T, ctx context.Context, invoice billingentity.Invoice)
+		expectedState  billingentity.InvoiceStatus
+	}{
+		{
+			name: "instant issue",
+			workflowConfig: billingentity.WorkflowConfig{
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+				},
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: true,
+					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
+					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+				},
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				},
+			},
+			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
+				_, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+			},
+			expectedState: billingentity.InvoiceStatusIssued,
+		},
+		{
+			name: "draft period bypass with manual approve",
+			workflowConfig: billingentity.WorkflowConfig{
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+				},
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: true,
+					DraftPeriod: lo.Must(datex.ISOString("PT1H").Parse()),
+					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+				},
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				},
+			},
+			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
+				advancedInvoice, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftWaitingAutoApproval, advancedInvoice.Status)
+
+				// Approve the invoice, should become DraftReadyToIssue
+				advancedInvoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
+					ID:        advancedInvoice.ID,
+					Namespace: advancedInvoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, advancedInvoice.Status)
+
+				// Advance the invoice, should become Issued
+				advancedInvoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusIssued, advancedInvoice.Status)
+			},
+			expectedState: billingentity.InvoiceStatusIssued,
+		},
+		{
+			name: "manual approvement flow",
+			workflowConfig: billingentity.WorkflowConfig{
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+				},
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: false,
+					DraftPeriod: lo.Must(datex.ISOString("PT0H").Parse()),
+					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+				},
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				},
+			},
+			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
+				advancedInvoice, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftManualApprovalNeeded, advancedInvoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
+					AvailableActions: []billingentity.InvoiceAction{billingentity.InvoiceActionApprove},
+				}, advancedInvoice.StatusDetails)
+
+				// Approve the invoice, should become DraftReadyToIssue
+				advancedInvoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
+					ID:        advancedInvoice.ID,
+					Namespace: advancedInvoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, advancedInvoice.Status)
+
+				// Advance the invoice, should become Issued
+				advancedInvoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusIssued, advancedInvoice.Status)
+			},
+			expectedState: billingentity.InvoiceStatusIssued,
+		},
+	}
+
+	ctx := context.Background()
+
+	for i, tc := range cases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			namespace := fmt.Sprintf("ns-invoicing-flow-happy-path-%d", i)
+
+			_ = s.installSandboxApp(s.T(), namespace)
+
+			// Given we have a test customer
+			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+				Namespace: namespace,
+
+				Customer: customerentity.Customer{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "Test Customer",
+					}),
+					PrimaryEmail: lo.ToPtr("test@test.com"),
+					BillingAddress: &models.Address{
+						Country: lo.ToPtr(models.CountryCode("US")),
+					},
+					Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+				},
+			})
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), customerEntity)
+			require.NotEmpty(s.T(), customerEntity.ID)
+
+			// Given we have a billing profile
+			minimalCreateProfileInput := minimalCreateProfileInputTemplate
+			minimalCreateProfileInput.Namespace = namespace
+			minimalCreateProfileInput.WorkflowConfig = tc.workflowConfig
+
+			profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), profile)
+
+			invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
+				Namespace: namespace,
+				Customer:  customerEntity,
+			})
+			require.NotNil(s.T(), invoice)
+
+			// Given we have a draft invoice
+			require.Equal(s.T(), billingentity.InvoiceStatusDraftCreated, invoice.Status)
+
+			// When we advance the invoice
+			tc.advance(t, ctx, invoice)
+
+			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: billingentity.InvoiceID{
+					Namespace: namespace,
+					ID:        invoice.ID,
+				},
+				Expand: billingentity.InvoiceExpandAll,
+			})
+
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), resultingInvoice)
+			require.Equal(s.T(), tc.expectedState, resultingInvoice.Status)
+		})
+	}
 }

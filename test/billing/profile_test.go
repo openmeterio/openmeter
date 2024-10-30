@@ -23,6 +23,15 @@ var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	WorkflowConfig: billingentity.WorkflowConfig{
 		Collection: billingentity.CollectionConfig{
 			Alignment: billingentity.AlignmentKindSubscription,
+			Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
+		},
+		Invoicing: billingentity.InvoicingConfig{
+			AutoAdvance: true,
+			DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
+			DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+		},
+		Payment: billingentity.PaymentConfig{
+			CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
 		},
 	},
 
@@ -172,7 +181,7 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 				Interval:  datex.MustParse(t, "PT30M"),
 			},
 			Invoicing: billingentity.InvoicingConfig{
-				AutoAdvance: lo.ToPtr(true),
+				AutoAdvance: true,
 				DraftPeriod: datex.MustParse(t, "PT1H"),
 				DueAfter:    datex.MustParse(t, "PT24H"),
 			},
@@ -285,7 +294,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 				Interval:  datex.MustParse(s.T(), "PT30M"),
 			},
 			Invoicing: billingentity.InvoicingConfig{
-				AutoAdvance: lo.ToPtr(true),
+				AutoAdvance: true,
 				DraftPeriod: datex.MustParse(s.T(), "PT1H"),
 				DueAfter:    datex.MustParse(s.T(), "PT24H"),
 			},
@@ -349,7 +358,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 					Interval:  datex.MustParse(s.T(), "PT30M"),
 				},
 				Invoicing: billingentity.InvoicingConfig{
-					AutoAdvance: lo.ToPtr(false),
+					AutoAdvance: true,
 					DraftPeriod: datex.MustParse(s.T(), "PT2H"),
 					DueAfter:    datex.MustParse(s.T(), "PT48H"),
 				},
@@ -424,7 +433,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 					Interval:  datex.MustParse(t, "PT30M"),
 				},
 				Invoicing: billingentity.InvoicingConfig{
-					AutoAdvance: lo.ToPtr(false),
+					AutoAdvance: true,
 					DraftPeriod: datex.MustParse(t, "PT2H"),
 					DueAfter:    datex.MustParse(t, "PT48H"),
 				},

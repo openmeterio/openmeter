@@ -402,6 +402,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Time("draft_until").
+			Optional().
+			Nillable(),
+
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().

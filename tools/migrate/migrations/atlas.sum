@@ -1,4 +1,4 @@
-h1:Ujj5cNFyLFHPRjucUB4a7bSLAjf0ssECl/WWVP4ZdFc=
+h1:FZpHWubUybsoKb/tU+Cks/LwabBKAl7n/ewcnsM8eCk=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -31,3 +31,5 @@ h1:Ujj5cNFyLFHPRjucUB4a7bSLAjf0ssECl/WWVP4ZdFc=
 20241021124045_billing-profile.up.sql h1:9wXAjftZcFqmzmnKBeLFe2hv0FxBaSROC3trvs+sSo4=
 20241024122007_line-item-fixes.down.sql h1:NlWHQnpzszNx0NlEDVo5MGBOoLdd+9v+x58CuiX9/e8=
 20241024122007_line-item-fixes.up.sql h1:B9Efi4lli4HEgVnmizbVE4s2xr2Uiq8gjkLyJ57a5oM=
+20241030140919_billing-draft-until.down.sql h1:SusBStUaGJIn8bDLb4SXZMltokzN7zJYqrVwkCEssps=
+20241030140919_billing-draft-until.up.sql h1:NGOQufkJREFrK7uAg9hwy63dcfaR5KYNK4howAISLDU=

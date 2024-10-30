@@ -14,31 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-type InvoiceExpand struct {
-	Lines        bool
-	Preceding    bool
-	Workflow     bool
-	WorkflowApps bool
-}
-
-var InvoiceExpandAll = InvoiceExpand{
-	Lines:        true,
-	Preceding:    true,
-	Workflow:     true,
-	WorkflowApps: true,
-}
-
-func (e InvoiceExpand) Validate() error {
-	if !e.Workflow && e.WorkflowApps {
-		return errors.New("workflow.apps can only be expanded when workflow is expanded")
-	}
-
-	return nil
-}
-
 type GetInvoiceByIdInput struct {
 	Invoice billingentity.InvoiceID
-	Expand  InvoiceExpand
+	Expand  billingentity.InvoiceExpand
 }
 
 func (i GetInvoiceByIdInput) Validate() error {
@@ -79,15 +57,18 @@ type (
 type ListInvoicesInput struct {
 	pagination.Page
 
-	Namespace  string
-	Customers  []string
-	Statuses   []billingentity.InvoiceStatus
-	Currencies []currencyx.Code
+	Namespace string
+	Customers []string
+	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
+	Statuses []string
+	// ExtendedStatuses searches by exact InvoiceStatus
+	ExtendedStatuses []billingentity.InvoiceStatus
+	Currencies       []currencyx.Code
 
 	IssuedAfter  *time.Time
 	IssuedBefore *time.Time
 
-	Expand InvoiceExpand
+	Expand billingentity.InvoiceExpand
 
 	OrderBy api.BillingInvoiceOrderBy
 	Order   sortx.Order
@@ -177,3 +158,10 @@ func (i CreateInvoiceInput) Validate() error {
 type AssociatedLineCountsAdapterResponse struct {
 	Counts map[billingentity.InvoiceID]int64
 }
+
+type (
+	AdvanceInvoiceInput = billingentity.InvoiceID
+	ApproveInvoiceInput = billingentity.InvoiceID
+)
+
+type UpdateInvoiceAdapterInput = billingentity.Invoice

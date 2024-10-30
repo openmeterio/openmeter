@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -51,37 +49,6 @@ func (i CreateProfileInput) Validate() error {
 	}
 
 	return nil
-}
-
-func (i CreateProfileInput) WithDefaults() CreateProfileInput {
-	i.WorkflowConfig = billingentity.WorkflowConfig{
-		Collection: billingentity.CollectionConfig{
-			Alignment: lo.CoalesceOrEmpty(
-				i.WorkflowConfig.Collection.Alignment,
-				billingentity.DefaultWorkflowConfig.Collection.Alignment),
-			Interval: lo.CoalesceOrEmpty(
-				i.WorkflowConfig.Collection.Interval,
-				billingentity.DefaultWorkflowConfig.Collection.Interval),
-		},
-		Invoicing: billingentity.InvoicingConfig{
-			AutoAdvance: lo.CoalesceOrEmpty(
-				i.WorkflowConfig.Invoicing.AutoAdvance,
-				billingentity.DefaultWorkflowConfig.Invoicing.AutoAdvance),
-			DraftPeriod: lo.CoalesceOrEmpty(
-				i.WorkflowConfig.Invoicing.DraftPeriod,
-				billingentity.DefaultWorkflowConfig.Invoicing.DraftPeriod),
-			DueAfter: lo.CoalesceOrEmpty(
-				i.WorkflowConfig.Invoicing.DueAfter,
-				billingentity.DefaultWorkflowConfig.Invoicing.DueAfter),
-		},
-		Payment: billingentity.PaymentConfig{
-			CollectionMethod: lo.CoalesceOrEmpty(
-				i.WorkflowConfig.Payment.CollectionMethod,
-				billingentity.DefaultWorkflowConfig.Payment.CollectionMethod),
-		},
-	}
-
-	return i
 }
 
 type CreateProfileAppsInput = billingentity.ProfileAppReferences
@@ -213,10 +180,6 @@ func (i UpdateProfileAdapterInput) Validate() error {
 
 	if i.WorkflowConfigID == "" {
 		return fmt.Errorf("workflow config id is required")
-	}
-
-	if i.TargetState.WorkflowConfig.Invoicing.AutoAdvance == nil {
-		return fmt.Errorf("invoicing auto advance is required")
 	}
 
 	return nil

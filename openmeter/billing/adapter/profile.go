@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
@@ -68,7 +66,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetNamespace(ns).
 		SetCollectionAlignment(input.Collection.Alignment).
 		SetLineCollectionPeriod(input.Collection.Interval.ISOString()).
-		SetInvoiceAutoAdvance(*input.Invoicing.AutoAdvance).
+		SetInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 		SetInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOString()).
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
@@ -239,21 +237,25 @@ func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileA
 		return nil, err
 	}
 
-	updatedWorkflowConfig, err := a.db.BillingWorkflowConfig.UpdateOneID(input.WorkflowConfigID).
-		Where(billingworkflowconfig.Namespace(targetState.Namespace)).
-		SetCollectionAlignment(targetState.WorkflowConfig.Collection.Alignment).
-		SetLineCollectionPeriod(targetState.WorkflowConfig.Collection.Interval.ISOString()).
-		SetInvoiceAutoAdvance(*targetState.WorkflowConfig.Invoicing.AutoAdvance).
-		SetInvoiceDraftPeriod(targetState.WorkflowConfig.Invoicing.DraftPeriod.ISOString()).
-		SetInvoiceDueAfter(targetState.WorkflowConfig.Invoicing.DueAfter.ISOString()).
-		SetInvoiceCollectionMethod(targetState.WorkflowConfig.Payment.CollectionMethod).
-		Save(ctx)
+	updatedWorkflowConfig, err := a.updateWorkflowConfig(ctx, targetState.Namespace, input.WorkflowConfigID, targetState.WorkflowConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
 	return mapProfileFromDB(updatedProfile)
+}
+
+func (a adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+	return a.db.BillingWorkflowConfig.UpdateOneID(id).
+		Where(billingworkflowconfig.Namespace(ns)).
+		SetCollectionAlignment(input.Collection.Alignment).
+		SetLineCollectionPeriod(input.Collection.Interval.ISOString()).
+		SetInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
+		SetInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOString()).
+		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
+		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
+		Save(ctx)
 }
 
 func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile, error) {
@@ -310,11 +312,9 @@ func mapWorkflowConfigToDB(wc billingentity.WorkflowConfig) *db.BillingWorkflowC
 		UpdatedAt: wc.UpdatedAt,
 		DeletedAt: wc.DeletedAt,
 
-		CollectionAlignment:  wc.Collection.Alignment,
-		LineCollectionPeriod: wc.Collection.Interval.ISOString(),
-		InvoiceAutoAdvance: lo.FromPtrOr(
-			wc.Invoicing.AutoAdvance,
-			*billingentity.DefaultWorkflowConfig.Invoicing.AutoAdvance),
+		CollectionAlignment:     wc.Collection.Alignment,
+		LineCollectionPeriod:    wc.Collection.Interval.ISOString(),
+		InvoiceAutoAdvance:      wc.Invoicing.AutoAdvance,
 		InvoiceDraftPeriod:      wc.Invoicing.DraftPeriod.ISOString(),
 		InvoiceDueAfter:         wc.Invoicing.DueAfter.ISOString(),
 		InvoiceCollectionMethod: wc.Payment.CollectionMethod,
@@ -350,7 +350,7 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billingentity.Work
 		},
 
 		Invoicing: billingentity.InvoicingConfig{
-			AutoAdvance: lo.ToPtr(dbWC.InvoiceAutoAdvance),
+			AutoAdvance: dbWC.InvoiceAutoAdvance,
 			DraftPeriod: draftPeriod,
 			DueAfter:    dueAfter,
 		},

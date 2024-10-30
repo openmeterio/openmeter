@@ -6192,6 +6192,7 @@ type BillingInvoiceMutation struct {
 	description                     *string
 	voided_at                       *time.Time
 	issued_at                       *time.Time
+	draft_until                     *time.Time
 	currency                        *currencyx.Code
 	due_at                          *time.Time
 	status                          *billingentity.InvoiceStatus
@@ -7688,6 +7689,55 @@ func (m *BillingInvoiceMutation) ResetIssuedAt() {
 	delete(m.clearedFields, billinginvoice.FieldIssuedAt)
 }
 
+// SetDraftUntil sets the "draft_until" field.
+func (m *BillingInvoiceMutation) SetDraftUntil(t time.Time) {
+	m.draft_until = &t
+}
+
+// DraftUntil returns the value of the "draft_until" field in the mutation.
+func (m *BillingInvoiceMutation) DraftUntil() (r time.Time, exists bool) {
+	v := m.draft_until
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDraftUntil returns the old "draft_until" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldDraftUntil(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDraftUntil is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDraftUntil requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDraftUntil: %w", err)
+	}
+	return oldValue.DraftUntil, nil
+}
+
+// ClearDraftUntil clears the value of the "draft_until" field.
+func (m *BillingInvoiceMutation) ClearDraftUntil() {
+	m.draft_until = nil
+	m.clearedFields[billinginvoice.FieldDraftUntil] = struct{}{}
+}
+
+// DraftUntilCleared returns if the "draft_until" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) DraftUntilCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldDraftUntil]
+	return ok
+}
+
+// ResetDraftUntil resets all changes to the "draft_until" field.
+func (m *BillingInvoiceMutation) ResetDraftUntil() {
+	m.draft_until = nil
+	delete(m.clearedFields, billinginvoice.FieldDraftUntil)
+}
+
 // SetCurrency sets the "currency" field.
 func (m *BillingInvoiceMutation) SetCurrency(c currencyx.Code) {
 	m.currency = &c
@@ -8327,7 +8377,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 39)
+	fields := make([]string, 0, 40)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -8417,6 +8467,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.issued_at != nil {
 		fields = append(fields, billinginvoice.FieldIssuedAt)
+	}
+	if m.draft_until != nil {
+		fields = append(fields, billinginvoice.FieldDraftUntil)
 	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoice.FieldCurrency)
@@ -8513,6 +8566,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.VoidedAt()
 	case billinginvoice.FieldIssuedAt:
 		return m.IssuedAt()
+	case billinginvoice.FieldDraftUntil:
+		return m.DraftUntil()
 	case billinginvoice.FieldCurrency:
 		return m.Currency()
 	case billinginvoice.FieldDueAt:
@@ -8600,6 +8655,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldVoidedAt(ctx)
 	case billinginvoice.FieldIssuedAt:
 		return m.OldIssuedAt(ctx)
+	case billinginvoice.FieldDraftUntil:
+		return m.OldDraftUntil(ctx)
 	case billinginvoice.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case billinginvoice.FieldDueAt:
@@ -8837,6 +8894,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIssuedAt(v)
 		return nil
+	case billinginvoice.FieldDraftUntil:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDraftUntil(v)
+		return nil
 	case billinginvoice.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -8996,6 +9060,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldIssuedAt) {
 		fields = append(fields, billinginvoice.FieldIssuedAt)
 	}
+	if m.FieldCleared(billinginvoice.FieldDraftUntil) {
+		fields = append(fields, billinginvoice.FieldDraftUntil)
+	}
 	if m.FieldCleared(billinginvoice.FieldDueAt) {
 		fields = append(fields, billinginvoice.FieldDueAt)
 	}
@@ -9084,6 +9151,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldIssuedAt:
 		m.ClearIssuedAt()
+		return nil
+	case billinginvoice.FieldDraftUntil:
+		m.ClearDraftUntil()
 		return nil
 	case billinginvoice.FieldDueAt:
 		m.ClearDueAt()
@@ -9191,6 +9261,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldIssuedAt:
 		m.ResetIssuedAt()
+		return nil
+	case billinginvoice.FieldDraftUntil:
+		m.ResetDraftUntil()
 		return nil
 	case billinginvoice.FieldCurrency:
 		m.ResetCurrency()

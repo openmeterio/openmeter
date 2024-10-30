@@ -76,6 +76,8 @@ const (
 	FieldVoidedAt = "voided_at"
 	// FieldIssuedAt holds the string denoting the issued_at field in the database.
 	FieldIssuedAt = "issued_at"
+	// FieldDraftUntil holds the string denoting the draft_until field in the database.
+	FieldDraftUntil = "draft_until"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldDueAt holds the string denoting the due_at field in the database.
@@ -194,6 +196,7 @@ var Columns = []string{
 	FieldSourceBillingProfileID,
 	FieldVoidedAt,
 	FieldIssuedAt,
+	FieldDraftUntil,
 	FieldCurrency,
 	FieldDueAt,
 	FieldStatus,
@@ -255,7 +258,7 @@ func TypeValidator(_type billingentity.InvoiceType) error {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s billingentity.InvoiceStatus) error {
 	switch s {
-	case "gathering", "created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed":
+	case "gathering", "draft_created", "draft_manual_approval_needed", "draft_validating", "draft_invalid", "draft_syncing", "draft_sync_failed", "draft_waiting_auto_approval", "draft_ready_to_issue", "issuing_syncing", "issuing_sync_failed", "issued":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for status field: %q", s)
@@ -413,6 +416,11 @@ func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByIssuedAt orders the results by the issued_at field.
 func ByIssuedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIssuedAt, opts...).ToFunc()
+}
+
+// ByDraftUntil orders the results by the draft_until field.
+func ByDraftUntil(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDraftUntil, opts...).ToFunc()
 }
 
 // ByCurrency orders the results by the currency field.

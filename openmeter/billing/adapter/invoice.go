@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -144,8 +145,18 @@ func (r *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		query = query.Where(billinginvoice.IssuedAtLTE(*input.IssuedBefore))
 	}
 
+	if len(input.ExtendedStatuses) > 0 {
+		query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
+	}
+
 	if len(input.Statuses) > 0 {
-		query = query.Where(billinginvoice.StatusIn(input.Statuses...))
+		query = query.Where(func(s *sql.Selector) {
+			s.Where(sql.Or(
+				lo.Map(input.Statuses, func(status string, _ int) *sql.Predicate {
+					return sql.Like(billinginvoice.FieldStatus, status+"%")
+				})...,
+			))
+		})
 	}
 
 	if len(input.Currencies) > 0 {
@@ -269,7 +280,7 @@ func (r *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 	// Let's add required edges for mapping
 	newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-	return mapInvoiceFromDB(*newInvoice, billing.InvoiceExpandAll)
+	return mapInvoiceFromDB(*newInvoice, billingentity.InvoiceExpandAll)
 }
 
 type lineCountQueryOut struct {
@@ -316,7 +327,122 @@ func (r *adapter) AssociatedLineCounts(ctx context.Context, input billing.Associ
 	}, nil
 }
 
-func mapInvoiceFromDB(invoice db.BillingInvoice, expand billing.InvoiceExpand) (billingentity.Invoice, error) {
+func (r *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, existing *db.BillingInvoice) error {
+	// The user is expected to submit the updatedAt of the source invoice version it based the update on
+	// if this doesn't match the current updatedAt, we can't allow the update as it might overwrite some already
+	// changed values.
+	if !existing.UpdatedAt.Equal(req.UpdatedAt) {
+		return billing.ConflictError{
+			Entity: billing.EntityInvoice,
+			ID:     req.ID,
+			Err:    fmt.Errorf("invoice has been updated since last read"),
+		}
+	}
+
+	if req.Currency != existing.Currency {
+		return billing.ValidationError{
+			Err: fmt.Errorf("currency cannot be changed"),
+		}
+	}
+
+	if req.Type != existing.Type {
+		return billing.ValidationError{
+			Err: fmt.Errorf("type cannot be changed"),
+		}
+	}
+
+	if req.Customer.CustomerID != existing.CustomerID {
+		return billing.ValidationError{
+			Err: fmt.Errorf("customer cannot be changed"),
+		}
+	}
+
+	return nil
+}
+
+// UpdateInvoice updates the specified invoice. It does not return the new invoice, as we would either
+// ways need to re-fetch the invoice to get the updated edges.
+func (r *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) error {
+	existingInvoice, err := r.db.BillingInvoice.Query().
+		Where(billinginvoice.ID(in.ID)).
+		Where(billinginvoice.Namespace(in.Namespace)).
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := r.validateUpdateRequest(in, existingInvoice); err != nil {
+		return err
+	}
+
+	updateQuery := r.db.BillingInvoice.UpdateOneID(in.ID).
+		Where(billinginvoice.Namespace(in.Namespace)).
+		SetMetadata(in.Metadata).
+		// Currency is immutable
+		SetStatus(in.Status).
+		// Type is immutable
+		SetOrClearNumber(in.Number).
+		SetOrClearDescription(in.Description).
+		SetOrClearDueAt(in.DueAt).
+		SetOrClearDraftUntil(in.DraftUntil).
+		SetOrClearIssuedAt(in.IssuedAt)
+
+	if in.Period != nil {
+		updateQuery = updateQuery.
+			SetPeriodStart(in.Period.Start).
+			SetPeriodEnd(in.Period.End)
+	} else {
+		updateQuery = updateQuery.
+			ClearPeriodStart().
+			ClearPeriodEnd()
+	}
+
+	// Supplier
+	updateQuery = updateQuery.
+		SetSupplierName(in.Supplier.Name).
+		SetOrClearSupplierAddressCountry(in.Supplier.Address.Country).
+		SetOrClearSupplierAddressPostalCode(in.Supplier.Address.PostalCode).
+		SetOrClearSupplierAddressCity(in.Supplier.Address.City).
+		SetOrClearSupplierAddressState(in.Supplier.Address.State).
+		SetOrClearSupplierAddressLine1(in.Supplier.Address.Line1).
+		SetOrClearSupplierAddressLine2(in.Supplier.Address.Line2).
+		SetOrClearSupplierAddressPhoneNumber(in.Supplier.Address.PhoneNumber)
+
+	// Customer
+	updateQuery = updateQuery.
+		// CustomerID is immutable
+		SetCustomerName(in.Customer.Name).
+		SetOrClearCustomerAddressCountry(in.Customer.BillingAddress.Country).
+		SetOrClearCustomerAddressPostalCode(in.Customer.BillingAddress.PostalCode).
+		SetOrClearCustomerAddressCity(in.Customer.BillingAddress.City).
+		SetOrClearCustomerAddressState(in.Customer.BillingAddress.State).
+		SetOrClearCustomerAddressLine1(in.Customer.BillingAddress.Line1).
+		SetOrClearCustomerAddressLine2(in.Customer.BillingAddress.Line2).
+		SetOrClearCustomerAddressPhoneNumber(in.Customer.BillingAddress.PhoneNumber).
+		SetOrClearCustomerTimezone(in.Customer.Timezone)
+
+	_, err = updateQuery.Save(ctx)
+	if err != nil {
+		return err
+	}
+
+	if in.ExpandedFields.Workflow {
+		// Update the workflow config
+		_, err := r.updateWorkflowConfig(ctx, in.Namespace, in.Workflow.Config.ID, in.Workflow.Config)
+		if err != nil {
+			return err
+		}
+	}
+
+	if in.ExpandedFields.Lines {
+		// TODO[later]: line updates (with changed flag)
+		r.logger.Warn("line updates are not yet implemented")
+	}
+
+	return nil
+}
+
+func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExpand) (billingentity.Invoice, error) {
 	res := billingentity.Invoice{
 		ID:          invoice.ID,
 		Namespace:   invoice.Namespace,
@@ -327,6 +453,7 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billing.InvoiceExpand) (
 		Number:      invoice.Number,
 		Description: invoice.Description,
 		DueAt:       invoice.DueAt,
+		DraftUntil:  invoice.DraftUntil,
 		Supplier: billingentity.SupplierContact{
 			Name: invoice.SupplierName,
 			Address: models.Address{
@@ -360,6 +487,8 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billing.InvoiceExpand) (
 		CreatedAt: invoice.CreatedAt,
 		UpdatedAt: invoice.UpdatedAt,
 		DeletedAt: invoice.DeletedAt,
+
+		ExpandedFields: expand,
 	}
 
 	if expand.Workflow {
@@ -369,7 +498,7 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billing.InvoiceExpand) (
 		}
 
 		res.Workflow = &billingentity.InvoiceWorkflow{
-			WorkflowConfig:         workflowConfig,
+			Config:                 workflowConfig,
 			SourceBillingProfileID: invoice.SourceBillingProfileID,
 
 			AppReferences: billingentity.ProfileAppReferences{

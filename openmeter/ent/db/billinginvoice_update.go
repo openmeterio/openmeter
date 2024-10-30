@@ -513,6 +513,26 @@ func (biu *BillingInvoiceUpdate) ClearIssuedAt() *BillingInvoiceUpdate {
 	return biu
 }
 
+// SetDraftUntil sets the "draft_until" field.
+func (biu *BillingInvoiceUpdate) SetDraftUntil(t time.Time) *BillingInvoiceUpdate {
+	biu.mutation.SetDraftUntil(t)
+	return biu
+}
+
+// SetNillableDraftUntil sets the "draft_until" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableDraftUntil(t *time.Time) *BillingInvoiceUpdate {
+	if t != nil {
+		biu.SetDraftUntil(*t)
+	}
+	return biu
+}
+
+// ClearDraftUntil clears the value of the "draft_until" field.
+func (biu *BillingInvoiceUpdate) ClearDraftUntil() *BillingInvoiceUpdate {
+	biu.mutation.ClearDraftUntil()
+	return biu
+}
+
 // SetDueAt sets the "due_at" field.
 func (biu *BillingInvoiceUpdate) SetDueAt(t time.Time) *BillingInvoiceUpdate {
 	biu.mutation.SetDueAt(t)
@@ -908,6 +928,12 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if biu.mutation.IssuedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldIssuedAt, field.TypeTime)
+	}
+	if value, ok := biu.mutation.DraftUntil(); ok {
+		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
+	}
+	if biu.mutation.DraftUntilCleared() {
+		_spec.ClearField(billinginvoice.FieldDraftUntil, field.TypeTime)
 	}
 	if value, ok := biu.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
@@ -1504,6 +1530,26 @@ func (biuo *BillingInvoiceUpdateOne) ClearIssuedAt() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
+// SetDraftUntil sets the "draft_until" field.
+func (biuo *BillingInvoiceUpdateOne) SetDraftUntil(t time.Time) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetDraftUntil(t)
+	return biuo
+}
+
+// SetNillableDraftUntil sets the "draft_until" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableDraftUntil(t *time.Time) *BillingInvoiceUpdateOne {
+	if t != nil {
+		biuo.SetDraftUntil(*t)
+	}
+	return biuo
+}
+
+// ClearDraftUntil clears the value of the "draft_until" field.
+func (biuo *BillingInvoiceUpdateOne) ClearDraftUntil() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearDraftUntil()
+	return biuo
+}
+
 // SetDueAt sets the "due_at" field.
 func (biuo *BillingInvoiceUpdateOne) SetDueAt(t time.Time) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetDueAt(t)
@@ -1929,6 +1975,12 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.IssuedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldIssuedAt, field.TypeTime)
+	}
+	if value, ok := biuo.mutation.DraftUntil(); ok {
+		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
+	}
+	if biuo.mutation.DraftUntilCleared() {
+		_spec.ClearField(billinginvoice.FieldDraftUntil, field.TypeTime)
 	}
 	if value, ok := biuo.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)

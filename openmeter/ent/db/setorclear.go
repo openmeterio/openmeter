@@ -545,6 +545,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearIssuedAt(value *time.Time) *BillingI
 	return u.SetIssuedAt(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearDraftUntil(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearDraftUntil()
+	}
+	return u.SetDraftUntil(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearDraftUntil(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearDraftUntil()
+	}
+	return u.SetDraftUntil(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearDueAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearDueAt()

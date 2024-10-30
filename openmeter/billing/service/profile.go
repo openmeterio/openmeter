@@ -19,8 +19,6 @@ import (
 var _ billing.ProfileService = (*Service)(nil)
 
 func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billingentity.Profile, error) {
-	input = input.WithDefaults()
-
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
