@@ -671,6 +671,48 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxOverrides(value **billingenti
 	return u.SetTaxOverrides(*value)
 }
 
+func (u *BillingInvoiceValidationIssueUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceValidationIssueUpdate) SetOrClearCode(value *string) *BillingInvoiceValidationIssueUpdate {
+	if value == nil {
+		return u.ClearCode()
+	}
+	return u.SetCode(*value)
+}
+
+func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearCode(value *string) *BillingInvoiceValidationIssueUpdateOne {
+	if value == nil {
+		return u.ClearCode()
+	}
+	return u.SetCode(*value)
+}
+
+func (u *BillingInvoiceValidationIssueUpdate) SetOrClearPath(value *string) *BillingInvoiceValidationIssueUpdate {
+	if value == nil {
+		return u.ClearPath()
+	}
+	return u.SetPath(*value)
+}
+
+func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearPath(value *string) *BillingInvoiceValidationIssueUpdateOne {
+	if value == nil {
+		return u.ClearPath()
+	}
+	return u.SetPath(*value)
+}
+
 func (u *BillingProfileUpdate) SetOrClearMetadata(value *map[string]string) *BillingProfileUpdate {
 	if value == nil {
 		return u.ClearMetadata()

@@ -20,7 +20,7 @@ var _ billing.ProfileService = (*Service)(nil)
 
 func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billingentity.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -36,8 +36,8 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 
 			if defaultProfile != nil {
-				return nil, billing.ValidationError{
-					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
+				return nil, billingentity.ValidationError{
+					Err: fmt.Errorf("%w [id=%s]", billingentity.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
 				}
 			}
 		}
@@ -59,7 +59,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 
 		if err := profile.Validate(); err != nil {
-			return nil, billing.ValidationError{
+			return nil, billingentity.ValidationError{
 				Err: fmt.Errorf("error validating profile: %w", err),
 			}
 		}
@@ -77,21 +77,21 @@ type resolvedApps struct {
 func (s *Service) resolveApps(ctx context.Context, ns string, apps billingentity.ProfileAppReferences) (*resolvedApps, error) {
 	taxApp, err := s.validateAppReference(ctx, ns, apps.Tax, appentitybase.CapabilityTypeCalculateTax)
 	if err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: fmt.Errorf("error resolving tax app: %w", err),
 		}
 	}
 
 	invocingApp, err := s.validateAppReference(ctx, ns, apps.Invoicing, appentitybase.CapabilityTypeInvoiceCustomers)
 	if err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: fmt.Errorf("error resolving invocing app: %w", err),
 		}
 	}
 
 	paymentsApp, err := s.validateAppReference(ctx, ns, apps.Payment, appentitybase.CapabilityTypeCollectPayments)
 	if err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: fmt.Errorf("error resolving payments app: %w", err),
 		}
 	}
@@ -165,7 +165,7 @@ func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billin
 
 func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billingentity.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -182,7 +182,7 @@ func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 
 func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billingentity.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -203,7 +203,7 @@ func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput)
 
 func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -220,14 +220,14 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		}
 
 		if profile == nil {
-			return billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
+			return billingentity.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileNotFound, input.ID),
 			}
 		}
 
 		if profile.DeletedAt != nil {
-			return billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileAlreadyDeleted, profile.ID),
+			return billingentity.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileAlreadyDeleted, profile.ID),
 			}
 		}
 
@@ -237,9 +237,9 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		}
 
 		if len(referringCustomerIDs) > 0 {
-			return billing.ValidationError{
+			return billingentity.ValidationError{
 				Err: fmt.Errorf("%w [profile_id=%s, customer_ids=%v]",
-					billing.ErrProfileReferencedByOverrides,
+					billingentity.ErrProfileReferencedByOverrides,
 					input.ID,
 					lo.Map(referringCustomerIDs, func(item customerentity.CustomerID, _ int) string {
 						return item.ID
@@ -257,7 +257,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 
 func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (billing.ListProfilesResult, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ListProfilesResult{}, billing.ValidationError{
+		return billing.ListProfilesResult{}, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -293,7 +293,7 @@ func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 
 func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfileInput) (*billingentity.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -310,20 +310,20 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		if profile == nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
+			return nil, billingentity.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileNotFound, input.ID),
 			}
 		}
 
 		if profile.DeletedAt != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileAlreadyDeleted, input.ID),
+			return nil, billingentity.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileAlreadyDeleted, input.ID),
 			}
 		}
 
 		if !profile.UpdatedAt.Equal(input.UpdatedAt) {
-			return nil, billing.UpdateAfterDeleteError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileConflict, input.ID),
+			return nil, billingentity.UpdateAfterDeleteError{
+				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileConflict, input.ID),
 			}
 		}
 
@@ -336,8 +336,8 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 
 			if defaultProfile != nil && defaultProfile.ID != input.ID {
-				return nil, billing.ValidationError{
-					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
+				return nil, billingentity.ValidationError{
+					Err: fmt.Errorf("%w [id=%s]", billingentity.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
 				}
 			}
 		}
@@ -351,7 +351,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		if err := profile.Validate(); err != nil {
-			return nil, billing.ValidationError{
+			return nil, billingentity.ValidationError{
 				Err: fmt.Errorf("error validating profile: %w", err),
 			}
 		}

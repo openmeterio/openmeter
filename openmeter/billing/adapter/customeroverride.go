@@ -50,9 +50,9 @@ func (r *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 			Namespace: input.Namespace,
 		})
 		if err != nil {
-			return nil, billing.NotFoundError{
-				Entity: billing.EntityDefaultProfile,
-				Err:    billing.ErrDefaultProfileNotFound,
+			return nil, billingentity.NotFoundError{
+				Entity: billingentity.EntityDefaultProfile,
+				Err:    billingentity.ErrDefaultProfileNotFound,
 			}
 		}
 
@@ -78,10 +78,10 @@ func (r *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 	}
 
 	if linesAffected == 0 {
-		return nil, billing.NotFoundError{
+		return nil, billingentity.NotFoundError{
 			ID:     input.CustomerID,
-			Entity: billing.EntityCustomerOverride,
-			Err:    billing.ErrCustomerOverrideNotFound,
+			Entity: billingentity.EntityCustomerOverride,
+			Err:    billingentity.ErrCustomerOverrideNotFound,
 		}
 	}
 
@@ -116,10 +116,10 @@ func (r *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	if dbCustomerOverride.Edges.Customer == nil {
-		return nil, billing.NotFoundError{
+		return nil, billingentity.NotFoundError{
 			ID:     input.Customer.ID,
-			Entity: billing.EntityCustomer,
-			Err:    billing.ErrCustomerNotFound,
+			Entity: billingentity.EntityCustomer,
+			Err:    billingentity.ErrCustomerNotFound,
 		}
 	}
 
@@ -135,10 +135,10 @@ func (r *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 		Save(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return billing.NotFoundError{
+			return billingentity.NotFoundError{
 				ID:     input.CustomerID,
-				Entity: billing.EntityCustomerOverride,
-				Err:    billing.ErrCustomerOverrideNotFound,
+				Entity: billingentity.EntityCustomerOverride,
+				Err:    billingentity.ErrCustomerOverrideNotFound,
 			}
 		}
 
@@ -146,10 +146,10 @@ func (r *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	}
 
 	if rowsAffected == 0 {
-		return billing.NotFoundError{
+		return billingentity.NotFoundError{
 			ID:     input.CustomerID,
-			Entity: billing.EntityCustomerOverride,
-			Err:    billing.ErrCustomerOverrideNotFound,
+			Entity: billingentity.EntityCustomerOverride,
+			Err:    billingentity.ErrCustomerOverrideNotFound,
 		}
 	}
 

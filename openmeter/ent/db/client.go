@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -63,6 +64,8 @@ type Client struct {
 	BillingInvoiceLine *BillingInvoiceLineClient
 	// BillingInvoiceManualLineConfig is the client for interacting with the BillingInvoiceManualLineConfig builders.
 	BillingInvoiceManualLineConfig *BillingInvoiceManualLineConfigClient
+	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
+	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
@@ -107,6 +110,7 @@ func (c *Client) init() {
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
 	c.BillingInvoiceLine = NewBillingInvoiceLineClient(c.config)
 	c.BillingInvoiceManualLineConfig = NewBillingInvoiceManualLineConfigClient(c.config)
+	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
@@ -220,6 +224,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoice:                  NewBillingInvoiceClient(cfg),
 		BillingInvoiceLine:              NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceManualLineConfig:  NewBillingInvoiceManualLineConfigClient(cfg),
+		BillingInvoiceValidationIssue:   NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                  NewBillingProfileClient(cfg),
 		BillingWorkflowConfig:           NewBillingWorkflowConfigClient(cfg),
 		Customer:                        NewCustomerClient(cfg),
@@ -260,6 +265,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoice:                  NewBillingInvoiceClient(cfg),
 		BillingInvoiceLine:              NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceManualLineConfig:  NewBillingInvoiceManualLineConfigClient(cfg),
+		BillingInvoiceValidationIssue:   NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                  NewBillingProfileClient(cfg),
 		BillingWorkflowConfig:           NewBillingWorkflowConfigClient(cfg),
 		Customer:                        NewCustomerClient(cfg),
@@ -303,10 +309,10 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.AppCustomer, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
 		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceLine,
-		c.BillingInvoiceManualLineConfig, c.BillingProfile, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.UsageReset,
+		c.BillingInvoiceManualLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -318,10 +324,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.AppCustomer, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
 		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceLine,
-		c.BillingInvoiceManualLineConfig, c.BillingProfile, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.UsageReset,
+		c.BillingInvoiceManualLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -348,6 +354,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingInvoiceLine.mutate(ctx, m)
 	case *BillingInvoiceManualLineConfigMutation:
 		return c.BillingInvoiceManualLineConfig.mutate(ctx, m)
+	case *BillingInvoiceValidationIssueMutation:
+		return c.BillingInvoiceValidationIssue.mutate(ctx, m)
 	case *BillingProfileMutation:
 		return c.BillingProfile.mutate(ctx, m)
 	case *BillingWorkflowConfigMutation:
@@ -1587,6 +1595,22 @@ func (c *BillingInvoiceClient) QueryBillingInvoiceLines(bi *BillingInvoice) *Bil
 	return query
 }
 
+// QueryBillingInvoiceValidationIssues queries the billing_invoice_validation_issues edge of a BillingInvoice.
+func (c *BillingInvoiceClient) QueryBillingInvoiceValidationIssues(bi *BillingInvoice) *BillingInvoiceValidationIssueQuery {
+	query := (&BillingInvoiceValidationIssueClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bi.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
+			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
+		)
+		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryBillingInvoiceCustomer queries the billing_invoice_customer edge of a BillingInvoice.
 func (c *BillingInvoiceClient) QueryBillingInvoiceCustomer(bi *BillingInvoice) *CustomerQuery {
 	query := (&CustomerClient{config: c.config}).Query()
@@ -1971,6 +1995,155 @@ func (c *BillingInvoiceManualLineConfigClient) mutate(ctx context.Context, m *Bi
 		return (&BillingInvoiceManualLineConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingInvoiceManualLineConfig mutation op: %q", m.Op())
+	}
+}
+
+// BillingInvoiceValidationIssueClient is a client for the BillingInvoiceValidationIssue schema.
+type BillingInvoiceValidationIssueClient struct {
+	config
+}
+
+// NewBillingInvoiceValidationIssueClient returns a client for the BillingInvoiceValidationIssue from the given config.
+func NewBillingInvoiceValidationIssueClient(c config) *BillingInvoiceValidationIssueClient {
+	return &BillingInvoiceValidationIssueClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billinginvoicevalidationissue.Hooks(f(g(h())))`.
+func (c *BillingInvoiceValidationIssueClient) Use(hooks ...Hook) {
+	c.hooks.BillingInvoiceValidationIssue = append(c.hooks.BillingInvoiceValidationIssue, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billinginvoicevalidationissue.Intercept(f(g(h())))`.
+func (c *BillingInvoiceValidationIssueClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingInvoiceValidationIssue = append(c.inters.BillingInvoiceValidationIssue, interceptors...)
+}
+
+// Create returns a builder for creating a BillingInvoiceValidationIssue entity.
+func (c *BillingInvoiceValidationIssueClient) Create() *BillingInvoiceValidationIssueCreate {
+	mutation := newBillingInvoiceValidationIssueMutation(c.config, OpCreate)
+	return &BillingInvoiceValidationIssueCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingInvoiceValidationIssue entities.
+func (c *BillingInvoiceValidationIssueClient) CreateBulk(builders ...*BillingInvoiceValidationIssueCreate) *BillingInvoiceValidationIssueCreateBulk {
+	return &BillingInvoiceValidationIssueCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingInvoiceValidationIssueClient) MapCreateBulk(slice any, setFunc func(*BillingInvoiceValidationIssueCreate, int)) *BillingInvoiceValidationIssueCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingInvoiceValidationIssueCreateBulk{err: fmt.Errorf("calling to BillingInvoiceValidationIssueClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingInvoiceValidationIssueCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingInvoiceValidationIssueCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingInvoiceValidationIssue.
+func (c *BillingInvoiceValidationIssueClient) Update() *BillingInvoiceValidationIssueUpdate {
+	mutation := newBillingInvoiceValidationIssueMutation(c.config, OpUpdate)
+	return &BillingInvoiceValidationIssueUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingInvoiceValidationIssueClient) UpdateOne(bivi *BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueUpdateOne {
+	mutation := newBillingInvoiceValidationIssueMutation(c.config, OpUpdateOne, withBillingInvoiceValidationIssue(bivi))
+	return &BillingInvoiceValidationIssueUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingInvoiceValidationIssueClient) UpdateOneID(id string) *BillingInvoiceValidationIssueUpdateOne {
+	mutation := newBillingInvoiceValidationIssueMutation(c.config, OpUpdateOne, withBillingInvoiceValidationIssueID(id))
+	return &BillingInvoiceValidationIssueUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingInvoiceValidationIssue.
+func (c *BillingInvoiceValidationIssueClient) Delete() *BillingInvoiceValidationIssueDelete {
+	mutation := newBillingInvoiceValidationIssueMutation(c.config, OpDelete)
+	return &BillingInvoiceValidationIssueDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingInvoiceValidationIssueClient) DeleteOne(bivi *BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueDeleteOne {
+	return c.DeleteOneID(bivi.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingInvoiceValidationIssueClient) DeleteOneID(id string) *BillingInvoiceValidationIssueDeleteOne {
+	builder := c.Delete().Where(billinginvoicevalidationissue.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingInvoiceValidationIssueDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingInvoiceValidationIssue.
+func (c *BillingInvoiceValidationIssueClient) Query() *BillingInvoiceValidationIssueQuery {
+	return &BillingInvoiceValidationIssueQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingInvoiceValidationIssue},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingInvoiceValidationIssue entity by its id.
+func (c *BillingInvoiceValidationIssueClient) Get(ctx context.Context, id string) (*BillingInvoiceValidationIssue, error) {
+	return c.Query().Where(billinginvoicevalidationissue.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingInvoiceValidationIssueClient) GetX(ctx context.Context, id string) *BillingInvoiceValidationIssue {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBillingInvoice queries the billing_invoice edge of a BillingInvoiceValidationIssue.
+func (c *BillingInvoiceValidationIssueClient) QueryBillingInvoice(bivi *BillingInvoiceValidationIssue) *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bivi.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID, id),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicevalidationissue.BillingInvoiceTable, billinginvoicevalidationissue.BillingInvoiceColumn),
+		)
+		fromV = sqlgraph.Neighbors(bivi.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingInvoiceValidationIssueClient) Hooks() []Hook {
+	return c.hooks.BillingInvoiceValidationIssue
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingInvoiceValidationIssueClient) Interceptors() []Interceptor {
+	return c.inters.BillingInvoiceValidationIssue
+}
+
+func (c *BillingInvoiceValidationIssueClient) mutate(ctx context.Context, m *BillingInvoiceValidationIssueMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingInvoiceValidationIssueCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingInvoiceValidationIssueUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingInvoiceValidationIssueUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingInvoiceValidationIssueDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingInvoiceValidationIssue mutation op: %q", m.Op())
 	}
 }
 
@@ -3991,18 +4164,18 @@ type (
 	hooks struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerOverride, BillingInvoice, BillingInvoiceLine,
-		BillingInvoiceManualLineConfig, BillingProfile, BillingWorkflowConfig,
-		Customer, CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Hook
+		BillingInvoiceManualLineConfig, BillingInvoiceValidationIssue, BillingProfile,
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, UsageReset []ent.Hook
 	}
 	inters struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerOverride, BillingInvoice, BillingInvoiceLine,
-		BillingInvoiceManualLineConfig, BillingProfile, BillingWorkflowConfig,
-		Customer, CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Interceptor
+		BillingInvoiceManualLineConfig, BillingInvoiceValidationIssue, BillingProfile,
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, UsageReset []ent.Interceptor
 	}
 )
 

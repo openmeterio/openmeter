@@ -146,6 +146,16 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 		// TODO[OM-943]: Implement
 		Payment: nil,
 		Type:    api.BillingInvoiceType(invoice.Type),
+		ValidationIssues: lo.EmptyableToPtr(
+			lo.Map(invoice.ValidationIssues, func(v billingentity.ValidationIssue, _ int) api.BillingValidationIssue {
+				return api.BillingValidationIssue{
+					Severity:  api.BillingValidationIssueSeverity(v.Severity),
+					Message:   v.Message,
+					Code:      lo.EmptyableToPtr(v.Code),
+					Component: string(v.Component),
+					Field:     lo.EmptyableToPtr(v.Path),
+				}
+			})),
 	}
 
 	if invoice.Workflow != nil {

@@ -7,10 +7,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
-var _ customerentity.App = (*App)(nil)
+var (
+	_ customerentity.App         = (*App)(nil)
+	_ billingentity.InvoicingApp = (*App)(nil)
+)
 
 type App struct {
 	appentitybase.AppBase
@@ -21,6 +25,10 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 
+	return nil
+}
+
+func (a App) ValidateInvoice(ctx context.Context, invoice billingentity.Invoice) error {
 	return nil
 }
 
@@ -61,7 +69,7 @@ func NewFactory(config Config) (*Factory, error) {
 }
 
 // Factory
-func (a *Factory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+func (a *Factory) NewApp(_ context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
 	return App{
 		AppBase: appBase,
 	}, nil

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -341,6 +342,59 @@ func init() {
 	billinginvoicemanuallineconfigDescID := billinginvoicemanuallineconfigMixinFields1[0].Descriptor()
 	// billinginvoicemanuallineconfig.DefaultID holds the default value on creation for the id field.
 	billinginvoicemanuallineconfig.DefaultID = billinginvoicemanuallineconfigDescID.Default.(func() string)
+	billinginvoicevalidationissueMixin := schema.BillingInvoiceValidationIssue{}.Mixin()
+	billinginvoicevalidationissueMixinFields0 := billinginvoicevalidationissueMixin[0].Fields()
+	_ = billinginvoicevalidationissueMixinFields0
+	billinginvoicevalidationissueMixinFields1 := billinginvoicevalidationissueMixin[1].Fields()
+	_ = billinginvoicevalidationissueMixinFields1
+	billinginvoicevalidationissueMixinFields2 := billinginvoicevalidationissueMixin[2].Fields()
+	_ = billinginvoicevalidationissueMixinFields2
+	billinginvoicevalidationissueFields := schema.BillingInvoiceValidationIssue{}.Fields()
+	_ = billinginvoicevalidationissueFields
+	// billinginvoicevalidationissueDescNamespace is the schema descriptor for namespace field.
+	billinginvoicevalidationissueDescNamespace := billinginvoicevalidationissueMixinFields1[0].Descriptor()
+	// billinginvoicevalidationissue.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billinginvoicevalidationissue.NamespaceValidator = billinginvoicevalidationissueDescNamespace.Validators[0].(func(string) error)
+	// billinginvoicevalidationissueDescCreatedAt is the schema descriptor for created_at field.
+	billinginvoicevalidationissueDescCreatedAt := billinginvoicevalidationissueMixinFields2[0].Descriptor()
+	// billinginvoicevalidationissue.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billinginvoicevalidationissue.DefaultCreatedAt = billinginvoicevalidationissueDescCreatedAt.Default.(func() time.Time)
+	// billinginvoicevalidationissueDescUpdatedAt is the schema descriptor for updated_at field.
+	billinginvoicevalidationissueDescUpdatedAt := billinginvoicevalidationissueMixinFields2[1].Descriptor()
+	// billinginvoicevalidationissue.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billinginvoicevalidationissue.DefaultUpdatedAt = billinginvoicevalidationissueDescUpdatedAt.Default.(func() time.Time)
+	// billinginvoicevalidationissue.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billinginvoicevalidationissue.UpdateDefaultUpdatedAt = billinginvoicevalidationissueDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billinginvoicevalidationissueDescInvoiceID is the schema descriptor for invoice_id field.
+	billinginvoicevalidationissueDescInvoiceID := billinginvoicevalidationissueFields[0].Descriptor()
+	// billinginvoicevalidationissue.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
+	billinginvoicevalidationissue.InvoiceIDValidator = billinginvoicevalidationissueDescInvoiceID.Validators[0].(func(string) error)
+	// billinginvoicevalidationissueDescMessage is the schema descriptor for message field.
+	billinginvoicevalidationissueDescMessage := billinginvoicevalidationissueFields[3].Descriptor()
+	// billinginvoicevalidationissue.MessageValidator is a validator for the "message" field. It is called by the builders before save.
+	billinginvoicevalidationissue.MessageValidator = billinginvoicevalidationissueDescMessage.Validators[0].(func(string) error)
+	// billinginvoicevalidationissueDescDedupeHash is the schema descriptor for dedupe_hash field.
+	billinginvoicevalidationissueDescDedupeHash := billinginvoicevalidationissueFields[6].Descriptor()
+	// billinginvoicevalidationissue.DedupeHashValidator is a validator for the "dedupe_hash" field. It is called by the builders before save.
+	billinginvoicevalidationissue.DedupeHashValidator = func() func([]byte) error {
+		validators := billinginvoicevalidationissueDescDedupeHash.Validators
+		fns := [...]func([]byte) error{
+			validators[0].(func([]byte) error),
+			validators[1].(func([]byte) error),
+		}
+		return func(dedupe_hash []byte) error {
+			for _, fn := range fns {
+				if err := fn(dedupe_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// billinginvoicevalidationissueDescID is the schema descriptor for id field.
+	billinginvoicevalidationissueDescID := billinginvoicevalidationissueMixinFields0[0].Descriptor()
+	// billinginvoicevalidationissue.DefaultID holds the default value on creation for the id field.
+	billinginvoicevalidationissue.DefaultID = billinginvoicevalidationissueDescID.Default.(func() string)
 	billingprofileMixin := schema.BillingProfile{}.Mixin()
 	billingprofileMixinFields0 := billingprofileMixin[0].Fields()
 	_ = billingprofileMixinFields0

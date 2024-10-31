@@ -43,6 +43,7 @@ type InvoiceService interface {
 	// - an error is occurred
 	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
 	// - the invoice is advanced to the final state
-	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (*billingentity.Invoice, error)
-	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (*billingentity.Invoice, error)
+	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (billingentity.Invoice, error)
+	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (billingentity.Invoice, error)
+	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (billingentity.Invoice, error)
 }

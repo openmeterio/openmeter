@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -533,6 +534,21 @@ func (bic *BillingInvoiceCreate) AddBillingInvoiceLines(b ...*BillingInvoiceLine
 	return bic.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
+func (bic *BillingInvoiceCreate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceCreate {
+	bic.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
+	return bic
+}
+
+// AddBillingInvoiceValidationIssues adds the "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
+func (bic *BillingInvoiceCreate) AddBillingInvoiceValidationIssues(b ...*BillingInvoiceValidationIssue) *BillingInvoiceCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bic.AddBillingInvoiceValidationIssueIDs(ids...)
+}
+
 // SetBillingInvoiceCustomerID sets the "billing_invoice_customer" edge to the Customer entity by ID.
 func (bic *BillingInvoiceCreate) SetBillingInvoiceCustomerID(id string) *BillingInvoiceCreate {
 	bic.mutation.SetBillingInvoiceCustomerID(id)
@@ -940,6 +956,22 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.BillingInvoiceValidationIssuesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

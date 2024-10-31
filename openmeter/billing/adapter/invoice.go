@@ -27,7 +27,7 @@ var _ billing.InvoiceAdapter = (*adapter)(nil)
 
 func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdInput) (billingentity.Invoice, error) {
 	if err := in.Validate(); err != nil {
-		return billingentity.Invoice{}, billing.ValidationError{
+		return billingentity.Invoice{}, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -47,8 +47,8 @@ func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	invoice, err := query.Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return billingentity.Invoice{}, billing.NotFoundError{
-				Entity: billing.EntityInvoice,
+			return billingentity.Invoice{}, billingentity.NotFoundError{
+				Entity: billingentity.EntityInvoice,
 				ID:     in.Invoice.ID,
 				Err:    err,
 			}
@@ -62,7 +62,7 @@ func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 
 func (r *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockInvoicesForUpdateInput) error {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -79,8 +79,8 @@ func (r *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockI
 
 	missingIds := lo.Without(input.InvoiceIDs, ids...)
 	if len(missingIds) > 0 {
-		return billing.NotFoundError{
-			Entity: billing.EntityInvoice,
+		return billingentity.NotFoundError{
+			Entity: billingentity.EntityInvoice,
 			ID:     strings.Join(missingIds, ","),
 			Err:    fmt.Errorf("cannot select invoices for update"),
 		}
@@ -91,7 +91,7 @@ func (r *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockI
 
 func (r *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoicesAdapterInput) error {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -103,7 +103,7 @@ func (r *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoic
 		Save(ctx)
 
 	if nAffected != len(input.InvoiceIDs) {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: errors.New("invoices failed to delete"),
 		}
 	}
@@ -120,7 +120,7 @@ func (r *adapter) expandLineItems(query *db.BillingInvoiceQuery) *db.BillingInvo
 
 func (r *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ListInvoicesResponse{}, billing.ValidationError{
+		return billing.ListInvoicesResponse{}, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -332,27 +332,27 @@ func (r *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, e
 	// if this doesn't match the current updatedAt, we can't allow the update as it might overwrite some already
 	// changed values.
 	if !existing.UpdatedAt.Equal(req.UpdatedAt) {
-		return billing.ConflictError{
-			Entity: billing.EntityInvoice,
+		return billingentity.ConflictError{
+			Entity: billingentity.EntityInvoice,
 			ID:     req.ID,
 			Err:    fmt.Errorf("invoice has been updated since last read"),
 		}
 	}
 
 	if req.Currency != existing.Currency {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: fmt.Errorf("currency cannot be changed"),
 		}
 	}
 
 	if req.Type != existing.Type {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: fmt.Errorf("type cannot be changed"),
 		}
 	}
 
 	if req.Customer.CustomerID != existing.CustomerID {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: fmt.Errorf("customer cannot be changed"),
 		}
 	}
@@ -422,6 +422,15 @@ func (r *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		SetOrClearCustomerTimezone(in.Customer.Timezone)
 
 	_, err = updateQuery.Save(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = r.persistValidationIssues(ctx,
+		billingentity.InvoiceID{
+			Namespace: in.Namespace,
+			ID:        in.ID,
+		}, in.ValidationIssues)
 	if err != nil {
 		return err
 	}

@@ -107,7 +107,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	s.T().Run("creating a second default profile fails", func(t *testing.T) {
 		_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 		require.Error(t, err)
-		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
+		require.ErrorIs(t, err, billingentity.ErrDefaultProfileAlreadyExists)
 	})
 
 	s.T().Run("fetching the profile by id", func(t *testing.T) {
@@ -135,7 +135,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 			require.ErrorIs(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
 				Namespace: ns,
 				ID:        profile.ID,
-			}), billing.ErrProfileAlreadyDeleted)
+			}), billingentity.ErrProfileAlreadyDeleted)
 		})
 
 		t.Run("fetching a deleted profile by id returns the profile", func(t *testing.T) {
@@ -459,7 +459,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		_, err := s.BillingService.UpdateProfile(ctx, updateInput)
 
 		// Then the profile is updated
-		require.ErrorIs(t, err, billing.ErrProfileConflict)
-		require.ErrorAs(t, err, &billing.UpdateAfterDeleteError{})
+		require.ErrorIs(t, err, billingentity.ErrProfileConflict)
+		require.ErrorAs(t, err, &billingentity.UpdateAfterDeleteError{})
 	})
 }

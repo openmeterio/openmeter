@@ -16,16 +16,19 @@ type ErrorWithHTTPStatusCode struct {
 }
 
 func ExtendProblem(name, details string) ExtendProblemFunc {
-	return func() (string, string) {
-		return name, details
+	return func() map[string]interface{} {
+		return map[string]interface{}{
+			name: details,
+		}
 	}
 }
 
-type ExtendProblemFunc func() (name string, details string)
+type ExtendProblemFunc func() map[string]interface{}
 
 func (e ExtendProblemFunc) apply(extensions map[string]interface{}) {
-	name, details := e()
-	extensions[name] = details
+	for k, v := range e() {
+		extensions[k] = v
+	}
 }
 
 func NewHTTPError(statusCode int, err error, extensions ...ExtendProblemFunc) ErrorWithHTTPStatusCode {
@@ -55,11 +58,11 @@ func ErrorEncoder(ctx context.Context, _ error, w http.ResponseWriter) bool {
 // HandleErrorIfTypeMatches checks if the error is of the given type and encodes it as an HTTP error.
 // Using the generic feature we can mandate that the error implements the error interface. This is a
 // must, as the errors.As would panic if the error does not implement the error interface.
-func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err error, w http.ResponseWriter, extendedProblemFunc ...func(T) (string, string)) bool {
+func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err error, w http.ResponseWriter, extendedProblemFunc ...func(T) map[string]interface{}) bool {
 	if err, ok := errorsx.ErrorAs[T](err); ok {
 		extendedProblemFuncs := make([]ExtendProblemFunc, 0, len(extendedProblemFunc))
 		for _, f := range extendedProblemFunc {
-			extendedProblemFuncs = append(extendedProblemFuncs, func() (string, string) {
+			extendedProblemFuncs = append(extendedProblemFuncs, func() map[string]interface{} {
 				return f(err)
 			})
 		}

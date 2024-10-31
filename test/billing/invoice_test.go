@@ -10,10 +10,13 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -188,12 +191,10 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			Namespace: namespace,
 			ID:        usdInvoice.ID,
 
-			Type:     billingentity.InvoiceTypeStandard,
-			Currency: currencyx.Code(currency.USD),
-			Status:   billingentity.InvoiceStatusGathering,
-			StatusDetails: billingentity.InvoiceStatusDetails{
-				AvailableActions: []billingentity.InvoiceAction{},
-			},
+			Type:          billingentity.InvoiceTypeStandard,
+			Currency:      currencyx.Code(currency.USD),
+			Status:        billingentity.InvoiceStatusGathering,
+			StatusDetails: billingentity.InvoiceStatusDetails{},
 
 			CreatedAt: usdInvoice.CreatedAt,
 			UpdatedAt: usdInvoice.UpdatedAt,
@@ -448,7 +449,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		})
 
 		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
 	})
 
 	s.Run("Creating invoice without any pending lines being available fails", func() {
@@ -462,7 +463,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		})
 
 		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
 	})
 
 	s.Run("Number of pending invoice lines is reported correctly by the adapter", func() {
@@ -516,7 +517,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// Then we should receive a validation error
 		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
 	})
 
 	s.Run("When creating an invoice with only item2 included", func() {
@@ -642,7 +643,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 	return invoice[0]
 }
 
-func (s *InvoicingTestSuite) TestInvoicingFlowInstantIssue() {
+func (s *InvoicingTestSuite) TestInvoicingFlow() {
 	cases := []struct {
 		name           string
 		workflowConfig billingentity.WorkflowConfig
@@ -665,12 +666,14 @@ func (s *InvoicingTestSuite) TestInvoicingFlowInstantIssue() {
 				},
 			},
 			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
+				// When trying to advance an issued invoice, we get an error
 				_, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
 					ID:        invoice.ID,
 					Namespace: invoice.Namespace,
 				})
 
-				require.NoError(s.T(), err)
+				require.ErrorIs(t, err, billingentity.ErrInvoiceCannotAdvance)
+				require.ErrorAs(t, err, &billingentity.ValidationError{})
 			},
 			expectedState: billingentity.InvoiceStatusIssued,
 		},
@@ -690,31 +693,25 @@ func (s *InvoicingTestSuite) TestInvoicingFlowInstantIssue() {
 				},
 			},
 			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
-				advancedInvoice, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
-					ID:        invoice.ID,
-					Namespace: invoice.Namespace,
-				})
-
-				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftWaitingAutoApproval, advancedInvoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 
 				// Approve the invoice, should become DraftReadyToIssue
-				advancedInvoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
-					ID:        advancedInvoice.ID,
-					Namespace: advancedInvoice.Namespace,
-				})
-
-				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, advancedInvoice.Status)
-
-				// Advance the invoice, should become Issued
-				advancedInvoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+				invoice, err := s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
 					ID:        invoice.ID,
 					Namespace: invoice.Namespace,
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusIssued, advancedInvoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, invoice.Status)
+
+				// Advance the invoice, should become Issued
+				invoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
 			},
 			expectedState: billingentity.InvoiceStatusIssued,
 		},
@@ -734,34 +731,28 @@ func (s *InvoicingTestSuite) TestInvoicingFlowInstantIssue() {
 				},
 			},
 			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
-				advancedInvoice, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
-					ID:        invoice.ID,
-					Namespace: invoice.Namespace,
-				})
-
-				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftManualApprovalNeeded, advancedInvoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
 					AvailableActions: []billingentity.InvoiceAction{billingentity.InvoiceActionApprove},
-				}, advancedInvoice.StatusDetails)
+				}, invoice.StatusDetails)
 
 				// Approve the invoice, should become DraftReadyToIssue
-				advancedInvoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
-					ID:        advancedInvoice.ID,
-					Namespace: advancedInvoice.Namespace,
-				})
-
-				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, advancedInvoice.Status)
-
-				// Advance the invoice, should become Issued
-				advancedInvoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+				invoice, err := s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
 					ID:        invoice.ID,
 					Namespace: invoice.Namespace,
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusIssued, advancedInvoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, invoice.Status)
+
+				// Advance the invoice, should become Issued
+				invoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
 			},
 			expectedState: billingentity.InvoiceStatusIssued,
 		},
@@ -810,11 +801,330 @@ func (s *InvoicingTestSuite) TestInvoicingFlowInstantIssue() {
 			})
 			require.NotNil(s.T(), invoice)
 
-			// Given we have a draft invoice
-			require.Equal(s.T(), billingentity.InvoiceStatusDraftCreated, invoice.Status)
-
 			// When we advance the invoice
 			tc.advance(t, ctx, invoice)
+
+			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: billingentity.InvoiceID{
+					Namespace: namespace,
+					ID:        invoice.ID,
+				},
+				Expand: billingentity.InvoiceExpandAll,
+			})
+
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), resultingInvoice)
+			require.Equal(s.T(), tc.expectedState, resultingInvoice.Status)
+		})
+	}
+}
+
+type ValidationIssueIntrospector interface {
+	IntrospectValidationIssues(ctx context.Context, invoice billingentity.InvoiceID) ([]billingadapter.ValidationIssueWithDBMeta, error)
+}
+
+func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
+	cases := []struct {
+		name           string
+		workflowConfig billingentity.WorkflowConfig
+		advance        func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice
+		expectedState  billingentity.InvoiceStatus
+	}{
+		{
+			name: "validation issue - different sources",
+			workflowConfig: billingentity.WorkflowConfig{
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+				},
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: true,
+					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
+					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+				},
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				},
+			},
+			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice {
+				calcMock := s.InvoiceCalculator.EnableMock()
+				defer s.InvoiceCalculator.DisableMock()
+
+				validationIssueGetter, ok := s.BillingAdapter.(ValidationIssueIntrospector)
+				require.True(t, ok)
+
+				// Given that the app will return a validation error
+				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
+					Return(billingentity.NewValidationError("test1", "validation error")).Once()
+				calcMock.On("Calculate", mock.Anything).
+					Return(nil).Once()
+
+				// When we create a draft invoice
+				invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
+					Namespace: ns,
+					Customer:  customer,
+				})
+				require.NotNil(s.T(), invoice)
+
+				// Then we should end up in draft_invalid state
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftInvalid, invoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
+					AvailableActions: []billingentity.InvoiceAction{
+						billingentity.InvoiceActionRetry,
+					},
+					Immutable: false,
+				}, invoice.StatusDetails)
+				require.Equal(s.T(), billingentity.ValidationIssues{
+					{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test1",
+						Message:   "validation error",
+						Component: "app/sandbox/invoiceCustomers",
+					},
+				}, invoice.ValidationIssues)
+
+				// Then we have the issues captured in the database
+				issues, err := validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
+					Namespace: ns,
+					ID:        invoice.ID,
+				})
+				require.NoError(t, err)
+				require.Len(t, issues, 1)
+				require.Equal(t,
+					billingentity.ValidationIssue{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test1",
+						Message:   "validation error",
+						Component: "app/sandbox/invoiceCustomers",
+					},
+					issues[0].ValidationIssue,
+				)
+				require.Nil(t, issues[0].DeletedAt)
+				customerValidationIssueID := issues[0].ID
+				require.NotEmpty(t, customerValidationIssueID)
+
+				// Given that the issue is fixed, but a new one is introduced by editing the invoice
+				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
+					Return(nil).Once()
+				calcMock.On("Calculate", mock.Anything).
+					Return(billingentity.NewValidationError("test2", "validation error")).Once()
+
+				// TODO: we should trigger the update of the invoice here, but that's not yet available
+				// regardless the state transition will be the same for now.
+				invoice, err = s.BillingService.RetryInvoice(ctx, billing.RetryInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+				require.NoError(s.T(), err)
+				require.NotNil(s.T(), invoice)
+
+				// Then we should end up in draft_invalid state
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftInvalid, invoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
+					AvailableActions: []billingentity.InvoiceAction{
+						billingentity.InvoiceActionRetry,
+					},
+					Immutable: false,
+				}, invoice.StatusDetails)
+				require.Equal(s.T(), billingentity.ValidationIssues{
+					{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test2",
+						Message:   "validation error",
+						Component: billingentity.ValidationComponentOpenMeter,
+					},
+				}, invoice.ValidationIssues)
+
+				// Then we have the new issues captured in the database, the old one deleted
+				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
+					Namespace: ns,
+					ID:        invoice.ID,
+				})
+				require.NoError(t, err)
+				require.Len(t, issues, 2)
+
+				// The old issue should be deleted
+				invoiceIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+					return i.ID == customerValidationIssueID
+				})
+				require.True(t, ok, "old issue should be present")
+				require.NotNil(t, invoiceIssue.DeletedAt)
+				require.Equal(t,
+					billingentity.ValidationIssue{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test1",
+						Message:   "validation error",
+						Component: "app/sandbox/invoiceCustomers",
+					},
+					invoiceIssue.ValidationIssue,
+				)
+
+				// The new issue should not be deleted
+				calculationErrorIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+					return i.ID != customerValidationIssueID
+				})
+				require.True(t, ok, "new issue should be present")
+				require.Nil(t, calculationErrorIssue.DeletedAt)
+				require.Equal(t,
+					billingentity.ValidationIssue{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test2",
+						Message:   "validation error",
+						Component: "openmeter",
+					},
+					calculationErrorIssue.ValidationIssue,
+				)
+
+				// TODO: validate db storage of validation issues too
+				// Given that both issues are present, both will be reported
+				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
+					Return(billingentity.NewValidationError("test1", "validation error")).Once()
+				calcMock.On("Calculate", mock.Anything).
+					Return(billingentity.NewValidationError("test2", "validation error")).Once()
+
+				// TODO: we should trigger the update of the invoice here, but that's not yet available
+				// regardless the state transition will be the same for now.
+				invoice, err = s.BillingService.RetryInvoice(ctx, billing.RetryInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+				require.NoError(s.T(), err)
+				require.NotNil(s.T(), invoice)
+
+				// Then we should end up in draft_invalid state
+				require.Equal(s.T(), billingentity.InvoiceStatusDraftInvalid, invoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
+					AvailableActions: []billingentity.InvoiceAction{
+						billingentity.InvoiceActionRetry,
+					},
+					Immutable: false,
+				}, invoice.StatusDetails)
+				require.ElementsMatch(s.T(), billingentity.ValidationIssues{
+					{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test1",
+						Message:   "validation error",
+						Component: "app/sandbox/invoiceCustomers",
+					},
+					{
+						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Code:      "test2",
+						Message:   "validation error",
+						Component: billingentity.ValidationComponentOpenMeter,
+					},
+				}, invoice.ValidationIssues)
+
+				// The database now has both issues active (but no new ones are created)
+				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
+					Namespace: ns,
+					ID:        invoice.ID,
+				})
+				require.NoError(t, err)
+				require.Len(t, issues, 2)
+
+				_, deletedIssueFound := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+					return i.DeletedAt != nil
+				})
+				require.False(t, deletedIssueFound, "no issues should be deleted")
+
+				return &invoice
+			},
+			expectedState: billingentity.InvoiceStatusDraftInvalid,
+		},
+		{
+			name: "validation issue - warnings allow state transitions",
+			workflowConfig: billingentity.WorkflowConfig{
+				Collection: billingentity.CollectionConfig{
+					Alignment: billingentity.AlignmentKindSubscription,
+				},
+				Invoicing: billingentity.InvoicingConfig{
+					AutoAdvance: true,
+					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
+					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+				},
+				Payment: billingentity.PaymentConfig{
+					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				},
+			},
+			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice {
+				calcMock := s.InvoiceCalculator.EnableMock()
+				defer s.InvoiceCalculator.DisableMock()
+
+				// Given that the app will return a validation error
+				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
+					Return(billingentity.NewValidationWarning("test1", "validation warning")).Once()
+				calcMock.On("Calculate", mock.Anything).
+					Return(nil).Once()
+
+				// When we create a draft invoice
+				invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
+					Namespace: ns,
+					Customer:  customer,
+				})
+				require.NotNil(s.T(), invoice)
+
+				// Then we should end up in draft_invalid state
+				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
+				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
+					AvailableActions: []billingentity.InvoiceAction{},
+					Immutable:        true,
+				}, invoice.StatusDetails)
+				require.Equal(s.T(), billingentity.ValidationIssues{
+					{
+						Severity:  billingentity.ValidationIssueSeverityWarning,
+						Code:      "test1",
+						Message:   "validation warning",
+						Component: "app/sandbox/invoiceCustomers",
+					},
+				}, invoice.ValidationIssues)
+
+				return &invoice
+			},
+			expectedState: billingentity.InvoiceStatusIssued,
+		},
+	}
+
+	ctx := context.Background()
+
+	for i, tc := range cases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			namespace := fmt.Sprintf("ns-invoicing-flow-valid-%d", i)
+
+			_ = s.installSandboxApp(s.T(), namespace)
+
+			mockApp := s.SandboxApp.EnableMock(t)
+			defer s.SandboxApp.DisableMock()
+
+			// Given we have a test customer
+			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+				Namespace: namespace,
+
+				Customer: customerentity.Customer{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "Test Customer",
+					}),
+					PrimaryEmail: lo.ToPtr("test@test.com"),
+					BillingAddress: &models.Address{
+						Country: lo.ToPtr(models.CountryCode("US")),
+					},
+					Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+				},
+			})
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), customerEntity)
+			require.NotEmpty(s.T(), customerEntity.ID)
+
+			// Given we have a billing profile
+			minimalCreateProfileInput := minimalCreateProfileInputTemplate
+			minimalCreateProfileInput.Namespace = namespace
+			minimalCreateProfileInput.WorkflowConfig = tc.workflowConfig
+
+			profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), profile)
+
+			// When we advance the invoice
+			invoice := tc.advance(t, ctx, namespace, customerEntity, mockApp)
 
 			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: billingentity.InvoiceID{

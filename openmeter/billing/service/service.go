@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -16,17 +18,19 @@ import (
 var _ billing.Service = (*Service)(nil)
 
 type Service struct {
-	adapter         billing.Adapter
-	customerService customer.CustomerService
-	appService      app.Service
-	logger          *slog.Logger
+	adapter           billing.Adapter
+	customerService   customer.CustomerService
+	appService        app.Service
+	logger            *slog.Logger
+	invoiceCalculator InvoiceCalculator
 }
 
 type Config struct {
-	Adapter         billing.Adapter
-	CustomerService customer.CustomerService
-	AppService      app.Service
-	Logger          *slog.Logger
+	Adapter           billing.Adapter
+	CustomerService   customer.CustomerService
+	AppService        app.Service
+	Logger            *slog.Logger
+	InvoiceCalculator InvoiceCalculator
 }
 
 func (c Config) Validate() error {
@@ -55,10 +59,11 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter:         config.Adapter,
-		customerService: config.CustomerService,
-		appService:      config.AppService,
-		logger:          config.Logger,
+		adapter:           config.Adapter,
+		customerService:   config.CustomerService,
+		appService:        config.AppService,
+		logger:            config.Logger,
+		invoiceCalculator: lo.CoalesceOrEmpty(config.InvoiceCalculator, NewInvoiceCalculator()),
 	}, nil
 }
 

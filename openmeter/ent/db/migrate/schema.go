@@ -493,6 +493,52 @@ var (
 			},
 		},
 	}
+	// BillingInvoiceValidationIssuesColumns holds the columns for the "billing_invoice_validation_issues" table.
+	BillingInvoiceValidationIssuesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "severity", Type: field.TypeEnum, Enums: []string{"critical", "warning"}},
+		{Name: "code", Type: field.TypeString, Nullable: true},
+		{Name: "message", Type: field.TypeString},
+		{Name: "path", Type: field.TypeString, Nullable: true},
+		{Name: "component", Type: field.TypeString},
+		{Name: "dedupe_hash", Type: field.TypeBytes, Size: 32},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingInvoiceValidationIssuesTable holds the schema information for the "billing_invoice_validation_issues" table.
+	BillingInvoiceValidationIssuesTable = &schema.Table{
+		Name:       "billing_invoice_validation_issues",
+		Columns:    BillingInvoiceValidationIssuesColumns,
+		PrimaryKey: []*schema.Column{BillingInvoiceValidationIssuesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_invoice_validation_issues_billing_invoices_billing_invoice_validation_issues",
+				Columns:    []*schema.Column{BillingInvoiceValidationIssuesColumns[11]},
+				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinginvoicevalidationissue_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceValidationIssuesColumns[0]},
+			},
+			{
+				Name:    "billinginvoicevalidationissue_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceValidationIssuesColumns[1]},
+			},
+			{
+				Name:    "billinginvoicevalidationissue_namespace_invoice_id_dedupe_hash",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceValidationIssuesColumns[1], BillingInvoiceValidationIssuesColumns[11], BillingInvoiceValidationIssuesColumns[10]},
+			},
+		},
+	}
 	// BillingProfilesColumns holds the columns for the "billing_profiles" table.
 	BillingProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1168,6 +1214,7 @@ var (
 		BillingInvoicesTable,
 		BillingInvoiceLinesTable,
 		BillingInvoiceManualLineConfigsTable,
+		BillingInvoiceValidationIssuesTable,
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
 		CustomersTable,
@@ -1202,6 +1249,7 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[5].RefTable = CustomersTable
 	BillingInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceManualLineConfigsTable
+	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable

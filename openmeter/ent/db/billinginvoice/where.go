@@ -2903,6 +2903,29 @@ func HasBillingInvoiceLinesWith(preds ...predicate.BillingInvoiceLine) predicate
 	})
 }
 
+// HasBillingInvoiceValidationIssues applies the HasEdge predicate on the "billing_invoice_validation_issues" edge.
+func HasBillingInvoiceValidationIssues() predicate.BillingInvoice {
+	return predicate.BillingInvoice(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceValidationIssuesTable, BillingInvoiceValidationIssuesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoiceValidationIssuesWith applies the HasEdge predicate on the "billing_invoice_validation_issues" edge with a given conditions (other predicates).
+func HasBillingInvoiceValidationIssuesWith(preds ...predicate.BillingInvoiceValidationIssue) predicate.BillingInvoice {
+	return predicate.BillingInvoice(func(s *sql.Selector) {
+		step := newBillingInvoiceValidationIssuesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasBillingInvoiceCustomer applies the HasEdge predicate on the "billing_invoice_customer" edge.
 func HasBillingInvoiceCustomer() predicate.BillingInvoice {
 	return predicate.BillingInvoice(func(s *sql.Selector) {

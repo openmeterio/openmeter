@@ -67,8 +67,8 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 			Namespace:  ns,
 			CustomerID: customerID,
 		})
-		require.ErrorIs(t, err, billing.ErrDefaultProfileNotFound)
-		require.ErrorAs(t, err, &billing.NotFoundError{})
+		require.ErrorIs(t, err, billingentity.ErrDefaultProfileNotFound)
+		require.ErrorAs(t, err, &billingentity.NotFoundError{})
 		require.Nil(t, profileWithOverride)
 	})
 
@@ -178,8 +178,8 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 			Namespace:  ns,
 			CustomerID: customerID,
 		})
-		require.ErrorIs(t, err, billing.ErrDefaultProfileNotFound)
-		require.ErrorAs(t, err, &billing.NotFoundError{})
+		require.ErrorIs(t, err, billingentity.ErrDefaultProfileNotFound)
+		require.ErrorAs(t, err, &billingentity.NotFoundError{})
 		require.Nil(t, profileWithOverride)
 	})
 
@@ -243,7 +243,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 		})
 
 		// Then we get a NotFoundError
-		require.ErrorAs(t, err, &billing.NotFoundError{})
+		require.ErrorAs(t, err, &billingentity.NotFoundError{})
 	})
 
 	profileInput := minimalCreateProfileInputTemplate
@@ -294,7 +294,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 		})
 
 		// Then we get a NotFoundError
-		require.ErrorAs(t, err, &billing.NotFoundError{})
+		require.ErrorAs(t, err, &billingentity.NotFoundError{})
 
 		// When creating the override again
 		// Note: this is an implicit update test

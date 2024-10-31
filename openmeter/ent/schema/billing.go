@@ -476,6 +476,7 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type),
 		edge.From("billing_invoice_customer", Customer.Type).
 			Ref("billing_invoice").
 			Field("customer_id").
@@ -499,6 +500,65 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Field("payment_app_id").
 			Unique().
 			Immutable().
+			Required(),
+	}
+}
+
+type BillingInvoiceValidationIssue struct {
+	ent.Schema
+}
+
+func (BillingInvoiceValidationIssue) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingInvoiceValidationIssue) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("invoice_id").
+			NotEmpty().
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}),
+
+		field.Enum("severity").
+			GoType(billingentity.ValidationIssueSeverity("")),
+
+		field.String("code").
+			Nillable().
+			Optional(),
+
+		field.String("message").
+			NotEmpty(),
+
+		// Note: field is conflicting with the ent builtin methods, so we use path instead
+		field.String("path").
+			Optional().
+			Nillable(),
+
+		field.String("component"),
+
+		field.Bytes("dedupe_hash").
+			MinLen(32).
+			MaxLen(32),
+	}
+}
+
+func (BillingInvoiceValidationIssue) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id", "dedupe_hash").Unique(),
+	}
+}
+
+func (BillingInvoiceValidationIssue) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice", BillingInvoice.Type).
+			Ref("billing_invoice_validation_issues").
+			Field("invoice_id").
+			Unique().
 			Required(),
 	}
 }
