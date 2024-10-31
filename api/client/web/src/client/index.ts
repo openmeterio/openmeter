@@ -3,7 +3,7 @@ import { paths, components } from './openapi.js'
 
 export type WindowSize = components['schemas']['WindowSize']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
-export type Problem = components['schemas']['Problem']
+export type Problem = components['schemas']['UnexpectedProblemResponse']
 
 export class OpenMeterClient {
   private readonly fetcher: ReturnType<typeof Fetcher.for<paths>>
