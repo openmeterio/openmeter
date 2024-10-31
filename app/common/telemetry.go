@@ -102,7 +102,10 @@ func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerPro
 			).Handler(conf.NewHandler(os.Stdout)),
 
 			// Otel logger
-			realotelslog.NewHandler(metadata.OpenTelemetryName, realotelslog.WithLoggerProvider(loggerProvider)),
+			NewLevelHandler(
+				realotelslog.NewHandler(metadata.OpenTelemetryName, realotelslog.WithLoggerProvider(loggerProvider)),
+				conf.Level,
+			),
 		)),
 	)
 }
@@ -219,4 +222,38 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 			)
 		})
 	}
+}
+
+// Compile-time check LevelHandler implements slog.Handler.
+var _ slog.Handler = (*LevelHandler)(nil)
+
+// NewLevelHandler returns a new LevelHandler.
+func NewLevelHandler(handler slog.Handler, level slog.Leveler) *LevelHandler {
+	return &LevelHandler{
+		handler: handler,
+		level:   level,
+	}
+}
+
+// LevelHandler is a slog.Handler that filters log records based on the log level.
+type LevelHandler struct {
+	handler slog.Handler
+	level   slog.Leveler
+}
+
+func (h *LevelHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	// The higher the level, the more important or severe the event.
+	return level >= h.level.Level() && h.handler.Enabled(ctx, level)
+}
+
+func (h *LevelHandler) WithGroup(name string) slog.Handler {
+	return h.handler.WithGroup(name)
+}
+
+func (h *LevelHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return h.handler.WithAttrs(attrs)
+}
+
+func (h *LevelHandler) Handle(ctx context.Context, record slog.Record) error {
+	return h.handler.Handle(ctx, record)
 }
