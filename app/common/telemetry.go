@@ -247,13 +247,13 @@ func (h *LevelHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *LevelHandler) WithGroup(name string) slog.Handler {
-	return h.WithGroup(name)
+	return h.handler.WithGroup(name)
 }
 
 func (h *LevelHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h.WithAttrs(attrs)
+	return h.handler.WithAttrs(attrs)
 }
 
 func (h *LevelHandler) Handle(ctx context.Context, record slog.Record) error {
-	return h.Handle(ctx, record)
+	return h.handler.Handle(ctx, record)
 }
