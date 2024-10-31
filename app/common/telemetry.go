@@ -243,7 +243,7 @@ type LevelHandler struct {
 
 func (h *LevelHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	// The higher the level, the more important or severe the event.
-	return level >= h.level.Level()
+	return level >= h.level.Level() && h.handler.Enabled(ctx, level)
 }
 
 func (h *LevelHandler) WithGroup(name string) slog.Handler {
