@@ -99,7 +99,7 @@ func TestNextAfter(t *testing.T) {
 }
 
 func TestPrevBefore(t *testing.T) {
-	now := time.Now().Truncate(time.Minute)
+	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 
 	tc := []struct {
 		name       string
