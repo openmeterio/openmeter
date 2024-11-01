@@ -24,6 +24,24 @@ func TestLevelHandler(t *testing.T) {
 	mockHandler.AssertExpectations(t)
 }
 
+func TestLevelHandlerWith(t *testing.T) {
+	mockHandler := &MockHandler{}
+	logger := slog.New(NewLevelHandler(mockHandler, slog.LevelInfo))
+
+	logger = logger.With(slog.String("key", "value"))
+
+	mockHandler.On("Enabled", mock.Anything, slog.LevelInfo).Return(true)
+	mockHandler.On("Enabled", mock.Anything, slog.LevelWarn).Return(true)
+	mockHandler.On("Enabled", mock.Anything, slog.LevelError).Return(true)
+
+	logger.Debug("debug")
+	logger.Info("info")
+	logger.Warn("warn")
+	logger.Error("error")
+
+	mockHandler.AssertExpectations(t)
+}
+
 type MockHandler struct {
 	mock.Mock
 }
