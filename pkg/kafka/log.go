@@ -57,21 +57,28 @@ func processLog(logger *slog.Logger, e kafka.LogEvent) {
 }
 
 // According to [kafka.LogEvent] the Level field is an int that contains a syslog severity level.
+// See https://en.wikipedia.org/wiki/Syslog#Severity_level
 func mapLogLevel(level int) slog.Level {
 	switch level {
-	case 7:
-		return slog.LevelDebug
-
-	case 6, 5:
+	// Notice (5): Normal but significant conditions
+	case 5:
 		return slog.LevelInfo
 
+	// Warning (4): Warning conditions
 	case 4:
 		return slog.LevelWarn
 
+	// Error (3): Error conditions
+	// Critical (2): Critical conditions
+	// Alert (1): Action must be taken immediately
+	// Emergency (0): System is unusable
 	case 3, 2, 1, 0:
 		return slog.LevelError
 
+	// To reduce verbosity, we map all other levels to Debug.
+	// Informal (6): Confirmation that the program is working as expected.
+	// Debug (7): Debug-level messages
 	default:
-		return slog.LevelInfo
+		return slog.LevelDebug
 	}
 }
