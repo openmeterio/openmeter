@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -381,7 +382,16 @@ func (c LogTelemetryConfig) NewLoggerProvider(ctx context.Context, res *resource
 	if c.Exporters.OTLP.Enabled {
 		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("exporter: otlp: %w", err)
+		}
+
+		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
+	}
+
+	if c.Exporters.Stdout.Enabled {
+		exporter, err := c.Exporters.Stdout.NewExporter()
+		if err != nil {
+			return nil, fmt.Errorf("exporter: stdout: %w", err)
 		}
 
 		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
@@ -391,7 +401,8 @@ func (c LogTelemetryConfig) NewLoggerProvider(ctx context.Context, res *resource
 }
 
 type ExportersLogTelemetryConfig struct {
-	OTLP OTLPExportersLogTelemetryConfig
+	OTLP   OTLPExportersLogTelemetryConfig
+	Stdout StdoutExportersLogTelemetryConfig
 }
 
 // Validate validates the configuration.
@@ -443,6 +454,37 @@ func (c OTLPExportersLogTelemetryConfig) NewExporter(ctx context.Context) (sdklo
 	return exporter, nil
 }
 
+// StdoutExportersLogTelemetryConfig represents the configuration for the stdout log exporter.
+// See https://pkg.go.dev/go.opentelemetry.io/otel/exporters/stdout/stdoutlog
+type StdoutExportersLogTelemetryConfig struct {
+	Enabled     bool
+	PrettyPrint bool
+}
+
+// Validate validates the configuration.
+func (c StdoutExportersLogTelemetryConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	return nil
+}
+
+// NewExporter creates a new [sdklog.Exporter].
+func (c StdoutExportersLogTelemetryConfig) NewExporter() (sdklog.Exporter, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: log: exporter: stdout: disabled")
+	}
+
+	var opts []stdoutlog.Option
+
+	if c.PrettyPrint {
+		opts = append(opts, stdoutlog.WithPrettyPrint())
+	}
+
+	return stdoutlog.New(opts...)
+}
+
 // ConfigureTelemetry configures some defaults in the Viper instance.
 func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
@@ -461,4 +503,5 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.log.level", "info")
 	v.SetDefault("telemetry.log.exporters.otlp.enabled", false)
 	v.SetDefault("telemetry.log.exporters.otlp.address", "")
+	v.SetDefault("telemetry.log.exporters.stdout.enabled", false)
 }
