@@ -351,7 +351,7 @@ func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error 
 	for i := range sortedPhases {
 		p := sortedPhases[i]
 		// We use !.Before() cause we might insert the phase at the same time another one starts
-		if v, _ := p.StartAfter.AddTo(spec.ActiveFrom); !v.Before(vST) {
+		if v, _ := p.StartAfter.AddTo(spec.ActiveFrom); !v.Before(vST) && diff.IsZero() {
 			tillNextPhase, err := p.StartAfter.Subtract(a.Value().StartAfter)
 			if err != nil {
 				return fmt.Errorf("failed to calculate difference between phases: %w", err)
@@ -375,6 +375,7 @@ func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error 
 	// And then let's add the new phase
 	spec.Phases[a.PhaseKey] = &SubscriptionPhaseSpec{
 		CreateSubscriptionPhaseInput: a.CreateInput,
+		Items:                        make(map[string]*SubscriptionItemSpec),
 	}
 
 	return nil

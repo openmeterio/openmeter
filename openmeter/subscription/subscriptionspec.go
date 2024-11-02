@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -45,8 +45,12 @@ type SubscriptionSpec struct {
 	Phases map[string]*SubscriptionPhaseSpec
 }
 
-func (s *SubscriptionSpec) Equals(s2 *SubscriptionSpec, checkPhases bool) bool {
-	panic("implement me")
+func (s SubscriptionSpec) Self() SubscriptionSpec {
+	return s
+}
+
+func (s SubscriptionSpec) Equal(other SubscriptionSpec) bool {
+	return reflect.DeepEqual(s.CreateSubscriptionCustomerInput, other.CreateSubscriptionCustomerInput) && reflect.DeepEqual(s.CreateSubscriptionPlanInput, other.CreateSubscriptionPlanInput)
 }
 
 func (s *SubscriptionSpec) GetCreateInput() CreateSubscriptionInput {
@@ -166,7 +170,7 @@ func (s RemoveSubscriptionPhaseShifting) Validate() error {
 }
 
 type RemoveSubscriptionPhaseInput struct {
-	Shift RemoveSubscriptionPhaseShifting
+	Shift RemoveSubscriptionPhaseShifting `json:"shift"`
 }
 
 type CreateSubscriptionPhaseInput struct {
@@ -178,10 +182,6 @@ type CreateSubscriptionPhaseInput struct {
 type SubscriptionPhaseSpec struct {
 	CreateSubscriptionPhaseInput
 	Items map[string]*SubscriptionItemSpec
-}
-
-func (s *SubscriptionPhaseSpec) Equals(s2 *SubscriptionPhaseSpec) bool {
-	panic("implement me")
 }
 
 func (s *SubscriptionPhaseSpec) Validate() error {
@@ -287,37 +287,6 @@ func (s *CreateSubscriptionEntitlementInput) ToCreateEntitlementInput(
 	}
 
 	return inputs, nil
-}
-
-type CreatePriceSpec struct {
-	CreateInput         price.CreateInput
-	SubscriptionItemRef SubscriptionItemRef
-	Cadence             models.CadencedModel
-}
-
-type CreatePriceInput price.Spec
-
-func (s *CreatePriceInput) ToCreatePriceSpec(
-	namespace string,
-	subscriptionId string,
-	cadence models.CadencedModel,
-) CreatePriceSpec {
-	return CreatePriceSpec{
-		CreateInput: price.CreateInput{
-			Spec:          price.Spec(*s),
-			CadencedModel: cadence,
-			SubscriptionId: models.NamespacedID{
-				Namespace: namespace,
-				ID:        subscriptionId,
-			},
-		},
-		SubscriptionItemRef: SubscriptionItemRef{
-			SubscriptionId: subscriptionId,
-			PhaseKey:       s.PhaseKey,
-			ItemKey:        s.ItemKey,
-		},
-		Cadence: cadence,
-	}
 }
 
 type CreateSubscriptionItemPlanInput struct {

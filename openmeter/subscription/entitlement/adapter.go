@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/annotations"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -161,5 +162,16 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscription(ctx context.Context,
 }
 
 func (a *EntitlementSubscriptionAdapter) Delete(ctx context.Context, namespace string, ref subscription.SubscriptionItemRef) error {
-	panic("not implemented")
+	sEnt, err := a.repo.GetBySubscriptionItem(ctx, namespace, ref, time.Now())
+	if err != nil {
+		return err
+	}
+
+	// Lets delete the entitlement first
+	err = a.entitlementConnector.DeleteEntitlement(ctx, sEnt.Namespace, sEnt.EntitlementId, clock.Now())
+	if err != nil {
+		return fmt.Errorf("failed to delete Entitlement of SubscriptionEntitlement: %w", err)
+	}
+	// Then lets delete the subscription entitlement
+	return a.repo.Delete(ctx, sEnt.ID)
 }

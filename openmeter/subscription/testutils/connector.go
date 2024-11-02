@@ -17,6 +17,7 @@ type deps struct {
 	PlanAdapter        *planAdapter
 	CustomerAdapter    *testCustomerRepo
 	FeatureConnector   *testFeatureConnector
+	BillindAdapter     *mockBillingAdapter
 	EntitlementAdapter subscription.EntitlementAdapter
 }
 
@@ -52,8 +53,10 @@ func NewCommandAndQuery(t *testing.T, dbDeps *DBDeps) (subscription.Command, sub
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 	customer := NewCustomerService(t, dbDeps)
 
+	billingAdapter := NewMockBillingAdapter()
+
 	entitlementManager := subscription.NewEntitlementManager(entitlementAdapter)
-	priceManager := subscription.NewPriceManager(priceConnector)
+	priceManager := subscription.NewPriceManager(priceConnector, billingAdapter)
 	subscriptionManager := subscription.NewSubscriptionManager(subRepo)
 
 	connector := subscription.NewConnector(
@@ -72,6 +75,7 @@ func NewCommandAndQuery(t *testing.T, dbDeps *DBDeps) (subscription.Command, sub
 		PlanAdapter:        planAdapter,
 		CustomerAdapter:    customerAdapter,
 		FeatureConnector:   NewTestFeatureConnector(entitlementRegistry.Feature),
+		BillindAdapter:     billingAdapter,
 		EntitlementAdapter: entitlementAdapter,
 	}
 }

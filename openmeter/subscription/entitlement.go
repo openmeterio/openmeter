@@ -3,6 +3,7 @@ package subscription
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -16,11 +17,23 @@ type SubscriptionEntitlement struct {
 }
 
 func (s SubscriptionEntitlement) Validate() error {
-	if s.Entitlement.ActiveFrom != &s.Cadence.ActiveFrom {
+	if s.Entitlement.ActiveFrom == nil {
+		return fmt.Errorf("entitlement active from is nil")
+	}
+	if !s.Cadence.ActiveFrom.Equal(*s.Entitlement.ActiveFrom) {
 		return fmt.Errorf("entitlement active from %v does not match cadence active from %v", s.Entitlement.ActiveFrom, s.Cadence.ActiveFrom)
 	}
-	if s.Entitlement.ActiveTo != s.Cadence.ActiveTo {
-		return fmt.Errorf("entitlement active to %v does not match cadence active to %v", s.Entitlement.ActiveTo, s.Cadence.ActiveTo)
+	if s.Entitlement.ActiveTo == nil {
+		if s.Cadence.ActiveTo != nil {
+			return fmt.Errorf("entitlement active to is nil, but cadence active to is %v", s.Cadence.ActiveTo)
+		}
+	} else {
+		if s.Cadence.ActiveTo == nil {
+			return fmt.Errorf("entitlement active to is %v, but cadence active to is nil", s.Entitlement.ActiveTo)
+		}
+		if !s.Entitlement.ActiveTo.Equal(*s.Cadence.ActiveTo) {
+			return fmt.Errorf("entitlement active to %v does not match cadence active to %v", s.Entitlement.ActiveTo, s.Cadence.ActiveTo)
+		}
 	}
 	return nil
 }
@@ -39,12 +52,32 @@ type SubscriptionEntitlementSpec struct {
 	ItemRef           SubscriptionItemRef
 }
 
+func (s SubscriptionEntitlementSpec) Self() SubscriptionEntitlementSpec {
+	return s
+}
+
+func (s SubscriptionEntitlementSpec) Equal(other SubscriptionEntitlementSpec) bool {
+	return reflect.DeepEqual(s, other)
+}
+
 func (s SubscriptionEntitlementSpec) Validate() error {
-	if s.EntitlementInputs.ActiveFrom != &s.Cadence.ActiveFrom {
+	if s.EntitlementInputs.ActiveFrom == nil {
+		return fmt.Errorf("entitlement active from is nil")
+	}
+	if !s.Cadence.ActiveFrom.Equal(*s.EntitlementInputs.ActiveFrom) {
 		return fmt.Errorf("entitlement active from %v does not match cadence active from %v", s.EntitlementInputs.ActiveFrom, s.Cadence.ActiveFrom)
 	}
-	if s.EntitlementInputs.ActiveTo != s.Cadence.ActiveTo {
-		return fmt.Errorf("entitlement active to %v does not match cadence active to %v", s.EntitlementInputs.ActiveTo, s.Cadence.ActiveTo)
+	if s.EntitlementInputs.ActiveTo == nil {
+		if s.Cadence.ActiveTo != nil {
+			return fmt.Errorf("entitlement active to is nil, but cadence active to is %v", s.Cadence.ActiveTo)
+		}
+	} else {
+		if s.Cadence.ActiveTo == nil {
+			return fmt.Errorf("entitlement active to is %v, but cadence active to is nil", s.EntitlementInputs.ActiveTo)
+		}
+		if !s.EntitlementInputs.ActiveTo.Equal(*s.Cadence.ActiveTo) {
+			return fmt.Errorf("entitlement active to %v does not match cadence active to %v", s.EntitlementInputs.ActiveTo, s.Cadence.ActiveTo)
+		}
 	}
 	return nil
 }

@@ -92,8 +92,18 @@ func Deserialize(b []byte) (any, error) {
 			CreateInput: *val,
 		}, nil
 	} else if pPath.Type() == PatchPathTypePhase && pOp == PatchOperationRemove {
+		var val *RemoveSubscriptionPhaseInput
+
+		if err := json.Unmarshal(p.Value, &val); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal patch value: %w", err)
+		}
+
+		if val == nil {
+			return nil, fmt.Errorf("patch value is nil")
+		}
 		return &PatchRemovePhase{
-			PhaseKey: pPath.PhaseKey(),
+			PhaseKey:    pPath.PhaseKey(),
+			RemoveInput: *val,
 		}, nil
 	} else if pPath.Type() == PatchPathTypePhase && pOp == PatchOperationExtend {
 		var val *datex.Period

@@ -6,5 +6,5 @@ import (
 )
 
 type CadencedResourceRepo[T Cadenced] interface {
-	EndCadence(ctx context.Context, id string, at time.Time) (*T, error)
+	EndCadence(ctx context.Context, id string, at *time.Time) (*T, error)
 }

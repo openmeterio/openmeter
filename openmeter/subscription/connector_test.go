@@ -183,7 +183,9 @@ func TestCreation(t *testing.T) {
 		// All subs will use the same Plan as a baseline but they will affect different customers
 		createCustomerInfoByName := func(name string) customerentity.Customer {
 			return customerentity.Customer{
-				Name:         name,
+				ManagedResource: models.ManagedResource{
+					Name: name,
+				},
 				PrimaryEmail: lo.ToPtr(lo.CamelCase(name) + "@fake.com"),
 				Currency:     lo.ToPtr(currencyx.Code("USD")),
 				Timezone:     lo.ToPtr(timezone.Timezone("America/Los_Angeles")),

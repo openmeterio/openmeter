@@ -67,12 +67,15 @@ func NewConnector(
 	transactionManager transaction.Creator,
 ) Connector {
 	return &commandAndQuery{
-		repo:               repo,
-		priceConnector:     priceConnector,
-		customerService:    customerService,
-		planAdapter:        planAdapter,
-		entitlementAdapter: entitlementAdapter,
-		transactionManager: transactionManager,
+		repo:                repo,
+		entitlementManager:  entitlementManager,
+		priceManager:        priceManager,
+		subscriptionManager: subscriptionManager,
+		priceConnector:      priceConnector,
+		customerService:     customerService,
+		planAdapter:         planAdapter,
+		entitlementAdapter:  entitlementAdapter,
+		transactionManager:  transactionManager,
 	}
 }
 
@@ -324,7 +327,7 @@ func (q *commandAndQuery) getSpec(ctx context.Context, sub Subscription) (*Subsc
 
 	// Apply customizations
 	err = spec.ApplyPatches(applies, ApplyContext{
-		Operation:   SpecOperationCreate,
+		Operation:   SpecOperationEdit, // TODO: define new read operation
 		CurrentTime: clock.Now(),
 	})
 	if err != nil {

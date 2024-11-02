@@ -105,10 +105,10 @@ func (r *repository) Create(ctx context.Context, input CreateInput) (*Price, err
 	})
 }
 
-func (r *repository) EndCadence(ctx context.Context, id string, at time.Time) (*Price, error) {
+func (r *repository) EndCadence(ctx context.Context, id string, at *time.Time) (*Price, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *repository) (*Price, error) {
 		entity, err := repo.db.Price.UpdateOneID(id).
-			SetActiveTo(at).
+			SetOrClearActiveTo(at).
 			Save(ctx)
 
 		if db.IsNotFound(err) {

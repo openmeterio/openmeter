@@ -221,6 +221,7 @@ type patchCreator struct {
 	patch       func(s *db.SubscriptionPatchCreate)
 	addItem     func(s *db.SubscriptionPatchValueAddItemCreate, patchGetter func(batchIndex int) *db.SubscriptionPatch)
 	addPhase    func(s *db.SubscriptionPatchValueAddPhaseCreate, patchGetter func(batchIndex int) *db.SubscriptionPatch)
+	removePhase func(s *db.SubscriptionPatchValueRemovePhaseCreate, patchGetter func(batchIndex int) *db.SubscriptionPatch)
 	extendPhase func(s *db.SubscriptionPatchValueExtendPhaseCreate, patchGetter func(batchIndex int) *db.SubscriptionPatch)
 }
 
@@ -329,6 +330,21 @@ func mapPatchesToCreates(subscriptionID models.NamespacedID, patches []subscript
 					SetSubscriptionPatchID(dbPatch.ID).
 					SetPhaseKey(p.PhaseKey).
 					SetExtendDurationIso(val.String())
+			}
+		} else if patches[i].Op() == subscription.PatchOperationRemove && patches[i].Path().Type() == subscription.PatchPathTypePhase {
+			p, ok := patches[i].Patch.(subscription.PatchRemovePhase)
+			if !ok {
+				return nil, fmt.Errorf("unexpected patch type %T based on Op and Path should have been %T", patches[i].Patch, subscription.PatchRemovePhase{})
+			}
+
+			patchCreator.removePhase = func(s *db.SubscriptionPatchValueRemovePhaseCreate, patchGetter func(batchIndex int) *db.SubscriptionPatch) {
+				val := p.Value()
+				dbPatch := patchGetter(patches[i].BatchIndex)
+
+				s.SetNamespace(dbPatch.Namespace).
+					SetSubscriptionPatchID(dbPatch.ID).
+					SetPhaseKey(p.PhaseKey).
+					SetShiftBehavior(int(val.Shift))
 			}
 		}
 

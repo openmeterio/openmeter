@@ -62,6 +62,9 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 	t.Run("Should be the same for PatchRemovePhase", func(t *testing.T) {
 		p := &subscription.PatchRemovePhase{
 			PhaseKey: "asd",
+			RemoveInput: subscription.RemoveSubscriptionPhaseInput{
+				Shift: subscription.RemoveSubscriptionPhaseShiftPrev,
+			},
 		}
 
 		assertSame(t, p)

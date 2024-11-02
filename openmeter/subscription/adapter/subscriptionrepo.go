@@ -29,9 +29,9 @@ func NewSubscriptionRepo(db *db.Client) *subscriptionRepo {
 	}
 }
 
-func (r *subscriptionRepo) EndCadence(ctx context.Context, id string, at time.Time) (*subscription.Subscription, error) {
+func (r *subscriptionRepo) EndCadence(ctx context.Context, id string, at *time.Time) (*subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
-		ent, err := repo.db.Subscription.UpdateOneID(id).SetActiveTo(at).Save(ctx)
+		ent, err := repo.db.Subscription.UpdateOneID(id).SetNillableActiveTo(at).Save(ctx)
 		if db.IsNotFound(err) {
 			return nil, &subscription.NotFoundError{
 				ID: id,
@@ -125,7 +125,7 @@ func (r *subscriptionRepo) CreateSubscription(ctx context.Context, namespace str
 func (r *subscriptionRepo) GetSubscriptionPatches(ctx context.Context, subscriptionID models.NamespacedID) ([]subscription.SubscriptionPatch, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) ([]subscription.SubscriptionPatch, error) {
 		// Should we validate that the subscription is active?
-		res, err := repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().WithValueExtendPhase().
+		res, err := repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().WithValueExtendPhase().WithValueRemovePhase().
 			Where(
 				dbsubscriptionpatch.SubscriptionID(subscriptionID.ID),
 			).All(ctx)
@@ -209,6 +209,19 @@ func (r *subscriptionRepo) CreateSubscriptionPatches(ctx context.Context, subscr
 			}
 		}
 
+		removePhasePatch := lo.Filter(creates, func(c patchCreator, _ int) bool {
+			return c.removePhase != nil
+		})
+
+		if len(removePhasePatch) > 0 {
+			_, err = repo.db.SubscriptionPatchValueRemovePhase.MapCreateBulk(removePhasePatch, func(spc *db.SubscriptionPatchValueRemovePhaseCreate, i int) {
+				removePhasePatch[i].removePhase(spc, getPatch)
+			}).Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		extendPhasePatch := lo.Filter(creates, func(c patchCreator, _ int) bool {
 			return c.extendPhase != nil
 		})
@@ -224,7 +237,7 @@ func (r *subscriptionRepo) CreateSubscriptionPatches(ctx context.Context, subscr
 
 		// We have to refetch the patches to also load the edges, otherwise mapping would fail
 		// Alternatively we could map them here in memory but that probably would not be worth the complication
-		dbPatches, err = repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().WithValueExtendPhase().Where(
+		dbPatches, err = repo.db.SubscriptionPatch.Query().WithValueAddItem().WithValueAddPhase().WithValueExtendPhase().WithValueRemovePhase().Where(
 			dbsubscriptionpatch.IDIn(lo.Map(dbPatches, func(p *db.SubscriptionPatch, _ int) string {
 				return p.ID
 			})...),

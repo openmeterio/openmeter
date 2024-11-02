@@ -34,7 +34,7 @@ type SubscriptionItemView interface {
 	BillingCadence() time.Duration
 	Key() string
 
-	Price() (price.Price, bool)
+	Price() (SubscriptionPrice, bool)
 	// The feature referenced here might since have been archived (both the exact version of the feature under the same key as present when the item was specced, but also the key itself)
 	FeatureKey() (string, bool)
 	Entitlement() (SubscriptionEntitlement, bool)
@@ -72,12 +72,12 @@ func (s *subscriptionView) Phases() []SubscriptionPhaseView {
 	return phases
 }
 
-func (s *subscriptionView) AsSpec() *SubscriptionSpec {
+func (s subscriptionView) AsSpec() *SubscriptionSpec {
 	return s.subscriptionSpec
 }
 
 func (s *subscriptionView) Validate(includePhases bool) error {
-	spec := s.AsSpec()
+	spec := s.subscriptionSpec
 	if spec == nil {
 		return fmt.Errorf("subscription has no spec")
 	}
@@ -157,7 +157,7 @@ type subscriptionItemView struct {
 	subscription Subscription
 	spec         *SubscriptionItemSpec
 
-	price       *price.Price
+	price       *SubscriptionPrice
 	entitlement *SubscriptionEntitlement
 }
 
@@ -171,9 +171,9 @@ func (s *subscriptionItemView) Key() string {
 	return s.spec.ItemKey
 }
 
-func (s *subscriptionItemView) Price() (price.Price, bool) {
+func (s *subscriptionItemView) Price() (SubscriptionPrice, bool) {
 	if s.price == nil {
-		return price.Price{}, false
+		return SubscriptionPrice{}, false
 	}
 	return *s.price, true
 }
@@ -260,7 +260,7 @@ func NewSubscriptionView(
 	}
 
 	phases := make([]subscriptionPhaseView, 0, len(spec.Phases))
-	for _, phaseSpec := range spec.Phases {
+	for _, phaseSpec := range spec.GetSortedPhases() {
 		phase := subscriptionPhaseView{
 			subscription: sub,
 			spec:         phaseSpec,
@@ -293,7 +293,8 @@ func NewSubscriptionView(
 					ItemKey:        p.ItemKey,
 				}
 				if item.spec.GetRef(item.subscription.ID).Equals(pRef) {
-					item.price = &p
+					sp := SubscriptionPrice(p)
+					item.price = &sp
 				}
 			}
 

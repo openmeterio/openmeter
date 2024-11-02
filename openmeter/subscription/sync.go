@@ -6,25 +6,25 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/subscription/price"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (c *commandAndQuery) Edit(ctx context.Context, subscriptionID models.NamespacedID, patches []Patch) (Subscription, error) {
+	var def Subscription
 	currentTime := clock.Now()
 
 	// Fetch the subscription, check if it exists
 	sub, err := c.Get(ctx, subscriptionID)
 	if err != nil {
-		return Subscription{}, err
+		return def, err
 	}
 
 	// Build the current spec from the Subscription
 	spec, err := c.getSpec(ctx, sub)
 	if err != nil {
-		return Subscription{}, fmt.Errorf("failed to get spec: %w", err)
+		return def, fmt.Errorf("failed to get spec: %w", err)
 	}
 
 	err = spec.ApplyPatches(lo.Map(patches, ToApplies), ApplyContext{
@@ -32,24 +32,37 @@ func (c *commandAndQuery) Edit(ctx context.Context, subscriptionID models.Namesp
 		CurrentTime: currentTime,
 	})
 	if err != nil {
-		return Subscription{}, fmt.Errorf("failed to apply patches: %w", err)
+		return def, fmt.Errorf("failed to apply patches: %w", err)
 	}
 
 	view, err := c.Expand(ctx, subscriptionID)
 	if err != nil {
-		return Subscription{}, fmt.Errorf("failed to expand: %w", err)
+		return def, fmt.Errorf("failed to expand: %w", err)
 	}
 
 	// We have to Validate that the the view's integrity is still intact
 	// State diffs or system errors could produce invalid views
 	err = view.Validate(true)
 	if err != nil {
-		return Subscription{}, fmt.Errorf("failed to validate view, cannot execute edit: %w", err)
+		return def, fmt.Errorf("failed to validate view, cannot execute edit: %w", err)
 	}
 
 	err = c.SyncByStateDiff(ctx, view, spec)
 	if err != nil {
-		return Subscription{}, fmt.Errorf("failed to sync by state diff: %w", err)
+		return def, fmt.Errorf("failed to sync by state diff: %w", err)
+	}
+
+	// Once everything is successful, lets save the patches
+	patchInputs, err := TransformPatchesForRepository(patches, currentTime)
+	if err != nil {
+		return def, fmt.Errorf("failed to transform patches for repository: %w", err)
+	}
+	_, err = c.repo.CreateSubscriptionPatches(ctx, models.NamespacedID{
+		ID:        sub.ID,
+		Namespace: sub.Namespace,
+	}, patchInputs)
+	if err != nil {
+		return def, fmt.Errorf("failed to create subscription patches: %w", err)
 	}
 
 	return c.Get(ctx, subscriptionID)
@@ -65,19 +78,13 @@ func (c *commandAndQuery) SyncByStateDiff(ctx context.Context, currentView Subsc
 
 		// First, lets check if something is different about the Subscription
 		currentSpec := currentView.AsSpec()
-		if (currentSpec == nil) != (newSpec == nil) {
-			return nil, fmt.Errorf("current spec is nil: %t, new spec is nil: %t", currentSpec == nil, newSpec == nil)
+		viewStruct, ok := currentView.(*subscriptionView)
+		if !ok {
+			return nil, fmt.Errorf("current view is not a subscriptionView")
 		}
-
-		if !currentSpec.Equals(newSpec, false) {
-			viewStruct, ok := currentView.(*subscriptionView)
-			if !ok {
-				return nil, fmt.Errorf("current view is not a subscriptionView")
-			}
-			_, err := c.subscriptionManager.SyncState(ctx, viewStruct, newSpec)
-			if err != nil {
-				return nil, err
-			}
+		_, err := c.subscriptionManager.SyncState(ctx, viewStruct, newSpec)
+		if err != nil {
+			return nil, err
 		}
 
 		// First, let's track everything in the current view (the previous state) while keeping track of what we touched
@@ -107,7 +114,7 @@ func (c *commandAndQuery) SyncByStateDiff(ctx context.Context, currentView Subsc
 			}
 
 			cadence, err := newSpec.GetPhaseCadence(newPhaseSpec.PhaseKey)
-			if err == nil {
+			if err != nil {
 				return nil, fmt.Errorf("failed to get cadence for phase %s: %w", newPhaseSpec.PhaseKey, err)
 			}
 
@@ -139,9 +146,9 @@ func (c *commandAndQuery) SyncByStateDiff(ctx context.Context, currentView Subsc
 				// If it does, then Item doesn't exist as a resource, so...
 				// Lets check the entitlement
 				ent, ok := item.Entitlement()
-				var currentEntView SubscriptionEntitlement
+				var currentEntView *SubscriptionEntitlement
 				if ok {
-					currentEntView = ent
+					currentEntView = &ent
 				}
 				var newEntSpec *SubscriptionEntitlementSpec
 				if newItemSpec.HasEntitlement() {
@@ -157,14 +164,14 @@ func (c *commandAndQuery) SyncByStateDiff(ctx context.Context, currentView Subsc
 					}
 					newEntSpec = nSpec
 				}
-				_, err := c.entitlementManager.SyncState(ctx, &currentEntView, newEntSpec)
+				_, err := c.entitlementManager.SyncState(ctx, currentEntView, newEntSpec)
 				if err != nil {
 					return nil, fmt.Errorf("failed to sync entitlement: %w", err)
 				}
 
 				// Lets check the price
 				pr, ok := item.Price()
-				var currentPriceView *price.Price
+				var currentPriceView *SubscriptionPrice
 				if ok {
 					currentPriceView = &pr
 				}
@@ -187,22 +194,19 @@ func (c *commandAndQuery) SyncByStateDiff(ctx context.Context, currentView Subsc
 		// Now we've validated that all resources previously present are in their new state.
 		// Next, lets make sure that any new resources are created...
 		for _, phase := range newSpec.GetSortedPhases() {
-			// If the phase was already present before we can just skip it...
-			if _, ok := currentSpec.Phases[phase.PhaseKey]; ok {
-				continue
-			}
-
-			// If not, the let's check all it's items
+			// Let's check all it's items
 			for _, item := range phase.Items {
 				// If the item was already present then we can just skip it...
-				if _, ok := currentSpec.Phases[phase.PhaseKey].Items[item.ItemKey]; ok {
-					continue
+				if phase, ok := currentSpec.Phases[phase.PhaseKey]; ok {
+					if _, ok := phase.Items[item.ItemKey]; ok {
+						continue
+					}
 				}
 
 				// If not, then we should create all the resources
 				// Lets calculate the phase Cadence for the new spec
 				cadence, err := newSpec.GetPhaseCadence(phase.PhaseKey)
-				if err == nil {
+				if err != nil {
 					return nil, fmt.Errorf("failed to get cadence for phase %s: %w", phase.PhaseKey, err)
 				}
 

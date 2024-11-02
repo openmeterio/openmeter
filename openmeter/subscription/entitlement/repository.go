@@ -31,6 +31,7 @@ type CreateSubscriptionEntitlementInput struct {
 type Repository interface {
 	Create(ctx context.Context, ent CreateSubscriptionEntitlementInput) (*SubscriptionEntitlement, error)
 	Get(ctx context.Context, id string) (SubscriptionEntitlement, error)
+	Delete(ctx context.Context, id string) error
 	// The `at` time reffers to the active time of the entitlement
 	GetBySubscriptionItem(ctx context.Context, namespace string, ref subscription.SubscriptionItemRef, at time.Time) (SubscriptionEntitlement, error)
 	GetForSubscription(ctx context.Context, subscriptionId models.NamespacedID, at time.Time) ([]SubscriptionEntitlement, error)
@@ -61,6 +62,21 @@ func (r *repository) Create(ctx context.Context, ent CreateSubscriptionEntitleme
 
 		return mapDBSubscriptionEntitlementToSubscriptionEntitlement(ent), nil
 	})
+}
+
+func (r *repository) Delete(ctx context.Context, id string) error {
+	_, err := entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *repository) (any, error) {
+		err := repo.db.SubscriptionEntitlement.DeleteOneID(id).Exec(ctx)
+		if db.IsNotFound(err) {
+			return nil, &NotFoundError{ID: id}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete subscription entitlement: %w", err)
+		}
+
+		return nil, nil
+	})
+	return err
 }
 
 func (r *repository) Get(ctx context.Context, id string) (SubscriptionEntitlement, error) {

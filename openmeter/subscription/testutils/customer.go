@@ -12,6 +12,7 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -63,7 +64,9 @@ func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customerentity.C
 }
 
 var ExampleCustomerEntity customerentity.Customer = customerentity.Customer{
-	Name:         "John Doe",
+	ManagedResource: models.ManagedResource{
+		Name: "John Doe",
+	},
 	PrimaryEmail: lo.ToPtr("mail@me.uk"),
 	Currency:     lo.ToPtr(currencyx.Code("USD")),
 	Timezone:     lo.ToPtr(timezone.Timezone("America/Los_Angeles")),

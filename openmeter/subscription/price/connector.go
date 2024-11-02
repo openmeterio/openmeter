@@ -2,6 +2,7 @@ package price
 
 import (
 	"context"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -10,6 +11,7 @@ type Connector interface {
 	Create(ctx context.Context, input CreateInput) (*Price, error)
 	Delete(ctx context.Context, id models.NamespacedID) error
 	GetForSubscription(ctx context.Context, subscriptionID models.NamespacedID) ([]Price, error)
+	EndCadence(ctx context.Context, id models.NamespacedID, at *time.Time) (*Price, error)
 }
 
 type connector struct {
@@ -22,6 +24,10 @@ func NewConnector(repo Repository) Connector {
 
 func (c *connector) Create(ctx context.Context, input CreateInput) (*Price, error) {
 	return c.repo.Create(ctx, input)
+}
+
+func (c *connector) EndCadence(ctx context.Context, id models.NamespacedID, at *time.Time) (*Price, error) {
+	return c.repo.EndCadence(ctx, id.ID, at)
 }
 
 func (c *connector) GetForSubscription(ctx context.Context, subscriptionID models.NamespacedID) ([]Price, error) {
