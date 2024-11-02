@@ -65,10 +65,50 @@ interface Customers {
 @friendlyName("queryCustomerList")
 model ListCustomersParams extends PaginatedQuery {
   /**
+   * Order customers by.
+   * @TODO: set default value to CustomerOrderBy.name
+   */
+  ...OpenMeter.QueryOrdering<CustomerOrderBy>;
+
+  /**
    * Include deleted customers.
    */
   @query
   includeDeleted?: boolean = false;
+
+  /**
+   * Filter customers by name.
+   * Case-insensitive partial match.
+   */
+  @query
+  @example("ACME")
+  name?: string;
+
+  /**
+   * Filter customers by primary email.
+   * Case-insensitive partial match.
+   */
+  @query
+  @example("acme@test.com")
+  primaryEmail?: string;
+
+  /**
+   * Filter customers by usage attribution subject.
+   * Case-insensitive partial match.
+   */
+  @query
+  @example("my_subject_key")
+  subject?: string;
+}
+
+/**
+ * Order by options for customers.
+ */
+@friendlyName("CustomerOrderBy")
+enum CustomerOrderBy {
+  id: "id",
+  name: "name",
+  createdAt: "createdAt",
 }
 
 /**

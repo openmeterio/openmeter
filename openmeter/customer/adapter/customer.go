@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/api"
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // Register registers a new observer
@@ -55,6 +57,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 				}
 			}
 
+			// Build the database query
 			query := repo.db.Customer.
 				Query().
 				WithSubjects().
@@ -65,22 +68,37 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 				query = query.Where(customerdb.DeletedAtIsNil())
 			}
 
-			// order := entutils.GetOrdering(sortx.OrderDefault)
-			// if !params.Order.IsDefaultValue() {
-			// 	order = entutils.GetOrdering(params.Order)
-			// }
+			// Filters
+			if input.Name != nil {
+				query = query.Where(customerdb.NameContainsFold(*input.Name))
+			}
 
-			// switch params.OrderBy {
-			// case customer.CustomerOrderByCreatedAt:
-			// 	query = query.Order(customerdb.ByCreatedAt(order...))
-			// case customer.CustomerOrderByUpdatedAt:
-			// 	query = query.Order(customerdb.ByUpdatedAt(order...))
-			// case customer.CustomerOrderByID:
-			// 	fallthrough
-			// default:
-			// 	query = query.Order(customerdb.ByID(order...))
-			// }
+			if input.PrimaryEmail != nil {
+				query = query.Where(customerdb.PrimaryEmailContainsFold(*input.PrimaryEmail))
+			}
 
+			if input.Subject != nil {
+				query = query.Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKeyContainsFold(*input.Subject)))
+			}
+
+			// Order
+			order := entutils.GetOrdering(sortx.OrderDefault)
+			if !input.Order.IsDefaultValue() {
+				order = entutils.GetOrdering(input.Order)
+			}
+
+			switch input.OrderBy {
+			case api.CustomerOrderById:
+				query = query.Order(customerdb.ByID(order...))
+			case api.CustomerOrderByCreatedAt:
+				query = query.Order(customerdb.ByCreatedAt(order...))
+			case api.CustomerOrderByName:
+				fallthrough
+			default:
+				query = query.Order(customerdb.ByName(order...))
+			}
+
+			// Response
 			response := pagination.PagedResponse[customerentity.Customer]{
 				Page: input.Page,
 			}

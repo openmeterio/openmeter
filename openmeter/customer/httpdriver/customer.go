@@ -10,9 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type (
@@ -32,14 +34,25 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			}
 
 			req := ListCustomersRequest{
-				Namespace:      ns,
-				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
-				// OrderBy:        defaultx.WithDefault(params.OrderBy, api.ListCustomersParamsOrderById),
-				// Order:          sortx.Order(defaultx.WithDefault(params.Order, api.ListCustomersParamsOrderSortOrderASC)),
+				Namespace: ns,
+
+				// Pagination
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, customer.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, customer.DefaultPageNumber),
 				},
+
+				// Order
+				OrderBy: defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName),
+				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
+
+				// Filters
+				Name:         params.Name,
+				PrimaryEmail: params.PrimaryEmail,
+				Subject:      params.Subject,
+
+				// Modifiers
+				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
 			}
 
 			return req, nil

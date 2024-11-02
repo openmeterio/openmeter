@@ -651,6 +651,26 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[0]},
 			},
+			{
+				Name:    "customer_name",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[6]},
+			},
+			{
+				Name:    "customer_primary_email",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[15]},
+			},
+			{
+				Name:    "customer_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[5]},
+			},
+			{
+				Name:    "customer_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[3]},
+			},
 		},
 	}
 	// CustomerSubjectsColumns holds the columns for the "customer_subjects" table.
