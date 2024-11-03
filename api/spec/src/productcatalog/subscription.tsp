@@ -80,7 +80,10 @@ model SubscriptionPhase {
   activeFrom: DateTime;
 }
 
-@friendlyName("SubscriptionPhaseCreateInput")
+/**
+ * Subscription phase create input.
+ */
+@friendlyName("SubscriptionPhaseCreate")
 model SubscriptionPhaseCreate {
   /**
    * Interval after the subscription starts to transition to the phase.
@@ -165,6 +168,10 @@ model SubscriptionItem {
   };
 }
 
+/**
+ * Create subscription request body.
+ */
+@friendlyName("CreateSubscriptionRequestBody")
 model CreateSubscriptionRequestBody {
   customerId: ULID;
   plan: {
@@ -190,6 +197,9 @@ model CreateSubscriptionRequestBody {
 @pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
 scalar SubscriptionPhasePatchKey extends string;
 
+/**
+ * The direction of the phase shift when a phase is removed.
+ */
 @friendlyName("RemovePhaseShifting")
 enum RemovePhaseShifting {
   /**
@@ -229,23 +239,39 @@ alias SubscriptionItemPatch = SubscriptionEditAdd<
   SubscriptionItemPatchKey
 > | SubscriptionEditRemove<SubscriptionItemPatchKey>;
 
+/**
+ * Subscription item add operation.
+ */
+@friendlyName("SubscriptionEditAdd")
 model SubscriptionEditAdd<T, K extends string> {
   `op`: "add";
   path: K;
   value: T;
 }
 
+/**
+ * Subscription phase extend operation.
+ */
+@friendlyName("SubscriptionEditExtend")
 model SubscriptionPhaseExtend<T, K extends string> {
   `op`: "extend";
   path: K;
   value: T;
 }
 
+/**
+ * Subscription phase remove operation.
+ */
+@friendlyName("SubscriptionEditRemove")
 model SubscriptionEditRemove<K extends string> {
   `op`: "remove";
   path: K;
 }
 
+/**
+ * Subscription item remove operation with a value.
+ */
+@friendlyName("SubscriptionEditRemoveWithValue")
 model SubscriptionEditRemoveWithValue<T, K extends string> {
   `op`: "remove";
   path: K;

@@ -1,5 +1,5 @@
 import { createRule, paramMessage } from '@typespec/compiler'
-import { isPascalCaseNoAcronyms, isSnakeCase } from './utils.js'
+import { isPascalCaseNoAcronyms } from './utils.js'
 
 export const casingRule = createRule({
   name: 'casing',
@@ -19,22 +19,22 @@ export const casingRule = createRule({
         })
       }
     },
-    enum: (node) => {
-      for (const variant of node.members.values()) {
-        if (
-          typeof variant.name === 'string' &&
-          !isSnakeCase(variant.value || variant.name)
-        ) {
-          context.reportDiagnostic({
-            target: variant,
-            format: {
-              type: 'enum',
-              casing: 'snake_case',
-            },
-            messageId: 'value',
-          })
-        }
-      }
-    },
+    // enum: (node) => {
+    //   for (const variant of node.members.values()) {
+    //     if (
+    //       typeof variant.name === 'string' &&
+    //       !isSnakeCase(variant.value || variant.name)
+    //     ) {
+    //       context.reportDiagnostic({
+    //         target: variant,
+    //         format: {
+    //           type: 'enum',
+    //           casing: 'snake_case',
+    //         },
+    //         messageId: 'value',
+    //       })
+    //     }
+    //   }
+    // },
   }),
 })

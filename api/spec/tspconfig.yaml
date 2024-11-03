@@ -7,6 +7,6 @@ output-dir: '{base-dir}'
 options:
   '@typespec/openapi3':
     emitter-output-dir: '{output-dir}/output'
-# linter:
-#   extends:
-#     - '@openmeter/api-spec/all'
+linter:
+  extends:
+    - '@openmeter/api-spec/all'

@@ -62,6 +62,7 @@ enum AuthorizationCodeGrantErrorType {
  * We combine the success and error params into a single model.
  * Because of this success's `code` and error's `error` are optional fields.
  */
+@friendlyName("OAuth2AuthorizationCodeGrantParams")
 model AuthorizationCodeGrantParams {
   ...AuthorizationCodeGrantSuccessParams;
   ...AuthorizationCodeGrantErrorParams;

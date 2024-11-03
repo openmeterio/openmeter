@@ -40,6 +40,7 @@ scalar ULIDOrKey extends string;
  */
 @extension("x-go-type", "map[string]string")
 @example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
+@friendlyName("Metadata")
 model Metadata {
   ...Record<string>;
 }
