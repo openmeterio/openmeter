@@ -248,12 +248,12 @@ func TestEdit(t *testing.T) {
 			expected2ndPhaseStart, _ := datex.MustParse(t, "P2M").AddTo(sub.ActiveFrom)
 			expected3rdPhaseStart, _ := datex.MustParse(t, "P6M").AddTo(sub.ActiveFrom)
 
-			// Lets assert these two phases start when we beleive they do
+			// Lets assert these two phases start when we believe they do
 			require.Equal(t, expected2ndPhaseStart, phases[1].ActiveFrom())
 			require.Equal(t, expected3rdPhaseStart, phases[2].ActiveFrom())
 
-			// Let's add a new phase inbetween them
-			newPhaseKey := "inbetween-phase"
+			// Let's add a new phase in between them
+			newPhaseKey := "in-between-phase"
 			newPhaseStartAfter := datex.MustParse(t, "P4M")
 			newPhaseDuration := datex.MustParse(t, "P3M")
 
@@ -363,7 +363,7 @@ func TestEdit(t *testing.T) {
 			phaseToDelete := phases[2]
 			oldPrevPhase := phases[1]
 			oldNextPhase := phases[3]
-			require.Equal(t, "inbetween-phase", phaseToDelete.Key())
+			require.Equal(t, "in-between-phase", phaseToDelete.Key())
 			require.Equal(t, 1, len(phaseToDelete.Items()))
 
 			// Let's delete the phase we added above
