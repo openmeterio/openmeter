@@ -72,7 +72,7 @@ model QueryOrdering<T> {
    */
   @query
   @example(SortOrder.ASC)
-  order?: SortOrder;
+  order?: SortOrder = SortOrder.ASC;
 
   /**
    * The order by field.

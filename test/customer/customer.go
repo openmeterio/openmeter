@@ -5,12 +5,15 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/api"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -181,7 +184,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Customer()
 
 	// Create a customer 1
-	_, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	createCustomer1, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -190,13 +193,14 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-1"},
 			},
+			PrimaryEmail: lo.ToPtr("customer-1@test.com"),
 		},
 	})
 
 	require.NoError(t, err, "Creating customer must not return error")
 
 	// Create a customer 2
-	_, err = service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	createCustomer2, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		Customer: customerentity.Customer{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -205,6 +209,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-2"},
 			},
+			PrimaryEmail: lo.ToPtr("customer-2@test.com"),
 		},
 	})
 
@@ -227,25 +232,73 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 
 	require.NoError(t, err, "Creating customer must not return error")
 
+	page := pagination.Page{PageNumber: 1, PageSize: 10}
+
 	// List customers
 	list, err := service.ListCustomers(ctx, customerentity.ListCustomersInput{
 		Namespace: s.namespace,
-		Page:      pagination.Page{PageNumber: 1, PageSize: 10},
+		Page:      page,
 	})
 
 	require.NoError(t, err, "Listing customers must not return error")
-	require.NotNil(t, list, "Customers must not be nil")
 	require.Equal(t, 2, list.TotalCount, "Customers total count must be 1")
 	require.Equal(t, 1, list.Page.PageNumber, "Customers page must be 0")
 	require.Len(t, list.Items, 2, "Customers must have a single item")
 	require.Equal(t, s.namespace, list.Items[0].Namespace, "Customer namespace must match")
-	require.NotNil(t, list.Items[0].ID, "Customer ID must not be nil")
+	require.Equal(t, createCustomer1.ID, list.Items[0].ID, "Customer ID must match")
 	require.Equal(t, "Customer 1", list.Items[0].Name, "Customer name must match")
 	require.Equal(t, []string{"subject-1"}, list.Items[0].UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 	require.Equal(t, s.namespace, list.Items[1].Namespace, "Customer namespace must match")
-	require.NotNil(t, list.Items[1].ID, "Customer ID must not be nil")
+	require.Equal(t, createCustomer2.ID, list.Items[1].ID, "Customer ID must match")
 	require.Equal(t, "Customer 2", list.Items[1].Name, "Customer name must match")
 	require.Equal(t, []string{"subject-2"}, list.Items[1].UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	// List customers with name filter
+	list, err = service.ListCustomers(ctx, customerentity.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Name:      &createCustomer2.Name,
+	})
+
+	require.NoError(t, err, "Listing customers with name filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer ID must match")
+
+	// List customers with partial name filter
+	list, err = service.ListCustomers(ctx, customerentity.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Name:      lo.ToPtr("2"),
+	})
+
+	require.NoError(t, err, "Listing customers with partial name filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer ID must match")
+
+	// List customers with primary email filter
+	list, err = service.ListCustomers(ctx, customerentity.ListCustomersInput{
+		Namespace:    s.namespace,
+		Page:         page,
+		PrimaryEmail: createCustomer2.PrimaryEmail,
+	})
+
+	require.NoError(t, err, "Listing customers with primary email filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer ID must match")
+
+	// Order by name descending
+	list, err = service.ListCustomers(ctx, customerentity.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		OrderBy:   api.CustomerOrderByName,
+		Order:     sortx.Order(api.SortOrderDESC),
+	})
+
+	require.NoError(t, err, "Listing customers with order by name must not return error")
+	require.Equal(t, 2, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, 1, list.Page.PageNumber, "Customers page must be 0")
+	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer 2 must be first in order")
+	require.Equal(t, createCustomer1.ID, list.Items[1].ID, "Customer 1 must be second in order")
 }
 
 // TestGet tests the getting of a customer by ID

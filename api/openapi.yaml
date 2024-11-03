@@ -1898,7 +1898,12 @@ paths:
       operationId: listCustomers
       description: List customers.
       parameters:
-        - $ref: '#/components/parameters/queryCustomerList'
+        - $ref: '#/components/parameters/CustomerOrderByOrdering.order'
+        - $ref: '#/components/parameters/CustomerOrderByOrdering.orderBy'
+        - $ref: '#/components/parameters/queryCustomerList.includeDeleted'
+        - $ref: '#/components/parameters/queryCustomerList.name'
+        - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
+        - $ref: '#/components/parameters/queryCustomerList.subject'
         - $ref: '#/components/parameters/PaginatedQuery.page'
         - $ref: '#/components/parameters/PaginatedQuery.pageSize'
       responses:
@@ -7396,6 +7401,23 @@ components:
           $ref: '#/components/schemas/BillingInvoiceStatus'
         title: Filter by the invoice status
       explode: false
+    CustomerOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+        default: ASC
+      explode: false
+    CustomerOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/CustomerOrderBy'
+      explode: false
     CustomerOverrideOrderByOrdering.order:
       name: order
       in: query
@@ -7403,6 +7425,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     CustomerOverrideOrderByOrdering.orderBy:
       name: orderBy
@@ -7419,6 +7442,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     EntitlementOrderByOrdering.orderBy:
       name: orderBy
@@ -7435,6 +7459,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     FeatureOrderByOrdering.orderBy:
       name: orderBy
@@ -7451,6 +7476,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     GrantOrderByOrdering.orderBy:
       name: orderBy
@@ -7467,6 +7493,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     InvoiceOrderByOrdering.orderBy:
       name: orderBy
@@ -7595,6 +7622,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     NotificationChannelOrderByOrdering.orderBy:
       name: orderBy
@@ -7611,6 +7639,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     NotificationEventOrderByOrdering.orderBy:
       name: orderBy
@@ -7627,6 +7656,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     NotificationRuleOrderByOrdering.orderBy:
       name: orderBy
@@ -7742,6 +7772,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     PhasesOrderByOrdering.orderBy:
       name: orderBy
@@ -7758,6 +7789,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     PlanOrderByOrdering.orderBy:
       name: orderBy
@@ -7774,6 +7806,7 @@ components:
       description: The order direction.
       schema:
         $ref: '#/components/schemas/SortOrder'
+        default: ASC
       explode: false
     ProfileOrderByOrdering.orderBy:
       name: orderBy
@@ -7783,7 +7816,7 @@ components:
       schema:
         $ref: '#/components/schemas/BillingProfileOrderBy'
       explode: false
-    queryCustomerList:
+    queryCustomerList.includeDeleted:
       name: includeDeleted
       in: query
       required: false
@@ -7791,6 +7824,36 @@ components:
       schema:
         type: boolean
         default: false
+      explode: false
+    queryCustomerList.name:
+      name: name
+      in: query
+      required: false
+      description: |-
+        Filter customers by name.
+        Case-insensitive partial match.
+      schema:
+        type: string
+      explode: false
+    queryCustomerList.primaryEmail:
+      name: primaryEmail
+      in: query
+      required: false
+      description: |-
+        Filter customers by primary email.
+        Case-insensitive partial match.
+      schema:
+        type: string
+      explode: false
+    queryCustomerList.subject:
+      name: subject
+      in: query
+      required: false
+      description: |-
+        Filter customers by usage attribution subject.
+        Case-insensitive partial match.
+      schema:
+        type: string
       explode: false
   schemas:
     Address:
@@ -10288,6 +10351,13 @@ components:
           maxItems: 1000
           description: The items in the page.
       description: A page of results.
+    CustomerOrderBy:
+      type: string
+      enum:
+        - id
+        - name
+        - createdAt
+      description: Order by options for customers.
     CustomerOverridePaginatedResponse:
       type: object
       required:

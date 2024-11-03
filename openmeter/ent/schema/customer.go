@@ -36,6 +36,17 @@ func (Customer) Fields() []ent.Field {
 	}
 }
 
+func (Customer) Indexes() []ent.Index {
+	return []ent.Index{
+		// Indexes because of API filters
+		index.Fields("name"),
+		index.Fields("primary_email"),
+		index.Fields("deleted_at"),
+		// Indexes because of API OrderBy
+		index.Fields("created_at"),
+	}
+}
+
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("apps", AppCustomer.Type).

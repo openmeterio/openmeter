@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -115,6 +116,15 @@ type ListCustomersInput struct {
 	pagination.Page
 
 	IncludeDeleted bool
+
+	// Order
+	OrderBy api.CustomerOrderBy
+	Order   sortx.Order
+
+	// Filters
+	Name         *string
+	PrimaryEmail *string
+	Subject      *string
 }
 
 // CreateCustomerInput represents the input for the CreateCustomer method
