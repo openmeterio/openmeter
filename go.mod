@@ -28,7 +28,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.30.0
+	github.com/huandu/go-sqlbuilder v1.31.0
 	github.com/invopop/gobl v0.202.0
 	github.com/invopop/validation v0.8.0
 	github.com/jackc/pgx/v5 v5.7.1
