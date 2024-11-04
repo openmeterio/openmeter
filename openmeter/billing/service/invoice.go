@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -50,8 +51,18 @@ func (s *Service) addInvoiceFields(ctx context.Context, invoice billingentity.In
 	}
 
 	// let's resolve the statatus details
-	invoice.StatusDetails = NewInvoiceStateMachine(&invoice).
-		StatusDetails(ctx)
+	_, err := WithInvoiceStateMachine(ctx, invoice, s.invoiceCalculator, func(ctx context.Context, sm *InvoiceStateMachine) error {
+		sd, err := sm.StatusDetails(ctx)
+		if err != nil {
+			return fmt.Errorf("error resolving status details: %w", err)
+		}
+
+		invoice.StatusDetails = sd
+		return nil
+	})
+	if err != nil {
+		return invoice, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+	}
 
 	return invoice, nil
 }
@@ -73,7 +84,7 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 
 func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoiceInput) ([]billingentity.Invoice, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -105,7 +116,7 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			}))
 
 			if len(sourceInvoiceIDs) == 0 {
-				return nil, billing.ValidationError{
+				return nil, billingentity.ValidationError{
 					Err: fmt.Errorf("no source lines found"),
 				}
 			}
@@ -185,29 +196,24 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			// invoice objects (e.g. totals, period, etc.)
 			out := make([]billingentity.Invoice, 0, len(createdInvoices))
 			for _, invoiceID := range createdInvoices {
-				invoiceWithLines, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-					Invoice: invoiceID,
-					Expand:  billingentity.InvoiceExpandAll,
+				invoice, err := s.withLockedInvoiceStateMachine(ctx, txAdapter, invoiceID, func(ctx context.Context, sm *InvoiceStateMachine) error {
+					err := sm.AdvanceUntilStateStable(ctx)
+					if err != nil {
+						return fmt.Errorf("activating invoice: %w", err)
+					}
+
+					err = txAdapter.UpdateInvoice(ctx, sm.Invoice)
+					if err != nil {
+						return fmt.Errorf("updating invoice: %w", err)
+					}
+
+					return nil
 				})
 				if err != nil {
-					return nil, fmt.Errorf("cannot get invoice[%s]: %w", invoiceWithLines.ID, err)
+					return nil, fmt.Errorf("advancing invoice: %w", err)
 				}
 
-				// let's update any calculated fields on the invoice
-				err = invoiceWithLines.Calculate()
-				if err != nil {
-					return nil, fmt.Errorf("calculating invoice fields: %w", err)
-				}
-
-				// let's update the invoice in the DB if needed
-				if invoiceWithLines.Changed {
-					err = txAdapter.UpdateInvoice(ctx, invoiceWithLines)
-					if err != nil {
-						return nil, fmt.Errorf("updating invoice: %w", err)
-					}
-				}
-
-				out = append(out, invoiceWithLines)
+				out = append(out, invoice)
 			}
 			return out, nil
 		})
@@ -231,7 +237,7 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 		// asOf validity
 		for _, line := range inScopeLines {
 			if line.InvoiceAt.After(asOf) {
-				return nil, billing.ValidationError{
+				return nil, billingentity.ValidationError{
 					Err: fmt.Errorf("line [%s] has invoiceAt [%s] after asOf [%s]", line.ID, line.InvoiceAt, asOf),
 				}
 			}
@@ -245,9 +251,9 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 
 			missingIDs := lo.Without(input.IncludePendingLines, includedLines...)
 
-			return nil, billing.NotFoundError{
+			return nil, billingentity.NotFoundError{
 				ID:     strings.Join(missingIDs, ","),
-				Entity: billing.EntityInvoiceLine,
+				Entity: billingentity.EntityInvoiceLine,
 				Err:    fmt.Errorf("some invoice lines are not found"),
 			}
 		}
@@ -272,7 +278,7 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 
 	if len(lines) == 0 {
 		// We haven't requested explicit empty invoice, so we should have some pending lines
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: fmt.Errorf("no pending lines found"),
 		}
 	}
@@ -280,14 +286,19 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 	return lines, nil
 }
 
-func (s *Service) getInvoiceStatMachineWithLock(ctx context.Context, txAdapter billing.Adapter, invoiceID billingentity.InvoiceID) (*InvoiceStateMachine, error) {
+func (s *Service) withLockedInvoiceStateMachine(
+	ctx context.Context,
+	txAdapter billing.Adapter,
+	invoiceID billingentity.InvoiceID,
+	cb InvoiceStateMachineCallback,
+) (billingentity.Invoice, error) {
 	// let's lock the invoice for update, we are using the dedicated call, so that
 	// edges won't end up having SELECT FOR UPDATE locks
 	if err := txAdapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
 		Namespace:  invoiceID.Namespace,
 		InvoiceIDs: []string{invoiceID.ID},
 	}); err != nil {
-		return nil, fmt.Errorf("locking invoice: %w", err)
+		return billingentity.Invoice{}, fmt.Errorf("locking invoice: %w", err)
 	}
 
 	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -295,75 +306,102 @@ func (s *Service) getInvoiceStatMachineWithLock(ctx context.Context, txAdapter b
 		Expand:  billingentity.InvoiceExpandAll,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("fetching invoice: %w", err)
+		return billingentity.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return NewInvoiceStateMachine(&invoice), nil
+	return WithInvoiceStateMachine(ctx, invoice, s.invoiceCalculator, cb)
 }
 
-func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (*billingentity.Invoice, error) {
+func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billingentity.Invoice, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return billingentity.Invoice{}, billingentity.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Invoice, error) {
-		fsm, err := s.getInvoiceStatMachineWithLock(ctx, txAdapter, input)
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (billingentity.Invoice, error) {
+		invoice, err := s.withLockedInvoiceStateMachine(ctx, txAdapter, input, func(ctx context.Context, sm *InvoiceStateMachine) error {
+			preActivationStatus := sm.Invoice.Status
+
+			canAdvance, err := sm.CanFire(ctx, triggerNext)
+			if err != nil {
+				return fmt.Errorf("checking if can advance: %w", err)
+			}
+
+			if !canAdvance {
+				return billingentity.ValidationError{
+					Err: fmt.Errorf("cannot advance invoice in status [%s]: %w", sm.Invoice.Status, billingentity.ErrInvoiceCannotAdvance),
+				}
+			}
+
+			validationIssues, err := billingentity.ToValidationIssues(
+				sm.AdvanceUntilStateStable(ctx),
+			)
+			if err != nil {
+				return fmt.Errorf("advancing invoice: %w", err)
+			}
+
+			sm.Invoice.ValidationIssues = validationIssues
+			s.logger.Info("invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", sm.Invoice.Status)
+
+			return nil
+		})
 		if err != nil {
-			return nil, err
+			return billingentity.Invoice{}, err
 		}
-
-		preActivationStatus := fsm.Invoice.Status
-
-		if err := fsm.ActivateUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("activating invoice: %w", err)
-		}
-
-		s.logger.Info("invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", fsm.Invoice.Status)
 
 		// Given the amount of state transitions, we are only saving the invoice after the whole chain
 		// this means that some of the intermittent states will not be persisted in the DB.
-		if err := txAdapter.UpdateInvoice(ctx, *fsm.Invoice); err != nil {
-			return nil, fmt.Errorf("updating invoice: %w", err)
+		if err := txAdapter.UpdateInvoice(ctx, invoice); err != nil {
+			return billingentity.Invoice{}, fmt.Errorf("updating invoice: %w", err)
 		}
 
-		return fsm.Invoice, nil
+		return invoice, nil
 	})
 }
 
-func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (*billingentity.Invoice, error) {
-	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billingentity.Invoice, error) {
+	return s.executeTriggerOnInvoice(ctx, input, triggerApprove)
+}
+
+func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billingentity.Invoice, error) {
+	return s.executeTriggerOnInvoice(ctx, input, triggerRetry)
+}
+
+func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billingentity.InvoiceID, trigger stateless.Trigger) (billingentity.Invoice, error) {
+	if err := invoiceID.Validate(); err != nil {
+		return billingentity.Invoice{}, billingentity.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Invoice, error) {
-		fsm, err := s.getInvoiceStatMachineWithLock(ctx, txAdapter, input)
-		if err != nil {
-			return nil, err
-		}
-
-		canFire, err := fsm.CanFire(ctx, triggerApprove)
-		if err != nil {
-			return nil, fmt.Errorf("checking if can fire: %w", err)
-		}
-
-		if !canFire {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("cannot approve invoice in status [%s]", fsm.Invoice.Status),
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (billingentity.Invoice, error) {
+		invoice, err := s.withLockedInvoiceStateMachine(ctx, txAdapter, invoiceID, func(ctx context.Context, sm *InvoiceStateMachine) error {
+			canFire, err := sm.CanFire(ctx, trigger)
+			if err != nil {
+				return fmt.Errorf("checking if can fire: %w", err)
 			}
+
+			if !canFire {
+				return billingentity.ValidationError{
+					Err: fmt.Errorf("cannot %s invoice in status [%s]: %w", trigger, sm.Invoice.Status, billingentity.ErrInvoiceActionNotAvailable),
+				}
+			}
+
+			if err := sm.FireAndActivate(ctx, trigger); err != nil {
+				return fmt.Errorf("firing %s: %w", trigger, err)
+			}
+
+			if err := txAdapter.UpdateInvoice(ctx, sm.Invoice); err != nil {
+				return fmt.Errorf("updating invoice: %w", err)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return invoice, err
 		}
 
-		if err := fsm.FireAndActivate(ctx, triggerApprove); err != nil {
-			return nil, fmt.Errorf("firing approve: %w", err)
-		}
-
-		if err := txAdapter.UpdateInvoice(ctx, *fsm.Invoice); err != nil {
-			return nil, fmt.Errorf("updating invoice: %w", err)
-		}
-
-		return fsm.Invoice, nil
+		return invoice, nil
 	})
 }

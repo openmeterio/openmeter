@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -25,18 +26,19 @@ import (
 // BillingInvoiceQuery is the builder for querying BillingInvoice entities.
 type BillingInvoiceQuery struct {
 	config
-	ctx                        *QueryContext
-	order                      []billinginvoice.OrderOption
-	inters                     []Interceptor
-	predicates                 []predicate.BillingInvoice
-	withSourceBillingProfile   *BillingProfileQuery
-	withBillingWorkflowConfig  *BillingWorkflowConfigQuery
-	withBillingInvoiceLines    *BillingInvoiceLineQuery
-	withBillingInvoiceCustomer *CustomerQuery
-	withTaxApp                 *AppQuery
-	withInvoicingApp           *AppQuery
-	withPaymentApp             *AppQuery
-	modifiers                  []func(*sql.Selector)
+	ctx                                *QueryContext
+	order                              []billinginvoice.OrderOption
+	inters                             []Interceptor
+	predicates                         []predicate.BillingInvoice
+	withSourceBillingProfile           *BillingProfileQuery
+	withBillingWorkflowConfig          *BillingWorkflowConfigQuery
+	withBillingInvoiceLines            *BillingInvoiceLineQuery
+	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
+	withBillingInvoiceCustomer         *CustomerQuery
+	withTaxApp                         *AppQuery
+	withInvoicingApp                   *AppQuery
+	withPaymentApp                     *AppQuery
+	modifiers                          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -132,6 +134,28 @@ func (biq *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQu
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceLinesTable, billinginvoice.BillingInvoiceLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceValidationIssues chains the current query on the "billing_invoice_validation_issues" edge.
+func (biq *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingInvoiceValidationIssueQuery {
+	query := (&BillingInvoiceValidationIssueClient{config: biq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := biq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := biq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
 		return fromU, nil
@@ -414,18 +438,19 @@ func (biq *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		return nil
 	}
 	return &BillingInvoiceQuery{
-		config:                     biq.config,
-		ctx:                        biq.ctx.Clone(),
-		order:                      append([]billinginvoice.OrderOption{}, biq.order...),
-		inters:                     append([]Interceptor{}, biq.inters...),
-		predicates:                 append([]predicate.BillingInvoice{}, biq.predicates...),
-		withSourceBillingProfile:   biq.withSourceBillingProfile.Clone(),
-		withBillingWorkflowConfig:  biq.withBillingWorkflowConfig.Clone(),
-		withBillingInvoiceLines:    biq.withBillingInvoiceLines.Clone(),
-		withBillingInvoiceCustomer: biq.withBillingInvoiceCustomer.Clone(),
-		withTaxApp:                 biq.withTaxApp.Clone(),
-		withInvoicingApp:           biq.withInvoicingApp.Clone(),
-		withPaymentApp:             biq.withPaymentApp.Clone(),
+		config:                             biq.config,
+		ctx:                                biq.ctx.Clone(),
+		order:                              append([]billinginvoice.OrderOption{}, biq.order...),
+		inters:                             append([]Interceptor{}, biq.inters...),
+		predicates:                         append([]predicate.BillingInvoice{}, biq.predicates...),
+		withSourceBillingProfile:           biq.withSourceBillingProfile.Clone(),
+		withBillingWorkflowConfig:          biq.withBillingWorkflowConfig.Clone(),
+		withBillingInvoiceLines:            biq.withBillingInvoiceLines.Clone(),
+		withBillingInvoiceValidationIssues: biq.withBillingInvoiceValidationIssues.Clone(),
+		withBillingInvoiceCustomer:         biq.withBillingInvoiceCustomer.Clone(),
+		withTaxApp:                         biq.withTaxApp.Clone(),
+		withInvoicingApp:                   biq.withInvoicingApp.Clone(),
+		withPaymentApp:                     biq.withPaymentApp.Clone(),
 		// clone intermediate query.
 		sql:  biq.sql.Clone(),
 		path: biq.path,
@@ -462,6 +487,17 @@ func (biq *BillingInvoiceQuery) WithBillingInvoiceLines(opts ...func(*BillingInv
 		opt(query)
 	}
 	biq.withBillingInvoiceLines = query
+	return biq
+}
+
+// WithBillingInvoiceValidationIssues tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_validation_issues" edge. The optional arguments are used to configure the query builder of the edge.
+func (biq *BillingInvoiceQuery) WithBillingInvoiceValidationIssues(opts ...func(*BillingInvoiceValidationIssueQuery)) *BillingInvoiceQuery {
+	query := (&BillingInvoiceValidationIssueClient{config: biq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	biq.withBillingInvoiceValidationIssues = query
 	return biq
 }
 
@@ -587,10 +623,11 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = biq.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			biq.withSourceBillingProfile != nil,
 			biq.withBillingWorkflowConfig != nil,
 			biq.withBillingInvoiceLines != nil,
+			biq.withBillingInvoiceValidationIssues != nil,
 			biq.withBillingInvoiceCustomer != nil,
 			biq.withTaxApp != nil,
 			biq.withInvoicingApp != nil,
@@ -635,6 +672,15 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
 			func(n *BillingInvoice, e *BillingInvoiceLine) {
 				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := biq.withBillingInvoiceValidationIssues; query != nil {
+		if err := biq.loadBillingInvoiceValidationIssues(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.BillingInvoiceValidationIssues = []*BillingInvoiceValidationIssue{} },
+			func(n *BillingInvoice, e *BillingInvoiceValidationIssue) {
+				n.Edges.BillingInvoiceValidationIssues = append(n.Edges.BillingInvoiceValidationIssues, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -740,6 +786,36 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, que
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (biq *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.Context, query *BillingInvoiceValidationIssueQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceValidationIssue)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicevalidationissue.FieldInvoiceID)
+	}
+	query.Where(predicate.BillingInvoiceValidationIssue(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceValidationIssuesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

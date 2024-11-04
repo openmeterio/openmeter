@@ -13,7 +13,7 @@ var _ billing.CustomerOverrideService = (*Service)(nil)
 
 func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -41,9 +41,9 @@ func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			}
 
 			if defaultProfile == nil {
-				return nil, billing.NotFoundError{
-					Entity: billing.EntityDefaultProfile,
-					Err:    billing.ErrDefaultProfileNotFound,
+				return nil, billingentity.NotFoundError{
+					Entity: billingentity.EntityDefaultProfile,
+					Err:    billingentity.ErrDefaultProfileNotFound,
 				}
 			}
 
@@ -79,7 +79,7 @@ func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.Crea
 
 func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -96,16 +96,16 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 		}
 
 		if existingOverride == nil {
-			return nil, billing.NotFoundError{
+			return nil, billingentity.NotFoundError{
 				ID:     input.CustomerID,
-				Entity: billing.EntityCustomerOverride,
-				Err:    billing.ErrCustomerOverrideNotFound,
+				Entity: billingentity.EntityCustomerOverride,
+				Err:    billingentity.ErrCustomerOverrideNotFound,
 			}
 		}
 
 		if !existingOverride.UpdatedAt.Equal(input.UpdatedAt) {
-			return nil, billing.UpdateAfterDeleteError{
-				Err: billing.ErrCustomerOverrideConflict,
+			return nil, billingentity.UpdateAfterDeleteError{
+				Err: billingentity.ErrCustomerOverrideConflict,
 			}
 		}
 
@@ -122,7 +122,7 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 
 func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -140,10 +140,10 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	if adapterOverride == nil {
-		return nil, billing.NotFoundError{
+		return nil, billingentity.NotFoundError{
 			ID:     input.CustomerID,
-			Entity: billing.EntityCustomerOverride,
-			Err:    billing.ErrCustomerOverrideNotFound,
+			Entity: billingentity.EntityCustomerOverride,
+			Err:    billingentity.ErrCustomerOverrideNotFound,
 		}
 	}
 
@@ -152,7 +152,7 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 
 func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -171,18 +171,18 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 		}
 
 		if existingOverride == nil {
-			return billing.NotFoundError{
+			return billingentity.NotFoundError{
 				ID:     input.CustomerID,
-				Entity: billing.EntityCustomerOverride,
-				Err:    billing.ErrCustomerOverrideNotFound,
+				Entity: billingentity.EntityCustomerOverride,
+				Err:    billingentity.ErrCustomerOverrideNotFound,
 			}
 		}
 
 		if existingOverride.DeletedAt != nil {
-			return billing.NotFoundError{
+			return billingentity.NotFoundError{
 				ID:     input.CustomerID,
-				Entity: billing.EntityCustomerOverride,
-				Err:    billing.ErrCustomerOverrideAlreadyDeleted,
+				Entity: billingentity.EntityCustomerOverride,
+				Err:    billingentity.ErrCustomerOverrideAlreadyDeleted,
 			}
 		}
 
@@ -198,7 +198,7 @@ func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input bill
 
 func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter billing.Adapter, input billing.GetProfileWithCustomerOverrideInput) (*billingentity.ProfileWithCustomerDetails, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -259,9 +259,9 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 		}
 
 		if defaultProfile == nil {
-			return nil, billing.NotFoundError{
-				Entity: billing.EntityDefaultProfile,
-				Err:    billing.ErrDefaultProfileNotFound,
+			return nil, billingentity.NotFoundError{
+				Entity: billingentity.EntityDefaultProfile,
+				Err:    billingentity.ErrDefaultProfileNotFound,
 			}
 		}
 
@@ -285,9 +285,9 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 		}
 
 		if baselineProfile == nil {
-			return nil, billing.NotFoundError{
-				Entity: billing.EntityDefaultProfile,
-				Err:    billing.ErrDefaultProfileNotFound,
+			return nil, billingentity.NotFoundError{
+				Entity: billingentity.EntityDefaultProfile,
+				Err:    billingentity.ErrDefaultProfileNotFound,
 			}
 		}
 	}
@@ -296,7 +296,7 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 	profile := baselineProfile.Merge(override)
 
 	if err := profile.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}

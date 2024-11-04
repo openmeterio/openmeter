@@ -37,7 +37,9 @@ type BaseSuite struct {
 
 	CustomerService customer.Service
 
-	AppService app.Service
+	AppService        app.Service
+	SandboxApp        *appsandbox.MockableFactory
+	InvoiceCalculator *billingservice.MockableInvoiceCalculator
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -84,10 +86,12 @@ func (s *BaseSuite) SetupSuite() {
 	s.AppService = appService
 
 	// OpenMeter sandbox (registration as side-effect)
-	_, err = appsandbox.NewFactory(appsandbox.Config{
+	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
 		AppService: appService,
 	})
 	require.NoError(t, err)
+
+	s.SandboxApp = sandboxApp
 
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
@@ -97,11 +101,14 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 	s.BillingAdapter = billingAdapter
 
+	s.InvoiceCalculator = billingservice.NewMockableCalculator(t)
+
 	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:         billingAdapter,
-		CustomerService: s.CustomerService,
-		AppService:      s.AppService,
-		Logger:          slog.Default(),
+		Adapter:           billingAdapter,
+		CustomerService:   s.CustomerService,
+		AppService:        s.AppService,
+		Logger:            slog.Default(),
+		InvoiceCalculator: s.InvoiceCalculator,
 	})
 	require.NoError(t, err)
 	s.BillingService = billingService

@@ -33,6 +33,9 @@ type BillingInvoiceLine func(*sql.Selector)
 // BillingInvoiceManualLineConfig is the predicate function for billinginvoicemanuallineconfig builders.
 type BillingInvoiceManualLineConfig func(*sql.Selector)
 
+// BillingInvoiceValidationIssue is the predicate function for billinginvoicevalidationissue builders.
+type BillingInvoiceValidationIssue func(*sql.Selector)
+
 // BillingProfile is the predicate function for billingprofile builders.
 type BillingProfile func(*sql.Selector)
 

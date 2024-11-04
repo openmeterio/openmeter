@@ -14,6 +14,7 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -647,6 +648,21 @@ func (biu *BillingInvoiceUpdate) AddBillingInvoiceLines(b ...*BillingInvoiceLine
 	return biu.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
+func (biu *BillingInvoiceUpdate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceUpdate {
+	biu.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
+	return biu
+}
+
+// AddBillingInvoiceValidationIssues adds the "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
+func (biu *BillingInvoiceUpdate) AddBillingInvoiceValidationIssues(b ...*BillingInvoiceValidationIssue) *BillingInvoiceUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biu.AddBillingInvoiceValidationIssueIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (biu *BillingInvoiceUpdate) Mutation() *BillingInvoiceMutation {
 	return biu.mutation
@@ -677,6 +693,27 @@ func (biu *BillingInvoiceUpdate) RemoveBillingInvoiceLines(b ...*BillingInvoiceL
 		ids[i] = b[i].ID
 	}
 	return biu.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearBillingInvoiceValidationIssues clears all "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
+func (biu *BillingInvoiceUpdate) ClearBillingInvoiceValidationIssues() *BillingInvoiceUpdate {
+	biu.mutation.ClearBillingInvoiceValidationIssues()
+	return biu
+}
+
+// RemoveBillingInvoiceValidationIssueIDs removes the "billing_invoice_validation_issues" edge to BillingInvoiceValidationIssue entities by IDs.
+func (biu *BillingInvoiceUpdate) RemoveBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceUpdate {
+	biu.mutation.RemoveBillingInvoiceValidationIssueIDs(ids...)
+	return biu
+}
+
+// RemoveBillingInvoiceValidationIssues removes "billing_invoice_validation_issues" edges to BillingInvoiceValidationIssue entities.
+func (biu *BillingInvoiceUpdate) RemoveBillingInvoiceValidationIssues(b ...*BillingInvoiceValidationIssue) *BillingInvoiceUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biu.RemoveBillingInvoiceValidationIssueIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1023,6 +1060,51 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biu.mutation.BillingInvoiceValidationIssuesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biu.mutation.RemovedBillingInvoiceValidationIssuesIDs(); len(nodes) > 0 && !biu.mutation.BillingInvoiceValidationIssuesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biu.mutation.BillingInvoiceValidationIssuesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1664,6 +1746,21 @@ func (biuo *BillingInvoiceUpdateOne) AddBillingInvoiceLines(b ...*BillingInvoice
 	return biuo.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
+func (biuo *BillingInvoiceUpdateOne) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceUpdateOne {
+	biuo.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
+	return biuo
+}
+
+// AddBillingInvoiceValidationIssues adds the "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
+func (biuo *BillingInvoiceUpdateOne) AddBillingInvoiceValidationIssues(b ...*BillingInvoiceValidationIssue) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biuo.AddBillingInvoiceValidationIssueIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (biuo *BillingInvoiceUpdateOne) Mutation() *BillingInvoiceMutation {
 	return biuo.mutation
@@ -1694,6 +1791,27 @@ func (biuo *BillingInvoiceUpdateOne) RemoveBillingInvoiceLines(b ...*BillingInvo
 		ids[i] = b[i].ID
 	}
 	return biuo.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearBillingInvoiceValidationIssues clears all "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
+func (biuo *BillingInvoiceUpdateOne) ClearBillingInvoiceValidationIssues() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearBillingInvoiceValidationIssues()
+	return biuo
+}
+
+// RemoveBillingInvoiceValidationIssueIDs removes the "billing_invoice_validation_issues" edge to BillingInvoiceValidationIssue entities by IDs.
+func (biuo *BillingInvoiceUpdateOne) RemoveBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceUpdateOne {
+	biuo.mutation.RemoveBillingInvoiceValidationIssueIDs(ids...)
+	return biuo
+}
+
+// RemoveBillingInvoiceValidationIssues removes "billing_invoice_validation_issues" edges to BillingInvoiceValidationIssue entities.
+func (biuo *BillingInvoiceUpdateOne) RemoveBillingInvoiceValidationIssues(b ...*BillingInvoiceValidationIssue) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biuo.RemoveBillingInvoiceValidationIssueIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceUpdate builder.
@@ -2070,6 +2188,51 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biuo.mutation.BillingInvoiceValidationIssuesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biuo.mutation.RemovedBillingInvoiceValidationIssuesIDs(); len(nodes) > 0 && !biuo.mutation.BillingInvoiceValidationIssuesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biuo.mutation.BillingInvoiceValidationIssuesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceValidationIssuesTable,
+			Columns: []string{billinginvoice.BillingInvoiceValidationIssuesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

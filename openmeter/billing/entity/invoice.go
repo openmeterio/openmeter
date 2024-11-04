@@ -89,12 +89,6 @@ func (s InvoiceStatus) ShortStatus() string {
 	return parts[0]
 }
 
-var immutableStatuses = []InvoiceStatus{InvoiceStatusIssued}
-
-func (s InvoiceStatus) IsMutable() bool {
-	return !lo.Contains(immutableStatuses, s)
-}
-
 var failedStatuses = []InvoiceStatus{
 	InvoiceStatusDraftSyncFailed,
 	InvoiceStatusIssuingSyncFailed,
@@ -177,24 +171,32 @@ type Invoice struct {
 	// Line items
 	Lines []Line `json:"lines,omitempty"`
 
+	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
+
 	// private fields required by the service
 	Changed        bool          `json:"-"`
 	ExpandedFields InvoiceExpand `json:"-"`
 }
 
-func (i *Invoice) Calculate() error {
-	for _, calc := range InvoiceCalculations {
-		changed, err := calc(i)
-		if err != nil {
-			return err
-		}
+func (i *Invoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
+	i.ValidationIssues = lo.Filter(i.ValidationIssues, func(issue ValidationIssue, _ int) bool {
+		return issue.Component != reportingComponent
+	})
 
-		if changed {
-			i.Changed = true
-		}
-	}
+	// Regardless of the errors we need to add them to the invoice, in case the upstream service
+	// decides to save the invoice.
+	newIssues, finalErrs := ToValidationIssues(errIn)
+	i.ValidationIssues = append(i.ValidationIssues, newIssues...)
 
-	return nil
+	return finalErrs
+}
+
+func (i *Invoice) HasCriticalValidationIssues() bool {
+	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
+		return issue.Severity == ValidationIssueSeverityCritical
+	})
+
+	return found
 }
 
 type InvoiceAction string
@@ -211,11 +213,6 @@ type InvoiceStatusDetails struct {
 	Immutable        bool            `json:"immutable"`
 	Failed           bool            `json:"failed"`
 	AvailableActions []InvoiceAction `json:"availableActions"`
-}
-
-type InvoiceWithValidation struct {
-	Invoice          *Invoice
-	ValidationErrors []error
 }
 
 type InvoiceCustomer struct {

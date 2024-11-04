@@ -19,7 +19,7 @@ var _ billing.InvoiceLineService = (*Service)(nil)
 
 func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) (*billing.CreateInvoiceLinesResponse, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -77,19 +77,19 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 			},
 		})
 		if err != nil {
-			return line, billing.ValidationError{
+			return line, billingentity.ValidationError{
 				Err: fmt.Errorf("fetching invoice [%s]: %w", line.InvoiceID, err),
 			}
 		}
 
-		if !invoice.Status.IsMutable() {
-			return line, billing.ValidationError{
+		if !invoice.StatusDetails.Immutable {
+			return line, billingentity.ValidationError{
 				Err: fmt.Errorf("invoice [%s] is not mutable", line.InvoiceID),
 			}
 		}
 
 		if invoice.Currency != line.Currency {
-			return line, billing.ValidationError{
+			return line, billingentity.ValidationError{
 				Err: fmt.Errorf("currency mismatch: invoice [%s] currency is %s, but line currency is %s", line.InvoiceID, invoice.Currency, line.Currency),
 			}
 		}
@@ -149,7 +149,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 func (s *Service) associateLinesToInvoice(ctx context.Context, txAdapter billing.Adapter, invoice billingentity.Invoice, lines []billingentity.Line) error {
 	for _, line := range lines {
 		if line.InvoiceID == invoice.ID {
-			return billing.ValidationError{
+			return billingentity.ValidationError{
 				Err: fmt.Errorf("line[%s]: line already associated with invoice[%s]", line.ID, invoice.ID),
 			}
 		}

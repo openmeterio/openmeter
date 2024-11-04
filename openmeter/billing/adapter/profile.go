@@ -21,7 +21,7 @@ var _ billing.ProfileAdapter = (*adapter)(nil)
 
 func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billingentity.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
@@ -209,7 +209,7 @@ func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 
 func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billingentity.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}

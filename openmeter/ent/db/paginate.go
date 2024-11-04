@@ -443,6 +443,54 @@ var _ pagination.Paginator[*BillingInvoiceManualLineConfig] = (*BillingInvoiceMa
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (bivi *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceValidationIssue], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	bivi.ctx.Offset = &zero
+	bivi.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := bivi.Clone()
+	pagedQuery := bivi
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*BillingInvoiceValidationIssue]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*BillingInvoiceValidationIssue] = (*BillingInvoiceValidationIssueQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (bp *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingProfile], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

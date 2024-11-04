@@ -162,6 +162,7 @@ type AssociatedLineCountsAdapterResponse struct {
 type (
 	AdvanceInvoiceInput = billingentity.InvoiceID
 	ApproveInvoiceInput = billingentity.InvoiceID
+	RetryInvoiceInput   = billingentity.InvoiceID
 )
 
 type UpdateInvoiceAdapterInput = billingentity.Invoice

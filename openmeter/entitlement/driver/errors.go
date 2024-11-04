@@ -21,8 +21,10 @@ func getErrorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.AlreadyExistsError](
 				ctx, http.StatusConflict, err, w,
-				func(specificErr *entitlement.AlreadyExistsError) (string, string) {
-					return "conflictingEntityId", specificErr.EntitlementID
+				func(specificErr *entitlement.AlreadyExistsError) map[string]interface{} {
+					return map[string]interface{}{
+						"conflictingEntityId": specificErr.EntitlementID,
+					}
 				}) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.InvalidValueError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.InvalidFeatureError](ctx, http.StatusBadRequest, err, w) ||
