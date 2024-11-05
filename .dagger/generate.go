@@ -23,7 +23,7 @@ type Generate struct {
 func (m *Generate) Openapi() *dagger.File {
 	file := typespecBase(m.Source.Directory("api/spec")).
 		WithExec([]string{"pnpm", "compile"}).
-		File("/work/output/openapi.OpenMeterCloud.yaml").
+		File("/work/output/openapi.OpenMeter.yaml").
 		WithName("openapi.yaml")
 
 	// https://github.com/microsoft/typespec/issues/2154

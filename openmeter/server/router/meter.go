@@ -35,24 +35,6 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 	_ = render.RenderList(w, r, list)
 }
 
-func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "createMeter")
-
-	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
-}
-
-func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "deleteMeter")
-	ctx = contextx.WithAttr(ctx, "id", meterIdOrSlug)
-
-	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-
-	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
-}
-
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "getMeter")
 	ctx = contextx.WithAttr(ctx, "id", meterIdOrSlug)

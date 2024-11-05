@@ -224,26 +224,6 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "create meter",
-			req: testRequest{
-				method:      http.MethodPost,
-				path:        "/api/v1/meters",
-				contentType: "application/json",
-				body: &models.Meter{
-					Slug:          "meter3",
-					Description:   "API Network Traffic",
-					ValueProperty: "$.bytes",
-					EventType:     "api-calls",
-					Aggregation:   models.MeterAggregationSum,
-					GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
-					WindowSize:    models.WindowSizeHour,
-				},
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
-			},
-		},
-		{
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
@@ -252,16 +232,6 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body:   mockMeters[0],
-			},
-		},
-		{
-			name: "delete meter",
-			req: testRequest{
-				method: http.MethodDelete,
-				path:   "/api/v1/meters/" + mockMeters[0].Slug,
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
 			},
 		},
 		{
@@ -429,67 +399,10 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "invalidate portal token",
-			req: testRequest{
-				method:      http.MethodPost,
-				path:        "/api/v1/portal/tokens/invalidate",
-				contentType: "application/json",
-				body:        api.InvalidatePortalTokensJSONRequestBody{},
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
-			},
-		},
-		{
 			name: "list portal tokens",
 			req: testRequest{
 				method: http.MethodGet,
 				path:   "/api/v1/portal/tokens",
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
-			},
-		},
-		// Subjects
-		{
-			name: "upsert subjects",
-			req: testRequest{
-				method:      http.MethodPost,
-				path:        "/api/v1/subjects",
-				contentType: "application/json",
-				body: api.UpsertSubjectJSONRequestBody{{
-					Key: "customer",
-				}},
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
-			},
-		},
-		{
-			name: "get subject",
-			req: testRequest{
-				method: http.MethodGet,
-				path:   "/api/v1/subjects/abcd",
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
-			},
-		},
-		{
-			name: "list subjects",
-			req: testRequest{
-				method: http.MethodGet,
-				path:   "/api/v1/subjects",
-			},
-			res: testResponse{
-				status: http.StatusNotImplemented,
-			},
-		},
-		{
-			name: "delete subject",
-			req: testRequest{
-				method: http.MethodDelete,
-				path:   "/api/v1/subjects/abcd",
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,

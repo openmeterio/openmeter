@@ -66,18 +66,6 @@ namespace OpenMeterCloud.Portal {
   @tag("Portal")
   interface Tokens extends OpenMeter.Portal.Tokens {
     /**
-     * List tokens.
-     */
-    @get
-    @operationId("listPortalTokens")
-    list(
-      @query
-      @minValue(1)
-      @maxValue(100)
-      limit?: integer = 25,
-    ): OpenMeter.Portal.Token[] | OpenMeter.CommonErrors;
-
-    /**
      * Invalidates consumer portal tokens by ID or subject.
      */
     @route("/invalidate")
@@ -98,7 +86,7 @@ namespace OpenMeterCloud.Portal {
 
   @route("/api/v1/portal/meters")
   @tag("Portal")
-  @useAuth(PortalTokenAuth | CloudPortalTokenAuth)
+  @useAuth(CloudPortalTokenAuth)
   interface Meters extends OpenMeter.Portal.Meters {}
 }
 
