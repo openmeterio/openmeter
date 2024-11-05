@@ -131,6 +131,12 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		NotificationRule: NewNotificationRuleClient(config),
 
+		Plan: NewPlanClient(config),
+
+		PlanPhase: NewPlanPhaseClient(config),
+
+		PlanRateCard: NewPlanRateCardClient(config),
+
 		UsageReset: NewUsageResetClient(config),
 	}
 }

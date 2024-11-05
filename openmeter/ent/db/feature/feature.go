@@ -36,6 +36,8 @@ const (
 	FieldArchivedAt = "archived_at"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
+	// EdgeRatecard holds the string denoting the ratecard edge name in mutations.
+	EdgeRatecard = "ratecard"
 	// Table holds the table name of the feature in the database.
 	Table = "features"
 	// EntitlementTable is the table that holds the entitlement relation/edge.
@@ -45,6 +47,13 @@ const (
 	EntitlementInverseTable = "entitlements"
 	// EntitlementColumn is the table column denoting the entitlement relation/edge.
 	EntitlementColumn = "feature_id"
+	// RatecardTable is the table that holds the ratecard relation/edge.
+	RatecardTable = "plan_rate_cards"
+	// RatecardInverseTable is the table name for the PlanRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "planratecard" package.
+	RatecardInverseTable = "plan_rate_cards"
+	// RatecardColumn is the table column denoting the ratecard relation/edge.
+	RatecardColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for feature fields.
@@ -150,10 +159,31 @@ func ByEntitlement(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEntitlementStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByRatecardCount orders the results by ratecard count.
+func ByRatecardCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRatecardStep(), opts...)
+	}
+}
+
+// ByRatecard orders the results by ratecard terms.
+func ByRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newEntitlementStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntitlementInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementTable, EntitlementColumn),
+	)
+}
+func newRatecardStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RatecardInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RatecardTable, RatecardColumn),
 	)
 }

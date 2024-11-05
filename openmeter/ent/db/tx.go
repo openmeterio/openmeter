@@ -56,6 +56,12 @@ type Tx struct {
 	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
 	// NotificationRule is the client for interacting with the NotificationRule builders.
 	NotificationRule *NotificationRuleClient
+	// Plan is the client for interacting with the Plan builders.
+	Plan *PlanClient
+	// PlanPhase is the client for interacting with the PlanPhase builders.
+	PlanPhase *PlanPhaseClient
+	// PlanRateCard is the client for interacting with the PlanRateCard builders.
+	PlanRateCard *PlanRateCardClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 
@@ -210,6 +216,9 @@ func (tx *Tx) init() {
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)
 	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)
 	tx.NotificationRule = NewNotificationRuleClient(tx.config)
+	tx.Plan = NewPlanClient(tx.config)
+	tx.PlanPhase = NewPlanPhaseClient(tx.config)
+	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }
 

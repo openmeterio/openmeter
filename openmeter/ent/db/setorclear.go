@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -1341,6 +1342,258 @@ func (u *NotificationRuleUpdateOne) SetOrClearDisabled(value *bool) *Notificatio
 		return u.ClearDisabled()
 	}
 	return u.SetDisabled(*value)
+}
+
+func (u *PlanUpdate) SetOrClearMetadata(value *map[string]string) *PlanUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanUpdateOne) SetOrClearMetadata(value *map[string]string) *PlanUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanUpdate) SetOrClearDeletedAt(value *time.Time) *PlanUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanUpdateOne) SetOrClearDeletedAt(value *time.Time) *PlanUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanUpdate) SetOrClearDescription(value *string) *PlanUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *PlanUpdateOne) SetOrClearDescription(value *string) *PlanUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *PlanUpdate) SetOrClearEffectiveFrom(value *time.Time) *PlanUpdate {
+	if value == nil {
+		return u.ClearEffectiveFrom()
+	}
+	return u.SetEffectiveFrom(*value)
+}
+
+func (u *PlanUpdateOne) SetOrClearEffectiveFrom(value *time.Time) *PlanUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveFrom()
+	}
+	return u.SetEffectiveFrom(*value)
+}
+
+func (u *PlanUpdate) SetOrClearEffectiveTo(value *time.Time) *PlanUpdate {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *PlanUpdateOne) SetOrClearEffectiveTo(value *time.Time) *PlanUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *PlanPhaseUpdate) SetOrClearMetadata(value *map[string]string) *PlanPhaseUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanPhaseUpdateOne) SetOrClearMetadata(value *map[string]string) *PlanPhaseUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanPhaseUpdate) SetOrClearDeletedAt(value *time.Time) *PlanPhaseUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanPhaseUpdateOne) SetOrClearDeletedAt(value *time.Time) *PlanPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanPhaseUpdate) SetOrClearDescription(value *string) *PlanPhaseUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *PlanPhaseUpdateOne) SetOrClearDescription(value *string) *PlanPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *[]plan.Discount) *PlanPhaseUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *PlanPhaseUpdateOne) SetOrClearDiscounts(value *[]plan.Discount) *PlanPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearMetadata(value *map[string]string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearMetadata(value *map[string]string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearDeletedAt(value *time.Time) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearDeletedAt(value *time.Time) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearDescription(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearDescription(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearFeatureKey(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearFeatureKey(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearEntitlementTemplate(value **plan.EntitlementTemplate) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearEntitlementTemplate()
+	}
+	return u.SetEntitlementTemplate(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearEntitlementTemplate(value **plan.EntitlementTemplate) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearEntitlementTemplate()
+	}
+	return u.SetEntitlementTemplate(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearTaxConfig(value **plan.TaxConfig) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **plan.TaxConfig) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearBillingCadence(value *datex.ISOString) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearBillingCadence(value *datex.ISOString) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearPrice(value **plan.Price) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **plan.Price) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
 }
 
 func (u *UsageResetUpdate) SetOrClearDeletedAt(value *time.Time) *UsageResetUpdate {

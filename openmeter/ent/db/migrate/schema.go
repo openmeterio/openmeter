@@ -1107,6 +1107,188 @@ var (
 			},
 		},
 	}
+	// PlansColumns holds the columns for the "plans" table.
+	PlansColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "currency", Type: field.TypeString, Default: "USD"},
+		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
+		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
+	}
+	// PlansTable holds the schema information for the "plans" table.
+	PlansTable = &schema.Table{
+		Name:       "plans",
+		Columns:    PlansColumns,
+		PrimaryKey: []*schema.Column{PlansColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "plan_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlansColumns[0]},
+			},
+			{
+				Name:    "plan_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{PlansColumns[1]},
+			},
+			{
+				Name:    "plan_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[0]},
+			},
+			{
+				Name:    "plan_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[5]},
+			},
+			{
+				Name:    "plan_namespace_key_version",
+				Unique:  true,
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[9]},
+			},
+		},
+	}
+	// PlanPhasesColumns holds the columns for the "plan_phases" table.
+	PlanPhasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "start_after", Type: field.TypeString, Default: "P0D"},
+		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "plan_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// PlanPhasesTable holds the schema information for the "plan_phases" table.
+	PlanPhasesTable = &schema.Table{
+		Name:       "plan_phases",
+		Columns:    PlanPhasesColumns,
+		PrimaryKey: []*schema.Column{PlanPhasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plan_phases_plans_phases",
+				Columns:    []*schema.Column{PlanPhasesColumns[11]},
+				RefColumns: []*schema.Column{PlansColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "planphase_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlanPhasesColumns[0]},
+			},
+			{
+				Name:    "planphase_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{PlanPhasesColumns[1]},
+			},
+			{
+				Name:    "planphase_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlanPhasesColumns[1], PlanPhasesColumns[0]},
+			},
+			{
+				Name:    "planphase_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{PlanPhasesColumns[1], PlanPhasesColumns[8], PlanPhasesColumns[5]},
+			},
+			{
+				Name:    "planphase_namespace_key",
+				Unique:  false,
+				Columns: []*schema.Column{PlanPhasesColumns[1], PlanPhasesColumns[8]},
+			},
+			{
+				Name:    "planphase_plan_id_key",
+				Unique:  true,
+				Columns: []*schema.Column{PlanPhasesColumns[11], PlanPhasesColumns[8]},
+			},
+		},
+	}
+	// PlanRateCardsColumns holds the columns for the "plan_rate_cards" table.
+	PlanRateCardsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "entitlement_template", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
+		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// PlanRateCardsTable holds the schema information for the "plan_rate_cards" table.
+	PlanRateCardsTable = &schema.Table{
+		Name:       "plan_rate_cards",
+		Columns:    PlanRateCardsColumns,
+		PrimaryKey: []*schema.Column{PlanRateCardsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plan_rate_cards_features_ratecard",
+				Columns:    []*schema.Column{PlanRateCardsColumns[15]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "plan_rate_cards_plan_phases_ratecards",
+				Columns:    []*schema.Column{PlanRateCardsColumns[16]},
+				RefColumns: []*schema.Column{PlanPhasesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "planratecard_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlanRateCardsColumns[0]},
+			},
+			{
+				Name:    "planratecard_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{PlanRateCardsColumns[1]},
+			},
+			{
+				Name:    "planratecard_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlanRateCardsColumns[1], PlanRateCardsColumns[0]},
+			},
+			{
+				Name:    "planratecard_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{PlanRateCardsColumns[1], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
+			},
+			{
+				Name:    "planratecard_phase_id_key",
+				Unique:  true,
+				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[8]},
+			},
+			{
+				Name:    "planratecard_phase_id_feature_key",
+				Unique:  true,
+				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[10]},
+			},
+		},
+	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
 	UsageResetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1226,6 +1408,9 @@ var (
 		NotificationEventsTable,
 		NotificationEventDeliveryStatusTable,
 		NotificationRulesTable,
+		PlansTable,
+		PlanPhasesTable,
+		PlanRateCardsTable,
 		UsageResetsTable,
 		NotificationChannelRulesTable,
 		NotificationEventDeliveryStatusEventsTable,
@@ -1258,6 +1443,9 @@ func init() {
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
+	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
+	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
+	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable
 	NotificationChannelRulesTable.ForeignKeys[1].RefTable = NotificationRulesTable

@@ -102,5 +102,36 @@ func NotificationRuleOrErr(p NotificationRule, err error) NotificationRule {
 	}
 }
 
+// Plan is the predicate function for dbplan builders.
+type Plan func(*sql.Selector)
+
+// PlanPhase is the predicate function for planphase builders.
+type PlanPhase func(*sql.Selector)
+
+// PlanPhaseOrErr calls the predicate only if the error is not nit.
+func PlanPhaseOrErr(p PlanPhase, err error) PlanPhase {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// PlanRateCard is the predicate function for planratecard builders.
+type PlanRateCard func(*sql.Selector)
+
+// PlanRateCardOrErr calls the predicate only if the error is not nit.
+func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // UsageReset is the predicate function for usagereset builders.
 type UsageReset func(*sql.Selector)

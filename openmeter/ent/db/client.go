@@ -36,6 +36,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 
 	stdsql "database/sql"
@@ -88,6 +91,12 @@ type Client struct {
 	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
 	// NotificationRule is the client for interacting with the NotificationRule builders.
 	NotificationRule *NotificationRuleClient
+	// Plan is the client for interacting with the Plan builders.
+	Plan *PlanClient
+	// PlanPhase is the client for interacting with the PlanPhase builders.
+	PlanPhase *PlanPhaseClient
+	// PlanRateCard is the client for interacting with the PlanRateCard builders.
+	PlanRateCard *PlanRateCardClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 }
@@ -122,6 +131,9 @@ func (c *Client) init() {
 	c.NotificationEvent = NewNotificationEventClient(c.config)
 	c.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(c.config)
 	c.NotificationRule = NewNotificationRuleClient(c.config)
+	c.Plan = NewPlanClient(c.config)
+	c.PlanPhase = NewPlanPhaseClient(c.config)
+	c.PlanRateCard = NewPlanRateCardClient(c.config)
 	c.UsageReset = NewUsageResetClient(c.config)
 }
 
@@ -236,6 +248,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		NotificationEvent:               NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus: NewNotificationEventDeliveryStatusClient(cfg),
 		NotificationRule:                NewNotificationRuleClient(cfg),
+		Plan:                            NewPlanClient(cfg),
+		PlanPhase:                       NewPlanPhaseClient(cfg),
+		PlanRateCard:                    NewPlanRateCardClient(cfg),
 		UsageReset:                      NewUsageResetClient(cfg),
 	}, nil
 }
@@ -277,6 +292,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		NotificationEvent:               NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus: NewNotificationEventDeliveryStatusClient(cfg),
 		NotificationRule:                NewNotificationRuleClient(cfg),
+		Plan:                            NewPlanClient(cfg),
+		PlanPhase:                       NewPlanPhaseClient(cfg),
+		PlanRateCard:                    NewPlanRateCardClient(cfg),
 		UsageReset:                      NewUsageResetClient(cfg),
 	}, nil
 }
@@ -312,7 +330,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingInvoiceManualLineConfig, c.BillingInvoiceValidationIssue,
 		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
 		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
+		c.PlanRateCard, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -327,7 +346,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingInvoiceManualLineConfig, c.BillingInvoiceValidationIssue,
 		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
 		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.UsageReset,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
+		c.PlanRateCard, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -378,6 +398,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.NotificationEventDeliveryStatus.mutate(ctx, m)
 	case *NotificationRuleMutation:
 		return c.NotificationRule.mutate(ctx, m)
+	case *PlanMutation:
+		return c.Plan.mutate(ctx, m)
+	case *PlanPhaseMutation:
+		return c.PlanPhase.mutate(ctx, m)
+	case *PlanRateCardMutation:
+		return c.PlanRateCard.mutate(ctx, m)
 	case *UsageResetMutation:
 		return c.UsageReset.mutate(ctx, m)
 	default:
@@ -3208,6 +3234,22 @@ func (c *FeatureClient) QueryEntitlement(f *Feature) *EntitlementQuery {
 	return query
 }
 
+// QueryRatecard queries the ratecard edge of a Feature.
+func (c *FeatureClient) QueryRatecard(f *Feature) *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(feature.Table, feature.FieldID, id),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardTable, feature.RatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *FeatureClient) Hooks() []Hook {
 	return c.hooks.Feature
@@ -4010,6 +4052,485 @@ func (c *NotificationRuleClient) mutate(ctx context.Context, m *NotificationRule
 	}
 }
 
+// PlanClient is a client for the Plan schema.
+type PlanClient struct {
+	config
+}
+
+// NewPlanClient returns a client for the Plan from the given config.
+func NewPlanClient(c config) *PlanClient {
+	return &PlanClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `dbplan.Hooks(f(g(h())))`.
+func (c *PlanClient) Use(hooks ...Hook) {
+	c.hooks.Plan = append(c.hooks.Plan, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `dbplan.Intercept(f(g(h())))`.
+func (c *PlanClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Plan = append(c.inters.Plan, interceptors...)
+}
+
+// Create returns a builder for creating a Plan entity.
+func (c *PlanClient) Create() *PlanCreate {
+	mutation := newPlanMutation(c.config, OpCreate)
+	return &PlanCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Plan entities.
+func (c *PlanClient) CreateBulk(builders ...*PlanCreate) *PlanCreateBulk {
+	return &PlanCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlanClient) MapCreateBulk(slice any, setFunc func(*PlanCreate, int)) *PlanCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlanCreateBulk{err: fmt.Errorf("calling to PlanClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlanCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlanCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Plan.
+func (c *PlanClient) Update() *PlanUpdate {
+	mutation := newPlanMutation(c.config, OpUpdate)
+	return &PlanUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlanClient) UpdateOne(pl *Plan) *PlanUpdateOne {
+	mutation := newPlanMutation(c.config, OpUpdateOne, withPlan(pl))
+	return &PlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlanClient) UpdateOneID(id string) *PlanUpdateOne {
+	mutation := newPlanMutation(c.config, OpUpdateOne, withPlanID(id))
+	return &PlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Plan.
+func (c *PlanClient) Delete() *PlanDelete {
+	mutation := newPlanMutation(c.config, OpDelete)
+	return &PlanDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlanClient) DeleteOne(pl *Plan) *PlanDeleteOne {
+	return c.DeleteOneID(pl.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlanClient) DeleteOneID(id string) *PlanDeleteOne {
+	builder := c.Delete().Where(dbplan.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlanDeleteOne{builder}
+}
+
+// Query returns a query builder for Plan.
+func (c *PlanClient) Query() *PlanQuery {
+	return &PlanQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlan},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Plan entity by its id.
+func (c *PlanClient) Get(ctx context.Context, id string) (*Plan, error) {
+	return c.Query().Where(dbplan.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlanClient) GetX(ctx context.Context, id string) *Plan {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPhases queries the phases edge of a Plan.
+func (c *PlanClient) QueryPhases(pl *Plan) *PlanPhaseQuery {
+	query := (&PlanPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbplan.Table, dbplan.FieldID, id),
+			sqlgraph.To(planphase.Table, planphase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbplan.PhasesTable, dbplan.PhasesColumn),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PlanClient) Hooks() []Hook {
+	return c.hooks.Plan
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlanClient) Interceptors() []Interceptor {
+	return c.inters.Plan
+}
+
+func (c *PlanClient) mutate(ctx context.Context, m *PlanMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlanCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlanUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlanDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown Plan mutation op: %q", m.Op())
+	}
+}
+
+// PlanPhaseClient is a client for the PlanPhase schema.
+type PlanPhaseClient struct {
+	config
+}
+
+// NewPlanPhaseClient returns a client for the PlanPhase from the given config.
+func NewPlanPhaseClient(c config) *PlanPhaseClient {
+	return &PlanPhaseClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `planphase.Hooks(f(g(h())))`.
+func (c *PlanPhaseClient) Use(hooks ...Hook) {
+	c.hooks.PlanPhase = append(c.hooks.PlanPhase, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `planphase.Intercept(f(g(h())))`.
+func (c *PlanPhaseClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlanPhase = append(c.inters.PlanPhase, interceptors...)
+}
+
+// Create returns a builder for creating a PlanPhase entity.
+func (c *PlanPhaseClient) Create() *PlanPhaseCreate {
+	mutation := newPlanPhaseMutation(c.config, OpCreate)
+	return &PlanPhaseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlanPhase entities.
+func (c *PlanPhaseClient) CreateBulk(builders ...*PlanPhaseCreate) *PlanPhaseCreateBulk {
+	return &PlanPhaseCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlanPhaseClient) MapCreateBulk(slice any, setFunc func(*PlanPhaseCreate, int)) *PlanPhaseCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlanPhaseCreateBulk{err: fmt.Errorf("calling to PlanPhaseClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlanPhaseCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlanPhaseCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlanPhase.
+func (c *PlanPhaseClient) Update() *PlanPhaseUpdate {
+	mutation := newPlanPhaseMutation(c.config, OpUpdate)
+	return &PlanPhaseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlanPhaseClient) UpdateOne(pp *PlanPhase) *PlanPhaseUpdateOne {
+	mutation := newPlanPhaseMutation(c.config, OpUpdateOne, withPlanPhase(pp))
+	return &PlanPhaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlanPhaseClient) UpdateOneID(id string) *PlanPhaseUpdateOne {
+	mutation := newPlanPhaseMutation(c.config, OpUpdateOne, withPlanPhaseID(id))
+	return &PlanPhaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlanPhase.
+func (c *PlanPhaseClient) Delete() *PlanPhaseDelete {
+	mutation := newPlanPhaseMutation(c.config, OpDelete)
+	return &PlanPhaseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlanPhaseClient) DeleteOne(pp *PlanPhase) *PlanPhaseDeleteOne {
+	return c.DeleteOneID(pp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlanPhaseClient) DeleteOneID(id string) *PlanPhaseDeleteOne {
+	builder := c.Delete().Where(planphase.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlanPhaseDeleteOne{builder}
+}
+
+// Query returns a query builder for PlanPhase.
+func (c *PlanPhaseClient) Query() *PlanPhaseQuery {
+	return &PlanPhaseQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlanPhase},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlanPhase entity by its id.
+func (c *PlanPhaseClient) Get(ctx context.Context, id string) (*PlanPhase, error) {
+	return c.Query().Where(planphase.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlanPhaseClient) GetX(ctx context.Context, id string) *PlanPhase {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlan queries the plan edge of a PlanPhase.
+func (c *PlanPhaseClient) QueryPlan(pp *PlanPhase) *PlanQuery {
+	query := (&PlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planphase.Table, planphase.FieldID, id),
+			sqlgraph.To(dbplan.Table, dbplan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planphase.PlanTable, planphase.PlanColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRatecards queries the ratecards edge of a PlanPhase.
+func (c *PlanPhaseClient) QueryRatecards(pp *PlanPhase) *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planphase.Table, planphase.FieldID, id),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, planphase.RatecardsTable, planphase.RatecardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PlanPhaseClient) Hooks() []Hook {
+	return c.hooks.PlanPhase
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlanPhaseClient) Interceptors() []Interceptor {
+	return c.inters.PlanPhase
+}
+
+func (c *PlanPhaseClient) mutate(ctx context.Context, m *PlanPhaseMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlanPhaseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlanPhaseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlanPhaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlanPhaseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown PlanPhase mutation op: %q", m.Op())
+	}
+}
+
+// PlanRateCardClient is a client for the PlanRateCard schema.
+type PlanRateCardClient struct {
+	config
+}
+
+// NewPlanRateCardClient returns a client for the PlanRateCard from the given config.
+func NewPlanRateCardClient(c config) *PlanRateCardClient {
+	return &PlanRateCardClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `planratecard.Hooks(f(g(h())))`.
+func (c *PlanRateCardClient) Use(hooks ...Hook) {
+	c.hooks.PlanRateCard = append(c.hooks.PlanRateCard, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `planratecard.Intercept(f(g(h())))`.
+func (c *PlanRateCardClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlanRateCard = append(c.inters.PlanRateCard, interceptors...)
+}
+
+// Create returns a builder for creating a PlanRateCard entity.
+func (c *PlanRateCardClient) Create() *PlanRateCardCreate {
+	mutation := newPlanRateCardMutation(c.config, OpCreate)
+	return &PlanRateCardCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlanRateCard entities.
+func (c *PlanRateCardClient) CreateBulk(builders ...*PlanRateCardCreate) *PlanRateCardCreateBulk {
+	return &PlanRateCardCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlanRateCardClient) MapCreateBulk(slice any, setFunc func(*PlanRateCardCreate, int)) *PlanRateCardCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlanRateCardCreateBulk{err: fmt.Errorf("calling to PlanRateCardClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlanRateCardCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlanRateCardCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlanRateCard.
+func (c *PlanRateCardClient) Update() *PlanRateCardUpdate {
+	mutation := newPlanRateCardMutation(c.config, OpUpdate)
+	return &PlanRateCardUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlanRateCardClient) UpdateOne(prc *PlanRateCard) *PlanRateCardUpdateOne {
+	mutation := newPlanRateCardMutation(c.config, OpUpdateOne, withPlanRateCard(prc))
+	return &PlanRateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlanRateCardClient) UpdateOneID(id string) *PlanRateCardUpdateOne {
+	mutation := newPlanRateCardMutation(c.config, OpUpdateOne, withPlanRateCardID(id))
+	return &PlanRateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlanRateCard.
+func (c *PlanRateCardClient) Delete() *PlanRateCardDelete {
+	mutation := newPlanRateCardMutation(c.config, OpDelete)
+	return &PlanRateCardDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlanRateCardClient) DeleteOne(prc *PlanRateCard) *PlanRateCardDeleteOne {
+	return c.DeleteOneID(prc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlanRateCardClient) DeleteOneID(id string) *PlanRateCardDeleteOne {
+	builder := c.Delete().Where(planratecard.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlanRateCardDeleteOne{builder}
+}
+
+// Query returns a query builder for PlanRateCard.
+func (c *PlanRateCardClient) Query() *PlanRateCardQuery {
+	return &PlanRateCardQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlanRateCard},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlanRateCard entity by its id.
+func (c *PlanRateCardClient) Get(ctx context.Context, id string) (*PlanRateCard, error) {
+	return c.Query().Where(planratecard.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlanRateCardClient) GetX(ctx context.Context, id string) *PlanRateCard {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPhase queries the phase edge of a PlanRateCard.
+func (c *PlanRateCardClient) QueryPhase(prc *PlanRateCard) *PlanPhaseQuery {
+	query := (&PlanPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := prc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
+			sqlgraph.To(planphase.Table, planphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.PhaseTable, planratecard.PhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(prc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeatures queries the features edge of a PlanRateCard.
+func (c *PlanRateCardClient) QueryFeatures(prc *PlanRateCard) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := prc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
+			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.FeaturesTable, planratecard.FeaturesColumn),
+		)
+		fromV = sqlgraph.Neighbors(prc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PlanRateCardClient) Hooks() []Hook {
+	return c.hooks.PlanRateCard
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlanRateCardClient) Interceptors() []Interceptor {
+	return c.inters.PlanRateCard
+}
+
+func (c *PlanRateCardClient) mutate(ctx context.Context, m *PlanRateCardMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlanRateCardCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlanRateCardUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlanRateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlanRateCardDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown PlanRateCard mutation op: %q", m.Op())
+	}
+}
+
 // UsageResetClient is a client for the UsageReset schema.
 type UsageResetClient struct {
 	config
@@ -4167,7 +4688,7 @@ type (
 		BillingInvoiceManualLineConfig, BillingInvoiceValidationIssue, BillingProfile,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, UsageReset []ent.Hook
+		NotificationRule, Plan, PlanPhase, PlanRateCard, UsageReset []ent.Hook
 	}
 	inters struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
@@ -4175,7 +4696,7 @@ type (
 		BillingInvoiceManualLineConfig, BillingInvoiceValidationIssue, BillingProfile,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, UsageReset []ent.Interceptor
+		NotificationRule, Plan, PlanPhase, PlanRateCard, UsageReset []ent.Interceptor
 	}
 )
 

@@ -34,6 +34,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+
+	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -116,6 +120,9 @@ func checkColumn(table, column string) error {
 			notificationevent.Table:               notificationevent.ValidColumn,
 			notificationeventdeliverystatus.Table: notificationeventdeliverystatus.ValidColumn,
 			notificationrule.Table:                notificationrule.ValidColumn,
+			dbplan.Table:                          dbplan.ValidColumn,
+			planphase.Table:                       planphase.ValidColumn,
+			planratecard.Table:                    planratecard.ValidColumn,
 			usagereset.Table:                      usagereset.ValidColumn,
 		})
 	})
