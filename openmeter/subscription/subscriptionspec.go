@@ -550,10 +550,6 @@ type Applies interface {
 	ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error
 }
 
-type Execs interface {
-	Exec() error
-}
-
 func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext) error {
 	for i, patch := range patches {
 		err := patch.ApplyTo(s, context)
@@ -562,12 +558,6 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 		}
 		if err = s.Validate(); err != nil {
 			return fmt.Errorf("patch %d failed during validation: %w", i, err)
-		}
-		if e, ok := patch.(Execs); ok {
-			err = e.Exec()
-			if err != nil {
-				return fmt.Errorf("patch %d failed during execution: %w", i, err)
-			}
 		}
 	}
 	return nil

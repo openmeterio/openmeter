@@ -171,21 +171,6 @@ func (e exec) Exec() error {
 	return e.exec()
 }
 
-func ToAppliesAndExecs(fn func() error) func(p Patch, _ int) interface {
-	Applies
-	Execs
-} {
-	return func(p Patch, _ int) interface {
-		Applies
-		Execs
-	} {
-		return exec{
-			Applies: p,
-			exec:    fn,
-		}
-	}
-}
-
 type PatchAddItem struct {
 	PhaseKey    string
 	ItemKey     string
