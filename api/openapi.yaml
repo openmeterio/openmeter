@@ -8162,26 +8162,6 @@ components:
         stamps: Seals of approval from other organisations that may need to be listed.
         ext: 	Extensions for additional codes that may be required.
       title: DocumentRef is used to describe an existing document or a specific part of it's contents.
-    BillingGenericPaymentTerms:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingPaymentTermType'
-          title: Type of terms to be applied.
-        detail:
-          type: string
-          title: Text detail of the chosen payment terms.
-        notes:
-          type: string
-          title: Description of the conditions for payment.
-      discriminator:
-        propertyName: type
-        mapping:
-          due_date: '#/components/schemas/BillingPaymentTermDueDate'
-      title: Terms defines when we expect the customer to pay, or have paid, for the contents of the document.
     BillingInvoice:
       type: object
       required:
@@ -9001,17 +8981,18 @@ components:
           enum:
             - due_date
           title: Type of terms to be applied.
+        detail:
+          type: string
+          title: Text detail of the chosen payment terms.
+        notes:
+          type: string
+          title: Description of the conditions for payment.
         dueAt:
           type: array
           items:
             $ref: '#/components/schemas/BillingDueDate'
           minItems: 1
           title: When the payment is due.
-        notes:
-          type: string
-          title: Other details to take into account for the payment
-      allOf:
-        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
       title: PaymentTermDueDate defines the terms for payment on a specific date.
     BillingPaymentTermInstant:
       type: object
@@ -9023,15 +9004,13 @@ components:
           enum:
             - instant
           title: Type of terms to be applied.
-      allOf:
-        - $ref: '#/components/schemas/BillingGenericPaymentTerms'
+        detail:
+          type: string
+          title: Text detail of the chosen payment terms.
+        notes:
+          type: string
+          title: Description of the conditions for payment.
       title: PaymentTermInstant defines the terms for payment on receipt of invoice.
-    BillingPaymentTermType:
-      type: string
-      enum:
-        - due_date
-        - instant
-      title: PaymentPaymentTermType defines the type of terms to be applied.
     BillingPaymentTerms:
       anyOf:
         - $ref: '#/components/schemas/BillingPaymentTermInstant'
