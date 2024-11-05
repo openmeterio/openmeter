@@ -6864,7 +6864,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OpenMeter.ProductCatalog.CreateSubscriptionRequestBody'
+              $ref: '#/components/schemas/CreateSubscriptionRequestBody'
   /api/v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription_getSubscription
@@ -7031,89 +7031,11 @@ paths:
               type: array
               items:
                 anyOf:
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - add
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-                      value:
-                        $ref: '#/components/schemas/RateCardUpdateItem'
-                  - type: object
-                    required:
-                      - op
-                      - path
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - remove
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - add
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-                      value:
-                        $ref: '#/components/schemas/SubscriptionPhaseCreateInput'
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - extend
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-                      value:
-                        type: object
-                        properties:
-                          extendBy:
-                            type: string
-                            format: duration
-                        required:
-                          - extendBy
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - remove
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-                      value:
-                        type: object
-                        properties:
-                          shift:
-                            $ref: '#/components/schemas/RemovePhaseShifting'
-                        required:
-                          - shift
+                  - $ref: '#/components/schemas/SubscriptionEditAddUpdateItem'
+                  - $ref: '#/components/schemas/SubscriptionEditRemoveUpdateItem'
+                  - $ref: '#/components/schemas/SubscriptionEditAdd'
+                  - $ref: '#/components/schemas/SubscriptionEditExtend'
+                  - $ref: '#/components/schemas/SubscriptionEditRemoveWithValue'
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription
@@ -7346,7 +7268,6 @@ paths:
       tags:
         - Subscriptions
 security:
-  - {}
   - CloudTokenAuth: []
   - CloudCookieAuth: []
 components:
@@ -10198,6 +10119,56 @@ components:
           type: string
           description: Return URL.
       description: Create Stripe Checkout Session response.
+    CreateSubscriptionRequestBody:
+      type: object
+      required:
+        - customerId
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+      properties:
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/SubscriptionEditAddItem'
+              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
+      description: Create subscription request body.
     CurrencyCode:
       type: string
       example: USD
@@ -12708,80 +12679,6 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    OpenMeter.ProductCatalog.CreateSubscriptionRequestBody:
-      type: object
-      required:
-        - customerId
-        - plan
-        - currency
-        - activeFrom
-        - customizations
-      properties:
-        customerId:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-        plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customizations:
-          type: array
-          items:
-            anyOf:
-              - type: object
-                required:
-                  - op
-                  - path
-                  - value
-                properties:
-                  op:
-                    type: string
-                    enum:
-                      - add
-                  path:
-                    type: string
-                    pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-                  value:
-                    $ref: '#/components/schemas/RateCard'
-              - type: object
-                required:
-                  - op
-                  - path
-                properties:
-                  op:
-                    type: string
-                    enum:
-                      - remove
-                  path:
-                    type: string
-                    pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
     Percentage:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?%$
@@ -13949,6 +13846,7 @@ components:
       enum:
         - Next
         - Prev
+      description: The direction of the phase shift when a phase is removed.
     ResetEntitlementUsageInput:
       type: object
       properties:
@@ -14442,6 +14340,130 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
       description: Subscription is an exact subscription instance.
+    SubscriptionEditAdd:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          $ref: '#/components/schemas/SubscriptionPhaseCreate'
+      description: Subscription item add operation.
+    SubscriptionEditAddItem:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+        value:
+          $ref: '#/components/schemas/RateCard'
+      description: Subscription item add operation.
+    SubscriptionEditAddUpdateItem:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+        value:
+          $ref: '#/components/schemas/RateCardUpdateItem'
+      description: Subscription item add operation.
+    SubscriptionEditExtend:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - extend
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          type: object
+          properties:
+            extendBy:
+              type: string
+              format: duration
+          required:
+            - extendBy
+      description: Subscription phase extend operation.
+    SubscriptionEditRemoveItem:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum:
+            - remove
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+      description: Subscription phase remove operation.
+    SubscriptionEditRemoveUpdateItem:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum:
+            - remove
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+      description: Subscription phase remove operation.
+    SubscriptionEditRemoveWithValue:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - remove
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          type: object
+          properties:
+            shift:
+              $ref: '#/components/schemas/RemovePhaseShifting'
+          required:
+            - shift
+      description: Subscription item remove operation with a value.
     SubscriptionExpanded:
       type: object
       required:
@@ -14634,7 +14656,7 @@ components:
             - feature
           description: Describes what access is gained via the SubscriptionItem
       description: The actual contents of the Subscription, what the user gets, what they pay, etc...
-    SubscriptionPhaseCreateInput:
+    SubscriptionPhaseCreate:
       type: object
       required:
         - startAfter
@@ -14661,6 +14683,7 @@ components:
             $ref: '#/components/schemas/AppliedDiscountUpdateItem'
           description: The discounts on the plan.
           title: Discount
+      description: Subscription phase create input.
     SubscriptionPhaseExpanded:
       type: object
       required:

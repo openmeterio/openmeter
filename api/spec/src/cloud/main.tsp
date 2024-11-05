@@ -28,7 +28,7 @@ using TypeSpec.OpenAPI;
 })
 @server("https://127.0.0.1:8888", "Local")
 @server("https://openmeter.cloud", "Cloud")
-@useAuth(NoAuth | CloudTokenAuth | CloudCookieAuth)
+@useAuth(CloudTokenAuth | CloudCookieAuth)
 namespace OpenMeterCloud;
 
 @route("/api/v1/events")
