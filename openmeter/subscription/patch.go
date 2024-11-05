@@ -186,15 +186,6 @@ func SetAt(at time.Time, p Patch) (Patch, error) {
 	return nil, fmt.Errorf("unsupported patch type when setting applied at: %T", p)
 }
 
-type exec struct {
-	Applies
-	exec func() error
-}
-
-func (e exec) Exec() error {
-	return e.exec()
-}
-
 type PatchAddItem struct {
 	PhaseKey    string
 	ItemKey     string

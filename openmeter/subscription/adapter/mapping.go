@@ -109,7 +109,6 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 				}
 				p.CreateInput.CreateEntitlementInput.UsagePeriodISODuration = &dur
 			}
-
 		}
 
 		if val.CreatePriceKey != nil || val.CreatePriceValue != nil {
