@@ -70,6 +70,7 @@ model RateCardFlatFee {
 
   /**
    * The billing cadence of the rate card.
+   * When null it means it is a one time fee.
    */
   @visibility("read", "create", "update")
   @summary("Billing cadence")
@@ -103,7 +104,6 @@ model RateCardUsageBased {
 
   /**
    * The billing cadence of the rate card.
-   * When null, the rate card is a one-time purchase.
    */
   @visibility("read", "create", "update")
   @summary("Billing cadence")
