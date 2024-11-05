@@ -3,6 +3,7 @@ package subscription
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
@@ -13,17 +14,19 @@ type AnyValuePatch interface {
 
 // wPatch is used to serialize patches
 type wPatch struct {
-	Op    string `json:"operation"`
-	Path  string `json:"path"`
-	Value any    `json:"value,omitempty"`
+	Op        string    `json:"operation"`
+	Path      string    `json:"path"`
+	Value     any       `json:"value,omitempty"`
+	AppliedAt time.Time `json:"appliedAt,omitempty"`
 }
 
 // Serialization of patches
 
 func asWPatch(val Patch) *wPatch {
 	p := &wPatch{
-		Op:   string(val.Op()),
-		Path: string(val.Path()),
+		Op:        string(val.Op()),
+		Path:      string(val.Path()),
+		AppliedAt: val.At(),
 	}
 
 	if v, ok := val.(AnyValuePatch); ok {
@@ -54,9 +57,10 @@ func (p PatchExtendPhase) MarshalJSON() ([]byte, error) {
 }
 
 type rPatch struct {
-	Op    string          `json:"operation"`
-	Path  string          `json:"path"`
-	Value json.RawMessage `json:"value,omitempty"`
+	Op        string          `json:"operation"`
+	Path      string          `json:"path"`
+	Value     json.RawMessage `json:"value,omitempty"`
+	AppliedAt time.Time       `json:"appliedAt,omitempty"`
 }
 
 // Deserialization of patches
@@ -90,6 +94,7 @@ func Deserialize(b []byte) (any, error) {
 		return &PatchAddPhase{
 			PhaseKey:    pPath.PhaseKey(),
 			CreateInput: *val,
+			AppliedAt:   p.AppliedAt,
 		}, nil
 	} else if pPath.Type() == PatchPathTypePhase && pOp == PatchOperationRemove {
 		var val *RemoveSubscriptionPhaseInput
@@ -104,6 +109,7 @@ func Deserialize(b []byte) (any, error) {
 		return &PatchRemovePhase{
 			PhaseKey:    pPath.PhaseKey(),
 			RemoveInput: *val,
+			AppliedAt:   p.AppliedAt,
 		}, nil
 	} else if pPath.Type() == PatchPathTypePhase && pOp == PatchOperationExtend {
 		var val *datex.Period
@@ -117,8 +123,9 @@ func Deserialize(b []byte) (any, error) {
 		}
 
 		return &PatchExtendPhase{
-			PhaseKey: pPath.PhaseKey(),
-			Duration: *val,
+			PhaseKey:  pPath.PhaseKey(),
+			Duration:  *val,
+			AppliedAt: p.AppliedAt,
 		}, nil
 	} else if pPath.Type() == PatchPathTypeItem && pOp == PatchOperationAdd {
 		var val *SubscriptionItemSpec
@@ -135,11 +142,13 @@ func Deserialize(b []byte) (any, error) {
 			PhaseKey:    pPath.PhaseKey(),
 			ItemKey:     pPath.ItemKey(),
 			CreateInput: *val,
+			AppliedAt:   p.AppliedAt,
 		}, nil
 	} else if pPath.Type() == PatchPathTypeItem && pOp == PatchOperationRemove {
 		return &PatchRemoveItem{
-			PhaseKey: pPath.PhaseKey(),
-			ItemKey:  pPath.ItemKey(),
+			PhaseKey:  pPath.PhaseKey(),
+			ItemKey:   pPath.ItemKey(),
+			AppliedAt: p.AppliedAt,
 		}, nil
 	}
 

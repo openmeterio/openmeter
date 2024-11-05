@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -150,6 +151,7 @@ type Patch interface {
 	Applies
 	Op() PatchOperation
 	Path() PatchPath
+	At() time.Time
 }
 
 type ValuePatch[T any] interface {
@@ -160,6 +162,28 @@ type ValuePatch[T any] interface {
 
 func ToApplies(p Patch, _ int) Applies {
 	return p
+}
+
+func SetAt(at time.Time, p Patch) (Patch, error) {
+	switch v := p.(type) {
+	case PatchAddItem:
+		v.AppliedAt = at
+		return v, nil
+	case PatchRemoveItem:
+		v.AppliedAt = at
+		return v, nil
+	case PatchAddPhase:
+		v.AppliedAt = at
+		return v, nil
+	case PatchRemovePhase:
+		v.AppliedAt = at
+		return v, nil
+	case PatchExtendPhase:
+		v.AppliedAt = at
+		return v, nil
+	}
+
+	return nil, fmt.Errorf("unsupported patch type when setting applied at: %T", p)
 }
 
 type exec struct {
@@ -175,6 +199,7 @@ type PatchAddItem struct {
 	PhaseKey    string
 	ItemKey     string
 	CreateInput SubscriptionItemSpec
+	AppliedAt   time.Time
 }
 
 func (a PatchAddItem) Op() PatchOperation {
@@ -187,6 +212,10 @@ func (a PatchAddItem) Path() PatchPath {
 
 func (a PatchAddItem) Value() SubscriptionItemSpec {
 	return a.CreateInput
+}
+
+func (a PatchAddItem) At() time.Time {
+	return a.AppliedAt
 }
 
 func (a PatchAddItem) ValueAsAny() any {
@@ -208,14 +237,14 @@ func (a PatchAddItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 	// Checks we need:
 	// 1. You cannot add items to previous phases
 	if actx.Operation == SpecOperationEdit {
-		currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
+		currentPhase, exists := spec.GetCurrentPhaseAt(a.At())
 		if !exists {
 			// either all phases are in the past or in the future
 			// if all phases are in the future then any addition is possible
 			// if all phases are in the past then no addition is possible
 			//
 			// If all phases are in the past then the selected one is also in the past
-			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
+			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(a.At()) {
 				return &PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", a.PhaseKey)}
 			}
 		} else {
@@ -232,8 +261,9 @@ func (a PatchAddItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 }
 
 type PatchRemoveItem struct {
-	PhaseKey string
-	ItemKey  string
+	PhaseKey  string
+	ItemKey   string
+	AppliedAt time.Time
 }
 
 func (r PatchRemoveItem) Op() PatchOperation {
@@ -242,6 +272,10 @@ func (r PatchRemoveItem) Op() PatchOperation {
 
 func (r PatchRemoveItem) Path() PatchPath {
 	return NewItemPath(r.PhaseKey, r.ItemKey)
+}
+
+func (r PatchRemoveItem) At() time.Time {
+	return r.AppliedAt
 }
 
 var _ Patch = PatchRemoveItem{}
@@ -259,14 +293,14 @@ func (r PatchRemoveItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) erro
 	// Checks we need:
 	// 1. You cannot remove items from previous phases
 	if actx.Operation == SpecOperationEdit {
-		currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
+		currentPhase, exists := spec.GetCurrentPhaseAt(r.At())
 		if !exists {
 			// either all phases are in the past or in the future
 			// if all phases are in the future then any addition is possible
 			// if all phases are in the past then no addition is possible
 			//
 			// If all phases are in the past then the selected one is also in the past
-			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
+			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(r.At()) {
 				return &PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
 			}
 		} else {
@@ -285,6 +319,7 @@ func (r PatchRemoveItem) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) erro
 type PatchAddPhase struct {
 	PhaseKey    string
 	CreateInput CreateSubscriptionPhaseInput
+	AppliedAt   time.Time
 }
 
 func (a PatchAddPhase) Op() PatchOperation {
@@ -301,6 +336,10 @@ func (a PatchAddPhase) Value() CreateSubscriptionPhaseInput {
 
 func (a PatchAddPhase) ValueAsAny() any {
 	return a.CreateInput
+}
+
+func (r PatchAddPhase) At() time.Time {
+	return r.AppliedAt
 }
 
 var _ ValuePatch[CreateSubscriptionPhaseInput] = PatchAddPhase{}
@@ -369,6 +408,7 @@ func (a PatchAddPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error 
 type PatchRemovePhase struct {
 	PhaseKey    string
 	RemoveInput RemoveSubscriptionPhaseInput
+	AppliedAt   time.Time
 }
 
 func (r PatchRemovePhase) Op() PatchOperation {
@@ -377,6 +417,10 @@ func (r PatchRemovePhase) Op() PatchOperation {
 
 func (r PatchRemovePhase) Path() PatchPath {
 	return NewPhasePath(r.PhaseKey)
+}
+
+func (r PatchRemovePhase) At() time.Time {
+	return r.AppliedAt
 }
 
 func (r PatchRemovePhase) Value() RemoveSubscriptionPhaseInput {
@@ -401,7 +445,7 @@ func (r PatchRemovePhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 		return &PatchForbiddenError{Msg: "you can only remove a phase in edit"}
 	}
 	// 2. You can only remove future phases
-	if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); !st.After(actx.CurrentTime) {
+	if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); !st.After(r.At()) {
 		return &PatchForbiddenError{Msg: "cannot remove already started phase"}
 	}
 
@@ -462,8 +506,9 @@ func (r PatchRemovePhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 }
 
 type PatchExtendPhase struct {
-	PhaseKey string
-	Duration datex.Period
+	PhaseKey  string
+	Duration  datex.Period
+	AppliedAt time.Time
 }
 
 func (e PatchExtendPhase) Op() PatchOperation {
@@ -472,6 +517,10 @@ func (e PatchExtendPhase) Op() PatchOperation {
 
 func (e PatchExtendPhase) Path() PatchPath {
 	return NewPhasePath(e.PhaseKey)
+}
+
+func (r PatchExtendPhase) At() time.Time {
+	return r.AppliedAt
 }
 
 func (e PatchExtendPhase) Value() datex.Period {
@@ -499,7 +548,7 @@ func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 	}
 	pST, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 	// 2. You cannot extend past phases, only current or future ones
-	current, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
+	current, exists := spec.GetCurrentPhaseAt(e.At())
 	if exists {
 		cPST, _ := current.StartAfter.AddTo(spec.ActiveFrom)
 
@@ -509,7 +558,7 @@ func (e PatchExtendPhase) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) err
 	} else {
 		// If current phase doesn't exist then all phases are either in the past or in the future
 		// If they're all in the past then the by checking any we can see if it should fail or not
-		if pST.Before(actx.CurrentTime) {
+		if pST.Before(e.At()) {
 			return &PatchForbiddenError{Msg: "cannot extend past phase"}
 		}
 	}

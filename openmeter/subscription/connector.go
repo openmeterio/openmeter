@@ -121,11 +121,17 @@ func (c *commandAndQuery) Create(ctx context.Context, req NewSubscriptionRequest
 		return def, err
 	}
 
-	// Check that all customizations are valid
-	for _, patch := range req.ItemCustomization {
-		if err := patch.Path().Validate(); err != nil {
+	// Check that all customizations are valid & set at times
+	for i := range req.ItemCustomization {
+		if err := req.ItemCustomization[i].Path().Validate(); err != nil {
 			return def, err
 		}
+
+		p, err := SetAt(currentTime, req.ItemCustomization[i])
+		if err != nil {
+			return def, err
+		}
+		req.ItemCustomization[i] = p
 	}
 
 	// Get the default spec based on the Plan
@@ -141,8 +147,7 @@ func (c *commandAndQuery) Create(ctx context.Context, req NewSubscriptionRequest
 
 	// Apply customizations
 	err = spec.ApplyPatches(lo.Map(req.ItemCustomization, ToApplies), ApplyContext{
-		Operation:   SpecOperationCreate,
-		CurrentTime: clock.Now(),
+		Operation: SpecOperationCreate,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to apply customizations: %w", err)
@@ -164,7 +169,7 @@ func (c *commandAndQuery) Create(ctx context.Context, req NewSubscriptionRequest
 		}
 
 		// Once everything is successful, lets save the patches
-		patchInputs, err := TransformPatchesForRepository(req.ItemCustomization, currentTime)
+		patchInputs, err := TransformPatchesForRepository(req.ItemCustomization)
 		if err != nil {
 			return def, fmt.Errorf("failed to transform patches for repository: %w", err)
 		}
@@ -327,8 +332,7 @@ func (q *commandAndQuery) getSpec(ctx context.Context, sub Subscription) (*Subsc
 
 	// Apply customizations
 	err = spec.ApplyPatches(applies, ApplyContext{
-		Operation:   SpecOperationEdit, // TODO: define new read operation
-		CurrentTime: clock.Now(),
+		Operation: SpecOperationEdit, // TODO: define new read operation
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to apply customizations: %w", err)

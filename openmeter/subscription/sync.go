@@ -27,9 +27,21 @@ func (c *commandAndQuery) Edit(ctx context.Context, subscriptionID models.Namesp
 		return def, fmt.Errorf("failed to get spec: %w", err)
 	}
 
+	// Check that all customizations are valid & set at times
+	for i := range patches {
+		if err := patches[i].Path().Validate(); err != nil {
+			return def, err
+		}
+
+		p, err := SetAt(currentTime, patches[i])
+		if err != nil {
+			return def, err
+		}
+		patches[i] = p
+	}
+
 	err = spec.ApplyPatches(lo.Map(patches, ToApplies), ApplyContext{
-		Operation:   SpecOperationEdit,
-		CurrentTime: currentTime,
+		Operation: SpecOperationEdit,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to apply patches: %w", err)
@@ -53,7 +65,7 @@ func (c *commandAndQuery) Edit(ctx context.Context, subscriptionID models.Namesp
 	}
 
 	// Once everything is successful, lets save the patches
-	patchInputs, err := TransformPatchesForRepository(patches, currentTime)
+	patchInputs, err := TransformPatchesForRepository(patches)
 	if err != nil {
 		return def, fmt.Errorf("failed to transform patches for repository: %w", err)
 	}

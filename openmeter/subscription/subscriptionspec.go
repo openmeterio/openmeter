@@ -541,8 +541,7 @@ const (
 )
 
 type ApplyContext struct {
-	Operation   SpecOperation
-	CurrentTime time.Time
+	Operation SpecOperation
 }
 
 // Each Patch applies its changes to the SubscriptionSpec.

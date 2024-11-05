@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -30,7 +31,8 @@ func assertSame(t *testing.T, in json.Marshaler) {
 func TestShouldSerializeAndDeserialize(t *testing.T) {
 	t.Run("Should be the same for PatchAddPhase", func(t *testing.T) {
 		p := &subscription.PatchAddPhase{
-			PhaseKey: "asd",
+			PhaseKey:  "asd",
+			AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "asd",
@@ -48,7 +50,8 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 		assertSame(t, p)
 
 		p2 := &subscription.PatchAddPhase{
-			PhaseKey: "asd",
+			PhaseKey:  "asd",
+			AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "asd",
@@ -61,7 +64,8 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 	})
 	t.Run("Should be the same for PatchRemovePhase", func(t *testing.T) {
 		p := &subscription.PatchRemovePhase{
-			PhaseKey: "asd",
+			PhaseKey:  "asd",
+			AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			RemoveInput: subscription.RemoveSubscriptionPhaseInput{
 				Shift: subscription.RemoveSubscriptionPhaseShiftPrev,
 			},
@@ -79,8 +83,9 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 	})
 	t.Run("Should be the same for PatchAddItem", func(t *testing.T) {
 		p := &subscription.PatchAddItem{
-			PhaseKey: "asd",
-			ItemKey:  "asd2",
+			PhaseKey:  "asd",
+			ItemKey:   "asd2",
+			AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			CreateInput: subscription.SubscriptionItemSpec{
 				CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 					PhaseKey:   "asd",
@@ -99,8 +104,9 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 		assertSame(t, p)
 
 		p2 := &subscription.PatchAddItem{
-			PhaseKey: "asd",
-			ItemKey:  "asd2",
+			PhaseKey:  "asd",
+			ItemKey:   "asd2",
+			AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			CreateInput: subscription.SubscriptionItemSpec{
 				CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 					PhaseKey: "asd",
@@ -114,8 +120,9 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 
 	t.Run("Should be the same for PatchRemoveItem", func(t *testing.T) {
 		p := &subscription.PatchRemoveItem{
-			PhaseKey: "asd",
-			ItemKey:  "asd2",
+			PhaseKey:  "asd",
+			ItemKey:   "asd2",
+			AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 		}
 
 		assertSame(t, p)

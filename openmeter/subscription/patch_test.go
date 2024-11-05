@@ -11,8 +11,9 @@ import (
 
 func TestTransformation(t *testing.T) {
 	p1 := subscription.PatchAddItem{
-		PhaseKey: "phase1",
-		ItemKey:  "item1",
+		PhaseKey:  "phase1",
+		ItemKey:   "item1",
+		AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 		CreateInput: subscription.SubscriptionItemSpec{
 			CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 				PhaseKey: "phase1",
@@ -22,15 +23,16 @@ func TestTransformation(t *testing.T) {
 	}
 
 	p2 := subscription.PatchRemoveItem{
-		PhaseKey: "phase1",
-		ItemKey:  "item2",
+		PhaseKey:  "phase1",
+		ItemKey:   "item2",
+		AppliedAt: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 	}
 	t.Run("Happy path", func(t *testing.T) {
 		currTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
 		out, err := subscription.TransformPatchesForRepository([]subscription.Patch{
 			p1,
 			p2,
-		}, currTime)
+		})
 		assert.NoError(t, err)
 		assert.Len(t, out, 2)
 		assert.Equal(t, currTime, out[0].AppliedAt)

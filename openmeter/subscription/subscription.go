@@ -66,7 +66,7 @@ type CreateSubscriptionPatchInput struct {
 	Patch
 }
 
-func TransformPatchesForRepository(patches []Patch, appliedAt time.Time) ([]CreateSubscriptionPatchInput, error) {
+func TransformPatchesForRepository(patches []Patch) ([]CreateSubscriptionPatchInput, error) {
 	var res []CreateSubscriptionPatchInput
 
 	for i, p := range patches {
@@ -74,7 +74,7 @@ func TransformPatchesForRepository(patches []Patch, appliedAt time.Time) ([]Crea
 			Patch: p,
 		}
 
-		pi.AppliedAt = appliedAt
+		pi.AppliedAt = p.At()
 		pi.BatchIndex = i
 
 		res = append(res, pi)
