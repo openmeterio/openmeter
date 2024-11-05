@@ -1152,15 +1152,6 @@ export interface components {
       /** Additional details about the document. */
       description?: string
     }
-    /** Terms defines when we expect the customer to pay, or have paid, for the contents of the document. */
-    BillingGenericPaymentTerms: {
-      /** Type of terms to be applied. */
-      type: components['schemas']['BillingPaymentTermType']
-      /** Text detail of the chosen payment terms. */
-      detail?: string
-      /** Description of the conditions for payment. */
-      notes?: string
-    }
     /** Invoice represents an invoice in the system. */
     BillingInvoice: {
       /**
@@ -1682,36 +1673,31 @@ export interface components {
       addresses?: components['schemas']['Address'][]
     }
     /** PaymentTermDueDate defines the terms for payment on a specific date. */
-    BillingPaymentTermDueDate: WithRequired<
-      {
-        /**
-         * Type of terms to be applied.
-         * @enum {string}
-         */
-        type: 'due_date'
-        /** When the payment is due. */
-        dueAt: components['schemas']['BillingDueDate'][]
-        /** Other details to take into account for the payment */
-        notes?: string
-      } & Omit<components['schemas']['BillingGenericPaymentTerms'], 'type'>,
-      'type' | 'dueAt'
-    >
+    BillingPaymentTermDueDate: {
+      /**
+       * Type of terms to be applied.
+       * @enum {string}
+       */
+      type: 'due_date'
+      /** Text detail of the chosen payment terms. */
+      detail?: string
+      /** Description of the conditions for payment. */
+      notes?: string
+      /** When the payment is due. */
+      dueAt: components['schemas']['BillingDueDate'][]
+    }
     /** PaymentTermInstant defines the terms for payment on receipt of invoice. */
-    BillingPaymentTermInstant: WithRequired<
-      {
-        type: 'BillingPaymentTermInstant'
-        /**
-         * Type of terms to be applied.
-         * @enum {string}
-         */
-      } & Omit<components['schemas']['BillingGenericPaymentTerms'], 'type'>,
-      'type'
-    >
-    /**
-     * PaymentPaymentTermType defines the type of terms to be applied.
-     * @enum {string}
-     */
-    BillingPaymentTermType: 'due_date' | 'instant'
+    BillingPaymentTermInstant: {
+      /**
+       * Type of terms to be applied.
+       * @enum {string}
+       */
+      type: 'instant'
+      /** Text detail of the chosen payment terms. */
+      detail?: string
+      /** Description of the conditions for payment. */
+      notes?: string
+    }
     /** PaymentTerms defines the terms for payment. */
     BillingPaymentTerms:
       | components['schemas']['BillingPaymentTermInstant']
