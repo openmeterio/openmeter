@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: OpenMeter Cloud API
+  title: OpenMeter API
   version: 1.0.0
   license:
     name: Apache 2.0
@@ -9,18 +9,17 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
-  - name: Portal
   - name: Apps
+  - name: Portal
   - name: Notification (Experimental)
   - name: Entitlements (Experimental)
-  - name: Customers
   - name: Billing (Experimental)
   - name: Plan (Experimental)
   - name: Subscriptions
   - name: Events
   - name: Meters
   - name: Debug
-  - name: Subjects
+  - name: Customers
 paths:
   /api/v1/apps:
     get:
@@ -3366,61 +3365,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
-    post:
-      operationId: createMeter
-      description: Create a meter.
-      parameters: []
-      responses:
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Meter'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Meters
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MeterCreate'
   /api/v1/meters/{meterIdOrSlug}:
     get:
       operationId: getMeter
@@ -3465,59 +3409,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Meters
-    delete:
-      operationId: deleteMeter
-      description: Delete a meter.
-      parameters:
-        - name: meterIdOrSlug
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-      responses:
-        '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5645,7 +5536,6 @@ paths:
         - Portal
       security:
         - PortalTokenAuth: []
-        - CloudPortalTokenAuth: []
   /api/v1/portal/tokens:
     post:
       operationId: createPortalToken
@@ -5762,291 +5652,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Portal
-  /api/v1/portal/tokens/invalidate:
-    post:
-      operationId: invalidatePortalTokens
-      description: Invalidates consumer portal tokens by ID or subject.
-      parameters: []
-      responses:
-        '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Portal
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: string
-                  description: Invalidate a portal token by ID.
-                subject:
-                  type: string
-                  description: Invalidate all portal tokens for a subject.
-  /api/v1/subjects:
-    get:
-      operationId: listSubjects
-      description: List subjects.
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Subject'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Subjects
-    post:
-      operationId: upsertSubject
-      description: |-
-        Upserts a subject. Creates or updates subject.
-
-        If the subject doesn't exist, it will be created.
-        If the subject exists, it will be partially updated with the provided fields.
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Subject'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Subjects
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/SubjectUpsert'
-  /api/v1/subjects/{subjectIdOrKey}:
-    get:
-      operationId: getSubject
-      description: Get subject by ID or key.
-      parameters:
-        - name: subjectIdOrKey
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Subject'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '404':
-          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Subjects
-    delete:
-      operationId: deleteSubject
-      description: Delete subject by ID or key.
-      parameters:
-        - name: subjectIdOrKey
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Subjects
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -6864,7 +6469,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OpenMeter.ProductCatalog.CreateSubscriptionRequestBody'
+              $ref: '#/components/schemas/CreateSubscriptionRequestBody'
   /api/v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription_getSubscription
@@ -7031,89 +6636,11 @@ paths:
               type: array
               items:
                 anyOf:
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - add
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-                      value:
-                        $ref: '#/components/schemas/RateCardUpdateItem'
-                  - type: object
-                    required:
-                      - op
-                      - path
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - remove
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - add
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-                      value:
-                        $ref: '#/components/schemas/SubscriptionPhaseCreateInput'
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - extend
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-                      value:
-                        type: object
-                        properties:
-                          extendBy:
-                            type: string
-                            format: duration
-                        required:
-                          - extendBy
-                  - type: object
-                    required:
-                      - op
-                      - path
-                      - value
-                    properties:
-                      op:
-                        type: string
-                        enum:
-                          - remove
-                      path:
-                        type: string
-                        pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-                      value:
-                        type: object
-                        properties:
-                          shift:
-                            $ref: '#/components/schemas/RemovePhaseShifting'
-                        required:
-                          - shift
+                  - $ref: '#/components/schemas/SubscriptionEditAddUpdateItem'
+                  - $ref: '#/components/schemas/SubscriptionEditRemoveUpdateItem'
+                  - $ref: '#/components/schemas/SubscriptionEditAdd'
+                  - $ref: '#/components/schemas/SubscriptionEditExtend'
+                  - $ref: '#/components/schemas/SubscriptionEditRemoveWithValue'
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription
@@ -7345,10 +6872,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
-security:
-  - {}
-  - CloudTokenAuth: []
-  - CloudCookieAuth: []
 components:
   parameters:
     BillingInvoiceListParams.expand:
@@ -9972,6 +9495,12 @@ components:
         AppIdOrType can be used to reference an app during creation only.
 
         This can be either an AppType or the ULID of an app.
+    BillingWorkflowAppReferenceType:
+      type: string
+      enum:
+        - app_id
+        - app_type
+      title: App reference type specifies the type of reference inside an app reference
     BillingWorkflowCollectionAlignment:
       type: string
       enum:
@@ -10023,6 +9552,13 @@ components:
           default: P7D
       description: WorkflowInvoice represents the invoice settings for a billing workflow
       title: Workflow invoice settings
+    BillingWorkflowLineResolution:
+      type: string
+      enum:
+        - day
+        - period
+      description: LineResolution specifies how the line items should be resolved in the invoice
+      title: Item resolution
     BillingWorkflowPaymentSettings:
       type: object
       properties:
@@ -10198,6 +9734,56 @@ components:
           type: string
           description: Return URL.
       description: Create Stripe Checkout Session response.
+    CreateSubscriptionRequestBody:
+      type: object
+      required:
+        - customerId
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+      properties:
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/SubscriptionEditAddItem'
+              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
+      description: Create subscription request body.
     CurrencyCode:
       type: string
       example: USD
@@ -10401,6 +9987,37 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
+    Discount:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DiscountPercentage'
+      description: |-
+        A discount on a price.
+        One of: percentage, amount, or usage.
+    DiscountPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the discount.
+          title: Type
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+      description: Percentage discount.
+    DiscountType:
+      type: string
+      enum:
+        - percentage
+      description: The type of the discount.
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -10612,6 +10229,34 @@ components:
           static: '#/components/schemas/EntitlementStaticCreateInputs'
           boolean: '#/components/schemas/EntitlementBooleanCreateInputs'
       description: Create inputs for entitlement
+    EntitlementCreateSharedFields:
+      type: object
+      properties:
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: |-
+            The feature the subject is entitled to use.
+            Either featureKey or featureId is required.
+          example: example-feature-key
+        featureId:
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The feature the subject is entitled to use.
+            Either featureKey or featureId is required.
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        usagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodCreateInput'
+          description: The usage period associated with the entitlement.
+      description: Shared fields for entitlement creation
     EntitlementGrant:
       type: object
       required:
@@ -10915,6 +10560,37 @@ components:
       description: |-
         Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
         Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+    EntitlementMeteredCalculatedFields:
+      type: object
+      required:
+        - lastReset
+        - currentUsagePeriod
+        - measureUsageFrom
+        - usagePeriod
+      properties:
+        lastReset:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time the last reset happened.
+          readOnly: true
+        currentUsagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: The current usage period.
+          readOnly: true
+        measureUsageFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
+          readOnly: true
+        usagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: THe usage period of the entitlement.
+          readOnly: true
+      description: Calculated fields for metered entitlements.
     EntitlementMeteredCreateInputs:
       type: object
       required:
@@ -11714,6 +11390,11 @@ components:
             $ref: '#/components/schemas/BillingInvoice'
           description: The items in the current page.
       description: Paginated response
+    ListAppsRequest:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/PaginatedQuery'
+      description: Query params for listing installed apps
     ListEntitlementsResult:
       oneOf:
         - type: array
@@ -11923,77 +11604,6 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.MeterAggregation
-    MeterCreate:
-      type: object
-      required:
-        - slug
-        - aggregation
-        - windowSize
-        - eventType
-      properties:
-        slug:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: |-
-            A unique, human-readable identifier for the meter.
-            Must consist only alphanumeric and underscore characters.
-          example: tokens_total
-        description:
-          type: string
-          example: AI Token Usage
-          minLength: 1
-          description: A description of the meter.
-        aggregation:
-          allOf:
-            - $ref: '#/components/schemas/MeterAggregation'
-          example: SUM
-        windowSize:
-          allOf:
-            - $ref: '#/components/schemas/WindowSize'
-          example: MINUTE
-        eventType:
-          type: string
-          example: prompt
-          minLength: 1
-          description: The event type to aggregate.
-        valueProperty:
-          type: string
-          example: $.tokens
-          minLength: 1
-          description: |-
-            JSONPath expression to extract the value from the ingested event's data property.
-
-            The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
-
-            For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
-        groupBy:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            type: $.type
-          description: |-
-            Named JSONPath expressions to extract the group by values from the event data.
-
-            Keys must be unique and consist only alphanumeric and underscore characters.
-
-            TODO: add key format enforcement
-      example:
-        slug: tokens_total
-        description: AI Token Usage
-        aggregation: SUM
-        windowSize: MINUTE
-        eventType: prompt
-        valueProperty: $.tokens
-        groupBy:
-          model: $.model
-          type: $.type
-      description: A meter is a configuration that defines how to match and aggregate events.
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/models
-      x-go-type: models.Meter
     MeterQueryResult:
       type: object
       required:
@@ -12659,6 +12269,26 @@ components:
       allOf:
         - $ref: '#/components/schemas/NotificationRuleBalanceThresholdCreateRequest'
       description: Union type for requests creating new notification rule with certain type.
+    NotificationRuleMeta:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Identifies the notification rule.
+          title: Rule Unique Identifier
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/NotificationEventType'
+          description: Notification rule type.
+          title: Rule Type
+          readOnly: true
+      description: Metadata only fields of a notification channel.
     NotificationRuleOrderBy:
       type: string
       enum:
@@ -12708,80 +12338,18 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    OpenMeter.ProductCatalog.CreateSubscriptionRequestBody:
+    PaginatedQuery:
       type: object
-      required:
-        - customerId
-        - plan
-        - currency
-        - activeFrom
-        - customizations
       properties:
-        customerId:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-        plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customizations:
-          type: array
-          items:
-            anyOf:
-              - type: object
-                required:
-                  - op
-                  - path
-                  - value
-                properties:
-                  op:
-                    type: string
-                    enum:
-                      - add
-                  path:
-                    type: string
-                    pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-                  value:
-                    $ref: '#/components/schemas/RateCard'
-              - type: object
-                required:
-                  - op
-                  - path
-                properties:
-                  op:
-                    type: string
-                    enum:
-                      - remove
-                  path:
-                    type: string
-                    pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
+        page:
+          type: integer
+          description: The page number.
+          default: 1
+        pageSize:
+          type: integer
+          description: The number of items in the page.
+          default: 100
+      description: Paginated query parameters.
     Percentage:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?%$
@@ -13273,6 +12841,60 @@ components:
             A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
           title: Plan phases
       description: Resource create or update operation model.
+    PlanVariant:
+      type: object
+      required:
+        - currency
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+      description: |-
+        A plan variant.
+        A set of properties that can be used to select a specific configuration of a plan.
+    PlanVariantOverridePreset:
+      type: object
+      required:
+        - variant
+      properties:
+        variant:
+          allOf:
+            - $ref: '#/components/schemas/PlanVariant'
+          example:
+            currency: USD
+          description: The variant of the plan.
+          title: Variant
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code.
+          title: Currency
+        rateCards:
+          type: object
+          properties:
+            add:
+              type: array
+              items:
+                $ref: '#/components/schemas/RateCard'
+              description: Add rate cards to the plan.
+              title: Add rate card
+            remove:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 64
+                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+                description: A key is a unique string that is used to identify a resource.
+              description: Remove rate cards from the plan.
+              title: Remove rate card
+          description: The rate card overrides.
+          title: Rate card overrides
+        discount:
+          allOf:
+            - $ref: '#/components/schemas/AppliedDiscount'
+          description: The discount on the plan.
+          title: Discount
+      description: Plan variant override preset.
     PortalToken:
       type: object
       required:
@@ -13324,6 +12946,20 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+    Price:
+      anyOf:
+        - $ref: '#/components/schemas/FlatPrice'
+        - $ref: '#/components/schemas/UnitPrice'
+        - $ref: '#/components/schemas/TieredPrice'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat: '#/components/schemas/FlatPrice'
+          unit: '#/components/schemas/UnitPrice'
+          tiered: '#/components/schemas/TieredPrice'
+      description: |-
+        Price.
+        One of: flat, unit, or tiered.
     PricePaymentTerm:
       type: string
       enum:
@@ -13396,6 +13032,13 @@ components:
       description: |-
         A price tier.
         At least one price component is required in each tier.
+    PriceType:
+      type: string
+      enum:
+        - flat
+        - unit
+        - tiered
+      description: The type of the price.
     ProfilePaginatedResponse:
       type: object
       required:
@@ -13676,6 +13319,71 @@ components:
             Defaults to the billing cadence of the rate card.
           title: Usage Period
       description: The entitlement template with a metered entitlement.
+    RateCardOverride:
+      anyOf:
+        - $ref: '#/components/schemas/RateCardOverrideFlatFee'
+        - $ref: '#/components/schemas/RateCardOverrideUsageBased'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat_fee: '#/components/schemas/RateCardOverrideFlatFee'
+          usage_based: '#/components/schemas/RateCardOverrideUsageBased'
+      description: Rate card override.
+    RateCardOverrideFlatFee:
+      type: object
+      required:
+        - type
+        - price
+      properties:
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the RateCard.
+          title: RateCard type
+        price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+          nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+      description: Flat fee rate card override.
+    RateCardOverrideUsageBased:
+      type: object
+      required:
+        - type
+        - price
+      properties:
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the RateCard.
+          title: RateCard type
+        price:
+          anyOf:
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/UnitPriceWithCommitments'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/TieredPriceWithCommitments'
+              nullable: true
+            - type: object
+              allOf:
+                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+              nullable: true
+          example: {}
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+      description: Usage-based rate card override.
     RateCardStaticEntitlement:
       type: object
       required:
@@ -13696,6 +13404,12 @@ components:
           example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
       description: Entitlement template of a static entitlement.
+    RateCardType:
+      type: string
+      enum:
+        - flat_fee
+        - usage_based
+      description: The type of the rate card.
     RateCardUpdateItem:
       oneOf:
         - $ref: '#/components/schemas/RateCardFlatFeeUpdateItem'
@@ -13949,6 +13663,7 @@ components:
       enum:
         - Next
         - Prev
+      description: The direction of the phase shift when a phase is removed.
     ResetEntitlementUsageInput:
       type: object
       properties:
@@ -14051,6 +13766,22 @@ components:
         - ASC
         - DESC
       description: The order direction.
+    SpendCommitments:
+      type: object
+      properties:
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: |-
+        Spending commitments.
+        The customer is committed to spend at least the minimum amount and at most the maximum amount.
     StripeApp:
       type: object
       required:
@@ -14322,48 +14053,6 @@ components:
         currentPeriodEnd: 2023-02-01T00:00:00Z
         stripeCustomerId: cus_JMOlctsKV8
       description: A subject is a unique identifier for a user or entity.
-    SubjectUpsert:
-      type: object
-      required:
-        - key
-      properties:
-        key:
-          type: string
-          example: customer-id
-          description: A unique, human-readable identifier for the subject.
-        displayName:
-          type: string
-          nullable: true
-          example: Customer Name
-          description: A human-readable display name for the subject.
-        metadata:
-          type: object
-          additionalProperties: {}
-          nullable: true
-          example: {}
-        currentPeriodStart:
-          type: string
-          format: date-time
-          example: 2023-01-01T00:00:00Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        currentPeriodEnd:
-          type: string
-          format: date-time
-          example: 2023-02-01T00:00:00Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        stripeCustomerId:
-          type: string
-          nullable: true
-          example: cus_JMOlctsKV8
-      example:
-        key: customer-id
-        displayName: Customer Name
-        metadata:
-          hubspotId: '123456'
-        currentPeriodStart: 2023-01-01T00:00:00Z
-        currentPeriodEnd: 2023-02-01T00:00:00Z
-        stripeCustomerId: cus_JMOlctsKV8
-      description: A subject is a unique identifier for a user or entity.
     Subscription:
       type: object
       required:
@@ -14442,6 +14131,130 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
       description: Subscription is an exact subscription instance.
+    SubscriptionEditAdd:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          $ref: '#/components/schemas/SubscriptionPhaseCreate'
+      description: Subscription item add operation.
+    SubscriptionEditAddItem:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+        value:
+          $ref: '#/components/schemas/RateCard'
+      description: Subscription item add operation.
+    SubscriptionEditAddUpdateItem:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+        value:
+          $ref: '#/components/schemas/RateCardUpdateItem'
+      description: Subscription item add operation.
+    SubscriptionEditExtend:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - extend
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          type: object
+          properties:
+            extendBy:
+              type: string
+              format: duration
+          required:
+            - extendBy
+      description: Subscription phase extend operation.
+    SubscriptionEditRemoveItem:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum:
+            - remove
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+      description: Subscription phase remove operation.
+    SubscriptionEditRemoveUpdateItem:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum:
+            - remove
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+      description: Subscription phase remove operation.
+    SubscriptionEditRemoveWithValue:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - remove
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          type: object
+          properties:
+            shift:
+              $ref: '#/components/schemas/RemovePhaseShifting'
+          required:
+            - shift
+      description: Subscription item remove operation with a value.
     SubscriptionExpanded:
       type: object
       required:
@@ -14634,7 +14447,78 @@ components:
             - feature
           description: Describes what access is gained via the SubscriptionItem
       description: The actual contents of the Subscription, what the user gets, what they pay, etc...
-    SubscriptionPhaseCreateInput:
+    SubscriptionPhase:
+      type: object
+      required:
+        - name
+        - createdAt
+        - updatedAt
+        - key
+        - duration
+        - activeFrom
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A locally unique identifier for the resource.
+        duration:
+          type: string
+          format: duration
+          example: P1M
+          description: The intended duration of the new phase.
+          title: Duration
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppliedDiscount'
+          description: The discounts on the plan.
+          title: Discount
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time from which the phase is active.
+      description: Subscription phase, analogous to plan phases.
+    SubscriptionPhaseCreate:
       type: object
       required:
         - startAfter
@@ -14661,6 +14545,7 @@ components:
             $ref: '#/components/schemas/AppliedDiscountUpdateItem'
           description: The discounts on the plan.
           title: Discount
+      description: Subscription phase create input.
     SubscriptionPhaseExpanded:
       type: object
       required:
@@ -14771,6 +14656,35 @@ components:
           description: Stripe tax config.
           title: Stripe tax config
       description: Set of provider specific tax configs.
+    TieredPrice:
+      type: object
+      required:
+        - type
+        - mode
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - tiered
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/TieredPriceMode'
+          description: |-
+            Defines if the tiering mode is volume-based or graduated:
+            - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+            - In `graduated` tiering, pricing can change as the quantity grows.
+          title: Mode
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceTier'
+          minItems: 1
+          description: |-
+            The tiers of the tiered price.
+            At least one price component is required in each tier.
+          title: Tiers
+      description: Tiered price.
     TieredPriceMode:
       type: string
       enum:
@@ -15000,28 +14914,50 @@ components:
             $ref: '#/components/schemas/GrantBurnDownHistorySegment'
           description: Grant burndown history.
       description: The windowed balance history.
+    queryCustomerList:
+      type: object
+      properties:
+        order:
+          allOf:
+            - $ref: '#/components/schemas/SortOrder'
+          example: ASC
+          description: The order direction.
+          default: ASC
+        orderBy:
+          allOf:
+            - $ref: '#/components/schemas/CustomerOrderBy'
+          description: The order by field.
+        includeDeleted:
+          type: boolean
+          description: Include deleted customers.
+          default: false
+        name:
+          type: string
+          example: ACME
+          description: |-
+            Filter customers by name.
+            Case-insensitive partial match.
+        primaryEmail:
+          type: string
+          example: acme@test.com
+          description: |-
+            Filter customers by primary email.
+            Case-insensitive partial match.
+        subject:
+          type: string
+          example: my_subject_key
+          description: |-
+            Filter customers by usage attribution subject.
+            Case-insensitive partial match.
+      allOf:
+        - $ref: '#/components/schemas/PaginatedQuery'
+      description: Query params for listing customers.
   securitySchemes:
-    CloudTokenAuth:
-      type: http
-      scheme: bearer
-      description: Cloud API token.
-    CloudCookieAuth:
-      type: apiKey
-      in: cookie
-      name: __session
-      description: Cloud API web app cookie.
     PortalTokenAuth:
       type: http
       scheme: bearer
       description: Consumer portal token.
-    CloudPortalTokenAuth:
-      type: http
-      scheme: bearer
-      description: Cloud consumer portal token.
 servers:
-  - url: https://openmeter.cloud
-    description: Cloud
-    variables: {}
-  - url: https://127.0.0.1:8888
+  - url: https://127.0.0.1
     description: Local
     variables: {}

@@ -2,7 +2,7 @@ import { createRule, paramMessage } from '@typespec/compiler'
 
 export const friendlyNameRule = createRule({
   name: 'friendlyName',
-  severity: 'warning',
+  severity: 'error',
   description: 'Ensure friendlyName decorator.',
   messages: {
     default: paramMessage`The ${'type'} ${'name'} must have a friendlyName decorator.`,

@@ -22,6 +22,18 @@ interface Tokens {
 
     @body body: Token;
   } | CommonErrors;
+
+  /**
+   * List tokens.
+   */
+  @get
+  @operationId("listPortalTokens")
+  list(
+    @query
+    @minValue(1)
+    @maxValue(100)
+    limit?: integer = 25,
+  ): Token[] | CommonErrors;
 }
 
 /**
