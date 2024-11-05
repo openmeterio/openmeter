@@ -44,9 +44,9 @@ enum PaymentTermType {
 @summary("Terms defines when we expect the customer to pay, or have paid, for the contents of the document.")
 @friendlyName("BillingGenericPaymentTerms")
 @discriminator("type")
-model GenericPaymentTerms {
+model GenericPaymentTerms<T extends PaymentTermType> {
   @summary("Type of terms to be applied.")
-  type?: PaymentTermType;
+  type: T;
 
   @summary("Text detail of the chosen payment terms.")
   detail?: string;
@@ -57,23 +57,18 @@ model GenericPaymentTerms {
 
 @summary("PaymentTermInstant defines the terms for payment on receipt of invoice.")
 @friendlyName("BillingPaymentTermInstant")
-model PaymentTermInstant extends GenericPaymentTerms {
-  @summary("Type of terms to be applied.")
-  type: PaymentTermType.instant;
+model PaymentTermInstant {
+  ...GenericPaymentTerms<PaymentTermType.instant>;
 }
 
 @summary("PaymentTermDueDate defines the terms for payment on a specific date.")
 @friendlyName("BillingPaymentTermDueDate")
-model PaymentTermDueDate extends GenericPaymentTerms {
-  @summary("Type of terms to be applied.")
-  type: PaymentTermType.dueDate;
+model PaymentTermDueDate {
+  ...GenericPaymentTerms<PaymentTermType.dueDate>;
 
   @summary("When the payment is due.")
   @minItems(1)
   dueAt: DueDate[];
-
-  @summary("Other details to take into account for the payment")
-  notes?: string;
 }
 
 @summary("PaymentTerms defines the terms for payment.")
