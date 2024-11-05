@@ -33,6 +33,20 @@ type BillingInvoiceLine func(*sql.Selector)
 // BillingInvoiceManualLineConfig is the predicate function for billinginvoicemanuallineconfig builders.
 type BillingInvoiceManualLineConfig func(*sql.Selector)
 
+// BillingInvoiceManualUsageBasedLineConfig is the predicate function for billinginvoicemanualusagebasedlineconfig builders.
+type BillingInvoiceManualUsageBasedLineConfig func(*sql.Selector)
+
+// BillingInvoiceManualUsageBasedLineConfigOrErr calls the predicate only if the error is not nit.
+func BillingInvoiceManualUsageBasedLineConfigOrErr(p BillingInvoiceManualUsageBasedLineConfig, err error) BillingInvoiceManualUsageBasedLineConfig {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingInvoiceValidationIssue is the predicate function for billinginvoicevalidationissue builders.
 type BillingInvoiceValidationIssue func(*sql.Selector)
 

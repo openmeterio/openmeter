@@ -61,3 +61,10 @@ func (c *InMemoryRepository) GetMeterByIDOrSlug(_ context.Context, namespace str
 		MeterSlug: idOrSlug,
 	}
 }
+
+// ReplaceMeters can be used to replace all meters in the repository.
+func (c *InMemoryRepository) ReplaceMeters(_ context.Context, meters []models.Meter) {
+	c.init()
+
+	c.meters = slices.Clone(meters)
+}

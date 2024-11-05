@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -105,14 +106,19 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 
 			asof := lo.FromPtrOr(input.AsOf, clock.Now())
 
+			lineSrv, err := s.newLineService(txAdapter)
+			if err != nil {
+				return nil, fmt.Errorf("creating line service: %w", err)
+			}
+
 			// let's gather the in-scope lines and validate it
-			inScopeLines, err := s.gatherInscopeLines(ctx, input, txAdapter, asof)
+			inScopeLines, err := s.gatherInscopeLines(ctx, input, txAdapter, lineSrv, asof)
 			if err != nil {
 				return nil, err
 			}
 
-			sourceInvoiceIDs := lo.Uniq(lo.Map(inScopeLines, func(l billingentity.Line, _ int) string {
-				return l.InvoiceID
+			sourceInvoiceIDs := lo.Uniq(lo.Map(inScopeLines, func(l lineservice.LineWithBillablePeriod, _ int) string {
+				return l.InvoiceID()
 			}))
 
 			if len(sourceInvoiceIDs) == 0 {
@@ -130,8 +136,8 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				return nil, fmt.Errorf("locking gathering invoices: %w", err)
 			}
 
-			linesByCurrency := lo.GroupBy(inScopeLines, func(line billingentity.Line) currencyx.Code {
-				return line.Currency
+			linesByCurrency := lo.GroupBy(inScopeLines, func(line lineservice.LineWithBillablePeriod) currencyx.Code {
+				return line.Currency()
 			})
 
 			createdInvoices := make([]billingentity.InvoiceID, 0, len(linesByCurrency))
@@ -158,7 +164,7 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				})
 
 				// let's associate the invoice lines to the invoice
-				err = s.associateLinesToInvoice(ctx, txAdapter, invoice, lines)
+				err = s.associateLinesToInvoice(ctx, lineSrv, invoice, lines)
 				if err != nil {
 					return nil, fmt.Errorf("associating lines to invoice: %w", err)
 				}
@@ -219,7 +225,7 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		})
 }
 
-func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceInput, txAdapter billing.Adapter, asOf time.Time) ([]billingentity.Line, error) {
+func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceInput, txAdapter billing.Adapter, lineSrv *lineservice.Service, asOf time.Time) ([]lineservice.LineWithBillablePeriod, error) {
 	if input.IncludePendingLines != nil {
 		inScopeLines, err := txAdapter.ListInvoiceLines(ctx,
 			billing.ListInvoiceLinesAdapterInput{
@@ -232,21 +238,21 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 			return nil, fmt.Errorf("resolving in scope lines: %w", err)
 		}
 
-		// output validation
+		lines, err := lineSrv.FromEntities(inScopeLines)
+		if err != nil {
+			return nil, fmt.Errorf("creating line services: %w", err)
+		}
 
-		// asOf validity
-		for _, line := range inScopeLines {
-			if line.InvoiceAt.After(asOf) {
-				return nil, billingentity.ValidationError{
-					Err: fmt.Errorf("line [%s] has invoiceAt [%s] after asOf [%s]", line.ID, line.InvoiceAt, asOf),
-				}
-			}
+		// output validation
+		resolvedLines, err := lines.ResolveBillablePeriod(ctx, asOf)
+		if err != nil {
+			return nil, err
 		}
 
 		// all lines must be found
-		if len(inScopeLines) != len(input.IncludePendingLines) {
-			includedLines := lo.Map(inScopeLines, func(l billingentity.Line, _ int) string {
-				return l.ID
+		if len(resolvedLines) != len(input.IncludePendingLines) {
+			includedLines := lo.Map(resolvedLines, func(l lineservice.LineWithBillablePeriod, _ int) string {
+				return l.ID()
 			})
 
 			missingIDs := lo.Without(input.IncludePendingLines, includedLines...)
@@ -254,11 +260,11 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 			return nil, billingentity.NotFoundError{
 				ID:     strings.Join(missingIDs, ","),
 				Entity: billingentity.EntityInvoiceLine,
-				Err:    fmt.Errorf("some invoice lines are not found"),
+				Err:    fmt.Errorf("some invoice lines are not billable"),
 			}
 		}
 
-		return inScopeLines, nil
+		return resolvedLines, nil
 	}
 
 	lines, err := txAdapter.ListInvoiceLines(ctx,
@@ -269,21 +275,20 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 			InvoiceStatuses: []billingentity.InvoiceStatus{
 				billingentity.InvoiceStatusGathering,
 			},
-
-			InvoiceAtBefore: lo.ToPtr(asOf),
+			Statuses: []billingentity.InvoiceLineStatus{
+				billingentity.InvoiceLineStatusValid,
+			},
 		})
 	if err != nil {
 		return nil, err
 	}
 
-	if len(lines) == 0 {
-		// We haven't requested explicit empty invoice, so we should have some pending lines
-		return nil, billingentity.ValidationError{
-			Err: fmt.Errorf("no pending lines found"),
-		}
+	lineSrvs, err := lineSrv.FromEntities(lines)
+	if err != nil {
+		return nil, err
 	}
 
-	return lines, nil
+	return lineSrvs.ResolveBillablePeriod(ctx, asOf)
 }
 
 func (s *Service) withLockedInvoiceStateMachine(

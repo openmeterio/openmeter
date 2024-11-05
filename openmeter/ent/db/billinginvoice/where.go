@@ -1850,6 +1850,16 @@ func CustomerTimezoneContainsFold(v timezone.Timezone) predicate.BillingInvoice 
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCustomerTimezone, vc))
 }
 
+// CustomerSubjectKeysIsNil applies the IsNil predicate on the "customer_subject_keys" field.
+func CustomerSubjectKeysIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldCustomerSubjectKeys))
+}
+
+// CustomerSubjectKeysNotNil applies the NotNil predicate on the "customer_subject_keys" field.
+func CustomerSubjectKeysNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldCustomerSubjectKeys))
+}
+
 // NumberEQ applies the EQ predicate on the "number" field.
 func NumberEQ(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldNumber, v))

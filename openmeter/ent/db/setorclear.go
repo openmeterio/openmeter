@@ -490,6 +490,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCustomerTimezone(value *timezone.Tim
 	return u.SetCustomerTimezone(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearCustomerSubjectKeys(value *[]string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerSubjectKeys()
+	}
+	return u.SetCustomerSubjectKeys(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerSubjectKeys(value *[]string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerSubjectKeys()
+	}
+	return u.SetCustomerSubjectKeys(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearNumber(value *string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearNumber()
@@ -642,6 +656,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *Bill
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearParentLineID()
+	}
+	return u.SetParentLineID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearParentLineID()
+	}
+	return u.SetParentLineID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {

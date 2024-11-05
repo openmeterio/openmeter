@@ -221,6 +221,7 @@ type InvoiceCustomer struct {
 	Name           string             `json:"name"`
 	BillingAddress *models.Address    `json:"billingAddress,omitempty"`
 	Timezone       *timezone.Timezone `json:"timezone,omitempty"`
+	Subjects       []string           `json:"subjects,omitempty"`
 }
 
 func (i *InvoiceCustomer) Validate() error {

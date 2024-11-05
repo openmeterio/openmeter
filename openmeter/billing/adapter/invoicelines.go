@@ -12,21 +12,27 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var _ billing.InvoiceLineAdapter = (*adapter)(nil)
 
 func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesAdapterInput) (*billing.CreateInvoiceLinesResponse, error) {
 	result := &billing.CreateInvoiceLinesResponse{
-		Lines: make([]billingentity.Line, 0, len(input.Lines)),
+		Lines: make([]billingentity.Line, 0, len(input)),
 	}
 
-	for _, line := range input.Lines {
+	for _, line := range input {
+		if line.Namespace == "" {
+			return nil, fmt.Errorf("namespace is required")
+		}
+
 		newEnt := r.db.BillingInvoiceLine.Create().
-			SetNamespace(input.Namespace).
+			SetNamespace(line.Namespace).
 			SetInvoiceID(line.InvoiceID).
 			SetPeriodStart(line.Period.Start).
 			SetPeriodEnd(line.Period.End).
+			SetNillableParentLineID(line.ParentLineID).
 			SetInvoiceAt(line.InvoiceAt).
 			SetStatus(line.Status).
 			SetType(line.Type).
@@ -41,17 +47,25 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 		case billingentity.InvoiceLineTypeManualFee:
 			// Let's create the manual line for the invoice
 			newManualLineConfig, err := r.db.BillingInvoiceManualLineConfig.Create().
-				SetNamespace(input.Namespace).
+				SetNamespace(line.Namespace).
 				SetUnitPrice(line.ManualFee.Price).
 				Save(ctx)
 			if err != nil {
 				return nil, err
 			}
 
-			newEnt = newEnt.SetBillingInvoiceManualLines(newManualLineConfig).
+			newEnt = newEnt.SetManualFeeLine(newManualLineConfig).
 				SetQuantity(line.ManualFee.Quantity)
 
-			edges.BillingInvoiceManualLines = newManualLineConfig
+			edges.ManualFeeLine = newManualLineConfig
+		case billingentity.InvoiceLineTypeManualUsageBased:
+			newManualUBPLine, err := r.createManualUsageBasedLine(ctx, line.Namespace, line)
+			if err != nil {
+				return nil, err
+			}
+
+			newEnt = newEnt.SetManualUsageBasedLine(newManualUBPLine)
+			edges.ManualUsageBasedLine = newManualUBPLine
 		default:
 			return nil, fmt.Errorf("unsupported type: %s", line.Type)
 		}
@@ -61,12 +75,47 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			return nil, err
 		}
 
+		if line.ParentLineID != nil {
+			// Let's fetch the parent line again
+			parentLineQuery := r.db.BillingInvoiceLine.Query().
+				Where(billinginvoiceline.Namespace(line.Namespace)).
+				Where(billinginvoiceline.ID(*line.ParentLineID))
+
+			parentLineQuery = r.expandLineItems(parentLineQuery)
+
+			parentLine, err := parentLineQuery.First(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("fetching parent line: %w", err)
+			}
+
+			edges.ParentLine = parentLine
+		}
+
 		savedLine.Edges = edges
 
-		result.Lines = append(result.Lines, mapInvoiceLineFromDB(savedLine))
+		mappedLine, err := mapInvoiceLineFromDB(savedLine)
+		if err != nil {
+			return nil, fmt.Errorf("mapping line [id=%s]: %w", savedLine.ID, err)
+		}
+
+		result.Lines = append(result.Lines, mappedLine)
 	}
 
 	return result, nil
+}
+
+func (r *adapter) createManualUsageBasedLine(ctx context.Context, ns string, line billingentity.Line) (*db.BillingInvoiceManualUsageBasedLineConfig, error) {
+	lineConfig, err := r.db.BillingInvoiceManualUsageBasedLineConfig.Create().
+		SetNamespace(ns).
+		SetPriceType(line.ManualUsageBased.Price.Type()).
+		SetPrice(&line.ManualUsageBased.Price).
+		SetFeatureKey(line.ManualUsageBased.FeatureKey).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return lineConfig, nil
 }
 
 func (r *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoiceLinesAdapterInput) ([]billingentity.Line, error) {
@@ -74,44 +123,195 @@ func (r *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 		return nil, err
 	}
 
-	query := r.db.BillingInvoiceLine.Query().
-		Where(billinginvoiceline.Namespace(input.Namespace))
+	query := r.db.BillingInvoice.Query().
+		Where(billinginvoice.Namespace(input.Namespace))
 
-	if len(input.LineIDs) > 0 {
-		query = query.Where(billinginvoiceline.IDIn(input.LineIDs...))
+	if input.CustomerID != "" {
+		query = query.Where(billinginvoice.CustomerID(input.CustomerID))
 	}
 
-	if input.InvoiceAtBefore != nil {
-		query = query.Where(billinginvoiceline.InvoiceAtLT(*input.InvoiceAtBefore))
+	if len(input.InvoiceStatuses) > 0 {
+		query = query.Where(billinginvoice.StatusIn(input.InvoiceStatuses...))
 	}
 
-	query = query.WithBillingInvoice(func(biq *db.BillingInvoiceQuery) {
-		biq.Where(billinginvoice.Namespace(input.Namespace))
+	query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		q = q.Where(billinginvoiceline.Namespace(input.Namespace))
 
-		if input.CustomerID != "" {
-			biq.Where(billinginvoice.CustomerID(input.CustomerID))
+		if len(input.LineIDs) > 0 {
+			q = q.Where(billinginvoiceline.IDIn(input.LineIDs...))
 		}
 
-		if len(input.InvoiceStatuses) > 0 {
-			biq.Where(billinginvoice.StatusIn(input.InvoiceStatuses...))
+		if input.InvoiceAtBefore != nil {
+			q = q.Where(billinginvoiceline.InvoiceAtLT(*input.InvoiceAtBefore))
 		}
+
+		if len(input.ParentLineIDs) > 0 {
+			if input.ParentLineIDsIncludeParent {
+				q = q.Where(
+					billinginvoiceline.Or(
+						billinginvoiceline.ParentLineIDIn(input.ParentLineIDs...),
+						billinginvoiceline.IDIn(input.ParentLineIDs...),
+					),
+				)
+			} else {
+				q = q.Where(billinginvoiceline.ParentLineIDIn(input.ParentLineIDs...))
+			}
+		}
+
+		if len(input.Statuses) > 0 {
+			q = q.Where(billinginvoiceline.StatusIn(input.Statuses...))
+		}
+
+		r.expandLineItems(q)
 	})
 
-	dbLines, err := query.
-		WithBillingInvoiceManualLines().
-		All(ctx)
+	dbInvoices, err := query.All(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return lo.Map(dbLines, func(line *db.BillingInvoiceLine, _ int) billingentity.Line {
+	lines := lo.FlatMap(dbInvoices, func(dbInvoice *db.BillingInvoice, _ int) []*db.BillingInvoiceLine {
+		return dbInvoice.Edges.BillingInvoiceLines
+	})
+
+	return slicesx.MapWithErr(lines, func(line *db.BillingInvoiceLine) (billingentity.Line, error) {
 		return mapInvoiceLineFromDB(line)
-	}), nil
+	})
 }
 
-func (r *adapter) AssociateLinesToInvoice(ctx context.Context, input billing.AssociateLinesToInvoiceAdapterInput) error {
+func (r *adapter) expandLineItems(q *db.BillingInvoiceLineQuery) *db.BillingInvoiceLineQuery {
+	return q.WithManualFeeLine().
+		WithManualUsageBasedLine().
+		WithParentLine(func(q *db.BillingInvoiceLineQuery) {
+			// We cannot call ourselve here, as it would create an infinite loop
+			// but given we are only supporting one level of parent line, we can
+			// just expand the parent line here
+			q.WithManualFeeLine().
+				WithManualUsageBasedLine()
+		})
+}
+
+func (r *adapter) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineAdapterInput) (billingentity.Line, error) {
 	if err := input.Validate(); err != nil {
-		return err
+		return billingentity.Line{}, err
+	}
+
+	existingLine, err := r.db.BillingInvoiceLine.Query().
+		WithManualFeeLine().
+		WithManualUsageBasedLine().
+		Where(billinginvoiceline.Namespace(input.Namespace)).
+		Where(billinginvoiceline.ID(input.ID)).
+		First(ctx)
+	if err != nil {
+		return billingentity.Line{}, fmt.Errorf("getting line: %w", err)
+	}
+
+	if !existingLine.UpdatedAt.Equal(input.UpdatedAt) {
+		return billingentity.Line{}, billingentity.ConflictError{
+			ID:     input.ID,
+			Entity: billingentity.EntityInvoiceLine,
+			Err:    fmt.Errorf("line has been updated since last read"),
+		}
+	}
+
+	// Let's update the line
+	updateLine := r.db.BillingInvoiceLine.UpdateOneID(input.ID).
+		SetName(input.Name).
+		SetMetadata(input.Metadata).
+		SetOrClearDescription(input.Description).
+		SetInvoiceID(input.InvoiceID).
+		SetPeriodStart(input.Period.Start).
+		SetPeriodEnd(input.Period.End).
+		SetInvoiceAt(input.InvoiceAt).
+		SetNillableParentLineID(input.ParentLineID).
+		SetStatus(input.Status).
+		SetTaxOverrides(input.TaxOverrides)
+
+	edges := db.BillingInvoiceLineEdges{}
+
+	// Let's update the line based on the type
+	switch input.Type {
+	case billingentity.InvoiceLineTypeManualFee:
+		edges.ManualFeeLine, err = r.updateManualFeeLine(ctx, existingLine.Edges.ManualFeeLine.ID, input, updateLine)
+		if err != nil {
+			return billingentity.Line{}, err
+		}
+
+		updateLine = updateLine.SetQuantity(input.ManualFee.Quantity)
+	case billingentity.InvoiceLineTypeManualUsageBased:
+		edges.ManualUsageBasedLine, err = r.updateManualUsageBasedLine(ctx, existingLine.Edges.ManualUsageBasedLine.ID, input)
+		if err != nil {
+			return billingentity.Line{}, err
+		}
+
+		updateLine = updateLine.SetOrClearQuantity(input.ManualUsageBased.Quantity)
+	default:
+		return billingentity.Line{}, fmt.Errorf("unsupported line type: %s", input.Type)
+	}
+
+	updatedLine, err := updateLine.Save(ctx)
+	if err != nil {
+		return billingentity.Line{}, fmt.Errorf("updating line: %w", err)
+	}
+
+	if input.ParentLineID != nil {
+		// Let's fetch the parent line again
+		q := r.db.BillingInvoiceLine.Query().
+			Where(billinginvoiceline.Namespace(input.Namespace)).
+			Where(billinginvoiceline.ID(*input.ParentLineID))
+
+		q = r.expandLineItems(q)
+
+		parentLine, err := q.First(ctx)
+		if err != nil {
+			return billingentity.Line{}, fmt.Errorf("fetching parent line: %w", err)
+		}
+
+		edges.ParentLine = parentLine
+	}
+
+	updatedLine.Edges = edges
+
+	return mapInvoiceLineFromDB(updatedLine)
+}
+
+func (r *adapter) updateManualFeeLine(
+	ctx context.Context,
+	configId string,
+	input billing.UpdateInvoiceLineAdapterInput,
+	updateLine *db.BillingInvoiceLineUpdateOne,
+) (*db.BillingInvoiceManualLineConfig, error) {
+	updateLine.SetQuantity(input.ManualFee.Quantity)
+
+	updatedConfig, err := r.db.BillingInvoiceManualLineConfig.UpdateOneID(configId).
+		SetUnitPrice(input.ManualFee.Price).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("updating manual fee line: %w", err)
+	}
+
+	return updatedConfig, nil
+}
+
+func (r *adapter) updateManualUsageBasedLine(
+	ctx context.Context,
+	configId string,
+	input billing.UpdateInvoiceLineAdapterInput,
+) (*db.BillingInvoiceManualUsageBasedLineConfig, error) {
+	updatedConfig, err := r.db.BillingInvoiceManualUsageBasedLineConfig.UpdateOneID(configId).
+		SetPriceType(input.ManualUsageBased.Price.Type()).
+		SetPrice(&input.ManualUsageBased.Price).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("updating manual fee line: %w", err)
+	}
+
+	return updatedConfig, nil
+}
+
+func (r *adapter) AssociateLinesToInvoice(ctx context.Context, input billing.AssociateLinesToInvoiceAdapterInput) ([]billingentity.Line, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
 	}
 
 	nAffected, err := r.db.BillingInvoiceLine.Update().
@@ -120,17 +320,34 @@ func (r *adapter) AssociateLinesToInvoice(ctx context.Context, input billing.Ass
 		Where(billinginvoiceline.IDIn(input.LineIDs...)).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("associating lines: %w", err)
+		return nil, fmt.Errorf("associating lines: %w", err)
 	}
 
 	if nAffected != len(input.LineIDs) {
-		return fmt.Errorf("fewer lines were associated (%d) than expected (%d)", nAffected, len(input.LineIDs))
+		return nil, fmt.Errorf("not all lines were associated")
 	}
 
-	return nil
+	return r.fetchLines(ctx, input.Invoice.Namespace, input.LineIDs)
 }
 
-func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) billingentity.Line {
+func (r *adapter) fetchLines(ctx context.Context, ns string, lineIDs []string) ([]billingentity.Line, error) {
+	query := r.db.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.Namespace(ns)).
+		Where(billinginvoiceline.IDIn(lineIDs...))
+
+	query = r.expandLineItems(query)
+
+	dbLines, err := query.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetching lines: %w", err)
+	}
+
+	return slicesx.MapWithErr(dbLines, func(line *db.BillingInvoiceLine) (billingentity.Line, error) {
+		return mapInvoiceLineFromDB(line)
+	})
+}
+
+func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (billingentity.Line, error) {
 	invoiceLine := billingentity.Line{
 		LineBase: billingentity.LineBase{
 			Namespace: dbLine.Namespace,
@@ -142,11 +359,14 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) billingentity.Line {
 
 			Metadata:  dbLine.Metadata,
 			InvoiceID: dbLine.InvoiceID,
+			Status:    dbLine.Status,
 
 			Period: billingentity.Period{
 				Start: dbLine.PeriodStart,
 				End:   dbLine.PeriodEnd,
 			},
+
+			ParentLineID: dbLine.ParentLineID,
 
 			InvoiceAt: dbLine.InvoiceAt,
 
@@ -159,13 +379,40 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) billingentity.Line {
 		},
 	}
 
-	switch dbLine.Type {
-	case billingentity.InvoiceLineTypeManualFee:
-		invoiceLine.ManualFee = &billingentity.ManualFeeLine{
-			Price:    dbLine.Edges.BillingInvoiceManualLines.UnitPrice,
-			Quantity: lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
-		}
+	if (dbLine.Edges.ParentLine != nil) != (dbLine.ParentLineID != nil) { // XOR
+		// This happens if the expandLineItems function is not used, please make sure
+		// it's called in all code pathes
+		return invoiceLine, fmt.Errorf("inconsistent parent line data")
 	}
 
-	return invoiceLine
+	if dbLine.Edges.ParentLine != nil {
+		parentLine, err := mapInvoiceLineFromDB(dbLine.Edges.ParentLine)
+		if err != nil {
+			return invoiceLine, fmt.Errorf("mapping parent line: %w", err)
+		}
+
+		invoiceLine.ParentLine = &parentLine
+	}
+
+	switch dbLine.Type {
+	case billingentity.InvoiceLineTypeManualFee:
+		invoiceLine.ManualFee = billingentity.ManualFeeLine{
+			Price:    dbLine.Edges.ManualFeeLine.UnitPrice,
+			Quantity: lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
+		}
+	case billingentity.InvoiceLineTypeManualUsageBased:
+		ubpLine := dbLine.Edges.ManualUsageBasedLine
+		if ubpLine == nil {
+			return invoiceLine, fmt.Errorf("manual usage based line is missing")
+		}
+		invoiceLine.ManualUsageBased = billingentity.ManualUsageBasedLine{
+			FeatureKey: ubpLine.FeatureKey,
+			Price:      *ubpLine.Price,
+			Quantity:   dbLine.Quantity,
+		}
+	default:
+		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)
+	}
+
+	return invoiceLine, nil
 }

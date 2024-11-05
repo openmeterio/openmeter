@@ -12,25 +12,34 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 var _ billing.Service = (*Service)(nil)
 
 type Service struct {
-	adapter           billing.Adapter
-	customerService   customer.CustomerService
-	appService        app.Service
-	logger            *slog.Logger
-	invoiceCalculator InvoiceCalculator
+	adapter            billing.Adapter
+	customerService    customer.CustomerService
+	appService         app.Service
+	logger             *slog.Logger
+	invoiceCalculator  InvoiceCalculator
+	featureService     feature.FeatureConnector
+	meterRepo          meter.Repository
+	streamingConnector streaming.Connector
 }
 
 type Config struct {
-	Adapter           billing.Adapter
-	CustomerService   customer.CustomerService
-	AppService        app.Service
-	Logger            *slog.Logger
-	InvoiceCalculator InvoiceCalculator
+	Adapter            billing.Adapter
+	CustomerService    customer.CustomerService
+	AppService         app.Service
+	Logger             *slog.Logger
+	InvoiceCalculator  InvoiceCalculator
+	FeatureService     feature.FeatureConnector
+	MeterRepo          meter.Repository
+	StreamingConnector streaming.Connector
 }
 
 func (c Config) Validate() error {
@@ -50,6 +59,18 @@ func (c Config) Validate() error {
 		return errors.New("logger cannot be null")
 	}
 
+	if c.FeatureService == nil {
+		return errors.New("feature connector cannot be null")
+	}
+
+	if c.MeterRepo == nil {
+		return errors.New("meter repo cannot be null")
+	}
+
+	if c.StreamingConnector == nil {
+		return errors.New("streaming connector cannot be null")
+	}
+
 	return nil
 }
 
@@ -59,11 +80,14 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter:           config.Adapter,
-		customerService:   config.CustomerService,
-		appService:        config.AppService,
-		logger:            config.Logger,
-		invoiceCalculator: lo.CoalesceOrEmpty(config.InvoiceCalculator, NewInvoiceCalculator()),
+		adapter:            config.Adapter,
+		customerService:    config.CustomerService,
+		appService:         config.AppService,
+		logger:             config.Logger,
+		invoiceCalculator:  lo.CoalesceOrEmpty(config.InvoiceCalculator, NewInvoiceCalculator()),
+		featureService:     config.FeatureService,
+		meterRepo:          config.MeterRepo,
+		streamingConnector: config.StreamingConnector,
 	}, nil
 }
 

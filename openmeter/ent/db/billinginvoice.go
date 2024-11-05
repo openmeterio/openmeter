@@ -72,6 +72,8 @@ type BillingInvoice struct {
 	CustomerName string `json:"customer_name,omitempty"`
 	// CustomerTimezone holds the value of the "customer_timezone" field.
 	CustomerTimezone *timezone.Timezone `json:"customer_timezone,omitempty"`
+	// CustomerSubjectKeys holds the value of the "customer_subject_keys" field.
+	CustomerSubjectKeys []string `json:"customer_subject_keys,omitempty"`
 	// Number holds the value of the "number" field.
 	Number *string `json:"number,omitempty"`
 	// Type holds the value of the "type" field.
@@ -224,7 +226,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoice.FieldMetadata:
+		case billinginvoice.FieldMetadata, billinginvoice.FieldCustomerSubjectKeys:
 			values[i] = new([]byte)
 		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldCustomerTimezone, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
 			values[i] = new(sql.NullString)
@@ -407,6 +409,14 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.CustomerTimezone = new(timezone.Timezone)
 				*bi.CustomerTimezone = timezone.Timezone(value.String)
+			}
+		case billinginvoice.FieldCustomerSubjectKeys:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_subject_keys", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bi.CustomerSubjectKeys); err != nil {
+					return fmt.Errorf("unmarshal field customer_subject_keys: %w", err)
+				}
 			}
 		case billinginvoice.FieldNumber:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -696,6 +706,9 @@ func (bi *BillingInvoice) String() string {
 		builder.WriteString("customer_timezone=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("customer_subject_keys=")
+	builder.WriteString(fmt.Sprintf("%v", bi.CustomerSubjectKeys))
 	builder.WriteString(", ")
 	if v := bi.Number; v != nil {
 		builder.WriteString("number=")

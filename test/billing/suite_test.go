@@ -22,6 +22,10 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -34,6 +38,10 @@ type BaseSuite struct {
 
 	BillingAdapter billing.Adapter
 	BillingService billing.Service
+
+	FeatureService         feature.FeatureConnector
+	MeterRepo              *meter.InMemoryRepository
+	MockStreamingConnector *streamingtestutils.MockStreamingConnector
 
 	CustomerService customer.Service
 
@@ -58,6 +66,18 @@ func (s *BaseSuite) SetupSuite() {
 	}
 
 	// setup invoicing stack
+
+	// Meter repo
+
+	s.MeterRepo = meter.NewInMemoryRepository(nil)
+	s.MockStreamingConnector = streamingtestutils.NewMockStreamingConnector(t)
+
+	// Feature
+	featureRepo := featureadapter.NewPostgresFeatureRepo(dbClient, slog.Default())
+
+	s.FeatureService = feature.NewFeatureConnector(featureRepo, s.MeterRepo)
+
+	// Customer
 
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: dbClient,
@@ -104,11 +124,14 @@ func (s *BaseSuite) SetupSuite() {
 	s.InvoiceCalculator = billingservice.NewMockableCalculator(t)
 
 	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:           billingAdapter,
-		CustomerService:   s.CustomerService,
-		AppService:        s.AppService,
-		Logger:            slog.Default(),
-		InvoiceCalculator: s.InvoiceCalculator,
+		Adapter:            billingAdapter,
+		CustomerService:    s.CustomerService,
+		AppService:         s.AppService,
+		Logger:             slog.Default(),
+		InvoiceCalculator:  s.InvoiceCalculator,
+		FeatureService:     s.FeatureService,
+		MeterRepo:          s.MeterRepo,
+		StreamingConnector: s.MockStreamingConnector,
 	})
 	require.NoError(t, err)
 	s.BillingService = billingService

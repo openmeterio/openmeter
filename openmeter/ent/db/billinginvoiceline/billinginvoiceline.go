@@ -32,6 +32,8 @@ const (
 	FieldDescription = "description"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
 	FieldInvoiceID = "invoice_id"
+	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
+	FieldParentLineID = "parent_line_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
@@ -50,8 +52,14 @@ const (
 	FieldTaxOverrides = "tax_overrides"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
-	// EdgeBillingInvoiceManualLines holds the string denoting the billing_invoice_manual_lines edge name in mutations.
-	EdgeBillingInvoiceManualLines = "billing_invoice_manual_lines"
+	// EdgeManualFeeLine holds the string denoting the manual_fee_line edge name in mutations.
+	EdgeManualFeeLine = "manual_fee_line"
+	// EdgeManualUsageBasedLine holds the string denoting the manual_usage_based_line edge name in mutations.
+	EdgeManualUsageBasedLine = "manual_usage_based_line"
+	// EdgeParentLine holds the string denoting the parent_line edge name in mutations.
+	EdgeParentLine = "parent_line"
+	// EdgeChildLines holds the string denoting the child_lines edge name in mutations.
+	EdgeChildLines = "child_lines"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -61,13 +69,28 @@ const (
 	BillingInvoiceInverseTable = "billing_invoices"
 	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
 	BillingInvoiceColumn = "invoice_id"
-	// BillingInvoiceManualLinesTable is the table that holds the billing_invoice_manual_lines relation/edge.
-	BillingInvoiceManualLinesTable = "billing_invoice_lines"
-	// BillingInvoiceManualLinesInverseTable is the table name for the BillingInvoiceManualLineConfig entity.
+	// ManualFeeLineTable is the table that holds the manual_fee_line relation/edge.
+	ManualFeeLineTable = "billing_invoice_lines"
+	// ManualFeeLineInverseTable is the table name for the BillingInvoiceManualLineConfig entity.
 	// It exists in this package in order to avoid circular dependency with the "billinginvoicemanuallineconfig" package.
-	BillingInvoiceManualLinesInverseTable = "billing_invoice_manual_line_configs"
-	// BillingInvoiceManualLinesColumn is the table column denoting the billing_invoice_manual_lines relation/edge.
-	BillingInvoiceManualLinesColumn = "manual_line_config_id"
+	ManualFeeLineInverseTable = "billing_invoice_manual_line_configs"
+	// ManualFeeLineColumn is the table column denoting the manual_fee_line relation/edge.
+	ManualFeeLineColumn = "manual_line_config_id"
+	// ManualUsageBasedLineTable is the table that holds the manual_usage_based_line relation/edge.
+	ManualUsageBasedLineTable = "billing_invoice_lines"
+	// ManualUsageBasedLineInverseTable is the table name for the BillingInvoiceManualUsageBasedLineConfig entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicemanualusagebasedlineconfig" package.
+	ManualUsageBasedLineInverseTable = "billing_invoice_manual_usage_based_line_configs"
+	// ManualUsageBasedLineColumn is the table column denoting the manual_usage_based_line relation/edge.
+	ManualUsageBasedLineColumn = "manual_usage_based_line_config_id"
+	// ParentLineTable is the table that holds the parent_line relation/edge.
+	ParentLineTable = "billing_invoice_lines"
+	// ParentLineColumn is the table column denoting the parent_line relation/edge.
+	ParentLineColumn = "parent_line_id"
+	// ChildLinesTable is the table that holds the child_lines relation/edge.
+	ChildLinesTable = "billing_invoice_lines"
+	// ChildLinesColumn is the table column denoting the child_lines relation/edge.
+	ChildLinesColumn = "parent_line_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -81,6 +104,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldInvoiceID,
+	FieldParentLineID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldInvoiceAt,
@@ -95,6 +119,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"manual_line_config_id",
+	"manual_usage_based_line_config_id",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -130,7 +155,7 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type billingentity.InvoiceLineType) error {
 	switch _type {
-	case "manual_fee", "flat_fee", "usage_based":
+	case "manual_fee", "manual_usage_based", "flat_fee", "usage_based":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceline: invalid enum value for type field: %q", _type)
@@ -190,6 +215,11 @@ func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
 }
 
+// ByParentLineID orders the results by the parent_line_id field.
+func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldParentLineID, opts...).ToFunc()
+}
+
 // ByPeriodStart orders the results by the period_start field.
 func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
@@ -232,10 +262,38 @@ func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOptio
 	}
 }
 
-// ByBillingInvoiceManualLinesField orders the results by billing_invoice_manual_lines field.
-func ByBillingInvoiceManualLinesField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByManualFeeLineField orders the results by manual_fee_line field.
+func ByManualFeeLineField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceManualLinesStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newManualFeeLineStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByManualUsageBasedLineField orders the results by manual_usage_based_line field.
+func ByManualUsageBasedLineField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newManualUsageBasedLineStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByParentLineField orders the results by parent_line field.
+func ByParentLineField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newParentLineStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByChildLinesCount orders the results by child_lines count.
+func ByChildLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChildLinesStep(), opts...)
+	}
+}
+
+// ByChildLines orders the results by child_lines terms.
+func ByChildLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChildLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newBillingInvoiceStep() *sqlgraph.Step {
@@ -245,10 +303,31 @@ func newBillingInvoiceStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
 	)
 }
-func newBillingInvoiceManualLinesStep() *sqlgraph.Step {
+func newManualFeeLineStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingInvoiceManualLinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, BillingInvoiceManualLinesTable, BillingInvoiceManualLinesColumn),
+		sqlgraph.To(ManualFeeLineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, ManualFeeLineTable, ManualFeeLineColumn),
+	)
+}
+func newManualUsageBasedLineStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ManualUsageBasedLineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, ManualUsageBasedLineTable, ManualUsageBasedLineColumn),
+	)
+}
+func newParentLineStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ParentLineTable, ParentLineColumn),
+	)
+}
+func newChildLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChildLinesTable, ChildLinesColumn),
 	)
 }
