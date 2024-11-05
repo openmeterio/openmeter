@@ -25,6 +25,7 @@ export const mockEvent: Event = {
 }
 
 export const mockMeter: Meter = {
+  id: 'meter-1',
   slug: 'm1',
   aggregation: 'SUM',
   eventType: 'api_requests',
