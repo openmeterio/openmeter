@@ -110,15 +110,6 @@ func MapDBSubscriptionPatch(patch *db.SubscriptionPatch) (subscription.Subscript
 				p.CreateInput.CreateEntitlementInput.UsagePeriodISODuration = &dur
 			}
 
-			// if val.CreateEntitlementMeasureUsageFrom != nil {
-			// 	m := &entitlement.MeasureUsageFromInput{}
-			// 	// We ignore the error
-			// 	err = m.FromTime(*val.CreateEntitlementMeasureUsageFrom)
-			// 	if err != nil {
-			// 		return subscription.SubscriptionPatch{}, fmt.Errorf("failed to map measure usage from: %w", err)
-			// 	}
-			// 	p.CreateInput.CreateEntitlementInput.MeasureUsageFrom = m
-			// }
 		}
 
 		if val.CreatePriceKey != nil || val.CreatePriceValue != nil {
@@ -265,9 +256,6 @@ func mapPatchesToCreates(subscriptionID models.NamespacedID, patches []subscript
 				if v := val.CreateEntitlementInput; v != nil {
 					s.SetCreateEntitlementEntitlementType(string(v.EntitlementType))
 
-					// if v := val.CreateEntitlementInput.MeasureUsageFrom; v != nil {
-					// 	s.SetCreateEntitlementMeasureUsageFrom(v.Get())
-					// }
 					if v := val.CreateEntitlementInput.IssueAfterReset; v != nil {
 						s.SetCreateEntitlementIssueAfterReset(*v)
 					}
