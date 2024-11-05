@@ -41,5 +41,6 @@ func (Feature) Indexes() []ent.Index {
 func (Feature) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("entitlement", Entitlement.Type),
+		edge.To("ratecard", PlanRateCard.Type),
 	}
 }

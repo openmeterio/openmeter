@@ -12354,6 +12354,7 @@ components:
       type: string
       enum:
         - key
+        - start_after
       description: Order by options for plan phases.
     Plan:
       type: object
@@ -12450,9 +12451,10 @@ components:
           description: |-
             The status of the plan.
             Computed based on the effective start and end dates:
-            - draft = no effectiveStartDate
-            - active = effectiveStartDate <= now < effectiveEndDate
-            - archived / inactive = effectiveEndDate <= now
+            - draft = no effectiveFrom
+            - active = effectiveFrom <= now < effectiveTo
+            - archived / inactive = effectiveTo <= now
+            - scheduled = now < effectiveFrom < effectiveTo
           title: Status
           readOnly: true
         phases:
@@ -12529,6 +12531,9 @@ components:
       enum:
         - id
         - key
+        - version
+        - create_at
+        - updated_at
       description: Order by options for plans.
     PlanPaginatedResponse:
       type: object
@@ -12621,13 +12626,13 @@ components:
           nullable: true
           example: P1Y1D
           description: The time after which the plan starts compared to subscription start
-          title: Duration
+          title: Start after
         discounts:
           type: array
           items:
             $ref: '#/components/schemas/AppliedDiscount'
           description: The discounts on the plan.
-          title: Discount
+          title: Discounts
       description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
     PlanPhaseCreate:
       type: object
@@ -12671,13 +12676,13 @@ components:
           nullable: true
           example: P1Y1D
           description: The time after which the plan starts compared to subscription start
-          title: Duration
+          title: Start after
         discounts:
           type: array
           items:
             $ref: '#/components/schemas/AppliedDiscount'
           description: The discounts on the plan.
-          title: Discount
+          title: Discounts
       description: Resource create operation model.
     PlanPhasePaginatedResponse:
       type: object
@@ -12742,13 +12747,13 @@ components:
           nullable: true
           example: P1Y1D
           description: The time after which the plan starts compared to subscription start
-          title: Duration
+          title: Start after
         discounts:
           type: array
           items:
             $ref: '#/components/schemas/AppliedDiscount'
           description: The discounts on the plan.
-          title: Discount
+          title: Discounts
       description: Resource create or update operation model.
     PlanReference:
       type: object
@@ -12765,13 +12770,14 @@ components:
         version:
           type: integer
           description: The plan version.
-      description: Referebces an exact plan.
+      description: References an exact plan.
     PlanStatus:
       type: string
       enum:
         - draft
         - active
         - archived
+        - scheduled
       description: The status of a plan.
     PlanUpdate:
       type: object
@@ -13168,7 +13174,9 @@ components:
           type: string
           format: duration
           nullable: true
-          description: The billing cadence of the rate card.
+          description: |-
+            The billing cadence of the rate card.
+            When null it means it is a one time fee.
           title: Billing cadence
         price:
           type: object
@@ -13236,7 +13244,9 @@ components:
           type: string
           format: duration
           nullable: true
-          description: The billing cadence of the rate card.
+          description: |-
+            The billing cadence of the rate card.
+            When null it means it is a one time fee.
           title: Billing cadence
         price:
           type: object
@@ -13484,9 +13494,7 @@ components:
         billingCadence:
           type: string
           format: duration
-          description: |-
-            The billing cadence of the rate card.
-            When null, the rate card is a one-time purchase.
+          description: The billing cadence of the rate card.
           title: Billing cadence
         price:
           anyOf:
@@ -13562,9 +13570,7 @@ components:
         billingCadence:
           type: string
           format: duration
-          description: |-
-            The billing cadence of the rate card.
-            When null, the rate card is a one-time purchase.
+          description: The billing cadence of the rate card.
           title: Billing cadence
         price:
           anyOf:

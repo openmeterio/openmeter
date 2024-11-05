@@ -261,6 +261,42 @@ func (f NotificationRuleFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationRuleMutation", m)
 }
 
+// The PlanFunc type is an adapter to allow the use of ordinary
+// function as Plan mutator.
+type PlanFunc func(context.Context, *db.PlanMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlanFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.PlanMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanMutation", m)
+}
+
+// The PlanPhaseFunc type is an adapter to allow the use of ordinary
+// function as PlanPhase mutator.
+type PlanPhaseFunc func(context.Context, *db.PlanPhaseMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlanPhaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.PlanPhaseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanPhaseMutation", m)
+}
+
+// The PlanRateCardFunc type is an adapter to allow the use of ordinary
+// function as PlanRateCard mutator.
+type PlanRateCardFunc func(context.Context, *db.PlanRateCardMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlanRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.PlanRateCardMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanRateCardMutation", m)
+}
+
 // The UsageResetFunc type is an adapter to allow the use of ordinary
 // function as UsageReset mutator.
 type UsageResetFunc func(context.Context, *db.UsageResetMutation) (db.Value, error)

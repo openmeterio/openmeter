@@ -26,9 +26,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/datex"
 
 	"entgo.io/ent/schema/field"
 )
@@ -789,6 +794,121 @@ func init() {
 	notificationruleDescID := notificationruleMixinFields0[0].Descriptor()
 	// notificationrule.DefaultID holds the default value on creation for the id field.
 	notificationrule.DefaultID = notificationruleDescID.Default.(func() string)
+	dbplanMixin := schema.Plan{}.Mixin()
+	dbplanMixinFields0 := dbplanMixin[0].Fields()
+	_ = dbplanMixinFields0
+	dbplanFields := schema.Plan{}.Fields()
+	_ = dbplanFields
+	// dbplanDescNamespace is the schema descriptor for namespace field.
+	dbplanDescNamespace := dbplanMixinFields0[1].Descriptor()
+	// dbplan.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	dbplan.NamespaceValidator = dbplanDescNamespace.Validators[0].(func(string) error)
+	// dbplanDescCreatedAt is the schema descriptor for created_at field.
+	dbplanDescCreatedAt := dbplanMixinFields0[3].Descriptor()
+	// dbplan.DefaultCreatedAt holds the default value on creation for the created_at field.
+	dbplan.DefaultCreatedAt = dbplanDescCreatedAt.Default.(func() time.Time)
+	// dbplanDescUpdatedAt is the schema descriptor for updated_at field.
+	dbplanDescUpdatedAt := dbplanMixinFields0[4].Descriptor()
+	// dbplan.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	dbplan.DefaultUpdatedAt = dbplanDescUpdatedAt.Default.(func() time.Time)
+	// dbplan.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	dbplan.UpdateDefaultUpdatedAt = dbplanDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// dbplanDescKey is the schema descriptor for key field.
+	dbplanDescKey := dbplanMixinFields0[8].Descriptor()
+	// dbplan.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	dbplan.KeyValidator = dbplanDescKey.Validators[0].(func(string) error)
+	// dbplanDescVersion is the schema descriptor for version field.
+	dbplanDescVersion := dbplanFields[0].Descriptor()
+	// dbplan.VersionValidator is a validator for the "version" field. It is called by the builders before save.
+	dbplan.VersionValidator = dbplanDescVersion.Validators[0].(func(int) error)
+	// dbplanDescCurrency is the schema descriptor for currency field.
+	dbplanDescCurrency := dbplanFields[1].Descriptor()
+	// dbplan.DefaultCurrency holds the default value on creation for the currency field.
+	dbplan.DefaultCurrency = dbplanDescCurrency.Default.(string)
+	// dbplan.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	dbplan.CurrencyValidator = dbplanDescCurrency.Validators[0].(func(string) error)
+	// dbplanDescID is the schema descriptor for id field.
+	dbplanDescID := dbplanMixinFields0[0].Descriptor()
+	// dbplan.DefaultID holds the default value on creation for the id field.
+	dbplan.DefaultID = dbplanDescID.Default.(func() string)
+	planphaseMixin := schema.PlanPhase{}.Mixin()
+	planphaseMixinFields0 := planphaseMixin[0].Fields()
+	_ = planphaseMixinFields0
+	planphaseFields := schema.PlanPhase{}.Fields()
+	_ = planphaseFields
+	// planphaseDescNamespace is the schema descriptor for namespace field.
+	planphaseDescNamespace := planphaseMixinFields0[1].Descriptor()
+	// planphase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	planphase.NamespaceValidator = planphaseDescNamespace.Validators[0].(func(string) error)
+	// planphaseDescCreatedAt is the schema descriptor for created_at field.
+	planphaseDescCreatedAt := planphaseMixinFields0[3].Descriptor()
+	// planphase.DefaultCreatedAt holds the default value on creation for the created_at field.
+	planphase.DefaultCreatedAt = planphaseDescCreatedAt.Default.(func() time.Time)
+	// planphaseDescUpdatedAt is the schema descriptor for updated_at field.
+	planphaseDescUpdatedAt := planphaseMixinFields0[4].Descriptor()
+	// planphase.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	planphase.DefaultUpdatedAt = planphaseDescUpdatedAt.Default.(func() time.Time)
+	// planphase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	planphase.UpdateDefaultUpdatedAt = planphaseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// planphaseDescKey is the schema descriptor for key field.
+	planphaseDescKey := planphaseMixinFields0[8].Descriptor()
+	// planphase.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	planphase.KeyValidator = planphaseDescKey.Validators[0].(func(string) error)
+	// planphaseDescStartAfter is the schema descriptor for start_after field.
+	planphaseDescStartAfter := planphaseFields[0].Descriptor()
+	// planphase.DefaultStartAfter holds the default value on creation for the start_after field.
+	planphase.DefaultStartAfter = datex.ISOString(planphaseDescStartAfter.Default.(string))
+	// planphaseDescDiscounts is the schema descriptor for discounts field.
+	planphaseDescDiscounts := planphaseFields[1].Descriptor()
+	planphase.ValueScanner.Discounts = planphaseDescDiscounts.ValueScanner.(field.TypeValueScanner[[]plan.Discount])
+	// planphaseDescPlanID is the schema descriptor for plan_id field.
+	planphaseDescPlanID := planphaseFields[2].Descriptor()
+	// planphase.PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
+	planphase.PlanIDValidator = planphaseDescPlanID.Validators[0].(func(string) error)
+	// planphaseDescID is the schema descriptor for id field.
+	planphaseDescID := planphaseMixinFields0[0].Descriptor()
+	// planphase.DefaultID holds the default value on creation for the id field.
+	planphase.DefaultID = planphaseDescID.Default.(func() string)
+	planratecardMixin := schema.PlanRateCard{}.Mixin()
+	planratecardMixinFields0 := planratecardMixin[0].Fields()
+	_ = planratecardMixinFields0
+	planratecardFields := schema.PlanRateCard{}.Fields()
+	_ = planratecardFields
+	// planratecardDescNamespace is the schema descriptor for namespace field.
+	planratecardDescNamespace := planratecardMixinFields0[1].Descriptor()
+	// planratecard.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	planratecard.NamespaceValidator = planratecardDescNamespace.Validators[0].(func(string) error)
+	// planratecardDescCreatedAt is the schema descriptor for created_at field.
+	planratecardDescCreatedAt := planratecardMixinFields0[3].Descriptor()
+	// planratecard.DefaultCreatedAt holds the default value on creation for the created_at field.
+	planratecard.DefaultCreatedAt = planratecardDescCreatedAt.Default.(func() time.Time)
+	// planratecardDescUpdatedAt is the schema descriptor for updated_at field.
+	planratecardDescUpdatedAt := planratecardMixinFields0[4].Descriptor()
+	// planratecard.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	planratecard.DefaultUpdatedAt = planratecardDescUpdatedAt.Default.(func() time.Time)
+	// planratecard.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	planratecard.UpdateDefaultUpdatedAt = planratecardDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// planratecardDescKey is the schema descriptor for key field.
+	planratecardDescKey := planratecardMixinFields0[8].Descriptor()
+	// planratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	planratecard.KeyValidator = planratecardDescKey.Validators[0].(func(string) error)
+	// planratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
+	planratecardDescEntitlementTemplate := planratecardFields[2].Descriptor()
+	planratecard.ValueScanner.EntitlementTemplate = planratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*plan.EntitlementTemplate])
+	// planratecardDescTaxConfig is the schema descriptor for tax_config field.
+	planratecardDescTaxConfig := planratecardFields[3].Descriptor()
+	planratecard.ValueScanner.TaxConfig = planratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*plan.TaxConfig])
+	// planratecardDescPrice is the schema descriptor for price field.
+	planratecardDescPrice := planratecardFields[5].Descriptor()
+	planratecard.ValueScanner.Price = planratecardDescPrice.ValueScanner.(field.TypeValueScanner[*plan.Price])
+	// planratecardDescPhaseID is the schema descriptor for phase_id field.
+	planratecardDescPhaseID := planratecardFields[6].Descriptor()
+	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
+	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
+	// planratecardDescID is the schema descriptor for id field.
+	planratecardDescID := planratecardMixinFields0[0].Descriptor()
+	// planratecard.DefaultID holds the default value on creation for the id field.
+	planratecard.DefaultID = planratecardDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0

@@ -15,10 +15,11 @@ enum PlanStatus {
   draft: "draft",
   active: "active",
   archived: "archived",
+  scheduled: "scheduled",
 }
 
 /**
- * Referebces an exact plan.
+ * References an exact plan.
  */
 @friendlyName("PlanReference")
 model PlanReference {
@@ -69,9 +70,10 @@ model Plan {
   /**
    * The status of the plan.
    * Computed based on the effective start and end dates:
-   *  - draft = no effectiveStartDate
-   *  - active = effectiveStartDate <= now < effectiveEndDate
-   *  - archived / inactive = effectiveEndDate <= now
+   *  - draft = no effectiveFrom
+   *  - active = effectiveFrom <= now < effectiveTo
+   *  - archived / inactive = effectiveTo <= now
+   *  - scheduled = now < effectiveFrom < effectiveTo
    */
   @summary("Status")
   @visibility("read")
@@ -107,7 +109,7 @@ model PlanPhase {
   /**
    * The time after which the plan starts compared to subscription start
    */
-  @summary("Duration")
+  @summary("Start after")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1Y1D"))
   startAfter: duration | null;
@@ -115,7 +117,7 @@ model PlanPhase {
   /**
    * The discounts on the plan.
    */
-  @summary("Discount")
+  @summary("Discounts")
   discounts?: AppliedDiscount[];
 
   // /**
@@ -193,6 +195,9 @@ model PlanVariantOverridePreset {
 enum PlanOrderBy {
   id: "id",
   key: "key",
+  version: "version",
+  createdAt: "create_at",
+  updatedAt: "updated_at",
 }
 
 /**
@@ -201,4 +206,5 @@ enum PlanOrderBy {
 @friendlyName("PhasesOrderBy")
 enum PhasesOrderBy {
   key: "key",
+  startAfter: "start_after",
 }

@@ -37,9 +37,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -77,6 +81,9 @@ const (
 	TypeNotificationEvent               = "NotificationEvent"
 	TypeNotificationEventDeliveryStatus = "NotificationEventDeliveryStatus"
 	TypeNotificationRule                = "NotificationRule"
+	TypePlan                            = "Plan"
+	TypePlanPhase                       = "PlanPhase"
+	TypePlanRateCard                    = "PlanRateCard"
 	TypeUsageReset                      = "UsageReset"
 )
 
@@ -19674,6 +19681,9 @@ type FeatureMutation struct {
 	entitlement            map[string]struct{}
 	removedentitlement     map[string]struct{}
 	clearedentitlement     bool
+	ratecard               map[string]struct{}
+	removedratecard        map[string]struct{}
+	clearedratecard        bool
 	done                   bool
 	oldValue               func(context.Context) (*Feature, error)
 	predicates             []predicate.Feature
@@ -20262,6 +20272,60 @@ func (m *FeatureMutation) ResetEntitlement() {
 	m.removedentitlement = nil
 }
 
+// AddRatecardIDs adds the "ratecard" edge to the PlanRateCard entity by ids.
+func (m *FeatureMutation) AddRatecardIDs(ids ...string) {
+	if m.ratecard == nil {
+		m.ratecard = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.ratecard[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRatecard clears the "ratecard" edge to the PlanRateCard entity.
+func (m *FeatureMutation) ClearRatecard() {
+	m.clearedratecard = true
+}
+
+// RatecardCleared reports if the "ratecard" edge to the PlanRateCard entity was cleared.
+func (m *FeatureMutation) RatecardCleared() bool {
+	return m.clearedratecard
+}
+
+// RemoveRatecardIDs removes the "ratecard" edge to the PlanRateCard entity by IDs.
+func (m *FeatureMutation) RemoveRatecardIDs(ids ...string) {
+	if m.removedratecard == nil {
+		m.removedratecard = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.ratecard, ids[i])
+		m.removedratecard[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRatecard returns the removed IDs of the "ratecard" edge to the PlanRateCard entity.
+func (m *FeatureMutation) RemovedRatecardIDs() (ids []string) {
+	for id := range m.removedratecard {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RatecardIDs returns the "ratecard" edge IDs in the mutation.
+func (m *FeatureMutation) RatecardIDs() (ids []string) {
+	for id := range m.ratecard {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRatecard resets all changes to the "ratecard" edge.
+func (m *FeatureMutation) ResetRatecard() {
+	m.ratecard = nil
+	m.clearedratecard = false
+	m.removedratecard = nil
+}
+
 // Where appends a list predicates to the FeatureMutation builder.
 func (m *FeatureMutation) Where(ps ...predicate.Feature) {
 	m.predicates = append(m.predicates, ps...)
@@ -20581,9 +20645,12 @@ func (m *FeatureMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FeatureMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.entitlement != nil {
 		edges = append(edges, feature.EdgeEntitlement)
+	}
+	if m.ratecard != nil {
+		edges = append(edges, feature.EdgeRatecard)
 	}
 	return edges
 }
@@ -20598,15 +20665,24 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case feature.EdgeRatecard:
+		ids := make([]ent.Value, 0, len(m.ratecard))
+		for id := range m.ratecard {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FeatureMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedentitlement != nil {
 		edges = append(edges, feature.EdgeEntitlement)
+	}
+	if m.removedratecard != nil {
+		edges = append(edges, feature.EdgeRatecard)
 	}
 	return edges
 }
@@ -20621,15 +20697,24 @@ func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case feature.EdgeRatecard:
+		ids := make([]ent.Value, 0, len(m.removedratecard))
+		for id := range m.removedratecard {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FeatureMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedentitlement {
 		edges = append(edges, feature.EdgeEntitlement)
+	}
+	if m.clearedratecard {
+		edges = append(edges, feature.EdgeRatecard)
 	}
 	return edges
 }
@@ -20640,6 +20725,8 @@ func (m *FeatureMutation) EdgeCleared(name string) bool {
 	switch name {
 	case feature.EdgeEntitlement:
 		return m.clearedentitlement
+	case feature.EdgeRatecard:
+		return m.clearedratecard
 	}
 	return false
 }
@@ -20658,6 +20745,9 @@ func (m *FeatureMutation) ResetEdge(name string) error {
 	switch name {
 	case feature.EdgeEntitlement:
 		m.ResetEntitlement()
+		return nil
+	case feature.EdgeRatecard:
+		m.ResetRatecard()
 		return nil
 	}
 	return fmt.Errorf("unknown Feature edge %s", name)
@@ -25421,6 +25511,3678 @@ func (m *NotificationRuleMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationRule edge %s", name)
+}
+
+// PlanMutation represents an operation that mutates the Plan nodes in the graph.
+type PlanMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *string
+	namespace      *string
+	metadata       *map[string]string
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	name           *string
+	description    *string
+	key            *string
+	version        *int
+	addversion     *int
+	currency       *string
+	effective_from *time.Time
+	effective_to   *time.Time
+	clearedFields  map[string]struct{}
+	phases         map[string]struct{}
+	removedphases  map[string]struct{}
+	clearedphases  bool
+	done           bool
+	oldValue       func(context.Context) (*Plan, error)
+	predicates     []predicate.Plan
+}
+
+var _ ent.Mutation = (*PlanMutation)(nil)
+
+// planOption allows management of the mutation configuration using functional options.
+type planOption func(*PlanMutation)
+
+// newPlanMutation creates new mutation for the Plan entity.
+func newPlanMutation(c config, op Op, opts ...planOption) *PlanMutation {
+	m := &PlanMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlan,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlanID sets the ID field of the mutation.
+func withPlanID(id string) planOption {
+	return func(m *PlanMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Plan
+		)
+		m.oldValue = func(ctx context.Context) (*Plan, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Plan.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlan sets the old Plan of the mutation.
+func withPlan(node *Plan) planOption {
+	return func(m *PlanMutation) {
+		m.oldValue = func(context.Context) (*Plan, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlanMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlanMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Plan entities.
+func (m *PlanMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlanMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlanMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Plan.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *PlanMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *PlanMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *PlanMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *PlanMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *PlanMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *PlanMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[dbplan.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *PlanMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[dbplan.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *PlanMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, dbplan.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlanMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlanMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlanMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlanMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlanMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlanMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *PlanMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *PlanMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *PlanMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[dbplan.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *PlanMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[dbplan.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *PlanMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, dbplan.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *PlanMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *PlanMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *PlanMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *PlanMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *PlanMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *PlanMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[dbplan.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *PlanMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[dbplan.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *PlanMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, dbplan.FieldDescription)
+}
+
+// SetKey sets the "key" field.
+func (m *PlanMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *PlanMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *PlanMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *PlanMutation) SetVersion(i int) {
+	m.version = &i
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *PlanMutation) Version() (r int, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds i to the "version" field.
+func (m *PlanMutation) AddVersion(i int) {
+	if m.addversion != nil {
+		*m.addversion += i
+	} else {
+		m.addversion = &i
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *PlanMutation) AddedVersion() (r int, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *PlanMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *PlanMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *PlanMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *PlanMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetEffectiveFrom sets the "effective_from" field.
+func (m *PlanMutation) SetEffectiveFrom(t time.Time) {
+	m.effective_from = &t
+}
+
+// EffectiveFrom returns the value of the "effective_from" field in the mutation.
+func (m *PlanMutation) EffectiveFrom() (r time.Time, exists bool) {
+	v := m.effective_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEffectiveFrom returns the old "effective_from" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldEffectiveFrom(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEffectiveFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEffectiveFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEffectiveFrom: %w", err)
+	}
+	return oldValue.EffectiveFrom, nil
+}
+
+// ClearEffectiveFrom clears the value of the "effective_from" field.
+func (m *PlanMutation) ClearEffectiveFrom() {
+	m.effective_from = nil
+	m.clearedFields[dbplan.FieldEffectiveFrom] = struct{}{}
+}
+
+// EffectiveFromCleared returns if the "effective_from" field was cleared in this mutation.
+func (m *PlanMutation) EffectiveFromCleared() bool {
+	_, ok := m.clearedFields[dbplan.FieldEffectiveFrom]
+	return ok
+}
+
+// ResetEffectiveFrom resets all changes to the "effective_from" field.
+func (m *PlanMutation) ResetEffectiveFrom() {
+	m.effective_from = nil
+	delete(m.clearedFields, dbplan.FieldEffectiveFrom)
+}
+
+// SetEffectiveTo sets the "effective_to" field.
+func (m *PlanMutation) SetEffectiveTo(t time.Time) {
+	m.effective_to = &t
+}
+
+// EffectiveTo returns the value of the "effective_to" field in the mutation.
+func (m *PlanMutation) EffectiveTo() (r time.Time, exists bool) {
+	v := m.effective_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEffectiveTo returns the old "effective_to" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldEffectiveTo(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEffectiveTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEffectiveTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEffectiveTo: %w", err)
+	}
+	return oldValue.EffectiveTo, nil
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (m *PlanMutation) ClearEffectiveTo() {
+	m.effective_to = nil
+	m.clearedFields[dbplan.FieldEffectiveTo] = struct{}{}
+}
+
+// EffectiveToCleared returns if the "effective_to" field was cleared in this mutation.
+func (m *PlanMutation) EffectiveToCleared() bool {
+	_, ok := m.clearedFields[dbplan.FieldEffectiveTo]
+	return ok
+}
+
+// ResetEffectiveTo resets all changes to the "effective_to" field.
+func (m *PlanMutation) ResetEffectiveTo() {
+	m.effective_to = nil
+	delete(m.clearedFields, dbplan.FieldEffectiveTo)
+}
+
+// AddPhaseIDs adds the "phases" edge to the PlanPhase entity by ids.
+func (m *PlanMutation) AddPhaseIDs(ids ...string) {
+	if m.phases == nil {
+		m.phases = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.phases[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPhases clears the "phases" edge to the PlanPhase entity.
+func (m *PlanMutation) ClearPhases() {
+	m.clearedphases = true
+}
+
+// PhasesCleared reports if the "phases" edge to the PlanPhase entity was cleared.
+func (m *PlanMutation) PhasesCleared() bool {
+	return m.clearedphases
+}
+
+// RemovePhaseIDs removes the "phases" edge to the PlanPhase entity by IDs.
+func (m *PlanMutation) RemovePhaseIDs(ids ...string) {
+	if m.removedphases == nil {
+		m.removedphases = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.phases, ids[i])
+		m.removedphases[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPhases returns the removed IDs of the "phases" edge to the PlanPhase entity.
+func (m *PlanMutation) RemovedPhasesIDs() (ids []string) {
+	for id := range m.removedphases {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PhasesIDs returns the "phases" edge IDs in the mutation.
+func (m *PlanMutation) PhasesIDs() (ids []string) {
+	for id := range m.phases {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPhases resets all changes to the "phases" edge.
+func (m *PlanMutation) ResetPhases() {
+	m.phases = nil
+	m.clearedphases = false
+	m.removedphases = nil
+}
+
+// Where appends a list predicates to the PlanMutation builder.
+func (m *PlanMutation) Where(ps ...predicate.Plan) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlanMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlanMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Plan, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlanMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlanMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Plan).
+func (m *PlanMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlanMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.namespace != nil {
+		fields = append(fields, dbplan.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, dbplan.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, dbplan.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, dbplan.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, dbplan.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, dbplan.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, dbplan.FieldDescription)
+	}
+	if m.key != nil {
+		fields = append(fields, dbplan.FieldKey)
+	}
+	if m.version != nil {
+		fields = append(fields, dbplan.FieldVersion)
+	}
+	if m.currency != nil {
+		fields = append(fields, dbplan.FieldCurrency)
+	}
+	if m.effective_from != nil {
+		fields = append(fields, dbplan.FieldEffectiveFrom)
+	}
+	if m.effective_to != nil {
+		fields = append(fields, dbplan.FieldEffectiveTo)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlanMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case dbplan.FieldNamespace:
+		return m.Namespace()
+	case dbplan.FieldMetadata:
+		return m.Metadata()
+	case dbplan.FieldCreatedAt:
+		return m.CreatedAt()
+	case dbplan.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case dbplan.FieldDeletedAt:
+		return m.DeletedAt()
+	case dbplan.FieldName:
+		return m.Name()
+	case dbplan.FieldDescription:
+		return m.Description()
+	case dbplan.FieldKey:
+		return m.Key()
+	case dbplan.FieldVersion:
+		return m.Version()
+	case dbplan.FieldCurrency:
+		return m.Currency()
+	case dbplan.FieldEffectiveFrom:
+		return m.EffectiveFrom()
+	case dbplan.FieldEffectiveTo:
+		return m.EffectiveTo()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case dbplan.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case dbplan.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case dbplan.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case dbplan.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case dbplan.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case dbplan.FieldName:
+		return m.OldName(ctx)
+	case dbplan.FieldDescription:
+		return m.OldDescription(ctx)
+	case dbplan.FieldKey:
+		return m.OldKey(ctx)
+	case dbplan.FieldVersion:
+		return m.OldVersion(ctx)
+	case dbplan.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case dbplan.FieldEffectiveFrom:
+		return m.OldEffectiveFrom(ctx)
+	case dbplan.FieldEffectiveTo:
+		return m.OldEffectiveTo(ctx)
+	}
+	return nil, fmt.Errorf("unknown Plan field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case dbplan.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case dbplan.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case dbplan.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case dbplan.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case dbplan.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case dbplan.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case dbplan.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case dbplan.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case dbplan.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case dbplan.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case dbplan.FieldEffectiveFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEffectiveFrom(v)
+		return nil
+	case dbplan.FieldEffectiveTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEffectiveTo(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Plan field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlanMutation) AddedFields() []string {
+	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, dbplan.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlanMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case dbplan.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case dbplan.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Plan numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlanMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(dbplan.FieldMetadata) {
+		fields = append(fields, dbplan.FieldMetadata)
+	}
+	if m.FieldCleared(dbplan.FieldDeletedAt) {
+		fields = append(fields, dbplan.FieldDeletedAt)
+	}
+	if m.FieldCleared(dbplan.FieldDescription) {
+		fields = append(fields, dbplan.FieldDescription)
+	}
+	if m.FieldCleared(dbplan.FieldEffectiveFrom) {
+		fields = append(fields, dbplan.FieldEffectiveFrom)
+	}
+	if m.FieldCleared(dbplan.FieldEffectiveTo) {
+		fields = append(fields, dbplan.FieldEffectiveTo)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlanMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlanMutation) ClearField(name string) error {
+	switch name {
+	case dbplan.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case dbplan.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case dbplan.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case dbplan.FieldEffectiveFrom:
+		m.ClearEffectiveFrom()
+		return nil
+	case dbplan.FieldEffectiveTo:
+		m.ClearEffectiveTo()
+		return nil
+	}
+	return fmt.Errorf("unknown Plan nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlanMutation) ResetField(name string) error {
+	switch name {
+	case dbplan.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case dbplan.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case dbplan.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case dbplan.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case dbplan.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case dbplan.FieldName:
+		m.ResetName()
+		return nil
+	case dbplan.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case dbplan.FieldKey:
+		m.ResetKey()
+		return nil
+	case dbplan.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case dbplan.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case dbplan.FieldEffectiveFrom:
+		m.ResetEffectiveFrom()
+		return nil
+	case dbplan.FieldEffectiveTo:
+		m.ResetEffectiveTo()
+		return nil
+	}
+	return fmt.Errorf("unknown Plan field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlanMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.phases != nil {
+		edges = append(edges, dbplan.EdgePhases)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlanMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case dbplan.EdgePhases:
+		ids := make([]ent.Value, 0, len(m.phases))
+		for id := range m.phases {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlanMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedphases != nil {
+		edges = append(edges, dbplan.EdgePhases)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case dbplan.EdgePhases:
+		ids := make([]ent.Value, 0, len(m.removedphases))
+		for id := range m.removedphases {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlanMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedphases {
+		edges = append(edges, dbplan.EdgePhases)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlanMutation) EdgeCleared(name string) bool {
+	switch name {
+	case dbplan.EdgePhases:
+		return m.clearedphases
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlanMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Plan unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlanMutation) ResetEdge(name string) error {
+	switch name {
+	case dbplan.EdgePhases:
+		m.ResetPhases()
+		return nil
+	}
+	return fmt.Errorf("unknown Plan edge %s", name)
+}
+
+// PlanPhaseMutation represents an operation that mutates the PlanPhase nodes in the graph.
+type PlanPhaseMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	namespace        *string
+	metadata         *map[string]string
+	created_at       *time.Time
+	updated_at       *time.Time
+	deleted_at       *time.Time
+	name             *string
+	description      *string
+	key              *string
+	start_after      *datex.ISOString
+	discounts        *[]plan.Discount
+	clearedFields    map[string]struct{}
+	plan             *string
+	clearedplan      bool
+	ratecards        map[string]struct{}
+	removedratecards map[string]struct{}
+	clearedratecards bool
+	done             bool
+	oldValue         func(context.Context) (*PlanPhase, error)
+	predicates       []predicate.PlanPhase
+}
+
+var _ ent.Mutation = (*PlanPhaseMutation)(nil)
+
+// planphaseOption allows management of the mutation configuration using functional options.
+type planphaseOption func(*PlanPhaseMutation)
+
+// newPlanPhaseMutation creates new mutation for the PlanPhase entity.
+func newPlanPhaseMutation(c config, op Op, opts ...planphaseOption) *PlanPhaseMutation {
+	m := &PlanPhaseMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlanPhase,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlanPhaseID sets the ID field of the mutation.
+func withPlanPhaseID(id string) planphaseOption {
+	return func(m *PlanPhaseMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlanPhase
+		)
+		m.oldValue = func(ctx context.Context) (*PlanPhase, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlanPhase.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlanPhase sets the old PlanPhase of the mutation.
+func withPlanPhase(node *PlanPhase) planphaseOption {
+	return func(m *PlanPhaseMutation) {
+		m.oldValue = func(context.Context) (*PlanPhase, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlanPhaseMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlanPhaseMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlanPhase entities.
+func (m *PlanPhaseMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlanPhaseMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlanPhaseMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlanPhase.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *PlanPhaseMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *PlanPhaseMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *PlanPhaseMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *PlanPhaseMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *PlanPhaseMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *PlanPhaseMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[planphase.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *PlanPhaseMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[planphase.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *PlanPhaseMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, planphase.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlanPhaseMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlanPhaseMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlanPhaseMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlanPhaseMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlanPhaseMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlanPhaseMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *PlanPhaseMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *PlanPhaseMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *PlanPhaseMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[planphase.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *PlanPhaseMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[planphase.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *PlanPhaseMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, planphase.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *PlanPhaseMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *PlanPhaseMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *PlanPhaseMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *PlanPhaseMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *PlanPhaseMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *PlanPhaseMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[planphase.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *PlanPhaseMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[planphase.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *PlanPhaseMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, planphase.FieldDescription)
+}
+
+// SetKey sets the "key" field.
+func (m *PlanPhaseMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *PlanPhaseMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *PlanPhaseMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetStartAfter sets the "start_after" field.
+func (m *PlanPhaseMutation) SetStartAfter(ds datex.ISOString) {
+	m.start_after = &ds
+}
+
+// StartAfter returns the value of the "start_after" field in the mutation.
+func (m *PlanPhaseMutation) StartAfter() (r datex.ISOString, exists bool) {
+	v := m.start_after
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartAfter returns the old "start_after" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldStartAfter(ctx context.Context) (v datex.ISOString, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartAfter is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartAfter requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartAfter: %w", err)
+	}
+	return oldValue.StartAfter, nil
+}
+
+// ResetStartAfter resets all changes to the "start_after" field.
+func (m *PlanPhaseMutation) ResetStartAfter() {
+	m.start_after = nil
+}
+
+// SetDiscounts sets the "discounts" field.
+func (m *PlanPhaseMutation) SetDiscounts(pl []plan.Discount) {
+	m.discounts = &pl
+}
+
+// Discounts returns the value of the "discounts" field in the mutation.
+func (m *PlanPhaseMutation) Discounts() (r []plan.Discount, exists bool) {
+	v := m.discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscounts returns the old "discounts" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldDiscounts(ctx context.Context) (v []plan.Discount, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscounts: %w", err)
+	}
+	return oldValue.Discounts, nil
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (m *PlanPhaseMutation) ClearDiscounts() {
+	m.discounts = nil
+	m.clearedFields[planphase.FieldDiscounts] = struct{}{}
+}
+
+// DiscountsCleared returns if the "discounts" field was cleared in this mutation.
+func (m *PlanPhaseMutation) DiscountsCleared() bool {
+	_, ok := m.clearedFields[planphase.FieldDiscounts]
+	return ok
+}
+
+// ResetDiscounts resets all changes to the "discounts" field.
+func (m *PlanPhaseMutation) ResetDiscounts() {
+	m.discounts = nil
+	delete(m.clearedFields, planphase.FieldDiscounts)
+}
+
+// SetPlanID sets the "plan_id" field.
+func (m *PlanPhaseMutation) SetPlanID(s string) {
+	m.plan = &s
+}
+
+// PlanID returns the value of the "plan_id" field in the mutation.
+func (m *PlanPhaseMutation) PlanID() (r string, exists bool) {
+	v := m.plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanID returns the old "plan_id" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldPlanID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
+	}
+	return oldValue.PlanID, nil
+}
+
+// ResetPlanID resets all changes to the "plan_id" field.
+func (m *PlanPhaseMutation) ResetPlanID() {
+	m.plan = nil
+}
+
+// ClearPlan clears the "plan" edge to the Plan entity.
+func (m *PlanPhaseMutation) ClearPlan() {
+	m.clearedplan = true
+	m.clearedFields[planphase.FieldPlanID] = struct{}{}
+}
+
+// PlanCleared reports if the "plan" edge to the Plan entity was cleared.
+func (m *PlanPhaseMutation) PlanCleared() bool {
+	return m.clearedplan
+}
+
+// PlanIDs returns the "plan" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PlanID instead. It exists only for internal usage by the builders.
+func (m *PlanPhaseMutation) PlanIDs() (ids []string) {
+	if id := m.plan; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlan resets all changes to the "plan" edge.
+func (m *PlanPhaseMutation) ResetPlan() {
+	m.plan = nil
+	m.clearedplan = false
+}
+
+// AddRatecardIDs adds the "ratecards" edge to the PlanRateCard entity by ids.
+func (m *PlanPhaseMutation) AddRatecardIDs(ids ...string) {
+	if m.ratecards == nil {
+		m.ratecards = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.ratecards[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRatecards clears the "ratecards" edge to the PlanRateCard entity.
+func (m *PlanPhaseMutation) ClearRatecards() {
+	m.clearedratecards = true
+}
+
+// RatecardsCleared reports if the "ratecards" edge to the PlanRateCard entity was cleared.
+func (m *PlanPhaseMutation) RatecardsCleared() bool {
+	return m.clearedratecards
+}
+
+// RemoveRatecardIDs removes the "ratecards" edge to the PlanRateCard entity by IDs.
+func (m *PlanPhaseMutation) RemoveRatecardIDs(ids ...string) {
+	if m.removedratecards == nil {
+		m.removedratecards = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.ratecards, ids[i])
+		m.removedratecards[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRatecards returns the removed IDs of the "ratecards" edge to the PlanRateCard entity.
+func (m *PlanPhaseMutation) RemovedRatecardsIDs() (ids []string) {
+	for id := range m.removedratecards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RatecardsIDs returns the "ratecards" edge IDs in the mutation.
+func (m *PlanPhaseMutation) RatecardsIDs() (ids []string) {
+	for id := range m.ratecards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRatecards resets all changes to the "ratecards" edge.
+func (m *PlanPhaseMutation) ResetRatecards() {
+	m.ratecards = nil
+	m.clearedratecards = false
+	m.removedratecards = nil
+}
+
+// Where appends a list predicates to the PlanPhaseMutation builder.
+func (m *PlanPhaseMutation) Where(ps ...predicate.PlanPhase) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlanPhaseMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlanPhaseMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlanPhase, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlanPhaseMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlanPhaseMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlanPhase).
+func (m *PlanPhaseMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlanPhaseMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.namespace != nil {
+		fields = append(fields, planphase.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, planphase.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, planphase.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, planphase.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, planphase.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, planphase.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, planphase.FieldDescription)
+	}
+	if m.key != nil {
+		fields = append(fields, planphase.FieldKey)
+	}
+	if m.start_after != nil {
+		fields = append(fields, planphase.FieldStartAfter)
+	}
+	if m.discounts != nil {
+		fields = append(fields, planphase.FieldDiscounts)
+	}
+	if m.plan != nil {
+		fields = append(fields, planphase.FieldPlanID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlanPhaseMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case planphase.FieldNamespace:
+		return m.Namespace()
+	case planphase.FieldMetadata:
+		return m.Metadata()
+	case planphase.FieldCreatedAt:
+		return m.CreatedAt()
+	case planphase.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case planphase.FieldDeletedAt:
+		return m.DeletedAt()
+	case planphase.FieldName:
+		return m.Name()
+	case planphase.FieldDescription:
+		return m.Description()
+	case planphase.FieldKey:
+		return m.Key()
+	case planphase.FieldStartAfter:
+		return m.StartAfter()
+	case planphase.FieldDiscounts:
+		return m.Discounts()
+	case planphase.FieldPlanID:
+		return m.PlanID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlanPhaseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case planphase.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case planphase.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case planphase.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case planphase.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case planphase.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case planphase.FieldName:
+		return m.OldName(ctx)
+	case planphase.FieldDescription:
+		return m.OldDescription(ctx)
+	case planphase.FieldKey:
+		return m.OldKey(ctx)
+	case planphase.FieldStartAfter:
+		return m.OldStartAfter(ctx)
+	case planphase.FieldDiscounts:
+		return m.OldDiscounts(ctx)
+	case planphase.FieldPlanID:
+		return m.OldPlanID(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlanPhase field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case planphase.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case planphase.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case planphase.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case planphase.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case planphase.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case planphase.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case planphase.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case planphase.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case planphase.FieldStartAfter:
+		v, ok := value.(datex.ISOString)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartAfter(v)
+		return nil
+	case planphase.FieldDiscounts:
+		v, ok := value.([]plan.Discount)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscounts(v)
+		return nil
+	case planphase.FieldPlanID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlanPhase field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlanPhaseMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlanPhaseMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanPhaseMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlanPhase numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlanPhaseMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(planphase.FieldMetadata) {
+		fields = append(fields, planphase.FieldMetadata)
+	}
+	if m.FieldCleared(planphase.FieldDeletedAt) {
+		fields = append(fields, planphase.FieldDeletedAt)
+	}
+	if m.FieldCleared(planphase.FieldDescription) {
+		fields = append(fields, planphase.FieldDescription)
+	}
+	if m.FieldCleared(planphase.FieldDiscounts) {
+		fields = append(fields, planphase.FieldDiscounts)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlanPhaseMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlanPhaseMutation) ClearField(name string) error {
+	switch name {
+	case planphase.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case planphase.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case planphase.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case planphase.FieldDiscounts:
+		m.ClearDiscounts()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanPhase nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlanPhaseMutation) ResetField(name string) error {
+	switch name {
+	case planphase.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case planphase.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case planphase.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case planphase.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case planphase.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case planphase.FieldName:
+		m.ResetName()
+		return nil
+	case planphase.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case planphase.FieldKey:
+		m.ResetKey()
+		return nil
+	case planphase.FieldStartAfter:
+		m.ResetStartAfter()
+		return nil
+	case planphase.FieldDiscounts:
+		m.ResetDiscounts()
+		return nil
+	case planphase.FieldPlanID:
+		m.ResetPlanID()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanPhase field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlanPhaseMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.plan != nil {
+		edges = append(edges, planphase.EdgePlan)
+	}
+	if m.ratecards != nil {
+		edges = append(edges, planphase.EdgeRatecards)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlanPhaseMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case planphase.EdgePlan:
+		if id := m.plan; id != nil {
+			return []ent.Value{*id}
+		}
+	case planphase.EdgeRatecards:
+		ids := make([]ent.Value, 0, len(m.ratecards))
+		for id := range m.ratecards {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlanPhaseMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedratecards != nil {
+		edges = append(edges, planphase.EdgeRatecards)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlanPhaseMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case planphase.EdgeRatecards:
+		ids := make([]ent.Value, 0, len(m.removedratecards))
+		for id := range m.removedratecards {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlanPhaseMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedplan {
+		edges = append(edges, planphase.EdgePlan)
+	}
+	if m.clearedratecards {
+		edges = append(edges, planphase.EdgeRatecards)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlanPhaseMutation) EdgeCleared(name string) bool {
+	switch name {
+	case planphase.EdgePlan:
+		return m.clearedplan
+	case planphase.EdgeRatecards:
+		return m.clearedratecards
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlanPhaseMutation) ClearEdge(name string) error {
+	switch name {
+	case planphase.EdgePlan:
+		m.ClearPlan()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanPhase unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlanPhaseMutation) ResetEdge(name string) error {
+	switch name {
+	case planphase.EdgePlan:
+		m.ResetPlan()
+		return nil
+	case planphase.EdgeRatecards:
+		m.ResetRatecards()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanPhase edge %s", name)
+}
+
+// PlanRateCardMutation represents an operation that mutates the PlanRateCard nodes in the graph.
+type PlanRateCardMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	namespace            *string
+	metadata             *map[string]string
+	created_at           *time.Time
+	updated_at           *time.Time
+	deleted_at           *time.Time
+	name                 *string
+	description          *string
+	key                  *string
+	_type                *plan.RateCardType
+	feature_key          *string
+	entitlement_template **plan.EntitlementTemplate
+	tax_config           **plan.TaxConfig
+	billing_cadence      *datex.ISOString
+	price                **plan.Price
+	clearedFields        map[string]struct{}
+	phase                *string
+	clearedphase         bool
+	features             *string
+	clearedfeatures      bool
+	done                 bool
+	oldValue             func(context.Context) (*PlanRateCard, error)
+	predicates           []predicate.PlanRateCard
+}
+
+var _ ent.Mutation = (*PlanRateCardMutation)(nil)
+
+// planratecardOption allows management of the mutation configuration using functional options.
+type planratecardOption func(*PlanRateCardMutation)
+
+// newPlanRateCardMutation creates new mutation for the PlanRateCard entity.
+func newPlanRateCardMutation(c config, op Op, opts ...planratecardOption) *PlanRateCardMutation {
+	m := &PlanRateCardMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlanRateCard,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlanRateCardID sets the ID field of the mutation.
+func withPlanRateCardID(id string) planratecardOption {
+	return func(m *PlanRateCardMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlanRateCard
+		)
+		m.oldValue = func(ctx context.Context) (*PlanRateCard, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlanRateCard.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlanRateCard sets the old PlanRateCard of the mutation.
+func withPlanRateCard(node *PlanRateCard) planratecardOption {
+	return func(m *PlanRateCardMutation) {
+		m.oldValue = func(context.Context) (*PlanRateCard, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlanRateCardMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlanRateCardMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlanRateCard entities.
+func (m *PlanRateCardMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlanRateCardMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlanRateCardMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlanRateCard.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *PlanRateCardMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *PlanRateCardMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *PlanRateCardMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *PlanRateCardMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *PlanRateCardMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *PlanRateCardMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[planratecard.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *PlanRateCardMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *PlanRateCardMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, planratecard.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlanRateCardMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlanRateCardMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlanRateCardMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlanRateCardMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlanRateCardMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlanRateCardMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *PlanRateCardMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *PlanRateCardMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *PlanRateCardMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[planratecard.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *PlanRateCardMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *PlanRateCardMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, planratecard.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *PlanRateCardMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *PlanRateCardMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *PlanRateCardMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *PlanRateCardMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *PlanRateCardMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *PlanRateCardMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[planratecard.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *PlanRateCardMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *PlanRateCardMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, planratecard.FieldDescription)
+}
+
+// SetKey sets the "key" field.
+func (m *PlanRateCardMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *PlanRateCardMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *PlanRateCardMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetType sets the "type" field.
+func (m *PlanRateCardMutation) SetType(pct plan.RateCardType) {
+	m._type = &pct
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *PlanRateCardMutation) GetType() (r plan.RateCardType, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldType(ctx context.Context) (v plan.RateCardType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *PlanRateCardMutation) ResetType() {
+	m._type = nil
+}
+
+// SetFeatureKey sets the "feature_key" field.
+func (m *PlanRateCardMutation) SetFeatureKey(s string) {
+	m.feature_key = &s
+}
+
+// FeatureKey returns the value of the "feature_key" field in the mutation.
+func (m *PlanRateCardMutation) FeatureKey() (r string, exists bool) {
+	v := m.feature_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureKey returns the old "feature_key" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldFeatureKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureKey: %w", err)
+	}
+	return oldValue.FeatureKey, nil
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (m *PlanRateCardMutation) ClearFeatureKey() {
+	m.feature_key = nil
+	m.clearedFields[planratecard.FieldFeatureKey] = struct{}{}
+}
+
+// FeatureKeyCleared returns if the "feature_key" field was cleared in this mutation.
+func (m *PlanRateCardMutation) FeatureKeyCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldFeatureKey]
+	return ok
+}
+
+// ResetFeatureKey resets all changes to the "feature_key" field.
+func (m *PlanRateCardMutation) ResetFeatureKey() {
+	m.feature_key = nil
+	delete(m.clearedFields, planratecard.FieldFeatureKey)
+}
+
+// SetEntitlementTemplate sets the "entitlement_template" field.
+func (m *PlanRateCardMutation) SetEntitlementTemplate(pt *plan.EntitlementTemplate) {
+	m.entitlement_template = &pt
+}
+
+// EntitlementTemplate returns the value of the "entitlement_template" field in the mutation.
+func (m *PlanRateCardMutation) EntitlementTemplate() (r *plan.EntitlementTemplate, exists bool) {
+	v := m.entitlement_template
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplate returns the old "entitlement_template" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldEntitlementTemplate(ctx context.Context) (v *plan.EntitlementTemplate, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplate: %w", err)
+	}
+	return oldValue.EntitlementTemplate, nil
+}
+
+// ClearEntitlementTemplate clears the value of the "entitlement_template" field.
+func (m *PlanRateCardMutation) ClearEntitlementTemplate() {
+	m.entitlement_template = nil
+	m.clearedFields[planratecard.FieldEntitlementTemplate] = struct{}{}
+}
+
+// EntitlementTemplateCleared returns if the "entitlement_template" field was cleared in this mutation.
+func (m *PlanRateCardMutation) EntitlementTemplateCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldEntitlementTemplate]
+	return ok
+}
+
+// ResetEntitlementTemplate resets all changes to the "entitlement_template" field.
+func (m *PlanRateCardMutation) ResetEntitlementTemplate() {
+	m.entitlement_template = nil
+	delete(m.clearedFields, planratecard.FieldEntitlementTemplate)
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (m *PlanRateCardMutation) SetTaxConfig(pc *plan.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *PlanRateCardMutation) TaxConfig() (r *plan.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldTaxConfig(ctx context.Context) (v *plan.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *PlanRateCardMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[planratecard.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *PlanRateCardMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *PlanRateCardMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, planratecard.FieldTaxConfig)
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (m *PlanRateCardMutation) SetBillingCadence(ds datex.ISOString) {
+	m.billing_cadence = &ds
+}
+
+// BillingCadence returns the value of the "billing_cadence" field in the mutation.
+func (m *PlanRateCardMutation) BillingCadence() (r datex.ISOString, exists bool) {
+	v := m.billing_cadence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingCadence returns the old "billing_cadence" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldBillingCadence(ctx context.Context) (v *datex.ISOString, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingCadence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingCadence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingCadence: %w", err)
+	}
+	return oldValue.BillingCadence, nil
+}
+
+// ClearBillingCadence clears the value of the "billing_cadence" field.
+func (m *PlanRateCardMutation) ClearBillingCadence() {
+	m.billing_cadence = nil
+	m.clearedFields[planratecard.FieldBillingCadence] = struct{}{}
+}
+
+// BillingCadenceCleared returns if the "billing_cadence" field was cleared in this mutation.
+func (m *PlanRateCardMutation) BillingCadenceCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldBillingCadence]
+	return ok
+}
+
+// ResetBillingCadence resets all changes to the "billing_cadence" field.
+func (m *PlanRateCardMutation) ResetBillingCadence() {
+	m.billing_cadence = nil
+	delete(m.clearedFields, planratecard.FieldBillingCadence)
+}
+
+// SetPrice sets the "price" field.
+func (m *PlanRateCardMutation) SetPrice(pl *plan.Price) {
+	m.price = &pl
+}
+
+// Price returns the value of the "price" field in the mutation.
+func (m *PlanRateCardMutation) Price() (r *plan.Price, exists bool) {
+	v := m.price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrice returns the old "price" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldPrice(ctx context.Context) (v *plan.Price, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrice is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrice requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrice: %w", err)
+	}
+	return oldValue.Price, nil
+}
+
+// ClearPrice clears the value of the "price" field.
+func (m *PlanRateCardMutation) ClearPrice() {
+	m.price = nil
+	m.clearedFields[planratecard.FieldPrice] = struct{}{}
+}
+
+// PriceCleared returns if the "price" field was cleared in this mutation.
+func (m *PlanRateCardMutation) PriceCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldPrice]
+	return ok
+}
+
+// ResetPrice resets all changes to the "price" field.
+func (m *PlanRateCardMutation) ResetPrice() {
+	m.price = nil
+	delete(m.clearedFields, planratecard.FieldPrice)
+}
+
+// SetPhaseID sets the "phase_id" field.
+func (m *PlanRateCardMutation) SetPhaseID(s string) {
+	m.phase = &s
+}
+
+// PhaseID returns the value of the "phase_id" field in the mutation.
+func (m *PlanRateCardMutation) PhaseID() (r string, exists bool) {
+	v := m.phase
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhaseID returns the old "phase_id" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldPhaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhaseID: %w", err)
+	}
+	return oldValue.PhaseID, nil
+}
+
+// ResetPhaseID resets all changes to the "phase_id" field.
+func (m *PlanRateCardMutation) ResetPhaseID() {
+	m.phase = nil
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (m *PlanRateCardMutation) SetFeatureID(s string) {
+	m.features = &s
+}
+
+// FeatureID returns the value of the "feature_id" field in the mutation.
+func (m *PlanRateCardMutation) FeatureID() (r string, exists bool) {
+	v := m.features
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureID returns the old "feature_id" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldFeatureID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureID: %w", err)
+	}
+	return oldValue.FeatureID, nil
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (m *PlanRateCardMutation) ClearFeatureID() {
+	m.features = nil
+	m.clearedFields[planratecard.FieldFeatureID] = struct{}{}
+}
+
+// FeatureIDCleared returns if the "feature_id" field was cleared in this mutation.
+func (m *PlanRateCardMutation) FeatureIDCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldFeatureID]
+	return ok
+}
+
+// ResetFeatureID resets all changes to the "feature_id" field.
+func (m *PlanRateCardMutation) ResetFeatureID() {
+	m.features = nil
+	delete(m.clearedFields, planratecard.FieldFeatureID)
+}
+
+// ClearPhase clears the "phase" edge to the PlanPhase entity.
+func (m *PlanRateCardMutation) ClearPhase() {
+	m.clearedphase = true
+	m.clearedFields[planratecard.FieldPhaseID] = struct{}{}
+}
+
+// PhaseCleared reports if the "phase" edge to the PlanPhase entity was cleared.
+func (m *PlanRateCardMutation) PhaseCleared() bool {
+	return m.clearedphase
+}
+
+// PhaseIDs returns the "phase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PhaseID instead. It exists only for internal usage by the builders.
+func (m *PlanRateCardMutation) PhaseIDs() (ids []string) {
+	if id := m.phase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPhase resets all changes to the "phase" edge.
+func (m *PlanRateCardMutation) ResetPhase() {
+	m.phase = nil
+	m.clearedphase = false
+}
+
+// SetFeaturesID sets the "features" edge to the Feature entity by id.
+func (m *PlanRateCardMutation) SetFeaturesID(id string) {
+	m.features = &id
+}
+
+// ClearFeatures clears the "features" edge to the Feature entity.
+func (m *PlanRateCardMutation) ClearFeatures() {
+	m.clearedfeatures = true
+	m.clearedFields[planratecard.FieldFeatureID] = struct{}{}
+}
+
+// FeaturesCleared reports if the "features" edge to the Feature entity was cleared.
+func (m *PlanRateCardMutation) FeaturesCleared() bool {
+	return m.FeatureIDCleared() || m.clearedfeatures
+}
+
+// FeaturesID returns the "features" edge ID in the mutation.
+func (m *PlanRateCardMutation) FeaturesID() (id string, exists bool) {
+	if m.features != nil {
+		return *m.features, true
+	}
+	return
+}
+
+// FeaturesIDs returns the "features" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeaturesID instead. It exists only for internal usage by the builders.
+func (m *PlanRateCardMutation) FeaturesIDs() (ids []string) {
+	if id := m.features; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeatures resets all changes to the "features" edge.
+func (m *PlanRateCardMutation) ResetFeatures() {
+	m.features = nil
+	m.clearedfeatures = false
+}
+
+// Where appends a list predicates to the PlanRateCardMutation builder.
+func (m *PlanRateCardMutation) Where(ps ...predicate.PlanRateCard) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlanRateCardMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlanRateCardMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlanRateCard, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlanRateCardMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlanRateCardMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlanRateCard).
+func (m *PlanRateCardMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlanRateCardMutation) Fields() []string {
+	fields := make([]string, 0, 16)
+	if m.namespace != nil {
+		fields = append(fields, planratecard.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, planratecard.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, planratecard.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, planratecard.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, planratecard.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, planratecard.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, planratecard.FieldDescription)
+	}
+	if m.key != nil {
+		fields = append(fields, planratecard.FieldKey)
+	}
+	if m._type != nil {
+		fields = append(fields, planratecard.FieldType)
+	}
+	if m.feature_key != nil {
+		fields = append(fields, planratecard.FieldFeatureKey)
+	}
+	if m.entitlement_template != nil {
+		fields = append(fields, planratecard.FieldEntitlementTemplate)
+	}
+	if m.tax_config != nil {
+		fields = append(fields, planratecard.FieldTaxConfig)
+	}
+	if m.billing_cadence != nil {
+		fields = append(fields, planratecard.FieldBillingCadence)
+	}
+	if m.price != nil {
+		fields = append(fields, planratecard.FieldPrice)
+	}
+	if m.phase != nil {
+		fields = append(fields, planratecard.FieldPhaseID)
+	}
+	if m.features != nil {
+		fields = append(fields, planratecard.FieldFeatureID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case planratecard.FieldNamespace:
+		return m.Namespace()
+	case planratecard.FieldMetadata:
+		return m.Metadata()
+	case planratecard.FieldCreatedAt:
+		return m.CreatedAt()
+	case planratecard.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case planratecard.FieldDeletedAt:
+		return m.DeletedAt()
+	case planratecard.FieldName:
+		return m.Name()
+	case planratecard.FieldDescription:
+		return m.Description()
+	case planratecard.FieldKey:
+		return m.Key()
+	case planratecard.FieldType:
+		return m.GetType()
+	case planratecard.FieldFeatureKey:
+		return m.FeatureKey()
+	case planratecard.FieldEntitlementTemplate:
+		return m.EntitlementTemplate()
+	case planratecard.FieldTaxConfig:
+		return m.TaxConfig()
+	case planratecard.FieldBillingCadence:
+		return m.BillingCadence()
+	case planratecard.FieldPrice:
+		return m.Price()
+	case planratecard.FieldPhaseID:
+		return m.PhaseID()
+	case planratecard.FieldFeatureID:
+		return m.FeatureID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case planratecard.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case planratecard.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case planratecard.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case planratecard.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case planratecard.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case planratecard.FieldName:
+		return m.OldName(ctx)
+	case planratecard.FieldDescription:
+		return m.OldDescription(ctx)
+	case planratecard.FieldKey:
+		return m.OldKey(ctx)
+	case planratecard.FieldType:
+		return m.OldType(ctx)
+	case planratecard.FieldFeatureKey:
+		return m.OldFeatureKey(ctx)
+	case planratecard.FieldEntitlementTemplate:
+		return m.OldEntitlementTemplate(ctx)
+	case planratecard.FieldTaxConfig:
+		return m.OldTaxConfig(ctx)
+	case planratecard.FieldBillingCadence:
+		return m.OldBillingCadence(ctx)
+	case planratecard.FieldPrice:
+		return m.OldPrice(ctx)
+	case planratecard.FieldPhaseID:
+		return m.OldPhaseID(ctx)
+	case planratecard.FieldFeatureID:
+		return m.OldFeatureID(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlanRateCard field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case planratecard.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case planratecard.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case planratecard.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case planratecard.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case planratecard.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case planratecard.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case planratecard.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case planratecard.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case planratecard.FieldType:
+		v, ok := value.(plan.RateCardType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case planratecard.FieldFeatureKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureKey(v)
+		return nil
+	case planratecard.FieldEntitlementTemplate:
+		v, ok := value.(*plan.EntitlementTemplate)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplate(v)
+		return nil
+	case planratecard.FieldTaxConfig:
+		v, ok := value.(*plan.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
+		return nil
+	case planratecard.FieldBillingCadence:
+		v, ok := value.(datex.ISOString)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingCadence(v)
+		return nil
+	case planratecard.FieldPrice:
+		v, ok := value.(*plan.Price)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrice(v)
+		return nil
+	case planratecard.FieldPhaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhaseID(v)
+		return nil
+	case planratecard.FieldFeatureID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlanRateCard field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlanRateCardMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlanRateCardMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanRateCardMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlanRateCard numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlanRateCardMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(planratecard.FieldMetadata) {
+		fields = append(fields, planratecard.FieldMetadata)
+	}
+	if m.FieldCleared(planratecard.FieldDeletedAt) {
+		fields = append(fields, planratecard.FieldDeletedAt)
+	}
+	if m.FieldCleared(planratecard.FieldDescription) {
+		fields = append(fields, planratecard.FieldDescription)
+	}
+	if m.FieldCleared(planratecard.FieldFeatureKey) {
+		fields = append(fields, planratecard.FieldFeatureKey)
+	}
+	if m.FieldCleared(planratecard.FieldEntitlementTemplate) {
+		fields = append(fields, planratecard.FieldEntitlementTemplate)
+	}
+	if m.FieldCleared(planratecard.FieldTaxConfig) {
+		fields = append(fields, planratecard.FieldTaxConfig)
+	}
+	if m.FieldCleared(planratecard.FieldBillingCadence) {
+		fields = append(fields, planratecard.FieldBillingCadence)
+	}
+	if m.FieldCleared(planratecard.FieldPrice) {
+		fields = append(fields, planratecard.FieldPrice)
+	}
+	if m.FieldCleared(planratecard.FieldFeatureID) {
+		fields = append(fields, planratecard.FieldFeatureID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlanRateCardMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlanRateCardMutation) ClearField(name string) error {
+	switch name {
+	case planratecard.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case planratecard.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case planratecard.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case planratecard.FieldFeatureKey:
+		m.ClearFeatureKey()
+		return nil
+	case planratecard.FieldEntitlementTemplate:
+		m.ClearEntitlementTemplate()
+		return nil
+	case planratecard.FieldTaxConfig:
+		m.ClearTaxConfig()
+		return nil
+	case planratecard.FieldBillingCadence:
+		m.ClearBillingCadence()
+		return nil
+	case planratecard.FieldPrice:
+		m.ClearPrice()
+		return nil
+	case planratecard.FieldFeatureID:
+		m.ClearFeatureID()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanRateCard nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlanRateCardMutation) ResetField(name string) error {
+	switch name {
+	case planratecard.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case planratecard.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case planratecard.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case planratecard.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case planratecard.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case planratecard.FieldName:
+		m.ResetName()
+		return nil
+	case planratecard.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case planratecard.FieldKey:
+		m.ResetKey()
+		return nil
+	case planratecard.FieldType:
+		m.ResetType()
+		return nil
+	case planratecard.FieldFeatureKey:
+		m.ResetFeatureKey()
+		return nil
+	case planratecard.FieldEntitlementTemplate:
+		m.ResetEntitlementTemplate()
+		return nil
+	case planratecard.FieldTaxConfig:
+		m.ResetTaxConfig()
+		return nil
+	case planratecard.FieldBillingCadence:
+		m.ResetBillingCadence()
+		return nil
+	case planratecard.FieldPrice:
+		m.ResetPrice()
+		return nil
+	case planratecard.FieldPhaseID:
+		m.ResetPhaseID()
+		return nil
+	case planratecard.FieldFeatureID:
+		m.ResetFeatureID()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanRateCard field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlanRateCardMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.phase != nil {
+		edges = append(edges, planratecard.EdgePhase)
+	}
+	if m.features != nil {
+		edges = append(edges, planratecard.EdgeFeatures)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlanRateCardMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case planratecard.EdgePhase:
+		if id := m.phase; id != nil {
+			return []ent.Value{*id}
+		}
+	case planratecard.EdgeFeatures:
+		if id := m.features; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlanRateCardMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlanRateCardMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlanRateCardMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedphase {
+		edges = append(edges, planratecard.EdgePhase)
+	}
+	if m.clearedfeatures {
+		edges = append(edges, planratecard.EdgeFeatures)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlanRateCardMutation) EdgeCleared(name string) bool {
+	switch name {
+	case planratecard.EdgePhase:
+		return m.clearedphase
+	case planratecard.EdgeFeatures:
+		return m.clearedfeatures
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlanRateCardMutation) ClearEdge(name string) error {
+	switch name {
+	case planratecard.EdgePhase:
+		m.ClearPhase()
+		return nil
+	case planratecard.EdgeFeatures:
+		m.ClearFeatures()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanRateCard unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlanRateCardMutation) ResetEdge(name string) error {
+	switch name {
+	case planratecard.EdgePhase:
+		m.ResetPhase()
+		return nil
+	case planratecard.EdgeFeatures:
+		m.ResetFeatures()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanRateCard edge %s", name)
 }
 
 // UsageResetMutation represents an operation that mutates the UsageReset nodes in the graph.
