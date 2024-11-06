@@ -14431,6 +14431,13 @@ components:
           required:
             - feature
           description: Describes what access is gained via the SubscriptionItem
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the Subscription Item.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
       description: The actual contents of the Subscription, what the user gets, what they pay, etc...
     SubscriptionPhase:
       type: object
