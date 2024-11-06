@@ -6,12 +6,13 @@ permissions:
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - api/openapi.yaml
-      - .github/workflows/sdk-python.yaml
+  # TODO (pmarton): enable after python client generation is fixed with TypeSpec generated OpenAPI spec
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - api/openapi.yaml
+  #     - .github/workflows/sdk-python.yaml
 
 jobs:
   generate:
