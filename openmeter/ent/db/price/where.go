@@ -115,11 +115,6 @@ func ItemKey(v string) predicate.Price {
 	return predicate.Price(sql.FieldEQ(FieldItemKey, v))
 }
 
-// Value applies equality check predicate on the "value" field. It's identical to ValueEQ.
-func Value(v string) predicate.Price {
-	return predicate.Price(sql.FieldEQ(FieldValue, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Price {
 	return predicate.Price(sql.FieldEQ(FieldNamespace, v))
@@ -663,71 +658,6 @@ func ItemKeyEqualFold(v string) predicate.Price {
 // ItemKeyContainsFold applies the ContainsFold predicate on the "item_key" field.
 func ItemKeyContainsFold(v string) predicate.Price {
 	return predicate.Price(sql.FieldContainsFold(FieldItemKey, v))
-}
-
-// ValueEQ applies the EQ predicate on the "value" field.
-func ValueEQ(v string) predicate.Price {
-	return predicate.Price(sql.FieldEQ(FieldValue, v))
-}
-
-// ValueNEQ applies the NEQ predicate on the "value" field.
-func ValueNEQ(v string) predicate.Price {
-	return predicate.Price(sql.FieldNEQ(FieldValue, v))
-}
-
-// ValueIn applies the In predicate on the "value" field.
-func ValueIn(vs ...string) predicate.Price {
-	return predicate.Price(sql.FieldIn(FieldValue, vs...))
-}
-
-// ValueNotIn applies the NotIn predicate on the "value" field.
-func ValueNotIn(vs ...string) predicate.Price {
-	return predicate.Price(sql.FieldNotIn(FieldValue, vs...))
-}
-
-// ValueGT applies the GT predicate on the "value" field.
-func ValueGT(v string) predicate.Price {
-	return predicate.Price(sql.FieldGT(FieldValue, v))
-}
-
-// ValueGTE applies the GTE predicate on the "value" field.
-func ValueGTE(v string) predicate.Price {
-	return predicate.Price(sql.FieldGTE(FieldValue, v))
-}
-
-// ValueLT applies the LT predicate on the "value" field.
-func ValueLT(v string) predicate.Price {
-	return predicate.Price(sql.FieldLT(FieldValue, v))
-}
-
-// ValueLTE applies the LTE predicate on the "value" field.
-func ValueLTE(v string) predicate.Price {
-	return predicate.Price(sql.FieldLTE(FieldValue, v))
-}
-
-// ValueContains applies the Contains predicate on the "value" field.
-func ValueContains(v string) predicate.Price {
-	return predicate.Price(sql.FieldContains(FieldValue, v))
-}
-
-// ValueHasPrefix applies the HasPrefix predicate on the "value" field.
-func ValueHasPrefix(v string) predicate.Price {
-	return predicate.Price(sql.FieldHasPrefix(FieldValue, v))
-}
-
-// ValueHasSuffix applies the HasSuffix predicate on the "value" field.
-func ValueHasSuffix(v string) predicate.Price {
-	return predicate.Price(sql.FieldHasSuffix(FieldValue, v))
-}
-
-// ValueEqualFold applies the EqualFold predicate on the "value" field.
-func ValueEqualFold(v string) predicate.Price {
-	return predicate.Price(sql.FieldEqualFold(FieldValue, v))
-}
-
-// ValueContainsFold applies the ContainsFold predicate on the "value" field.
-func ValueContainsFold(v string) predicate.Price {
-	return predicate.Price(sql.FieldContainsFold(FieldValue, v))
 }
 
 // HasSubscription applies the HasEdge predicate on the "subscription" edge.

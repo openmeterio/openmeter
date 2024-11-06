@@ -1,6 +1,9 @@
 package price
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 type Price struct {
 	models.NamespacedModel
@@ -15,9 +18,7 @@ type Price struct {
 	PhaseKey       string `json:"phaseKey,omitempty"`
 	ItemKey        string `json:"itemKey,omitempty"`
 
-	// String representation of the numerical fix point decimal value
-	// TODO: how do we want to represent this?
-	Value string `json:"value,omitempty"`
+	Value plan.Price `json:"value,omitempty"`
 }
 
 type CreateInput struct {
@@ -27,10 +28,10 @@ type CreateInput struct {
 }
 
 type Spec struct {
-	PhaseKey string `json:"phaseKey,omitempty"`
-	ItemKey  string `json:"itemKey,omitempty"`
-	Value    string `json:"value,omitempty"`
-	Key      string `json:"key,omitempty"`
+	PhaseKey string     `json:"phaseKey,omitempty"`
+	ItemKey  string     `json:"itemKey,omitempty"`
+	Value    plan.Price `json:"value,omitempty"`
+	Key      string     `json:"key,omitempty"`
 }
 
 type NotFoundError struct {

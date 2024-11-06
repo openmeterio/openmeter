@@ -958,8 +958,7 @@ func init() {
 	price.ItemKeyValidator = priceDescItemKey.Validators[0].(func(string) error)
 	// priceDescValue is the schema descriptor for value field.
 	priceDescValue := priceFields[4].Descriptor()
-	// price.ValueValidator is a validator for the "value" field. It is called by the builders before save.
-	price.ValueValidator = priceDescValue.Validators[0].(func(string) error)
+	price.ValueScanner.Value = priceDescValue.ValueScanner.(field.TypeValueScanner[*plan.Price])
 	// priceDescID is the schema descriptor for id field.
 	priceDescID := priceMixinFields0[0].Descriptor()
 	// price.DefaultID holds the default value on creation for the id field.
@@ -1127,6 +1126,9 @@ func init() {
 	subscriptionpatchvalueadditemDescItemKey := subscriptionpatchvalueadditemFields[2].Descriptor()
 	// subscriptionpatchvalueadditem.ItemKeyValidator is a validator for the "item_key" field. It is called by the builders before save.
 	subscriptionpatchvalueadditem.ItemKeyValidator = subscriptionpatchvalueadditemDescItemKey.Validators[0].(func(string) error)
+	// subscriptionpatchvalueadditemDescCreatePriceValue is the schema descriptor for create_price_value field.
+	subscriptionpatchvalueadditemDescCreatePriceValue := subscriptionpatchvalueadditemFields[12].Descriptor()
+	subscriptionpatchvalueadditem.ValueScanner.CreatePriceValue = subscriptionpatchvalueadditemDescCreatePriceValue.ValueScanner.(field.TypeValueScanner[*plan.Price])
 	// subscriptionpatchvalueadditemDescID is the schema descriptor for id field.
 	subscriptionpatchvalueadditemDescID := subscriptionpatchvalueadditemMixinFields0[0].Descriptor()
 	// subscriptionpatchvalueadditem.DefaultID holds the default value on creation for the id field.

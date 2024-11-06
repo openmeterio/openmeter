@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -90,9 +91,12 @@ func (SubscriptionPatchValueAddItem) Fields() []ent.Field {
 			dialect.Postgres: "jsonb",
 		}).Optional().Immutable(),
 		field.String("create_price_key").Optional().Nillable().Immutable(),
-		field.String("create_price_value").SchemaType(map[string]string{
-			dialect.Postgres: "numeric",
-		}).Optional().Nillable().Immutable(),
+		field.String("create_price_value").
+			GoType(&plan.Price{}).
+			ValueScanner(PriceValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).Optional().Nillable().Immutable(),
 	}
 }
 

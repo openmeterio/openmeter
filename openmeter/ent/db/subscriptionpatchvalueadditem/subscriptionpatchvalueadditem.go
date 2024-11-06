@@ -5,6 +5,8 @@ package subscriptionpatchvalueadditem
 import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 const (
@@ -93,6 +95,10 @@ var (
 	ItemKeyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all SubscriptionPatchValueAddItem fields.
+	ValueScanner struct {
+		CreatePriceValue field.TypeValueScanner[*plan.Price]
+	}
 )
 
 // OrderOption defines the ordering options for the SubscriptionPatchValueAddItem queries.

@@ -35,7 +35,7 @@ CREATE TABLE "prices" (
   "key" character varying NOT NULL,
   "phase_key" character varying NOT NULL,
   "item_key" character varying NOT NULL,
-  "value" character varying NOT NULL,
+  "value" jsonb NOT NULL,
   "subscription_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "prices_subscriptions_prices" FOREIGN KEY ("subscription_id") REFERENCES "subscriptions" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -118,7 +118,7 @@ CREATE TABLE "subscription_patch_value_add_items" (
   "create_entitlement_usage_period_iso_duration" character varying NULL,
   "create_entitlement_config" jsonb NULL,
   "create_price_key" character varying NULL,
-  "create_price_value" numeric NULL,
+  "create_price_value" jsonb NULL,
   "subscription_patch_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "subscription_patch_value_add_items_subscription_patches_value_a" FOREIGN KEY ("subscription_patch_id") REFERENCES "subscription_patches" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION

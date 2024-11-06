@@ -2,10 +2,12 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -28,9 +30,12 @@ func (Price) Fields() []ent.Field {
 		field.String("subscription_id").NotEmpty().Immutable(),
 		field.String("phase_key").NotEmpty().Immutable(),
 		field.String("item_key").NotEmpty().Immutable(),
-		field.String("value").SchemaType(map[string]string{
-			"postgresql": "numeric",
-		}).NotEmpty().Immutable(),
+		field.String("value").
+			GoType(&plan.Price{}).
+			ValueScanner(PriceValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).Immutable(),
 	}
 }
 

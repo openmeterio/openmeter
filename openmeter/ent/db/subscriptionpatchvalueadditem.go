@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 // SubscriptionPatchValueAddItem is the model entity for the SubscriptionPatchValueAddItem schema.
@@ -45,7 +46,7 @@ type SubscriptionPatchValueAddItem struct {
 	// CreatePriceKey holds the value of the "create_price_key" field.
 	CreatePriceKey *string `json:"create_price_key,omitempty"`
 	// CreatePriceValue holds the value of the "create_price_value" field.
-	CreatePriceValue *string `json:"create_price_value,omitempty"`
+	CreatePriceValue *plan.Price `json:"create_price_value,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionPatchValueAddItemQuery when eager-loading is set.
 	Edges        SubscriptionPatchValueAddItemEdges `json:"edges"`
@@ -85,8 +86,10 @@ func (*SubscriptionPatchValueAddItem) scanValues(columns []string) ([]any, error
 			values[i] = new(sql.NullFloat64)
 		case subscriptionpatchvalueadditem.FieldCreateEntitlementIssueAfterResetPriority:
 			values[i] = new(sql.NullInt64)
-		case subscriptionpatchvalueadditem.FieldID, subscriptionpatchvalueadditem.FieldNamespace, subscriptionpatchvalueadditem.FieldSubscriptionPatchID, subscriptionpatchvalueadditem.FieldPhaseKey, subscriptionpatchvalueadditem.FieldItemKey, subscriptionpatchvalueadditem.FieldFeatureKey, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration, subscriptionpatchvalueadditem.FieldCreatePriceKey, subscriptionpatchvalueadditem.FieldCreatePriceValue:
+		case subscriptionpatchvalueadditem.FieldID, subscriptionpatchvalueadditem.FieldNamespace, subscriptionpatchvalueadditem.FieldSubscriptionPatchID, subscriptionpatchvalueadditem.FieldPhaseKey, subscriptionpatchvalueadditem.FieldItemKey, subscriptionpatchvalueadditem.FieldFeatureKey, subscriptionpatchvalueadditem.FieldCreateEntitlementEntitlementType, subscriptionpatchvalueadditem.FieldCreateEntitlementUsagePeriodIsoDuration, subscriptionpatchvalueadditem.FieldCreatePriceKey:
 			values[i] = new(sql.NullString)
+		case subscriptionpatchvalueadditem.FieldCreatePriceValue:
+			values[i] = subscriptionpatchvalueadditem.ValueScanner.CreatePriceValue.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -197,11 +200,10 @@ func (spvai *SubscriptionPatchValueAddItem) assignValues(columns []string, value
 				*spvai.CreatePriceKey = value.String
 			}
 		case subscriptionpatchvalueadditem.FieldCreatePriceValue:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field create_price_value", values[i])
-			} else if value.Valid {
-				spvai.CreatePriceValue = new(string)
-				*spvai.CreatePriceValue = value.String
+			if value, err := subscriptionpatchvalueadditem.ValueScanner.CreatePriceValue.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				spvai.CreatePriceValue = value
 			}
 		default:
 			spvai.selectValues.Set(columns[i], values[i])
@@ -301,7 +303,7 @@ func (spvai *SubscriptionPatchValueAddItem) String() string {
 	builder.WriteString(", ")
 	if v := spvai.CreatePriceValue; v != nil {
 		builder.WriteString("create_price_value=")
-		builder.WriteString(*v)
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

@@ -136,6 +136,17 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 // Price is the predicate function for price builders.
 type Price func(*sql.Selector)
 
+// PriceOrErr calls the predicate only if the error is not nit.
+func PriceOrErr(p Price, err error) Price {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Subscription is the predicate function for subscription builders.
 type Subscription func(*sql.Selector)
 
@@ -147,6 +158,17 @@ type SubscriptionPatch func(*sql.Selector)
 
 // SubscriptionPatchValueAddItem is the predicate function for subscriptionpatchvalueadditem builders.
 type SubscriptionPatchValueAddItem func(*sql.Selector)
+
+// SubscriptionPatchValueAddItemOrErr calls the predicate only if the error is not nit.
+func SubscriptionPatchValueAddItemOrErr(p SubscriptionPatchValueAddItem, err error) SubscriptionPatchValueAddItem {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // SubscriptionPatchValueAddPhase is the predicate function for subscriptionpatchvalueaddphase builders.
 type SubscriptionPatchValueAddPhase func(*sql.Selector)

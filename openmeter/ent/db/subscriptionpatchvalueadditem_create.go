@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatch"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionpatchvalueadditem"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 // SubscriptionPatchValueAddItemCreate is the builder for creating a SubscriptionPatchValueAddItem entity.
@@ -166,16 +167,8 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreatePriceKey(s *
 }
 
 // SetCreatePriceValue sets the "create_price_value" field.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreatePriceValue(s string) *SubscriptionPatchValueAddItemCreate {
-	spvaic.mutation.SetCreatePriceValue(s)
-	return spvaic
-}
-
-// SetNillableCreatePriceValue sets the "create_price_value" field if the given value is not nil.
-func (spvaic *SubscriptionPatchValueAddItemCreate) SetNillableCreatePriceValue(s *string) *SubscriptionPatchValueAddItemCreate {
-	if s != nil {
-		spvaic.SetCreatePriceValue(*s)
-	}
+func (spvaic *SubscriptionPatchValueAddItemCreate) SetCreatePriceValue(pl *plan.Price) *SubscriptionPatchValueAddItemCreate {
+	spvaic.mutation.SetCreatePriceValue(pl)
 	return spvaic
 }
 
@@ -273,6 +266,11 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) check() error {
 			return &ValidationError{Name: "item_key", err: fmt.Errorf(`db: validator failed for field "SubscriptionPatchValueAddItem.item_key": %w`, err)}
 		}
 	}
+	if v, ok := spvaic.mutation.CreatePriceValue(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "create_price_value", err: fmt.Errorf(`db: validator failed for field "SubscriptionPatchValueAddItem.create_price_value": %w`, err)}
+		}
+	}
 	if len(spvaic.mutation.SubscriptionPatchIDs()) == 0 {
 		return &ValidationError{Name: "subscription_patch", err: errors.New(`db: missing required edge "SubscriptionPatchValueAddItem.subscription_patch"`)}
 	}
@@ -283,7 +281,10 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) sqlSave(ctx context.Context) 
 	if err := spvaic.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := spvaic.createSpec()
+	_node, _spec, err := spvaic.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, spvaic.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -302,7 +303,7 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) sqlSave(ctx context.Context) 
 	return _node, nil
 }
 
-func (spvaic *SubscriptionPatchValueAddItemCreate) createSpec() (*SubscriptionPatchValueAddItem, *sqlgraph.CreateSpec) {
+func (spvaic *SubscriptionPatchValueAddItemCreate) createSpec() (*SubscriptionPatchValueAddItem, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &SubscriptionPatchValueAddItem{config: spvaic.config}
 		_spec = sqlgraph.NewCreateSpec(subscriptionpatchvalueadditem.Table, sqlgraph.NewFieldSpec(subscriptionpatchvalueadditem.FieldID, field.TypeString))
@@ -361,8 +362,12 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) createSpec() (*SubscriptionPa
 		_node.CreatePriceKey = &value
 	}
 	if value, ok := spvaic.mutation.CreatePriceValue(); ok {
-		_spec.SetField(subscriptionpatchvalueadditem.FieldCreatePriceValue, field.TypeString, value)
-		_node.CreatePriceValue = &value
+		vv, err := subscriptionpatchvalueadditem.ValueScanner.CreatePriceValue.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscriptionpatchvalueadditem.FieldCreatePriceValue, field.TypeString, vv)
+		_node.CreatePriceValue = value
 	}
 	if nodes := spvaic.mutation.SubscriptionPatchIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -381,7 +386,7 @@ func (spvaic *SubscriptionPatchValueAddItemCreate) createSpec() (*SubscriptionPa
 		_node.SubscriptionPatchID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -591,7 +596,10 @@ func (spvaicb *SubscriptionPatchValueAddItemCreateBulk) Save(ctx context.Context
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, spvaicb.builders[i+1].mutation)
 				} else {

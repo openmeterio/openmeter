@@ -321,12 +321,12 @@ func TestCreation(t *testing.T) {
 			require.Nil(t, err)
 
 			// Let's validate that the phase exists and it doesn't have a RateCard with the same key
-			plan, err := deps.PlanAdapter.GetVersion(ctx, subscriptiontestutils.ExamplePlanRef.Key, subscriptiontestutils.ExamplePlanRef.Version)
+			subPlan, err := deps.PlanAdapter.GetVersion(ctx, subscriptiontestutils.ExamplePlanRef.Key, subscriptiontestutils.ExamplePlanRef.Version)
 			require.Nil(t, err)
 
-			require.GreaterOrEqual(t, len(plan.GetPhases()), 2, "example plan should have at least 2 phases")
-			require.Equal(t, "test-phase-2", plan.GetPhases()[1].GetKey(), "example plan's second phase should have known key")
-			for _, rateCard := range plan.GetPhases()[1].GetRateCards() {
+			require.GreaterOrEqual(t, len(subPlan.GetPhases()), 2, "example plan should have at least 2 phases")
+			require.Equal(t, "test-phase-2", subPlan.GetPhases()[1].GetKey(), "example plan's second phase should have known key")
+			for _, rateCard := range subPlan.GetPhases()[1].GetRateCards() {
 				require.NotEqual(t, "added-ratecard", rateCard.GetKey(), "example plan's second phase should not have a rate card with known key")
 			}
 
@@ -347,7 +347,7 @@ func TestCreation(t *testing.T) {
 								CreatePriceInput: &subscription.CreatePriceInput{
 									PhaseKey: "test-phase-2",
 									ItemKey:  "added-ratecard",
-									Value:    "500",
+									Value:    subscriptiontestutils.GetFlatPrice(100),
 									Key:      "added-ratecard",
 								},
 							},
@@ -363,7 +363,7 @@ func TestCreation(t *testing.T) {
 
 			assert.GreaterOrEqual(t, len(found.Phases()), 2, "subscription should have at least 2 phases")
 			assert.Equal(t, "test-phase-2", found.Phases()[1].Key(), "subscription's second phase should have known key")
-			assert.Equal(t, len(plan.GetPhases()[1].GetRateCards())+1, len(found.Phases()[1].Items()), "subscription's second phase should have one more rate card")
+			assert.Equal(t, len(subPlan.GetPhases()[1].GetRateCards())+1, len(found.Phases()[1].Items()), "subscription's second phase should have one more rate card")
 
 			// Let's find our new Item
 			var foundItem subscription.SubscriptionItemView
@@ -381,7 +381,7 @@ func TestCreation(t *testing.T) {
 			require.True(t, exists)
 
 			assert.Equal(t, "added-ratecard", price.Key)
-			assert.Equal(t, "500", price.Value)
+			assert.Equal(t, subscriptiontestutils.GetFlatPrice(100), price.Value)
 			assert.Equal(t, found.Phases()[1].ActiveFrom(), price.ActiveFrom)
 		})
 	})

@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/applieddiscount"
+	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
@@ -94,7 +95,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 					CreatePriceInput: &subscription.CreatePriceInput{
 						PhaseKey: "asd",
 						ItemKey:  "asd2",
-						Value:    "1.0",
+						Value:    subscriptiontestutils.GetFlatPrice(100),
 						Key:      "asd",
 					},
 				},

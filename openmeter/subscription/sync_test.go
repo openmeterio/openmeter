@@ -98,7 +98,7 @@ func TestEdit(t *testing.T) {
 							CreatePriceInput: &subscription.CreatePriceInput{
 								PhaseKey: phaseKey,
 								ItemKey:  "new-item-1",
-								Value:    "100",
+								Value:    subscriptiontestutils.GetFlatPrice(100),
 								Key:      "new-item-1",
 							},
 						},
@@ -138,7 +138,7 @@ func TestEdit(t *testing.T) {
 				if i.Key() == "new-item-1" {
 					p, has := i.Price()
 					assert.True(t, has)
-					assert.Equal(t, "100", p.Value)
+					assert.Equal(t, subscriptiontestutils.GetFlatPrice(100), p.Value)
 					assert.Equal(t, lastPhase.ActiveFrom(), p.ActiveFrom)
 					assert.Nil(t, p.ActiveTo)
 					return true
@@ -281,7 +281,7 @@ func TestEdit(t *testing.T) {
 							CreatePriceInput: &subscription.CreatePriceInput{
 								PhaseKey: newPhaseKey,
 								ItemKey:  "new-item-1",
-								Value:    "100",
+								Value:    subscriptiontestutils.GetFlatPrice(100),
 								Key:      "new-item-1",
 							},
 						},
@@ -311,7 +311,7 @@ func TestEdit(t *testing.T) {
 				if i.Key() == "new-item-1" {
 					p, has := i.Price()
 					assert.True(t, has)
-					assert.Equal(t, "100", p.Value)
+					assert.Equal(t, subscriptiontestutils.GetFlatPrice(100), p.Value)
 					assert.Equal(t, newPhase.ActiveFrom(), p.ActiveFrom)
 
 					aTo, _ := newPhaseDuration.AddTo(newPhase.ActiveFrom())

@@ -122,7 +122,7 @@ func TestPatchParsing(t *testing.T) {
 							CreatePriceInput: &subscription.CreatePriceInput{
 								PhaseKey: "test",
 								ItemKey:  "test",
-								Value:    "100.0",
+								Value:    subscriptiontestutils.GetFlatPrice(100),
 								Key:      "test",
 							},
 						},

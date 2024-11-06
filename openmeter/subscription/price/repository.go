@@ -77,7 +77,10 @@ func (r *repository) GetForSubscription(ctx context.Context, subscriptionId mode
 
 			prices := make([]Price, len(entities))
 			for i, e := range entities {
-				prices[i] = mapDBPriceToPrice(e)
+				prices[i], err = mapDBPriceToPrice(e)
+				if err != nil {
+					return nil, fmt.Errorf("failed to map price %s: %w", e.ID, err)
+				}
 			}
 
 			return prices, nil
@@ -92,7 +95,7 @@ func (r *repository) Create(ctx context.Context, input CreateInput) (*Price, err
 			SetSubscriptionID(input.SubscriptionId.ID).
 			SetPhaseKey(input.PhaseKey).
 			SetItemKey(input.ItemKey).
-			SetValue(input.Value).
+			SetValue(&input.Value).
 			SetKey(input.Key).
 			SetActiveFrom(input.ActiveFrom.UTC()).
 			SetNillableActiveTo(convert.SafeToUTC(input.ActiveTo)).
@@ -101,7 +104,12 @@ func (r *repository) Create(ctx context.Context, input CreateInput) (*Price, err
 			return nil, fmt.Errorf("failed to create price: %w", err)
 		}
 
-		return lo.ToPtr(mapDBPriceToPrice(entity)), nil
+		price, err := mapDBPriceToPrice(entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map price: %w", err)
+		}
+
+		return lo.ToPtr(price), nil
 	})
 }
 
@@ -119,7 +127,12 @@ func (r *repository) EndCadence(ctx context.Context, id string, at *time.Time) (
 			return nil, fmt.Errorf("failed to end price: %w", err)
 		}
 
-		return lo.ToPtr(mapDBPriceToPrice(entity)), nil
+		price, err := mapDBPriceToPrice(entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map price: %w", err)
+		}
+
+		return lo.ToPtr(price), nil
 	})
 }
 
@@ -138,7 +151,10 @@ func (r *repository) WithTx(ctx context.Context, tx *entutils.TxDriver) *reposit
 	return NewRepository(txClient.Client())
 }
 
-func mapDBPriceToPrice(e *db.Price) Price {
+func mapDBPriceToPrice(e *db.Price) (Price, error) {
+	if e.Value == nil {
+		return Price{}, fmt.Errorf("price %s has no value", e.ID)
+	}
 	return Price{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: e.Namespace,
@@ -157,6 +173,6 @@ func mapDBPriceToPrice(e *db.Price) Price {
 		SubscriptionId: e.SubscriptionID,
 		PhaseKey:       e.PhaseKey,
 		ItemKey:        e.ItemKey,
-		Value:          e.Value,
-	}
+		Value:          *e.Value,
+	}, nil
 }

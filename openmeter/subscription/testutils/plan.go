@@ -4,9 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
@@ -70,8 +72,12 @@ var ExamplePlan = &Plan{
 						CreatePriceInput: &subscription.CreatePriceInput{
 							PhaseKey: "test-phase-2",
 							ItemKey:  "test-rate-card-2",
-							Value:    "100",
-							Key:      "test-rate-card-2",
+							Value: plan.NewPriceFrom(plan.FlatPrice{
+								Amount:      alpacadecimal.NewFromInt(100),
+								PriceMeta:   plan.PriceMeta{Type: plan.FlatPriceType},
+								PaymentTerm: lo.ToPtr(plan.InAdvancePaymentTerm),
+							}),
+							Key: "test-rate-card-2",
 						},
 					},
 				},

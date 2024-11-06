@@ -1301,7 +1301,7 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "phase_key", Type: field.TypeString},
 		{Name: "item_key", Type: field.TypeString},
-		{Name: "value", Type: field.TypeString, SchemaType: map[string]string{"postgresql": "numeric"}},
+		{Name: "value", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// PricesTable holds the schema information for the "prices" table.
@@ -1525,7 +1525,7 @@ var (
 		{Name: "create_entitlement_usage_period_iso_duration", Type: field.TypeString, Nullable: true},
 		{Name: "create_entitlement_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "create_price_key", Type: field.TypeString, Nullable: true},
-		{Name: "create_price_value", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "create_price_value", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "subscription_patch_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionPatchValueAddItemsTable holds the schema information for the "subscription_patch_value_add_items" table.

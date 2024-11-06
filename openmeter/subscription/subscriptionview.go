@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 	"time"
 
@@ -238,8 +239,8 @@ func (s *subscriptionItemView) Validate() error {
 		if spec.CreatePriceInput.Key != s.price.Key {
 			return fmt.Errorf("item %s should match price key %s", s.spec.ItemKey, s.price.Key)
 		}
-		if spec.CreatePriceInput.Value != s.price.Value {
-			return fmt.Errorf("item %s should match price value %s", s.spec.ItemKey, s.price.Value)
+		if !reflect.DeepEqual(spec.CreatePriceInput.Value, s.price.Value) {
+			return fmt.Errorf("item %s should match price value %v", s.spec.ItemKey, s.price.Value)
 		}
 	}
 

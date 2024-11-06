@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/price"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 // Price is the model entity for the Price schema.
@@ -39,7 +40,7 @@ type Price struct {
 	// ItemKey holds the value of the "item_key" field.
 	ItemKey string `json:"item_key,omitempty"`
 	// Value holds the value of the "value" field.
-	Value string `json:"value,omitempty"`
+	Value *plan.Price `json:"value,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PriceQuery when eager-loading is set.
 	Edges        PriceEdges `json:"edges"`
@@ -71,10 +72,12 @@ func (*Price) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case price.FieldID, price.FieldNamespace, price.FieldKey, price.FieldSubscriptionID, price.FieldPhaseKey, price.FieldItemKey, price.FieldValue:
+		case price.FieldID, price.FieldNamespace, price.FieldKey, price.FieldSubscriptionID, price.FieldPhaseKey, price.FieldItemKey:
 			values[i] = new(sql.NullString)
 		case price.FieldCreatedAt, price.FieldUpdatedAt, price.FieldDeletedAt, price.FieldActiveFrom, price.FieldActiveTo:
 			values[i] = new(sql.NullTime)
+		case price.FieldValue:
+			values[i] = price.ValueScanner.Value.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -159,10 +162,10 @@ func (pr *Price) assignValues(columns []string, values []any) error {
 				pr.ItemKey = value.String
 			}
 		case price.FieldValue:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field value", values[i])
-			} else if value.Valid {
-				pr.Value = value.String
+			if value, err := price.ValueScanner.Value.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				pr.Value = value
 			}
 		default:
 			pr.selectValues.Set(columns[i], values[i])
@@ -240,7 +243,7 @@ func (pr *Price) String() string {
 	builder.WriteString(pr.ItemKey)
 	builder.WriteString(", ")
 	builder.WriteString("value=")
-	builder.WriteString(pr.Value)
+	builder.WriteString(fmt.Sprintf("%v", pr.Value))
 	builder.WriteByte(')')
 	return builder.String()
 }

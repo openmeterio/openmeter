@@ -7,6 +7,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 const (
@@ -92,10 +94,12 @@ var (
 	PhaseKeyValidator func(string) error
 	// ItemKeyValidator is a validator for the "item_key" field. It is called by the builders before save.
 	ItemKeyValidator func(string) error
-	// ValueValidator is a validator for the "value" field. It is called by the builders before save.
-	ValueValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Price fields.
+	ValueScanner struct {
+		Value field.TypeValueScanner[*plan.Price]
+	}
 )
 
 // OrderOption defines the ordering options for the Price queries.

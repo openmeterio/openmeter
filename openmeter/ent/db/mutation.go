@@ -29358,7 +29358,7 @@ type PriceMutation struct {
 	key                 *string
 	phase_key           *string
 	item_key            *string
-	value               *string
+	value               **plan.Price
 	clearedFields       map[string]struct{}
 	subscription        *string
 	clearedsubscription bool
@@ -29858,12 +29858,12 @@ func (m *PriceMutation) ResetItemKey() {
 }
 
 // SetValue sets the "value" field.
-func (m *PriceMutation) SetValue(s string) {
-	m.value = &s
+func (m *PriceMutation) SetValue(pl *plan.Price) {
+	m.value = &pl
 }
 
 // Value returns the value of the "value" field in the mutation.
-func (m *PriceMutation) Value() (r string, exists bool) {
+func (m *PriceMutation) Value() (r *plan.Price, exists bool) {
 	v := m.value
 	if v == nil {
 		return
@@ -29874,7 +29874,7 @@ func (m *PriceMutation) Value() (r string, exists bool) {
 // OldValue returns the old "value" field's value of the Price entity.
 // If the Price object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PriceMutation) OldValue(ctx context.Context) (v string, err error) {
+func (m *PriceMutation) OldValue(ctx context.Context) (v *plan.Price, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldValue is only allowed on UpdateOne operations")
 	}
@@ -30129,7 +30129,7 @@ func (m *PriceMutation) SetField(name string, value ent.Value) error {
 		m.SetItemKey(v)
 		return nil
 	case price.FieldValue:
-		v, ok := value.(string)
+		v, ok := value.(*plan.Price)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -33621,7 +33621,7 @@ type SubscriptionPatchValueAddItemMutation struct {
 	create_entitlement_config                        *[]uint8
 	appendcreate_entitlement_config                  []uint8
 	create_price_key                                 *string
-	create_price_value                               *string
+	create_price_value                               **plan.Price
 	clearedFields                                    map[string]struct{}
 	subscription_patch                               *string
 	clearedsubscription_patch                        bool
@@ -34378,12 +34378,12 @@ func (m *SubscriptionPatchValueAddItemMutation) ResetCreatePriceKey() {
 }
 
 // SetCreatePriceValue sets the "create_price_value" field.
-func (m *SubscriptionPatchValueAddItemMutation) SetCreatePriceValue(s string) {
-	m.create_price_value = &s
+func (m *SubscriptionPatchValueAddItemMutation) SetCreatePriceValue(pl *plan.Price) {
+	m.create_price_value = &pl
 }
 
 // CreatePriceValue returns the value of the "create_price_value" field in the mutation.
-func (m *SubscriptionPatchValueAddItemMutation) CreatePriceValue() (r string, exists bool) {
+func (m *SubscriptionPatchValueAddItemMutation) CreatePriceValue() (r *plan.Price, exists bool) {
 	v := m.create_price_value
 	if v == nil {
 		return
@@ -34394,7 +34394,7 @@ func (m *SubscriptionPatchValueAddItemMutation) CreatePriceValue() (r string, ex
 // OldCreatePriceValue returns the old "create_price_value" field's value of the SubscriptionPatchValueAddItem entity.
 // If the SubscriptionPatchValueAddItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionPatchValueAddItemMutation) OldCreatePriceValue(ctx context.Context) (v *string, err error) {
+func (m *SubscriptionPatchValueAddItemMutation) OldCreatePriceValue(ctx context.Context) (v *plan.Price, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatePriceValue is only allowed on UpdateOne operations")
 	}
@@ -34704,7 +34704,7 @@ func (m *SubscriptionPatchValueAddItemMutation) SetField(name string, value ent.
 		m.SetCreatePriceKey(v)
 		return nil
 	case subscriptionpatchvalueadditem.FieldCreatePriceValue:
-		v, ok := value.(string)
+		v, ok := value.(*plan.Price)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

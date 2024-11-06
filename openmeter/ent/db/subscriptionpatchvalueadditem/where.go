@@ -123,11 +123,6 @@ func CreatePriceKey(v string) predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreatePriceKey, v))
 }
 
-// CreatePriceValue applies equality check predicate on the "create_price_value" field. It's identical to CreatePriceValueEQ.
-func CreatePriceValue(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreatePriceValue, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldNamespace, v))
@@ -838,61 +833,6 @@ func CreatePriceKeyContainsFold(v string) predicate.SubscriptionPatchValueAddIte
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldContainsFold(FieldCreatePriceKey, v))
 }
 
-// CreatePriceValueEQ applies the EQ predicate on the "create_price_value" field.
-func CreatePriceValueEQ(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEQ(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueNEQ applies the NEQ predicate on the "create_price_value" field.
-func CreatePriceValueNEQ(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNEQ(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueIn applies the In predicate on the "create_price_value" field.
-func CreatePriceValueIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldIn(FieldCreatePriceValue, vs...))
-}
-
-// CreatePriceValueNotIn applies the NotIn predicate on the "create_price_value" field.
-func CreatePriceValueNotIn(vs ...string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotIn(FieldCreatePriceValue, vs...))
-}
-
-// CreatePriceValueGT applies the GT predicate on the "create_price_value" field.
-func CreatePriceValueGT(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGT(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueGTE applies the GTE predicate on the "create_price_value" field.
-func CreatePriceValueGTE(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldGTE(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueLT applies the LT predicate on the "create_price_value" field.
-func CreatePriceValueLT(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLT(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueLTE applies the LTE predicate on the "create_price_value" field.
-func CreatePriceValueLTE(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldLTE(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueContains applies the Contains predicate on the "create_price_value" field.
-func CreatePriceValueContains(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldContains(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueHasPrefix applies the HasPrefix predicate on the "create_price_value" field.
-func CreatePriceValueHasPrefix(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasPrefix(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueHasSuffix applies the HasSuffix predicate on the "create_price_value" field.
-func CreatePriceValueHasSuffix(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldHasSuffix(FieldCreatePriceValue, v))
-}
-
 // CreatePriceValueIsNil applies the IsNil predicate on the "create_price_value" field.
 func CreatePriceValueIsNil() predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldIsNull(FieldCreatePriceValue))
@@ -901,16 +841,6 @@ func CreatePriceValueIsNil() predicate.SubscriptionPatchValueAddItem {
 // CreatePriceValueNotNil applies the NotNil predicate on the "create_price_value" field.
 func CreatePriceValueNotNil() predicate.SubscriptionPatchValueAddItem {
 	return predicate.SubscriptionPatchValueAddItem(sql.FieldNotNull(FieldCreatePriceValue))
-}
-
-// CreatePriceValueEqualFold applies the EqualFold predicate on the "create_price_value" field.
-func CreatePriceValueEqualFold(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldEqualFold(FieldCreatePriceValue, v))
-}
-
-// CreatePriceValueContainsFold applies the ContainsFold predicate on the "create_price_value" field.
-func CreatePriceValueContainsFold(v string) predicate.SubscriptionPatchValueAddItem {
-	return predicate.SubscriptionPatchValueAddItem(sql.FieldContainsFold(FieldCreatePriceValue, v))
 }
 
 // HasSubscriptionPatch applies the HasEdge predicate on the "subscription_patch" edge.

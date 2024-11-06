@@ -276,7 +276,7 @@ func mapPatchesToCreates(subscriptionID models.NamespacedID, patches []subscript
 				}
 
 				if v := val.CreatePriceInput; v != nil {
-					s.SetCreatePriceValue(v.Value)
+					s.SetCreatePriceValue(&v.Value)
 					s.SetCreatePriceKey(v.Key)
 				}
 			}

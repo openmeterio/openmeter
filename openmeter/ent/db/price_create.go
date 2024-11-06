@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/price"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 // PriceCreate is the builder for creating a Price entity.
@@ -117,8 +118,8 @@ func (pc *PriceCreate) SetItemKey(s string) *PriceCreate {
 }
 
 // SetValue sets the "value" field.
-func (pc *PriceCreate) SetValue(s string) *PriceCreate {
-	pc.mutation.SetValue(s)
+func (pc *PriceCreate) SetValue(pl *plan.Price) *PriceCreate {
+	pc.mutation.SetValue(pl)
 	return pc
 }
 
@@ -245,7 +246,7 @@ func (pc *PriceCreate) check() error {
 		return &ValidationError{Name: "value", err: errors.New(`db: missing required field "Price.value"`)}
 	}
 	if v, ok := pc.mutation.Value(); ok {
-		if err := price.ValueValidator(v); err != nil {
+		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "value", err: fmt.Errorf(`db: validator failed for field "Price.value": %w`, err)}
 		}
 	}
@@ -259,7 +260,10 @@ func (pc *PriceCreate) sqlSave(ctx context.Context) (*Price, error) {
 	if err := pc.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := pc.createSpec()
+	_node, _spec, err := pc.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, pc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -278,7 +282,7 @@ func (pc *PriceCreate) sqlSave(ctx context.Context) (*Price, error) {
 	return _node, nil
 }
 
-func (pc *PriceCreate) createSpec() (*Price, *sqlgraph.CreateSpec) {
+func (pc *PriceCreate) createSpec() (*Price, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Price{config: pc.config}
 		_spec = sqlgraph.NewCreateSpec(price.Table, sqlgraph.NewFieldSpec(price.FieldID, field.TypeString))
@@ -325,7 +329,11 @@ func (pc *PriceCreate) createSpec() (*Price, *sqlgraph.CreateSpec) {
 		_node.ItemKey = value
 	}
 	if value, ok := pc.mutation.Value(); ok {
-		_spec.SetField(price.FieldValue, field.TypeString, value)
+		vv, err := price.ValueScanner.Value.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(price.FieldValue, field.TypeString, vv)
 		_node.Value = value
 	}
 	if nodes := pc.mutation.SubscriptionIDs(); len(nodes) > 0 {
@@ -345,7 +353,7 @@ func (pc *PriceCreate) createSpec() (*Price, *sqlgraph.CreateSpec) {
 		_node.SubscriptionID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -641,7 +649,10 @@ func (pcb *PriceCreateBulk) Save(ctx context.Context) ([]*Price, error) {
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, pcb.builders[i+1].mutation)
 				} else {
