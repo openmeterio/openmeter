@@ -166,11 +166,10 @@ model NotificationEvent {
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   createdAt: DateTime;
 
-  /**
+  /*
    * The nnotification rule which generated this event.
    */
   @visibility("read")
-  @summary("Owner Rule")
   rule: NotificationRule;
 
   /**
@@ -180,11 +179,10 @@ model NotificationEvent {
   @summary("Delivery Status")
   deliveryStatus: Array<NotificationEventDeliveryStatus>;
 
-  /**
+  /*
    * Timestamp when the notification event was created in RFC 3339 format.
    */
   @visibility("read")
-  @summary("Event Payload")
   payload: NotificationEventPayload;
 
   /**
