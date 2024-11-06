@@ -26,10 +26,10 @@ update-openapi-cloud: ## Update OpenAPI spec
 .PHONY: gen-api
 gen-api: ## Generate API and SDKs
 	$(call print-target)
-	go generate ./api/...
-# dagger call generate node-sdk -o api/client/node
-# dagger call generate web-sdk -o api/client/web
-# dagger call generate python-sdk -o api/client/python
+	$(MAKE) update-openapi-cloud
+	dagger call generate node-sdk -o api/client/node
+	# dagger call generate web-sdk -o api/client/web
+	# dagger call generate python-sdk -o api/client/python
 
 .PHONY: migrate-check
 migrate-check: ## Validate migrations

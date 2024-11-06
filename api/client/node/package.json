@@ -32,7 +32,7 @@
     "lint": "eslint . --ext .ts --format=pretty",
     "format": "prettier --write .",
     "build": "duel",
-    "generate": "rimraf ./schemas && openapi-typescript '../../openapi.yaml' --output schemas/openapi.ts && prettier --write schemas/",
+    "generate": "rimraf ./schemas && openapi-typescript '../../openapi.cloud.yaml' --output schemas/openapi.ts && prettier --write schemas/",
     "pretest": "pnpm run build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",

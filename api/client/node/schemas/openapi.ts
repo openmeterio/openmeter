@@ -314,10 +314,14 @@ export interface paths {
   '/api/v1/meters': {
     /** @description List meters. */
     get: operations['listMeters']
+    /** @description Create a meter. */
+    post: operations['createMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}': {
     /** @description Get a meter by ID or slug. */
     get: operations['getMeter']
+    /** @description Delete a meter. */
+    delete: operations['deleteMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}/query': {
     /** @description Query meter for usage. Query meter for usage. */
@@ -507,6 +511,27 @@ export interface paths {
     get: operations['listPortalTokens']
     /** @description Create a consumer portal token. */
     post: operations['createPortalToken']
+  }
+  '/api/v1/portal/tokens/invalidate': {
+    /** @description Invalidates consumer portal tokens by ID or subject. */
+    post: operations['invalidatePortalTokens']
+  }
+  '/api/v1/subjects': {
+    /** @description List subjects. */
+    get: operations['listSubjects']
+    /**
+     * @description Upserts a subject. Creates or updates subject.
+     *
+     * If the subject doesn't exist, it will be created.
+     * If the subject exists, it will be partially updated with the provided fields.
+     */
+    post: operations['upsertSubject']
+  }
+  '/api/v1/subjects/{subjectIdOrKey}': {
+    /** @description Get subject by ID or key. */
+    get: operations['getSubject']
+    /** @description Delete subject by ID or key. */
+    delete: operations['deleteSubject']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements': {
     /** @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead. */
@@ -2013,11 +2038,6 @@ export interface components {
      */
     BillingWorkflowAppIdOrType: string
     /**
-     * App reference type specifies the type of reference inside an app reference
-     * @enum {string}
-     */
-    BillingWorkflowAppReferenceType: 'app_id' | 'app_type'
-    /**
      * Collection alignment
      * @description CollectionAlignment specifies when the pending line items should be collected into
      * an invoice.
@@ -2070,12 +2090,6 @@ export interface components {
        */
       dueAfter?: string
     }
-    /**
-     * Item resolution
-     * @description LineResolution specifies how the line items should be resolved in the invoice
-     * @enum {string}
-     */
-    BillingWorkflowLineResolution: 'day' | 'period'
     /**
      * Workflow payment settings
      * @description WorkflowPaymentSettings represents the payment settings for a billing workflow
@@ -2387,30 +2401,6 @@ export interface components {
       subjectKeys: string[]
     }
     /**
-     * @description A discount on a price.
-     * One of: percentage, amount, or usage.
-     */
-    Discount: components['schemas']['DiscountPercentage']
-    /** @description Percentage discount. */
-    DiscountPercentage: {
-      /**
-       * Type
-       * @description The type of the discount.
-       * @enum {string}
-       */
-      type: 'percentage'
-      /**
-       * Percentage
-       * @description The percentage of the discount.
-       */
-      percentage: number
-    }
-    /**
-     * @description The type of the discount.
-     * @enum {string}
-     */
-    DiscountType: 'percentage'
-    /**
      * @description Entitlement templates are used to define the entitlements of a plan.
      * Features are omitted from the entitlement template, as they are defined in the rate card.
      */
@@ -2560,25 +2550,6 @@ export interface components {
       | components['schemas']['EntitlementMeteredCreateInputs']
       | components['schemas']['EntitlementStaticCreateInputs']
       | components['schemas']['EntitlementBooleanCreateInputs']
-    /** @description Shared fields for entitlement creation */
-    EntitlementCreateSharedFields: {
-      /**
-       * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
-       * @example example-feature-key
-       */
-      featureKey?: string
-      /**
-       * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      featureId?: string
-      /** @description Additional metadata for the feature. */
-      metadata?: components['schemas']['Metadata']
-      /** @description The usage period associated with the entitlement. */
-      usagePeriod?: components['schemas']['RecurringPeriodCreateInput']
-    }
     /** @description The grant. */
     EntitlementGrant: {
       /**
@@ -2818,25 +2789,6 @@ export interface components {
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       featureId: string
-      /**
-       * Format: date-time
-       * @description The time the last reset happened.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      lastReset: string
-      /** @description The current usage period. */
-      currentUsagePeriod: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      measureUsageFrom: string
-      /** @description THe usage period of the entitlement. */
-      usagePeriod: components['schemas']['RecurringPeriod']
-    }
-    /** @description Calculated fields for metered entitlements. */
-    EntitlementMeteredCalculatedFields: {
       /**
        * Format: date-time
        * @description The time the last reset happened.
@@ -3470,8 +3422,6 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['BillingInvoice'][]
     }
-    /** @description Query params for listing installed apps */
-    ListAppsRequest: components['schemas']['PaginatedQuery']
     ListEntitlementsResult:
       | components['schemas']['Entitlement'][]
       | components['schemas']['EntitlementPaginatedResponse']
@@ -3628,6 +3578,65 @@ export interface components {
      * @enum {string}
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX'
+    /**
+     * @description A meter is a configuration that defines how to match and aggregate events.
+     * @example {
+     *   "slug": "tokens_total",
+     *   "description": "AI Token Usage",
+     *   "aggregation": "SUM",
+     *   "windowSize": "MINUTE",
+     *   "eventType": "prompt",
+     *   "valueProperty": "$.tokens",
+     *   "groupBy": {
+     *     "model": "$.model",
+     *     "type": "$.type"
+     *   }
+     * }
+     */
+    MeterCreate: {
+      /**
+       * @description A unique, human-readable identifier for the meter.
+       * Must consist only alphanumeric and underscore characters.
+       * @example tokens_total
+       */
+      slug: string
+      /**
+       * @description A description of the meter.
+       * @example AI Token Usage
+       */
+      description?: string
+      /** @example SUM */
+      aggregation: components['schemas']['MeterAggregation']
+      /** @example MINUTE */
+      windowSize: components['schemas']['WindowSize']
+      /**
+       * @description The event type to aggregate.
+       * @example prompt
+       */
+      eventType: string
+      /**
+       * @description JSONPath expression to extract the value from the ingested event's data property.
+       *
+       * The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+       *
+       * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+       * @example $.tokens
+       */
+      valueProperty?: string
+      /**
+       * @description Named JSONPath expressions to extract the group by values from the event data.
+       *
+       * Keys must be unique and consist only alphanumeric and underscore characters.
+       *
+       * TODO: add key format enforcement
+       * @example {
+       *   "type": "$.type"
+       * }
+       */
+      groupBy?: {
+        [key: string]: string
+      }
+    }
     /**
      * @description The result of a meter query.
      * @example {
@@ -4136,20 +4145,6 @@ export interface components {
     NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
     /** @description Union type for requests creating new notification rule with certain type. */
     NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
-    /** @description Metadata only fields of a notification channel. */
-    NotificationRuleMeta: {
-      /**
-       * Rule Unique Identifier
-       * @description Identifies the notification rule.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      id: string
-      /**
-       * Rule Type
-       * @description Notification rule type.
-       */
-      type: components['schemas']['NotificationEventType']
-    }
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -4189,19 +4184,6 @@ export interface components {
       | 'invalid_scope'
       | 'server_error'
       | 'temporarily_unavailable'
-    /** @description Paginated query parameters. */
-    PaginatedQuery: {
-      /**
-       * @description The page number.
-       * @default 1
-       */
-      page?: number
-      /**
-       * @description The number of items in the page.
-       * @default 100
-       */
-      pageSize?: number
-    }
     /** @description Numeric representation of a percentage */
     Percentage: string
     /** @description A period with a start and end time. */
@@ -4223,7 +4205,7 @@ export interface components {
      * @description Order by options for plan phases.
      * @enum {string}
      */
-    PhasesOrderBy: 'key'
+    PhasesOrderBy: 'key' | 'start_after'
     /** @description Plans provide a template for subscriptions. */
     Plan: {
       /**
@@ -4303,9 +4285,10 @@ export interface components {
        * Status
        * @description The status of the plan.
        * Computed based on the effective start and end dates:
-       * - draft = no effectiveStartDate
-       * - active = effectiveStartDate <= now < effectiveEndDate
-       * - archived / inactive = effectiveEndDate <= now
+       * - draft = no effectiveFrom
+       * - active = effectiveFrom <= now < effectiveTo
+       * - archived / inactive = effectiveTo <= now
+       * - scheduled = now < effectiveFrom < effectiveTo
        */
       status: components['schemas']['PlanStatus']
       /**
@@ -4368,7 +4351,7 @@ export interface components {
      * @description Order by options for plans.
      * @enum {string}
      */
-    PlanOrderBy: 'id' | 'key'
+    PlanOrderBy: 'id' | 'key' | 'version' | 'create_at' | 'updated_at'
     /** @description Paginated response */
     PlanPaginatedResponse: {
       /**
@@ -4435,14 +4418,14 @@ export interface components {
        */
       rateCards: components['schemas']['RateCard'][]
       /**
-       * Duration
+       * Start after
        * Format: duration
        * @description The time after which the plan starts compared to subscription start
        * @example P1Y1D
        */
       startAfter: string | null
       /**
-       * Discount
+       * Discounts
        * @description The discounts on the plan.
        */
       discounts?: components['schemas']['AppliedDiscount'][]
@@ -4472,14 +4455,14 @@ export interface components {
        */
       rateCards: components['schemas']['RateCard'][]
       /**
-       * Duration
+       * Start after
        * Format: duration
        * @description The time after which the plan starts compared to subscription start
        * @example P1Y1D
        */
       startAfter: string | null
       /**
-       * Discount
+       * Discounts
        * @description The discounts on the plan.
        */
       discounts?: components['schemas']['AppliedDiscount'][]
@@ -4529,19 +4512,19 @@ export interface components {
        */
       rateCards?: components['schemas']['RateCard'][]
       /**
-       * Duration
+       * Start after
        * Format: duration
        * @description The time after which the plan starts compared to subscription start
        * @example P1Y1D
        */
       startAfter?: string | null
       /**
-       * Discount
+       * Discounts
        * @description The discounts on the plan.
        */
       discounts?: components['schemas']['AppliedDiscount'][]
     }
-    /** @description Referebces an exact plan. */
+    /** @description References an exact plan. */
     PlanReference: {
       /** @description The plan key. */
       key: string
@@ -4552,7 +4535,7 @@ export interface components {
      * @description The status of a plan.
      * @enum {string}
      */
-    PlanStatus: 'draft' | 'active' | 'archived'
+    PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
     /** @description Resource create or update operation model. */
     PlanUpdate: {
       /**
@@ -4598,50 +4581,6 @@ export interface components {
       phases?: components['schemas']['PlanPhase'][]
     }
     /**
-     * @description A plan variant.
-     * A set of properties that can be used to select a specific configuration of a plan.
-     */
-    PlanVariant: {
-      currency: components['schemas']['CurrencyCode']
-    }
-    /** @description Plan variant override preset. */
-    PlanVariantOverridePreset: {
-      /**
-       * Variant
-       * @description The variant of the plan.
-       * @example {
-       *   "currency": "USD"
-       * }
-       */
-      variant: components['schemas']['PlanVariant']
-      /**
-       * Currency
-       * @description The currency code.
-       */
-      currency?: components['schemas']['CurrencyCode']
-      /**
-       * Rate card overrides
-       * @description The rate card overrides.
-       */
-      rateCards?: {
-        /**
-         * Add rate card
-         * @description Add rate cards to the plan.
-         */
-        add?: components['schemas']['RateCard'][]
-        /**
-         * Remove rate card
-         * @description Remove rate cards from the plan.
-         */
-        remove?: string[]
-      }
-      /**
-       * Discount
-       * @description The discount on the plan.
-       */
-      discount?: components['schemas']['AppliedDiscount']
-    }
-    /**
      * @description A consumer portal token.
      *
      * Validator doesn't obey required for readOnly properties
@@ -4683,14 +4622,6 @@ export interface components {
     }
     /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
     PreconditionFailedProblemResponse: components['schemas']['UnexpectedProblemResponse']
-    /**
-     * @description Price.
-     * One of: flat, unit, or tiered.
-     */
-    Price:
-      | components['schemas']['FlatPrice']
-      | components['schemas']['UnitPrice']
-      | components['schemas']['TieredPrice']
     /**
      * @description The payment term of a flat price.
      * One of: in_advance or in_arrears.
@@ -4743,11 +4674,6 @@ export interface components {
        */
       unitPrice: components['schemas']['UnitPriceUpdateItem'] | null
     }
-    /**
-     * @description The type of the price.
-     * @enum {string}
-     */
-    PriceType: 'flat' | 'unit' | 'tiered'
     /** @description Paginated response */
     ProfilePaginatedResponse: {
       /**
@@ -4859,6 +4785,7 @@ export interface components {
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
+       * When null it means it is a one time fee.
        */
       billingCadence: string | null
       /**
@@ -4915,6 +4842,7 @@ export interface components {
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
+       * When null it means it is a one time fee.
        */
       billingCadence: string | null
       /**
@@ -4967,45 +4895,6 @@ export interface components {
        */
       usagePeriod?: string
     }
-    /** @description Rate card override. */
-    RateCardOverride:
-      | components['schemas']['RateCardOverrideFlatFee']
-      | components['schemas']['RateCardOverrideUsageBased']
-    /** @description Flat fee rate card override. */
-    RateCardOverrideFlatFee: {
-      /**
-       * RateCard type
-       * @description The type of the RateCard.
-       * @enum {string}
-       */
-      type: 'flat_fee'
-      /**
-       * Price
-       * @description The price of the rate card.
-       * When null, the feature or service is free.
-       * @example {}
-       */
-      price: components['schemas']['FlatPriceWithPaymentTerm'] | null
-    }
-    /** @description Usage-based rate card override. */
-    RateCardOverrideUsageBased: {
-      /**
-       * RateCard type
-       * @description The type of the RateCard.
-       * @enum {string}
-       */
-      type: 'usage_based'
-      /**
-       * Price
-       * @description The price of the rate card.
-       * When null, the feature or service is free.
-       * @example {}
-       */
-      price:
-        | (components['schemas']['UnitPriceWithCommitments'] | null)
-        | (components['schemas']['TieredPriceWithCommitments'] | null)
-        | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
-    }
     /** @description Entitlement template of a static entitlement. */
     RateCardStaticEntitlement: {
       /** @description Additional metadata for the feature. */
@@ -5019,11 +4908,6 @@ export interface components {
        */
       config: string
     }
-    /**
-     * @description The type of the rate card.
-     * @enum {string}
-     */
-    RateCardType: 'flat_fee' | 'usage_based'
     /** @description A rate card defines the pricing and entitlement of a feature or service. */
     RateCardUpdateItem:
       | components['schemas']['RateCardFlatFeeUpdateItem']
@@ -5100,7 +4984,6 @@ export interface components {
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
-       * When null, the rate card is a one-time purchase.
        */
       billingCadence: string
       /**
@@ -5160,7 +5043,6 @@ export interface components {
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
-       * When null, the rate card is a one-time purchase.
        */
       billingCadence: string
       /**
@@ -5308,22 +5190,6 @@ export interface components {
      * @enum {string}
      */
     SortOrder: 'ASC' | 'DESC'
-    /**
-     * @description Spending commitments.
-     * The customer is committed to spend at least the minimum amount and at most the maximum amount.
-     */
-    SpendCommitments: {
-      /**
-       * Minimum amount
-       * @description The customer is committed to spend at least the amount.
-       */
-      minimumAmount?: components['schemas']['Numeric']
-      /**
-       * Maximum amount
-       * @description The customer is limited to spend at most the amount.
-       */
-      maximumAmount?: components['schemas']['Numeric']
-    }
     /**
      * @description A installed Stripe app object.
      * @example {
@@ -5520,6 +5386,49 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
+      /**
+       * @description A unique, human-readable identifier for the subject.
+       * @example customer-id
+       */
+      key: string
+      /**
+       * @description A human-readable display name for the subject.
+       * @example Customer Name
+       */
+      displayName?: string | null
+      /** @example {} */
+      metadata?: {
+        [key: string]: unknown
+      } | null
+      /**
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T00:00:00.000Z"
+       */
+      currentPeriodStart?: string
+      /**
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-02-01T00:00:00.000Z"
+       */
+      currentPeriodEnd?: string
+      /** @example cus_JMOlctsKV8 */
+      stripeCustomerId?: string | null
+    }
+    /**
+     * @description A subject is a unique identifier for a user or entity.
+     * @example {
+     *   "key": "customer-id",
+     *   "displayName": "Customer Name",
+     *   "metadata": {
+     *     "hubspotId": "123456"
+     *   },
+     *   "currentPeriodStart": "2023-01-01T00:00:00.000Z",
+     *   "currentPeriodEnd": "2023-02-01T00:00:00.000Z",
+     *   "stripeCustomerId": "cus_JMOlctsKV8"
+     * }
+     */
+    SubjectUpsert: {
       /**
        * @description A unique, human-readable identifier for the subject.
        * @example customer-id
@@ -5810,65 +5719,6 @@ export interface components {
         } & Omit<components['schemas']['Entitlement'], 'type'>
       }
     }
-    /** @description Subscription phase, analogous to plan phases. */
-    SubscriptionPhase: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
-       */
-      createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
-       */
-      updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
-       */
-      deletedAt?: string
-      /** @description A locally unique identifier for the resource. */
-      key: string
-      /**
-       * Duration
-       * Format: duration
-       * @description The intended duration of the new phase.
-       * @example P1M
-       */
-      duration: string
-      /**
-       * Discount
-       * @description The discounts on the plan.
-       */
-      discounts?: components['schemas']['AppliedDiscount'][]
-      /**
-       * Format: date-time
-       * @description The time from which the phase is active.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      activeFrom: string
-    }
     /** @description Subscription phase create input. */
     SubscriptionPhaseCreate: {
       /**
@@ -5982,24 +5832,6 @@ export interface components {
        * @description Stripe tax config.
        */
       stripe?: components['schemas']['StripeTaxConfig']
-    }
-    /** @description Tiered price. */
-    TieredPrice: {
-      /** @enum {string} */
-      type: 'tiered'
-      /**
-       * Mode
-       * @description Defines if the tiering mode is volume-based or graduated:
-       * - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
-       * - In `graduated` tiering, pricing can change as the quantity grows.
-       */
-      mode: components['schemas']['TieredPriceMode']
-      /**
-       * Tiers
-       * @description The tiers of the tiered price.
-       * At least one price component is required in each tier.
-       */
-      tiers: components['schemas']['PriceTier'][]
     }
     /**
      * @description The mode of the tiered price.
@@ -6159,40 +5991,6 @@ export interface components {
       /** @description Grant burndown history. */
       burndownHistory: components['schemas']['GrantBurnDownHistorySegment'][]
     }
-    /** @description Query params for listing customers. */
-    queryCustomerList: {
-      /**
-       * @description The order direction.
-       * @default ASC
-       * @example ASC
-       */
-      order?: components['schemas']['SortOrder']
-      /** @description The order by field. */
-      orderBy?: components['schemas']['CustomerOrderBy']
-      /**
-       * @description Include deleted customers.
-       * @default false
-       */
-      includeDeleted?: boolean
-      /**
-       * @description Filter customers by name.
-       * Case-insensitive partial match.
-       * @example ACME
-       */
-      name?: string
-      /**
-       * @description Filter customers by primary email.
-       * Case-insensitive partial match.
-       * @example acme@test.com
-       */
-      primaryEmail?: string
-      /**
-       * @description Filter customers by usage attribution subject.
-       * Case-insensitive partial match.
-       * @example my_subject_key
-       */
-      subject?: string
-    } & components['schemas']['PaginatedQuery']
   }
   responses: never
   parameters: {
@@ -9427,6 +9225,58 @@ export interface operations {
       }
     }
   }
+  /** @description Create a meter. */
+  createMeter: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MeterCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        content: {
+          'application/json': components['schemas']['Meter']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
   /** @description Get a meter by ID or slug. */
   getMeter: {
     parameters: {
@@ -9463,6 +9313,56 @@ export interface operations {
       404: {
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /** @description Delete a meter. */
+  deleteMeter: {
+    parameters: {
+      path: {
+        meterIdOrSlug: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11448,6 +11348,273 @@ export interface operations {
         content: {
           'application/json': components['schemas']['PortalToken']
         }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /** @description Invalidates consumer portal tokens by ID or subject. */
+  invalidatePortalTokens: {
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Invalidate a portal token by ID. */
+          id?: string
+          /** @description Invalidate all portal tokens for a subject. */
+          subject?: string
+        }
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /** @description List subjects. */
+  listSubjects: {
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subject'][]
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
+   * @description Upserts a subject. Creates or updates subject.
+   *
+   * If the subject doesn't exist, it will be created.
+   * If the subject exists, it will be partially updated with the provided fields.
+   */
+  upsertSubject: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubjectUpsert'][]
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subject'][]
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /** @description Get subject by ID or key. */
+  getSubject: {
+    parameters: {
+      path: {
+        subjectIdOrKey: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subject']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /** @description Delete subject by ID or key. */
+  deleteSubject: {
+    parameters: {
+      path: {
+        subjectIdOrKey: string
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        content: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
