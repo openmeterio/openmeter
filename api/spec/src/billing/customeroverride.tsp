@@ -101,6 +101,9 @@ model CustomerOverride {
   billingProfile?: ULID;
 }
 
+/**
+ * Customer specific workflow overrides.
+ */
 @friendlyName("BillingCustomerWorkflowOverride")
 model CustomerWorkflowOverride {
   ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
@@ -108,15 +111,18 @@ model CustomerWorkflowOverride {
   // Note: these are only available for read, as provider override is not supported via the customer override.
   // to do that the customer should be assocatied with a new billing profile instead.
 
-  @summary("The tax app used for this workflow")
   @visibility("read", "query")
   taxApp: OpenMeter.App.App;
 
-  @summary("The invoicing app used for this workflow")
+  /*
+   * The invoicing app used for this workflow
+   */
   @visibility("read", "query")
   invoicingApp: OpenMeter.App.App;
 
-  @summary("The payment app used for this workflow")
+  /*
+   * The payment app used for this workflow
+   */
   @visibility("read", "query")
   paymentApp: OpenMeter.App.App;
 }

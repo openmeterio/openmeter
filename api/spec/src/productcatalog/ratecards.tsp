@@ -33,12 +33,11 @@ model RateCardBase<T extends RateCardType> {
   @summary("Feature key")
   featureKey?: Key;
 
-  /**
+  /*
    * The entitlement of the rate card.
    * Only available when featureKey is set.
    */
   @visibility("read", "create", "update")
-  @summary("Entitlement template")
   entitlementTemplate?: RateCardEntitlement;
 
   /**

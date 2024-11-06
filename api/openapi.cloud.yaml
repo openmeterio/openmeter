@@ -8210,17 +8210,12 @@ components:
           title: ID
           readOnly: true
         taxApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The tax app used for this workflow
+          $ref: '#/components/schemas/App'
         invoicingApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The invoicing app used for this workflow
+          $ref: '#/components/schemas/App'
         paymentApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The payment app used for this workflow
+          $ref: '#/components/schemas/App'
+      description: Customer specific workflow overrides.
     BillingCustomerWorkflowOverrideCreate:
       type: object
       properties:
@@ -8236,6 +8231,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           title: The payment settings for this workflow
+      description: Customer specific workflow overrides.
     BillingDocumentRef:
       type: object
       allOf:
@@ -9534,17 +9530,11 @@ components:
         - payment
       properties:
         tax:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The tax app used for this workflow
+          $ref: '#/components/schemas/App'
         invoicing:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The invoicing app used for this workflow
+          $ref: '#/components/schemas/App'
         payment:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The payment app used for this workflow
+          $ref: '#/components/schemas/App'
       description: ProfileApps represents the applications used by a billing profile
     BillingProfileAppsOrReference:
       anyOf:
@@ -12249,8 +12239,6 @@ components:
         rule:
           allOf:
             - $ref: '#/components/schemas/NotificationRule'
-          description: The nnotification rule which generated this event.
-          title: Owner Rule
           readOnly: true
         deliveryStatus:
           type: array
@@ -12262,8 +12250,6 @@ components:
         payload:
           allOf:
             - $ref: '#/components/schemas/NotificationEventPayload'
-          description: Timestamp when the notification event was created in RFC 3339 format.
-          title: Event Payload
           readOnly: true
         annotations:
           allOf:
@@ -13410,12 +13396,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13480,12 +13461,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13660,12 +13636,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13736,12 +13707,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -14633,12 +14599,17 @@ components:
                 - $ref: '#/components/schemas/Feature'
               description: The feature the customer is entitled to use.
             entitlement:
-              allOf:
-                - $ref: '#/components/schemas/Entitlement'
-              description: The entitlement of the Subscription Item.
+              $ref: '#/components/schemas/Entitlement'
           required:
             - feature
           description: Describes what access is gained via the SubscriptionItem
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the Subscription Item.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
       description: The actual contents of the Subscription, what the user gets, what they pay, etc...
     SubscriptionPhaseCreate:
       type: object

@@ -33,36 +33,39 @@
     "node": ">=18.16.1"
   },
   "scripts": {
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
     "format": "prettier --list-different --find-config-path --write .",
     "build": "rimraf ./dist && tsc --build",
-    "generate": "openapi-typescript '../../openapi.yaml' --output src/client/openapi.ts && prettier --write src/client/openapi.ts",
+    "generate": "openapi-typescript '../../openapi.cloud.yaml' --output src/client/openapi.ts && prettier --write src/client/openapi.ts",
     "pretest": "pnpm run build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
     "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test"
   },
   "devDependencies": {
+    "@eslint/compat": "^1.2.2",
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.14.0",
     "@testing-library/react": "16.0.1",
     "@types/node": "22.9.0",
     "@types/react": "18.3.12",
-    "@typescript-eslint/eslint-plugin": "7.13.1",
-    "@typescript-eslint/parser": "7.13.1",
-    "eslint": "8.57.0",
+    "@typescript-eslint/eslint-plugin": "8.13.0",
+    "@typescript-eslint/parser": "8.13.0",
+    "eslint": "9.14.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-import-resolver-typescript": "3.6.3",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-unused-imports": "4.1.4",
     "eslint-plugin-vitest": "0.5.4",
-    "jsdom": "24.1.0",
-    "openapi-typescript": "6.7.6",
+    "jsdom": "25.0.1",
+    "openapi-typescript": "7.4.2",
     "prettier": "3.3.3",
     "react": "18.3.1",
     "rimraf": "6.0.1",
     "rollup": "^4.24.4",
     "typescript": "5.6.3",
     "undici": "6.20.1",
-    "vitest": "1.6.0"
+    "vitest": "2.1.4"
   },
   "dependencies": {
     "openapi-typescript-fetch": "^2.0.0"

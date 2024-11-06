@@ -181,10 +181,9 @@ model PlanVariantOverridePreset {
     // update?: Record<RateCardOverride>;
   };
 
-  /**
+  /*
    * The discount on the plan.
    */
-  @summary("Discount")
   discount?: AppliedDiscount;
 }
 

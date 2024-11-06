@@ -1,4 +1,6 @@
 import { renderHook } from '@testing-library/react'
+import React from 'react'
+import { MockAgent, setGlobalDispatcher } from 'undici'
 import {
   afterAll,
   afterEach,
@@ -9,10 +11,8 @@ import {
   it,
   vi,
 } from 'vitest'
-import { useOpenMeter, OpenMeterProvider } from '../dist/react'
-import React from 'react'
 import { OpenMeterClient } from '../dist'
-import { MockAgent, setGlobalDispatcher } from 'undici'
+import { useOpenMeter, OpenMeterProvider } from '../dist/react'
 
 describe('react', () => {
   beforeAll(() => {

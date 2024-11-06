@@ -131,13 +131,19 @@ model Profile {
  */
 @friendlyName("BillingProfileApps")
 model ProfileApps {
-  @summary("The tax app used for this workflow")
+  /*
+   * The tax app used for this workflow
+   */
   tax: OpenMeter.App.App;
 
-  @summary("The invoicing app used for this workflow")
+  /*
+   * The invoicing app used for this workflow
+   */
   invoicing: OpenMeter.App.App;
 
-  @summary("The payment app used for this workflow")
+  /*
+   * The payment app used for this workflow
+   */
   payment: OpenMeter.App.App;
 }
 

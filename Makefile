@@ -28,7 +28,7 @@ gen-api: ## Generate API and SDKs
 	$(call print-target)
 	$(MAKE) update-openapi-cloud
 	dagger call generate node-sdk -o api/client/node
-	# dagger call generate web-sdk -o api/client/web
+	dagger call generate web-sdk -o api/client/web
 	# dagger call generate python-sdk -o api/client/python
 
 .PHONY: migrate-check
