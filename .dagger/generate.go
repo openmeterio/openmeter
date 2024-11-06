@@ -39,6 +39,26 @@ func (m *Generate) Openapi() *dagger.File {
 	return file
 }
 
+// Generate OpenAPI from TypeSpec.
+func (m *Generate) Openapicloud() *dagger.File {
+	file := typespecBase(m.Source.Directory("api/spec")).
+		WithExec([]string{"pnpm", "compile"}).
+		File("/work/output/openapi.OpenMeterCloud.yaml").
+		WithName("openapi.cloud.yaml")
+
+	// https://github.com/microsoft/typespec/issues/2154
+	file = dag.Container().
+		From("alpine").
+		WithFile("/work/openapi.cloud.yaml", file).
+		WithWorkdir("/work").
+		WithExec([]string{"sed", "-i", "s/ingestEvents_ingestEvents/ingestEvents/", "openapi.cloud.yaml"}).
+		WithExec([]string{"sed", "-i", "s/queryMeter_queryMeter/queryMeter/", "openapi.cloud.yaml"}).
+		WithExec([]string{"sed", "-i", "s/queryPortalMeter_queryPortalMeter/queryPortalMeter/", "openapi.cloud.yaml"}).
+		File("/work/openapi.cloud.yaml")
+
+	return file
+}
+
 func typespecBase(source *dagger.Directory) *dagger.Container {
 	return dag.Container().
 		From("node:22.8.0-alpine3.20").
