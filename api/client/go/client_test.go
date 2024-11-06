@@ -9,13 +9,10 @@ import (
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-)
 
-var (
-	testSubject  string = "customer-1"
-	testMeterKey string = "meter-1"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestIngest(t *testing.T) {
@@ -64,6 +61,35 @@ func TestIngestBatch(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode())
 }
 
+func TetsListEvents(t *testing.T) {
+	ctx := context.Background()
+
+	event := mockEvent()
+
+	// Create a mock server to test the client
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/events", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		err := json.NewEncoder(w).Encode([]Event{event})
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	// Create a client with the mock server
+	om, err := NewClientWithResponses(server.URL)
+	assert.NoError(t, err)
+
+	resp, err := om.ListEventsWithResponse(ctx, &ListEventsParams{})
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode())
+	assert.Equal(t, lo.ToPtr([]Event{event}), resp.JSON200)
+}
+
 func TestAuth(t *testing.T) {
 	ctx := context.Background()
 
@@ -92,7 +118,7 @@ func TestGetMeter(t *testing.T) {
 	ctx := context.Background()
 
 	meter := models.Meter{
-		Slug:          testMeterKey,
+		Slug:          "meter-1",
 		Description:   "Test Meter",
 		Aggregation:   models.MeterAggregationSum,
 		ValueProperty: "$.tokens",
@@ -107,7 +133,8 @@ func TestGetMeter(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(meter)
+		err := json.NewEncoder(w).Encode(meter)
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
@@ -115,7 +142,7 @@ func TestGetMeter(t *testing.T) {
 	om, err := NewClientWithResponses(server.URL)
 	assert.NoError(t, err)
 
-	resp, err := om.GetMeterWithResponse(ctx, testMeterKey)
+	resp, err := om.GetMeterWithResponse(ctx, "meter-1")
 	assert.NoError(t, err)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode())
@@ -150,7 +177,8 @@ func TestListMeters(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(meters)
+		err := json.NewEncoder(w).Encode(meters)
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
@@ -171,7 +199,7 @@ func TestMeterQuery(t *testing.T) {
 	result := MeterQueryResult{
 		Data: []models.MeterQueryRow{
 			{
-				Subject:     &testSubject,
+				Subject:     lo.ToPtr("customer-1"),
 				WindowStart: time.Now().UTC(),
 				WindowEnd:   time.Now().UTC(),
 				Value:       123,
@@ -187,7 +215,8 @@ func TestMeterQuery(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(result)
+		err := json.NewEncoder(w).Encode(result)
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
@@ -195,15 +224,90 @@ func TestMeterQuery(t *testing.T) {
 	om, err := NewClientWithResponses(server.URL)
 	assert.NoError(t, err)
 
-	subjectFilter := []string{testSubject}
+	subjectFilter := []string{"customer-1"}
 
-	resp, err := om.QueryMeterWithResponse(ctx, testMeterKey, &QueryMeterParams{
+	resp, err := om.QueryMeterWithResponse(ctx, "meter-1", &QueryMeterParams{
 		Subject: &subjectFilter,
 	})
 	assert.NoError(t, err)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode())
 	assert.Equal(t, &result, resp.JSON200)
+}
+
+func TestListSubjects(t *testing.T) {
+	ctx := context.Background()
+
+	subjects := []Subject{
+		{
+			Key:         "customer-1",
+			DisplayName: lo.ToPtr("Customer 1"),
+		},
+		{
+			Key:         "customer-2",
+			DisplayName: lo.ToPtr("Customer 2"),
+		},
+	}
+
+	// Create a mock server to test the client
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/subjects", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		err := json.NewEncoder(w).Encode(subjects)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	// Create a client with the mock server
+	om, err := NewClientWithResponses(server.URL)
+	assert.NoError(t, err)
+
+	resp, err := om.ListSubjectsWithResponse(ctx)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode())
+	assert.Equal(t, &subjects, resp.JSON200)
+}
+
+func TestUpsertSubject(t *testing.T) {
+	ctx := context.Background()
+
+	subject := Subject{
+		Key:         "customer-1",
+		DisplayName: lo.ToPtr("Customer 1"),
+	}
+
+	// Create a mock server to test the client
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/subjects", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		err := json.NewEncoder(w).Encode([]Subject{subject})
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	// Create a client with the mock server
+	om, err := NewClientWithResponses(server.URL)
+	assert.NoError(t, err)
+
+	resp, err := om.UpsertSubjectWithResponse(ctx, []SubjectUpsert{
+		{
+			Key:         "customer-1",
+			DisplayName: lo.ToPtr("Customer 1"),
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode())
+	assert.Equal(t, lo.ToPtr([]Subject{subject}), resp.JSON200)
 }
 
 // mockEvent creates a mock CloudEvent for testing
@@ -215,7 +319,7 @@ func mockEvent() cloudevents.Event {
 	e.SetSource("my-app")
 	e.SetType("usage-reports")
 	e.SetSubject("customer-1")
-	e.SetData("application/json", map[string]string{
+	_ = e.SetData("application/json", map[string]string{
 		"reports": "123",
 		"type":    "type",
 	})

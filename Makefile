@@ -16,6 +16,13 @@ update-openapi: ## Update OpenAPI spec
 	dagger call --source .:default generate openapi -o ./api/openapi.yaml
 	go generate ./api/...
 
+
+.PHONY: update-openapi-cloud
+update-openapi-cloud: ## Update OpenAPI spec
+	$(call print-target)
+	dagger call --source .:default generate openapicloud -o ./api/openapi.cloud.yaml
+	go generate ./api/...
+
 .PHONY: gen-api
 gen-api: ## Generate API and SDKs
 	$(call print-target)
