@@ -166,6 +166,14 @@ model SubscriptionItem {
      */
     entitlement?: Entitlements.Entitlement;
   };
+
+  /**
+   * The tax config of the Subscription Item.
+   * When undefined, the tax config of the feature or the default tax config of the plan is used.
+   */
+  @visibility("read", "create", "update")
+  @summary("Tax config")
+  taxConfig?: TaxConfig;
 }
 
 /**
