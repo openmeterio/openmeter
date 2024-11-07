@@ -914,6 +914,7 @@ export interface components {
      * @enum {string}
      */
     BillingCustomerOverrideOrderBy: 'id'
+    /** @description Customer specific workflow overrides. */
     BillingCustomerWorkflowOverride: {
       /**
        * Creation Time
@@ -948,19 +949,11 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
-      /** The tax app used for this workflow */
-      taxApp: {
-        type: 'BillingCustomerWorkflowOverride'
-      } & Omit<components['schemas']['App'], 'type'>
-      /** The invoicing app used for this workflow */
-      invoicingApp: {
-        type: 'BillingCustomerWorkflowOverride'
-      } & Omit<components['schemas']['App'], 'type'>
-      /** The payment app used for this workflow */
-      paymentApp: {
-        type: 'BillingCustomerWorkflowOverride'
-      } & Omit<components['schemas']['App'], 'type'>
+      taxApp: components['schemas']['App']
+      invoicingApp: components['schemas']['App']
+      paymentApp: components['schemas']['App']
     }
+    /** @description Customer specific workflow overrides. */
     BillingCustomerWorkflowOverrideCreate: {
       /** The collection settings for this workflow */
       collection?: components['schemas']['BillingWorkflowCollectionSettings']
@@ -1810,18 +1803,9 @@ export interface components {
     }
     /** @description ProfileApps represents the applications used by a billing profile */
     BillingProfileApps: {
-      /** The tax app used for this workflow */
-      tax: {
-        type: 'BillingProfileApps'
-      } & Omit<components['schemas']['App'], 'type'>
-      /** The invoicing app used for this workflow */
-      invoicing: {
-        type: 'BillingProfileApps'
-      } & Omit<components['schemas']['App'], 'type'>
-      /** The payment app used for this workflow */
-      payment: {
-        type: 'BillingProfileApps'
-      } & Omit<components['schemas']['App'], 'type'>
+      tax: components['schemas']['App']
+      invoicing: components['schemas']['App']
+      payment: components['schemas']['App']
     }
     BillingProfileAppsOrReference:
       | components['schemas']['BillingProfileApps']
@@ -3890,20 +3874,12 @@ export interface components {
        * @example "2023-01-01T01:01:01.001Z"
        */
       createdAt: string
-      /**
-       * Owner Rule
-       * @description The nnotification rule which generated this event.
-       */
       rule: components['schemas']['NotificationRule']
       /**
        * Delivery Status
        * @description The delivery status of the notification event.
        */
       deliveryStatus: readonly components['schemas']['NotificationEventDeliveryStatus'][]
-      /**
-       * Event Payload
-       * @description Timestamp when the notification event was created in RFC 3339 format.
-       */
       payload: components['schemas']['NotificationEventPayload']
       /**
        * Annotations
@@ -4767,14 +4743,7 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
-      /**
-       * Entitlement template
-       * @description The entitlement of the rate card.
-       * Only available when featureKey is set.
-       */
-      entitlementTemplate?: {
-        type: 'RateCardFlatFee'
-      } & Omit<components['schemas']['RateCardEntitlement'], 'type'>
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -4824,14 +4793,7 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
-      /**
-       * Entitlement template
-       * @description The entitlement of the rate card.
-       * Only available when featureKey is set.
-       */
-      entitlementTemplate?: {
-        type: 'RateCardFlatFeeUpdateItem'
-      } & Omit<components['schemas']['RateCardEntitlement'], 'type'>
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -4966,14 +4928,7 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
-      /**
-       * Entitlement template
-       * @description The entitlement of the rate card.
-       * Only available when featureKey is set.
-       */
-      entitlementTemplate?: {
-        type: 'RateCardUsageBased'
-      } & Omit<components['schemas']['RateCardEntitlement'], 'type'>
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -5025,14 +4980,7 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
-      /**
-       * Entitlement template
-       * @description The entitlement of the rate card.
-       * Only available when featureKey is set.
-       */
-      entitlementTemplate?: {
-        type: 'RateCardUsageBasedUpdateItem'
-      } & Omit<components['schemas']['RateCardEntitlement'], 'type'>
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -5713,11 +5661,14 @@ export interface components {
       included?: {
         /** @description The feature the customer is entitled to use. */
         feature: components['schemas']['Feature']
-        /** @description The entitlement of the Subscription Item. */
-        entitlement?: {
-          type: 'SubscriptionItem'
-        } & Omit<components['schemas']['Entitlement'], 'type'>
+        entitlement?: components['schemas']['Entitlement']
       }
+      /**
+       * Tax config
+       * @description The tax config of the Subscription Item.
+       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
     }
     /** @description Subscription phase create input. */
     SubscriptionPhaseCreate: {
