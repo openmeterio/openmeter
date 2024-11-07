@@ -26,7 +26,7 @@ func (a *Router) DeletePlan(w http.ResponseWriter, r *http.Request, planId strin
 
 // Get plan
 // (GET /api/v1/plans/{planId})
-func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planId string) {
+func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planId string, params api.GetPlanParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -38,7 +38,7 @@ func (a *Router) UpdatePlan(w http.ResponseWriter, r *http.Request, planId strin
 
 // New draft plan
 // (POST /api/v1/plans/{planId}/next)
-func (a *Router) NewDraftPlan(w http.ResponseWriter, r *http.Request, planId string) {
+func (a *Router) NextPlan(w http.ResponseWriter, r *http.Request, planId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -50,25 +50,25 @@ func (a *Router) ListPlanPhases(w http.ResponseWriter, r *http.Request, planId s
 
 // Create new phase in plan
 // (POST /api/v1/plans/{planId}/phases)
-func (a *Router) CreatePlanPhases(w http.ResponseWriter, r *http.Request, planId string) {
+func (a *Router) CreatePlanPhase(w http.ResponseWriter, r *http.Request, planId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Delete phase for plan
 // (DELETE /api/v1/plans/{planId}/phases/{planPhaseKey})
-func (a *Router) DeletePlanPhases(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
+func (a *Router) DeletePlanPhase(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get phase for plan
 // (GET /api/v1/plans/{planId}/phases/{planPhaseKey})
-func (a *Router) GetPlanPhases(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
+func (a *Router) GetPlanPhase(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Update phase in plan
 // (PUT /api/v1/plans/{planId}/phases/{planPhaseKey})
-func (a *Router) UpdatePlanPhases(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
+func (a *Router) UpdatePlanPhase(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -78,8 +78,8 @@ func (a *Router) PublishPlan(w http.ResponseWriter, r *http.Request, planId stri
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Unpublish plan
-// (POST /api/v1/plans/{planId}/unpublish)
-func (a *Router) UnpublishPlan(w http.ResponseWriter, r *http.Request, planId string) {
+// Archive plan version
+// (POST /api/v1/plans/{planId}/archive)
+func (a *Router) ArchivePlan(w http.ResponseWriter, r *http.Request, planId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }

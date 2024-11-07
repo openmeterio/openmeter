@@ -95,6 +95,18 @@ model RateCardFlatFee {
 }
 
 /**
+ * The price of the usage based rate card.
+ */
+@friendlyName("RateCardUsageBasedPrice")
+@discriminator("type")
+@oneOf
+union RateCardUsageBasedPrice {
+  flat: FlatPriceWithPaymentTerm,
+  unit: UnitPriceWithCommitments,
+  tiered: TieredPriceWithCommitments,
+}
+
+/**
  * A usage-based rate card defines a price based on usage.
  */
 @friendlyName("RateCardUsageBased")
@@ -109,18 +121,12 @@ model RateCardUsageBased {
   @encode(DurationKnownEncoding.ISO8601)
   billingCadence: duration;
 
-  /**
+  /*
    * The price of the rate card.
    * When null, the feature or service is free.
    */
   @visibility("read", "create", "update")
-  @summary("Price")
-  @example(#{ type: PriceType.unit, amount: "0.01", minimumAmount: "100" })
-  price:
-    | UnitPriceWithCommitments
-    | TieredPriceWithCommitments
-    | FlatPriceWithPaymentTerm
-    | null;
+  price: RateCardUsageBasedPrice | null;
 
   // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
   // /**

@@ -78,6 +78,15 @@ interface Plans {
     @extension("x-go-type", "string")
     @path
     planId: PlanIdOrKey,
+
+    /**
+     * Include latest version of the Plan instead of the version in active state.
+     *
+     * Usage: `?includeLatest=true`
+     */
+    @query
+    @example(true)
+    includeLatest?: boolean = false,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -93,7 +102,7 @@ interface Plans {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Publish a new plan.
+   * Publish a plan version.
    */
   @post
   @route("/{planId}/publish")
@@ -105,13 +114,13 @@ interface Plans {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Unpublish a new plan.
+   * Archive a plan version.
    */
   @post
-  @route("/{planId}/unpublish")
+  @route("/{planId}/archive")
   @sharedRoute
-  @operationId("unpublishPlan")
-  @summary("Unpublish plan")
+  @operationId("archivePlan")
+  @summary("Archive plan version")
   unpublish(@path planId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -123,7 +132,7 @@ interface Plans {
   @post
   @route("/{planIdOrKey}/next")
   @sharedRoute
-  @operationId("newDraftPlan")
+  @operationId("nextPlan")
   @summary("New draft plan")
   next(
     @extension("x-go-type", "string")
@@ -161,7 +170,7 @@ interface PlanPhases {
    * Create new phase in plan.
    */
   @post
-  @operationId("createPlanPhases")
+  @operationId("createPlanPhase")
   @summary("Create new phase in plan")
   create(
     @path planId: ULID,
@@ -175,7 +184,7 @@ interface PlanPhases {
    * Update phase in plan.
    */
   @put
-  @operationId("updatePlanPhases")
+  @operationId("updatePlanPhase")
   @summary("Update phase in plan")
   update(
     @path planId: ULID,
@@ -189,7 +198,7 @@ interface PlanPhases {
    * Get phase in plan.
    */
   @get
-  @operationId("getPlanPhases")
+  @operationId("getPlanPhase")
   @summary("Get phase for plan")
   get(
     @path planId: ULID,
@@ -202,7 +211,7 @@ interface PlanPhases {
    * Once a phase is deleted it cannot be undeleted.
    */
   @delete
-  @operationId("deletePlanPhases")
+  @operationId("deletePlanPhase")
   @summary("Delete phase for plan")
   delete(@path planId: ULID, @path planPhaseKey: Key): {
     @statusCode _: 204;
