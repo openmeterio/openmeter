@@ -55,7 +55,7 @@ union PricePaymentTerm {
  */
 @friendlyName("FlatPrice")
 model FlatPrice {
-  @visibility("read", "create")
+  @visibility("read", "create", "update")
   type: PriceType.flat;
 
   /**
@@ -76,6 +76,7 @@ model FlatPriceWithPaymentTerm {
    * The payment term of the flat price.
    * Defaults to in advance.
    */
+  @visibility("read", "create", "update")
   paymentTerm?: PricePaymentTerm = PricePaymentTerm.inAdvance;
 }
 
@@ -84,7 +85,7 @@ model FlatPriceWithPaymentTerm {
  */
 @friendlyName("UnitPrice")
 model UnitPrice {
-  @visibility("read", "create")
+  @visibility("read", "create", "update")
   type: PriceType.unit;
 
   /**
@@ -108,7 +109,7 @@ enum TieredPriceMode {
  */
 @friendlyName("TieredPrice")
 model TieredPrice {
-  @visibility("read", "create")
+  @visibility("read", "create", "update")
   type: PriceType.tiered;
 
   /**

@@ -52,18 +52,21 @@ model Plan {
   /**
    * The currency code of the plan.
    */
+  @visibility("read", "create")
   @summary("Currency")
   currency: CurrencyCode = "USD";
 
   /**
    * The date and time when the plan becomes effective. When not specified, the plan is a draft.
    */
+  @visibility("read")
   @summary("Effective start date")
   effectiveFrom?: DateTime;
 
   /**
    * The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
    */
+  @visibility("read")
   @summary("Effective end date")
   effectiveTo?: DateTime;
 
@@ -83,6 +86,7 @@ model Plan {
    * The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
    * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
    */
+  @visibility("read", "create", "update")
   @summary("Plan phases")
   @minItems(1)
   phases: PlanPhase[];
@@ -98,17 +102,20 @@ model PlanPhase {
   /**
    * Unique key among the plan phases. Used to reference the phase in the subscription & plan.
    */
+  @visibility("read", "create")
   key: Key;
 
   /**
    * The rate cards of the plan.
    */
+  @visibility("read", "create", "update")
   @summary("Rate cards")
   rateCards: RateCard[];
 
   /**
    * The time after which the plan starts compared to subscription start
    */
+  @visibility("read", "create", "update")
   @summary("Start after")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1Y1D"))
@@ -117,8 +124,9 @@ model PlanPhase {
   /**
    * The discounts on the plan.
    */
+  @visibility("read", "create", "update")
   @summary("Discounts")
-  discounts?: AppliedDiscount[];
+  discounts?: Discount[];
 
   // /**
   //  * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.
@@ -182,9 +190,9 @@ model PlanVariantOverridePreset {
   };
 
   /*
-   * The discount on the plan.
+   * The discounts on the plan.
    */
-  discount?: AppliedDiscount;
+  discounts?: Discount[];
 }
 
 /**

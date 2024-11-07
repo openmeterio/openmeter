@@ -105,8 +105,8 @@ model SubscriptionPhaseCreate {
   /**
    * The discounts on the plan.
    */
-  @summary("Discount")
-  discounts?: AppliedDiscount[];
+  @summary("Discounts")
+  discounts?: Discount[];
 }
 
 /**

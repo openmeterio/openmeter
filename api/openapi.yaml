@@ -4708,7 +4708,7 @@ paths:
               $ref: '#/components/schemas/PlanCreate'
   /api/v1/plans/{planIdOrKey}/next:
     post:
-      operationId: newDraftPlan
+      operationId: nextPlan
       summary: New draft plan
       description: |-
         Create a new draft version from plan.
@@ -4872,6 +4872,17 @@ paths:
                 description: A key is a unique string that is used to identify a resource.
             x-go-type: string
           x-go-type: string
+        - name: includeLatest
+          in: query
+          required: false
+          description: |-
+            Include latest version of the Plan instead of the version in active state.
+
+            Usage: `?includeLatest=true`
+          schema:
+            type: boolean
+            default: false
+          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -4930,6 +4941,66 @@ paths:
         Soft delete plan by plan.id.
 
         Once a plan is deleted it cannot be undeleted.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Plan (Experimental)
+  /api/v1/plans/{planId}/archive:
+    post:
+      operationId: archivePlan
+      summary: Archive plan version
+      description: Archive a plan version.
       parameters:
         - name: planId
           in: path
@@ -5060,7 +5131,7 @@ paths:
       tags:
         - Plan (Experimental)
     post:
-      operationId: createPlanPhases
+      operationId: createPlanPhase
       summary: Create new phase in plan
       description: Create new phase in plan.
       parameters:
@@ -5124,7 +5195,7 @@ paths:
               $ref: '#/components/schemas/PlanPhaseCreate'
   /api/v1/plans/{planId}/phases/{planPhaseKey}:
     put:
-      operationId: updatePlanPhases
+      operationId: updatePlanPhase
       summary: Update phase in plan
       description: Update phase in plan.
       parameters:
@@ -5201,7 +5272,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PlanPhaseUpdate'
     get:
-      operationId: getPlanPhases
+      operationId: getPlanPhase
       summary: Get phase for plan
       description: Get phase in plan.
       parameters:
@@ -5272,7 +5343,7 @@ paths:
       tags:
         - Plan (Experimental)
     delete:
-      operationId: deletePlanPhases
+      operationId: deletePlanPhase
       summary: Delete phase for plan
       description: |-
         Delete phase in plan.
@@ -5345,67 +5416,7 @@ paths:
     post:
       operationId: publishPlan
       summary: Publish plan
-      description: Publish a new plan.
-      parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-      responses:
-        '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '404':
-          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Plan (Experimental)
-  /api/v1/plans/{planId}/unpublish:
-    post:
-      operationId: unpublishPlan
-      summary: Unpublish plan
-      description: Unpublish a new plan.
+      description: Publish a plan version.
       parameters:
         - name: planId
           in: path
@@ -7578,71 +7589,6 @@ components:
         - stripe
         - sandbox
       description: Type of the app.
-    AppliedDiscount:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/AppliedDiscountPercentage'
-      description: 'A discount on plan. One of: percentage or amount.'
-    AppliedDiscountPercentage:
-      type: object
-      required:
-        - type
-        - percentage
-      properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the discount.
-          title: Type
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: The percentage of the discount.
-          title: Percentage
-        appliesTo:
-          type: array
-          items:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-            description: A key is a unique string that is used to identify a resource.
-          description: |-
-            The rate cards that the discount applies to.
-            When not specified, the discount applies to all rate cards.
-          title: Applies To
-      description: Percentage discount on plan.
-    AppliedDiscountPercentageUpdateItem:
-      type: object
-      required:
-        - percentage
-      properties:
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: The percentage of the discount.
-          title: Percentage
-        appliesTo:
-          type: array
-          items:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-            description: A key is a unique string that is used to identify a resource.
-          description: |-
-            The rate cards that the discount applies to.
-            When not specified, the discount applies to all rate cards.
-          title: Applies To
-      description: Percentage discount on plan.
-    AppliedDiscountUpdateItem:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/AppliedDiscountPercentageUpdateItem'
-      description: 'A discount on plan. One of: percentage or amount.'
     BadRequestProblemResponse:
       type: object
       allOf:
@@ -7813,17 +7759,12 @@ components:
           title: ID
           readOnly: true
         taxApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The tax app used for this workflow
+          $ref: '#/components/schemas/App'
         invoicingApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The invoicing app used for this workflow
+          $ref: '#/components/schemas/App'
         paymentApp:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The payment app used for this workflow
+          $ref: '#/components/schemas/App'
+      description: Customer specific workflow overrides.
     BillingCustomerWorkflowOverrideCreate:
       type: object
       properties:
@@ -7839,6 +7780,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           title: The payment settings for this workflow
+      description: Customer specific workflow overrides.
     BillingDocumentRef:
       type: object
       allOf:
@@ -9137,17 +9079,11 @@ components:
         - payment
       properties:
         tax:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The tax app used for this workflow
+          $ref: '#/components/schemas/App'
         invoicing:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The invoicing app used for this workflow
+          $ref: '#/components/schemas/App'
         payment:
-          allOf:
-            - $ref: '#/components/schemas/App'
-          title: The payment app used for this workflow
+          $ref: '#/components/schemas/App'
       description: ProfileApps represents the applications used by a billing profile
     BillingProfileAppsOrReference:
       anyOf:
@@ -9991,12 +9927,55 @@ components:
           maximum: 100
           description: The percentage of the discount.
           title: Percentage
+        rateCards:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+            description: A key is a unique string that is used to identify a resource.
+          description: |-
+            The rate cards that the discount applies to.
+            When not specified, the discount applies to all rate cards.
+          title: Discounted RateCards
+      description: Percentage discount.
+    DiscountPercentageUpdateItem:
+      type: object
+      required:
+        - percentage
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        rateCards:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+            description: A key is a unique string that is used to identify a resource.
+          description: |-
+            The rate cards that the discount applies to.
+            When not specified, the discount applies to all rate cards.
+          title: Discounted RateCards
       description: Percentage discount.
     DiscountType:
       type: string
       enum:
         - percentage
       description: The type of the discount.
+    DiscountUpdateItem:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DiscountPercentageUpdateItem'
+      description: |-
+        A discount on a price.
+        One of: percentage, amount, or usage.
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -11128,16 +11107,6 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of the flat price.
       description: Flat price.
-    FlatPriceUpdateItem:
-      type: object
-      required:
-        - amount
-      properties:
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The amount of the flat price.
-      description: Flat price.
     FlatPriceWithPaymentTerm:
       type: object
       required:
@@ -11148,23 +11117,6 @@ components:
           type: string
           enum:
             - flat
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The amount of the flat price.
-        paymentTerm:
-          allOf:
-            - $ref: '#/components/schemas/PricePaymentTerm'
-          description: |-
-            The payment term of the flat price.
-            Defaults to in advance.
-          default: in_advance
-      description: Flat price with payment term.
-    FlatPriceWithPaymentTermUpdateItem:
-      type: object
-      required:
-        - amount
-      properties:
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11889,8 +11841,6 @@ components:
         rule:
           allOf:
             - $ref: '#/components/schemas/NotificationRule'
-          description: The nnotification rule which generated this event.
-          title: Owner Rule
           readOnly: true
         deliveryStatus:
           type: array
@@ -11902,8 +11852,6 @@ components:
         payload:
           allOf:
             - $ref: '#/components/schemas/NotificationEventPayload'
-          description: Timestamp when the notification event was created in RFC 3339 format.
-          title: Event Payload
           readOnly: true
         annotations:
           allOf:
@@ -12439,12 +12387,14 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
           title: Effective start date
+          readOnly: true
         effectiveTo:
           type: string
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
           title: Effective end date
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/PlanStatus'
@@ -12504,18 +12454,6 @@ components:
           description: The currency code of the plan.
           title: Currency
           default: USD
-        effectiveFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
-          title: Effective start date
-        effectiveTo:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
-          title: Effective end date
         phases:
           type: array
           items:
@@ -12630,7 +12568,7 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/AppliedDiscount'
+            $ref: '#/components/schemas/Discount'
           description: The discounts on the plan.
           title: Discounts
       description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -12680,7 +12618,7 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/AppliedDiscount'
+            $ref: '#/components/schemas/Discount'
           description: The discounts on the plan.
           title: Discounts
       description: Resource create operation model.
@@ -12729,12 +12667,6 @@ components:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the resource.
           title: Metadata
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: Unique key among the plan phases. Used to reference the phase in the subscription & plan.
         rateCards:
           type: array
           items:
@@ -12751,7 +12683,7 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/AppliedDiscount'
+            $ref: '#/components/schemas/Discount'
           description: The discounts on the plan.
           title: Discounts
       description: Resource create or update operation model.
@@ -12798,24 +12730,6 @@ components:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the resource.
           title: Metadata
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency code of the plan.
-          title: Currency
-          default: USD
-        effectiveFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
-          title: Effective start date
-        effectiveTo:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
-          title: Effective end date
         phases:
           type: array
           items:
@@ -12874,11 +12788,10 @@ components:
               title: Remove rate card
           description: The rate card overrides.
           title: Rate card overrides
-        discount:
-          allOf:
-            - $ref: '#/components/schemas/AppliedDiscount'
-          description: The discount on the plan.
-          title: Discount
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discount'
       description: Plan variant override preset.
     PortalToken:
       type: object
@@ -12979,38 +12892,6 @@ components:
           type: object
           allOf:
             - $ref: '#/components/schemas/UnitPrice'
-          nullable: true
-          description: The unit price component of the tier.
-          title: Unit price component
-      description: |-
-        A price tier.
-        At least one price component is required in each tier.
-    PriceTierUpdateItem:
-      type: object
-      required:
-        - upToAmount
-        - flatPrice
-        - unitPrice
-      properties:
-        upToAmount:
-          type: number
-          format: double
-          nullable: true
-          description: |-
-            Up to and including to this quantity will be contained in the tier.
-            If null, the tier is open-ended.
-          title: Up to quantity
-        flatPrice:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/FlatPriceUpdateItem'
-          nullable: true
-          description: The flat price component of the tier.
-          title: Flat price component
-        unitPrice:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/UnitPriceUpdateItem'
           nullable: true
           description: The unit price component of the tier.
           title: Unit price component
@@ -13157,12 +13038,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13227,12 +13103,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13251,7 +13122,7 @@ components:
         price:
           type: object
           allOf:
-            - $ref: '#/components/schemas/FlatPriceWithPaymentTermUpdateItem'
+            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
           nullable: true
           example: {}
           description: |-
@@ -13354,24 +13225,9 @@ components:
           description: The type of the RateCard.
           title: RateCard type
         price:
-          anyOf:
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/UnitPriceWithCommitments'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/TieredPriceWithCommitments'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
-              nullable: true
-          example: {}
-          description: |-
-            The price of the rate card.
-            When null, the feature or service is free.
-          title: Price
+          oneOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          nullable: true
       description: Usage-based rate card override.
     RateCardStaticEntitlement:
       type: object
@@ -13478,12 +13334,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13497,25 +13348,22 @@ components:
           description: The billing cadence of the rate card.
           title: Billing cadence
         price:
-          anyOf:
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/UnitPriceWithCommitments'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/TieredPriceWithCommitments'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
-              nullable: true
-          example: {}
-          description: |-
-            The price of the rate card.
-            When null, the feature or service is free.
-          title: Price
+          oneOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          nullable: true
       description: A usage-based rate card defines a price based on usage.
+    RateCardUsageBasedPrice:
+      oneOf:
+        - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+        - $ref: '#/components/schemas/UnitPriceWithCommitments'
+        - $ref: '#/components/schemas/TieredPriceWithCommitments'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat: '#/components/schemas/FlatPriceWithPaymentTerm'
+          unit: '#/components/schemas/UnitPriceWithCommitments'
+          tiered: '#/components/schemas/TieredPriceWithCommitments'
+      description: The price of the usage based rate card.
     RateCardUsageBasedUpdateItem:
       type: object
       required:
@@ -13554,12 +13402,7 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          allOf:
-            - $ref: '#/components/schemas/RateCardEntitlement'
-          description: |-
-            The entitlement of the rate card.
-            Only available when featureKey is set.
-          title: Entitlement template
+          $ref: '#/components/schemas/RateCardEntitlement'
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -13573,24 +13416,9 @@ components:
           description: The billing cadence of the rate card.
           title: Billing cadence
         price:
-          anyOf:
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/UnitPriceWithCommitmentsUpdateItem'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/TieredPriceWithCommitmentsUpdateItem'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/FlatPriceWithPaymentTermUpdateItem'
-              nullable: true
-          example: {}
-          description: |-
-            The price of the rate card.
-            When null, the feature or service is free.
-          title: Price
+          oneOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          nullable: true
       description: A usage-based rate card defines a price based on usage.
     RecurringPeriod:
       type: object
@@ -14425,9 +14253,7 @@ components:
                 - $ref: '#/components/schemas/Feature'
               description: The feature the customer is entitled to use.
             entitlement:
-              allOf:
-                - $ref: '#/components/schemas/Entitlement'
-              description: The entitlement of the Subscription Item.
+              $ref: '#/components/schemas/Entitlement'
           required:
             - feature
           description: Describes what access is gained via the SubscriptionItem
@@ -14501,9 +14327,9 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/AppliedDiscount'
+            $ref: '#/components/schemas/Discount'
           description: The discounts on the plan.
-          title: Discount
+          title: Discounts
         activeFrom:
           type: string
           format: date-time
@@ -14534,9 +14360,9 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/AppliedDiscountUpdateItem'
+            $ref: '#/components/schemas/DiscountUpdateItem'
           description: The discounts on the plan.
-          title: Discount
+          title: Discounts
       description: Subscription phase create input.
     SubscriptionPhaseExpanded:
       type: object
@@ -14601,9 +14427,9 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/AppliedDiscount'
+            $ref: '#/components/schemas/Discount'
           description: The discounts on the plan.
-          title: Discount
+          title: Discounts
         activeFrom:
           type: string
           format: date-time
@@ -14722,40 +14548,6 @@ components:
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
       description: Tiered price with spend commitments.
-    TieredPriceWithCommitmentsUpdateItem:
-      type: object
-      required:
-        - mode
-        - tiers
-      properties:
-        mode:
-          allOf:
-            - $ref: '#/components/schemas/TieredPriceMode'
-          description: |-
-            Defines if the tiering mode is volume-based or graduated:
-            - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
-            - In `graduated` tiering, pricing can change as the quantity grows.
-          title: Mode
-        tiers:
-          type: array
-          items:
-            $ref: '#/components/schemas/PriceTierUpdateItem'
-          minItems: 1
-          description: |-
-            The tiers of the tiered price.
-            At least one price component is required in each tier.
-          title: Tiers
-        minimumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is committed to spend at least the amount.
-          title: Minimum amount
-        maximumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is limited to spend at most the amount.
-          title: Maximum amount
-      description: Tiered price with spend commitments.
     UnauthorizedProblemResponse:
       type: object
       allOf:
@@ -14820,16 +14612,6 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of the unit price.
       description: Unit price.
-    UnitPriceUpdateItem:
-      type: object
-      required:
-        - amount
-      properties:
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The amount of the unit price.
-      description: Unit price.
     UnitPriceWithCommitments:
       type: object
       required:
@@ -14840,26 +14622,6 @@ components:
           type: string
           enum:
             - unit
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The amount of the unit price.
-        minimumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is committed to spend at least the amount.
-          title: Minimum amount
-        maximumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is limited to spend at most the amount.
-          title: Maximum amount
-      description: Unit price with spend commitments.
-    UnitPriceWithCommitmentsUpdateItem:
-      type: object
-      required:
-        - amount
-      properties:
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
