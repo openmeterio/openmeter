@@ -40,7 +40,7 @@ interface Plans {
      * Filter by plan.key and plan.version attributes
      */
     @query(#{ explode: true, style: "deepObject" })
-    keyVersion?: Record<integer>,
+    keyVersion?: Record<integer[]>,
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<PlanOrderBy>,
@@ -109,9 +109,9 @@ interface Plans {
   @sharedRoute
   @operationId("publishPlan")
   @summary("Publish plan")
-  publish(@path planId: ULID): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  publish(
+    @path planId: ULID,
+  ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Archive a plan version.
@@ -121,9 +121,9 @@ interface Plans {
   @sharedRoute
   @operationId("archivePlan")
   @summary("Archive plan version")
-  unpublish(@path planId: ULID): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  archive(
+    @path planId: ULID,
+  ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Create a new draft version from plan.

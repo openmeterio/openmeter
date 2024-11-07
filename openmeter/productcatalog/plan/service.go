@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -69,7 +67,7 @@ type ListPlansInput struct {
 
 	Keys []string
 
-	KeyVersions map[string]int
+	KeyVersions map[string][]int
 
 	IncludeDeleted bool
 }
@@ -105,26 +103,32 @@ type CreatePlanInput struct {
 }
 
 func (i CreatePlanInput) Validate() error {
+	var errs []error
+
 	if err := i.NamespacedModel.Validate(); err != nil {
-		return fmt.Errorf("invalid input: %w", err)
+		errs = append(errs, fmt.Errorf("invalid Namespace: %w", err))
 	}
 
 	if i.Key == "" {
-		return errors.New("plan key is required")
+		errs = append(errs, errors.New("invalid Key: must not be empty"))
 	}
 
 	if i.Name == "" {
-		return errors.New("plan name is required")
+		errs = append(errs, errors.New("invalid Name: must not be empty"))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
-		return fmt.Errorf("invalid currency code: %w", err)
+		errs = append(errs, fmt.Errorf("invalid CurrencyCode: %w", err))
 	}
 
 	for _, phase := range i.Phases {
 		if err := phase.Validate(); err != nil {
-			return fmt.Errorf("invalid plan phase: %w", err)
+			errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
 		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -167,8 +171,10 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
-		return false
+	if i.EffectivePeriod != nil {
+		if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
+			return false
+		}
 	}
 
 	if i.Name != nil && *i.Name != p.Name {
@@ -190,21 +196,23 @@ func (i UpdatePlanInput) Validate() error {
 	var errs []error
 
 	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid namespace or id: %w", err))
+		errs = append(errs, fmt.Errorf("invalid Namespace or ID: %w", err))
 	}
 
 	if i.Name != nil && *i.Name == "" {
-		return errors.New("plan name is required")
+		return errors.New("invalid Name: must not be empty")
 	}
 
-	if err := i.EffectivePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
+	if i.EffectivePeriod != nil {
+		if err := i.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
+		}
 	}
 
 	if i.Phases != nil && len(*i.Phases) > 0 {
 		for _, phase := range *i.Phases {
 			if err := phase.Validate(); err != nil {
-				return fmt.Errorf("invalid plan phase: %w", err)
+				return fmt.Errorf("invalid PlanPhase: %w", err)
 			}
 		}
 	}
@@ -226,18 +234,24 @@ type GetPlanInput struct {
 	// If not set the latest version is assumed.
 	Version int `json:"version,omitempty"`
 
-	// AllowLatest defines whether return the latest version regardless of its PlanStatus or with ActiveStatus only if
+	// IncludeLatest defines whether return the latest version regardless of its PlanStatus or with ActiveStatus only if
 	// Version is not set.
 	IncludeLatest bool `json:"includeLatest,omitempty"`
 }
 
 func (i GetPlanInput) Validate() error {
-	if err := i.NamespacedID.Validate(); err != nil {
-		return err
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
 	if i.ID == "" && i.Key == "" {
-		return errors.New("either plan id or key must be set")
+		errs = append(errs, errors.New("either ID or Key must be provided"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -252,7 +266,7 @@ type DeletePlanInput struct {
 
 func (i DeletePlanInput) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
-		return fmt.Errorf("invalid input: %w", err)
+		return fmt.Errorf("invalid Namespace: %w", err)
 	}
 
 	return nil
@@ -271,11 +285,11 @@ func (i PublishPlanInput) Validate() error {
 	}
 
 	if lo.FromPtrOr(i.EffectiveFrom, time.Time{}).IsZero() {
-		return errors.New("effectiveFrom must be set")
+		return errors.New("invalid EffectiveFrom: must not be empty")
 	}
 
 	if !lo.FromPtrOr(i.EffectiveTo, time.Time{}).IsZero() && lo.FromPtrOr(i.EffectiveFrom, time.Time{}).IsZero() {
-		return errors.New("effectiveFrom must be set if effectiveTo is set")
+		return errors.New("invalid EffectiveFrom: must not be empty if EffectiveTo is also set")
 	}
 
 	return nil
@@ -291,11 +305,11 @@ type ArchivePlanInput struct {
 
 func (i ArchivePlanInput) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
-		return fmt.Errorf("invalid input: %w", err)
+		return fmt.Errorf("invalid Namespace: %w", err)
 	}
 
 	if i.EffectiveTo.IsZero() {
-		return errors.New("invalid input: effectiveTo must be set")
+		return errors.New("invalid EffectiveTo: must not be empty")
 	}
 
 	return nil
@@ -314,8 +328,18 @@ type NextPlanInput struct {
 }
 
 func (i NextPlanInput) Validate() error {
-	if err := i.NamespacedID.Validate(); err != nil {
-		return fmt.Errorf("invalid input: %w", err)
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+	}
+
+	if i.ID == "" && (i.Key == "" || i.Version == 0) {
+		errs = append(errs, errors.New("invalid: either ID or Key/Version pair must be provided"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -337,6 +361,8 @@ type ListPhasesInput struct {
 
 	IncludeDeleted bool
 }
+
+var _ Validator = (*CreatePhaseInput)(nil)
 
 type CreatePhaseInput struct {
 	models.NamespacedModel
@@ -363,6 +389,30 @@ type CreatePhaseInput struct {
 	RateCards []RateCard `json:"rateCards,omitempty"`
 }
 
+func (i CreatePhaseInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+	}
+
+	if i.Key == "" || i.PlanID == "" {
+		errs = append(errs, errors.New("either ID or Key/PlanID pair must be provided"))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("invalid Name: must not be empty"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+var _ Validator = (*DeletePhaseInput)(nil)
+
 type DeletePhaseInput struct {
 	// NamespacedID
 	models.NamespacedID
@@ -382,11 +432,11 @@ func (i DeletePhaseInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace must be set"))
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		errs = append(errs, errors.New("either phase id or key/planId pair must be set"))
+		errs = append(errs, errors.New("either ID or Key/PlanID pair must be provided"))
 	}
 
 	if len(errs) > 0 {
@@ -395,6 +445,8 @@ func (i DeletePhaseInput) Validate() error {
 
 	return nil
 }
+
+var _ Validator = (*GetPhaseInput)(nil)
 
 type GetPhaseInput struct {
 	models.NamespacedID
@@ -408,12 +460,18 @@ type GetPhaseInput struct {
 }
 
 func (i GetPhaseInput) Validate() error {
-	if err := i.NamespacedID.Validate(); err != nil {
-		return err
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		return errors.New("either phase id or key/planId pair must be set")
+		errs = append(errs, errors.New("invalid: either ID or Key/PlanID pair must be provided"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -487,15 +545,15 @@ func (i UpdatePhaseInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace must be set"))
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		return errors.New("either phase id or key/planId pair must be set")
+		return errors.New("invalid: either ID or Key/PlanID pair must be provided")
 	}
 
 	if i.Name != nil && *i.Name == "" {
-		return errors.New("phase name must not be empty")
+		return errors.New("invalid Name: must not be empty")
 	}
 
 	if i.RateCards != nil && len(*i.RateCards) > 0 {
@@ -511,106 +569,4 @@ func (i UpdatePhaseInput) Validate() error {
 	}
 
 	return nil
-}
-
-type Config struct {
-	Feature feature.FeatureConnector
-
-	Adapter Repository
-	Logger  *slog.Logger
-}
-
-func New(config Config) (Service, error) {
-	if config.Feature == nil {
-		return nil, errors.New("feature connector is required")
-	}
-
-	if config.Adapter == nil {
-		return nil, errors.New("plan adapter is required")
-	}
-
-	if config.Logger == nil {
-		return nil, errors.New("logger is required")
-	}
-
-	return &service{
-		feature: config.Feature,
-		adapter: config.Adapter,
-		logger:  config.Logger,
-	}, nil
-}
-
-var _ Service = (*service)(nil)
-
-type service struct {
-	feature feature.FeatureConnector
-
-	adapter Repository
-
-	logger *slog.Logger
-}
-
-func (s service) ListPlans(ctx context.Context, params ListPlansInput) (pagination.PagedResponse[Plan], error) {
-	// TODO(chrisgacsal): implement operation
-	return pagination.PagedResponse[Plan]{}, nil
-}
-
-func (s service) CreatePlan(ctx context.Context, params CreatePlanInput) (*Plan, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) DeletePlan(ctx context.Context, params DeletePlanInput) error {
-	// TODO(chrisgacsal): implement operation
-	return nil
-}
-
-func (s service) GetPlan(ctx context.Context, params GetPlanInput) (*Plan, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) UpdatePlan(ctx context.Context, params UpdatePlanInput) (*Plan, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) PublishPlan(ctx context.Context, params PublishPlanInput) (*Plan, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) ArchivePlan(ctx context.Context, params ArchivePlanInput) (*Plan, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) NextPlan(ctx context.Context, params NextPlanInput) (*Plan, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) ListPhases(ctx context.Context, params ListPhasesInput) (pagination.PagedResponse[Phase], error) {
-	// TODO(chrisgacsal): implement operation
-	return pagination.PagedResponse[Phase]{}, nil
-}
-
-func (s service) CreatePhase(ctx context.Context, params CreatePhaseInput) (*Phase, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) DeletePhase(ctx context.Context, params DeletePhaseInput) error {
-	// TODO(chrisgacsal): implement operation
-	return nil
-}
-
-func (s service) GetPhase(ctx context.Context, params GetPhaseInput) (*Phase, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
-}
-
-func (s service) UpdatePhase(ctx context.Context, params UpdatePhaseInput) (*Phase, error) {
-	// TODO(chrisgacsal): implement operation
-	return nil, nil
 }

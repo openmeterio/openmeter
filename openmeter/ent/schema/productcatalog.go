@@ -51,7 +51,7 @@ func (Plan) Edges() []ent.Edge {
 
 func (Plan) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "key", "version").
+		index.Fields("namespace", "key", "version", "deleted_at").
 			Unique(),
 	}
 }
@@ -115,8 +115,6 @@ func (PlanRateCard) Mixin() []ent.Mixin {
 		entutils.UniqueResourceMixin{},
 	}
 }
-
-type Price string
 
 func (PlanRateCard) Fields() []ent.Field {
 	return []ent.Field{

@@ -31,6 +31,10 @@ func (i *ISOString) ParsePtrOrNil() (*Period, error) {
 	return lo.ToPtr(d), nil
 }
 
+func (i ISOString) String() string {
+	return string(i)
+}
+
 type Period struct {
 	period.Period
 }

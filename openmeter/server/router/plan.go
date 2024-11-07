@@ -37,8 +37,8 @@ func (a *Router) UpdatePlan(w http.ResponseWriter, r *http.Request, planId strin
 }
 
 // New draft plan
-// (POST /api/v1/plans/{planId}/next)
-func (a *Router) NextPlan(w http.ResponseWriter, r *http.Request, planId string) {
+// (POST /api/v1/plans/{planIdOrKey}/next)
+func (a *Router) NextPlan(w http.ResponseWriter, r *http.Request, planIdOrKey string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
