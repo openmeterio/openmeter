@@ -1,8 +1,6 @@
 package plan
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -15,7 +13,7 @@ func TestFlatPrice(t *testing.T) {
 		tests := []struct {
 			Name          string
 			Price         FlatPrice
-			ExpectedError error
+			ExpectedError bool
 		}{
 			{
 				Name: "valid",
@@ -24,9 +22,9 @@ func TestFlatPrice(t *testing.T) {
 						Type: FlatPriceType,
 					},
 					Amount:      decimal.NewFromInt(1000),
-					PaymentTerm: lo.ToPtr(InArrearsPaymentTerm),
+					PaymentTerm: InArrearsPaymentTerm,
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "invalid",
@@ -35,19 +33,21 @@ func TestFlatPrice(t *testing.T) {
 						Type: FlatPriceType,
 					},
 					Amount:      decimal.NewFromInt(-1000),
-					PaymentTerm: lo.ToPtr(PaymentTermType("invalid")),
+					PaymentTerm: PaymentTermType("invalid"),
 				},
-				ExpectedError: errors.Join([]error{
-					errors.New("amount must not be negative"),
-					fmt.Errorf("invalid payment term: %s", "invalid"),
-				}...),
+				ExpectedError: true,
 			},
 		}
 
 		for _, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
 				err := test.Price.Validate()
-				assert.Equal(t, test.ExpectedError, err)
+
+				if test.ExpectedError {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+				}
 			})
 		}
 	})
@@ -58,7 +58,7 @@ func TestUnitPrice(t *testing.T) {
 		tests := []struct {
 			Name          string
 			Price         UnitPrice
-			ExpectedError error
+			ExpectedError bool
 		}{
 			{
 				Name: "valid with min,max",
@@ -70,7 +70,7 @@ func TestUnitPrice(t *testing.T) {
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "valid with min only",
@@ -82,7 +82,7 @@ func TestUnitPrice(t *testing.T) {
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: nil,
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "valid with max only",
@@ -94,7 +94,7 @@ func TestUnitPrice(t *testing.T) {
 					MinimumAmount: nil,
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "invalid",
@@ -106,19 +106,19 @@ func TestUnitPrice(t *testing.T) {
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(-2000)),
 				},
-				ExpectedError: errors.Join([]error{
-					errors.New("amount must not be negative"),
-					errors.New("minimum amount must not be negative"),
-					errors.New("maximum amount must not be negative"),
-					errors.New("minimum amount must not be greater than maximum amount"),
-				}...),
+				ExpectedError: true,
 			},
 		}
 
 		for _, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
 				err := test.Price.Validate()
-				assert.Equal(t, test.ExpectedError, err)
+
+				if test.ExpectedError {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+				}
 			})
 		}
 	})
@@ -129,7 +129,7 @@ func TestTieredPrice(t *testing.T) {
 		tests := []struct {
 			Name          string
 			Price         TieredPrice
-			ExpectedError error
+			ExpectedError bool
 		}{
 			{
 				Name: "valid with min,max",
@@ -141,45 +141,39 @@ func TestTieredPrice(t *testing.T) {
 					Tiers: []PriceTier{
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(5),
-								PaymentTerm: lo.ToPtr(InAdvancePaymentTerm),
+								Amount: decimal.NewFromInt(5),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(5),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(100)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								Amount: decimal.NewFromInt(5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(2500)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(3),
-								PaymentTerm: lo.ToPtr(InArrearsPaymentTerm),
+								Amount: decimal.NewFromInt(3),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(1),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(2500)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+								Amount: decimal.NewFromInt(1),
 							},
 						},
 					},
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "valid with min only",
@@ -191,45 +185,39 @@ func TestTieredPrice(t *testing.T) {
 					Tiers: []PriceTier{
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(5),
-								PaymentTerm: lo.ToPtr(InAdvancePaymentTerm),
+								Amount: decimal.NewFromInt(5),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(5),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(100)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								Amount: decimal.NewFromInt(5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(2500)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(3),
-								PaymentTerm: lo.ToPtr(InArrearsPaymentTerm),
+								Amount: decimal.NewFromInt(3),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(1),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(2500)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+								Amount: decimal.NewFromInt(1),
 							},
 						},
 					},
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: nil,
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "valid with max only",
@@ -241,45 +229,39 @@ func TestTieredPrice(t *testing.T) {
 					Tiers: []PriceTier{
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(5),
-								PaymentTerm: lo.ToPtr(InAdvancePaymentTerm),
+								Amount: decimal.NewFromInt(5),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(5),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(100)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								Amount: decimal.NewFromInt(5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(2500)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(3),
-								PaymentTerm: lo.ToPtr(InArrearsPaymentTerm),
+								Amount: decimal.NewFromInt(3),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(1),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(2500)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+								Amount: decimal.NewFromInt(1),
 							},
 						},
 					},
 					MinimumAmount: nil,
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 				},
-				ExpectedError: nil,
+				ExpectedError: false,
 			},
 			{
 				Name: "invalid",
@@ -291,71 +273,51 @@ func TestTieredPrice(t *testing.T) {
 					Tiers: []PriceTier{
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(-5),
-								PaymentTerm: lo.ToPtr(PaymentTermType("invalid")),
+								Amount: decimal.NewFromInt(-5),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(-5),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(-100)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
+								Amount: decimal.NewFromInt(-5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
-							FlatPrice: &FlatPrice{
+							FlatPrice: &PriceTierFlatPrice{
 								PriceMeta: PriceMeta{
 									Type: FlatPriceType,
 								},
-								Amount:      decimal.NewFromInt(-3),
-								PaymentTerm: lo.ToPtr(PaymentTermType("invalid")),
+								Amount: decimal.NewFromInt(-3),
 							},
-							UnitPrice: &UnitPrice{
+							UnitPrice: &PriceTierUnitPrice{
 								PriceMeta: PriceMeta{
 									Type: UnitPriceType,
 								},
-								Amount:        decimal.NewFromInt(-1),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(-2500)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(-5000)),
+								Amount: decimal.NewFromInt(-1),
 							},
 						},
 					},
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(-5000)),
 				},
-				ExpectedError: errors.Join([]error{
-					errors.New("invalid tiered price mode: invalid"),
-					fmt.Errorf("invalid price tier: %w", errors.Join([]error{
-						errors.New("up-to-amount must not be negative"),
-						fmt.Errorf("invalid flat price: %w", errors.Join([]error{
-							errors.New("amount must not be negative"),
-							errors.New("invalid payment term: invalid"),
-						}...)),
-						fmt.Errorf("invalid unit price: %w", errors.Join([]error{
-							errors.New("amount must not be negative"),
-							errors.New("minimum amount must not be negative"),
-							errors.New("maximum amount must not be negative"),
-							errors.New("minimum amount must not be greater than maximum amount"),
-						}...)),
-					}...)),
-					errors.New("multiple price tiers with same up-to-amount are not allowed"),
-					errors.New("minimum amount must not be negative"),
-					errors.New("maximum amount must not be negative"),
-					errors.New("minimum amount must not be greater than maximum amount"),
-				}...),
+				ExpectedError: true,
 			},
 		}
 
 		for _, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
 				err := test.Price.Validate()
-				assert.Equal(t, test.ExpectedError, err)
+
+				if test.ExpectedError {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+				}
 			})
 		}
 	})

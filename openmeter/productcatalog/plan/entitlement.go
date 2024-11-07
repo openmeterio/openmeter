@@ -159,6 +159,24 @@ func (e *EntitlementTemplate) FromBoolean(t BooleanEntitlementTemplate) {
 	e.t = entitlement.EntitlementTypeBoolean
 }
 
+func NewEntitlementTemplateFrom[T MeteredEntitlementTemplate | StaticEntitlementTemplate | BooleanEntitlementTemplate](c T) EntitlementTemplate {
+	r := &EntitlementTemplate{}
+
+	switch any(c).(type) {
+	case MeteredEntitlementTemplate:
+		e := any(c).(MeteredEntitlementTemplate)
+		r.FromMetered(e)
+	case StaticEntitlementTemplate:
+		e := any(c).(StaticEntitlementTemplate)
+		r.FromStatic(e)
+	case BooleanEntitlementTemplate:
+		e := any(c).(BooleanEntitlementTemplate)
+		r.FromBoolean(e)
+	}
+
+	return *r
+}
+
 type EntitlementTemplateMeta struct {
 	// Type defines the type of the entitlement.Entitlement.
 	Type entitlement.EntitlementType `json:"type"`
