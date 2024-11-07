@@ -32,6 +32,7 @@ type discounter interface {
 	Validator
 
 	Type() DiscountType
+	RateCardKeys() []string
 	AsPercentage() (PercentageDiscount, error)
 	FromPercentage(PercentageDiscount)
 }
@@ -41,6 +42,15 @@ var _ discounter = (*Discount)(nil)
 type Discount struct {
 	t          DiscountType
 	percentage *PercentageDiscount
+}
+
+func (d *Discount) RateCardKeys() []string {
+	switch d.t {
+	case PercentageDiscountType:
+		return d.percentage.RateCards
+	default:
+		return nil
+	}
 }
 
 func (d *Discount) MarshalJSON() ([]byte, error) {
@@ -137,6 +147,10 @@ type PercentageDiscount struct {
 
 	// Percentage defines percentage of the discount.
 	Percentage decimal.Decimal `json:"percentage"`
+
+	// RateCards is the list of specific RateCard Keys the discount is applied to.
+	// If not provided the discount applies to all RateCards in Phase.
+	RateCards []string `json:"rateCards,omitempty"`
 }
 
 func (f PercentageDiscount) Validate() error {

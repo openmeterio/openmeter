@@ -10,6 +10,8 @@ import (
 	"github.com/samber/lo"
 )
 
+const DefaultPaymentTerm = InAdvancePaymentTerm
+
 const (
 	InAdvancePaymentTerm PaymentTermType = "in_advance"
 	InArrearsPaymentTerm PaymentTermType = "in_arrears"
@@ -78,20 +80,20 @@ func (p *Price) MarshalJSON() ([]byte, error) {
 	case FlatPriceType:
 		b, err = json.Marshal(p.flat)
 		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal flat price: %w", err)
+			return nil, fmt.Errorf("failed to json marshal FlatPrice: %w", err)
 		}
 	case UnitPriceType:
 		b, err = json.Marshal(p.unit)
 		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal unit price: %w", err)
+			return nil, fmt.Errorf("failed to json marshal UnitPrice: %w", err)
 		}
 	case TieredPriceType:
 		b, err = json.Marshal(p.tiered)
 		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal tiered price: %w", err)
+			return nil, fmt.Errorf("failed to json marshal TieredPrice: %w", err)
 		}
 	default:
-		return nil, fmt.Errorf("invalid price type: %s", p.t)
+		return nil, fmt.Errorf("invalid type: %s", p.t)
 	}
 
 	return b, nil
@@ -101,14 +103,14 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	meta := &PriceMeta{}
 
 	if err := json.Unmarshal(bytes, meta); err != nil {
-		return fmt.Errorf("failed to json unmarshal price type: %w", err)
+		return fmt.Errorf("failed to json unmarshal Price type: %w", err)
 	}
 
 	switch meta.Type {
 	case FlatPriceType:
 		v := &FlatPrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal metered entitlement template: %w", err)
+			return fmt.Errorf("failed to json unmarshal FlatPrice: %w", err)
 		}
 
 		p.flat = v
@@ -116,7 +118,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	case UnitPriceType:
 		v := &UnitPrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal metered entitlement template: %w", err)
+			return fmt.Errorf("failed to json unmarshal UnitPrice: %w", err)
 		}
 
 		p.unit = v
@@ -124,13 +126,13 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	case TieredPriceType:
 		v := &TieredPrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal boolean entitlement template: %w", err)
+			return fmt.Errorf("failed to json unmarshal TieredPrice: %w", err)
 		}
 
 		p.tiered = v
 		p.t = TieredPriceType
 	default:
-		return fmt.Errorf("invalid entitlement type: %s", meta.Type)
+		return fmt.Errorf("invalid type: %s", meta.Type)
 	}
 
 	return nil
@@ -145,7 +147,7 @@ func (p *Price) Validate() error {
 	case TieredPriceType:
 		return p.tiered.Validate()
 	default:
-		return errors.New("invalid price: not initialized")
+		return errors.New("invalid Price: not initialized")
 	}
 }
 
@@ -155,11 +157,11 @@ func (p *Price) Type() PriceType {
 
 func (p *Price) AsFlat() (FlatPrice, error) {
 	if p.t == "" || p.flat == nil {
-		return FlatPrice{}, errors.New("invalid price: not initialized")
+		return FlatPrice{}, errors.New("invalid FlatPrice: not initialized")
 	}
 
 	if p.t != FlatPriceType {
-		return FlatPrice{}, fmt.Errorf("price type mismatch: %s", p.t)
+		return FlatPrice{}, fmt.Errorf("type mismatch: %s", p.t)
 	}
 
 	return *p.flat, nil
@@ -167,11 +169,11 @@ func (p *Price) AsFlat() (FlatPrice, error) {
 
 func (p *Price) AsUnit() (UnitPrice, error) {
 	if p.t == "" || p.unit == nil {
-		return UnitPrice{}, errors.New("invalid price: not initialized")
+		return UnitPrice{}, errors.New("invalid UnitPrice: not initialized")
 	}
 
 	if p.t != UnitPriceType {
-		return UnitPrice{}, fmt.Errorf("price type mismatch: %s", p.t)
+		return UnitPrice{}, fmt.Errorf("type mismatch: %s", p.t)
 	}
 
 	return *p.unit, nil
@@ -179,11 +181,11 @@ func (p *Price) AsUnit() (UnitPrice, error) {
 
 func (p *Price) AsTiered() (TieredPrice, error) {
 	if p.t == "" || p.tiered == nil {
-		return TieredPrice{}, errors.New("invalid price: not initialized")
+		return TieredPrice{}, errors.New("invalid TieredPrice: not initialized")
 	}
 
 	if p.t != TieredPriceType {
-		return TieredPrice{}, fmt.Errorf("price type mismatch: %s", p.t)
+		return TieredPrice{}, fmt.Errorf("type mismatch: %s", p.t)
 	}
 
 	return *p.tiered, nil
@@ -192,16 +194,19 @@ func (p *Price) AsTiered() (TieredPrice, error) {
 func (p *Price) FromFlat(price FlatPrice) {
 	p.flat = &price
 	p.t = FlatPriceType
+	p.flat.Type = UnitPriceType
 }
 
 func (p *Price) FromUnit(price UnitPrice) {
 	p.unit = &price
 	p.t = UnitPriceType
+	p.unit.Type = UnitPriceType
 }
 
 func (p *Price) FromTiered(price TieredPrice) {
 	p.tiered = &price
 	p.t = TieredPriceType
+	p.tiered.Type = TieredPriceType
 }
 
 func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) Price {
@@ -235,18 +240,18 @@ type FlatPrice struct {
 
 	// PaymentTerm defines the payment term of the flat price.
 	// Defaults to InAdvancePaymentTerm.
-	PaymentTerm *PaymentTermType `json:"payment_term,omitempty"`
+	PaymentTerm PaymentTermType `json:"payment_term,omitempty"`
 }
 
 func (f FlatPrice) Validate() error {
 	var errs []error
 
 	if f.Amount.IsNegative() {
-		errs = append(errs, errors.New("amount must not be negative"))
+		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
-	if f.PaymentTerm != nil && !lo.Contains(PaymentTermType("").Values(), *f.PaymentTerm) {
-		errs = append(errs, fmt.Errorf("invalid payment term: %s", *f.PaymentTerm))
+	if !lo.Contains(PaymentTermType("").Values(), f.PaymentTerm) {
+		errs = append(errs, fmt.Errorf("invalid PaymentTerm: %s", f.PaymentTerm))
 	}
 
 	if len(errs) > 0 {
@@ -273,22 +278,22 @@ func (u UnitPrice) Validate() error {
 	var errs []error
 
 	if u.Amount.IsNegative() {
-		errs = append(errs, errors.New("amount must not be negative"))
+		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
 	minAmount := lo.FromPtrOr(u.MinimumAmount, decimal.Zero)
 	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("minimum amount must not be negative"))
+		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
 	}
 
 	maxAmount := lo.FromPtrOr(u.MaximumAmount, decimal.Zero)
 	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("maximum amount must not be negative"))
+		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
 	}
 
 	if !minAmount.IsZero() && !maxAmount.IsZero() {
 		if minAmount.GreaterThan(maxAmount) {
-			errs = append(errs, errors.New("minimum amount must not be greater than maximum amount"))
+			errs = append(errs, errors.New("the MinimumAmount must not be greater than MaximumAmount"))
 		}
 	}
 
@@ -327,7 +332,7 @@ func NewTieredPriceMode(s string) (TieredPriceMode, error) {
 	case string(GraduatedTieredPrice):
 		return GraduatedTieredPrice, nil
 	default:
-		return "", fmt.Errorf("invalid tiered price mode: %s", s)
+		return "", fmt.Errorf("invalid TieredPrice mode: %s", s)
 	}
 }
 
@@ -353,7 +358,7 @@ func (t TieredPrice) Validate() error {
 	var errs []error
 
 	if !lo.Contains(TieredPriceMode("").Values(), t.Mode) {
-		errs = append(errs, fmt.Errorf("invalid tiered price mode: %s", t.Mode))
+		errs = append(errs, fmt.Errorf("invalid TieredPrice mode: %s", t.Mode))
 	}
 
 	upToAmounts := make(map[string]struct{}, len(t.Tiers))
@@ -361,7 +366,7 @@ func (t TieredPrice) Validate() error {
 		uta := lo.FromPtrOr(tier.UpToAmount, decimal.Zero)
 		if !uta.IsZero() {
 			if _, ok := upToAmounts[uta.String()]; ok {
-				errs = append(errs, errors.New("multiple price tiers with same up-to-amount are not allowed"))
+				errs = append(errs, errors.New("multiple PriceTiers with same UpToAmount are not allowed"))
 
 				continue
 			}
@@ -369,18 +374,18 @@ func (t TieredPrice) Validate() error {
 		}
 
 		if err := tier.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid price tier: %w", err))
+			errs = append(errs, fmt.Errorf("invalid PriceTier: %w", err))
 		}
 	}
 
 	minAmount := lo.FromPtrOr(t.MinimumAmount, decimal.Zero)
 	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("minimum amount must not be negative"))
+		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
 	}
 
 	maxAmount := lo.FromPtrOr(t.MaximumAmount, decimal.Zero)
 	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("maximum amount must not be negative"))
+		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
 	}
 
 	if !minAmount.IsZero() && !maxAmount.IsZero() {
@@ -405,10 +410,10 @@ type PriceTier struct {
 	UpToAmount *decimal.Decimal `json:"upToAmount,omitempty"`
 
 	// FlatPrice defines the flat price component of the tier.
-	FlatPrice *FlatPrice `json:"flatPrice,omitempty"`
+	FlatPrice *PriceTierFlatPrice `json:"flatPrice,omitempty"`
 
 	// UnitPrice defines the unit price component of the tier.
-	UnitPrice *UnitPrice `json:"unitPrice,omitempty"`
+	UnitPrice *PriceTierUnitPrice `json:"unitPrice,omitempty"`
 }
 
 func (p PriceTier) Validate() error {
@@ -416,23 +421,61 @@ func (p PriceTier) Validate() error {
 
 	upToAmount := lo.FromPtrOr(p.UpToAmount, decimal.Zero)
 	if upToAmount.IsNegative() {
-		errs = append(errs, errors.New("up-to-amount must not be negative"))
+		errs = append(errs, errors.New("the UpToAmount must not be negative"))
+	}
+
+	if p.FlatPrice == nil && p.UnitPrice == nil {
+		errs = append(errs, errors.New("either FlatPrice or UnitPrice must be provided in PriceTier"))
 	}
 
 	if p.FlatPrice != nil {
 		if err := p.FlatPrice.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid flat price: %w", err))
+			errs = append(errs, fmt.Errorf("invalid FlatPrice in PriceTier: %w", err))
 		}
 	}
 
 	if p.UnitPrice != nil {
 		if err := p.UnitPrice.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid unit price: %w", err))
+			errs = append(errs, fmt.Errorf("invalid UnitPrice in PriceTier: %w", err))
 		}
 	}
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+var _ Validator = (*PriceTierFlatPrice)(nil)
+
+type PriceTierFlatPrice struct {
+	PriceMeta
+
+	// Amount of the flat price.
+	Amount decimal.Decimal `json:"amount"`
+}
+
+func (f PriceTierFlatPrice) Validate() error {
+	if f.Amount.IsNegative() {
+		return errors.New("the Amount must not be negative")
+	}
+
+	return nil
+}
+
+var _ Validator = (*PriceTierUnitPrice)(nil)
+
+type PriceTierUnitPrice struct {
+	PriceMeta
+
+	// Amount of the flat price.
+	Amount decimal.Decimal `json:"amount"`
+}
+
+func (u PriceTierUnitPrice) Validate() error {
+	if u.Amount.IsNegative() {
+		return errors.New("the Amount must not be negative")
 	}
 
 	return nil

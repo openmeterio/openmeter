@@ -98,10 +98,10 @@ func (p Plan) Validate() error {
 var _ Validator = (*EffectivePeriod)(nil)
 
 type EffectivePeriod struct {
-	// EffectiveFrom
+	// EffectiveFrom defines the time from the Plan becomes active.
 	EffectiveFrom *time.Time `json:"effectiveFrom,omitempty"`
 
-	// EffectiveTo
+	// EffectiveTO defines the time from the Plan becomes archived.
 	EffectiveTo *time.Time `json:"effectiveTo,omitempty"`
 }
 

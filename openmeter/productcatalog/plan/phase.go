@@ -44,7 +44,7 @@ func (p Phase) Validate() error {
 	var errs []error
 
 	if p.StartAfter.IsNegative() {
-		errs = append(errs, fmt.Errorf("startAfter must not be negative"))
+		errs = append(errs, fmt.Errorf("the StartAfter period must not be negative"))
 	}
 
 	// Check for
@@ -54,23 +54,29 @@ func (p Phase) Validate() error {
 	rateCardKeys := make(map[string]RateCard)
 	for _, rateCard := range p.RateCards {
 		if _, ok := rateCardKeys[rateCard.Key()]; ok {
-			errs = append(errs, fmt.Errorf("duplicated rate card: %s", rateCard.Key()))
+			errs = append(errs, fmt.Errorf("duplicated RateCard: %s", rateCard.Key()))
 		} else {
 			rateCardKeys[rateCard.Key()] = rateCard
 		}
 
 		if rateCard.Namespace() != p.Namespace {
-			errs = append(errs, fmt.Errorf("invalid rate card %s: namespace mismatch %s", rateCard.Key(), rateCard.Namespace()))
+			errs = append(errs, fmt.Errorf("invalid RateCard: namespace mismatch %s", rateCard.Namespace()))
 		}
 
 		if err := rateCard.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid rate card %s: %w", rateCard.Key(), err))
+			errs = append(errs, fmt.Errorf("invalid RateCard: %w", err))
 		}
 	}
 
 	for _, discount := range p.Discounts {
 		if err := discount.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid discount: %w", err))
+			errs = append(errs, fmt.Errorf("invalid Discount: %w", err))
+		}
+
+		for _, key := range discount.RateCardKeys() {
+			if _, ok := rateCardKeys[key]; !ok {
+				errs = append(errs, fmt.Errorf("invalid Discount: unknown RateCard: %s", key))
+			}
 		}
 	}
 

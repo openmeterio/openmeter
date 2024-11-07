@@ -53,12 +53,12 @@ func (r *RateCard) MarshalJSON() ([]byte, error) {
 	case FlatFeeRateCardType:
 		b, err = json.Marshal(r.flatFee)
 		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal flat fee rate card: %w", err)
+			return nil, fmt.Errorf("failed to json marshal FlatFeeRateCard: %w", err)
 		}
 	case UsageBasedRateCardType:
 		b, err = json.Marshal(r.usageBased)
 		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal usage based rate card: %w", err)
+			return nil, fmt.Errorf("failed to json marshal UsageBasedRateCard: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("invalid entitlement type: %s", r.t)
@@ -71,14 +71,14 @@ func (r *RateCard) UnmarshalJSON(bytes []byte) error {
 	meta := &RateCardMeta{}
 
 	if err := json.Unmarshal(bytes, meta); err != nil {
-		return fmt.Errorf("failed to json unmarshal rate card type: %w", err)
+		return fmt.Errorf("failed to json unmarshal type: %w", err)
 	}
 
 	switch meta.Type {
 	case FlatFeeRateCardType:
 		v := &FlatFeeRateCard{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal flat fee rate card: %w", err)
+			return fmt.Errorf("failed to json unmarshal FlatFeeRateCard: %w", err)
 		}
 
 		r.flatFee = v
@@ -86,13 +86,13 @@ func (r *RateCard) UnmarshalJSON(bytes []byte) error {
 	case UsageBasedRateCardType:
 		v := &UsageBasedRateCard{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal uasge based rate card: %w", err)
+			return fmt.Errorf("failed to json unmarshal UsageBasedRateCard: %w", err)
 		}
 
 		r.usageBased = v
 		r.t = UsageBasedRateCardType
 	default:
-		return fmt.Errorf("invalid entitlement type: %s", meta.Type)
+		return fmt.Errorf("invalid type: %s", meta.Type)
 	}
 
 	return nil
@@ -105,15 +105,15 @@ func (r *RateCard) Validate() error {
 			return r.flatFee.Validate()
 		}
 
-		return errors.New("invalid rate card: not initialized")
+		return errors.New("invalid RateCard: not initialized")
 	case UsageBasedRateCardType:
 		if r.usageBased != nil {
 			return r.usageBased.Validate()
 		}
 
-		return errors.New("invalid rate card: not initialized")
+		return errors.New("invalid RateCard: not initialized")
 	default:
-		return fmt.Errorf("invalid rate card type type: %s", r.t)
+		return fmt.Errorf("invalid type: %s", r.t)
 	}
 }
 
@@ -157,7 +157,7 @@ func (r *RateCard) Namespace() string {
 
 func (r *RateCard) AsFlatFee() (FlatFeeRateCard, error) {
 	if r.t == "" || r.flatFee == nil {
-		return FlatFeeRateCard{}, errors.New("invalid rate card: not initialized")
+		return FlatFeeRateCard{}, errors.New("invalid RateCard: not initialized")
 	}
 
 	return *r.flatFee, nil
@@ -165,11 +165,11 @@ func (r *RateCard) AsFlatFee() (FlatFeeRateCard, error) {
 
 func (r *RateCard) AsUsageBased() (UsageBasedRateCard, error) {
 	if r.t == "" || r.usageBased == nil {
-		return UsageBasedRateCard{}, errors.New("invalid rate card: not initialized")
+		return UsageBasedRateCard{}, errors.New("invalid RateCard: not initialized")
 	}
 
 	if r.t != UsageBasedRateCardType {
-		return UsageBasedRateCard{}, fmt.Errorf("rate card type mismatch: %s", r.t)
+		return UsageBasedRateCard{}, fmt.Errorf("type mismatch: %s", r.t)
 	}
 
 	return *r.usageBased, nil
@@ -177,7 +177,7 @@ func (r *RateCard) AsUsageBased() (UsageBasedRateCard, error) {
 
 func (r *RateCard) AsMeta() (RateCardMeta, error) {
 	if r.t == "" {
-		return RateCardMeta{}, errors.New("invalid rate card: not initialized")
+		return RateCardMeta{}, errors.New("invalid RateCard: not initialized")
 	}
 
 	switch r.t {
@@ -186,7 +186,7 @@ func (r *RateCard) AsMeta() (RateCardMeta, error) {
 	case UsageBasedRateCardType:
 		return r.usageBased.RateCardMeta, nil
 	default:
-		return RateCardMeta{}, fmt.Errorf("rate card type mismatch: %s", r.t)
+		return RateCardMeta{}, fmt.Errorf("type mismatch: %s", r.t)
 	}
 }
 
@@ -253,17 +253,19 @@ type RateCardMeta struct {
 func (r *RateCardMeta) Validate() error {
 	var errs []error
 
-	// TODO: invoke feature validation here as soon as there is implemented one.
+	if r.Feature != nil && r.EntitlementTemplate == nil {
+		errs = append(errs, errors.New("invalid EntitlementTemplate: must be provided if Feature is set"))
+	}
 
 	if r.EntitlementTemplate != nil {
 		if err := r.EntitlementTemplate.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid entitlement template: %w", err))
+			errs = append(errs, fmt.Errorf("invalid EntitlementTemplate: %w", err))
 		}
 	}
 
 	if r.TaxConfig != nil {
 		if err := r.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid tax config: %w", err))
+			errs = append(errs, fmt.Errorf("invalid TaxConfig: %w", err))
 		}
 	}
 
@@ -297,12 +299,12 @@ func (r *FlatFeeRateCard) Validate() error {
 
 	if r.BillingCadence != nil {
 		if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
-			errs = append(errs, errors.New("billing cadence must not be negative or zero"))
+			errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
 		}
 	}
 
 	if err := r.Price.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid price: %w", err))
+		errs = append(errs, fmt.Errorf("invalid Price: %w", err))
 	}
 
 	if len(errs) > 0 {
@@ -333,11 +335,11 @@ func (r *UsageBasedRateCard) Validate() error {
 	}
 
 	if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
-		errs = append(errs, errors.New("billing cadence must not be negative or zero"))
+		errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
 	}
 
 	if err := r.Price.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid price: %w", err))
+		errs = append(errs, fmt.Errorf("invalid Price: %w", err))
 	}
 
 	if len(errs) > 0 {
