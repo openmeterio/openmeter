@@ -33,6 +33,7 @@ func (c PostgresConfig) Validate() error {
 }
 
 func ConfigurePostgres(v *viper.Viper) {
+	v.SetDefault("postgres.url", "")
 	v.SetDefault("postgres.autoMigrate", "ent")
 }
 
