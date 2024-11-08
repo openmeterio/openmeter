@@ -97,3 +97,70 @@ Usage: {{ include "openmeter.componentSelectorLabels" (list . "component") }}
 {{ include "openmeter.selectorLabels" $global }}
 app.kubernetes.io/component: {{ $component }}
 {{- end }}
+
+{{/*
+Generic init container with netcat to check if a dependency is ready
+*/}}
+{{- define "openmeter.init.netcat" -}}
+{{- $global := index . 0 -}}
+{{- $name := index . 1 -}}
+{{- $address := index . 2 -}}
+{{- $port := index . 3 -}}
+- name: init-{{ $name }}
+  image: "busybox:{{ $global.Values.init.busybox.tag }}"
+  imagePullPolicy: IfNotPresent
+  command:
+    - sh
+    - -c
+    - |
+        echo "Waiting for {{ lower $name }}...";
+        while ! nc -z {{ $address }} {{ $port }}; do
+          sleep 1;
+        done;
+        echo "{{ title $name }} is ready!";
+{{- end }}
+
+{{/*
+Checks if the postres port is ready
+*/}}
+{{- define "openmeter.init.postgres" -}}
+{{- $global := index . 0 -}}
+{{- $address := printf "%v-postgres" (include "openmeter.fullname" $global) -}}
+{{ include "openmeter.init.netcat" (list $global "postgres" $address "5432") }}
+{{- end }}
+
+{{/*
+Checks if the clickhouse port is ready
+*/}}
+{{- define "openmeter.init.clickhouse" -}}
+{{- $global := index . 0 -}}
+{{- $address := printf "clickhouse-%v" (include "openmeter.fullname" $global) -}}
+{{ include "openmeter.init.netcat" (list $global "clickhouse" $address "9000") }}
+{{- end }}
+
+{{/*
+Checks if redis is ready
+*/}}
+{{- define "openmeter.init.redis" -}}
+{{- $global := index . 0 -}}
+{{- $address := printf "%v-redis-master" (include "openmeter.fullname" $global) -}}
+- name: init-redis
+  image: "busybox:{{ $global.Values.init.busybox.tag }}"
+  imagePullPolicy: IfNotPresent
+  command:
+    - sh
+    - -c
+    - |
+        echo "Waiting for redis...";
+        while true; do
+            response=$(echo -en "PING\r\n" | nc -w 1 {{ $address }} 6379)
+
+            if [[ "$response" == "+PONG*" ]]; then
+                echo "Redis is ready!"
+                exit 0
+            else
+                echo "Redis is not ready: $response"
+                sleep 1
+            fi
+        done
+{{- end }}
