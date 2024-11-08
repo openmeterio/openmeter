@@ -322,7 +322,7 @@ var (
 		{Name: "supplier_tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "customer_name", Type: field.TypeString},
 		{Name: "customer_timezone", Type: field.TypeString, Nullable: true},
-		{Name: "customer_subject_keys", Type: field.TypeJSON, Nullable: true},
+		{Name: "customer_usage_attribution", Type: field.TypeJSON},
 		{Name: "number", Type: field.TypeString, Nullable: true},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "credit-note"}},
 		{Name: "description", Type: field.TypeString, Nullable: true},

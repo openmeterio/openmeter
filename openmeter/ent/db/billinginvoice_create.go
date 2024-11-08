@@ -323,9 +323,9 @@ func (bic *BillingInvoiceCreate) SetNillableCustomerTimezone(t *timezone.Timezon
 	return bic
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (bic *BillingInvoiceCreate) SetCustomerSubjectKeys(s []string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerSubjectKeys(s)
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (bic *BillingInvoiceCreate) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerUsageAttribution(bcua)
 	return bic
 }
 
@@ -677,6 +677,9 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "customer_timezone", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_timezone": %w`, err)}
 		}
 	}
+	if _, ok := bic.mutation.CustomerUsageAttribution(); !ok {
+		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
+	}
 	if _, ok := bic.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoice.type"`)}
 	}
@@ -875,9 +878,9 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_spec.SetField(billinginvoice.FieldCustomerTimezone, field.TypeString, value)
 		_node.CustomerTimezone = &value
 	}
-	if value, ok := bic.mutation.CustomerSubjectKeys(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerSubjectKeys, field.TypeJSON, value)
-		_node.CustomerSubjectKeys = value
+	if value, ok := bic.mutation.CustomerUsageAttribution(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
+		_node.CustomerUsageAttribution = value
 	}
 	if value, ok := bic.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
@@ -1469,21 +1472,15 @@ func (u *BillingInvoiceUpsert) ClearCustomerTimezone() *BillingInvoiceUpsert {
 	return u
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (u *BillingInvoiceUpsert) SetCustomerSubjectKeys(v []string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldCustomerSubjectKeys, v)
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsert) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerUsageAttribution, v)
 	return u
 }
 
-// UpdateCustomerSubjectKeys sets the "customer_subject_keys" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateCustomerSubjectKeys() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldCustomerSubjectKeys)
-	return u
-}
-
-// ClearCustomerSubjectKeys clears the value of the "customer_subject_keys" field.
-func (u *BillingInvoiceUpsert) ClearCustomerSubjectKeys() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldCustomerSubjectKeys)
+// UpdateCustomerUsageAttribution sets the "customer_usage_attribution" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerUsageAttribution() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerUsageAttribution)
 	return u
 }
 
@@ -2159,24 +2156,17 @@ func (u *BillingInvoiceUpsertOne) ClearCustomerTimezone() *BillingInvoiceUpsertO
 	})
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (u *BillingInvoiceUpsertOne) SetCustomerSubjectKeys(v []string) *BillingInvoiceUpsertOne {
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetCustomerSubjectKeys(v)
+		s.SetCustomerUsageAttribution(v)
 	})
 }
 
-// UpdateCustomerSubjectKeys sets the "customer_subject_keys" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateCustomerSubjectKeys() *BillingInvoiceUpsertOne {
+// UpdateCustomerUsageAttribution sets the "customer_usage_attribution" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerUsageAttribution() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateCustomerSubjectKeys()
-	})
-}
-
-// ClearCustomerSubjectKeys clears the value of the "customer_subject_keys" field.
-func (u *BillingInvoiceUpsertOne) ClearCustomerSubjectKeys() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearCustomerSubjectKeys()
+		s.UpdateCustomerUsageAttribution()
 	})
 }
 
@@ -3049,24 +3039,17 @@ func (u *BillingInvoiceUpsertBulk) ClearCustomerTimezone() *BillingInvoiceUpsert
 	})
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (u *BillingInvoiceUpsertBulk) SetCustomerSubjectKeys(v []string) *BillingInvoiceUpsertBulk {
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetCustomerSubjectKeys(v)
+		s.SetCustomerUsageAttribution(v)
 	})
 }
 
-// UpdateCustomerSubjectKeys sets the "customer_subject_keys" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateCustomerSubjectKeys() *BillingInvoiceUpsertBulk {
+// UpdateCustomerUsageAttribution sets the "customer_usage_attribution" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerUsageAttribution() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateCustomerSubjectKeys()
-	})
-}
-
-// ClearCustomerSubjectKeys clears the value of the "customer_subject_keys" field.
-func (u *BillingInvoiceUpsertBulk) ClearCustomerSubjectKeys() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearCustomerSubjectKeys()
+		s.UpdateCustomerUsageAttribution()
 	})
 }
 

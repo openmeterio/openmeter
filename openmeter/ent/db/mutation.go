@@ -6198,8 +6198,7 @@ type BillingInvoiceMutation struct {
 	supplier_tax_code                        *string
 	customer_name                            *string
 	customer_timezone                        *timezone.Timezone
-	customer_subject_keys                    *[]string
-	appendcustomer_subject_keys              []string
+	customer_usage_attribution               **billingentity.VersionedCustomerUsageAttribution
 	number                                   *string
 	_type                                    *billingentity.InvoiceType
 	description                              *string
@@ -7401,69 +7400,40 @@ func (m *BillingInvoiceMutation) ResetCustomerTimezone() {
 	delete(m.clearedFields, billinginvoice.FieldCustomerTimezone)
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (m *BillingInvoiceMutation) SetCustomerSubjectKeys(s []string) {
-	m.customer_subject_keys = &s
-	m.appendcustomer_subject_keys = nil
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (m *BillingInvoiceMutation) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) {
+	m.customer_usage_attribution = &bcua
 }
 
-// CustomerSubjectKeys returns the value of the "customer_subject_keys" field in the mutation.
-func (m *BillingInvoiceMutation) CustomerSubjectKeys() (r []string, exists bool) {
-	v := m.customer_subject_keys
+// CustomerUsageAttribution returns the value of the "customer_usage_attribution" field in the mutation.
+func (m *BillingInvoiceMutation) CustomerUsageAttribution() (r *billingentity.VersionedCustomerUsageAttribution, exists bool) {
+	v := m.customer_usage_attribution
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCustomerSubjectKeys returns the old "customer_subject_keys" field's value of the BillingInvoice entity.
+// OldCustomerUsageAttribution returns the old "customer_usage_attribution" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldCustomerSubjectKeys(ctx context.Context) (v []string, err error) {
+func (m *BillingInvoiceMutation) OldCustomerUsageAttribution(ctx context.Context) (v *billingentity.VersionedCustomerUsageAttribution, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomerSubjectKeys is only allowed on UpdateOne operations")
+		return v, errors.New("OldCustomerUsageAttribution is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomerSubjectKeys requires an ID field in the mutation")
+		return v, errors.New("OldCustomerUsageAttribution requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomerSubjectKeys: %w", err)
+		return v, fmt.Errorf("querying old value for OldCustomerUsageAttribution: %w", err)
 	}
-	return oldValue.CustomerSubjectKeys, nil
+	return oldValue.CustomerUsageAttribution, nil
 }
 
-// AppendCustomerSubjectKeys adds s to the "customer_subject_keys" field.
-func (m *BillingInvoiceMutation) AppendCustomerSubjectKeys(s []string) {
-	m.appendcustomer_subject_keys = append(m.appendcustomer_subject_keys, s...)
-}
-
-// AppendedCustomerSubjectKeys returns the list of values that were appended to the "customer_subject_keys" field in this mutation.
-func (m *BillingInvoiceMutation) AppendedCustomerSubjectKeys() ([]string, bool) {
-	if len(m.appendcustomer_subject_keys) == 0 {
-		return nil, false
-	}
-	return m.appendcustomer_subject_keys, true
-}
-
-// ClearCustomerSubjectKeys clears the value of the "customer_subject_keys" field.
-func (m *BillingInvoiceMutation) ClearCustomerSubjectKeys() {
-	m.customer_subject_keys = nil
-	m.appendcustomer_subject_keys = nil
-	m.clearedFields[billinginvoice.FieldCustomerSubjectKeys] = struct{}{}
-}
-
-// CustomerSubjectKeysCleared returns if the "customer_subject_keys" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) CustomerSubjectKeysCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldCustomerSubjectKeys]
-	return ok
-}
-
-// ResetCustomerSubjectKeys resets all changes to the "customer_subject_keys" field.
-func (m *BillingInvoiceMutation) ResetCustomerSubjectKeys() {
-	m.customer_subject_keys = nil
-	m.appendcustomer_subject_keys = nil
-	delete(m.clearedFields, billinginvoice.FieldCustomerSubjectKeys)
+// ResetCustomerUsageAttribution resets all changes to the "customer_usage_attribution" field.
+func (m *BillingInvoiceMutation) ResetCustomerUsageAttribution() {
+	m.customer_usage_attribution = nil
 }
 
 // SetNumber sets the "number" field.
@@ -8582,8 +8552,8 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	if m.customer_timezone != nil {
 		fields = append(fields, billinginvoice.FieldCustomerTimezone)
 	}
-	if m.customer_subject_keys != nil {
-		fields = append(fields, billinginvoice.FieldCustomerSubjectKeys)
+	if m.customer_usage_attribution != nil {
+		fields = append(fields, billinginvoice.FieldCustomerUsageAttribution)
 	}
 	if m.number != nil {
 		fields = append(fields, billinginvoice.FieldNumber)
@@ -8690,8 +8660,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerName()
 	case billinginvoice.FieldCustomerTimezone:
 		return m.CustomerTimezone()
-	case billinginvoice.FieldCustomerSubjectKeys:
-		return m.CustomerSubjectKeys()
+	case billinginvoice.FieldCustomerUsageAttribution:
+		return m.CustomerUsageAttribution()
 	case billinginvoice.FieldNumber:
 		return m.Number()
 	case billinginvoice.FieldType:
@@ -8781,8 +8751,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldCustomerName(ctx)
 	case billinginvoice.FieldCustomerTimezone:
 		return m.OldCustomerTimezone(ctx)
-	case billinginvoice.FieldCustomerSubjectKeys:
-		return m.OldCustomerSubjectKeys(ctx)
+	case billinginvoice.FieldCustomerUsageAttribution:
+		return m.OldCustomerUsageAttribution(ctx)
 	case billinginvoice.FieldNumber:
 		return m.OldNumber(ctx)
 	case billinginvoice.FieldType:
@@ -8987,12 +8957,12 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCustomerTimezone(v)
 		return nil
-	case billinginvoice.FieldCustomerSubjectKeys:
-		v, ok := value.([]string)
+	case billinginvoice.FieldCustomerUsageAttribution:
+		v, ok := value.(*billingentity.VersionedCustomerUsageAttribution)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCustomerSubjectKeys(v)
+		m.SetCustomerUsageAttribution(v)
 		return nil
 	case billinginvoice.FieldNumber:
 		v, ok := value.(string)
@@ -9197,9 +9167,6 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldCustomerTimezone) {
 		fields = append(fields, billinginvoice.FieldCustomerTimezone)
 	}
-	if m.FieldCleared(billinginvoice.FieldCustomerSubjectKeys) {
-		fields = append(fields, billinginvoice.FieldCustomerSubjectKeys)
-	}
 	if m.FieldCleared(billinginvoice.FieldNumber) {
 		fields = append(fields, billinginvoice.FieldNumber)
 	}
@@ -9291,9 +9258,6 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldCustomerTimezone:
 		m.ClearCustomerTimezone()
-		return nil
-	case billinginvoice.FieldCustomerSubjectKeys:
-		m.ClearCustomerSubjectKeys()
 		return nil
 	case billinginvoice.FieldNumber:
 		m.ClearNumber()
@@ -9396,8 +9360,8 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 	case billinginvoice.FieldCustomerTimezone:
 		m.ResetCustomerTimezone()
 		return nil
-	case billinginvoice.FieldCustomerSubjectKeys:
-		m.ResetCustomerSubjectKeys()
+	case billinginvoice.FieldCustomerUsageAttribution:
+		m.ResetCustomerUsageAttribution()
 		return nil
 	case billinginvoice.FieldNumber:
 		m.ResetNumber()

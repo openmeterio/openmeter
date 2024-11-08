@@ -403,8 +403,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.Strings("customer_subject_keys").
-			Optional(),
+		field.JSON("customer_usage_attribution", &billingentity.VersionedCustomerUsageAttribution{}),
 
 		// Invoice number
 		field.String("number").

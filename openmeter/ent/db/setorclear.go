@@ -490,20 +490,6 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCustomerTimezone(value *timezone.Tim
 	return u.SetCustomerTimezone(*value)
 }
 
-func (u *BillingInvoiceUpdate) SetOrClearCustomerSubjectKeys(value *[]string) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearCustomerSubjectKeys()
-	}
-	return u.SetCustomerSubjectKeys(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearCustomerSubjectKeys(value *[]string) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearCustomerSubjectKeys()
-	}
-	return u.SetCustomerSubjectKeys(*value)
-}
-
 func (u *BillingInvoiceUpdate) SetOrClearNumber(value *string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearNumber()

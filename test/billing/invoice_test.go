@@ -276,7 +276,9 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				Name:           customerEntity.Name,
 				BillingAddress: customerEntity.BillingAddress,
-				Subjects:       []string{"test"},
+				UsageAttribution: billingentity.CustomerUsageAttribution{
+					SubjectKeys: []string{"test"},
+				},
 			},
 			Supplier: billingProfile.Supplier,
 

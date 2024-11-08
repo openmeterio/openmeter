@@ -83,42 +83,61 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		}
 	}
 
-	meterValues, err := s.StreamingConnector.QueryMeter(
-		ctx,
-		in.Line.Namespace,
-		in.Meter.Slug,
-		meterQueryParams,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("querying line[%s] meter[%s]: %w", in.Line.ID, in.Meter.Slug, err)
-	}
-
-	res := &featureUsageResponse{
-		LinePeriodQty: summarizeMeterQueryRow(meterValues),
-	}
-
 	// If we are the first line in the split, we don't need to calculate the pre period
 	if in.ParentLine == nil || in.ParentLine.Period.Start.Equal(in.Line.Period.Start) {
-		return res, nil
+		meterValues, err := s.StreamingConnector.QueryMeter(
+			ctx,
+			in.Line.Namespace,
+			in.Meter.Slug,
+			meterQueryParams,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("querying line[%s] meter[%s]: %w", in.Line.ID, in.Meter.Slug, err)
+		}
+
+		return &featureUsageResponse{
+			LinePeriodQty: summarizeMeterQueryRow(meterValues),
+		}, nil
 	}
 
-	// Let's get the usage for the parent line to calculate the pre period
-	meterQueryParams.From = &in.ParentLine.Period.Start
+	// Let's calculate [parent.start ... line.start] values
+	preLineQuery := meterQueryParams
+	preLineQuery.From = &in.ParentLine.Period.Start
+	preLineQuery.To = &in.Line.Period.Start
 
-	meterValues, err = s.StreamingConnector.QueryMeter(
+	preLineResult, err := s.StreamingConnector.QueryMeter(
 		ctx,
 		in.Line.Namespace,
 		in.Meter.Slug,
 		meterQueryParams,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("querying parent line[%s] meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
+		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
 	}
 
-	fullPeriodQty := summarizeMeterQueryRow(meterValues)
-	res.PreLinePeriodQty = fullPeriodQty.Sub(res.LinePeriodQty)
+	preLineQty := summarizeMeterQueryRow(preLineResult)
 
-	return res, nil
+	// Let's calculate [parent.start ... line.end] values
+	upToLineEnd := meterQueryParams
+	upToLineEnd.From = &in.Line.Period.Start
+	upToLineEnd.To = &in.Line.Period.End
+
+	upToLineEndResult, err := s.StreamingConnector.QueryMeter(
+		ctx,
+		in.Line.Namespace,
+		in.Meter.Slug,
+		upToLineEnd,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("querying up to line[%s] end meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
+	}
+
+	upToLineQty := summarizeMeterQueryRow(upToLineEndResult)
+
+	return &featureUsageResponse{
+		LinePeriodQty:    upToLineQty.Sub(preLineQty),
+		PreLinePeriodQty: preLineQty,
+	}, nil
 }
 
 func summarizeMeterQueryRow(in []models.MeterQueryRow) alpacadecimal.Decimal {

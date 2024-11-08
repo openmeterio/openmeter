@@ -32,7 +32,7 @@ func (l manualUsageBasedLine) Validate(ctx context.Context, targetInvoice *billi
 		return err
 	}
 
-	if len(targetInvoice.Customer.Subjects) == 0 {
+	if len(targetInvoice.Customer.UsageAttribution.SubjectKeys) == 0 {
 		return billingentity.ValidationError{
 			Err: billingentity.ErrInvoiceCreateUBPLineCustomerHasNoSubjects,
 		}
@@ -114,7 +114,7 @@ func (l manualUsageBasedLine) SnapshotQuantity(ctx context.Context, invoice *bil
 			ParentLine: l.line.ParentLine,
 			Feature:    featureMeter.feature,
 			Meter:      featureMeter.meter,
-			Subjects:   invoice.Customer.Subjects,
+			Subjects:   invoice.Customer.UsageAttribution.SubjectKeys,
 		},
 	)
 	if err != nil {

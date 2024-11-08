@@ -10,7 +10,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -421,21 +420,9 @@ func (biu *BillingInvoiceUpdate) ClearCustomerTimezone() *BillingInvoiceUpdate {
 	return biu
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (biu *BillingInvoiceUpdate) SetCustomerSubjectKeys(s []string) *BillingInvoiceUpdate {
-	biu.mutation.SetCustomerSubjectKeys(s)
-	return biu
-}
-
-// AppendCustomerSubjectKeys appends s to the "customer_subject_keys" field.
-func (biu *BillingInvoiceUpdate) AppendCustomerSubjectKeys(s []string) *BillingInvoiceUpdate {
-	biu.mutation.AppendCustomerSubjectKeys(s)
-	return biu
-}
-
-// ClearCustomerSubjectKeys clears the value of the "customer_subject_keys" field.
-func (biu *BillingInvoiceUpdate) ClearCustomerSubjectKeys() *BillingInvoiceUpdate {
-	biu.mutation.ClearCustomerSubjectKeys()
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (biu *BillingInvoiceUpdate) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpdate {
+	biu.mutation.SetCustomerUsageAttribution(bcua)
 	return biu
 }
 
@@ -958,16 +945,8 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if biu.mutation.CustomerTimezoneCleared() {
 		_spec.ClearField(billinginvoice.FieldCustomerTimezone, field.TypeString)
 	}
-	if value, ok := biu.mutation.CustomerSubjectKeys(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerSubjectKeys, field.TypeJSON, value)
-	}
-	if value, ok := biu.mutation.AppendedCustomerSubjectKeys(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, billinginvoice.FieldCustomerSubjectKeys, value)
-		})
-	}
-	if biu.mutation.CustomerSubjectKeysCleared() {
-		_spec.ClearField(billinginvoice.FieldCustomerSubjectKeys, field.TypeJSON)
+	if value, ok := biu.mutation.CustomerUsageAttribution(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
 	}
 	if value, ok := biu.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
@@ -1548,21 +1527,9 @@ func (biuo *BillingInvoiceUpdateOne) ClearCustomerTimezone() *BillingInvoiceUpda
 	return biuo
 }
 
-// SetCustomerSubjectKeys sets the "customer_subject_keys" field.
-func (biuo *BillingInvoiceUpdateOne) SetCustomerSubjectKeys(s []string) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetCustomerSubjectKeys(s)
-	return biuo
-}
-
-// AppendCustomerSubjectKeys appends s to the "customer_subject_keys" field.
-func (biuo *BillingInvoiceUpdateOne) AppendCustomerSubjectKeys(s []string) *BillingInvoiceUpdateOne {
-	biuo.mutation.AppendCustomerSubjectKeys(s)
-	return biuo
-}
-
-// ClearCustomerSubjectKeys clears the value of the "customer_subject_keys" field.
-func (biuo *BillingInvoiceUpdateOne) ClearCustomerSubjectKeys() *BillingInvoiceUpdateOne {
-	biuo.mutation.ClearCustomerSubjectKeys()
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (biuo *BillingInvoiceUpdateOne) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCustomerUsageAttribution(bcua)
 	return biuo
 }
 
@@ -2115,16 +2082,8 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	if biuo.mutation.CustomerTimezoneCleared() {
 		_spec.ClearField(billinginvoice.FieldCustomerTimezone, field.TypeString)
 	}
-	if value, ok := biuo.mutation.CustomerSubjectKeys(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerSubjectKeys, field.TypeJSON, value)
-	}
-	if value, ok := biuo.mutation.AppendedCustomerSubjectKeys(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, billinginvoice.FieldCustomerSubjectKeys, value)
-		})
-	}
-	if biuo.mutation.CustomerSubjectKeysCleared() {
-		_spec.ClearField(billinginvoice.FieldCustomerSubjectKeys, field.TypeJSON)
+	if value, ok := biuo.mutation.CustomerUsageAttribution(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
 	}
 	if value, ok := biuo.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)

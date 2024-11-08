@@ -246,7 +246,10 @@ func (r *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		SetNillableDueAt(input.DueAt).
 		SetNillableCustomerTimezone(customer.Timezone).
 		SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
-		SetCustomerSubjectKeys(input.Customer.UsageAttribution.SubjectKeys).
+		SetCustomerUsageAttribution(&billingentity.VersionedCustomerUsageAttribution{
+			Type:                     billingentity.CustomerUsageAttributionTypeVersion,
+			CustomerUsageAttribution: input.Customer.UsageAttribution,
+		}).
 		// Workflow (cloned)
 		SetBillingWorkflowConfigID(clonedWorkflowConfig.ID).
 		// TODO[later]: By cloning the AppIDs here we could support changing the apps in the billing profile if needed
@@ -490,8 +493,8 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExp
 				Line2:       invoice.CustomerAddressLine2,
 				PhoneNumber: invoice.CustomerAddressPhoneNumber,
 			},
-			Timezone: invoice.CustomerTimezone,
-			Subjects: invoice.CustomerSubjectKeys,
+			Timezone:         invoice.CustomerTimezone,
+			UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
 		},
 		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
 		IssuedAt:  invoice.IssuedAt,
