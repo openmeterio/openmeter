@@ -323,6 +323,12 @@ func (bic *BillingInvoiceCreate) SetNillableCustomerTimezone(t *timezone.Timezon
 	return bic
 }
 
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (bic *BillingInvoiceCreate) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceCreate {
+	bic.mutation.SetCustomerUsageAttribution(bcua)
+	return bic
+}
+
 // SetNumber sets the "number" field.
 func (bic *BillingInvoiceCreate) SetNumber(s string) *BillingInvoiceCreate {
 	bic.mutation.SetNumber(s)
@@ -671,6 +677,9 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "customer_timezone", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_timezone": %w`, err)}
 		}
 	}
+	if _, ok := bic.mutation.CustomerUsageAttribution(); !ok {
+		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
+	}
 	if _, ok := bic.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoice.type"`)}
 	}
@@ -868,6 +877,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.CustomerTimezone(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerTimezone, field.TypeString, value)
 		_node.CustomerTimezone = &value
+	}
+	if value, ok := bic.mutation.CustomerUsageAttribution(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
+		_node.CustomerUsageAttribution = value
 	}
 	if value, ok := bic.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
@@ -1456,6 +1469,18 @@ func (u *BillingInvoiceUpsert) UpdateCustomerTimezone() *BillingInvoiceUpsert {
 // ClearCustomerTimezone clears the value of the "customer_timezone" field.
 func (u *BillingInvoiceUpsert) ClearCustomerTimezone() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldCustomerTimezone)
+	return u
+}
+
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsert) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerUsageAttribution, v)
+	return u
+}
+
+// UpdateCustomerUsageAttribution sets the "customer_usage_attribution" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerUsageAttribution() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerUsageAttribution)
 	return u
 }
 
@@ -2128,6 +2153,20 @@ func (u *BillingInvoiceUpsertOne) UpdateCustomerTimezone() *BillingInvoiceUpsert
 func (u *BillingInvoiceUpsertOne) ClearCustomerTimezone() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearCustomerTimezone()
+	})
+}
+
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerUsageAttribution(v)
+	})
+}
+
+// UpdateCustomerUsageAttribution sets the "customer_usage_attribution" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerUsageAttribution() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerUsageAttribution()
 	})
 }
 
@@ -2997,6 +3036,20 @@ func (u *BillingInvoiceUpsertBulk) UpdateCustomerTimezone() *BillingInvoiceUpser
 func (u *BillingInvoiceUpsertBulk) ClearCustomerTimezone() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearCustomerTimezone()
+	})
+}
+
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerUsageAttribution(v)
+	})
+}
+
+// UpdateCustomerUsageAttribution sets the "customer_usage_attribution" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerUsageAttribution() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerUsageAttribution()
 	})
 }
 

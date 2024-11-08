@@ -3,12 +3,14 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -243,6 +245,11 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}),
 
+		field.String("parent_line_id").
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}).Optional().Nillable(),
+
 		field.Time("period_start"),
 		field.Time("period_end"),
 		field.Time("invoice_at"),
@@ -250,7 +257,8 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").
-			GoType(billingentity.InvoiceLineType("")),
+			GoType(billingentity.InvoiceLineType("")).
+			Immutable(),
 
 		field.Enum("status").
 			GoType(billingentity.InvoiceLineStatus("")),
@@ -283,6 +291,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "invoice_id"),
+		index.Fields("namespace", "parent_line_id"),
 	}
 }
 
@@ -293,9 +302,19 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Field("invoice_id").
 			Unique().
 			Required(),
-		edge.To("billing_invoice_manual_lines", BillingInvoiceManualLineConfig.Type).
+		edge.To("manual_fee_line", BillingInvoiceManualLineConfig.Type).
 			StorageKey(edge.Column("manual_line_config_id")).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("manual_usage_based_line", BillingInvoiceManualUsageBasedLineConfig.Type).
+			StorageKey(edge.Column("manual_usage_based_line_config_id")).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("child_lines", BillingInvoiceLine.Type).
+			From("parent_line").
+			Field("parent_line_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
@@ -312,7 +331,6 @@ func (BillingInvoiceManualLineConfig) Mixin() []ent.Mixin {
 
 func (BillingInvoiceManualLineConfig) Fields() []ent.Field {
 	return []ent.Field{
-		// Either coming from the
 		field.Other("unit_price", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				"postgres": "numeric",
@@ -320,13 +338,30 @@ func (BillingInvoiceManualLineConfig) Fields() []ent.Field {
 	}
 }
 
-func (BillingInvoiceManualLineConfig) Edgexs() []ent.Edge {
-	return []ent.Edge{
-		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("billing_invoice_manual_lines").
-			Field("id").
-			Unique().
-			Required(),
+type BillingInvoiceManualUsageBasedLineConfig struct {
+	ent.Schema
+}
+
+func (BillingInvoiceManualUsageBasedLineConfig) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+	}
+}
+
+func (BillingInvoiceManualUsageBasedLineConfig) Fields() []ent.Field {
+	return []ent.Field{
+		field.Enum("price_type").
+			GoType(plan.PriceType("")),
+		field.String("feature_key").
+			Immutable().
+			NotEmpty(),
+		field.String("price").
+			GoType(&plan.Price{}).
+			ValueScanner(PriceValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
 	}
 }
 
@@ -367,6 +402,8 @@ func (BillingInvoice) Fields() []ent.Field {
 			GoType(timezone.Timezone("")).
 			Optional().
 			Nillable(),
+
+		field.JSON("customer_usage_attribution", &billingentity.VersionedCustomerUsageAttribution{}),
 
 		// Invoice number
 		field.String("number").
@@ -475,8 +512,10 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Field("workflow_config_id").
 			Unique().
 			Required(),
-		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
-		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type),
+		edge.To("billing_invoice_lines", BillingInvoiceLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("billing_invoice_customer", Customer.Type).
 			Ref("billing_invoice").
 			Field("customer_id").

@@ -13,10 +13,9 @@ import (
 
 func NewMockStreamingConnector(t testing.TB) *MockStreamingConnector {
 	t.Helper()
-	return &MockStreamingConnector{
-		rows:   map[string][]models.MeterQueryRow{},
-		events: map[string][]SimpleEvent{},
-	}
+	out := &MockStreamingConnector{}
+	out.Reset()
+	return out
 }
 
 type SimpleEvent struct {
@@ -28,6 +27,11 @@ type SimpleEvent struct {
 type MockStreamingConnector struct {
 	rows   map[string][]models.MeterQueryRow
 	events map[string][]SimpleEvent
+}
+
+func (m *MockStreamingConnector) Reset() {
+	m.rows = map[string][]models.MeterQueryRow{}
+	m.events = map[string][]SimpleEvent{}
 }
 
 func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64, at time.Time) {

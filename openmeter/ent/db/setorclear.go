@@ -644,6 +644,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *Bill
 	return u.SetDescription(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearParentLineID()
+	}
+	return u.SetParentLineID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearParentLineID()
+	}
+	return u.SetParentLineID(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearQuantity()

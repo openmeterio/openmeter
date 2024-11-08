@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -39,6 +40,8 @@ type BillingInvoiceLine struct {
 	Description *string `json:"description,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
+	// ParentLineID holds the value of the "parent_line_id" field.
+	ParentLineID *string `json:"parent_line_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
 	PeriodStart time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
@@ -57,20 +60,27 @@ type BillingInvoiceLine struct {
 	TaxOverrides *billingentity.TaxOverrides `json:"tax_overrides,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
-	Edges                 BillingInvoiceLineEdges `json:"edges"`
-	manual_line_config_id *string
-	selectValues          sql.SelectValues
+	Edges                             BillingInvoiceLineEdges `json:"edges"`
+	manual_line_config_id             *string
+	manual_usage_based_line_config_id *string
+	selectValues                      sql.SelectValues
 }
 
 // BillingInvoiceLineEdges holds the relations/edges for other nodes in the graph.
 type BillingInvoiceLineEdges struct {
 	// BillingInvoice holds the value of the billing_invoice edge.
 	BillingInvoice *BillingInvoice `json:"billing_invoice,omitempty"`
-	// BillingInvoiceManualLines holds the value of the billing_invoice_manual_lines edge.
-	BillingInvoiceManualLines *BillingInvoiceManualLineConfig `json:"billing_invoice_manual_lines,omitempty"`
+	// ManualFeeLine holds the value of the manual_fee_line edge.
+	ManualFeeLine *BillingInvoiceManualLineConfig `json:"manual_fee_line,omitempty"`
+	// ManualUsageBasedLine holds the value of the manual_usage_based_line edge.
+	ManualUsageBasedLine *BillingInvoiceManualUsageBasedLineConfig `json:"manual_usage_based_line,omitempty"`
+	// ParentLine holds the value of the parent_line edge.
+	ParentLine *BillingInvoiceLine `json:"parent_line,omitempty"`
+	// ChildLines holds the value of the child_lines edge.
+	ChildLines []*BillingInvoiceLine `json:"child_lines,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [5]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -84,15 +94,46 @@ func (e BillingInvoiceLineEdges) BillingInvoiceOrErr() (*BillingInvoice, error) 
 	return nil, &NotLoadedError{edge: "billing_invoice"}
 }
 
-// BillingInvoiceManualLinesOrErr returns the BillingInvoiceManualLines value or an error if the edge
+// ManualFeeLineOrErr returns the ManualFeeLine value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e BillingInvoiceLineEdges) BillingInvoiceManualLinesOrErr() (*BillingInvoiceManualLineConfig, error) {
-	if e.BillingInvoiceManualLines != nil {
-		return e.BillingInvoiceManualLines, nil
+func (e BillingInvoiceLineEdges) ManualFeeLineOrErr() (*BillingInvoiceManualLineConfig, error) {
+	if e.ManualFeeLine != nil {
+		return e.ManualFeeLine, nil
 	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: billinginvoicemanuallineconfig.Label}
 	}
-	return nil, &NotLoadedError{edge: "billing_invoice_manual_lines"}
+	return nil, &NotLoadedError{edge: "manual_fee_line"}
+}
+
+// ManualUsageBasedLineOrErr returns the ManualUsageBasedLine value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) ManualUsageBasedLineOrErr() (*BillingInvoiceManualUsageBasedLineConfig, error) {
+	if e.ManualUsageBasedLine != nil {
+		return e.ManualUsageBasedLine, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: billinginvoicemanualusagebasedlineconfig.Label}
+	}
+	return nil, &NotLoadedError{edge: "manual_usage_based_line"}
+}
+
+// ParentLineOrErr returns the ParentLine value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) ParentLineOrErr() (*BillingInvoiceLine, error) {
+	if e.ParentLine != nil {
+		return e.ParentLine, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: billinginvoiceline.Label}
+	}
+	return nil, &NotLoadedError{edge: "parent_line"}
+}
+
+// ChildLinesOrErr returns the ChildLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) ChildLinesOrErr() ([]*BillingInvoiceLine, error) {
+	if e.loadedTypes[4] {
+		return e.ChildLines, nil
+	}
+	return nil, &NotLoadedError{edge: "child_lines"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -104,11 +145,13 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxOverrides:
 			values[i] = new([]byte)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
 		case billinginvoiceline.ForeignKeys[0]: // manual_line_config_id
+			values[i] = new(sql.NullString)
+		case billinginvoiceline.ForeignKeys[1]: // manual_usage_based_line_config_id
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -183,6 +226,13 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				bil.InvoiceID = value.String
 			}
+		case billinginvoiceline.FieldParentLineID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field parent_line_id", values[i])
+			} else if value.Valid {
+				bil.ParentLineID = new(string)
+				*bil.ParentLineID = value.String
+			}
 		case billinginvoiceline.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_start", values[i])
@@ -241,6 +291,13 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				bil.manual_line_config_id = new(string)
 				*bil.manual_line_config_id = value.String
 			}
+		case billinginvoiceline.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field manual_usage_based_line_config_id", values[i])
+			} else if value.Valid {
+				bil.manual_usage_based_line_config_id = new(string)
+				*bil.manual_usage_based_line_config_id = value.String
+			}
 		default:
 			bil.selectValues.Set(columns[i], values[i])
 		}
@@ -259,9 +316,24 @@ func (bil *BillingInvoiceLine) QueryBillingInvoice() *BillingInvoiceQuery {
 	return NewBillingInvoiceLineClient(bil.config).QueryBillingInvoice(bil)
 }
 
-// QueryBillingInvoiceManualLines queries the "billing_invoice_manual_lines" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryBillingInvoiceManualLines() *BillingInvoiceManualLineConfigQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryBillingInvoiceManualLines(bil)
+// QueryManualFeeLine queries the "manual_fee_line" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryManualFeeLine() *BillingInvoiceManualLineConfigQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryManualFeeLine(bil)
+}
+
+// QueryManualUsageBasedLine queries the "manual_usage_based_line" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryManualUsageBasedLine() *BillingInvoiceManualUsageBasedLineConfigQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryManualUsageBasedLine(bil)
+}
+
+// QueryParentLine queries the "parent_line" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryParentLine() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryParentLine(bil)
+}
+
+// QueryChildLines queries the "child_lines" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryChildLines() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryChildLines(bil)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.
@@ -314,6 +386,11 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
 	builder.WriteString(bil.InvoiceID)
+	builder.WriteString(", ")
+	if v := bil.ParentLineID; v != nil {
+		builder.WriteString("parent_line_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("period_start=")
 	builder.WriteString(bil.PeriodStart.Format(time.ANSIC))

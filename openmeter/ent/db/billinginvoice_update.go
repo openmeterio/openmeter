@@ -420,6 +420,12 @@ func (biu *BillingInvoiceUpdate) ClearCustomerTimezone() *BillingInvoiceUpdate {
 	return biu
 }
 
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (biu *BillingInvoiceUpdate) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpdate {
+	biu.mutation.SetCustomerUsageAttribution(bcua)
+	return biu
+}
+
 // SetNumber sets the "number" field.
 func (biu *BillingInvoiceUpdate) SetNumber(s string) *BillingInvoiceUpdate {
 	biu.mutation.SetNumber(s)
@@ -938,6 +944,9 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if biu.mutation.CustomerTimezoneCleared() {
 		_spec.ClearField(billinginvoice.FieldCustomerTimezone, field.TypeString)
+	}
+	if value, ok := biu.mutation.CustomerUsageAttribution(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
 	}
 	if value, ok := biu.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
@@ -1518,6 +1527,12 @@ func (biuo *BillingInvoiceUpdateOne) ClearCustomerTimezone() *BillingInvoiceUpda
 	return biuo
 }
 
+// SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
+func (biuo *BillingInvoiceUpdateOne) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCustomerUsageAttribution(bcua)
+	return biuo
+}
+
 // SetNumber sets the "number" field.
 func (biuo *BillingInvoiceUpdateOne) SetNumber(s string) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetNumber(s)
@@ -2066,6 +2081,9 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.CustomerTimezoneCleared() {
 		_spec.ClearField(billinginvoice.FieldCustomerTimezone, field.TypeString)
+	}
+	if value, ok := biuo.mutation.CustomerUsageAttribution(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
 	}
 	if value, ok := biuo.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)

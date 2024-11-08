@@ -103,6 +103,11 @@ func InvoiceID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
 }
 
+// ParentLineID applies equality check predicate on the "parent_line_id" field. It's identical to ParentLineIDEQ.
+func ParentLineID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
+}
+
 // PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
 func PeriodStart(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -539,6 +544,81 @@ func InvoiceIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldInvoiceID, v))
 }
 
+// ParentLineIDEQ applies the EQ predicate on the "parent_line_id" field.
+func ParentLineIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
+}
+
+// ParentLineIDNEQ applies the NEQ predicate on the "parent_line_id" field.
+func ParentLineIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldParentLineID, v))
+}
+
+// ParentLineIDIn applies the In predicate on the "parent_line_id" field.
+func ParentLineIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldParentLineID, vs...))
+}
+
+// ParentLineIDNotIn applies the NotIn predicate on the "parent_line_id" field.
+func ParentLineIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldParentLineID, vs...))
+}
+
+// ParentLineIDGT applies the GT predicate on the "parent_line_id" field.
+func ParentLineIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldParentLineID, v))
+}
+
+// ParentLineIDGTE applies the GTE predicate on the "parent_line_id" field.
+func ParentLineIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldParentLineID, v))
+}
+
+// ParentLineIDLT applies the LT predicate on the "parent_line_id" field.
+func ParentLineIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldParentLineID, v))
+}
+
+// ParentLineIDLTE applies the LTE predicate on the "parent_line_id" field.
+func ParentLineIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldParentLineID, v))
+}
+
+// ParentLineIDContains applies the Contains predicate on the "parent_line_id" field.
+func ParentLineIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldParentLineID, v))
+}
+
+// ParentLineIDHasPrefix applies the HasPrefix predicate on the "parent_line_id" field.
+func ParentLineIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldParentLineID, v))
+}
+
+// ParentLineIDHasSuffix applies the HasSuffix predicate on the "parent_line_id" field.
+func ParentLineIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldParentLineID, v))
+}
+
+// ParentLineIDIsNil applies the IsNil predicate on the "parent_line_id" field.
+func ParentLineIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldParentLineID))
+}
+
+// ParentLineIDNotNil applies the NotNil predicate on the "parent_line_id" field.
+func ParentLineIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldParentLineID))
+}
+
+// ParentLineIDEqualFold applies the EqualFold predicate on the "parent_line_id" field.
+func ParentLineIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldParentLineID, v))
+}
+
+// ParentLineIDContainsFold applies the ContainsFold predicate on the "parent_line_id" field.
+func ParentLineIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldParentLineID, v))
+}
+
 // PeriodStartEQ applies the EQ predicate on the "period_start" field.
 func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -886,21 +966,90 @@ func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.BillingI
 	})
 }
 
-// HasBillingInvoiceManualLines applies the HasEdge predicate on the "billing_invoice_manual_lines" edge.
-func HasBillingInvoiceManualLines() predicate.BillingInvoiceLine {
+// HasManualFeeLine applies the HasEdge predicate on the "manual_fee_line" edge.
+func HasManualFeeLine() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, BillingInvoiceManualLinesTable, BillingInvoiceManualLinesColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, ManualFeeLineTable, ManualFeeLineColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasBillingInvoiceManualLinesWith applies the HasEdge predicate on the "billing_invoice_manual_lines" edge with a given conditions (other predicates).
-func HasBillingInvoiceManualLinesWith(preds ...predicate.BillingInvoiceManualLineConfig) predicate.BillingInvoiceLine {
+// HasManualFeeLineWith applies the HasEdge predicate on the "manual_fee_line" edge with a given conditions (other predicates).
+func HasManualFeeLineWith(preds ...predicate.BillingInvoiceManualLineConfig) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := newBillingInvoiceManualLinesStep()
+		step := newManualFeeLineStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasManualUsageBasedLine applies the HasEdge predicate on the "manual_usage_based_line" edge.
+func HasManualUsageBasedLine() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, ManualUsageBasedLineTable, ManualUsageBasedLineColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasManualUsageBasedLineWith applies the HasEdge predicate on the "manual_usage_based_line" edge with a given conditions (other predicates).
+func HasManualUsageBasedLineWith(preds ...predicate.BillingInvoiceManualUsageBasedLineConfig) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newManualUsageBasedLineStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasParentLine applies the HasEdge predicate on the "parent_line" edge.
+func HasParentLine() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ParentLineTable, ParentLineColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasParentLineWith applies the HasEdge predicate on the "parent_line" edge with a given conditions (other predicates).
+func HasParentLineWith(preds ...predicate.BillingInvoiceLine) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newParentLineStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChildLines applies the HasEdge predicate on the "child_lines" edge.
+func HasChildLines() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChildLinesTable, ChildLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChildLinesWith applies the HasEdge predicate on the "child_lines" edge with a given conditions (other predicates).
+func HasChildLinesWith(preds ...predicate.BillingInvoiceLine) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newChildLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

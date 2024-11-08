@@ -131,7 +131,7 @@ func mapCreateManualFeeLineToEntity(line api.BillingManualFeeLineCreateItem, ns 
 			InvoiceAt:    line.InvoiceAt,
 			TaxOverrides: mapTaxConfigToEntity(line.TaxOverrides),
 		},
-		ManualFee: &billingentity.ManualFeeLine{
+		ManualFee: billingentity.ManualFeeLine{
 			Price:    price,
 			Quantity: qty,
 		},
@@ -180,10 +180,6 @@ func mapBillingLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error
 }
 
 func mapManualFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
-	if line.ManualFee == nil {
-		return api.BillingInvoiceLine{}, fmt.Errorf("manual fee line is nil")
-	}
-
 	feeLine := api.BillingManualFeeLine{
 		Type: api.BillingManualFeeLineTypeManualFee,
 		Id:   line.ID,

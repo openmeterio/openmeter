@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -15,6 +16,8 @@ type InvoiceLineType string
 const (
 	// InvoiceLineTypeManualFee is an item that is manually added to the invoice.
 	InvoiceLineTypeManualFee InvoiceLineType = "manual_fee"
+	// InvoiceLineTypeManualUsageBased is an item that is manually added to the invoice and is usage based.
+	InvoiceLineTypeManualUsageBased InvoiceLineType = "manual_usage_based"
 	// InvoiceLineTypeFlatFee is an item that is charged at a fixed rate.
 	InvoiceLineTypeFlatFee InvoiceLineType = "flat_fee"
 	// InvoiceLineTypeUsageBased is an item that is charged based on usage.
@@ -24,6 +27,7 @@ const (
 func (InvoiceLineType) Values() []string {
 	return []string{
 		string(InvoiceLineTypeManualFee),
+		string(InvoiceLineTypeManualUsageBased),
 		string(InvoiceLineTypeFlatFee),
 		string(InvoiceLineTypeUsageBased),
 	}
@@ -45,6 +49,8 @@ func (InvoiceLineStatus) Values() []string {
 	}
 }
 
+// Period represents a time period, in billing the time period is always interpreted as
+// [start, end) (i.e. start is inclusive, end is exclusive).
 type Period struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
@@ -64,6 +70,25 @@ func (p Period) Validate() error {
 	}
 
 	return nil
+}
+
+func (p Period) Truncate(resolution time.Duration) Period {
+	return Period{
+		Start: p.Start.Truncate(resolution),
+		End:   p.End.Truncate(resolution),
+	}
+}
+
+func (p Period) Equal(other Period) bool {
+	return p.Start.Equal(other.Start) && p.End.Equal(other.End)
+}
+
+func (p Period) IsEmpty() bool {
+	return !p.End.After(p.Start)
+}
+
+func (p Period) Contains(t time.Time) bool {
+	return t.After(p.Start) && t.Before(p.End)
 }
 
 // LineBase represents the common fields for an invoice item.
@@ -90,7 +115,8 @@ type LineBase struct {
 	// TODO: Add discounts etc
 
 	// Relationships
-	ParentLine   *string           `json:"parentLine,omitempty"`
+	ParentLineID *string           `json:"parentLine,omitempty"`
+	ParentLine   *Line             `json:"parent,omitempty"`
 	RelatedLines []string          `json:"relatedLine,omitempty"`
 	Status       InvoiceLineStatus `json:"status"`
 
@@ -110,6 +136,10 @@ func (i LineBase) Validate() error {
 
 	if i.InvoiceAt.IsZero() {
 		return errors.New("invoice at is required")
+	}
+
+	if i.InvoiceAt.Before(i.Period.Start) {
+		return errors.New("invoice at must be after period start")
 	}
 
 	if i.Name == "" {
@@ -136,7 +166,8 @@ type ManualFeeLine struct {
 type Line struct {
 	LineBase
 
-	ManualFee *ManualFeeLine `json:"manualFee,omitempty"`
+	ManualFee        ManualFeeLine        `json:"manualFee,omitempty"`
+	ManualUsageBased ManualUsageBasedLine `json:"manualUsageBased,omitempty"`
 }
 
 func (i Line) Validate() error {
@@ -144,19 +175,21 @@ func (i Line) Validate() error {
 		return fmt.Errorf("base: %w", err)
 	}
 
+	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).Start) {
+		return errors.New("invoice at must be after period start")
+	}
+
 	switch i.Type {
 	case InvoiceLineTypeManualFee:
 		return i.ValidateManualFee()
+	case InvoiceLineTypeManualUsageBased:
+		return i.ValidateManualUsageBased()
 	default:
 		return fmt.Errorf("unsupported type: %s", i.Type)
 	}
 }
 
 func (i Line) ValidateManualFee() error {
-	if i.ManualFee == nil {
-		return errors.New("manual fee is required")
-	}
-
 	if !i.ManualFee.Price.IsPositive() {
 		return errors.New("price should be greater than zero")
 	}
@@ -165,6 +198,36 @@ func (i Line) ValidateManualFee() error {
 		return errors.New("quantity should be positive required")
 	}
 
-	// TODO: Validate currency specifics
+	// TODO[OM-947]: Validate currency specifics
+	return nil
+}
+
+func (i Line) ValidateManualUsageBased() error {
+	if err := i.ManualUsageBased.Validate(); err != nil {
+		return fmt.Errorf("manual usage price: %w", err)
+	}
+
+	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).End) {
+		return errors.New("invoice at must be after period end for usage based line")
+	}
+
+	return nil
+}
+
+type ManualUsageBasedLine struct {
+	Price      plan.Price             `json:"price"`
+	FeatureKey string                 `json:"featureKey"`
+	Quantity   *alpacadecimal.Decimal `json:"quantity"`
+}
+
+func (i ManualUsageBasedLine) Validate() error {
+	if err := i.Price.Validate(); err != nil {
+		return fmt.Errorf("price: %w", err)
+	}
+
+	if i.FeatureKey == "" {
+		return errors.New("featureKey is required")
+	}
+
 	return nil
 }

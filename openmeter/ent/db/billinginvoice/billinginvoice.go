@@ -62,6 +62,8 @@ const (
 	FieldCustomerName = "customer_name"
 	// FieldCustomerTimezone holds the string denoting the customer_timezone field in the database.
 	FieldCustomerTimezone = "customer_timezone"
+	// FieldCustomerUsageAttribution holds the string denoting the customer_usage_attribution field in the database.
+	FieldCustomerUsageAttribution = "customer_usage_attribution"
 	// FieldNumber holds the string denoting the number field in the database.
 	FieldNumber = "number"
 	// FieldType holds the string denoting the type field in the database.
@@ -198,6 +200,7 @@ var Columns = []string{
 	FieldSupplierTaxCode,
 	FieldCustomerName,
 	FieldCustomerTimezone,
+	FieldCustomerUsageAttribution,
 	FieldNumber,
 	FieldType,
 	FieldDescription,

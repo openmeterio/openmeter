@@ -46,7 +46,8 @@ type CustomerOverrideAdapter interface {
 type InvoiceLineAdapter interface {
 	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesAdapterInput) (*CreateInvoiceLinesResponse, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]billingentity.Line, error)
-	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) error
+	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) ([]billingentity.Line, error)
+	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineAdapterInput) (billingentity.Line, error)
 }
 
 type InvoiceAdapter interface {

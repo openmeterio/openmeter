@@ -335,10 +335,13 @@ func main() {
 		}
 
 		billingService, err = billingservice.New(billingservice.Config{
-			Adapter:         adapter,
-			CustomerService: customerService,
-			AppService:      appService,
-			Logger:          logger.With("subsystem", "billing.service"),
+			Adapter:            adapter,
+			CustomerService:    customerService,
+			AppService:         appService,
+			Logger:             logger.With("subsystem", "billing.service"),
+			FeatureService:     entitlementConnRegistry.Feature,
+			MeterRepo:          app.MeterRepository,
+			StreamingConnector: app.StreamingConnector,
 		})
 		if err != nil {
 			logger.Error("failed to initialize billing service", "error", err)

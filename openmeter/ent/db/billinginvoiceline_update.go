@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -118,6 +119,26 @@ func (bilu *BillingInvoiceLineUpdate) SetNillableInvoiceID(s *string) *BillingIn
 	return bilu
 }
 
+// SetParentLineID sets the "parent_line_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetParentLineID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetParentLineID(s)
+	return bilu
+}
+
+// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableParentLineID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetParentLineID(*s)
+	}
+	return bilu
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearParentLineID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearParentLineID()
+	return bilu
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (bilu *BillingInvoiceLineUpdate) SetPeriodStart(t time.Time) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetPeriodStart(t)
@@ -156,20 +177,6 @@ func (bilu *BillingInvoiceLineUpdate) SetInvoiceAt(t time.Time) *BillingInvoiceL
 func (bilu *BillingInvoiceLineUpdate) SetNillableInvoiceAt(t *time.Time) *BillingInvoiceLineUpdate {
 	if t != nil {
 		bilu.SetInvoiceAt(*t)
-	}
-	return bilu
-}
-
-// SetType sets the "type" field.
-func (bilu *BillingInvoiceLineUpdate) SetType(blt billingentity.InvoiceLineType) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetType(blt)
-	return bilu
-}
-
-// SetNillableType sets the "type" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableType(blt *billingentity.InvoiceLineType) *BillingInvoiceLineUpdate {
-	if blt != nil {
-		bilu.SetType(*blt)
 	}
 	return bilu
 }
@@ -231,23 +238,62 @@ func (bilu *BillingInvoiceLineUpdate) SetBillingInvoice(b *BillingInvoice) *Bill
 	return bilu.SetBillingInvoiceID(b.ID)
 }
 
-// SetBillingInvoiceManualLinesID sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity by ID.
-func (bilu *BillingInvoiceLineUpdate) SetBillingInvoiceManualLinesID(id string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetBillingInvoiceManualLinesID(id)
+// SetManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID.
+func (bilu *BillingInvoiceLineUpdate) SetManualFeeLineID(id string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetManualFeeLineID(id)
 	return bilu
 }
 
-// SetNillableBillingInvoiceManualLinesID sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableBillingInvoiceManualLinesID(id *string) *BillingInvoiceLineUpdate {
+// SetNillableManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableManualFeeLineID(id *string) *BillingInvoiceLineUpdate {
 	if id != nil {
-		bilu = bilu.SetBillingInvoiceManualLinesID(*id)
+		bilu = bilu.SetManualFeeLineID(*id)
 	}
 	return bilu
 }
 
-// SetBillingInvoiceManualLines sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity.
-func (bilu *BillingInvoiceLineUpdate) SetBillingInvoiceManualLines(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineUpdate {
-	return bilu.SetBillingInvoiceManualLinesID(b.ID)
+// SetManualFeeLine sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) SetManualFeeLine(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineUpdate {
+	return bilu.SetManualFeeLineID(b.ID)
+}
+
+// SetManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID.
+func (bilu *BillingInvoiceLineUpdate) SetManualUsageBasedLineID(id string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetManualUsageBasedLineID(id)
+	return bilu
+}
+
+// SetNillableManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableManualUsageBasedLineID(id *string) *BillingInvoiceLineUpdate {
+	if id != nil {
+		bilu = bilu.SetManualUsageBasedLineID(*id)
+	}
+	return bilu
+}
+
+// SetManualUsageBasedLine sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) SetManualUsageBasedLine(b *BillingInvoiceManualUsageBasedLineConfig) *BillingInvoiceLineUpdate {
+	return bilu.SetManualUsageBasedLineID(b.ID)
+}
+
+// SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
+func (bilu *BillingInvoiceLineUpdate) SetParentLine(b *BillingInvoiceLine) *BillingInvoiceLineUpdate {
+	return bilu.SetParentLineID(b.ID)
+}
+
+// AddChildLineIDs adds the "child_lines" edge to the BillingInvoiceLine entity by IDs.
+func (bilu *BillingInvoiceLineUpdate) AddChildLineIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.AddChildLineIDs(ids...)
+	return bilu
+}
+
+// AddChildLines adds the "child_lines" edges to the BillingInvoiceLine entity.
+func (bilu *BillingInvoiceLineUpdate) AddChildLines(b ...*BillingInvoiceLine) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilu.AddChildLineIDs(ids...)
 }
 
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
@@ -261,10 +307,43 @@ func (bilu *BillingInvoiceLineUpdate) ClearBillingInvoice() *BillingInvoiceLineU
 	return bilu
 }
 
-// ClearBillingInvoiceManualLines clears the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity.
-func (bilu *BillingInvoiceLineUpdate) ClearBillingInvoiceManualLines() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearBillingInvoiceManualLines()
+// ClearManualFeeLine clears the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) ClearManualFeeLine() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearManualFeeLine()
 	return bilu
+}
+
+// ClearManualUsageBasedLine clears the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) ClearManualUsageBasedLine() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearManualUsageBasedLine()
+	return bilu
+}
+
+// ClearParentLine clears the "parent_line" edge to the BillingInvoiceLine entity.
+func (bilu *BillingInvoiceLineUpdate) ClearParentLine() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearParentLine()
+	return bilu
+}
+
+// ClearChildLines clears all "child_lines" edges to the BillingInvoiceLine entity.
+func (bilu *BillingInvoiceLineUpdate) ClearChildLines() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearChildLines()
+	return bilu
+}
+
+// RemoveChildLineIDs removes the "child_lines" edge to BillingInvoiceLine entities by IDs.
+func (bilu *BillingInvoiceLineUpdate) RemoveChildLineIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.RemoveChildLineIDs(ids...)
+	return bilu
+}
+
+// RemoveChildLines removes "child_lines" edges to BillingInvoiceLine entities.
+func (bilu *BillingInvoiceLineUpdate) RemoveChildLines(b ...*BillingInvoiceLine) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilu.RemoveChildLineIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -305,11 +384,6 @@ func (bilu *BillingInvoiceLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bilu *BillingInvoiceLineUpdate) check() error {
-	if v, ok := bilu.mutation.GetType(); ok {
-		if err := billinginvoiceline.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.type": %w`, err)}
-		}
-	}
 	if v, ok := bilu.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
@@ -366,9 +440,6 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	if value, ok := bilu.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 	}
-	if value, ok := bilu.mutation.GetType(); ok {
-		_spec.SetField(billinginvoiceline.FieldType, field.TypeEnum, value)
-	}
 	if value, ok := bilu.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
 	}
@@ -413,12 +484,12 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bilu.mutation.BillingInvoiceManualLinesCleared() {
+	if bilu.mutation.ManualFeeLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.BillingInvoiceManualLinesTable,
-			Columns: []string{billinginvoiceline.BillingInvoiceManualLinesColumn},
+			Table:   billinginvoiceline.ManualFeeLineTable,
+			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
@@ -426,15 +497,118 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bilu.mutation.BillingInvoiceManualLinesIDs(); len(nodes) > 0 {
+	if nodes := bilu.mutation.ManualFeeLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.BillingInvoiceManualLinesTable,
-			Columns: []string{billinginvoiceline.BillingInvoiceManualLinesColumn},
+			Table:   billinginvoiceline.ManualFeeLineTable,
+			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.ManualUsageBasedLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ManualUsageBasedLineTable,
+			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.ManualUsageBasedLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ManualUsageBasedLineTable,
+			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.ParentLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ParentLineTable,
+			Columns: []string{billinginvoiceline.ParentLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.ParentLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ParentLineTable,
+			Columns: []string{billinginvoiceline.ParentLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.ChildLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.RemovedChildLinesIDs(); len(nodes) > 0 && !bilu.mutation.ChildLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.ChildLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -548,6 +722,26 @@ func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoiceID(s *string) *Billi
 	return biluo
 }
 
+// SetParentLineID sets the "parent_line_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetParentLineID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetParentLineID(s)
+	return biluo
+}
+
+// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableParentLineID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetParentLineID(*s)
+	}
+	return biluo
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearParentLineID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearParentLineID()
+	return biluo
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (biluo *BillingInvoiceLineUpdateOne) SetPeriodStart(t time.Time) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetPeriodStart(t)
@@ -586,20 +780,6 @@ func (biluo *BillingInvoiceLineUpdateOne) SetInvoiceAt(t time.Time) *BillingInvo
 func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoiceAt(t *time.Time) *BillingInvoiceLineUpdateOne {
 	if t != nil {
 		biluo.SetInvoiceAt(*t)
-	}
-	return biluo
-}
-
-// SetType sets the "type" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetType(blt billingentity.InvoiceLineType) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetType(blt)
-	return biluo
-}
-
-// SetNillableType sets the "type" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableType(blt *billingentity.InvoiceLineType) *BillingInvoiceLineUpdateOne {
-	if blt != nil {
-		biluo.SetType(*blt)
 	}
 	return biluo
 }
@@ -661,23 +841,62 @@ func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoice(b *BillingInvoice) *
 	return biluo.SetBillingInvoiceID(b.ID)
 }
 
-// SetBillingInvoiceManualLinesID sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity by ID.
-func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoiceManualLinesID(id string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetBillingInvoiceManualLinesID(id)
+// SetManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID.
+func (biluo *BillingInvoiceLineUpdateOne) SetManualFeeLineID(id string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetManualFeeLineID(id)
 	return biluo
 }
 
-// SetNillableBillingInvoiceManualLinesID sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableBillingInvoiceManualLinesID(id *string) *BillingInvoiceLineUpdateOne {
+// SetNillableManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableManualFeeLineID(id *string) *BillingInvoiceLineUpdateOne {
 	if id != nil {
-		biluo = biluo.SetBillingInvoiceManualLinesID(*id)
+		biluo = biluo.SetManualFeeLineID(*id)
 	}
 	return biluo
 }
 
-// SetBillingInvoiceManualLines sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity.
-func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoiceManualLines(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineUpdateOne {
-	return biluo.SetBillingInvoiceManualLinesID(b.ID)
+// SetManualFeeLine sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetManualFeeLine(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineUpdateOne {
+	return biluo.SetManualFeeLineID(b.ID)
+}
+
+// SetManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID.
+func (biluo *BillingInvoiceLineUpdateOne) SetManualUsageBasedLineID(id string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetManualUsageBasedLineID(id)
+	return biluo
+}
+
+// SetNillableManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableManualUsageBasedLineID(id *string) *BillingInvoiceLineUpdateOne {
+	if id != nil {
+		biluo = biluo.SetManualUsageBasedLineID(*id)
+	}
+	return biluo
+}
+
+// SetManualUsageBasedLine sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetManualUsageBasedLine(b *BillingInvoiceManualUsageBasedLineConfig) *BillingInvoiceLineUpdateOne {
+	return biluo.SetManualUsageBasedLineID(b.ID)
+}
+
+// SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetParentLine(b *BillingInvoiceLine) *BillingInvoiceLineUpdateOne {
+	return biluo.SetParentLineID(b.ID)
+}
+
+// AddChildLineIDs adds the "child_lines" edge to the BillingInvoiceLine entity by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) AddChildLineIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.AddChildLineIDs(ids...)
+	return biluo
+}
+
+// AddChildLines adds the "child_lines" edges to the BillingInvoiceLine entity.
+func (biluo *BillingInvoiceLineUpdateOne) AddChildLines(b ...*BillingInvoiceLine) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biluo.AddChildLineIDs(ids...)
 }
 
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
@@ -691,10 +910,43 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearBillingInvoice() *BillingInvoiceL
 	return biluo
 }
 
-// ClearBillingInvoiceManualLines clears the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity.
-func (biluo *BillingInvoiceLineUpdateOne) ClearBillingInvoiceManualLines() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearBillingInvoiceManualLines()
+// ClearManualFeeLine clears the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearManualFeeLine() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearManualFeeLine()
 	return biluo
+}
+
+// ClearManualUsageBasedLine clears the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearManualUsageBasedLine() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearManualUsageBasedLine()
+	return biluo
+}
+
+// ClearParentLine clears the "parent_line" edge to the BillingInvoiceLine entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearParentLine() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearParentLine()
+	return biluo
+}
+
+// ClearChildLines clears all "child_lines" edges to the BillingInvoiceLine entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearChildLines() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearChildLines()
+	return biluo
+}
+
+// RemoveChildLineIDs removes the "child_lines" edge to BillingInvoiceLine entities by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveChildLineIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.RemoveChildLineIDs(ids...)
+	return biluo
+}
+
+// RemoveChildLines removes "child_lines" edges to BillingInvoiceLine entities.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveChildLines(b ...*BillingInvoiceLine) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biluo.RemoveChildLineIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceLineUpdate builder.
@@ -748,11 +1000,6 @@ func (biluo *BillingInvoiceLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (biluo *BillingInvoiceLineUpdateOne) check() error {
-	if v, ok := biluo.mutation.GetType(); ok {
-		if err := billinginvoiceline.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.type": %w`, err)}
-		}
-	}
 	if v, ok := biluo.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
@@ -826,9 +1073,6 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	if value, ok := biluo.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 	}
-	if value, ok := biluo.mutation.GetType(); ok {
-		_spec.SetField(billinginvoiceline.FieldType, field.TypeEnum, value)
-	}
 	if value, ok := biluo.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
 	}
@@ -873,12 +1117,12 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if biluo.mutation.BillingInvoiceManualLinesCleared() {
+	if biluo.mutation.ManualFeeLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.BillingInvoiceManualLinesTable,
-			Columns: []string{billinginvoiceline.BillingInvoiceManualLinesColumn},
+			Table:   billinginvoiceline.ManualFeeLineTable,
+			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
@@ -886,15 +1130,118 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biluo.mutation.BillingInvoiceManualLinesIDs(); len(nodes) > 0 {
+	if nodes := biluo.mutation.ManualFeeLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.BillingInvoiceManualLinesTable,
-			Columns: []string{billinginvoiceline.BillingInvoiceManualLinesColumn},
+			Table:   billinginvoiceline.ManualFeeLineTable,
+			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.ManualUsageBasedLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ManualUsageBasedLineTable,
+			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.ManualUsageBasedLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ManualUsageBasedLineTable,
+			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.ParentLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ParentLineTable,
+			Columns: []string{billinginvoiceline.ParentLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.ParentLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ParentLineTable,
+			Columns: []string{billinginvoiceline.ParentLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.ChildLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.RemovedChildLinesIDs(); len(nodes) > 0 && !biluo.mutation.ChildLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.ChildLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

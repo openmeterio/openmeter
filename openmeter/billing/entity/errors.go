@@ -26,6 +26,12 @@ var (
 
 	ErrInvoiceCannotAdvance      = NewValidationError("invoice_cannot_advance", "invoice cannot advance")
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
+
+	ErrInvoiceLineFeatureHasNoMeters             = NewValidationError("invoice_line_feature_has_no_meters", "usage based invoice line: feature has no meters")
+	ErrInvoiceCreateNoLines                      = NewValidationError("invoice_create_no_lines", "the new invoice would have no lines")
+	ErrInvoiceCreateUBPLineCustomerHasNoSubjects = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer has no subjects")
+	ErrInvoiceCreateUBPLinePeriodIsEmpty         = NewValidationError("invoice_create_ubp_line_period_is_empty", "creating an usage based line: truncated period is empty")
+	ErrInvoiceLineCurrencyMismatch               = NewValidationError("invoice_line_currency_mismatch", "invoice line currency mismatch")
 )
 
 var _ error = (*NotFoundError)(nil)

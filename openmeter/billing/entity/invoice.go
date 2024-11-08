@@ -9,6 +9,7 @@ import (
 	"github.com/invopop/gobl/bill"
 	"github.com/samber/lo"
 
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timezone"
@@ -215,12 +216,25 @@ type InvoiceStatusDetails struct {
 	AvailableActions []InvoiceAction `json:"availableActions"`
 }
 
+const (
+	CustomerUsageAttributionTypeVersion = "customer_usage_attribution.v1"
+)
+
+type (
+	CustomerUsageAttribution          = customerentity.CustomerUsageAttribution
+	VersionedCustomerUsageAttribution struct {
+		CustomerUsageAttribution `json:",inline"`
+		Type                     string `json:"type"`
+	}
+)
+
 type InvoiceCustomer struct {
 	CustomerID string `json:"customerId,omitempty"`
 
-	Name           string             `json:"name"`
-	BillingAddress *models.Address    `json:"billingAddress,omitempty"`
-	Timezone       *timezone.Timezone `json:"timezone,omitempty"`
+	Name             string                   `json:"name"`
+	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
+	Timezone         *timezone.Timezone       `json:"timezone,omitempty"`
+	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 }
 
 func (i *InvoiceCustomer) Validate() error {

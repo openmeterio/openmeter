@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -108,6 +109,20 @@ func (bilc *BillingInvoiceLineCreate) SetInvoiceID(s string) *BillingInvoiceLine
 	return bilc
 }
 
+// SetParentLineID sets the "parent_line_id" field.
+func (bilc *BillingInvoiceLineCreate) SetParentLineID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetParentLineID(s)
+	return bilc
+}
+
+// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableParentLineID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetParentLineID(*s)
+	}
+	return bilc
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (bilc *BillingInvoiceLineCreate) SetPeriodStart(t time.Time) *BillingInvoiceLineCreate {
 	bilc.mutation.SetPeriodStart(t)
@@ -189,23 +204,62 @@ func (bilc *BillingInvoiceLineCreate) SetBillingInvoice(b *BillingInvoice) *Bill
 	return bilc.SetBillingInvoiceID(b.ID)
 }
 
-// SetBillingInvoiceManualLinesID sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity by ID.
-func (bilc *BillingInvoiceLineCreate) SetBillingInvoiceManualLinesID(id string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetBillingInvoiceManualLinesID(id)
+// SetManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID.
+func (bilc *BillingInvoiceLineCreate) SetManualFeeLineID(id string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetManualFeeLineID(id)
 	return bilc
 }
 
-// SetNillableBillingInvoiceManualLinesID sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableBillingInvoiceManualLinesID(id *string) *BillingInvoiceLineCreate {
+// SetNillableManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableManualFeeLineID(id *string) *BillingInvoiceLineCreate {
 	if id != nil {
-		bilc = bilc.SetBillingInvoiceManualLinesID(*id)
+		bilc = bilc.SetManualFeeLineID(*id)
 	}
 	return bilc
 }
 
-// SetBillingInvoiceManualLines sets the "billing_invoice_manual_lines" edge to the BillingInvoiceManualLineConfig entity.
-func (bilc *BillingInvoiceLineCreate) SetBillingInvoiceManualLines(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineCreate {
-	return bilc.SetBillingInvoiceManualLinesID(b.ID)
+// SetManualFeeLine sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
+func (bilc *BillingInvoiceLineCreate) SetManualFeeLine(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineCreate {
+	return bilc.SetManualFeeLineID(b.ID)
+}
+
+// SetManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID.
+func (bilc *BillingInvoiceLineCreate) SetManualUsageBasedLineID(id string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetManualUsageBasedLineID(id)
+	return bilc
+}
+
+// SetNillableManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableManualUsageBasedLineID(id *string) *BillingInvoiceLineCreate {
+	if id != nil {
+		bilc = bilc.SetManualUsageBasedLineID(*id)
+	}
+	return bilc
+}
+
+// SetManualUsageBasedLine sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
+func (bilc *BillingInvoiceLineCreate) SetManualUsageBasedLine(b *BillingInvoiceManualUsageBasedLineConfig) *BillingInvoiceLineCreate {
+	return bilc.SetManualUsageBasedLineID(b.ID)
+}
+
+// SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
+func (bilc *BillingInvoiceLineCreate) SetParentLine(b *BillingInvoiceLine) *BillingInvoiceLineCreate {
+	return bilc.SetParentLineID(b.ID)
+}
+
+// AddChildLineIDs adds the "child_lines" edge to the BillingInvoiceLine entity by IDs.
+func (bilc *BillingInvoiceLineCreate) AddChildLineIDs(ids ...string) *BillingInvoiceLineCreate {
+	bilc.mutation.AddChildLineIDs(ids...)
+	return bilc
+}
+
+// AddChildLines adds the "child_lines" edges to the BillingInvoiceLine entity.
+func (bilc *BillingInvoiceLineCreate) AddChildLines(b ...*BillingInvoiceLine) *BillingInvoiceLineCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilc.AddChildLineIDs(ids...)
 }
 
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
@@ -428,12 +482,12 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_node.InvoiceID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bilc.mutation.BillingInvoiceManualLinesIDs(); len(nodes) > 0 {
+	if nodes := bilc.mutation.ManualFeeLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.BillingInvoiceManualLinesTable,
-			Columns: []string{billinginvoiceline.BillingInvoiceManualLinesColumn},
+			Table:   billinginvoiceline.ManualFeeLineTable,
+			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
@@ -443,6 +497,56 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.manual_line_config_id = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.ManualUsageBasedLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ManualUsageBasedLineTable,
+			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.manual_usage_based_line_config_id = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.ParentLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ParentLineTable,
+			Columns: []string{billinginvoiceline.ParentLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ParentLineID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.ChildLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChildLinesTable,
+			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -587,6 +691,24 @@ func (u *BillingInvoiceLineUpsert) UpdateInvoiceID() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetParentLineID sets the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsert) SetParentLineID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldParentLineID, v)
+	return u
+}
+
+// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateParentLineID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldParentLineID)
+	return u
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsert) ClearParentLineID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldParentLineID)
+	return u
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsert) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldPeriodStart, v)
@@ -620,18 +742,6 @@ func (u *BillingInvoiceLineUpsert) SetInvoiceAt(v time.Time) *BillingInvoiceLine
 // UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
 func (u *BillingInvoiceLineUpsert) UpdateInvoiceAt() *BillingInvoiceLineUpsert {
 	u.SetExcluded(billinginvoiceline.FieldInvoiceAt)
-	return u
-}
-
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineUpsert) SetType(v billingentity.InvoiceLineType) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldType, v)
-	return u
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateType() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldType)
 	return u
 }
 
@@ -705,6 +815,9 @@ func (u *BillingInvoiceLineUpsertOne) UpdateNewValues() *BillingInvoiceLineUpser
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billinginvoiceline.FieldCreatedAt)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(billinginvoiceline.FieldType)
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(billinginvoiceline.FieldCurrency)
@@ -845,6 +958,27 @@ func (u *BillingInvoiceLineUpsertOne) UpdateInvoiceID() *BillingInvoiceLineUpser
 	})
 }
 
+// SetParentLineID sets the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetParentLineID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetParentLineID(v)
+	})
+}
+
+// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateParentLineID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateParentLineID()
+	})
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearParentLineID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearParentLineID()
+	})
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsertOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -884,20 +1018,6 @@ func (u *BillingInvoiceLineUpsertOne) SetInvoiceAt(v time.Time) *BillingInvoiceL
 func (u *BillingInvoiceLineUpsertOne) UpdateInvoiceAt() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceAt()
-	})
-}
-
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineUpsertOne) SetType(v billingentity.InvoiceLineType) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetType(v)
-	})
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateType() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateType()
 	})
 }
 
@@ -1146,6 +1266,9 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateNewValues() *BillingInvoiceLineUpse
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billinginvoiceline.FieldCreatedAt)
 			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(billinginvoiceline.FieldType)
+			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(billinginvoiceline.FieldCurrency)
 			}
@@ -1286,6 +1409,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateInvoiceID() *BillingInvoiceLineUpse
 	})
 }
 
+// SetParentLineID sets the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetParentLineID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetParentLineID(v)
+	})
+}
+
+// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateParentLineID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateParentLineID()
+	})
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearParentLineID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearParentLineID()
+	})
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsertBulk) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -1325,20 +1469,6 @@ func (u *BillingInvoiceLineUpsertBulk) SetInvoiceAt(v time.Time) *BillingInvoice
 func (u *BillingInvoiceLineUpsertBulk) UpdateInvoiceAt() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceAt()
-	})
-}
-
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineUpsertBulk) SetType(v billingentity.InvoiceLineType) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetType(v)
-	})
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateType() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateType()
 	})
 }
 

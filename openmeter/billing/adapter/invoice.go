@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -41,7 +42,7 @@ func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	}
 
 	if in.Expand.Lines {
-		query = r.expandLineItems(query)
+		query = r.expandInvoiceLineItems(query)
 	}
 
 	invoice, err := query.Only(ctx)
@@ -58,6 +59,12 @@ func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	}
 
 	return mapInvoiceFromDB(*invoice, in.Expand)
+}
+
+func (r *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery) *db.BillingInvoiceQuery {
+	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		r.expandLineItems(q)
+	})
 }
 
 func (r *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockInvoicesForUpdateInput) error {
@@ -111,13 +118,6 @@ func (r *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoic
 	return err
 }
 
-// expandLineItems adds the required edges to the query so that line items can be properly mapped
-func (r *adapter) expandLineItems(query *db.BillingInvoiceQuery) *db.BillingInvoiceQuery {
-	return query.WithBillingInvoiceLines(func(bilq *db.BillingInvoiceLineQuery) {
-		bilq.WithBillingInvoiceManualLines()
-	})
-}
-
 func (r *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
 	if err := input.Validate(); err != nil {
 		return billing.ListInvoicesResponse{}, billingentity.ValidationError{
@@ -169,7 +169,7 @@ func (r *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 	}
 
 	if input.Expand.Lines {
-		query = r.expandLineItems(query)
+		query = r.expandInvoiceLineItems(query)
 	}
 
 	switch input.OrderBy {
@@ -246,6 +246,10 @@ func (r *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		SetNillableDueAt(input.DueAt).
 		SetNillableCustomerTimezone(customer.Timezone).
 		SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
+		SetCustomerUsageAttribution(&billingentity.VersionedCustomerUsageAttribution{
+			Type:                     billingentity.CustomerUsageAttributionTypeVersion,
+			CustomerUsageAttribution: input.Customer.UsageAttribution,
+		}).
 		// Workflow (cloned)
 		SetBillingWorkflowConfigID(clonedWorkflowConfig.ID).
 		// TODO[later]: By cloning the AppIDs here we could support changing the apps in the billing profile if needed
@@ -489,7 +493,8 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExp
 				Line2:       invoice.CustomerAddressLine2,
 				PhoneNumber: invoice.CustomerAddressPhoneNumber,
 			},
-			Timezone: invoice.CustomerTimezone,
+			Timezone:         invoice.CustomerTimezone,
+			UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
 		},
 		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
 		IssuedAt:  invoice.IssuedAt,
@@ -525,10 +530,14 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExp
 	}
 
 	if len(invoice.Edges.BillingInvoiceLines) > 0 {
-		res.Lines = make([]billingentity.Line, 0, len(invoice.Edges.BillingInvoiceLines))
-		for _, line := range invoice.Edges.BillingInvoiceLines {
-			res.Lines = append(res.Lines, mapInvoiceLineFromDB(line))
+		mappedLines, err := slicesx.MapWithErr(invoice.Edges.BillingInvoiceLines, func(line *db.BillingInvoiceLine) (billingentity.Line, error) {
+			return mapInvoiceLineFromDB(line)
+		})
+		if err != nil {
+			return billingentity.Invoice{}, err
 		}
+
+		res.Lines = mappedLines
 	}
 
 	return res, nil

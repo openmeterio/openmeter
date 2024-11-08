@@ -322,6 +322,7 @@ var (
 		{Name: "supplier_tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "customer_name", Type: field.TypeString},
 		{Name: "customer_timezone", Type: field.TypeString, Nullable: true},
+		{Name: "customer_usage_attribution", Type: field.TypeJSON},
 		{Name: "number", Type: field.TypeString, Nullable: true},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "credit-note"}},
 		{Name: "description", Type: field.TypeString, Nullable: true},
@@ -348,37 +349,37 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoices_apps_billing_invoice_tax_app",
-				Columns:    []*schema.Column{BillingInvoicesColumns[35]},
-				RefColumns: []*schema.Column{AppsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[36]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
+				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[37]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
+				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[38]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
+				Columns:    []*schema.Column{BillingInvoicesColumns[39]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[39]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[40]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_customers_billing_invoice",
-				Columns:    []*schema.Column{BillingInvoicesColumns[40]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[41]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -402,7 +403,7 @@ var (
 			{
 				Name:    "billinginvoice_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[40]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[41]},
 			},
 		},
 	}
@@ -419,13 +420,15 @@ var (
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"manual_fee", "flat_fee", "usage_based"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"manual_fee", "manual_usage_based", "flat_fee", "usage_based"}},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"valid", "split"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "tax_overrides", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "manual_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "manual_usage_based_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "parent_line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceLinesTable holds the schema information for the "billing_invoice_lines" table.
 	BillingInvoiceLinesTable = &schema.Table{
@@ -437,12 +440,24 @@ var (
 				Symbol:     "billing_invoice_lines_billing_invoices_billing_invoice_lines",
 				Columns:    []*schema.Column{BillingInvoiceLinesColumns[16]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 			{
-				Symbol:     "billing_invoice_lines_billing_invoice_manual_line_configs_billing_invoice_manual_lines",
+				Symbol:     "billing_invoice_lines_billing_invoice_manual_line_configs_manual_fee_line",
 				Columns:    []*schema.Column{BillingInvoiceLinesColumns[17]},
 				RefColumns: []*schema.Column{BillingInvoiceManualLineConfigsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_invoice_lines_billing_invoice_manual_usage_based_line_configs_manual_usage_based_line",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[18]},
+				RefColumns: []*schema.Column{BillingInvoiceManualUsageBasedLineConfigsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_invoice_lines_billing_invoice_lines_child_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[19]},
+				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -467,6 +482,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[16]},
 			},
+			{
+				Name:    "billinginvoiceline_namespace_parent_line_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[19]},
+			},
 		},
 	}
 	// BillingInvoiceManualLineConfigsColumns holds the columns for the "billing_invoice_manual_line_configs" table.
@@ -490,6 +510,32 @@ var (
 				Name:    "billinginvoicemanuallineconfig_id",
 				Unique:  true,
 				Columns: []*schema.Column{BillingInvoiceManualLineConfigsColumns[0]},
+			},
+		},
+	}
+	// BillingInvoiceManualUsageBasedLineConfigsColumns holds the columns for the "billing_invoice_manual_usage_based_line_configs" table.
+	BillingInvoiceManualUsageBasedLineConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "price_type", Type: field.TypeEnum, Enums: []string{"flat", "unit", "tiered"}},
+		{Name: "feature_key", Type: field.TypeString},
+		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// BillingInvoiceManualUsageBasedLineConfigsTable holds the schema information for the "billing_invoice_manual_usage_based_line_configs" table.
+	BillingInvoiceManualUsageBasedLineConfigsTable = &schema.Table{
+		Name:       "billing_invoice_manual_usage_based_line_configs",
+		Columns:    BillingInvoiceManualUsageBasedLineConfigsColumns,
+		PrimaryKey: []*schema.Column{BillingInvoiceManualUsageBasedLineConfigsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinginvoicemanualusagebasedlineconfig_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceManualUsageBasedLineConfigsColumns[1]},
+			},
+			{
+				Name:    "billinginvoicemanualusagebasedlineconfig_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceManualUsageBasedLineConfigsColumns[0]},
 			},
 		},
 	}
@@ -518,7 +564,7 @@ var (
 				Symbol:     "billing_invoice_validation_issues_billing_invoices_billing_invoice_validation_issues",
 				Columns:    []*schema.Column{BillingInvoiceValidationIssuesColumns[11]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1396,6 +1442,7 @@ var (
 		BillingInvoicesTable,
 		BillingInvoiceLinesTable,
 		BillingInvoiceManualLineConfigsTable,
+		BillingInvoiceManualUsageBasedLineConfigsTable,
 		BillingInvoiceValidationIssuesTable,
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
@@ -1434,6 +1481,8 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[5].RefTable = CustomersTable
 	BillingInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceManualLineConfigsTable
+	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceManualUsageBasedLineConfigsTable
+	BillingInvoiceLinesTable.ForeignKeys[3].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
