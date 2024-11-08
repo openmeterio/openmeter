@@ -15,9 +15,10 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -173,9 +174,17 @@ func (bilc *BillingInvoiceLineCreate) SetNillableQuantity(a *alpacadecimal.Decim
 	return bilc
 }
 
-// SetTaxOverrides sets the "tax_overrides" field.
-func (bilc *BillingInvoiceLineCreate) SetTaxOverrides(bo *billingentity.TaxOverrides) *BillingInvoiceLineCreate {
-	bilc.mutation.SetTaxOverrides(bo)
+// SetTaxConfig sets the "tax_config" field.
+func (bilc *BillingInvoiceLineCreate) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineCreate {
+	bilc.mutation.SetTaxConfig(pc)
+	return bilc
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineCreate {
+	if pc != nil {
+		bilc.SetTaxConfig(*pc)
+	}
 	return bilc
 }
 
@@ -204,42 +213,42 @@ func (bilc *BillingInvoiceLineCreate) SetBillingInvoice(b *BillingInvoice) *Bill
 	return bilc.SetBillingInvoiceID(b.ID)
 }
 
-// SetManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID.
-func (bilc *BillingInvoiceLineCreate) SetManualFeeLineID(id string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetManualFeeLineID(id)
+// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
+func (bilc *BillingInvoiceLineCreate) SetFlatFeeLineID(id string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetFlatFeeLineID(id)
 	return bilc
 }
 
-// SetNillableManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableManualFeeLineID(id *string) *BillingInvoiceLineCreate {
+// SetNillableFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableFlatFeeLineID(id *string) *BillingInvoiceLineCreate {
 	if id != nil {
-		bilc = bilc.SetManualFeeLineID(*id)
+		bilc = bilc.SetFlatFeeLineID(*id)
 	}
 	return bilc
 }
 
-// SetManualFeeLine sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
-func (bilc *BillingInvoiceLineCreate) SetManualFeeLine(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineCreate {
-	return bilc.SetManualFeeLineID(b.ID)
+// SetFlatFeeLine sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
+func (bilc *BillingInvoiceLineCreate) SetFlatFeeLine(b *BillingInvoiceFlatFeeLineConfig) *BillingInvoiceLineCreate {
+	return bilc.SetFlatFeeLineID(b.ID)
 }
 
-// SetManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID.
-func (bilc *BillingInvoiceLineCreate) SetManualUsageBasedLineID(id string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetManualUsageBasedLineID(id)
+// SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID.
+func (bilc *BillingInvoiceLineCreate) SetUsageBasedLineID(id string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetUsageBasedLineID(id)
 	return bilc
 }
 
-// SetNillableManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableManualUsageBasedLineID(id *string) *BillingInvoiceLineCreate {
+// SetNillableUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableUsageBasedLineID(id *string) *BillingInvoiceLineCreate {
 	if id != nil {
-		bilc = bilc.SetManualUsageBasedLineID(*id)
+		bilc = bilc.SetUsageBasedLineID(*id)
 	}
 	return bilc
 }
 
-// SetManualUsageBasedLine sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
-func (bilc *BillingInvoiceLineCreate) SetManualUsageBasedLine(b *BillingInvoiceManualUsageBasedLineConfig) *BillingInvoiceLineCreate {
-	return bilc.SetManualUsageBasedLineID(b.ID)
+// SetUsageBasedLine sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity.
+func (bilc *BillingInvoiceLineCreate) SetUsageBasedLine(b *BillingInvoiceUsageBasedLineConfig) *BillingInvoiceLineCreate {
+	return bilc.SetUsageBasedLineID(b.ID)
 }
 
 // SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
@@ -366,6 +375,11 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.currency": %w`, err)}
 		}
 	}
+	if v, ok := bilc.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
+		}
+	}
 	if len(bilc.mutation.BillingInvoiceIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice", err: errors.New(`db: missing required edge "BillingInvoiceLine.billing_invoice"`)}
 	}
@@ -461,9 +475,9 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_spec.SetField(billinginvoiceline.FieldQuantity, field.TypeOther, value)
 		_node.Quantity = &value
 	}
-	if value, ok := bilc.mutation.TaxOverrides(); ok {
-		_spec.SetField(billinginvoiceline.FieldTaxOverrides, field.TypeJSON, value)
-		_node.TaxOverrides = value
+	if value, ok := bilc.mutation.TaxConfig(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
+		_node.TaxConfig = value
 	}
 	if nodes := bilc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -482,38 +496,38 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_node.InvoiceID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bilc.mutation.ManualFeeLineIDs(); len(nodes) > 0 {
+	if nodes := bilc.mutation.FlatFeeLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualFeeLineTable,
-			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
+			Table:   billinginvoiceline.FlatFeeLineTable,
+			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.manual_line_config_id = &nodes[0]
+		_node.fee_line_config_id = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bilc.mutation.ManualUsageBasedLineIDs(); len(nodes) > 0 {
+	if nodes := bilc.mutation.UsageBasedLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualUsageBasedLineTable,
-			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Table:   billinginvoiceline.UsageBasedLineTable,
+			Columns: []string{billinginvoiceline.UsageBasedLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.manual_usage_based_line_config_id = &nodes[0]
+		_node.usage_based_line_config_id = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := bilc.mutation.ParentLineIDs(); len(nodes) > 0 {
@@ -775,21 +789,21 @@ func (u *BillingInvoiceLineUpsert) ClearQuantity() *BillingInvoiceLineUpsert {
 	return u
 }
 
-// SetTaxOverrides sets the "tax_overrides" field.
-func (u *BillingInvoiceLineUpsert) SetTaxOverrides(v *billingentity.TaxOverrides) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldTaxOverrides, v)
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingInvoiceLineUpsert) SetTaxConfig(v plan.TaxConfig) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTaxConfig, v)
 	return u
 }
 
-// UpdateTaxOverrides sets the "tax_overrides" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateTaxOverrides() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldTaxOverrides)
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTaxConfig() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTaxConfig)
 	return u
 }
 
-// ClearTaxOverrides clears the value of the "tax_overrides" field.
-func (u *BillingInvoiceLineUpsert) ClearTaxOverrides() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldTaxOverrides)
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingInvoiceLineUpsert) ClearTaxConfig() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldTaxConfig)
 	return u
 }
 
@@ -1056,24 +1070,24 @@ func (u *BillingInvoiceLineUpsertOne) ClearQuantity() *BillingInvoiceLineUpsertO
 	})
 }
 
-// SetTaxOverrides sets the "tax_overrides" field.
-func (u *BillingInvoiceLineUpsertOne) SetTaxOverrides(v *billingentity.TaxOverrides) *BillingInvoiceLineUpsertOne {
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v plan.TaxConfig) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetTaxOverrides(v)
+		s.SetTaxConfig(v)
 	})
 }
 
-// UpdateTaxOverrides sets the "tax_overrides" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateTaxOverrides() *BillingInvoiceLineUpsertOne {
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTaxConfig() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateTaxOverrides()
+		s.UpdateTaxConfig()
 	})
 }
 
-// ClearTaxOverrides clears the value of the "tax_overrides" field.
-func (u *BillingInvoiceLineUpsertOne) ClearTaxOverrides() *BillingInvoiceLineUpsertOne {
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingInvoiceLineUpsertOne) ClearTaxConfig() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearTaxOverrides()
+		s.ClearTaxConfig()
 	})
 }
 
@@ -1507,24 +1521,24 @@ func (u *BillingInvoiceLineUpsertBulk) ClearQuantity() *BillingInvoiceLineUpsert
 	})
 }
 
-// SetTaxOverrides sets the "tax_overrides" field.
-func (u *BillingInvoiceLineUpsertBulk) SetTaxOverrides(v *billingentity.TaxOverrides) *BillingInvoiceLineUpsertBulk {
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v plan.TaxConfig) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetTaxOverrides(v)
+		s.SetTaxConfig(v)
 	})
 }
 
-// UpdateTaxOverrides sets the "tax_overrides" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateTaxOverrides() *BillingInvoiceLineUpsertBulk {
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTaxConfig() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateTaxOverrides()
+		s.UpdateTaxConfig()
 	})
 }
 
-// ClearTaxOverrides clears the value of the "tax_overrides" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearTaxOverrides() *BillingInvoiceLineUpsertBulk {
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearTaxConfig() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearTaxOverrides()
+		s.ClearTaxConfig()
 	})
 }
 

@@ -40,7 +40,9 @@ scalar InvoiceNumber extends string;
  * tax: Special tax configuration for billing.
  *    -> The prices include is the meaningful part, but we should make that an array, let's see if we need this as we implement more features.
  */
-@summary("Invoice represents an invoice in the system.")
+/**
+ * Invoice represents an invoice in the system.
+ */
 @friendlyName("BillingInvoice")
 model Invoice {
   ...OmitProperties<global.Resource, "updatedAt" | "name">;
@@ -167,6 +169,9 @@ model Invoice {
   validationIssues?: ValidationIssue[];
 }
 
+/**
+ * BillingInvoiceAction represents the actions that can be performed on an invoice.
+ */
 @friendlyName("BillingInvoiceAction")
 enum InvoiceAction {
   @summary("Advance the invoice to the next status.")
@@ -185,6 +190,12 @@ enum InvoiceAction {
   `void`: "void",
 }
 
+/**
+ * InvoiceStatusDetails represents the details of the invoice status.
+ *
+ * API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
+ * the next steps of the invoice instead of the extendedStatus field.
+ */
 @friendlyName("BillingInvoiceStatusDetails")
 model InvoiceStatusDetails {
   @summary("Is the invoice editable?")
@@ -200,6 +211,12 @@ model InvoiceStatusDetails {
   availableActions: InvoiceAction[];
 }
 
+/**
+ * InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+ *
+ * This is a clone of the billing profile's workflow settings at the time of invoice creation
+ * with customer overrides considered.
+ */
 @friendlyName("BillingInvoiceWorkflowSettings")
 model InvoiceWorkflowSettings {
   @summary("The apps that will be used to orchestrate the invoice's workflow.")
@@ -292,6 +309,11 @@ enum InvoiceExtendedStatus {
 /*
  * Omitted types: proforma, corrected, debit-note, other
  */
+/**
+ * InvoiceType represents the type of invoice.
+ *
+ * The type of invoice determines the purpose of the invoice and how it should be handled.
+ */
 @friendlyName("BillingInvoiceType")
 enum InvoiceType {
   @summary("A regular commercial invoice document between a supplier and customer.")
@@ -301,8 +323,10 @@ enum InvoiceType {
   creditNote: "credit_note",
 }
 
+/**
+ * Discount represents an allowance applied to the complete document independent from the individual lines.
+ */
 @friendlyName("BillingInvoiceDiscount")
-@summary("Discount represents an allowance applied to the complete document independent from the individual lines.")
 model Discount {
   @summary("Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.")
   base?: Numeric;
@@ -319,22 +343,33 @@ model Discount {
   // TODO: Add reference fields to plan/subscriptions if the discount is coming from there.
 }
 
-@summary("UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price.")
+/**
+ * BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+ */
 @friendlyName("BillingInvoiceLine")
 @discriminator("type")
 union InvoiceLine {
-  flatFeeLine: FlatFeeLine,
-  manualFeeLine: ManualFeeLine,
+  usageBased: UsageBasedLine,
+  flatFee: FlatFeeLine,
 }
 
-@summary("LineTypes represents the different types of lines that can be used in an invoice.")
+/**
+ * LineTypes represents the different types of lines that can be used in an invoice.
+ */
 @friendlyName("BillingLineTypes")
 enum LineTypes {
-  ...RateCardType,
-  manualFee: "manual_fee",
+  // TODO: Implement when we have support for subscriptions
+  // subscriptionFlatFee: "subs_flat_fee",
+  // subscriptionUsageBased: "subs_usage_based",
+
+  flatFee: "flat_fee",
+
+  usageBased: "usage_based",
 }
 
-@summary("Line status specifies the status of the line.")
+/**
+ * Line status specifies the status of the line.
+ */
 @friendlyName("BillingLineStatus")
 enum LineStatus {
   valid: "valid",
@@ -376,8 +411,8 @@ model Line {
   @visibility("read", "query") // Tax is handled by the tax provider, we only need to show the output of that here
   taxes?: TaxItem[];
 
-  @summary("Tax overrides specify the tax configuration for this line.")
-  taxOverrides?: OpenMeter.ProductCatalog.TaxConfig | null;
+  @summary("Tax config specify the tax configuration for this line.")
+  taxConfig?: OpenMeter.ProductCatalog.TaxConfig | null;
 
   @visibility("read")
   @summary("Total sum of the line, including discounts and charges.")
@@ -390,7 +425,9 @@ model Line {
   invoiceAt: DateTime;
 }
 
-@summary("Reference to an invoice.")
+/**
+ * Reference to an invoice.
+ */
 @friendlyName("BillingInvoiceReference")
 model InvoiceReference {
   @summary("The ID of the invoice.")
@@ -400,7 +437,11 @@ model InvoiceReference {
   number?: InvoiceNumber;
 }
 
-@summary("Period represents a time range.")
+/**
+ * Period represents a time range.
+ *
+ * Billing always treats periods as start being inclusive and end being exclusive.
+ */
 @friendlyName("BillingPeriod")
 model Period {
   @summary("Start of the period.")
@@ -411,35 +452,43 @@ model Period {
 }
 
 /**
- * BillingFlatFeeLine represents a line item that is sold to the customer as a flat fee.
- *
- * This object represents an item added via subscriptions.
+ * UsageBasedLine represents a line item that is sold to the customer based on usage.
+ */
+@friendlyName("BillingUsageBasedLine")
+model UsageBasedLine {
+  ...OmitProperties<Line, "type">;
+  type: LineTypes.usageBased;
+  price: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
+
+  @summary("The feature that the usage is based on.")
+  featureKey: Key;
+
+  @summary("Quantity of the item being sold.")
+  @visibility("read", "query")
+  quantity?: Numeric;
+}
+
+/**
+ * BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
  */
 @friendlyName("BillingFlatFeeLine")
 model FlatFeeLine {
   ...OmitProperties<Line, "type">;
   type: LineTypes.flatFee;
 
-  @summary("Details about what is being sold.")
-  item: RateCardFlatFee;
-}
-
-/**
- * BillingManualFeeLine represents a line item that is sold to the customer as a manually added fee.
- */
-@friendlyName("BillingManualFeeLine")
-model ManualFeeLine {
-  ...OmitProperties<Line, "type">;
-  type: LineTypes.manualFee;
-
   @summary("Price of the item being sold.")
-  price: Money;
+  amount: Money;
+
+  @summary("Payment term of the line.")
+  paymentTerm?: OpenMeter.ProductCatalog.PricePaymentTerm = OpenMeter.ProductCatalog.PricePaymentTerm.inAdvance;
 
   @summary("Quantity of the item being sold.")
   quantity: Numeric;
 }
 
-@summary("GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.")
+/**
+ * GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.
+ */
 @friendlyName("BillingGenericCharge")
 model GenericCharge {
   /**
@@ -464,13 +513,17 @@ model GenericCharge {
   // there.
 }
 
-@summary("LineDiscount represents an amount deducted from the line, and will be applied before taxes.")
+/**
+ * LineDiscount represents an amount deducted from the line, and will be applied before taxes.
+ */
 @friendlyName("BillingLineDiscount")
 model LineDiscount {
   ...GenericCharge;
 }
 
-@summary("LineCharge represents an amount added to the line, and will be applied before taxes.")
+/**
+ * LineCharge represents an amount added to the line, and will be applied before taxes.
+ */
 @friendlyName("BillingLineCharge")
 model LineCharge {
   ...GenericCharge;
@@ -481,7 +534,9 @@ model LineCharge {
  * - taxes: Summary of all the taxes included in the invoice.
  *    We don't need that detailed information here, as we only need the total tax amount.
  */
-@summary("Totals contains the summaries of all calculations for the invoice.")
+/**
+ * Totals contains the summaries of all calculations for the invoice.
+ */
 @friendlyName("BillingInvoiceTotals")
 model Totals {
   @summary("Sum of all line item sums")
@@ -528,7 +583,9 @@ model Totals {
  *    This is deferred to the payment provider for now, if we start supporing more payment providers,
  *    we might need this information.
  */
-@summary("Payment contains details as to how the invoice should be paid.")
+/**
+ * Payment contains details as to how the invoice should be paid.
+ */
 @friendlyName("BillingInvoicePayment")
 model Payment {
   terms?: PaymentTerms;

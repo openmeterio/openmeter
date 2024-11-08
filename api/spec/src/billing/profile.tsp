@@ -162,6 +162,10 @@ model ProfileAppReferences {
   payment: OpenMeter.App.AppReference;
 }
 
+/**
+ * ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
+ * for a billing profile.
+ */
 @friendlyName("BillingProfileAppsOrReference")
 union ProfileAppsOrReference {
   profileApps: ProfileApps,
@@ -185,6 +189,9 @@ model Workflow {
   id: ULID;
 }
 
+/**
+ * WorkflowSettings represents the settings for a billing workflow.
+ */
 @friendlyName("BillingWorkflowSettings")
 model WorkflowSettings {
   @summary("The collection settings for this workflow")
@@ -197,7 +204,9 @@ model WorkflowSettings {
   payment?: WorkflowPaymentSettings;
 }
 
-@summary("Workflow collection specifies how to collect the pending line items for an invoice")
+/**
+ * Workflow collection specifies how to collect the pending line items for an invoice
+ */
 @friendlyName("BillingWorkflowCollectionSettings")
 model WorkflowCollectionSettings {
   /**
@@ -222,7 +231,9 @@ model WorkflowPaymentSettings {
   collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
 }
 
-@summary("App reference type specifies the type of reference inside an app reference")
+/**
+ * App reference type specifies the type of reference inside an app reference
+ */
 @friendlyName("BillingWorkflowAppReferenceType")
 enum AppReferenceType {
   appId: "app_id",

@@ -42,8 +42,8 @@ The invoices are governed by the [invoice state machine](./service/invoicestate.
 Invoices are composed of [lines](./entity/invoiceline.go). Each invoice can only have lines from the same currency.
 
 The lines can be of different types:
-- ManualFee: one time manually added charge
-- ManualUsageBased: manually added usage-based charge (can be used to charge additional usage-based prices without the product catalog features)
+- Fee: one time charge
+- UsageBased: usage-based charge (can be used to charge additional usage-based prices without the product catalog features)
 
 Each line has a `period` (`start`, `end`) and an `invoiceAt` property. The period specifies which period of time the line is referring to (in case of usage-based pricing, the underlying meter will be queried for this time-period). `invoiceAt` specifies the time when it is expected to create an invoice that contains this line. The invoice's collection settings can defer this.
 

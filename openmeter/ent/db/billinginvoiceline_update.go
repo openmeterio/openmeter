@@ -14,10 +14,11 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
 
 // BillingInvoiceLineUpdate is the builder for updating BillingInvoiceLine entities.
@@ -215,15 +216,23 @@ func (bilu *BillingInvoiceLineUpdate) ClearQuantity() *BillingInvoiceLineUpdate 
 	return bilu
 }
 
-// SetTaxOverrides sets the "tax_overrides" field.
-func (bilu *BillingInvoiceLineUpdate) SetTaxOverrides(bo *billingentity.TaxOverrides) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetTaxOverrides(bo)
+// SetTaxConfig sets the "tax_config" field.
+func (bilu *BillingInvoiceLineUpdate) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetTaxConfig(pc)
 	return bilu
 }
 
-// ClearTaxOverrides clears the value of the "tax_overrides" field.
-func (bilu *BillingInvoiceLineUpdate) ClearTaxOverrides() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearTaxOverrides()
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineUpdate {
+	if pc != nil {
+		bilu.SetTaxConfig(*pc)
+	}
+	return bilu
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (bilu *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearTaxConfig()
 	return bilu
 }
 
@@ -238,42 +247,42 @@ func (bilu *BillingInvoiceLineUpdate) SetBillingInvoice(b *BillingInvoice) *Bill
 	return bilu.SetBillingInvoiceID(b.ID)
 }
 
-// SetManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID.
-func (bilu *BillingInvoiceLineUpdate) SetManualFeeLineID(id string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetManualFeeLineID(id)
+// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
+func (bilu *BillingInvoiceLineUpdate) SetFlatFeeLineID(id string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetFlatFeeLineID(id)
 	return bilu
 }
 
-// SetNillableManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableManualFeeLineID(id *string) *BillingInvoiceLineUpdate {
+// SetNillableFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableFlatFeeLineID(id *string) *BillingInvoiceLineUpdate {
 	if id != nil {
-		bilu = bilu.SetManualFeeLineID(*id)
+		bilu = bilu.SetFlatFeeLineID(*id)
 	}
 	return bilu
 }
 
-// SetManualFeeLine sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
-func (bilu *BillingInvoiceLineUpdate) SetManualFeeLine(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineUpdate {
-	return bilu.SetManualFeeLineID(b.ID)
+// SetFlatFeeLine sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) SetFlatFeeLine(b *BillingInvoiceFlatFeeLineConfig) *BillingInvoiceLineUpdate {
+	return bilu.SetFlatFeeLineID(b.ID)
 }
 
-// SetManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID.
-func (bilu *BillingInvoiceLineUpdate) SetManualUsageBasedLineID(id string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetManualUsageBasedLineID(id)
+// SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID.
+func (bilu *BillingInvoiceLineUpdate) SetUsageBasedLineID(id string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetUsageBasedLineID(id)
 	return bilu
 }
 
-// SetNillableManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableManualUsageBasedLineID(id *string) *BillingInvoiceLineUpdate {
+// SetNillableUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableUsageBasedLineID(id *string) *BillingInvoiceLineUpdate {
 	if id != nil {
-		bilu = bilu.SetManualUsageBasedLineID(*id)
+		bilu = bilu.SetUsageBasedLineID(*id)
 	}
 	return bilu
 }
 
-// SetManualUsageBasedLine sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
-func (bilu *BillingInvoiceLineUpdate) SetManualUsageBasedLine(b *BillingInvoiceManualUsageBasedLineConfig) *BillingInvoiceLineUpdate {
-	return bilu.SetManualUsageBasedLineID(b.ID)
+// SetUsageBasedLine sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) SetUsageBasedLine(b *BillingInvoiceUsageBasedLineConfig) *BillingInvoiceLineUpdate {
+	return bilu.SetUsageBasedLineID(b.ID)
 }
 
 // SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
@@ -307,15 +316,15 @@ func (bilu *BillingInvoiceLineUpdate) ClearBillingInvoice() *BillingInvoiceLineU
 	return bilu
 }
 
-// ClearManualFeeLine clears the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
-func (bilu *BillingInvoiceLineUpdate) ClearManualFeeLine() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearManualFeeLine()
+// ClearFlatFeeLine clears the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) ClearFlatFeeLine() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearFlatFeeLine()
 	return bilu
 }
 
-// ClearManualUsageBasedLine clears the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
-func (bilu *BillingInvoiceLineUpdate) ClearManualUsageBasedLine() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearManualUsageBasedLine()
+// ClearUsageBasedLine clears the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity.
+func (bilu *BillingInvoiceLineUpdate) ClearUsageBasedLine() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearUsageBasedLine()
 	return bilu
 }
 
@@ -389,6 +398,11 @@ func (bilu *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := bilu.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
+		}
+	}
 	if bilu.mutation.BillingInvoiceCleared() && len(bilu.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLine.billing_invoice"`)
 	}
@@ -449,11 +463,11 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	if bilu.mutation.QuantityCleared() {
 		_spec.ClearField(billinginvoiceline.FieldQuantity, field.TypeOther)
 	}
-	if value, ok := bilu.mutation.TaxOverrides(); ok {
-		_spec.SetField(billinginvoiceline.FieldTaxOverrides, field.TypeJSON, value)
+	if value, ok := bilu.mutation.TaxConfig(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 	}
-	if bilu.mutation.TaxOverridesCleared() {
-		_spec.ClearField(billinginvoiceline.FieldTaxOverrides, field.TypeJSON)
+	if bilu.mutation.TaxConfigCleared() {
+		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
 	}
 	if bilu.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -484,28 +498,28 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bilu.mutation.ManualFeeLineCleared() {
+	if bilu.mutation.FlatFeeLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualFeeLineTable,
-			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
+			Table:   billinginvoiceline.FlatFeeLineTable,
+			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bilu.mutation.ManualFeeLineIDs(); len(nodes) > 0 {
+	if nodes := bilu.mutation.FlatFeeLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualFeeLineTable,
-			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
+			Table:   billinginvoiceline.FlatFeeLineTable,
+			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -513,28 +527,28 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bilu.mutation.ManualUsageBasedLineCleared() {
+	if bilu.mutation.UsageBasedLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualUsageBasedLineTable,
-			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Table:   billinginvoiceline.UsageBasedLineTable,
+			Columns: []string{billinginvoiceline.UsageBasedLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bilu.mutation.ManualUsageBasedLineIDs(); len(nodes) > 0 {
+	if nodes := bilu.mutation.UsageBasedLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualUsageBasedLineTable,
-			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Table:   billinginvoiceline.UsageBasedLineTable,
+			Columns: []string{billinginvoiceline.UsageBasedLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -818,15 +832,23 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearQuantity() *BillingInvoiceLineUpd
 	return biluo
 }
 
-// SetTaxOverrides sets the "tax_overrides" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetTaxOverrides(bo *billingentity.TaxOverrides) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetTaxOverrides(bo)
+// SetTaxConfig sets the "tax_config" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetTaxConfig(pc)
 	return biluo
 }
 
-// ClearTaxOverrides clears the value of the "tax_overrides" field.
-func (biluo *BillingInvoiceLineUpdateOne) ClearTaxOverrides() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearTaxOverrides()
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineUpdateOne {
+	if pc != nil {
+		biluo.SetTaxConfig(*pc)
+	}
+	return biluo
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearTaxConfig()
 	return biluo
 }
 
@@ -841,42 +863,42 @@ func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoice(b *BillingInvoice) *
 	return biluo.SetBillingInvoiceID(b.ID)
 }
 
-// SetManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID.
-func (biluo *BillingInvoiceLineUpdateOne) SetManualFeeLineID(id string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetManualFeeLineID(id)
+// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
+func (biluo *BillingInvoiceLineUpdateOne) SetFlatFeeLineID(id string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetFlatFeeLineID(id)
 	return biluo
 }
 
-// SetNillableManualFeeLineID sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity by ID if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableManualFeeLineID(id *string) *BillingInvoiceLineUpdateOne {
+// SetNillableFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableFlatFeeLineID(id *string) *BillingInvoiceLineUpdateOne {
 	if id != nil {
-		biluo = biluo.SetManualFeeLineID(*id)
+		biluo = biluo.SetFlatFeeLineID(*id)
 	}
 	return biluo
 }
 
-// SetManualFeeLine sets the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
-func (biluo *BillingInvoiceLineUpdateOne) SetManualFeeLine(b *BillingInvoiceManualLineConfig) *BillingInvoiceLineUpdateOne {
-	return biluo.SetManualFeeLineID(b.ID)
+// SetFlatFeeLine sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetFlatFeeLine(b *BillingInvoiceFlatFeeLineConfig) *BillingInvoiceLineUpdateOne {
+	return biluo.SetFlatFeeLineID(b.ID)
 }
 
-// SetManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID.
-func (biluo *BillingInvoiceLineUpdateOne) SetManualUsageBasedLineID(id string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetManualUsageBasedLineID(id)
+// SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID.
+func (biluo *BillingInvoiceLineUpdateOne) SetUsageBasedLineID(id string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetUsageBasedLineID(id)
 	return biluo
 }
 
-// SetNillableManualUsageBasedLineID sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity by ID if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableManualUsageBasedLineID(id *string) *BillingInvoiceLineUpdateOne {
+// SetNillableUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableUsageBasedLineID(id *string) *BillingInvoiceLineUpdateOne {
 	if id != nil {
-		biluo = biluo.SetManualUsageBasedLineID(*id)
+		biluo = biluo.SetUsageBasedLineID(*id)
 	}
 	return biluo
 }
 
-// SetManualUsageBasedLine sets the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
-func (biluo *BillingInvoiceLineUpdateOne) SetManualUsageBasedLine(b *BillingInvoiceManualUsageBasedLineConfig) *BillingInvoiceLineUpdateOne {
-	return biluo.SetManualUsageBasedLineID(b.ID)
+// SetUsageBasedLine sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetUsageBasedLine(b *BillingInvoiceUsageBasedLineConfig) *BillingInvoiceLineUpdateOne {
+	return biluo.SetUsageBasedLineID(b.ID)
 }
 
 // SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
@@ -910,15 +932,15 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearBillingInvoice() *BillingInvoiceL
 	return biluo
 }
 
-// ClearManualFeeLine clears the "manual_fee_line" edge to the BillingInvoiceManualLineConfig entity.
-func (biluo *BillingInvoiceLineUpdateOne) ClearManualFeeLine() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearManualFeeLine()
+// ClearFlatFeeLine clears the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearFlatFeeLine() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearFlatFeeLine()
 	return biluo
 }
 
-// ClearManualUsageBasedLine clears the "manual_usage_based_line" edge to the BillingInvoiceManualUsageBasedLineConfig entity.
-func (biluo *BillingInvoiceLineUpdateOne) ClearManualUsageBasedLine() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearManualUsageBasedLine()
+// ClearUsageBasedLine clears the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearUsageBasedLine() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearUsageBasedLine()
 	return biluo
 }
 
@@ -1005,6 +1027,11 @@ func (biluo *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := biluo.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
+		}
+	}
 	if biluo.mutation.BillingInvoiceCleared() && len(biluo.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLine.billing_invoice"`)
 	}
@@ -1082,11 +1109,11 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	if biluo.mutation.QuantityCleared() {
 		_spec.ClearField(billinginvoiceline.FieldQuantity, field.TypeOther)
 	}
-	if value, ok := biluo.mutation.TaxOverrides(); ok {
-		_spec.SetField(billinginvoiceline.FieldTaxOverrides, field.TypeJSON, value)
+	if value, ok := biluo.mutation.TaxConfig(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 	}
-	if biluo.mutation.TaxOverridesCleared() {
-		_spec.ClearField(billinginvoiceline.FieldTaxOverrides, field.TypeJSON)
+	if biluo.mutation.TaxConfigCleared() {
+		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
 	}
 	if biluo.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1117,28 +1144,28 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if biluo.mutation.ManualFeeLineCleared() {
+	if biluo.mutation.FlatFeeLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualFeeLineTable,
-			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
+			Table:   billinginvoiceline.FlatFeeLineTable,
+			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biluo.mutation.ManualFeeLineIDs(); len(nodes) > 0 {
+	if nodes := biluo.mutation.FlatFeeLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualFeeLineTable,
-			Columns: []string{billinginvoiceline.ManualFeeLineColumn},
+			Table:   billinginvoiceline.FlatFeeLineTable,
+			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanuallineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1146,28 +1173,28 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if biluo.mutation.ManualUsageBasedLineCleared() {
+	if biluo.mutation.UsageBasedLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualUsageBasedLineTable,
-			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Table:   billinginvoiceline.UsageBasedLineTable,
+			Columns: []string{billinginvoiceline.UsageBasedLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biluo.mutation.ManualUsageBasedLineIDs(); len(nodes) > 0 {
+	if nodes := biluo.mutation.UsageBasedLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ManualUsageBasedLineTable,
-			Columns: []string{billinginvoiceline.ManualUsageBasedLineColumn},
+			Table:   billinginvoiceline.UsageBasedLineTable,
+			Columns: []string{billinginvoiceline.UsageBasedLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicemanualusagebasedlineconfig.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

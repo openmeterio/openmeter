@@ -38,34 +38,37 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			SetType(line.Type).
 			SetName(line.Name).
 			SetCurrency(line.Currency).
-			SetTaxOverrides(line.TaxOverrides).
 			SetMetadata(line.Metadata)
+
+		if line.TaxConfig != nil {
+			newEnt = newEnt.SetTaxConfig(*line.TaxConfig)
+		}
 
 		edges := db.BillingInvoiceLineEdges{}
 
 		switch line.Type {
-		case billingentity.InvoiceLineTypeManualFee:
-			// Let's create the manual line for the invoice
-			newManualLineConfig, err := r.db.BillingInvoiceManualLineConfig.Create().
+		case billingentity.InvoiceLineTypeFee:
+			// Let's create the flat fee line for the invoice
+			newFlatFeeLineConfig, err := r.db.BillingInvoiceFlatFeeLineConfig.Create().
 				SetNamespace(line.Namespace).
-				SetUnitPrice(line.ManualFee.Price).
+				SetAmount(line.FlatFee.Amount).
 				Save(ctx)
 			if err != nil {
 				return nil, err
 			}
 
-			newEnt = newEnt.SetManualFeeLine(newManualLineConfig).
-				SetQuantity(line.ManualFee.Quantity)
+			newEnt = newEnt.SetFlatFeeLine(newFlatFeeLineConfig).
+				SetQuantity(line.FlatFee.Quantity)
 
-			edges.ManualFeeLine = newManualLineConfig
-		case billingentity.InvoiceLineTypeManualUsageBased:
-			newManualUBPLine, err := r.createManualUsageBasedLine(ctx, line.Namespace, line)
+			edges.FlatFeeLine = newFlatFeeLineConfig
+		case billingentity.InvoiceLineTypeUsageBased:
+			newUBPLine, err := r.createUsageBasedLine(ctx, line.Namespace, line)
 			if err != nil {
 				return nil, err
 			}
 
-			newEnt = newEnt.SetManualUsageBasedLine(newManualUBPLine)
-			edges.ManualUsageBasedLine = newManualUBPLine
+			newEnt = newEnt.SetUsageBasedLine(newUBPLine)
+			edges.UsageBasedLine = newUBPLine
 		default:
 			return nil, fmt.Errorf("unsupported type: %s", line.Type)
 		}
@@ -104,12 +107,12 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 	return result, nil
 }
 
-func (r *adapter) createManualUsageBasedLine(ctx context.Context, ns string, line billingentity.Line) (*db.BillingInvoiceManualUsageBasedLineConfig, error) {
-	lineConfig, err := r.db.BillingInvoiceManualUsageBasedLineConfig.Create().
+func (r *adapter) createUsageBasedLine(ctx context.Context, ns string, line billingentity.Line) (*db.BillingInvoiceUsageBasedLineConfig, error) {
+	lineConfig, err := r.db.BillingInvoiceUsageBasedLineConfig.Create().
 		SetNamespace(ns).
-		SetPriceType(line.ManualUsageBased.Price.Type()).
-		SetPrice(&line.ManualUsageBased.Price).
-		SetFeatureKey(line.ManualUsageBased.FeatureKey).
+		SetPriceType(line.UsageBased.Price.Type()).
+		SetPrice(&line.UsageBased.Price).
+		SetFeatureKey(line.UsageBased.FeatureKey).
 		Save(ctx)
 	if err != nil {
 		return nil, err
@@ -180,14 +183,14 @@ func (r *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 }
 
 func (r *adapter) expandLineItems(q *db.BillingInvoiceLineQuery) *db.BillingInvoiceLineQuery {
-	return q.WithManualFeeLine().
-		WithManualUsageBasedLine().
+	return q.WithFlatFeeLine().
+		WithUsageBasedLine().
 		WithParentLine(func(q *db.BillingInvoiceLineQuery) {
 			// We cannot call ourselve here, as it would create an infinite loop
 			// but given we are only supporting one level of parent line, we can
 			// just expand the parent line here
-			q.WithManualFeeLine().
-				WithManualUsageBasedLine()
+			q.WithFlatFeeLine().
+				WithUsageBasedLine()
 		})
 }
 
@@ -197,8 +200,8 @@ func (r *adapter) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 	}
 
 	existingLine, err := r.db.BillingInvoiceLine.Query().
-		WithManualFeeLine().
-		WithManualUsageBasedLine().
+		WithFlatFeeLine().
+		WithUsageBasedLine().
 		Where(billinginvoiceline.Namespace(input.Namespace)).
 		Where(billinginvoiceline.ID(input.ID)).
 		First(ctx)
@@ -225,26 +228,26 @@ func (r *adapter) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 		SetInvoiceAt(input.InvoiceAt).
 		SetNillableParentLineID(input.ParentLineID).
 		SetStatus(input.Status).
-		SetTaxOverrides(input.TaxOverrides)
+		SetOrClearTaxConfig(input.TaxConfig)
 
 	edges := db.BillingInvoiceLineEdges{}
 
 	// Let's update the line based on the type
 	switch input.Type {
-	case billingentity.InvoiceLineTypeManualFee:
-		edges.ManualFeeLine, err = r.updateManualFeeLine(ctx, existingLine.Edges.ManualFeeLine.ID, input, updateLine)
+	case billingentity.InvoiceLineTypeFee:
+		edges.FlatFeeLine, err = r.updateFlatFeeLine(ctx, existingLine.Edges.FlatFeeLine.ID, input, updateLine)
 		if err != nil {
 			return billingentity.Line{}, err
 		}
 
-		updateLine = updateLine.SetQuantity(input.ManualFee.Quantity)
-	case billingentity.InvoiceLineTypeManualUsageBased:
-		edges.ManualUsageBasedLine, err = r.updateManualUsageBasedLine(ctx, existingLine.Edges.ManualUsageBasedLine.ID, input)
+		updateLine = updateLine.SetQuantity(input.FlatFee.Quantity)
+	case billingentity.InvoiceLineTypeUsageBased:
+		edges.UsageBasedLine, err = r.updateUsageBasedLine(ctx, existingLine.Edges.UsageBasedLine.ID, input)
 		if err != nil {
 			return billingentity.Line{}, err
 		}
 
-		updateLine = updateLine.SetOrClearQuantity(input.ManualUsageBased.Quantity)
+		updateLine = updateLine.SetOrClearQuantity(input.UsageBased.Quantity)
 	default:
 		return billingentity.Line{}, fmt.Errorf("unsupported line type: %s", input.Type)
 	}
@@ -275,35 +278,35 @@ func (r *adapter) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 	return mapInvoiceLineFromDB(updatedLine)
 }
 
-func (r *adapter) updateManualFeeLine(
+func (r *adapter) updateFlatFeeLine(
 	ctx context.Context,
 	configId string,
 	input billing.UpdateInvoiceLineAdapterInput,
 	updateLine *db.BillingInvoiceLineUpdateOne,
-) (*db.BillingInvoiceManualLineConfig, error) {
-	updateLine.SetQuantity(input.ManualFee.Quantity)
+) (*db.BillingInvoiceFlatFeeLineConfig, error) {
+	updateLine.SetQuantity(input.FlatFee.Quantity)
 
-	updatedConfig, err := r.db.BillingInvoiceManualLineConfig.UpdateOneID(configId).
-		SetUnitPrice(input.ManualFee.Price).
+	updatedConfig, err := r.db.BillingInvoiceFlatFeeLineConfig.UpdateOneID(configId).
+		SetAmount(input.FlatFee.Amount).
 		Save(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("updating manual fee line: %w", err)
+		return nil, fmt.Errorf("updating fee line: %w", err)
 	}
 
 	return updatedConfig, nil
 }
 
-func (r *adapter) updateManualUsageBasedLine(
+func (r *adapter) updateUsageBasedLine(
 	ctx context.Context,
 	configId string,
 	input billing.UpdateInvoiceLineAdapterInput,
-) (*db.BillingInvoiceManualUsageBasedLineConfig, error) {
-	updatedConfig, err := r.db.BillingInvoiceManualUsageBasedLineConfig.UpdateOneID(configId).
-		SetPriceType(input.ManualUsageBased.Price.Type()).
-		SetPrice(&input.ManualUsageBased.Price).
+) (*db.BillingInvoiceUsageBasedLineConfig, error) {
+	updatedConfig, err := r.db.BillingInvoiceUsageBasedLineConfig.UpdateOneID(configId).
+		SetPriceType(input.UsageBased.Price.Type()).
+		SetPrice(&input.UsageBased.Price).
 		Save(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("updating manual fee line: %w", err)
+		return nil, fmt.Errorf("updating fee line: %w", err)
 	}
 
 	return updatedConfig, nil
@@ -375,7 +378,7 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (billingentity.Line, er
 			Type:     dbLine.Type,
 			Currency: dbLine.Currency,
 
-			TaxOverrides: dbLine.TaxOverrides,
+			TaxConfig: lo.EmptyableToPtr(dbLine.TaxConfig),
 		},
 	}
 
@@ -395,17 +398,17 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (billingentity.Line, er
 	}
 
 	switch dbLine.Type {
-	case billingentity.InvoiceLineTypeManualFee:
-		invoiceLine.ManualFee = billingentity.ManualFeeLine{
-			Price:    dbLine.Edges.ManualFeeLine.UnitPrice,
+	case billingentity.InvoiceLineTypeFee:
+		invoiceLine.FlatFee = billingentity.FlatFeeLine{
+			Amount:   dbLine.Edges.FlatFeeLine.Amount,
 			Quantity: lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
 		}
-	case billingentity.InvoiceLineTypeManualUsageBased:
-		ubpLine := dbLine.Edges.ManualUsageBasedLine
+	case billingentity.InvoiceLineTypeUsageBased:
+		ubpLine := dbLine.Edges.UsageBasedLine
 		if ubpLine == nil {
 			return invoiceLine, fmt.Errorf("manual usage based line is missing")
 		}
-		invoiceLine.ManualUsageBased = billingentity.ManualUsageBasedLine{
+		invoiceLine.UsageBased = billingentity.UsageBasedLine{
 			FeatureKey: ubpLine.FeatureKey,
 			Price:      *ubpLine.Price,
 			Quantity:   dbLine.Quantity,

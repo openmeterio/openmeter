@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -82,26 +84,36 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 
 func mapCreateLineToEntity(line api.BillingInvoiceLineCreateItem, ns string) (billingentity.Line, error) {
 	// This should not fail, and we would have at least the discriminator unmarshaled
-	manualFee, err := line.AsBillingManualFeeLineCreateItem()
+	discriminator, err := line.Discriminator()
 	if err != nil {
-		return billingentity.Line{}, fmt.Errorf("failed to map manual fee line: %w", err)
+		return billingentity.Line{}, fmt.Errorf("failed to get type discriminator: %w", err)
 	}
 
-	switch string(manualFee.Type) {
-	case string(api.BillingManualFeeLineTypeManualFee):
-		return mapCreateManualFeeLineToEntity(manualFee, ns)
+	switch discriminator {
+	case string(api.BillingFlatFeeLineCreateItemTypeFlatFee):
+		fee, err := line.AsBillingFlatFeeLineCreateItem()
+		if err != nil {
+			return billingentity.Line{}, fmt.Errorf("failed to map fee line: %w", err)
+		}
+		return mapCreateFlatFeeLineToEntity(fee, ns)
+	case string(api.BillingUsageBasedLineCreateItemTypeUsageBased):
+		usageBased, err := line.AsBillingUsageBasedLineCreateItem()
+		if err != nil {
+			return billingentity.Line{}, fmt.Errorf("failed to map usage based line: %w", err)
+		}
+		return mapCreateUsageBasedLineToEntity(usageBased, ns)
 	default:
-		return billingentity.Line{}, fmt.Errorf("unsupported type: %s", manualFee.Type)
+		return billingentity.Line{}, fmt.Errorf("unsupported type: %s", discriminator)
 	}
 }
 
-func mapCreateManualFeeLineToEntity(line api.BillingManualFeeLineCreateItem, ns string) (billingentity.Line, error) {
+func mapCreateFlatFeeLineToEntity(line api.BillingFlatFeeLineCreateItem, ns string) (billingentity.Line, error) {
 	qty, err := alpacadecimal.NewFromString(line.Quantity)
 	if err != nil {
 		return billingentity.Line{}, fmt.Errorf("failed to map quantity: %w", err)
 	}
 
-	price, err := alpacadecimal.NewFromString(line.Price)
+	amount, err := alpacadecimal.NewFromString(line.Amount)
 	if err != nil {
 		return billingentity.Line{}, fmt.Errorf("failed to parse price: %w", err)
 	}
@@ -117,7 +129,7 @@ func mapCreateManualFeeLineToEntity(line api.BillingManualFeeLineCreateItem, ns 
 
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
-			Type:        billingentity.InvoiceLineTypeManualFee,
+			Type:        billingentity.InvoiceLineTypeFee,
 			Description: line.Description,
 
 			InvoiceID: invoiceId,
@@ -128,60 +140,85 @@ func mapCreateManualFeeLineToEntity(line api.BillingManualFeeLineCreateItem, ns 
 				End:   line.Period.End,
 			},
 
-			InvoiceAt:    line.InvoiceAt,
-			TaxOverrides: mapTaxConfigToEntity(line.TaxOverrides),
+			InvoiceAt: line.InvoiceAt,
+			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 		},
-		ManualFee: billingentity.ManualFeeLine{
-			Price:    price,
-			Quantity: qty,
+		FlatFee: billingentity.FlatFeeLine{
+			Amount:      amount,
+			PaymentTerm: lo.FromPtrOr((*plan.PaymentTermType)(line.PaymentTerm), plan.InAdvancePaymentTerm),
+			Quantity:    qty,
 		},
 	}, nil
 }
 
-func mapTaxConfigToEntity(tc *api.TaxConfig) *billingentity.TaxOverrides {
+func mapCreateUsageBasedLineToEntity(line api.BillingUsageBasedLineCreateItem, ns string) (billingentity.Line, error) {
+	invoiceId := ""
+	if line.Invoice != nil {
+		invoiceId = line.Invoice.Id
+	}
+
+	price, err := planhttpdriver.AsPrice(line.Price)
+	if err != nil {
+		return billingentity.Line{}, fmt.Errorf("failed to map price: %w", err)
+	}
+
+	return billingentity.Line{
+		LineBase: billingentity.LineBase{
+			Namespace: ns,
+
+			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Name:        line.Name,
+			Type:        billingentity.InvoiceLineTypeFee,
+			Description: line.Description,
+
+			InvoiceID: invoiceId,
+			Status:    billingentity.InvoiceLineStatusValid, // This is not settable from outside
+			Currency:  currencyx.Code(line.Currency),
+			Period: billingentity.Period{
+				Start: line.Period.Start,
+				End:   line.Period.End,
+			},
+
+			InvoiceAt: line.InvoiceAt,
+			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+		},
+		UsageBased: billingentity.UsageBasedLine{
+			Price:      price,
+			FeatureKey: line.FeatureKey,
+		},
+	}, nil
+}
+
+func mapTaxConfigToEntity(tc *api.TaxConfig) *billingentity.TaxConfig {
 	if tc == nil {
 		return nil
 	}
 
-	out := &billingentity.TaxOverrides{}
-
-	if tc.Stripe != nil && tc.Stripe.Code != "" {
-		out.Stripe = &billingentity.StripeTaxOverride{
-			TaxCode: billingentity.StripeTaxCode(tc.Stripe.Code),
-		}
-	}
-
-	return out
+	return lo.ToPtr(planhttpdriver.AsTaxConfig(*tc))
 }
 
-func mapTaxOverridesToAPI(to *billingentity.TaxOverrides) *api.TaxConfig {
+func mapTaxConfigToAPI(to *billingentity.TaxConfig) *api.TaxConfig {
 	if to == nil {
 		return nil
 	}
 
-	out := &api.TaxConfig{}
-
-	if to.Stripe != nil {
-		out.Stripe = &api.StripeTaxConfig{
-			Code: string(to.Stripe.TaxCode),
-		}
-	}
-
-	return out
+	return lo.ToPtr(planhttpdriver.FromTaxConfig(*to))
 }
 
 func mapBillingLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
 	switch line.Type {
-	case billingentity.InvoiceLineTypeManualFee:
-		return mapManualFeeLineToAPI(line)
+	case billingentity.InvoiceLineTypeFee:
+		return mapFeeLineToAPI(line)
+	case billingentity.InvoiceLineTypeUsageBased:
+		return mapUsageBasedLineToAPI(line)
 	default:
 		return api.BillingInvoiceLine{}, fmt.Errorf("unsupported type: %s", line.Type)
 	}
 }
 
-func mapManualFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
-	feeLine := api.BillingManualFeeLine{
-		Type: api.BillingManualFeeLineTypeManualFee,
+func mapFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
+	feeLine := api.BillingFlatFeeLine{
+		Type: api.BillingFlatFeeLineTypeFlatFee,
 		Id:   line.ID,
 
 		CreatedAt: line.CreatedAt,
@@ -204,15 +241,173 @@ func mapManualFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, err
 			End:   line.Period.End,
 		},
 
-		Price:        line.ManualFee.Price.String(),
-		Quantity:     line.ManualFee.Quantity.String(),
-		TaxOverrides: mapTaxOverridesToAPI(line.TaxOverrides),
+		Amount:    line.FlatFee.Amount.String(),
+		Quantity:  line.FlatFee.Quantity.String(),
+		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 	}
 
 	out := api.BillingInvoiceLine{}
-	err := out.FromBillingManualFeeLine(feeLine)
+	err := out.FromBillingFlatFeeLine(feeLine)
 	if err != nil {
-		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map manual fee line: %w", err)
+		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map fee line: %w", err)
+	}
+
+	return out, nil
+}
+
+func mapUsageBasedLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
+	price, err := mapPriceToAPI(line.UsageBased.Price)
+	if err != nil {
+		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
+	}
+
+	ubpLine := api.BillingUsageBasedLine{
+		Type: api.BillingUsageBasedLineTypeUsageBased,
+		Id:   line.ID,
+
+		CreatedAt: line.CreatedAt,
+		DeletedAt: line.DeletedAt,
+		UpdatedAt: line.UpdatedAt,
+		InvoiceAt: line.InvoiceAt,
+
+		Currency: string(line.Currency),
+
+		Description: line.Description,
+		Name:        line.Name,
+
+		Invoice: &api.BillingInvoiceReference{
+			Id: line.InvoiceID,
+		},
+
+		Metadata: lo.EmptyableToPtr(line.Metadata),
+		Period: api.BillingPeriod{
+			Start: line.Period.Start,
+			End:   line.Period.End,
+		},
+
+		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+
+		FeatureKey: line.UsageBased.FeatureKey,
+		Quantity:   decimalPtrToStringPtr(line.UsageBased.Quantity),
+		Price:      price,
+	}
+
+	out := api.BillingInvoiceLine{}
+
+	if err := out.FromBillingUsageBasedLine(ubpLine); err != nil {
+		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map fee line: %w", err)
+	}
+
+	return out, nil
+}
+
+func decimalPtrToStringPtr(d *alpacadecimal.Decimal) *string {
+	if d == nil {
+		return nil
+	}
+
+	return lo.ToPtr(d.String())
+}
+
+func decimalPtrToFloat64Ptr(d *alpacadecimal.Decimal) *float64 {
+	if d == nil {
+		return nil
+	}
+
+	return lo.ToPtr(d.InexactFloat64())
+}
+
+func mapPriceToAPI(price plan.Price) (api.RateCardUsageBasedPrice, error) {
+	switch price.Type() {
+	case plan.FlatPriceType:
+		flatPrice, err := price.AsFlat()
+		if err != nil {
+			return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map flat price: %w", err)
+		}
+		return mapFlatPriceToAPI(flatPrice)
+	case plan.UnitPriceType:
+		unitPriceType, err := price.AsUnit()
+		if err != nil {
+			return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map unit price: %w", err)
+		}
+
+		return mapUnitPriceToAPI(unitPriceType)
+	case plan.TieredPriceType:
+		tieredPriceType, err := price.AsTiered()
+		if err != nil {
+			return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map tiered price: %w", err)
+		}
+
+		return mapTieredPriceToAPI(tieredPriceType)
+	default:
+		return api.RateCardUsageBasedPrice{}, fmt.Errorf("unsupported price type: %s", price.Type())
+	}
+}
+
+func mapFlatPriceToAPI(p plan.FlatPrice) (api.RateCardUsageBasedPrice, error) {
+	out := api.RateCardUsageBasedPrice{}
+
+	err := out.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+		Amount:      p.Amount.String(),
+		PaymentTerm: lo.ToPtr(api.PricePaymentTerm(p.PaymentTerm)),
+		Type:        api.FlatPriceWithPaymentTermType(p.Type),
+	})
+	if err != nil {
+		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map flat price: %w", err)
+	}
+
+	return out, nil
+}
+
+func mapUnitPriceToAPI(p plan.UnitPrice) (api.RateCardUsageBasedPrice, error) {
+	out := api.RateCardUsageBasedPrice{}
+
+	err := out.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
+		Amount:        p.Amount.String(),
+		MaximumAmount: decimalPtrToStringPtr(p.MaximumAmount),
+		MinimumAmount: decimalPtrToStringPtr(p.MinimumAmount),
+		Type:          api.UnitPriceWithCommitmentsType(p.Type),
+	})
+	if err != nil {
+		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map unit price: %w", err)
+	}
+
+	return out, nil
+}
+
+func mapTieredPriceToAPI(p plan.TieredPrice) (api.RateCardUsageBasedPrice, error) {
+	out := api.RateCardUsageBasedPrice{}
+
+	tiers := lo.Map(p.Tiers, func(t plan.PriceTier, _ int) api.PriceTier {
+		res := api.PriceTier{
+			UpToAmount: decimalPtrToFloat64Ptr(t.UpToAmount),
+		}
+
+		if t.FlatPrice != nil {
+			res.FlatPrice = &api.FlatPrice{
+				Amount: t.FlatPrice.Amount.String(),
+				Type:   api.FlatPriceType(t.FlatPrice.Type),
+			}
+		}
+
+		if t.UnitPrice != nil {
+			res.UnitPrice = &api.UnitPrice{
+				Amount: t.UnitPrice.Amount.String(),
+				Type:   api.UnitPriceType(t.UnitPrice.Type),
+			}
+		}
+		return res
+	})
+
+	err := out.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
+		Tiers:         tiers,
+		Mode:          api.TieredPriceMode(p.Mode),
+		MinimumAmount: decimalPtrToStringPtr(p.MinimumAmount),
+		MaximumAmount: decimalPtrToStringPtr(p.MaximumAmount),
+		Type:          api.TieredPriceWithCommitmentsType(p.Type),
+	})
+	if err != nil {
+		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map tiered price: %w", err)
 	}
 
 	return out, nil

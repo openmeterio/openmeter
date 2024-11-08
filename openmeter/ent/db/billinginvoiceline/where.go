@@ -933,14 +933,14 @@ func QuantityNotNil() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldQuantity))
 }
 
-// TaxOverridesIsNil applies the IsNil predicate on the "tax_overrides" field.
-func TaxOverridesIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldTaxOverrides))
+// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
+func TaxConfigIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldTaxConfig))
 }
 
-// TaxOverridesNotNil applies the NotNil predicate on the "tax_overrides" field.
-func TaxOverridesNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxOverrides))
+// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
+func TaxConfigNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
 }
 
 // HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.
@@ -966,21 +966,21 @@ func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.BillingI
 	})
 }
 
-// HasManualFeeLine applies the HasEdge predicate on the "manual_fee_line" edge.
-func HasManualFeeLine() predicate.BillingInvoiceLine {
+// HasFlatFeeLine applies the HasEdge predicate on the "flat_fee_line" edge.
+func HasFlatFeeLine() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, ManualFeeLineTable, ManualFeeLineColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, FlatFeeLineTable, FlatFeeLineColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasManualFeeLineWith applies the HasEdge predicate on the "manual_fee_line" edge with a given conditions (other predicates).
-func HasManualFeeLineWith(preds ...predicate.BillingInvoiceManualLineConfig) predicate.BillingInvoiceLine {
+// HasFlatFeeLineWith applies the HasEdge predicate on the "flat_fee_line" edge with a given conditions (other predicates).
+func HasFlatFeeLineWith(preds ...predicate.BillingInvoiceFlatFeeLineConfig) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := newManualFeeLineStep()
+		step := newFlatFeeLineStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -989,21 +989,21 @@ func HasManualFeeLineWith(preds ...predicate.BillingInvoiceManualLineConfig) pre
 	})
 }
 
-// HasManualUsageBasedLine applies the HasEdge predicate on the "manual_usage_based_line" edge.
-func HasManualUsageBasedLine() predicate.BillingInvoiceLine {
+// HasUsageBasedLine applies the HasEdge predicate on the "usage_based_line" edge.
+func HasUsageBasedLine() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, ManualUsageBasedLineTable, ManualUsageBasedLineColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, UsageBasedLineTable, UsageBasedLineColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasManualUsageBasedLineWith applies the HasEdge predicate on the "manual_usage_based_line" edge with a given conditions (other predicates).
-func HasManualUsageBasedLineWith(preds ...predicate.BillingInvoiceManualUsageBasedLineConfig) predicate.BillingInvoiceLine {
+// HasUsageBasedLineWith applies the HasEdge predicate on the "usage_based_line" edge with a given conditions (other predicates).
+func HasUsageBasedLineWith(preds ...predicate.BillingInvoiceUsageBasedLineConfig) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := newManualUsageBasedLineStep()
+		step := newUsageBasedLineStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

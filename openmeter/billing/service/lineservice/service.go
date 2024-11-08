@@ -72,12 +72,12 @@ func (s *Service) FromEntity(line billingentity.Line) (Line, error) {
 	}
 
 	switch line.Type {
-	case billingentity.InvoiceLineTypeManualFee:
-		return manualFeeLine{
+	case billingentity.InvoiceLineTypeFee:
+		return feeLine{
 			lineBase: base,
 		}, nil
-	case billingentity.InvoiceLineTypeManualUsageBased:
-		return manualUsageBasedLine{
+	case billingentity.InvoiceLineTypeUsageBased:
+		return usageBasedLine{
 			lineBase: base,
 		}, nil
 	default:

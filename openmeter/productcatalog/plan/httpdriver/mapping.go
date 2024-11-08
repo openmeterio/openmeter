@@ -143,7 +143,7 @@ func fromRateCard(r plan.RateCard) (api.RateCard, error) {
 
 		var taxConfig *api.TaxConfig
 		if rc.TaxConfig != nil {
-			taxConfig = lo.ToPtr(fromTaxConfig(*rc.TaxConfig))
+			taxConfig = lo.ToPtr(FromTaxConfig(*rc.TaxConfig))
 		}
 
 		err = resp.FromRateCardFlatFee(api.RateCardFlatFee{
@@ -176,7 +176,7 @@ func fromRateCard(r plan.RateCard) (api.RateCard, error) {
 	return resp, nil
 }
 
-func fromTaxConfig(c plan.TaxConfig) api.TaxConfig {
+func FromTaxConfig(c plan.TaxConfig) api.TaxConfig {
 	var stripe *api.StripeTaxConfig
 
 	if c.Stripe != nil {
@@ -428,7 +428,7 @@ func asFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	}
 
 	if flat.TaxConfig != nil {
-		flatRateCard.TaxConfig = lo.ToPtr(asTaxConfig(*flat.TaxConfig))
+		flatRateCard.TaxConfig = lo.ToPtr(AsTaxConfig(*flat.TaxConfig))
 	}
 
 	if flat.BillingCadence != nil {
@@ -505,7 +505,7 @@ func asUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 	}
 
 	if usage.TaxConfig != nil {
-		usageRateCard.TaxConfig = lo.ToPtr(asTaxConfig(*usage.TaxConfig))
+		usageRateCard.TaxConfig = lo.ToPtr(AsTaxConfig(*usage.TaxConfig))
 	}
 
 	isoString := datex.ISOString(usage.BillingCadence)
@@ -519,7 +519,7 @@ func asUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 		return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
 	}
 
-	price, err := asPrice(usagePrice)
+	price, err := AsPrice(usagePrice)
 	if err != nil {
 		return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
 	}
@@ -529,7 +529,7 @@ func asUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 	return usageRateCard, nil
 }
 
-func asPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
+func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 	var price plan.Price
 
 	usagePriceType, err := p.Discriminator()
@@ -771,7 +771,7 @@ func asEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 	return tmpl, nil
 }
 
-func asTaxConfig(c api.TaxConfig) plan.TaxConfig {
+func AsTaxConfig(c api.TaxConfig) plan.TaxConfig {
 	tc := plan.TaxConfig{}
 
 	if c.Stripe != nil {

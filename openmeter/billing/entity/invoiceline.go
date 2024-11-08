@@ -14,21 +14,15 @@ import (
 type InvoiceLineType string
 
 const (
-	// InvoiceLineTypeManualFee is an item that is manually added to the invoice.
-	InvoiceLineTypeManualFee InvoiceLineType = "manual_fee"
-	// InvoiceLineTypeManualUsageBased is an item that is manually added to the invoice and is usage based.
-	InvoiceLineTypeManualUsageBased InvoiceLineType = "manual_usage_based"
-	// InvoiceLineTypeFlatFee is an item that is charged at a fixed rate.
-	InvoiceLineTypeFlatFee InvoiceLineType = "flat_fee"
-	// InvoiceLineTypeUsageBased is an item that is charged based on usage.
+	// InvoiceLineTypeFee is an item that represents a single charge without meter backing.
+	InvoiceLineTypeFee InvoiceLineType = "flat_fee"
+	// InvoiceLineTypeUsageBased is an item that is added to the invoice and is usage based.
 	InvoiceLineTypeUsageBased InvoiceLineType = "usage_based"
 )
 
 func (InvoiceLineType) Values() []string {
 	return []string{
-		string(InvoiceLineTypeManualFee),
-		string(InvoiceLineTypeManualUsageBased),
-		string(InvoiceLineTypeFlatFee),
+		string(InvoiceLineTypeFee),
 		string(InvoiceLineTypeUsageBased),
 	}
 }
@@ -120,7 +114,7 @@ type LineBase struct {
 	RelatedLines []string          `json:"relatedLine,omitempty"`
 	Status       InvoiceLineStatus `json:"status"`
 
-	TaxOverrides *TaxOverrides `json:"taxOverrides,omitempty"`
+	TaxConfig *TaxConfig `json:"taxOverrides,omitempty"`
 
 	Total alpacadecimal.Decimal `json:"total"`
 }
@@ -157,8 +151,9 @@ func (i LineBase) Validate() error {
 	return nil
 }
 
-type ManualFeeLine struct {
-	Price alpacadecimal.Decimal
+type FlatFeeLine struct {
+	Amount      alpacadecimal.Decimal
+	PaymentTerm plan.PaymentTermType
 
 	Quantity alpacadecimal.Decimal `json:"quantity"`
 }
@@ -166,8 +161,8 @@ type ManualFeeLine struct {
 type Line struct {
 	LineBase
 
-	ManualFee        ManualFeeLine        `json:"manualFee,omitempty"`
-	ManualUsageBased ManualUsageBasedLine `json:"manualUsageBased,omitempty"`
+	FlatFee    FlatFeeLine    `json:"flatFee,omitempty"`
+	UsageBased UsageBasedLine `json:"usageBased,omitempty"`
 }
 
 func (i Line) Validate() error {
@@ -180,21 +175,21 @@ func (i Line) Validate() error {
 	}
 
 	switch i.Type {
-	case InvoiceLineTypeManualFee:
-		return i.ValidateManualFee()
-	case InvoiceLineTypeManualUsageBased:
-		return i.ValidateManualUsageBased()
+	case InvoiceLineTypeFee:
+		return i.ValidateFee()
+	case InvoiceLineTypeUsageBased:
+		return i.ValidateUsageBased()
 	default:
 		return fmt.Errorf("unsupported type: %s", i.Type)
 	}
 }
 
-func (i Line) ValidateManualFee() error {
-	if !i.ManualFee.Price.IsPositive() {
+func (i Line) ValidateFee() error {
+	if !i.FlatFee.Amount.IsPositive() {
 		return errors.New("price should be greater than zero")
 	}
 
-	if !i.ManualFee.Quantity.IsPositive() {
+	if !i.FlatFee.Quantity.IsPositive() {
 		return errors.New("quantity should be positive required")
 	}
 
@@ -202,9 +197,9 @@ func (i Line) ValidateManualFee() error {
 	return nil
 }
 
-func (i Line) ValidateManualUsageBased() error {
-	if err := i.ManualUsageBased.Validate(); err != nil {
-		return fmt.Errorf("manual usage price: %w", err)
+func (i Line) ValidateUsageBased() error {
+	if err := i.UsageBased.Validate(); err != nil {
+		return fmt.Errorf("usage based price: %w", err)
 	}
 
 	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).End) {
@@ -214,13 +209,15 @@ func (i Line) ValidateManualUsageBased() error {
 	return nil
 }
 
-type ManualUsageBasedLine struct {
-	Price      plan.Price             `json:"price"`
+type Price = plan.Price
+
+type UsageBasedLine struct {
+	Price      Price                  `json:"price"`
 	FeatureKey string                 `json:"featureKey"`
 	Quantity   *alpacadecimal.Decimal `json:"quantity"`
 }
 
-func (i ManualUsageBasedLine) Validate() error {
+func (i UsageBasedLine) Validate() error {
 	if err := i.Price.Validate(); err != nil {
 		return fmt.Errorf("price: %w", err)
 	}

@@ -672,18 +672,18 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearQuantity(value *alpacadecimal.De
 	return u.SetQuantity(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearTaxOverrides(value **billingentity.TaxOverrides) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *plan.TaxConfig) *BillingInvoiceLineUpdate {
 	if value == nil {
-		return u.ClearTaxOverrides()
+		return u.ClearTaxConfig()
 	}
-	return u.SetTaxOverrides(*value)
+	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxOverrides(value **billingentity.TaxOverrides) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *plan.TaxConfig) *BillingInvoiceLineUpdateOne {
 	if value == nil {
-		return u.ClearTaxOverrides()
+		return u.ClearTaxConfig()
 	}
-	return u.SetTaxOverrides(*value)
+	return u.SetTaxConfig(*value)
 }
 
 func (u *BillingInvoiceValidationIssueUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdate {
