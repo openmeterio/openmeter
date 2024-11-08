@@ -1,4 +1,4 @@
-h1:Umv8voZ7qXRL//eT8M5i369LXFrLSbB/87WO2UotRdc=
+h1:N7JrXuCuKdK1C/pVoF30XXgUJxTcwlZOHFaD9FeMhWE=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -41,3 +41,5 @@ h1:Umv8voZ7qXRL//eT8M5i369LXFrLSbB/87WO2UotRdc=
 20241105171821_plan.up.sql h1:sA1026KYY5Hhxst4QyrfyFVTV5FL6gDGtYwGCk8gOlg=
 20241108055754_plan.down.sql h1:rEZicfeXHeWaRDQcU0D8mtl4RSIEw33q4CxYXMmvd5I=
 20241108055754_plan.up.sql h1:gX6GVQFig1Kd08eQ1ez4dea7xTEJWylXEX3d1JhDYYs=
+20241108120252_billing-line-splitting.down.sql h1:1ZqbUbDbGcj7odQIDjziWLfd2yL857VRt0s2yXQMzsA=
+20241108120252_billing-line-splitting.up.sql h1:kvZge9CQSlwAqdPsyZUNcmoVT0Ovp53bkpVcgiDhZlk=
