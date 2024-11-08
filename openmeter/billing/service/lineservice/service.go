@@ -170,7 +170,7 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billinge
 
 type snapshotQuantityResult struct {
 	Line Line
-	// TODO[later]: Detailed lines should be returned here, that we are upserting based on the qty as described in README.md (see `Detailed Lines vs Splitting`)
+	// TODO[OM-980]: Detailed lines should be returned here, that we are upserting based on the qty as described in README.md (see `Detailed Lines vs Splitting`)
 }
 
 type Line interface {

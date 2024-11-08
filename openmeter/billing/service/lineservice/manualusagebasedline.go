@@ -129,7 +129,7 @@ func (l manualUsageBasedLine) SnapshotQuantity(ctx context.Context, invoice *bil
 		return nil, err
 	}
 
-	// TODO[later]: yield detailed lines here
+	// TODO[OM-980]: yield detailed lines here
 
 	return &snapshotQuantityResult{
 		Line: updatedLine,

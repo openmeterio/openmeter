@@ -52,7 +52,7 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 
 			lines := make(lineservice.Lines, 0, len(input.Lines))
 
-			// TODO: we should optimize this as this does O(n) queries for invoices per line
+			// TODO[OM-949]: we should optimize this as this does O(n) queries for invoices per line
 			for i, line := range input.Lines {
 				line.Namespace = input.Namespace
 
@@ -236,7 +236,7 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, lineSrv *lineserv
 			return fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 		}
 
-		// TODO[later]: detailed lines
+		// TODO[OM-980]: detailed lines
 
 		_, err = snapshot.Line.Save(ctx)
 		if err != nil {

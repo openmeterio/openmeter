@@ -33,7 +33,7 @@ var (
 	// and trigger re-validation)
 	triggerUpdated stateless.Trigger = "trigger_updated"
 
-	// TODO[later]: we should have a triggerAsyncNext to signify that a transition should be done asynchronously (
+	// TODO[OM-989]: we should have a triggerAsyncNext to signify that a transition should be done asynchronously (
 	// e.g. the invoice needs to be synced to an external system such as stripe)
 )
 
@@ -43,12 +43,12 @@ var invoiceStateMachineCache = sync.Pool{
 	},
 }
 
-// TODO: this can panic let's validate that upon init somehow
+// TODO[OM-990]: this can panic let's validate that upon init somehow
 func allocateStateMachine() *InvoiceStateMachine {
 	out := &InvoiceStateMachine{}
 
-	// TODO[later]: Tax is not captured here for now, as it would require the DB schema too
-	// TODO[later]: Delete invoice is not implemented yet
+	// TODO[OM-979]: Tax is not captured here for now, as it would require the DB schema too
+	// TODO[OM-988]: Delete invoice is not implemented yet
 
 	stateMachine := stateless.NewStateMachineWithExternalStorage(
 		func(ctx context.Context) (stateless.State, error) {
@@ -224,7 +224,7 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billingentity.
 		outErr = errors.Join(outErr, err)
 	}
 
-	// TODO[later]: add more actions (void, delete, etc.)
+	// TODO[OM-988]: add more actions (void, delete, etc.)
 
 	return billingentity.InvoiceStatusDetails{
 		Immutable:        !mutable,

@@ -198,7 +198,7 @@ func (i Line) ValidateManualFee() error {
 		return errors.New("quantity should be positive required")
 	}
 
-	// TODO: Validate currency specifics
+	// TODO[OM-947]: Validate currency specifics
 	return nil
 }
 
