@@ -1150,9 +1150,9 @@ var (
 				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[5]},
 			},
 			{
-				Name:    "plan_namespace_key_version",
+				Name:    "plan_namespace_key_version_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[9]},
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[9], PlansColumns[5]},
 			},
 		},
 	}
