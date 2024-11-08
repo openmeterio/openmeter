@@ -9,6 +9,9 @@ using OpenMeter.ProductCatalog;
 
 namespace Invoices;
 
+/**
+ * TaxConfig stores the configuration for a tax line relative to an invoice line.
+ */
 @friendlyName("BillingTaxItem")
 model TaxItem {
   @summary("Tax provider configuration.")
@@ -24,6 +27,12 @@ model TaxItem {
   behavior?: TaxBehavior;
 }
 
+/**
+ * TaxBehavior details how the tax item is applied to the base amount.
+ *
+ * Inclusive means the tax is included in the base amount.
+ * Exclusive means the tax is added to the base amount.
+ */
 @friendlyName("BillingTaxBehavior")
 enum TaxBehavior {
   @summary("Tax is included in the base amount.")
@@ -39,8 +48,10 @@ enum TaxBehavior {
 @friendlyName("BillingTaxIdentificationCode")
 scalar TaxIdentificationCode extends string;
 
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a specific country.
+ */
 @friendlyName("BillingTaxIdentity")
-@summary("Identity stores the details required to identify an entity for tax purposes in a specific country.")
 model TaxIdentity {
   @summary("Normalized tax code shown on the original identity document.")
   code?: TaxIdentificationCode;

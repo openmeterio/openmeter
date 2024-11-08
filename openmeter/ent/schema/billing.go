@@ -280,7 +280,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				"postgres": "numeric",
 			}),
 
-		field.JSON("tax_overrides", &billingentity.TaxOverrides{}).
+		field.JSON("tax_config", billingentity.TaxConfig{}).
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
 			}).
@@ -302,12 +302,12 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Field("invoice_id").
 			Unique().
 			Required(),
-		edge.To("manual_fee_line", BillingInvoiceManualLineConfig.Type).
-			StorageKey(edge.Column("manual_line_config_id")).
+		edge.To("flat_fee_line", BillingInvoiceFlatFeeLineConfig.Type).
+			StorageKey(edge.Column("fee_line_config_id")).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("manual_usage_based_line", BillingInvoiceManualUsageBasedLineConfig.Type).
-			StorageKey(edge.Column("manual_usage_based_line_config_id")).
+		edge.To("usage_based_line", BillingInvoiceUsageBasedLineConfig.Type).
+			StorageKey(edge.Column("usage_based_line_config_id")).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("child_lines", BillingInvoiceLine.Type).
@@ -318,38 +318,38 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 	}
 }
 
-type BillingInvoiceManualLineConfig struct {
+type BillingInvoiceFlatFeeLineConfig struct {
 	ent.Schema
 }
 
-func (BillingInvoiceManualLineConfig) Mixin() []ent.Mixin {
+func (BillingInvoiceFlatFeeLineConfig) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.NamespaceMixin{},
 		entutils.IDMixin{},
 	}
 }
 
-func (BillingInvoiceManualLineConfig) Fields() []ent.Field {
+func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 	return []ent.Field{
-		field.Other("unit_price", alpacadecimal.Decimal{}).
+		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
 	}
 }
 
-type BillingInvoiceManualUsageBasedLineConfig struct {
+type BillingInvoiceUsageBasedLineConfig struct {
 	ent.Schema
 }
 
-func (BillingInvoiceManualUsageBasedLineConfig) Mixin() []ent.Mixin {
+func (BillingInvoiceUsageBasedLineConfig) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.NamespaceMixin{},
 		entutils.IDMixin{},
 	}
 }
 
-func (BillingInvoiceManualUsageBasedLineConfig) Fields() []ent.Field {
+func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("price_type").
 			GoType(plan.PriceType("")),

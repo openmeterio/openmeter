@@ -11,20 +11,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ Line = manualUsageBasedLine{}
+var _ Line = usageBasedLine{}
 
-type manualUsageBasedLine struct {
+type usageBasedLine struct {
 	lineBase
 }
 
-func (l manualUsageBasedLine) PrepareForCreate(context.Context) (Line, error) {
+func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
 	l.line.Period = l.line.Period.Truncate(billingentity.DefaultMeterResolution)
 
 	return l, nil
 }
 
-func (l manualUsageBasedLine) Validate(ctx context.Context, targetInvoice *billingentity.Invoice) error {
-	if _, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.ManualUsageBased.FeatureKey); err != nil {
+func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billingentity.Invoice) error {
+	if _, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey); err != nil {
 		return err
 	}
 
@@ -47,9 +47,9 @@ func (l manualUsageBasedLine) Validate(ctx context.Context, targetInvoice *billi
 	return nil
 }
 
-func (l manualUsageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billingentity.Period, error) {
-	if l.line.ManualUsageBased.Price.Type() == plan.TieredPriceType {
-		tiered, err := l.line.ManualUsageBased.Price.AsTiered()
+func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billingentity.Period, error) {
+	if l.line.UsageBased.Price.Type() == plan.TieredPriceType {
+		tiered, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func (l manualUsageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.T
 		}
 	}
 
-	meterAndFactory, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.ManualUsageBased.FeatureKey)
+	meterAndFactory, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +102,8 @@ func (l manualUsageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.T
 	}
 }
 
-func (l manualUsageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) (*snapshotQuantityResult, error) {
-	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.ManualUsageBased.FeatureKey)
+func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) (*snapshotQuantityResult, error) {
+	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (l manualUsageBasedLine) SnapshotQuantity(ctx context.Context, invoice *bil
 	}
 
 	updatedLineEntity := l.line
-	updatedLineEntity.ManualUsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
+	updatedLineEntity.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
 
 	updatedLine, err := l.service.FromEntity(updatedLineEntity)
 	if err != nil {

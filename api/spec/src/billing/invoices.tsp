@@ -359,7 +359,9 @@ model VoidInvoiceAction {
   action: VoidInvoiceLineAction;
 }
 
-@summary("VoidInvoiceLineAction describes how to handle the voidied line item in the invoice.")
+/**
+ * VoidInvoiceLineAction describes how to handle the voidied line item in the invoice.
+ */
 @friendlyName("BillingVoidInvoiceLineAction")
 enum VoidInvoiceLineAction {
   @summary("The line items will never be charged for again")
@@ -426,6 +428,12 @@ enum InvoiceExpand {
   workflowApps: "workflow.apps",
 }
 
+/**
+ * BillingInvoiceCreateInput is the input for creating an invoice.
+ *
+ * Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
+ * operation. Empty invoices are not allowed.
+ */
 @friendlyName("BillingInvoiceCreateInput")
 model InvoiceCreateInput {
   /**

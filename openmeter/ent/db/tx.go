@@ -28,12 +28,12 @@ type Tx struct {
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
+	// BillingInvoiceFlatFeeLineConfig is the client for interacting with the BillingInvoiceFlatFeeLineConfig builders.
+	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
 	BillingInvoiceLine *BillingInvoiceLineClient
-	// BillingInvoiceManualLineConfig is the client for interacting with the BillingInvoiceManualLineConfig builders.
-	BillingInvoiceManualLineConfig *BillingInvoiceManualLineConfigClient
-	// BillingInvoiceManualUsageBasedLineConfig is the client for interacting with the BillingInvoiceManualUsageBasedLineConfig builders.
-	BillingInvoiceManualUsageBasedLineConfig *BillingInvoiceManualUsageBasedLineConfigClient
+	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
+	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
@@ -204,9 +204,9 @@ func (tx *Tx) init() {
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
+	tx.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(tx.config)
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
-	tx.BillingInvoiceManualLineConfig = NewBillingInvoiceManualLineConfigClient(tx.config)
-	tx.BillingInvoiceManualUsageBasedLineConfig = NewBillingInvoiceManualUsageBasedLineConfigClient(tx.config)
+	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)

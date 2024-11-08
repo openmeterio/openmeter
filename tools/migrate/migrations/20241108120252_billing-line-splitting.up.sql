@@ -15,6 +15,7 @@ CREATE UNIQUE INDEX "billinginvoicemanualusagebasedlineconfig_id" ON "billing_in
 -- create index "billinginvoicemanualusagebasedlineconfig_namespace" to table: "billing_invoice_manual_usage_based_line_configs"
 CREATE INDEX "billinginvoicemanualusagebasedlineconfig_namespace" ON "billing_invoice_manual_usage_based_line_configs" ("namespace");
 -- modify "billing_invoice_lines" table
+-- atlas:nolint CD101
 ALTER TABLE "billing_invoice_lines" DROP CONSTRAINT "billing_invoice_lines_billing_invoice_manual_line_configs_billi", DROP CONSTRAINT "billing_invoice_lines_billing_invoices_billing_invoice_lines", ADD COLUMN "manual_usage_based_line_config_id" character(26) NULL, ADD COLUMN "parent_line_id" character(26) NULL, ADD
  CONSTRAINT "billing_invoice_lines_billing_invoices_billing_invoice_lines" FOREIGN KEY ("invoice_id") REFERENCES "billing_invoices" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD
  CONSTRAINT "billing_invoice_lines_billing_invoice_lines_child_lines" FOREIGN KEY ("parent_line_id") REFERENCES "billing_invoice_lines" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD

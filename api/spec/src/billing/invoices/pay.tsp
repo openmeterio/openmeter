@@ -8,7 +8,9 @@ using TypeSpec.OpenAPI;
 
 namespace Invoices;
 
-@summary("DueDate contains an amount that should be paid by the given date.")
+/**
+ * DueDate contains an amount that should be paid by the given date.
+ */
 @friendlyName("BillingDueDate")
 model DueDate {
   @summary("When the payment is due.")
@@ -31,7 +33,9 @@ model DueDate {
 /*
  * Most of the allowed values are omited, please see https://docs.gobl.org/draft-0/pay/terms
  */
-@summary("PaymentPaymentTermType defines the type of terms to be applied.")
+/**
+ * PaymentPaymentTermType defines the type of terms to be applied.
+ */
 @friendlyName("BillingPaymentTermType")
 enum PaymentTermType {
   @summary("Due on a specific date")
@@ -55,13 +59,17 @@ model GenericPaymentTerms<T extends PaymentTermType> {
   notes?: string;
 }
 
-@summary("PaymentTermInstant defines the terms for payment on receipt of invoice.")
+/**
+ * PaymentTermInstant defines the terms for payment on receipt of invoice.
+ */
 @friendlyName("BillingPaymentTermInstant")
 model PaymentTermInstant {
   ...GenericPaymentTerms<PaymentTermType.instant>;
 }
 
-@summary("PaymentTermDueDate defines the terms for payment on a specific date.")
+/**
+ * PaymentTermDueDate defines the terms for payment on a specific date.
+ */
 @friendlyName("BillingPaymentTermDueDate")
 model PaymentTermDueDate {
   ...GenericPaymentTerms<PaymentTermType.dueDate>;
@@ -71,7 +79,9 @@ model PaymentTermDueDate {
   dueAt: DueDate[];
 }
 
-@summary("PaymentTerms defines the terms for payment.")
+/**
+ * PaymentTerms defines the terms for payment.
+ */
 @friendlyName("BillingPaymentTerms")
 union PaymentTerms {
   instant: PaymentTermInstant,

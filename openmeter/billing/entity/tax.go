@@ -1,12 +1,5 @@
 package billingentity
 
-type StripeTaxCode string
+import "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 
-type StripeTaxOverride struct {
-	TaxCode StripeTaxCode `json:"taxCode,omitempty"`
-}
-
-// TODO[OM-979]: This (and the mappers) should come from product catalog when the API/entities are available
-type TaxOverrides struct {
-	Stripe *StripeTaxOverride `json:"stripe,omitempty"`
-}
+type TaxConfig = plan.TaxConfig

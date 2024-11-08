@@ -126,7 +126,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 							InvoiceAt: issueAt,
 
-							Type: billingentity.InvoiceLineTypeManualFee,
+							Type: billingentity.InvoiceLineTypeFee,
 
 							Name:     "Test item - USD",
 							Currency: currencyx.Code(currency.USD),
@@ -135,8 +135,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								"key": "value",
 							},
 						},
-						ManualFee: billingentity.ManualFeeLine{
-							Price:    alpacadecimal.NewFromFloat(100),
+						FlatFee: billingentity.FlatFeeLine{
+							Amount:   alpacadecimal.NewFromFloat(100),
 							Quantity: alpacadecimal.NewFromFloat(1),
 						},
 					},
@@ -146,13 +146,13 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 							InvoiceAt: issueAt,
 
-							Type: billingentity.InvoiceLineTypeManualFee,
+							Type: billingentity.InvoiceLineTypeFee,
 
 							Name:     "Test item - HUF",
 							Currency: currencyx.Code(currency.HUF),
 						},
-						ManualFee: billingentity.ManualFeeLine{
-							Price:    alpacadecimal.NewFromFloat(200),
+						FlatFee: billingentity.FlatFeeLine{
+							Amount:   alpacadecimal.NewFromFloat(200),
 							Quantity: alpacadecimal.NewFromFloat(3),
 						},
 					},
@@ -162,12 +162,12 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 							InvoiceAt: issueAt,
 
-							Type: billingentity.InvoiceLineTypeManualUsageBased,
+							Type: billingentity.InvoiceLineTypeUsageBased,
 
 							Name:     "Test item - HUF",
 							Currency: currencyx.Code(currency.HUF),
 						},
-						ManualUsageBased: billingentity.ManualUsageBasedLine{
+						UsageBased: billingentity.UsageBasedLine{
 							Price: plan.NewPriceFrom(plan.TieredPrice{
 								Mode: plan.VolumeTieredPrice,
 								Tiers: []plan.PriceTier{
@@ -221,7 +221,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				InvoiceID: usdInvoice.ID,
 				InvoiceAt: issueAt,
 
-				Type: billingentity.InvoiceLineTypeManualFee,
+				Type: billingentity.InvoiceLineTypeFee,
 
 				Name:     "Test item - USD",
 				Currency: currencyx.Code(currency.USD),
@@ -235,8 +235,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					"key": "value",
 				},
 			},
-			ManualFee: billingentity.ManualFeeLine{
-				Price:    alpacadecimal.NewFromFloat(100),
+			FlatFee: billingentity.FlatFeeLine{
+				Amount:   alpacadecimal.NewFromFloat(100),
 				Quantity: alpacadecimal.NewFromFloat(1),
 			},
 		}
@@ -321,18 +321,18 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), hufInvoices.Items[0].Lines, 2)
 
 		_, found := lo.Find(hufInvoices.Items[0].Lines, func(l billingentity.Line) bool {
-			return l.Type == billingentity.InvoiceLineTypeManualFee
+			return l.Type == billingentity.InvoiceLineTypeFee
 		})
 		require.True(s.T(), found, "manual fee item is present")
 
 		// Then we should have the tiered price present
 		tieredLine, found := lo.Find(hufInvoices.Items[0].Lines, func(l billingentity.Line) bool {
-			return l.Type == billingentity.InvoiceLineTypeManualUsageBased
+			return l.Type == billingentity.InvoiceLineTypeUsageBased
 		})
 
 		require.True(s.T(), found, "tiered price item is present")
-		require.Equal(s.T(), tieredLine.ManualUsageBased.Price.Type(), plan.TieredPriceType)
-		tieredPrice, err := tieredLine.ManualUsageBased.Price.AsTiered()
+		require.Equal(s.T(), tieredLine.UsageBased.Price.Type(), plan.TieredPriceType)
+		tieredPrice, err := tieredLine.UsageBased.Price.AsTiered()
 		require.NoError(s.T(), err)
 
 		require.Equal(s.T(),
@@ -487,7 +487,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 						InvoiceAt: line1IssueAt,
 
-						Type: billingentity.InvoiceLineTypeManualFee,
+						Type: billingentity.InvoiceLineTypeFee,
 
 						Name:     "Test item1",
 						Currency: currencyx.Code(currency.USD),
@@ -496,8 +496,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 							"key": "value",
 						},
 					},
-					ManualFee: billingentity.ManualFeeLine{
-						Price:    alpacadecimal.NewFromFloat(100),
+					FlatFee: billingentity.FlatFeeLine{
+						Amount:   alpacadecimal.NewFromFloat(100),
 						Quantity: alpacadecimal.NewFromFloat(1),
 					},
 				},
@@ -508,13 +508,13 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 						InvoiceAt: line2IssueAt,
 
-						Type: billingentity.InvoiceLineTypeManualFee,
+						Type: billingentity.InvoiceLineTypeFee,
 
 						Name:     "Test item2",
 						Currency: currencyx.Code(currency.USD),
 					},
-					ManualFee: billingentity.ManualFeeLine{
-						Price:    alpacadecimal.NewFromFloat(200),
+					FlatFee: billingentity.FlatFeeLine{
+						Amount:   alpacadecimal.NewFromFloat(200),
 						Quantity: alpacadecimal.NewFromFloat(3),
 					},
 				},
@@ -684,7 +684,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 
 						InvoiceAt: invoiceAt,
 
-						Type: billingentity.InvoiceLineTypeManualFee,
+						Type: billingentity.InvoiceLineTypeFee,
 
 						Name:     "Test item1",
 						Currency: currencyx.Code(currency.USD),
@@ -693,8 +693,8 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 							"key": "value",
 						},
 					},
-					ManualFee: billingentity.ManualFeeLine{
-						Price:    alpacadecimal.NewFromFloat(100),
+					FlatFee: billingentity.FlatFeeLine{
+						Amount:   alpacadecimal.NewFromFloat(100),
 						Quantity: alpacadecimal.NewFromFloat(1),
 					},
 				},
@@ -705,13 +705,13 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 
 						InvoiceAt: invoiceAt,
 
-						Type: billingentity.InvoiceLineTypeManualFee,
+						Type: billingentity.InvoiceLineTypeFee,
 
 						Name:     "Test item2",
 						Currency: currencyx.Code(currency.USD),
 					},
-					ManualFee: billingentity.ManualFeeLine{
-						Price:    alpacadecimal.NewFromFloat(200),
+					FlatFee: billingentity.FlatFeeLine{
+						Amount:   alpacadecimal.NewFromFloat(200),
 						Quantity: alpacadecimal.NewFromFloat(3),
 					},
 				},
@@ -1365,10 +1365,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeManualUsageBased,
+							Type:      billingentity.InvoiceLineTypeUsageBased,
 							Name:      "UBP - FLAT per unit",
 						},
-						ManualUsageBased: billingentity.ManualUsageBasedLine{
+						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
 							Price: plan.NewPriceFrom(plan.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(100),
@@ -1380,10 +1380,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeManualUsageBased,
+							Type:      billingentity.InvoiceLineTypeUsageBased,
 							Name:      "UBP - FLAT per any usage",
 						},
-						ManualUsageBased: billingentity.ManualUsageBasedLine{
+						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.flatPerUsage.Key,
 							Price: plan.NewPriceFrom(plan.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
@@ -1396,10 +1396,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeManualUsageBased,
+							Type:      billingentity.InvoiceLineTypeUsageBased,
 							Name:      "UBP - Tiered volume",
 						},
-						ManualUsageBased: billingentity.ManualUsageBasedLine{
+						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
 							Price: plan.NewPriceFrom(plan.TieredPrice{
 								Mode: plan.VolumeTieredPrice,
@@ -1430,10 +1430,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeManualUsageBased,
+							Type:      billingentity.InvoiceLineTypeUsageBased,
 							Name:      "UBP - Tiered graduated",
 						},
-						ManualUsageBased: billingentity.ManualUsageBasedLine{
+						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
 							Price: plan.NewPriceFrom(plan.TieredPrice{
 								Mode: plan.GraduatedTieredPrice,
@@ -1539,7 +1539,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// Let's validate the output of the split itself
 		tieredVolumeChildren := s.getLineChildLines(ctx, namespace, lines.tieredVolume.ID)
 		require.True(s.T(), tieredVolumeChildren.ParentLine.Period.Equal(lines.tieredVolume.Period))
-		require.Equal(s.T(), flatPerUnit.ManualUsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
+		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
 		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredVolumeChildren.ParentLine.Status, "parent should be split [id=%s]", tieredVolumeChildren.ParentLine.ID)
 		require.Len(s.T(), tieredVolumeChildren.ChildLines, 2, "there should be to child lines [id=%s]", tieredVolumeChildren.ParentLine.ID)
 		require.True(s.T(), tieredVolumeChildren.ChildLines[0].Period.Equal(billingentity.Period{

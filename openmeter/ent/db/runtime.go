@@ -12,9 +12,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -306,6 +306,21 @@ func init() {
 	billinginvoiceDescID := billinginvoiceMixinFields0[0].Descriptor()
 	// billinginvoice.DefaultID holds the default value on creation for the id field.
 	billinginvoice.DefaultID = billinginvoiceDescID.Default.(func() string)
+	billinginvoiceflatfeelineconfigMixin := schema.BillingInvoiceFlatFeeLineConfig{}.Mixin()
+	billinginvoiceflatfeelineconfigMixinFields0 := billinginvoiceflatfeelineconfigMixin[0].Fields()
+	_ = billinginvoiceflatfeelineconfigMixinFields0
+	billinginvoiceflatfeelineconfigMixinFields1 := billinginvoiceflatfeelineconfigMixin[1].Fields()
+	_ = billinginvoiceflatfeelineconfigMixinFields1
+	billinginvoiceflatfeelineconfigFields := schema.BillingInvoiceFlatFeeLineConfig{}.Fields()
+	_ = billinginvoiceflatfeelineconfigFields
+	// billinginvoiceflatfeelineconfigDescNamespace is the schema descriptor for namespace field.
+	billinginvoiceflatfeelineconfigDescNamespace := billinginvoiceflatfeelineconfigMixinFields0[0].Descriptor()
+	// billinginvoiceflatfeelineconfig.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billinginvoiceflatfeelineconfig.NamespaceValidator = billinginvoiceflatfeelineconfigDescNamespace.Validators[0].(func(string) error)
+	// billinginvoiceflatfeelineconfigDescID is the schema descriptor for id field.
+	billinginvoiceflatfeelineconfigDescID := billinginvoiceflatfeelineconfigMixinFields1[0].Descriptor()
+	// billinginvoiceflatfeelineconfig.DefaultID holds the default value on creation for the id field.
+	billinginvoiceflatfeelineconfig.DefaultID = billinginvoiceflatfeelineconfigDescID.Default.(func() string)
 	billinginvoicelineMixin := schema.BillingInvoiceLine{}.Mixin()
 	billinginvoicelineMixinFields0 := billinginvoicelineMixin[0].Fields()
 	_ = billinginvoicelineMixinFields0
@@ -333,43 +348,28 @@ func init() {
 	billinginvoicelineDescID := billinginvoicelineMixinFields0[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.
 	billinginvoiceline.DefaultID = billinginvoicelineDescID.Default.(func() string)
-	billinginvoicemanuallineconfigMixin := schema.BillingInvoiceManualLineConfig{}.Mixin()
-	billinginvoicemanuallineconfigMixinFields0 := billinginvoicemanuallineconfigMixin[0].Fields()
-	_ = billinginvoicemanuallineconfigMixinFields0
-	billinginvoicemanuallineconfigMixinFields1 := billinginvoicemanuallineconfigMixin[1].Fields()
-	_ = billinginvoicemanuallineconfigMixinFields1
-	billinginvoicemanuallineconfigFields := schema.BillingInvoiceManualLineConfig{}.Fields()
-	_ = billinginvoicemanuallineconfigFields
-	// billinginvoicemanuallineconfigDescNamespace is the schema descriptor for namespace field.
-	billinginvoicemanuallineconfigDescNamespace := billinginvoicemanuallineconfigMixinFields0[0].Descriptor()
-	// billinginvoicemanuallineconfig.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	billinginvoicemanuallineconfig.NamespaceValidator = billinginvoicemanuallineconfigDescNamespace.Validators[0].(func(string) error)
-	// billinginvoicemanuallineconfigDescID is the schema descriptor for id field.
-	billinginvoicemanuallineconfigDescID := billinginvoicemanuallineconfigMixinFields1[0].Descriptor()
-	// billinginvoicemanuallineconfig.DefaultID holds the default value on creation for the id field.
-	billinginvoicemanuallineconfig.DefaultID = billinginvoicemanuallineconfigDescID.Default.(func() string)
-	billinginvoicemanualusagebasedlineconfigMixin := schema.BillingInvoiceManualUsageBasedLineConfig{}.Mixin()
-	billinginvoicemanualusagebasedlineconfigMixinFields0 := billinginvoicemanualusagebasedlineconfigMixin[0].Fields()
-	_ = billinginvoicemanualusagebasedlineconfigMixinFields0
-	billinginvoicemanualusagebasedlineconfigMixinFields1 := billinginvoicemanualusagebasedlineconfigMixin[1].Fields()
-	_ = billinginvoicemanualusagebasedlineconfigMixinFields1
-	billinginvoicemanualusagebasedlineconfigFields := schema.BillingInvoiceManualUsageBasedLineConfig{}.Fields()
-	_ = billinginvoicemanualusagebasedlineconfigFields
-	// billinginvoicemanualusagebasedlineconfigDescNamespace is the schema descriptor for namespace field.
-	billinginvoicemanualusagebasedlineconfigDescNamespace := billinginvoicemanualusagebasedlineconfigMixinFields0[0].Descriptor()
-	// billinginvoicemanualusagebasedlineconfig.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	billinginvoicemanualusagebasedlineconfig.NamespaceValidator = billinginvoicemanualusagebasedlineconfigDescNamespace.Validators[0].(func(string) error)
-	// billinginvoicemanualusagebasedlineconfigDescFeatureKey is the schema descriptor for feature_key field.
-	billinginvoicemanualusagebasedlineconfigDescFeatureKey := billinginvoicemanualusagebasedlineconfigFields[1].Descriptor()
-	// billinginvoicemanualusagebasedlineconfig.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
-	billinginvoicemanualusagebasedlineconfig.FeatureKeyValidator = billinginvoicemanualusagebasedlineconfigDescFeatureKey.Validators[0].(func(string) error)
-	// billinginvoicemanualusagebasedlineconfigDescPrice is the schema descriptor for price field.
-	billinginvoicemanualusagebasedlineconfigDescPrice := billinginvoicemanualusagebasedlineconfigFields[2].Descriptor()
-	billinginvoicemanualusagebasedlineconfig.ValueScanner.Price = billinginvoicemanualusagebasedlineconfigDescPrice.ValueScanner.(field.TypeValueScanner[*plan.Price])
-	// billinginvoicemanualusagebasedlineconfigDescID is the schema descriptor for id field.
-	billinginvoicemanualusagebasedlineconfigDescID := billinginvoicemanualusagebasedlineconfigMixinFields1[0].Descriptor()
-	// billinginvoicemanualusagebasedlineconfig.DefaultID holds the default value on creation for the id field.
-	billinginvoicemanualusagebasedlineconfig.DefaultID = billinginvoicemanualusagebasedlineconfigDescID.Default.(func() string)
+	billinginvoiceusagebasedlineconfigMixin := schema.BillingInvoiceUsageBasedLineConfig{}.Mixin()
+	billinginvoiceusagebasedlineconfigMixinFields0 := billinginvoiceusagebasedlineconfigMixin[0].Fields()
+	_ = billinginvoiceusagebasedlineconfigMixinFields0
+	billinginvoiceusagebasedlineconfigMixinFields1 := billinginvoiceusagebasedlineconfigMixin[1].Fields()
+	_ = billinginvoiceusagebasedlineconfigMixinFields1
+	billinginvoiceusagebasedlineconfigFields := schema.BillingInvoiceUsageBasedLineConfig{}.Fields()
+	_ = billinginvoiceusagebasedlineconfigFields
+	// billinginvoiceusagebasedlineconfigDescNamespace is the schema descriptor for namespace field.
+	billinginvoiceusagebasedlineconfigDescNamespace := billinginvoiceusagebasedlineconfigMixinFields0[0].Descriptor()
+	// billinginvoiceusagebasedlineconfig.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billinginvoiceusagebasedlineconfig.NamespaceValidator = billinginvoiceusagebasedlineconfigDescNamespace.Validators[0].(func(string) error)
+	// billinginvoiceusagebasedlineconfigDescFeatureKey is the schema descriptor for feature_key field.
+	billinginvoiceusagebasedlineconfigDescFeatureKey := billinginvoiceusagebasedlineconfigFields[1].Descriptor()
+	// billinginvoiceusagebasedlineconfig.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	billinginvoiceusagebasedlineconfig.FeatureKeyValidator = billinginvoiceusagebasedlineconfigDescFeatureKey.Validators[0].(func(string) error)
+	// billinginvoiceusagebasedlineconfigDescPrice is the schema descriptor for price field.
+	billinginvoiceusagebasedlineconfigDescPrice := billinginvoiceusagebasedlineconfigFields[2].Descriptor()
+	billinginvoiceusagebasedlineconfig.ValueScanner.Price = billinginvoiceusagebasedlineconfigDescPrice.ValueScanner.(field.TypeValueScanner[*plan.Price])
+	// billinginvoiceusagebasedlineconfigDescID is the schema descriptor for id field.
+	billinginvoiceusagebasedlineconfigDescID := billinginvoiceusagebasedlineconfigMixinFields1[0].Descriptor()
+	// billinginvoiceusagebasedlineconfig.DefaultID holds the default value on creation for the id field.
+	billinginvoiceusagebasedlineconfig.DefaultID = billinginvoiceusagebasedlineconfigDescID.Default.(func() string)
 	billinginvoicevalidationissueMixin := schema.BillingInvoiceValidationIssue{}.Mixin()
 	billinginvoicevalidationissueMixinFields0 := billinginvoicevalidationissueMixin[0].Fields()
 	_ = billinginvoicevalidationissueMixinFields0

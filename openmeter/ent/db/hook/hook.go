@@ -93,6 +93,18 @@ func (f BillingInvoiceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceMutation", m)
 }
 
+// The BillingInvoiceFlatFeeLineConfigFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceFlatFeeLineConfig mutator.
+type BillingInvoiceFlatFeeLineConfigFunc func(context.Context, *db.BillingInvoiceFlatFeeLineConfigMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceFlatFeeLineConfigFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceFlatFeeLineConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceFlatFeeLineConfigMutation", m)
+}
+
 // The BillingInvoiceLineFunc type is an adapter to allow the use of ordinary
 // function as BillingInvoiceLine mutator.
 type BillingInvoiceLineFunc func(context.Context, *db.BillingInvoiceLineMutation) (db.Value, error)
@@ -105,28 +117,16 @@ func (f BillingInvoiceLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceLineMutation", m)
 }
 
-// The BillingInvoiceManualLineConfigFunc type is an adapter to allow the use of ordinary
-// function as BillingInvoiceManualLineConfig mutator.
-type BillingInvoiceManualLineConfigFunc func(context.Context, *db.BillingInvoiceManualLineConfigMutation) (db.Value, error)
+// The BillingInvoiceUsageBasedLineConfigFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceUsageBasedLineConfig mutator.
+type BillingInvoiceUsageBasedLineConfigFunc func(context.Context, *db.BillingInvoiceUsageBasedLineConfigMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f BillingInvoiceManualLineConfigFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.BillingInvoiceManualLineConfigMutation); ok {
+func (f BillingInvoiceUsageBasedLineConfigFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceUsageBasedLineConfigMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceManualLineConfigMutation", m)
-}
-
-// The BillingInvoiceManualUsageBasedLineConfigFunc type is an adapter to allow the use of ordinary
-// function as BillingInvoiceManualUsageBasedLineConfig mutator.
-type BillingInvoiceManualUsageBasedLineConfigFunc func(context.Context, *db.BillingInvoiceManualUsageBasedLineConfigMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f BillingInvoiceManualUsageBasedLineConfigFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.BillingInvoiceManualUsageBasedLineConfigMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceManualUsageBasedLineConfigMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceUsageBasedLineConfigMutation", m)
 }
 
 // The BillingInvoiceValidationIssueFunc type is an adapter to allow the use of ordinary

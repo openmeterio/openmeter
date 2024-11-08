@@ -14,26 +14,26 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanuallineconfig"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicemanualusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
 type BillingInvoiceLineQuery struct {
 	config
-	ctx                      *QueryContext
-	order                    []billinginvoiceline.OrderOption
-	inters                   []Interceptor
-	predicates               []predicate.BillingInvoiceLine
-	withBillingInvoice       *BillingInvoiceQuery
-	withManualFeeLine        *BillingInvoiceManualLineConfigQuery
-	withManualUsageBasedLine *BillingInvoiceManualUsageBasedLineConfigQuery
-	withParentLine           *BillingInvoiceLineQuery
-	withChildLines           *BillingInvoiceLineQuery
-	withFKs                  bool
-	modifiers                []func(*sql.Selector)
+	ctx                *QueryContext
+	order              []billinginvoiceline.OrderOption
+	inters             []Interceptor
+	predicates         []predicate.BillingInvoiceLine
+	withBillingInvoice *BillingInvoiceQuery
+	withFlatFeeLine    *BillingInvoiceFlatFeeLineConfigQuery
+	withUsageBasedLine *BillingInvoiceUsageBasedLineConfigQuery
+	withParentLine     *BillingInvoiceLineQuery
+	withChildLines     *BillingInvoiceLineQuery
+	withFKs            bool
+	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -92,9 +92,9 @@ func (bilq *BillingInvoiceLineQuery) QueryBillingInvoice() *BillingInvoiceQuery 
 	return query
 }
 
-// QueryManualFeeLine chains the current query on the "manual_fee_line" edge.
-func (bilq *BillingInvoiceLineQuery) QueryManualFeeLine() *BillingInvoiceManualLineConfigQuery {
-	query := (&BillingInvoiceManualLineConfigClient{config: bilq.config}).Query()
+// QueryFlatFeeLine chains the current query on the "flat_fee_line" edge.
+func (bilq *BillingInvoiceLineQuery) QueryFlatFeeLine() *BillingInvoiceFlatFeeLineConfigQuery {
+	query := (&BillingInvoiceFlatFeeLineConfigClient{config: bilq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := bilq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -105,8 +105,8 @@ func (bilq *BillingInvoiceLineQuery) QueryManualFeeLine() *BillingInvoiceManualL
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(billinginvoicemanuallineconfig.Table, billinginvoicemanuallineconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.ManualFeeLineTable, billinginvoiceline.ManualFeeLineColumn),
+			sqlgraph.To(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.FlatFeeLineTable, billinginvoiceline.FlatFeeLineColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
 		return fromU, nil
@@ -114,9 +114,9 @@ func (bilq *BillingInvoiceLineQuery) QueryManualFeeLine() *BillingInvoiceManualL
 	return query
 }
 
-// QueryManualUsageBasedLine chains the current query on the "manual_usage_based_line" edge.
-func (bilq *BillingInvoiceLineQuery) QueryManualUsageBasedLine() *BillingInvoiceManualUsageBasedLineConfigQuery {
-	query := (&BillingInvoiceManualUsageBasedLineConfigClient{config: bilq.config}).Query()
+// QueryUsageBasedLine chains the current query on the "usage_based_line" edge.
+func (bilq *BillingInvoiceLineQuery) QueryUsageBasedLine() *BillingInvoiceUsageBasedLineConfigQuery {
+	query := (&BillingInvoiceUsageBasedLineConfigClient{config: bilq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := bilq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -127,8 +127,8 @@ func (bilq *BillingInvoiceLineQuery) QueryManualUsageBasedLine() *BillingInvoice
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(billinginvoicemanualusagebasedlineconfig.Table, billinginvoicemanualusagebasedlineconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.ManualUsageBasedLineTable, billinginvoiceline.ManualUsageBasedLineColumn),
+			sqlgraph.To(billinginvoiceusagebasedlineconfig.Table, billinginvoiceusagebasedlineconfig.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.UsageBasedLineTable, billinginvoiceline.UsageBasedLineColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
 		return fromU, nil
@@ -367,16 +367,16 @@ func (bilq *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		return nil
 	}
 	return &BillingInvoiceLineQuery{
-		config:                   bilq.config,
-		ctx:                      bilq.ctx.Clone(),
-		order:                    append([]billinginvoiceline.OrderOption{}, bilq.order...),
-		inters:                   append([]Interceptor{}, bilq.inters...),
-		predicates:               append([]predicate.BillingInvoiceLine{}, bilq.predicates...),
-		withBillingInvoice:       bilq.withBillingInvoice.Clone(),
-		withManualFeeLine:        bilq.withManualFeeLine.Clone(),
-		withManualUsageBasedLine: bilq.withManualUsageBasedLine.Clone(),
-		withParentLine:           bilq.withParentLine.Clone(),
-		withChildLines:           bilq.withChildLines.Clone(),
+		config:             bilq.config,
+		ctx:                bilq.ctx.Clone(),
+		order:              append([]billinginvoiceline.OrderOption{}, bilq.order...),
+		inters:             append([]Interceptor{}, bilq.inters...),
+		predicates:         append([]predicate.BillingInvoiceLine{}, bilq.predicates...),
+		withBillingInvoice: bilq.withBillingInvoice.Clone(),
+		withFlatFeeLine:    bilq.withFlatFeeLine.Clone(),
+		withUsageBasedLine: bilq.withUsageBasedLine.Clone(),
+		withParentLine:     bilq.withParentLine.Clone(),
+		withChildLines:     bilq.withChildLines.Clone(),
 		// clone intermediate query.
 		sql:  bilq.sql.Clone(),
 		path: bilq.path,
@@ -394,25 +394,25 @@ func (bilq *BillingInvoiceLineQuery) WithBillingInvoice(opts ...func(*BillingInv
 	return bilq
 }
 
-// WithManualFeeLine tells the query-builder to eager-load the nodes that are connected to
-// the "manual_fee_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (bilq *BillingInvoiceLineQuery) WithManualFeeLine(opts ...func(*BillingInvoiceManualLineConfigQuery)) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceManualLineConfigClient{config: bilq.config}).Query()
+// WithFlatFeeLine tells the query-builder to eager-load the nodes that are connected to
+// the "flat_fee_line" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithFlatFeeLine(opts ...func(*BillingInvoiceFlatFeeLineConfigQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceFlatFeeLineConfigClient{config: bilq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bilq.withManualFeeLine = query
+	bilq.withFlatFeeLine = query
 	return bilq
 }
 
-// WithManualUsageBasedLine tells the query-builder to eager-load the nodes that are connected to
-// the "manual_usage_based_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (bilq *BillingInvoiceLineQuery) WithManualUsageBasedLine(opts ...func(*BillingInvoiceManualUsageBasedLineConfigQuery)) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceManualUsageBasedLineConfigClient{config: bilq.config}).Query()
+// WithUsageBasedLine tells the query-builder to eager-load the nodes that are connected to
+// the "usage_based_line" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithUsageBasedLine(opts ...func(*BillingInvoiceUsageBasedLineConfigQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceUsageBasedLineConfigClient{config: bilq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bilq.withManualUsageBasedLine = query
+	bilq.withUsageBasedLine = query
 	return bilq
 }
 
@@ -519,13 +519,13 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 		_spec       = bilq.querySpec()
 		loadedTypes = [5]bool{
 			bilq.withBillingInvoice != nil,
-			bilq.withManualFeeLine != nil,
-			bilq.withManualUsageBasedLine != nil,
+			bilq.withFlatFeeLine != nil,
+			bilq.withUsageBasedLine != nil,
 			bilq.withParentLine != nil,
 			bilq.withChildLines != nil,
 		}
 	)
-	if bilq.withManualFeeLine != nil || bilq.withManualUsageBasedLine != nil {
+	if bilq.withFlatFeeLine != nil || bilq.withUsageBasedLine != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -558,17 +558,15 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 			return nil, err
 		}
 	}
-	if query := bilq.withManualFeeLine; query != nil {
-		if err := bilq.loadManualFeeLine(ctx, query, nodes, nil,
-			func(n *BillingInvoiceLine, e *BillingInvoiceManualLineConfig) { n.Edges.ManualFeeLine = e }); err != nil {
+	if query := bilq.withFlatFeeLine; query != nil {
+		if err := bilq.loadFlatFeeLine(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *BillingInvoiceFlatFeeLineConfig) { n.Edges.FlatFeeLine = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := bilq.withManualUsageBasedLine; query != nil {
-		if err := bilq.loadManualUsageBasedLine(ctx, query, nodes, nil,
-			func(n *BillingInvoiceLine, e *BillingInvoiceManualUsageBasedLineConfig) {
-				n.Edges.ManualUsageBasedLine = e
-			}); err != nil {
+	if query := bilq.withUsageBasedLine; query != nil {
+		if err := bilq.loadUsageBasedLine(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *BillingInvoiceUsageBasedLineConfig) { n.Edges.UsageBasedLine = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -617,14 +615,14 @@ func (bilq *BillingInvoiceLineQuery) loadBillingInvoice(ctx context.Context, que
 	}
 	return nil
 }
-func (bilq *BillingInvoiceLineQuery) loadManualFeeLine(ctx context.Context, query *BillingInvoiceManualLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceManualLineConfig)) error {
+func (bilq *BillingInvoiceLineQuery) loadFlatFeeLine(ctx context.Context, query *BillingInvoiceFlatFeeLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceFlatFeeLineConfig)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoiceLine)
 	for i := range nodes {
-		if nodes[i].manual_line_config_id == nil {
+		if nodes[i].fee_line_config_id == nil {
 			continue
 		}
-		fk := *nodes[i].manual_line_config_id
+		fk := *nodes[i].fee_line_config_id
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -633,7 +631,7 @@ func (bilq *BillingInvoiceLineQuery) loadManualFeeLine(ctx context.Context, quer
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(billinginvoicemanuallineconfig.IDIn(ids...))
+	query.Where(billinginvoiceflatfeelineconfig.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -641,7 +639,7 @@ func (bilq *BillingInvoiceLineQuery) loadManualFeeLine(ctx context.Context, quer
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "manual_line_config_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "fee_line_config_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -649,14 +647,14 @@ func (bilq *BillingInvoiceLineQuery) loadManualFeeLine(ctx context.Context, quer
 	}
 	return nil
 }
-func (bilq *BillingInvoiceLineQuery) loadManualUsageBasedLine(ctx context.Context, query *BillingInvoiceManualUsageBasedLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceManualUsageBasedLineConfig)) error {
+func (bilq *BillingInvoiceLineQuery) loadUsageBasedLine(ctx context.Context, query *BillingInvoiceUsageBasedLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceUsageBasedLineConfig)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoiceLine)
 	for i := range nodes {
-		if nodes[i].manual_usage_based_line_config_id == nil {
+		if nodes[i].usage_based_line_config_id == nil {
 			continue
 		}
-		fk := *nodes[i].manual_usage_based_line_config_id
+		fk := *nodes[i].usage_based_line_config_id
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -665,7 +663,7 @@ func (bilq *BillingInvoiceLineQuery) loadManualUsageBasedLine(ctx context.Contex
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(billinginvoicemanualusagebasedlineconfig.IDIn(ids...))
+	query.Where(billinginvoiceusagebasedlineconfig.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -673,7 +671,7 @@ func (bilq *BillingInvoiceLineQuery) loadManualUsageBasedLine(ctx context.Contex
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "manual_usage_based_line_config_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "usage_based_line_config_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

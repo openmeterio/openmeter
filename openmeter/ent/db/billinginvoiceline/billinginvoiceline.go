@@ -48,14 +48,14 @@ const (
 	FieldCurrency = "currency"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
-	// FieldTaxOverrides holds the string denoting the tax_overrides field in the database.
-	FieldTaxOverrides = "tax_overrides"
+	// FieldTaxConfig holds the string denoting the tax_config field in the database.
+	FieldTaxConfig = "tax_config"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
-	// EdgeManualFeeLine holds the string denoting the manual_fee_line edge name in mutations.
-	EdgeManualFeeLine = "manual_fee_line"
-	// EdgeManualUsageBasedLine holds the string denoting the manual_usage_based_line edge name in mutations.
-	EdgeManualUsageBasedLine = "manual_usage_based_line"
+	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
+	EdgeFlatFeeLine = "flat_fee_line"
+	// EdgeUsageBasedLine holds the string denoting the usage_based_line edge name in mutations.
+	EdgeUsageBasedLine = "usage_based_line"
 	// EdgeParentLine holds the string denoting the parent_line edge name in mutations.
 	EdgeParentLine = "parent_line"
 	// EdgeChildLines holds the string denoting the child_lines edge name in mutations.
@@ -69,20 +69,20 @@ const (
 	BillingInvoiceInverseTable = "billing_invoices"
 	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
 	BillingInvoiceColumn = "invoice_id"
-	// ManualFeeLineTable is the table that holds the manual_fee_line relation/edge.
-	ManualFeeLineTable = "billing_invoice_lines"
-	// ManualFeeLineInverseTable is the table name for the BillingInvoiceManualLineConfig entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoicemanuallineconfig" package.
-	ManualFeeLineInverseTable = "billing_invoice_manual_line_configs"
-	// ManualFeeLineColumn is the table column denoting the manual_fee_line relation/edge.
-	ManualFeeLineColumn = "manual_line_config_id"
-	// ManualUsageBasedLineTable is the table that holds the manual_usage_based_line relation/edge.
-	ManualUsageBasedLineTable = "billing_invoice_lines"
-	// ManualUsageBasedLineInverseTable is the table name for the BillingInvoiceManualUsageBasedLineConfig entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoicemanualusagebasedlineconfig" package.
-	ManualUsageBasedLineInverseTable = "billing_invoice_manual_usage_based_line_configs"
-	// ManualUsageBasedLineColumn is the table column denoting the manual_usage_based_line relation/edge.
-	ManualUsageBasedLineColumn = "manual_usage_based_line_config_id"
+	// FlatFeeLineTable is the table that holds the flat_fee_line relation/edge.
+	FlatFeeLineTable = "billing_invoice_lines"
+	// FlatFeeLineInverseTable is the table name for the BillingInvoiceFlatFeeLineConfig entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceflatfeelineconfig" package.
+	FlatFeeLineInverseTable = "billing_invoice_flat_fee_line_configs"
+	// FlatFeeLineColumn is the table column denoting the flat_fee_line relation/edge.
+	FlatFeeLineColumn = "fee_line_config_id"
+	// UsageBasedLineTable is the table that holds the usage_based_line relation/edge.
+	UsageBasedLineTable = "billing_invoice_lines"
+	// UsageBasedLineInverseTable is the table name for the BillingInvoiceUsageBasedLineConfig entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceusagebasedlineconfig" package.
+	UsageBasedLineInverseTable = "billing_invoice_usage_based_line_configs"
+	// UsageBasedLineColumn is the table column denoting the usage_based_line relation/edge.
+	UsageBasedLineColumn = "usage_based_line_config_id"
 	// ParentLineTable is the table that holds the parent_line relation/edge.
 	ParentLineTable = "billing_invoice_lines"
 	// ParentLineColumn is the table column denoting the parent_line relation/edge.
@@ -112,14 +112,14 @@ var Columns = []string{
 	FieldStatus,
 	FieldCurrency,
 	FieldQuantity,
-	FieldTaxOverrides,
+	FieldTaxConfig,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"manual_line_config_id",
-	"manual_usage_based_line_config_id",
+	"fee_line_config_id",
+	"usage_based_line_config_id",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -155,7 +155,7 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type billingentity.InvoiceLineType) error {
 	switch _type {
-	case "manual_fee", "manual_usage_based", "flat_fee", "usage_based":
+	case "flat_fee", "usage_based":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceline: invalid enum value for type field: %q", _type)
@@ -262,17 +262,17 @@ func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOptio
 	}
 }
 
-// ByManualFeeLineField orders the results by manual_fee_line field.
-func ByManualFeeLineField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByFlatFeeLineField orders the results by flat_fee_line field.
+func ByFlatFeeLineField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newManualFeeLineStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newFlatFeeLineStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByManualUsageBasedLineField orders the results by manual_usage_based_line field.
-func ByManualUsageBasedLineField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByUsageBasedLineField orders the results by usage_based_line field.
+func ByUsageBasedLineField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newManualUsageBasedLineStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newUsageBasedLineStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -303,18 +303,18 @@ func newBillingInvoiceStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
 	)
 }
-func newManualFeeLineStep() *sqlgraph.Step {
+func newFlatFeeLineStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ManualFeeLineInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, ManualFeeLineTable, ManualFeeLineColumn),
+		sqlgraph.To(FlatFeeLineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, FlatFeeLineTable, FlatFeeLineColumn),
 	)
 }
-func newManualUsageBasedLineStep() *sqlgraph.Step {
+func newUsageBasedLineStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ManualUsageBasedLineInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, ManualUsageBasedLineTable, ManualUsageBasedLineColumn),
+		sqlgraph.To(UsageBasedLineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, UsageBasedLineTable, UsageBasedLineColumn),
 	)
 }
 func newParentLineStep() *sqlgraph.Step {

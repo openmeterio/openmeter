@@ -25,7 +25,9 @@ namespace Invoices;
  *  logos: Images that can be used to identify the party visually.
  *  ext: (tax) Extension code map for any additional regime specific codes that may be required.
  */
-@summary("Party represents a person or business entity.")
+/**
+ * Party represents a person or business entity.
+ */
 @friendlyName("BillingParty")
 model Party {
   @summary("ID of the party.")
