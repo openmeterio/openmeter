@@ -21,154 +21,162 @@ import (
 )
 
 func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (pagination.PagedResponse[plan.Phase], error) {
-	if err := params.Validate(); err != nil {
-		return pagination.PagedResponse[plan.Phase]{}, fmt.Errorf("invalid list PlanPhases parameters: %w", err)
-	}
-
-	query := a.db.PlanPhase.Query()
-
-	if len(params.Namespaces) > 0 {
-		query = query.Where(phasedb.NamespaceIn(params.Namespaces...))
-	}
-
-	var orFilters []predicate.PlanPhase
-	if len(params.IDs) > 0 {
-		orFilters = append(orFilters, phasedb.IDIn(params.IDs...))
-	}
-
-	if len(params.Keys) > 0 {
-		orFilters = append(orFilters, phasedb.KeyIn(params.Keys...))
-	}
-
-	query = query.Where(phasedb.Or(orFilters...))
-
-	if len(params.PlanIDs) > 0 {
-		query = query.Where(phasedb.PlanIDIn(params.PlanIDs...))
-	}
-
-	if !params.IncludeDeleted {
-		query = query.Where(phasedb.DeletedAtIsNil())
-	}
-
-	// Eager load phases with
-	// * with eager load RateCards
-	query = query.WithRatecards()
-
-	order := entutils.GetOrdering(sortx.OrderDefault)
-	if !params.Order.IsDefaultValue() {
-		order = entutils.GetOrdering(params.Order)
-	}
-
-	query = query.Order(phasedb.ByPlanID(order...))
-
-	switch params.OrderBy {
-	case plan.OrderByCreatedAt:
-		query = query.Order(phasedb.ByCreatedAt(order...))
-	case plan.OrderByUpdatedAt:
-		query = query.Order(phasedb.ByUpdatedAt(order...))
-	case plan.OrderByKey:
-		query = query.Order(phasedb.ByKey(order...))
-	case plan.OrderByID:
-		query = query.Order(phasedb.ByID(order...))
-	case plan.OrderByStartAfter:
-		fallthrough
-	default:
-		query = query.Order(phasedb.ByStartAfter(order...))
-	}
-
-	response := pagination.PagedResponse[plan.Phase]{
-		Page: params.Page,
-	}
-
-	paged, err := query.Paginate(ctx, params.Page)
-	if err != nil {
-		return response, fmt.Errorf("failed to list PlanPhases: %w", err)
-	}
-
-	result := make([]plan.Phase, 0, len(paged.Items))
-	for _, item := range paged.Items {
-		if item == nil {
-			a.logger.Warn("invalid query result: nil PlanPhase received")
-			continue
+	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[plan.Phase], error) {
+		if err := params.Validate(); err != nil {
+			return pagination.PagedResponse[plan.Phase]{}, fmt.Errorf("invalid list PlanPhases parameters: %w", err)
 		}
 
-		phase, err := fromPlanPhaseRow(*item)
+		query := a.db.PlanPhase.Query()
+
+		if len(params.Namespaces) > 0 {
+			query = query.Where(phasedb.NamespaceIn(params.Namespaces...))
+		}
+
+		var orFilters []predicate.PlanPhase
+		if len(params.IDs) > 0 {
+			orFilters = append(orFilters, phasedb.IDIn(params.IDs...))
+		}
+
+		if len(params.Keys) > 0 {
+			orFilters = append(orFilters, phasedb.KeyIn(params.Keys...))
+		}
+
+		query = query.Where(phasedb.Or(orFilters...))
+
+		if len(params.PlanIDs) > 0 {
+			query = query.Where(phasedb.PlanIDIn(params.PlanIDs...))
+		}
+
+		if !params.IncludeDeleted {
+			query = query.Where(phasedb.DeletedAtIsNil())
+		}
+
+		// Eager load phases with
+		// * with eager load RateCards
+		query = query.WithRatecards()
+
+		order := entutils.GetOrdering(sortx.OrderDefault)
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
+		}
+
+		query = query.Order(phasedb.ByPlanID(order...))
+
+		switch params.OrderBy {
+		case plan.OrderByCreatedAt:
+			query = query.Order(phasedb.ByCreatedAt(order...))
+		case plan.OrderByUpdatedAt:
+			query = query.Order(phasedb.ByUpdatedAt(order...))
+		case plan.OrderByKey:
+			query = query.Order(phasedb.ByKey(order...))
+		case plan.OrderByID:
+			query = query.Order(phasedb.ByID(order...))
+		case plan.OrderByStartAfter:
+			fallthrough
+		default:
+			query = query.Order(phasedb.ByStartAfter(order...))
+		}
+
+		response := pagination.PagedResponse[plan.Phase]{
+			Page: params.Page,
+		}
+
+		paged, err := query.Paginate(ctx, params.Page)
 		if err != nil {
-			return response, fmt.Errorf("failed to cast PlanPhase: %w", err)
+			return response, fmt.Errorf("failed to list PlanPhases: %w", err)
 		}
 
-		result = append(result, *phase)
+		result := make([]plan.Phase, 0, len(paged.Items))
+		for _, item := range paged.Items {
+			if item == nil {
+				a.logger.Warn("invalid query result: nil PlanPhase received")
+				continue
+			}
+
+			phase, err := fromPlanPhaseRow(*item)
+			if err != nil {
+				return response, fmt.Errorf("failed to cast PlanPhase: %w", err)
+			}
+
+			result = append(result, *phase)
+		}
+
+		response.TotalCount = paged.TotalCount
+		response.Items = result
+
+		return response, nil
 	}
 
-	response.TotalCount = paged.TotalCount
-	response.Items = result
-
-	return response, nil
+	return entutils.TransactingRepo[pagination.PagedResponse[plan.Phase], *adapter](ctx, a, fn)
 }
 
 func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) (*plan.Phase, error) {
-	if err := params.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid create PlanPhase parameters: %w", err)
-	}
+	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid create PlanPhase parameters: %w", err)
+		}
 
-	planPhaseRow, err := a.db.PlanPhase.Create().
-		SetNamespace(params.Namespace).
-		SetKey(params.Key).
-		SetName(params.Name).
-		SetNillableDescription(params.Description).
-		SetMetadata(params.Metadata).
-		SetStartAfter(params.StartAfter.ISOString()).
-		SetPlanID(params.PlanID).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
-	}
+		planPhaseRow, err := a.db.PlanPhase.Create().
+			SetNamespace(params.Namespace).
+			SetKey(params.Key).
+			SetName(params.Name).
+			SetNillableDescription(params.Description).
+			SetMetadata(params.Metadata).
+			SetStartAfter(params.StartAfter.ISOString()).
+			SetPlanID(params.PlanID).
+			Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
+		}
 
-	if planPhaseRow == nil {
-		return nil, fmt.Errorf("invalid query result: nil PlanPhase received after create")
-	}
+		if planPhaseRow == nil {
+			return nil, fmt.Errorf("invalid query result: nil PlanPhase received after create")
+		}
 
-	planPhase, err := fromPlanPhaseRow(*planPhaseRow)
-	if err != nil {
-		return nil, fmt.Errorf("failed to cast PlanPhase %w", err)
-	}
+		planPhase, err := fromPlanPhaseRow(*planPhaseRow)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast PlanPhase %w", err)
+		}
 
-	if len(params.RateCards) == 0 {
+		if len(params.RateCards) == 0 {
+			return planPhase, nil
+		}
+
+		rateCardInputs := make([]entdb.PlanRateCard, 0, len(params.RateCards))
+		for _, rateCard := range params.RateCards {
+			rateCardInput, err := asPlanRateCardRow(rateCard)
+			if err != nil {
+				return nil, fmt.Errorf("failed to cast RateCard: %w", err)
+			}
+
+			rateCardInputs = append(rateCardInputs, rateCardInput)
+		}
+
+		bulk, bulkFn := newRateCardBulkCreate(rateCardInputs, planPhase.ID, params.Namespace)
+
+		rateCardRows, err := a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to bulk create RateCards for PlanPhase %s: %w", planPhase.ID, err)
+		}
+
+		planPhase.RateCards = make([]plan.RateCard, 0, len(rateCardRows))
+		for _, rateCardRow := range rateCardRows {
+			if rateCardRow == nil {
+				return nil, errors.New("invalid query result: nil RateCard received after bulk create")
+			}
+
+			rateCard, err := fromPlanRateCardRow(*rateCardRow)
+			if err != nil {
+				return nil, fmt.Errorf("failed to cast RateCard: %w", err)
+			}
+
+			planPhase.RateCards = append(planPhase.RateCards, *rateCard)
+		}
+
 		return planPhase, nil
 	}
 
-	rateCardInputs := make([]entdb.PlanRateCard, 0, len(params.RateCards))
-	for _, rateCard := range params.RateCards {
-		rateCardInput, err := asPlanRateCardRow(rateCard)
-		if err != nil {
-			return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-		}
-
-		rateCardInputs = append(rateCardInputs, rateCardInput)
-	}
-
-	bulk, bulkFn := newRateCardBulkCreate(rateCardInputs, planPhase.ID, params.Namespace)
-
-	rateCardRows, err := a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to bulk create RateCards for PlanPhase %s: %w", planPhase.ID, err)
-	}
-
-	planPhase.RateCards = make([]plan.RateCard, 0, len(rateCardRows))
-	for _, rateCardRow := range rateCardRows {
-		if rateCardRow == nil {
-			return nil, errors.New("invalid query result: nil RateCard received after bulk create")
-		}
-
-		rateCard, err := fromPlanRateCardRow(*rateCardRow)
-		if err != nil {
-			return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-		}
-
-		planPhase.RateCards = append(planPhase.RateCards, *rateCard)
-	}
-
-	return planPhase, nil
+	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
 }
 
 func newRateCardBulkCreate(r []entdb.PlanRateCard, phaseID string, ns string) ([]entdb.PlanRateCard, func(*entdb.PlanRateCardCreate, int)) {
@@ -190,264 +198,278 @@ func newRateCardBulkCreate(r []entdb.PlanRateCard, phaseID string, ns string) ([
 }
 
 func (a *adapter) DeletePhase(ctx context.Context, params plan.DeletePhaseInput) error {
-	if err := params.Validate(); err != nil {
-		return fmt.Errorf("invalid delete PlanPhase parameters: %w", err)
-	}
-
-	if params.SkipSoftDelete {
-		// Delete plan phase permanently
-		err := a.db.PlanPhase.DeleteOneID(params.ID).
-			Where(phasedb.Namespace(params.Namespace)).
-			Exec(ctx)
-		if err != nil {
-			if entdb.IsNotFound(err) {
-				return plan.NotFoundError{
-					NamespacedModel: models.NamespacedModel{
-						Namespace: params.Namespace,
-					},
-				}
-			}
-
-			return fmt.Errorf("failed to delete PlanPhase: %w", err)
-		}
-	} else {
-		phaseRow, err := a.db.PlanPhase.Query().
-			Where(
-				phasedb.And(
-					phasedb.Namespace(params.Namespace),
-					phasedb.ID(params.ID),
-				),
-			).
-			WithRatecards().
-			First(ctx)
-		if err != nil {
-			if entdb.IsNotFound(err) {
-				return plan.NotFoundError{
-					NamespacedModel: models.NamespacedModel{
-						Namespace: params.Namespace,
-					},
-				}
-			}
-
-			return fmt.Errorf("failed to get PlanPhase: %w", err)
+	fn := func(ctx context.Context, a *adapter) (interface{}, error) {
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid delete PlanPhase parameters: %w", err)
 		}
 
-		// Soft delete plan phase and its rate cards
-		deletedAt := time.Now().UTC()
-		err = a.db.PlanPhase.UpdateOneID(params.ID).
-			Where(phasedb.Namespace(params.Namespace)).
-			SetDeletedAt(deletedAt).
-			Exec(ctx)
-		if err != nil {
-			if entdb.IsNotFound(err) {
-				return plan.NotFoundError{
-					NamespacedModel: models.NamespacedModel{
-						Namespace: params.Namespace,
-					},
+		if params.SkipSoftDelete {
+			// Delete plan phase permanently
+			err := a.db.PlanPhase.DeleteOneID(params.ID).
+				Where(phasedb.Namespace(params.Namespace)).
+				Exec(ctx)
+			if err != nil {
+				if entdb.IsNotFound(err) {
+					return nil, plan.NotFoundError{
+						NamespacedModel: models.NamespacedModel{
+							Namespace: params.Namespace,
+						},
+					}
 				}
+
+				return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
+			}
+		} else {
+			phaseRow, err := a.db.PlanPhase.Query().
+				Where(
+					phasedb.And(
+						phasedb.Namespace(params.Namespace),
+						phasedb.ID(params.ID),
+					),
+				).
+				WithRatecards().
+				First(ctx)
+			if err != nil {
+				if entdb.IsNotFound(err) {
+					return nil, plan.NotFoundError{
+						NamespacedModel: models.NamespacedModel{
+							Namespace: params.Namespace,
+						},
+					}
+				}
+
+				return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
 			}
 
-			return fmt.Errorf("failed to delete PlanPhase: %w", err)
-		}
-
-		for _, ratecard := range phaseRow.Edges.Ratecards {
-			err = a.db.PlanRateCard.UpdateOneID(ratecard.ID).
-				Where(ratecarddb.Namespace(params.Namespace)).
+			// Soft delete plan phase and its rate cards
+			deletedAt := time.Now().UTC()
+			err = a.db.PlanPhase.UpdateOneID(params.ID).
+				Where(phasedb.Namespace(params.Namespace)).
 				SetDeletedAt(deletedAt).
 				Exec(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to delete RateCard: %w", err)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*plan.Phase, error) {
-	if err := params.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid get PlanPhase parameters: %w", err)
-	}
-
-	query := a.db.PlanPhase.Query()
-
-	if params.ID != "" { // get PlanPhase by ID
-		query = query.Where(
-			phasedb.And(
-				phasedb.Namespace(params.Namespace),
-				phasedb.ID(params.ID),
-			),
-		)
-	} else if params.Key != "" { // get PlanPhase by Key and Plan.ID
-		query = query.Where(
-			phasedb.And(
-				phasedb.Namespace(params.Namespace),
-				phasedb.Key(params.Key),
-				phasedb.PlanID(params.PlanID),
-			),
-		)
-	} else {
-		return nil, errors.New("invalid get PlanPhase parameters")
-	}
-
-	query = query.WithRatecards()
-
-	phaseRow, err := query.First(ctx)
-	if err != nil {
-		if entdb.IsNotFound(err) {
-			return nil, plan.NotFoundError{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: params.Namespace,
-				},
-			}
-		}
-
-		return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
-	}
-
-	if phaseRow == nil {
-		return nil, fmt.Errorf("invalid query result: nil PlanPhase received")
-	}
-
-	phase, err := fromPlanPhaseRow(*phaseRow)
-	if err != nil {
-		return nil, fmt.Errorf("failed to cast PlanPhase: %w", err)
-	}
-
-	return phase, nil
-}
-
-func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*plan.Phase, error) {
-	if err := params.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid update PlanPhase parameters: %w", err)
-	}
-
-	p, err := a.GetPhase(ctx, plan.GetPhaseInput{
-		NamespacedID: models.NamespacedID{
-			Namespace: params.Namespace,
-			ID:        params.ID,
-		},
-		Key:    params.Key,
-		PlanID: params.PlanID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Plan: %w", err)
-	}
-
-	if !params.Equal(*p) {
-		query := a.db.PlanPhase.UpdateOneID(p.ID).Where(phasedb.Namespace(params.Namespace))
-
-		if params.Name != nil {
-			query = query.SetName(*params.Name)
-			p.Name = *params.Name
-		}
-
-		if params.Description != nil {
-			query = query.SetDescription(*params.Description)
-			p.Description = params.Description
-		}
-
-		if params.Metadata != nil {
-			query = query.SetMetadata(*params.Metadata)
-			p.Metadata = *params.Metadata
-		}
-
-		if params.Metadata != nil {
-			query = query.SetStartAfter(params.StartAfter.ISOString())
-			p.StartAfter = *params.StartAfter
-		}
-
-		err = query.Exec(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
-		}
-	}
-
-	if params.RateCards != nil {
-		rateCards := make([]plan.RateCard, 0, len(p.RateCards))
-
-		diffResult, err := rateCardsDiff(*params.RateCards, p.RateCards)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate RateCard diff for PlanPhase update: %w", err)
-		}
-
-		if len(diffResult.Add) > 0 {
-			bulk, bulkFn := newRateCardBulkCreate(diffResult.Add, p.ID, params.Namespace)
-
-			rateCardRows, err := a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Save(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to bulk create RateCards: %w", err)
-			}
-
-			for _, rateCardRow := range rateCardRows {
-				if rateCardRow == nil {
-					return nil, errors.New("invalid query result: nil RateCard received after bulk create")
+				if entdb.IsNotFound(err) {
+					return nil, plan.NotFoundError{
+						NamespacedModel: models.NamespacedModel{
+							Namespace: params.Namespace,
+						},
+					}
 				}
 
-				rateCard, err := fromPlanRateCardRow(*rateCardRow)
-				if err != nil {
-					return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-				}
-
-				rateCards = append(rateCards, *rateCard)
+				return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
 			}
-		}
 
-		if len(diffResult.Remove) > 0 {
-			for _, rateCard := range diffResult.Remove {
-				err = a.db.PlanRateCard.DeleteOneID(rateCard.ID).Where(ratecarddb.Namespace(params.Namespace)).Exec(ctx)
+			for _, ratecard := range phaseRow.Edges.Ratecards {
+				err = a.db.PlanRateCard.UpdateOneID(ratecard.ID).
+					Where(ratecarddb.Namespace(params.Namespace)).
+					SetDeletedAt(deletedAt).
+					Exec(ctx)
 				if err != nil {
 					return nil, fmt.Errorf("failed to delete RateCard: %w", err)
 				}
 			}
 		}
 
-		if len(diffResult.Update) > 0 {
-			for _, rateCardInput := range diffResult.Update {
-				rateCardRow, err := a.db.PlanRateCard.UpdateOneID(rateCardInput.ID).
-					Where(ratecarddb.Namespace(params.Namespace)).
-					SetMetadata(rateCardInput.Metadata).
-					SetName(rateCardInput.Name).
-					SetNillableDescription(rateCardInput.Description).
-					SetNillableFeatureKey(rateCardInput.FeatureKey).
-					SetNillableFeaturesID(rateCardInput.FeatureID).
-					SetEntitlementTemplate(rateCardInput.EntitlementTemplate).
-					SetTaxConfig(rateCardInput.TaxConfig).
-					SetNillableBillingCadence(rateCardInput.BillingCadence).
-					SetPrice(rateCardInput.Price).
-					Save(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("failed to update RateCard: %w", err)
-				}
-
-				if rateCardRow == nil {
-					return nil, errors.New("invalid query result: nil RateCard received update")
-				}
-
-				rateCard, err := fromPlanRateCardRow(*rateCardRow)
-				if err != nil {
-					return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-				}
-
-				rateCards = append(rateCards, *rateCard)
-			}
-		}
-
-		if len(diffResult.Keep) > 0 {
-			for _, rateCardRow := range diffResult.Keep {
-				rateCard, err := fromPlanRateCardRow(rateCardRow)
-				if err != nil {
-					return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-				}
-
-				rateCards = append(rateCards, *rateCard)
-			}
-		}
-
-		p.RateCards = rateCards
+		return nil, nil
 	}
 
-	return p, nil
+	_, err := entutils.TransactingRepo[interface{}, *adapter](ctx, a, fn)
+
+	return err
+}
+
+func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*plan.Phase, error) {
+	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid get PlanPhase parameters: %w", err)
+		}
+
+		query := a.db.PlanPhase.Query()
+
+		if params.ID != "" { // get PlanPhase by ID
+			query = query.Where(
+				phasedb.And(
+					phasedb.Namespace(params.Namespace),
+					phasedb.ID(params.ID),
+				),
+			)
+		} else if params.Key != "" { // get PlanPhase by Key and Plan.ID
+			query = query.Where(
+				phasedb.And(
+					phasedb.Namespace(params.Namespace),
+					phasedb.Key(params.Key),
+					phasedb.PlanID(params.PlanID),
+				),
+			)
+		} else {
+			return nil, errors.New("invalid get PlanPhase parameters")
+		}
+
+		query = query.WithRatecards()
+
+		phaseRow, err := query.First(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return nil, plan.NotFoundError{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: params.Namespace,
+					},
+				}
+			}
+
+			return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
+		}
+
+		if phaseRow == nil {
+			return nil, fmt.Errorf("invalid query result: nil PlanPhase received")
+		}
+
+		phase, err := fromPlanPhaseRow(*phaseRow)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast PlanPhase: %w", err)
+		}
+
+		return phase, nil
+	}
+
+	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
+}
+
+func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*plan.Phase, error) {
+	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid update PlanPhase parameters: %w", err)
+		}
+
+		p, err := a.GetPhase(ctx, plan.GetPhaseInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.ID,
+			},
+			Key:    params.Key,
+			PlanID: params.PlanID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Plan: %w", err)
+		}
+
+		if !params.Equal(*p) {
+			query := a.db.PlanPhase.UpdateOneID(p.ID).Where(phasedb.Namespace(params.Namespace))
+
+			if params.Name != nil {
+				query = query.SetName(*params.Name)
+				p.Name = *params.Name
+			}
+
+			if params.Description != nil {
+				query = query.SetDescription(*params.Description)
+				p.Description = params.Description
+			}
+
+			if params.Metadata != nil {
+				query = query.SetMetadata(*params.Metadata)
+				p.Metadata = *params.Metadata
+			}
+
+			if params.Metadata != nil {
+				query = query.SetStartAfter(params.StartAfter.ISOString())
+				p.StartAfter = *params.StartAfter
+			}
+
+			err = query.Exec(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
+			}
+		}
+
+		if params.RateCards != nil {
+			rateCards := make([]plan.RateCard, 0, len(p.RateCards))
+
+			diffResult, err := rateCardsDiff(*params.RateCards, p.RateCards)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate RateCard diff for PlanPhase update: %w", err)
+			}
+
+			if len(diffResult.Add) > 0 {
+				bulk, bulkFn := newRateCardBulkCreate(diffResult.Add, p.ID, params.Namespace)
+
+				rateCardRows, err := a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Save(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to bulk create RateCards: %w", err)
+				}
+
+				for _, rateCardRow := range rateCardRows {
+					if rateCardRow == nil {
+						return nil, errors.New("invalid query result: nil RateCard received after bulk create")
+					}
+
+					rateCard, err := fromPlanRateCardRow(*rateCardRow)
+					if err != nil {
+						return nil, fmt.Errorf("failed to cast RateCard: %w", err)
+					}
+
+					rateCards = append(rateCards, *rateCard)
+				}
+			}
+
+			if len(diffResult.Remove) > 0 {
+				for _, rateCard := range diffResult.Remove {
+					err = a.db.PlanRateCard.DeleteOneID(rateCard.ID).Where(ratecarddb.Namespace(params.Namespace)).Exec(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to delete RateCard: %w", err)
+					}
+				}
+			}
+
+			if len(diffResult.Update) > 0 {
+				for _, rateCardInput := range diffResult.Update {
+					rateCardRow, err := a.db.PlanRateCard.UpdateOneID(rateCardInput.ID).
+						Where(ratecarddb.Namespace(params.Namespace)).
+						SetMetadata(rateCardInput.Metadata).
+						SetName(rateCardInput.Name).
+						SetNillableDescription(rateCardInput.Description).
+						SetNillableFeatureKey(rateCardInput.FeatureKey).
+						SetNillableFeaturesID(rateCardInput.FeatureID).
+						SetEntitlementTemplate(rateCardInput.EntitlementTemplate).
+						SetTaxConfig(rateCardInput.TaxConfig).
+						SetNillableBillingCadence(rateCardInput.BillingCadence).
+						SetPrice(rateCardInput.Price).
+						Save(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to update RateCard: %w", err)
+					}
+
+					if rateCardRow == nil {
+						return nil, errors.New("invalid query result: nil RateCard received update")
+					}
+
+					rateCard, err := fromPlanRateCardRow(*rateCardRow)
+					if err != nil {
+						return nil, fmt.Errorf("failed to cast RateCard: %w", err)
+					}
+
+					rateCards = append(rateCards, *rateCard)
+				}
+			}
+
+			if len(diffResult.Keep) > 0 {
+				for _, rateCardRow := range diffResult.Keep {
+					rateCard, err := fromPlanRateCardRow(rateCardRow)
+					if err != nil {
+						return nil, fmt.Errorf("failed to cast RateCard: %w", err)
+					}
+
+					rateCards = append(rateCards, *rateCard)
+				}
+			}
+
+			p.RateCards = rateCards
+		}
+
+		return p, nil
+	}
+
+	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
 }
 
 type rateCardsDiffResult struct {

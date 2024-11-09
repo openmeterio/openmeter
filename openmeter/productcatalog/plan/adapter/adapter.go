@@ -1,11 +1,16 @@
 package adapter
 
 import (
+	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ plan.Validator = (*Config)(nil)
@@ -50,4 +55,24 @@ type adapter struct {
 	db *entdb.Client
 
 	logger *slog.Logger
+}
+
+func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	ctx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
+		ReadOnly: false,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
+	}
+
+	return ctx, entutils.NewTxDriver(eDriver, rawConfig), nil
+}
+
+func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
+	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+
+	return &adapter{
+		db:     txClient.Client(),
+		logger: a.logger,
+	}
 }

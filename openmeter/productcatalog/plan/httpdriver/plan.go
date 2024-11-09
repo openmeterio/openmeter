@@ -60,7 +60,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 			for _, p := range resp.Items {
 				var item api.Plan
 
-				item, err = fromPlan(p)
+				item, err = FromPlan(p)
 				if err != nil {
 					return ListPlansResponse{}, fmt.Errorf("failed to cast plan pahse: %w", err)
 				}
@@ -103,7 +103,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := asCreatePlanRequest(body, ns)
+			req, err := AsCreatePlanRequest(body, ns)
 			if err != nil {
 				return CreatePlanRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 			}
@@ -120,7 +120,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanResponse{}, fmt.Errorf("failed to create plan: %w", err)
 			}
 
-			return fromPlan(*p)
+			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePlanResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -150,7 +150,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				return UpdatePlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := asUpdatePlanRequest(body, ns, planID)
+			req, err := AsUpdatePlanRequest(body, ns, planID)
 			if err != nil {
 				return UpdatePlanRequest{}, fmt.Errorf("failed to update plan request: %w", err)
 			}
@@ -168,7 +168,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				return UpdatePlanResponse{}, fmt.Errorf("failed to update plan: %w", err)
 			}
 
-			return fromPlan(*p)
+			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -262,7 +262,7 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanResponse{}, fmt.Errorf("failed to get plan: %w", err)
 			}
 
-			return fromPlan(*p)
+			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -307,7 +307,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				return PublishPlanResponse{}, fmt.Errorf("failed to Publish plan: %w", err)
 			}
 
-			return fromPlan(*p)
+			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -350,7 +350,7 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 				return ArchivePlanResponse{}, fmt.Errorf("failed to archive plan: %w", err)
 			}
 
-			return fromPlan(*p)
+			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -396,7 +396,7 @@ func (h *handler) NextPlan() NextPlanHandler {
 
 			// TODO(chrisgacsal): update api.Response in TypeSpec definition to allow returning Plan
 
-			return fromPlan(*p)
+			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(

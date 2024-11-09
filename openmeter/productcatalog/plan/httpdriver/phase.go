@@ -64,7 +64,7 @@ func (h *handler) ListPhases() ListPhasesHandler {
 			for _, phase := range resp.Items {
 				var item api.PlanPhase
 
-				item, err = fromPlanPhase(phase)
+				item, err = FromPlanPhase(phase)
 				if err != nil {
 					return ListPhasesResponse{}, fmt.Errorf("failed to cast plan phase: %w", err)
 				}
@@ -107,7 +107,7 @@ func (h *handler) CreatePhase() CreatePhaseHandler {
 				return CreatePhaseRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := asCreatePhaseRequest(body, ns, planID)
+			req, err := AsCreatePhaseRequest(body, ns, planID)
 			if err != nil {
 				return CreatePhaseRequest{}, fmt.Errorf("failed to create phase request: %w", err)
 			}
@@ -124,7 +124,7 @@ func (h *handler) CreatePhase() CreatePhaseHandler {
 				return CreatePhaseResponse{}, fmt.Errorf("failed to create phase: %w", err)
 			}
 
-			return fromPlanPhase(*phase)
+			return FromPlanPhase(*phase)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePhaseResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -155,7 +155,7 @@ func (h *handler) UpdatePhase() UpdatePhaseHandler {
 				return UpdatePhaseRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := asUpdatePhaseRequest(body, ns, params.PlanID, params.Key)
+			req, err := AsUpdatePhaseRequest(body, ns, params.PlanID, params.Key)
 			if err != nil {
 				return UpdatePhaseRequest{}, fmt.Errorf("failed to update plan phase request: %w", err)
 			}
@@ -174,7 +174,7 @@ func (h *handler) UpdatePhase() UpdatePhaseHandler {
 				return UpdatePhaseResponse{}, fmt.Errorf("failed to update plan phase: %w", err)
 			}
 
-			return fromPlanPhase(*phase)
+			return FromPlanPhase(*phase)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePhaseResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -254,7 +254,7 @@ func (h *handler) GetPhase() GetPhaseHandler {
 				return GetPhaseResponse{}, fmt.Errorf("failed to get plan phase: %w", err)
 			}
 
-			return fromPlanPhase(*phase)
+			return FromPlanPhase(*phase)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPhaseResponse](http.StatusOK),
 		httptransport.AppendOptions(

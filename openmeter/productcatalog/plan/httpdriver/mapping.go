@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func fromPlan(p plan.Plan) (api.Plan, error) {
+func FromPlan(p plan.Plan) (api.Plan, error) {
 	resp := api.Plan{
 		CreatedAt:     p.CreatedAt,
 		Currency:      p.Currency.String(),
@@ -36,7 +36,7 @@ func fromPlan(p plan.Plan) (api.Plan, error) {
 		resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
 
 		for _, phase := range p.Phases {
-			planPhase, err := fromPlanPhase(phase)
+			planPhase, err := FromPlanPhase(phase)
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast Plan: %w", err)
 			}
@@ -64,7 +64,7 @@ func fromPlan(p plan.Plan) (api.Plan, error) {
 	return resp, nil
 }
 
-func fromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
+func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	resp := api.PlanPhase{
 		CreatedAt:   p.CreatedAt,
 		DeletedAt:   p.DeletedAt,
@@ -101,7 +101,7 @@ func fromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 		resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
 
 		for _, rateCard := range p.RateCards {
-			rc, err := fromRateCard(rateCard)
+			rc, err := FromRateCard(rateCard)
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast RateCard: %w", err)
 			}
@@ -113,7 +113,7 @@ func fromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	return resp, nil
 }
 
-func fromRateCard(r plan.RateCard) (api.RateCard, error) {
+func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 	resp := api.RateCard{}
 
 	switch r.Type() {
@@ -125,7 +125,7 @@ func fromRateCard(r plan.RateCard) (api.RateCard, error) {
 
 		var tmpl api.RateCardEntitlement
 		if rc.EntitlementTemplate != nil {
-			tmpl, err = fromEntitlementTemplate(*rc.EntitlementTemplate)
+			tmpl, err = FromEntitlementTemplate(*rc.EntitlementTemplate)
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 			}
@@ -158,7 +158,7 @@ func fromRateCard(r plan.RateCard) (api.RateCard, error) {
 			Name:                rc.Name,
 			Price: &api.FlatPriceWithPaymentTerm{
 				Amount:      flatPrice.Amount.String(),
-				PaymentTerm: lo.ToPtr(fromPaymentTerm(flatPrice.PaymentTerm)),
+				PaymentTerm: lo.ToPtr(FromPaymentTerm(flatPrice.PaymentTerm)),
 				Type:        api.FlatPriceWithPaymentTermTypeFlat,
 			},
 			TaxConfig: taxConfig,
@@ -190,7 +190,7 @@ func FromTaxConfig(c plan.TaxConfig) api.TaxConfig {
 	}
 }
 
-func fromPaymentTerm(t plan.PaymentTermType) api.PricePaymentTerm {
+func FromPaymentTerm(t plan.PaymentTermType) api.PricePaymentTerm {
 	switch t {
 	case plan.InArrearsPaymentTerm:
 		return api.PricePaymentTermInArrears
@@ -201,7 +201,7 @@ func fromPaymentTerm(t plan.PaymentTermType) api.PricePaymentTerm {
 	}
 }
 
-func fromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlement, error) {
+func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlement, error) {
 	result := api.RateCardEntitlement{}
 
 	switch t.Type() {
@@ -256,7 +256,7 @@ func fromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 	return result, nil
 }
 
-func asCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest, error) {
+func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest, error) {
 	var err error
 
 	req := CreatePlanRequest{
@@ -278,7 +278,7 @@ func asCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		req.Phases = make([]plan.Phase, 0, len(a.Phases))
 
 		for _, phase := range a.Phases {
-			planPhase, err := asPlanPhase(phase, namespace, "")
+			planPhase, err := AsPlanPhase(phase, namespace, "")
 			if err != nil {
 				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
 			}
@@ -290,7 +290,7 @@ func asCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 	return req, nil
 }
 
-func asPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error) {
+func AsPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error) {
 	var err error
 
 	phase := plan.Phase{
@@ -343,7 +343,7 @@ func asPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error)
 		phase.RateCards = make([]plan.RateCard, 0, len(a.RateCards))
 
 		for _, rc := range a.RateCards {
-			rateCard, err := asRateCard(rc, namespace)
+			rateCard, err := AsRateCard(rc, namespace)
 			if err != nil {
 				return phase, fmt.Errorf("failed to cast RateCard: %w", err)
 			}
@@ -355,7 +355,7 @@ func asPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error)
 	return phase, nil
 }
 
-func asRateCard(r api.RateCard, namespace string) (plan.RateCard, error) {
+func AsRateCard(r api.RateCard, namespace string) (plan.RateCard, error) {
 	rType, err := r.Discriminator()
 	if err != nil {
 		return plan.RateCard{}, fmt.Errorf("failed to cast type: %w", err)
@@ -368,7 +368,7 @@ func asRateCard(r api.RateCard, namespace string) (plan.RateCard, error) {
 			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		flatRateCard, err := asFlatFeeRateCard(flat, namespace)
+		flatRateCard, err := AsFlatFeeRateCard(flat, namespace)
 		if err != nil {
 			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
@@ -380,7 +380,7 @@ func asRateCard(r api.RateCard, namespace string) (plan.RateCard, error) {
 			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		usageBasedRateCard, err := asUsageBasedRateCard(usage, namespace)
+		usageBasedRateCard, err := AsUsageBasedRateCard(usage, namespace)
 		if err != nil {
 			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
@@ -391,7 +391,7 @@ func asRateCard(r api.RateCard, namespace string) (plan.RateCard, error) {
 	}
 }
 
-func asFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFeeRateCard, error) {
+func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFeeRateCard, error) {
 	var err error
 
 	flatRateCard := plan.FlatFeeRateCard{
@@ -419,7 +419,7 @@ func asFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	}
 
 	if flat.EntitlementTemplate != nil {
-		tmpl, err := asEntitlementTemplate(*flat.EntitlementTemplate)
+		tmpl, err := AsEntitlementTemplate(*flat.EntitlementTemplate)
 		if err != nil {
 			return plan.FlatFeeRateCard{}, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 		}
@@ -468,7 +468,7 @@ func asFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	return flatRateCard, nil
 }
 
-func asUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.UsageBasedRateCard, error) {
+func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.UsageBasedRateCard, error) {
 	var err error
 
 	usageRateCard := plan.UsageBasedRateCard{
@@ -496,7 +496,7 @@ func asUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 	}
 
 	if usage.EntitlementTemplate != nil {
-		tmpl, err := asEntitlementTemplate(*usage.EntitlementTemplate)
+		tmpl, err := AsEntitlementTemplate(*usage.EntitlementTemplate)
 		if err != nil {
 			return usageRateCard, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 		}
@@ -642,7 +642,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 		if len(tiered.Tiers) > 0 {
 			tieredPrice.Tiers = make([]plan.PriceTier, 0, len(tiered.Tiers))
 			for _, tier := range tiered.Tiers {
-				priceTier, err := asPriceTier(tier)
+				priceTier, err := AsPriceTier(tier)
 				if err != nil {
 					return price, fmt.Errorf("failed to cast PriceTier: %w", err)
 				}
@@ -659,7 +659,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 	return price, nil
 }
 
-func asPriceTier(t api.PriceTier) (plan.PriceTier, error) {
+func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 	tier := plan.PriceTier{
 		UpToAmount: nil,
 		FlatPrice:  nil,
@@ -701,7 +701,7 @@ func asPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 	return tier, nil
 }
 
-func asEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate, error) {
+func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate, error) {
 	tmpl := plan.EntitlementTemplate{}
 
 	eType, err := e.Discriminator()
@@ -783,7 +783,7 @@ func AsTaxConfig(c api.TaxConfig) plan.TaxConfig {
 	return tc
 }
 
-func asUpdatePlanRequest(a api.PlanUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
+func AsUpdatePlanRequest(a api.PlanUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
 	req := UpdatePlanRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -798,7 +798,7 @@ func asUpdatePlanRequest(a api.PlanUpdate, namespace string, planID string) (Upd
 		phases := make([]plan.Phase, 0, len(*a.Phases))
 		if len(*a.Phases) > 0 {
 			for _, phase := range *a.Phases {
-				planPhase, err := asPlanPhase(phase, namespace, "")
+				planPhase, err := AsPlanPhase(phase, namespace, "")
 				if err != nil {
 					return req, fmt.Errorf("failed to cast Plan Phase from HTTP update request: %w", err)
 				}
@@ -813,7 +813,7 @@ func asUpdatePlanRequest(a api.PlanUpdate, namespace string, planID string) (Upd
 	return req, nil
 }
 
-func asCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (CreatePhaseRequest, error) {
+func AsCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (CreatePhaseRequest, error) {
 	var err error
 
 	req := CreatePhaseRequest{
@@ -839,7 +839,7 @@ func asCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (Crea
 		req.RateCards = make([]plan.RateCard, 0, len(a.RateCards))
 
 		for _, rc := range a.RateCards {
-			rateCard, err := asRateCard(rc, namespace)
+			rateCard, err := AsRateCard(rc, namespace)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast RateCard from HTTP create request: %w", err)
 			}
@@ -851,7 +851,7 @@ func asCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (Crea
 	return req, nil
 }
 
-func asUpdatePhaseRequest(a api.PlanPhaseUpdate, namespace, planID, phaseKey string) (UpdatePhaseRequest, error) {
+func AsUpdatePhaseRequest(a api.PlanPhaseUpdate, namespace, planID, phaseKey string) (UpdatePhaseRequest, error) {
 	req := UpdatePhaseRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -878,7 +878,7 @@ func asUpdatePhaseRequest(a api.PlanPhaseUpdate, namespace, planID, phaseKey str
 		phases := make([]plan.RateCard, 0, len(*a.RateCards))
 		if len(*a.RateCards) > 0 {
 			for _, phase := range *a.RateCards {
-				planPhase, err := asRateCard(phase, namespace)
+				planPhase, err := AsRateCard(phase, namespace)
 				if err != nil {
 					return req, fmt.Errorf("failed to cast RateCard from HTTP update request: %w", err)
 				}
