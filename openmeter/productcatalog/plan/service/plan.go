@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,6 +25,53 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
+func (s service) expandFeatures(ctx context.Context, phases []plan.Phase) error {
+	if len(phases) > 0 {
+		return nil
+	}
+
+	for _, phase := range phases {
+		rateCardFeatures := make(map[string]*feature.Feature)
+
+		for _, rateCard := range phase.RateCards {
+			if rateCardFeature := rateCard.Feature(); rateCardFeature != nil {
+				rateCardFeatures[rateCardFeature.Key] = rateCardFeature
+			}
+		}
+
+		featureList, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
+			IDsOrKeys: lo.Keys(rateCardFeatures),
+			Namespace: phase.Namespace,
+			Page: pagination.Page{
+				PageSize:   len(rateCardFeatures),
+				PageNumber: 1,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list Features for RateCard: %w", err)
+		}
+
+		// Update features in-place or return error if
+		visited := make(map[string]struct{})
+		for _, feat := range featureList.Items {
+			if rcFeat, ok := rateCardFeatures[feat.Key]; ok {
+				*rcFeat = feat
+
+				visited[feat.Key] = struct{}{}
+			}
+		}
+
+		if len(rateCardFeatures) != len(visited) {
+			missing, r := lo.Difference(lo.Keys(rateCardFeatures), lo.Keys(visited))
+			missing = append(missing, r...)
+
+			return fmt.Errorf("non-existing Features: %+v", missing)
+		}
+	}
+
+	return nil
+}
+
 func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
 	fn := func(ctx context.Context) (*plan.Plan, error) {
 		if err := params.Validate(); err != nil {
@@ -37,6 +85,10 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		)
 
 		logger.Debug("creating Plan")
+
+		if err := s.expandFeatures(ctx, params.Phases); err != nil {
+			return nil, fmt.Errorf("failed to get Feature for RateCards: %w", err)
+		}
 
 		p, err := s.adapter.CreatePlan(ctx, params)
 		if err != nil {
@@ -125,6 +177,12 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 		logger.Debug("updating Plan")
 
+		if params.Phases != nil {
+			if err := s.expandFeatures(ctx, *params.Phases); err != nil {
+				return nil, fmt.Errorf("failed to get Feature for RateCards: %w", err)
+			}
+		}
+
 		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -192,8 +250,8 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 
 		// TODO(chrisgacsal): in order to ensure that there are not time gaps where no active version of a Plan is available
-		// the EffectivePeriod must be validated/updated with the surrounding Plans(N-1, N+1) if their exist.
-		// If updating the EffectivePeriod for surrounding  Plans violates constraints, return validation error,
+		// the EffectivePeriod must be validated/updated with the surrounding Plans(N-1, N+1) if they exist.
+		// If updating the EffectivePeriod for surrounding Plans violates constraints, return an validation error,
 		// otherwise adjust their schedule accordingly.
 		// IMPORTANT: this should be an optional action which must be only performed with the users consent as it has side-effects.
 		// In other words, modify the surrounding Plans only if the user is allowed it otherwise return a validation error
