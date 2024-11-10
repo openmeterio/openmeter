@@ -42,10 +42,5 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 }
 
 func metadata(conf config.Configuration) common.Metadata {
-	return common.Metadata{
-		ServiceName:       "openmeter",
-		Version:           version,
-		Environment:       conf.Environment,
-		OpenTelemetryName: "openmeter.io/balance-worker",
-	}
+	return common.NewMetadata(conf, version, "balance-worker")
 }
