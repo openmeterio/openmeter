@@ -21,12 +21,12 @@ type Metadata struct {
 	K8SPodUID string
 }
 
-func NewMetadata(conf config.Configuration, version string, otelName string) Metadata {
+func NewMetadata(conf config.Configuration, version string, serviceName string) Metadata {
 	return Metadata{
-		ServiceName:       "openmeter",
+		ServiceName:       fmt.Sprintf("openmeter-%s", serviceName),
 		Version:           version,
 		Environment:       conf.Environment,
-		OpenTelemetryName: fmt.Sprintf("openmeter.io/%s", otelName),
+		OpenTelemetryName: fmt.Sprintf("openmeter.io/%s", serviceName),
 		K8SPodUID:         conf.K8SPodUID,
 	}
 }
