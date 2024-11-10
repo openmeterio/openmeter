@@ -77,12 +77,10 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
-			t := clock.Now()
-
 			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
-				Where(entitlementActiveAt(t)...).
+				Where(entitlementActiveAt(at)...).
 				Where(
-					db_entitlement.Or(db_entitlement.DeletedAtGT(t), db_entitlement.DeletedAtIsNil()),
+					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
 					db_entitlement.SubjectKey(subjectKey),
 					db_entitlement.Namespace(namespace),
 					db_entitlement.FeatureKey(featureKey),
