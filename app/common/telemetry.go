@@ -17,6 +17,7 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	realotelslog "go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -45,15 +46,21 @@ const (
 )
 
 func NewTelemetryResource(metadata Metadata) *resource.Resource {
+	attrs := []attribute.KeyValue{
+		semconv.ServiceName(metadata.ServiceName),
+		semconv.ServiceVersion(metadata.Version),
+		semconv.DeploymentEnvironment(metadata.Environment),
+	}
+
+	if metadata.K8SPodUID != nil {
+		attrs = append(attrs, semconv.K8SPodUID(*metadata.K8SPodUID))
+	}
+
 	extraResources, _ := resource.New(
 		// TODO: use the globally available context here?
 		context.Background(),
 		resource.WithContainer(),
-		resource.WithAttributes(
-			semconv.ServiceName(metadata.ServiceName),
-			semconv.ServiceVersion(metadata.Version),
-			semconv.DeploymentEnvironment(metadata.Environment),
-		),
+		resource.WithAttributes(attrs...),
 	)
 
 	res, _ := resource.Merge(

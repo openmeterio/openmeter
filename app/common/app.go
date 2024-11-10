@@ -14,6 +14,8 @@ type Metadata struct {
 	Version           string
 	Environment       string
 	OpenTelemetryName string
+
+	K8SPodUID *string
 }
 
 // Runner is a helper struct that runs a group of services.
