@@ -2,10 +2,12 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/oklog/run"
+	"github.com/openmeterio/openmeter/app/config"
 )
 
 // Metadata provides information about the service to components that need it (eg. telemetry).
@@ -15,7 +17,18 @@ type Metadata struct {
 	Environment       string
 	OpenTelemetryName string
 
-	K8SPodUID *string
+	// Optional
+	K8SPodUID string
+}
+
+func NewMetadata(conf config.Configuration, version string, otelName string) Metadata {
+	return Metadata{
+		ServiceName:       "openmeter",
+		Version:           version,
+		Environment:       conf.Environment,
+		OpenTelemetryName: fmt.Sprintf("openmeter.io/%s", otelName),
+		K8SPodUID:         conf.K8SPodUID,
+	}
 }
 
 // Runner is a helper struct that runs a group of services.

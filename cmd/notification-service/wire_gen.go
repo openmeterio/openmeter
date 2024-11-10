@@ -195,10 +195,5 @@ type Application struct {
 }
 
 func metadata(conf config.Configuration) common.Metadata {
-	return common.Metadata{
-		ServiceName:       "openmeter",
-		Version:           version,
-		Environment:       conf.Environment,
-		OpenTelemetryName: "openmeter.io/notification-service",
-	}
+	return common.NewMetadata(conf, version, "notification-worker")
 }

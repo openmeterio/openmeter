@@ -52,8 +52,8 @@ func NewTelemetryResource(metadata Metadata) *resource.Resource {
 		semconv.DeploymentEnvironment(metadata.Environment),
 	}
 
-	if metadata.K8SPodUID != nil {
-		attrs = append(attrs, semconv.K8SPodUID(*metadata.K8SPodUID))
+	if metadata.K8SPodUID != "" {
+		attrs = append(attrs, semconv.K8SPodUID(metadata.K8SPodUID))
 	}
 
 	extraResources, _ := resource.New(

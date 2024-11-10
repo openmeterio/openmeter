@@ -17,6 +17,7 @@ import (
 type Configuration struct {
 	Address     string
 	Environment string
+	K8SPodUID   string
 
 	Telemetry TelemetryConfig
 
