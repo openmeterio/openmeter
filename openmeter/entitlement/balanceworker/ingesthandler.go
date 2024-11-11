@@ -34,7 +34,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 			metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent),
 		)
 		if err != nil {
-			// TODO: add error information too
+			err = fmt.Errorf("handling entitlement event for %s: %w", entitlement.EntitlementID, err)
 			handlingError = errors.Join(handlingError, err)
 			continue
 		}
