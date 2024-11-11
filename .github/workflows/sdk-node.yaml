@@ -29,7 +29,7 @@ jobs:
         with:
           verb: call
           args: generate node-sdk -o api/client/node
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.13.6"
 
       - name: Open pull request
