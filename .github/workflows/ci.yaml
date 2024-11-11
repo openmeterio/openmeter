@@ -52,7 +52,7 @@ jobs:
         with:
           verb: call
           args: test
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
@@ -87,7 +87,7 @@ jobs:
         with:
           verb: call
           args: migrate check
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
@@ -120,7 +120,7 @@ jobs:
         with:
           verb: call
           args: lint all
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
@@ -252,7 +252,7 @@ jobs:
         with:
           verb: call
           args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Container Logs
@@ -290,7 +290,7 @@ jobs:
         with:
           verb: call
           args: etoe
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
@@ -323,7 +323,7 @@ jobs:
         with:
           verb: call
           args: ci
-          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
