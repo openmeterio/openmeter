@@ -203,7 +203,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 		// NOTE(chrisgacsal): we only allow updating the state of the Plan via Publish/Archive,
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
-		params.EffectivePeriod = nil
+		params.EffectivePeriod = plan.EffectivePeriod{}
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
 		if err != nil {
@@ -244,7 +244,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
 		planStatus := p.Status()
-		if lo.Contains(allowedPlanStatuses, p.Status()) {
+		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
 		}
 
@@ -256,16 +256,22 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		// In other words, modify the surrounding Plans only if the user is allowed it otherwise return a validation error
 		// in case the lifecycle of the Plan is not continuous (there are time gaps between versions).
 
-		p, err = s.adapter.UpdatePlan(ctx, plan.UpdatePlanInput{
+		input := plan.UpdatePlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: p.Namespace,
 				ID:        p.ID,
 			},
-			EffectivePeriod: &plan.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(params.EffectiveFrom.UTC()),
-				EffectiveTo:   lo.ToPtr(params.EffectiveTo.UTC()),
-			},
-		})
+		}
+
+		if params.EffectiveFrom != nil {
+			input.EffectiveFrom = lo.ToPtr(params.EffectiveFrom.UTC())
+		}
+
+		if params.EffectiveTo != nil {
+			input.EffectiveTo = lo.ToPtr(params.EffectiveTo.UTC())
+		}
+
+		p, err = s.adapter.UpdatePlan(ctx, input)
 		if err != nil {
 			return nil, fmt.Errorf("failed to publish Plan: %w", err)
 		}
@@ -304,7 +310,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 
 		activeStatuses := []plan.PlanStatus{plan.ActiveStatus}
 		status := p.Status()
-		if lo.Contains(activeStatuses, status) {
+		if !lo.Contains(activeStatuses, status) {
 			return nil, fmt.Errorf("only Plans in %+v can be archived, but it is in %s state", activeStatuses, status)
 		}
 
@@ -321,7 +327,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 				Namespace: p.Namespace,
 				ID:        p.ID,
 			},
-			EffectivePeriod: &plan.EffectivePeriod{
+			EffectivePeriod: plan.EffectivePeriod{
 				EffectiveTo: lo.ToPtr(params.EffectiveTo.UTC()),
 			},
 		})

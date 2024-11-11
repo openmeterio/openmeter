@@ -143,7 +143,7 @@ type UpdatePlanInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	*EffectivePeriod
+	EffectivePeriod
 
 	// Name
 	Name *string `json:"name"`
@@ -171,10 +171,8 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.EffectivePeriod != nil {
-		if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
-			return false
-		}
+	if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
+		return false
 	}
 
 	if i.Name != nil && *i.Name != p.Name {
@@ -203,7 +201,7 @@ func (i UpdatePlanInput) Validate() error {
 		return errors.New("invalid Name: must not be empty")
 	}
 
-	if i.EffectivePeriod != nil {
+	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
 		if err := i.EffectivePeriod.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
 		}
