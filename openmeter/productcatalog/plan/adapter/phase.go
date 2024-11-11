@@ -350,7 +350,7 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 			PlanID: params.PlanID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get Plan: %w", err)
+			return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
 		}
 
 		if !params.Equal(*p) {
@@ -371,7 +371,7 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 				p.Metadata = *params.Metadata
 			}
 
-			if params.Metadata != nil {
+			if params.StartAfter != nil {
 				query = query.SetStartAfter(params.StartAfter.ISOString())
 				p.StartAfter = *params.StartAfter
 			}
@@ -529,6 +529,9 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 		}
 
 		if !match {
+			input.Namespace = rateCard.Namespace
+			input.ID = rateCard.ID
+			input.PhaseID = rateCard.PhaseID
 			result.Update = append(result.Update, input)
 
 			rateCardsVisited[rateCardKey] = struct{}{}

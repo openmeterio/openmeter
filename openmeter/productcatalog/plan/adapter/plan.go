@@ -121,6 +121,10 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 
 		// Create plan
 
+		if params.Version == 0 {
+			params.Version = 1
+		}
+
 		planRow, err := a.db.Plan.Create().
 			SetKey(params.Key).
 			SetNamespace(params.Namespace).
@@ -128,7 +132,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetNillableDescription(params.Description).
 			SetCurrency(params.Currency.String()).
 			SetMetadata(params.Metadata).
-			SetVersion(1).
+			SetVersion(params.Version).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Plan: %w", err)
@@ -317,6 +321,7 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 							plandb.EffectiveToGT(now),
 							plandb.EffectiveToIsNil(),
 						),
+						plandb.DeletedAtIsNil(),
 					))
 				}
 			} else { // get Plan by Key and Version
@@ -381,26 +386,31 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		}
 
 		if !params.Equal(*p) {
-			query := a.db.Plan.UpdateOneID(p.ID).Where(plandb.Namespace(params.Namespace))
-
-			if params.Name != nil {
-				query = query.SetName(*params.Name)
-				p.Name = *params.Name
-			}
-
-			if params.Description != nil {
-				query = query.SetDescription(*params.Description)
-				p.Description = params.Description
-			}
+			query := a.db.Plan.UpdateOneID(p.ID).
+				Where(plandb.Namespace(params.Namespace)).
+				SetNillableName(params.Name).
+				SetNillableDescription(params.Description).
+				SetNillableEffectiveFrom(params.EffectiveFrom).
+				SetNillableEffectiveTo(params.EffectiveTo)
 
 			if params.Metadata != nil {
 				query = query.SetMetadata(*params.Metadata)
-				p.Metadata = *params.Metadata
 			}
 
 			err = query.Exec(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update Plan: %w", err)
+			}
+
+			// Plan needs to be refetched after updated in order to populate all subresources
+			p, err = a.GetPlan(ctx, plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: params.Namespace,
+					ID:        params.ID,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get updated Plan: %w", err)
 			}
 		}
 
@@ -437,7 +447,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 
 					phase, err := a.UpdatePhase(ctx, updateInput)
 					if err != nil {
-						return nil, fmt.Errorf("failed to update PlanPhasee: %w", err)
+						return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
 					}
 
 					phases = append(phases, *phase)

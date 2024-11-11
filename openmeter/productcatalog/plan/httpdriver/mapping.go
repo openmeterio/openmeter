@@ -677,9 +677,6 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 		}
 
 		tier.FlatPrice = &plan.PriceTierFlatPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.FlatPriceType,
-			},
 			Amount: amount,
 		}
 	}
@@ -691,9 +688,6 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 		}
 
 		tier.UnitPrice = &plan.PriceTierUnitPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.UnitPriceType,
-			},
 			Amount: amount,
 		}
 	}

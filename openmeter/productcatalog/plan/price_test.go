@@ -142,30 +142,18 @@ func TestTieredPrice(t *testing.T) {
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(5),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(2500)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(3),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(1),
 							},
 						},
@@ -186,30 +174,18 @@ func TestTieredPrice(t *testing.T) {
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(5),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(2500)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(3),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(1),
 							},
 						},
@@ -230,30 +206,18 @@ func TestTieredPrice(t *testing.T) {
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(5),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(2500)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(3),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(1),
 							},
 						},
@@ -274,30 +238,18 @@ func TestTieredPrice(t *testing.T) {
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(-5),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(-5),
 							},
 						},
 						{
 							UpToAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
 							FlatPrice: &PriceTierFlatPrice{
-								PriceMeta: PriceMeta{
-									Type: FlatPriceType,
-								},
 								Amount: decimal.NewFromInt(-3),
 							},
 							UnitPrice: &PriceTierUnitPrice{
-								PriceMeta: PriceMeta{
-									Type: UnitPriceType,
-								},
 								Amount: decimal.NewFromInt(-1),
 							},
 						},

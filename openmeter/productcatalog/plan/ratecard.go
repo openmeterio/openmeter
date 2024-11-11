@@ -35,6 +35,8 @@ type rateCarder interface {
 	AsMeta() (RateCardMeta, error)
 	FromFlatFee(FlatFeeRateCard)
 	FromUsageBased(UsageBasedRateCard)
+
+	Feature() *feature.Feature
 }
 
 var _ rateCarder = (*RateCard)(nil)
@@ -43,6 +45,17 @@ type RateCard struct {
 	t          RateCardType
 	flatFee    *FlatFeeRateCard
 	usageBased *UsageBasedRateCard
+}
+
+func (r *RateCard) Feature() *feature.Feature {
+	switch r.t {
+	case FlatFeeRateCardType:
+		return r.flatFee.Feature
+	case UsageBasedRateCardType:
+		return r.usageBased.Feature
+	default:
+		return nil
+	}
 }
 
 func (r *RateCard) MarshalJSON() ([]byte, error) {
@@ -61,7 +74,7 @@ func (r *RateCard) MarshalJSON() ([]byte, error) {
 			return nil, fmt.Errorf("failed to json marshal UsageBasedRateCard: %w", err)
 		}
 	default:
-		return nil, fmt.Errorf("invalid entitlement type: %s", r.t)
+		return nil, fmt.Errorf("invalid type: %s", r.t)
 	}
 
 	return b, nil

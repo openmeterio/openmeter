@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/invopop/gobl/currency"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -120,25 +121,28 @@ func (p EffectivePeriod) Status() PlanStatus {
 
 // StatusAt returns the plan status relative to time t.
 func (p EffectivePeriod) StatusAt(t time.Time) PlanStatus {
+	from := lo.FromPtrOr(p.EffectiveFrom, time.Time{})
+	to := lo.FromPtrOr(p.EffectiveTo, time.Time{})
+
 	// Plan has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
-	if p.EffectiveFrom == nil && p.EffectiveTo == nil {
+	if from.IsZero() && to.IsZero() {
 		return DraftStatus
 	}
 
 	// Plan has ArchivedStatus if EffectiveTo is in the past relative to time t.
-	if p.EffectiveFrom != nil && p.EffectiveFrom.Before(t) && p.EffectiveTo != nil && p.EffectiveTo.Before(t) && p.EffectiveFrom.Before(*p.EffectiveTo) {
+	if from.Before(t) && (to.Before(t) && from.Before(to)) {
 		return ArchivedStatus
 	}
 
 	// Plan has ActiveStatus if EffectiveFrom is set in the past relative to time t and EffectiveTo is not set
 	// or in the future relative to time t.
-	if p.EffectiveFrom != nil && p.EffectiveFrom.Before(t) && (p.EffectiveTo == nil || p.EffectiveTo.After(t)) {
+	if from.Before(t) && (to.IsZero() || to.After(t)) {
 		return ActiveStatus
 	}
 
 	// Plan is ScheduledForActiveStatus if EffectiveFrom is set in the future relative to time t and EffectiveTo is not set
 	// or in the future relative to time t.
-	if p.EffectiveFrom != nil && p.EffectiveFrom.After(t) && (p.EffectiveTo == nil || p.EffectiveTo.After(t)) {
+	if from.After(t) && (to.IsZero() || to.After(from)) {
 		return ScheduledStatus
 	}
 

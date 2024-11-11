@@ -194,6 +194,9 @@ func asPlanRateCardRow(r plan.RateCard) (entdb.PlanRateCard, error) {
 	}
 
 	ratecard := entdb.PlanRateCard{
+		Namespace:           meta.Namespace,
+		ID:                  meta.ID,
+		PhaseID:             meta.PhaseID,
 		Key:                 meta.Key,
 		Metadata:            meta.Metadata,
 		Name:                meta.Name,
