@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+const timeJitter = 30 * time.Second
+
 const (
 	OrderAsc  = sortx.OrderAsc
 	OrderDesc = sortx.OrderDesc
@@ -281,16 +283,40 @@ type PublishPlanInput struct {
 }
 
 func (i PublishPlanInput) Validate() error {
+	var errs []error
+
 	if err := i.NamespacedID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	if lo.FromPtrOr(i.EffectiveFrom, time.Time{}).IsZero() {
-		return errors.New("invalid EffectiveFrom: must not be empty")
+	now := time.Now()
+
+	from := lo.FromPtrOr(i.EffectiveFrom, time.Time{})
+
+	if from.IsZero() {
+		errs = append(errs, errors.New("invalid EffectiveFrom: must not be empty"))
 	}
 
-	if !lo.FromPtrOr(i.EffectiveTo, time.Time{}).IsZero() && lo.FromPtrOr(i.EffectiveFrom, time.Time{}).IsZero() {
-		return errors.New("invalid EffectiveFrom: must not be empty if EffectiveTo is also set")
+	if !from.IsZero() && from.Before(now.Add(-timeJitter)) {
+		errs = append(errs, errors.New("invalid EffectiveFrom: period start must not be in the past"))
+	}
+
+	to := lo.FromPtrOr(i.EffectiveTo, time.Time{})
+
+	if !to.IsZero() && from.IsZero() {
+		errs = append(errs, errors.New("invalid EffectiveFrom: must not be empty if EffectiveTo is also set"))
+	}
+
+	if !to.IsZero() && to.Before(now.Add(timeJitter)) {
+		errs = append(errs, errors.New("invalid EffectiveTo: period end must not be in the past"))
+	}
+
+	if !from.IsZero() && !to.IsZero() && from.After(to) {
+		errs = append(errs, errors.New("invalid EffectivePeriod: period start must not be later than period end"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil

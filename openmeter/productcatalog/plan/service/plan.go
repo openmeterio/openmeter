@@ -232,6 +232,15 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
+// PublishPlan
+// TODO(chrisgacsal): add support for scheduling Plan versions in the future.
+// In order to ensure that there are not time gaps where no active version of a Plan is available
+// the EffectivePeriod must be validated/updated with the surrounding Plans(N-1, N+1) if they exist.
+// If updating the EffectivePeriod for surrounding Plans violates constraints, return an validation error,
+// otherwise adjust their schedule accordingly.
+// IMPORTANT: this might need to be an optional action which must be only performed with the users consent as it has side-effects.
+// In other words, modify the surrounding Plans only if the user is allowed it otherwise return a validation error
+// in case the lifecycle of the Plan is not continuous (there are time gaps between versions).
 func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) (*plan.Plan, error) {
 	fn := func(ctx context.Context) (*plan.Plan, error) {
 		if err := params.Validate(); err != nil {
@@ -262,13 +271,37 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			return nil, fmt.Errorf("only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
 		}
 
-		// TODO(chrisgacsal): in order to ensure that there are not time gaps where no active version of a Plan is available
-		// the EffectivePeriod must be validated/updated with the surrounding Plans(N-1, N+1) if they exist.
-		// If updating the EffectivePeriod for surrounding Plans violates constraints, return an validation error,
-		// otherwise adjust their schedule accordingly.
-		// IMPORTANT: this should be an optional action which must be only performed with the users consent as it has side-effects.
-		// In other words, modify the surrounding Plans only if the user is allowed it otherwise return a validation error
-		// in case the lifecycle of the Plan is not continuous (there are time gaps between versions).
+		// Find and archive Plan version with plan.ActiveStatus if there is one. Only perform lookup if
+		// the Plan to be published has higher version then 1 meaning that it has previous versions,
+		// otherwise skip this step.
+		if p.Version > 1 {
+			activePlan, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: params.Namespace,
+				},
+				Key: p.Key,
+			})
+			if err != nil {
+				if !plan.IsNotFound(err) {
+					return nil, fmt.Errorf("failed to get Plan with active status: %w", err)
+				}
+			}
+
+			if activePlan != nil && params.EffectiveFrom != nil {
+				_, err = s.ArchivePlan(ctx, plan.ArchivePlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: activePlan.Namespace,
+						ID:        activePlan.ID,
+					},
+					EffectiveTo: lo.FromPtr(params.EffectiveFrom),
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to archive plan with active status: %w", err)
+				}
+			}
+		}
+
+		// Publish new Plan version
 
 		input := plan.UpdatePlanInput{
 			NamespacedID: models.NamespacedID{
