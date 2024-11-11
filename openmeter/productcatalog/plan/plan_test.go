@@ -74,12 +74,20 @@ func TestPlanStatus(t *testing.T) {
 			Expected: InvalidStatus,
 		},
 		{
-			Name: "Invalid with missing start",
+			Name: "Invalid with no start with end in the past",
 			Effective: EffectivePeriod{
 				EffectiveFrom: nil,
 				EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
 			},
-			Expected: InvalidStatus,
+			Expected: ArchivedStatus,
+		},
+		{
+			Name: "Invalid with no start with end in the future",
+			Effective: EffectivePeriod{
+				EffectiveFrom: nil,
+				EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+			},
+			Expected: ActiveStatus,
 		},
 	}
 

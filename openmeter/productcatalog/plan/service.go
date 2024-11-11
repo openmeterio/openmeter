@@ -331,12 +331,24 @@ type ArchivePlanInput struct {
 }
 
 func (i ArchivePlanInput) Validate() error {
+	var errs []error
+
 	if err := i.NamespacedID.Validate(); err != nil {
-		return fmt.Errorf("invalid Namespace: %w", err)
+		errs = append(errs, err)
 	}
 
 	if i.EffectiveTo.IsZero() {
-		return errors.New("invalid EffectiveTo: must not be empty")
+		errs = append(errs, errors.New("invalid EffectiveTo: must not be empty"))
+	}
+
+	now := time.Now()
+
+	if i.EffectiveTo.Before(now.Add(-timeJitter)) {
+		errs = append(errs, errors.New("invalid EffectiveTo: period end must not be in the past"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
