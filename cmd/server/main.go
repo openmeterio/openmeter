@@ -106,6 +106,7 @@ func main() {
 	app.SetGlobals()
 
 	logger := app.Logger
+	slog.SetDefault(logger)
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
 		"address":             conf.Address,
