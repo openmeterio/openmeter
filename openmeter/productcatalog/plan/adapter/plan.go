@@ -321,6 +321,7 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 							plandb.EffectiveToGT(now),
 							plandb.EffectiveToIsNil(),
 						),
+						plandb.DeletedAtIsNil(),
 					))
 				}
 			} else { // get Plan by Key and Version
