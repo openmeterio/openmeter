@@ -25,7 +25,7 @@ type EntitlementRepo interface {
 	// GetScheduledEntitlements returns all scheduled entitlements for a given subject-feature pair that become inactive after the given time, sorted by the time they become active
 	GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey models.SubjectKey, featureKey string, starting time.Time) ([]Entitlement, error)
 
-	// GetEntitlementValue deactivates an entitlement by setting the activeTo time. If the entitlement is already deactivated, it returns an error.
+	// DeactivateEntitlement deactivates an entitlement by setting the activeTo time. If the entitlement is already deactivated, it returns an error.
 	DeactivateEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
 
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
