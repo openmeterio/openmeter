@@ -61,17 +61,17 @@ require (
 	github.com/svix/svix-webhooks v1.38.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.6.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0
-	go.opentelemetry.io/otel v1.31.0
+	go.opentelemetry.io/otel v1.32.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.7.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.31.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.53.0
-	go.opentelemetry.io/otel/log v0.7.0
-	go.opentelemetry.io/otel/metric v1.31.0
+	go.opentelemetry.io/otel/log v0.8.0
+	go.opentelemetry.io/otel/metric v1.32.0
 	go.opentelemetry.io/otel/sdk v1.31.0
 	go.opentelemetry.io/otel/sdk/log v0.7.0
 	go.opentelemetry.io/otel/sdk/metric v1.31.0
-	go.opentelemetry.io/otel/trace v1.31.0
+	go.opentelemetry.io/otel/trace v1.32.0
 	go.opentelemetry.io/proto/otlp v1.3.1
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
 	golang.org/x/net v0.30.0
@@ -83,13 +83,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.1
 )
 
-require (
-	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-faster/jx v1.1.0 // indirect
-	github.com/go-faster/yaml v0.4.6 // indirect
-	github.com/invopop/validation v0.8.0 // indirect
-	github.com/ogen-go/ogen v1.6.0 // indirect
-)
+require github.com/invopop/validation v0.8.0 // indirect
 
 require (
 	ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 // indirect
