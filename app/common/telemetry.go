@@ -24,7 +24,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -52,7 +52,7 @@ func NewTelemetryResource(metadata Metadata) *resource.Resource {
 		resource.WithAttributes(
 			semconv.ServiceName(metadata.ServiceName),
 			semconv.ServiceVersion(metadata.Version),
-			semconv.DeploymentEnvironment(metadata.Environment),
+			semconv.DeploymentEnvironmentName(metadata.Environment),
 		),
 	)
 
@@ -209,7 +209,7 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 
 					span := trace.SpanFromContext(r.Context())
 					span.SetName(routePattern)
-					span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
+					span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(routePattern))
 
 					labeler, ok := otelhttp.LabelerFromContext(r.Context())
 					if ok {
