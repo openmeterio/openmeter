@@ -56,12 +56,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 }
 
 func metadata(conf config.Configuration) common.Metadata {
-	return common.Metadata{
-		ServiceName:       "openmeter",
-		Version:           version,
-		Environment:       conf.Environment,
-		OpenTelemetryName: "openmeter.io/sink-worker",
-	}
+	return common.NewMetadata(conf, version, "sink-worker")
 }
 
 // TODO: use the primary logger

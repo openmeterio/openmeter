@@ -287,10 +287,5 @@ type Application struct {
 }
 
 func metadata(conf config.Configuration) common.Metadata {
-	return common.Metadata{
-		ServiceName:       "openmeter",
-		Version:           version,
-		Environment:       conf.Environment,
-		OpenTelemetryName: "openmeter.io/backend",
-	}
+	return common.NewMetadata(conf, version, "backend")
 }
