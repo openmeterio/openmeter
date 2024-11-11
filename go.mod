@@ -28,7 +28,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.31.0
+	github.com/huandu/go-sqlbuilder v1.32.0
 	github.com/invopop/gobl v0.202.0
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/lmittmann/tint v1.0.5
@@ -83,13 +83,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.1
 )
 
-require (
-	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-faster/jx v1.1.0 // indirect
-	github.com/go-faster/yaml v0.4.6 // indirect
-	github.com/invopop/validation v0.8.0 // indirect
-	github.com/ogen-go/ogen v1.6.0 // indirect
-)
+require github.com/invopop/validation v0.8.0 // indirect
 
 require (
 	ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 // indirect
