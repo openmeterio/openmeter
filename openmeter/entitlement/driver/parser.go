@@ -161,6 +161,10 @@ func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (ap
 		return api.EntitlementValue{
 			HasAccess: ent.HasAccess(),
 		}, nil
+	case *entitlement.NoAccessValue:
+		return api.EntitlementValue{
+			HasAccess: false,
+		}, nil
 	default:
 		return api.EntitlementValue{}, errors.New("unknown entitlement type")
 	}
