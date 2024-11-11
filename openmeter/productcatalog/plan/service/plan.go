@@ -195,15 +195,14 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
 		planStatus := p.Status()
-		if lo.Contains(allowedPlanStatuses, p.Status()) {
+		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
 		}
 
 		logger.Debug("updating plan")
 
-		// NOTE(chrisgacsal): we only allow updating the state of the Plan via Publish/Archive
-		// however UpdatePlanInput is shared across Update/Publish/Archive endpoints
-		// therefore the EffectivePeriod of its attribute must be zerod before updating the Plan.
+		// NOTE(chrisgacsal): we only allow updating the state of the Plan via Publish/Archive,
+		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = nil
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
