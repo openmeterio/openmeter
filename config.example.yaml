@@ -40,6 +40,9 @@ telemetry:
 entitlements:
   enabled: true
 
+productcatalog:
+  enabled: true
+
 billing:
   enabled: true
 
