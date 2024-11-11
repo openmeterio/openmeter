@@ -12,7 +12,9 @@ import (
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,10 +22,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[plan.Plan], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[plan.Plan], error) {
+func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[planentity.Plan], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[planentity.Plan], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[plan.Plan]{}, fmt.Errorf("invalid list Plans parameters: %w", err)
+			return pagination.PagedResponse[planentity.Plan]{}, fmt.Errorf("invalid list Plans parameters: %w", err)
 		}
 
 		query := a.db.Plan.Query()
@@ -80,7 +82,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Order(plandb.ByID(order...))
 		}
 
-		response := pagination.PagedResponse[plan.Plan]{
+		response := pagination.PagedResponse[planentity.Plan]{
 			Page: params.Page,
 		}
 
@@ -89,7 +91,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			return response, fmt.Errorf("failed to list Plans: %w", err)
 		}
 
-		result := make([]plan.Plan, 0, len(paged.Items))
+		result := make([]planentity.Plan, 0, len(paged.Items))
 		for _, item := range paged.Items {
 			if item == nil {
 				a.logger.Warn("invalid query result: nil Plan received")
@@ -110,11 +112,11 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		return response, nil
 	}
 
-	return entutils.TransactingRepo[pagination.PagedResponse[plan.Plan], *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[pagination.PagedResponse[planentity.Plan], *adapter](ctx, a, fn)
 }
 
-func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {
+func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context, a *adapter) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid create Plan parameters: %w", err)
 		}
@@ -149,7 +151,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 
 		// Create phases
 
-		p.Phases = make([]plan.Phase, 0, len(params.Phases))
+		p.Phases = make([]planentity.Phase, 0, len(params.Phases))
 
 		for _, phase := range params.Phases {
 			planPhase, err := a.CreatePhase(ctx, plan.CreatePhaseInput{
@@ -174,7 +176,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 		return p, nil
 	}
 
-	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[*planentity.Plan, *adapter](ctx, a, fn)
 }
 
 func (a *adapter) DeletePlan(ctx context.Context, params plan.DeletePlanInput) error {
@@ -264,8 +266,8 @@ func (a *adapter) DeletePlan(ctx context.Context, params plan.DeletePlanInput) e
 	return resp
 }
 
-func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {
+func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context, a *adapter) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid get Plan parameters: %w", err)
 		}
@@ -361,11 +363,11 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		return p, nil
 	}
 
-	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[*planentity.Plan, *adapter](ctx, a, fn)
 }
 
-func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {
+func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context, a *adapter) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid update Plan parameters: %w", err)
 		}
@@ -405,7 +407,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		}
 
 		if params.Phases != nil {
-			phases := make([]plan.Phase, 0, len(p.Phases))
+			phases := make([]planentity.Phase, 0, len(p.Phases))
 
 			diffResult := planPhasesDiff(*params.Phases, p.Phases)
 
@@ -449,7 +451,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			}
 
 			if len(phases) > 0 {
-				plan.SortPhases(p.Phases, plan.SortPhasesByStartAfter)
+				productcatalogmodel.SortPhases(lo.Map(p.Phases, func(p planentity.Phase, _ int) productcatalogmodel.Phase { return p.Phase }), productcatalogmodel.SortPhasesByStartAfter)
 			}
 
 			p.Phases = phases
@@ -458,7 +460,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		return p, nil
 	}
 
-	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[*planentity.Plan, *adapter](ctx, a, fn)
 }
 
 var planPhaseAscOrderingByStartAfterFn = func(q *entdb.PlanPhaseQuery) {
@@ -480,10 +482,10 @@ type planPhasesDiffResult struct {
 	Remove []plan.DeletePhaseInput
 
 	// Keep defines the list of plan.Phase to keep unmodified
-	Keep []plan.Phase
+	Keep []planentity.Phase
 }
 
-func planPhasesDiff(requested, actual []plan.Phase) planPhasesDiffResult {
+func planPhasesDiff(requested, actual []planentity.Phase) planPhasesDiffResult {
 	result := planPhasesDiffResult{}
 
 	inputsMap := make(map[string]plan.UpdatePhaseInput, len(requested))
@@ -503,7 +505,7 @@ func planPhasesDiff(requested, actual []plan.Phase) planPhasesDiffResult {
 		}
 	}
 
-	phaseMap := make(map[string]plan.Phase, len(actual))
+	phaseMap := make(map[string]planentity.Phase, len(actual))
 	for _, phase := range actual {
 		phaseMap[phase.Key] = phase
 	}

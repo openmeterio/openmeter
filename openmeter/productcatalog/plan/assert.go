@@ -9,10 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
-func AssertPlanCreateInputEqual(t *testing.T, i CreatePlanInput, p Plan) {
+func AssertPlanCreateInputEqual(t *testing.T, i CreatePlanInput, p planentity.Plan) {
 	t.Helper()
 
 	assert.Equalf(t, i.Namespace, p.Namespace, "create input: namespace mismatch")
@@ -25,7 +27,7 @@ func AssertPlanCreateInputEqual(t *testing.T, i CreatePlanInput, p Plan) {
 	AssertPlanPhasesEqual(t, i.Phases, p.Phases)
 }
 
-func AssertPlanUpdateInputEqual(t *testing.T, i UpdatePlanInput, p Plan) {
+func AssertPlanUpdateInputEqual(t *testing.T, i UpdatePlanInput, p planentity.Plan) {
 	t.Helper()
 
 	assert.Equalf(t, i.Namespace, p.Namespace, "update input: namespace mismatch")
@@ -47,7 +49,7 @@ func AssertPlanUpdateInputEqual(t *testing.T, i UpdatePlanInput, p Plan) {
 	}
 }
 
-func AssertPhaseCreateInputEqual(t *testing.T, i CreatePhaseInput, p Phase) {
+func AssertPhaseCreateInputEqual(t *testing.T, i CreatePhaseInput, p planentity.Phase) {
 	t.Helper()
 
 	assert.Equalf(t, i.Namespace, p.Namespace, "create input: namespace mismatch")
@@ -60,7 +62,7 @@ func AssertPhaseCreateInputEqual(t *testing.T, i CreatePhaseInput, p Phase) {
 	AssertPlanRateCardsEqual(t, i.RateCards, p.RateCards)
 }
 
-func AssertPhaseUpdateInputEqual(t *testing.T, i UpdatePhaseInput, p Phase) {
+func AssertPhaseUpdateInputEqual(t *testing.T, i UpdatePhaseInput, p planentity.Phase) {
 	t.Helper()
 
 	assert.Equalf(t, i.Namespace, p.Namespace, "update input: namespace mismatch")
@@ -90,7 +92,7 @@ func AssertPhaseUpdateInputEqual(t *testing.T, i UpdatePhaseInput, p Phase) {
 	}
 }
 
-func AssertPlanEqual(t *testing.T, p1, p2 Plan) {
+func AssertPlanEqual(t *testing.T, p1, p2 planentity.Plan) {
 	t.Helper()
 
 	assert.Equal(t, p1.Namespace, p2.Namespace)
@@ -102,13 +104,13 @@ func AssertPlanEqual(t *testing.T, p1, p2 Plan) {
 	AssertPlanPhasesEqual(t, p1.Phases, p2.Phases)
 }
 
-func AssertPlanPhasesEqual(t *testing.T, p1, p2 []Phase) {
+func AssertPlanPhasesEqual(t *testing.T, p1, p2 []planentity.Phase) {
 	t.Helper()
 
 	assert.Equalf(t, len(p1), len(p2), "number of PlanPhases mismatch")
 
-	p1Map := func() map[string]Phase {
-		m := make(map[string]Phase, len(p1))
+	p1Map := func() map[string]planentity.Phase {
+		m := make(map[string]planentity.Phase, len(p1))
 		for _, v := range p1 {
 			m[v.Key] = v
 		}
@@ -116,8 +118,8 @@ func AssertPlanPhasesEqual(t *testing.T, p1, p2 []Phase) {
 		return m
 	}()
 
-	p2Map := func() map[string]Phase {
-		m := make(map[string]Phase, len(p2))
+	p2Map := func() map[string]planentity.Phase {
+		m := make(map[string]planentity.Phase, len(p2))
 		for _, v := range p2 {
 			m[v.Key] = v
 		}
@@ -141,7 +143,7 @@ func AssertPlanPhasesEqual(t *testing.T, p1, p2 []Phase) {
 	}
 }
 
-func AssertPlanPhaseEqual(t *testing.T, p1, p2 Phase) {
+func AssertPlanPhaseEqual(t *testing.T, p1, p2 planentity.Phase) {
 	t.Helper()
 
 	assert.Equalf(t, p1.Key, p2.Key, "key mismatch")
@@ -153,13 +155,13 @@ func AssertPlanPhaseEqual(t *testing.T, p1, p2 Phase) {
 	AssertPlanRateCardsEqual(t, p1.RateCards, p2.RateCards)
 }
 
-func AssertPlanRateCardsEqual(t *testing.T, r1, r2 []RateCard) {
+func AssertPlanRateCardsEqual(t *testing.T, r1, r2 []planentity.RateCard) {
 	t.Helper()
 
 	assert.Equalf(t, len(r1), len(r2), "number of RateCards mismatch")
 
-	r1Map := func() map[string]RateCard {
-		m := make(map[string]RateCard, len(r1))
+	r1Map := func() map[string]planentity.RateCard {
+		m := make(map[string]planentity.RateCard, len(r1))
 		for _, v := range r1 {
 			m[v.Key()] = v
 		}
@@ -167,8 +169,8 @@ func AssertPlanRateCardsEqual(t *testing.T, r1, r2 []RateCard) {
 		return m
 	}()
 
-	r2Map := func() map[string]RateCard {
-		m := make(map[string]RateCard, len(r2))
+	r2Map := func() map[string]planentity.RateCard {
+		m := make(map[string]planentity.RateCard, len(r2))
 		for _, v := range r2 {
 			m[v.Key()] = v
 		}
@@ -192,7 +194,7 @@ func AssertPlanRateCardsEqual(t *testing.T, r1, r2 []RateCard) {
 	}
 }
 
-func AssertRateCardEqual(t *testing.T, r1, r2 RateCard) {
+func AssertRateCardEqual(t *testing.T, r1, r2 planentity.RateCard) {
 	t.Helper()
 
 	m1, err := r1.AsMeta()
@@ -236,7 +238,7 @@ func AssertRateCardEqual(t *testing.T, r1, r2 RateCard) {
 	var taxConfig1, taxConfig2 []byte
 
 	switch r1.Type() {
-	case FlatFeeRateCardType:
+	case productcatalogmodel.FlatFeeRateCardType:
 		rc1, err := r1.AsFlatFee()
 		require.NoError(t, err)
 
@@ -251,7 +253,7 @@ func AssertRateCardEqual(t *testing.T, r1, r2 RateCard) {
 
 		taxConfig2, err = json.Marshal(rc2.TaxConfig)
 		require.NoError(t, err)
-	case UsageBasedRateCardType:
+	case productcatalogmodel.UsageBasedRateCardType:
 		rc1, err := r1.AsUsageBased()
 		require.NoError(t, err)
 

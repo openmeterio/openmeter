@@ -7,7 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -672,14 +672,14 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearQuantity(value *alpacadecimal.De
 	return u.SetQuantity(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *plan.TaxConfig) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *model.TaxConfig) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *plan.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *model.TaxConfig) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
@@ -1470,14 +1470,14 @@ func (u *PlanPhaseUpdateOne) SetOrClearDescription(value *string) *PlanPhaseUpda
 	return u.SetDescription(*value)
 }
 
-func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *[]plan.Discount) *PlanPhaseUpdate {
+func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *[]model.Discount) *PlanPhaseUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
 }
 
-func (u *PlanPhaseUpdateOne) SetOrClearDiscounts(value *[]plan.Discount) *PlanPhaseUpdateOne {
+func (u *PlanPhaseUpdateOne) SetOrClearDiscounts(value *[]model.Discount) *PlanPhaseUpdateOne {
 	if value == nil {
 		return u.ClearDiscounts()
 	}
@@ -1540,28 +1540,28 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureKey(value *string) *PlanRateCar
 	return u.SetFeatureKey(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearEntitlementTemplate(value **plan.EntitlementTemplate) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearEntitlementTemplate(value **model.EntitlementTemplate) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearEntitlementTemplate()
 	}
 	return u.SetEntitlementTemplate(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearEntitlementTemplate(value **plan.EntitlementTemplate) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearEntitlementTemplate(value **model.EntitlementTemplate) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearEntitlementTemplate()
 	}
 	return u.SetEntitlementTemplate(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearTaxConfig(value **plan.TaxConfig) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearTaxConfig(value **model.TaxConfig) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **plan.TaxConfig) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **model.TaxConfig) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
@@ -1582,14 +1582,14 @@ func (u *PlanRateCardUpdateOne) SetOrClearBillingCadence(value *datex.ISOString)
 	return u.SetBillingCadence(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearPrice(value **plan.Price) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearPrice(value **model.Price) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearPrice()
 	}
 	return u.SetPrice(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **plan.Price) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **model.Price) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearPrice()
 	}

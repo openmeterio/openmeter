@@ -1,4 +1,4 @@
-package plan
+package model
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 	"github.com/invopop/gobl/currency"
 
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -32,9 +31,7 @@ func (s PlanStatus) Values() []string {
 
 var _ Validator = (*Plan)(nil)
 
-type Plan struct {
-	models.NamespacedID
-	models.ManagedModel
+type PlanGeneric struct {
 	EffectivePeriod
 
 	// Key is the unique key for Plan.
@@ -54,6 +51,10 @@ type Plan struct {
 
 	// Currency
 	Currency currency.Code `json:"currency"`
+}
+
+type Plan struct {
+	PlanGeneric
 
 	// Phases
 	Phases []Phase `json:"phases"`
@@ -77,10 +78,6 @@ func (p Plan) Validate() error {
 
 		if _, ok := startAfters[startAfter]; ok {
 			errs = append(errs, fmt.Errorf("multiple plan phases have the same startAfter which is not allowed: %q", phase.Name))
-		}
-
-		if phase.Namespace != p.Namespace {
-			errs = append(errs, fmt.Errorf("invalid phase %q: namespace mismatch %s", phase.Key, phase.Namespace))
 		}
 
 		if err := phase.Validate(); err != nil {

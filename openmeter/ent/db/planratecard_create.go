@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -108,8 +108,8 @@ func (prcc *PlanRateCardCreate) SetKey(s string) *PlanRateCardCreate {
 }
 
 // SetType sets the "type" field.
-func (prcc *PlanRateCardCreate) SetType(pct plan.RateCardType) *PlanRateCardCreate {
-	prcc.mutation.SetType(pct)
+func (prcc *PlanRateCardCreate) SetType(mct model.RateCardType) *PlanRateCardCreate {
+	prcc.mutation.SetType(mct)
 	return prcc
 }
 
@@ -128,14 +128,14 @@ func (prcc *PlanRateCardCreate) SetNillableFeatureKey(s *string) *PlanRateCardCr
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (prcc *PlanRateCardCreate) SetEntitlementTemplate(pt *plan.EntitlementTemplate) *PlanRateCardCreate {
-	prcc.mutation.SetEntitlementTemplate(pt)
+func (prcc *PlanRateCardCreate) SetEntitlementTemplate(mt *model.EntitlementTemplate) *PlanRateCardCreate {
+	prcc.mutation.SetEntitlementTemplate(mt)
 	return prcc
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (prcc *PlanRateCardCreate) SetTaxConfig(pc *plan.TaxConfig) *PlanRateCardCreate {
-	prcc.mutation.SetTaxConfig(pc)
+func (prcc *PlanRateCardCreate) SetTaxConfig(mc *model.TaxConfig) *PlanRateCardCreate {
+	prcc.mutation.SetTaxConfig(mc)
 	return prcc
 }
 
@@ -154,8 +154,8 @@ func (prcc *PlanRateCardCreate) SetNillableBillingCadence(ds *datex.ISOString) *
 }
 
 // SetPrice sets the "price" field.
-func (prcc *PlanRateCardCreate) SetPrice(pl *plan.Price) *PlanRateCardCreate {
-	prcc.mutation.SetPrice(pl)
+func (prcc *PlanRateCardCreate) SetPrice(m *model.Price) *PlanRateCardCreate {
+	prcc.mutation.SetPrice(m)
 	return prcc
 }
 
@@ -617,7 +617,7 @@ func (u *PlanRateCardUpsert) ClearFeatureKey() *PlanRateCardUpsert {
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (u *PlanRateCardUpsert) SetEntitlementTemplate(v *plan.EntitlementTemplate) *PlanRateCardUpsert {
+func (u *PlanRateCardUpsert) SetEntitlementTemplate(v *model.EntitlementTemplate) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldEntitlementTemplate, v)
 	return u
 }
@@ -635,7 +635,7 @@ func (u *PlanRateCardUpsert) ClearEntitlementTemplate() *PlanRateCardUpsert {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *PlanRateCardUpsert) SetTaxConfig(v *plan.TaxConfig) *PlanRateCardUpsert {
+func (u *PlanRateCardUpsert) SetTaxConfig(v *model.TaxConfig) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldTaxConfig, v)
 	return u
 }
@@ -671,7 +671,7 @@ func (u *PlanRateCardUpsert) ClearBillingCadence() *PlanRateCardUpsert {
 }
 
 // SetPrice sets the "price" field.
-func (u *PlanRateCardUpsert) SetPrice(v *plan.Price) *PlanRateCardUpsert {
+func (u *PlanRateCardUpsert) SetPrice(v *model.Price) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldPrice, v)
 	return u
 }
@@ -891,7 +891,7 @@ func (u *PlanRateCardUpsertOne) ClearFeatureKey() *PlanRateCardUpsertOne {
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (u *PlanRateCardUpsertOne) SetEntitlementTemplate(v *plan.EntitlementTemplate) *PlanRateCardUpsertOne {
+func (u *PlanRateCardUpsertOne) SetEntitlementTemplate(v *model.EntitlementTemplate) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetEntitlementTemplate(v)
 	})
@@ -912,7 +912,7 @@ func (u *PlanRateCardUpsertOne) ClearEntitlementTemplate() *PlanRateCardUpsertOn
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *PlanRateCardUpsertOne) SetTaxConfig(v *plan.TaxConfig) *PlanRateCardUpsertOne {
+func (u *PlanRateCardUpsertOne) SetTaxConfig(v *model.TaxConfig) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -954,7 +954,7 @@ func (u *PlanRateCardUpsertOne) ClearBillingCadence() *PlanRateCardUpsertOne {
 }
 
 // SetPrice sets the "price" field.
-func (u *PlanRateCardUpsertOne) SetPrice(v *plan.Price) *PlanRateCardUpsertOne {
+func (u *PlanRateCardUpsertOne) SetPrice(v *model.Price) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetPrice(v)
 	})
@@ -1352,7 +1352,7 @@ func (u *PlanRateCardUpsertBulk) ClearFeatureKey() *PlanRateCardUpsertBulk {
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (u *PlanRateCardUpsertBulk) SetEntitlementTemplate(v *plan.EntitlementTemplate) *PlanRateCardUpsertBulk {
+func (u *PlanRateCardUpsertBulk) SetEntitlementTemplate(v *model.EntitlementTemplate) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetEntitlementTemplate(v)
 	})
@@ -1373,7 +1373,7 @@ func (u *PlanRateCardUpsertBulk) ClearEntitlementTemplate() *PlanRateCardUpsertB
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *PlanRateCardUpsertBulk) SetTaxConfig(v *plan.TaxConfig) *PlanRateCardUpsertBulk {
+func (u *PlanRateCardUpsertBulk) SetTaxConfig(v *model.TaxConfig) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -1415,7 +1415,7 @@ func (u *PlanRateCardUpsertBulk) ClearBillingCadence() *PlanRateCardUpsertBulk {
 }
 
 // SetPrice sets the "price" field.
-func (u *PlanRateCardUpsertBulk) SetPrice(v *plan.Price) *PlanRateCardUpsertBulk {
+func (u *PlanRateCardUpsertBulk) SetPrice(v *model.Price) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetPrice(v)
 	})

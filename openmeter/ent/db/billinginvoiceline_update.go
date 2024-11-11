@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 )
 
 // BillingInvoiceLineUpdate is the builder for updating BillingInvoiceLine entities.
@@ -217,15 +217,15 @@ func (bilu *BillingInvoiceLineUpdate) ClearQuantity() *BillingInvoiceLineUpdate 
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (bilu *BillingInvoiceLineUpdate) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetTaxConfig(pc)
+func (bilu *BillingInvoiceLineUpdate) SetTaxConfig(mc model.TaxConfig) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetTaxConfig(mc)
 	return bilu
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineUpdate {
-	if pc != nil {
-		bilu.SetTaxConfig(*pc)
+func (bilu *BillingInvoiceLineUpdate) SetNillableTaxConfig(mc *model.TaxConfig) *BillingInvoiceLineUpdate {
+	if mc != nil {
+		bilu.SetTaxConfig(*mc)
 	}
 	return bilu
 }
@@ -833,15 +833,15 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearQuantity() *BillingInvoiceLineUpd
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetTaxConfig(pc)
+func (biluo *BillingInvoiceLineUpdateOne) SetTaxConfig(mc model.TaxConfig) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetTaxConfig(mc)
 	return biluo
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineUpdateOne {
-	if pc != nil {
-		biluo.SetTaxConfig(*pc)
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(mc *model.TaxConfig) *BillingInvoiceLineUpdateOne {
+	if mc != nil {
+		biluo.SetTaxConfig(*mc)
 	}
 	return biluo
 }

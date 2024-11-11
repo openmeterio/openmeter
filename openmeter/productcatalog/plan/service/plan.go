@@ -6,16 +6,18 @@ import (
 
 	"github.com/samber/lo"
 
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[plan.Plan], error) {
-	fn := func(ctx context.Context) (pagination.PagedResponse[plan.Plan], error) {
+func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[planentity.Plan], error) {
+	fn := func(ctx context.Context) (pagination.PagedResponse[planentity.Plan], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[plan.Plan]{}, fmt.Errorf("invalid list Plans params: %w", err)
+			return pagination.PagedResponse[planentity.Plan]{}, fmt.Errorf("invalid list Plans params: %w", err)
 		}
 
 		return s.adapter.ListPlans(ctx, params)
@@ -24,8 +26,8 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
+func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid create Plan params: %w", err)
 		}
@@ -82,8 +84,8 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 	return err
 }
 
-func (s service) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
+func (s service) GetPlan(ctx context.Context, params plan.GetPlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid get Plan params: %w", err)
 		}
@@ -111,8 +113,8 @@ func (s service) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.P
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
+func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid update Plan params: %w", err)
 		}
@@ -135,7 +137,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []productcatalogmodel.PlanStatus{productcatalogmodel.DraftStatus, productcatalogmodel.ScheduledStatus}
 		planStatus := p.Status()
 		if lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
@@ -161,8 +163,8 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
+func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid publish Plan params: %w", err)
 		}
@@ -185,7 +187,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []productcatalogmodel.PlanStatus{productcatalogmodel.DraftStatus, productcatalogmodel.ScheduledStatus}
 		planStatus := p.Status()
 		if lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
@@ -204,7 +206,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 				Namespace: p.Namespace,
 				ID:        p.ID,
 			},
-			EffectivePeriod: &plan.EffectivePeriod{
+			EffectivePeriod: &productcatalogmodel.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(params.EffectiveFrom.UTC()),
 				EffectiveTo:   lo.ToPtr(params.EffectiveTo.UTC()),
 			},
@@ -221,8 +223,8 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
+func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid archive Plan params: %w", err)
 		}
@@ -245,7 +247,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		activeStatuses := []plan.PlanStatus{plan.ActiveStatus}
+		activeStatuses := []productcatalogmodel.PlanStatus{productcatalogmodel.ActiveStatus}
 		status := p.Status()
 		if lo.Contains(activeStatuses, status) {
 			return nil, fmt.Errorf("only Plans in %+v can be archived, but it is in %s state", activeStatuses, status)
@@ -264,7 +266,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 				Namespace: p.Namespace,
 				ID:        p.ID,
 			},
-			EffectivePeriod: &plan.EffectivePeriod{
+			EffectivePeriod: &productcatalogmodel.EffectivePeriod{
 				EffectiveTo: lo.ToPtr(params.EffectiveTo.UTC()),
 			},
 		})
@@ -280,8 +282,8 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
+func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*planentity.Plan, error) {
+	fn := func(ctx context.Context) (*planentity.Plan, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid next version Plan params: %w", err)
 		}

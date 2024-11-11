@@ -1,4 +1,4 @@
-package plan
+package model
 
 import (
 	"errors"
@@ -6,15 +6,9 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const DefaultStartAfter = "P0D"
-
-type Phase struct {
-	models.NamespacedID
-	models.ManagedModel
-
+type PhaseGeneric struct {
 	// Key is the unique key for Phase.
 	Key string `json:"key"`
 
@@ -30,14 +24,18 @@ type Phase struct {
 	// StartAfter
 	StartAfter datex.Period `json:"interval"`
 
+	// PlanID
+	PlanID string `json:"-"`
+}
+
+type Phase struct {
+	PhaseGeneric
+
 	// RateCards
 	RateCards []RateCard `json:"rateCards"`
 
 	// Discounts
 	Discounts []Discount `json:"discounts"`
-
-	// PlanID
-	PlanID string `json:"-"`
 }
 
 func (p Phase) Validate() error {
@@ -57,10 +55,6 @@ func (p Phase) Validate() error {
 			errs = append(errs, fmt.Errorf("duplicated RateCard: %s", rateCard.Key()))
 		} else {
 			rateCardKeys[rateCard.Key()] = rateCard
-		}
-
-		if rateCard.Namespace() != p.Namespace {
-			errs = append(errs, fmt.Errorf("invalid RateCard: namespace mismatch %s", rateCard.Namespace()))
 		}
 
 		if err := rateCard.Validate(); err != nil {

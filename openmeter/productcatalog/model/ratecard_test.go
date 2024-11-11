@@ -1,4 +1,4 @@
-package plan
+package model
 
 import (
 	"testing"
@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestFlatFeeRateCard(t *testing.T) {
@@ -25,15 +24,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 				Name: "valid",
 				RateCard: FlatFeeRateCard{
 					RateCardMeta: RateCardMeta{
-						NamespacedID: models.NamespacedID{
-							Namespace: "namespace-1",
-							ID:        "01JBP3SGZ2WVRN5N746HKJR67X",
-						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
 						Key:         "flat-1",
 						Type:        FlatFeeRateCardType,
 						Name:        "Flat 1",
@@ -92,15 +82,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 				Name: "invalid",
 				RateCard: FlatFeeRateCard{
 					RateCardMeta: RateCardMeta{
-						NamespacedID: models.NamespacedID{
-							Namespace: "namespace-2",
-							ID:        "01JBP3SGZ26YSACQ7HQRZHZAMH",
-						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
 						Key:         "flat-2",
 						Type:        FlatFeeRateCardType,
 						Name:        "Flat 2",
@@ -182,15 +163,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "valid",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						NamespacedID: models.NamespacedID{
-							Namespace: "namespace-1",
-							ID:        "01JBP3SGZ2WVRN5N746HKJR67X",
-						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
 						Key:         "usage-1",
 						Type:        UsageBasedRateCardType,
 						Name:        "Usage 1",
@@ -254,15 +226,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						NamespacedID: models.NamespacedID{
-							Namespace: "namespace-2",
-							ID:        "01JBWYPN0A4NJW0HCYVP47WQZ5",
-						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
 						Key:         "usage-2",
 						Type:        UsageBasedRateCardType,
 						Name:        "Usage 2",

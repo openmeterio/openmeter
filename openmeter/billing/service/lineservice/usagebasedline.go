@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -48,13 +48,13 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billingenti
 }
 
 func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billingentity.Period, error) {
-	if l.line.UsageBased.Price.Type() == plan.TieredPriceType {
+	if l.line.UsageBased.Price.Type() == productcatalogmodel.TieredPriceType {
 		tiered, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
 			return nil, err
 		}
 
-		if tiered.Mode == plan.GraduatedTieredPrice {
+		if tiered.Mode == productcatalogmodel.GraduatedTieredPrice {
 			// Graduated tiers are only billable if we have all the data acquired, as otherwise
 			// we might overcharge the customer (if we are at tier bundaries)
 			if !asof.Before(l.line.InvoiceAt) {

@@ -1,5 +1,5 @@
 package billingentity
 
-import "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+import productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 
-type TaxConfig = plan.TaxConfig
+type TaxConfig = productcatalogmodel.TaxConfig

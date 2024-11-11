@@ -21,7 +21,7 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -168,17 +168,17 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							Currency: currencyx.Code(currency.HUF),
 						},
 						UsageBased: billingentity.UsageBasedLine{
-							Price: plan.NewPriceFrom(plan.TieredPrice{
-								Mode: plan.VolumeTieredPrice,
-								Tiers: []plan.PriceTier{
+							Price: productcatalogmodel.NewPriceFrom(productcatalogmodel.TieredPrice{
+								Mode: productcatalogmodel.VolumeTieredPrice,
+								Tiers: []productcatalogmodel.PriceTier{
 									{
 										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(10),
 										},
 									},
 									{
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(100),
 										},
 									},
@@ -331,26 +331,26 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		})
 
 		require.True(s.T(), found, "tiered price item is present")
-		require.Equal(s.T(), tieredLine.UsageBased.Price.Type(), plan.TieredPriceType)
+		require.Equal(s.T(), tieredLine.UsageBased.Price.Type(), productcatalogmodel.TieredPriceType)
 		tieredPrice, err := tieredLine.UsageBased.Price.AsTiered()
 		require.NoError(s.T(), err)
 
 		require.Equal(s.T(),
 			tieredPrice,
-			plan.TieredPrice{
-				PriceMeta: plan.PriceMeta{
-					Type: plan.TieredPriceType,
+			productcatalogmodel.TieredPrice{
+				PriceMeta: productcatalogmodel.PriceMeta{
+					Type: productcatalogmodel.TieredPriceType,
 				},
-				Mode: plan.VolumeTieredPrice,
-				Tiers: []plan.PriceTier{
+				Mode: productcatalogmodel.VolumeTieredPrice,
+				Tiers: []productcatalogmodel.PriceTier{
 					{
 						UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
-						UnitPrice: &plan.PriceTierUnitPrice{
+						UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 							Amount: alpacadecimal.NewFromFloat(10),
 						},
 					},
 					{
-						UnitPrice: &plan.PriceTierUnitPrice{
+						UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 							Amount: alpacadecimal.NewFromFloat(100),
 						},
 					},
@@ -1370,7 +1370,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
-							Price: plan.NewPriceFrom(plan.UnitPrice{
+							Price: productcatalogmodel.NewPriceFrom(productcatalogmodel.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(100),
 							}),
 						},
@@ -1385,9 +1385,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.flatPerUsage.Key,
-							Price: plan.NewPriceFrom(plan.FlatPrice{
+							Price: productcatalogmodel.NewPriceFrom(productcatalogmodel.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
-								PaymentTerm: plan.InArrearsPaymentTerm,
+								PaymentTerm: productcatalogmodel.InArrearsPaymentTerm,
 							}),
 						},
 					},
@@ -1401,23 +1401,23 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
-							Price: plan.NewPriceFrom(plan.TieredPrice{
-								Mode: plan.VolumeTieredPrice,
-								Tiers: []plan.PriceTier{
+							Price: productcatalogmodel.NewPriceFrom(productcatalogmodel.TieredPrice{
+								Mode: productcatalogmodel.VolumeTieredPrice,
+								Tiers: []productcatalogmodel.PriceTier{
 									{
 										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(100),
 										},
 									},
 									{
 										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(90),
 										},
 									},
 									{
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(80),
 										},
 									},
@@ -1435,23 +1435,23 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
-							Price: plan.NewPriceFrom(plan.TieredPrice{
-								Mode: plan.GraduatedTieredPrice,
-								Tiers: []plan.PriceTier{
+							Price: productcatalogmodel.NewPriceFrom(productcatalogmodel.TieredPrice{
+								Mode: productcatalogmodel.GraduatedTieredPrice,
+								Tiers: []productcatalogmodel.PriceTier{
 									{
 										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(100),
 										},
 									},
 									{
 										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(90),
 										},
 									},
 									{
-										UnitPrice: &plan.PriceTierUnitPrice{
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
 											Amount: alpacadecimal.NewFromFloat(80),
 										},
 									},

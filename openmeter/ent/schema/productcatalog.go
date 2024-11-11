@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -72,7 +73,7 @@ func (PlanPhase) Fields() []ent.Field {
 			GoType(datex.ISOString("")).
 			Default(plan.DefaultStartAfter),
 		field.String("discounts").
-			GoType([]plan.Discount{}).
+			GoType([]productcatalogmodel.Discount{}).
 			ValueScanner(DiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -119,13 +120,13 @@ func (PlanRateCard) Mixin() []ent.Mixin {
 func (PlanRateCard) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("type").
-			GoType(plan.RateCardType("")).
+			GoType(productcatalogmodel.RateCardType("")).
 			Immutable(),
 		field.String("feature_key").
 			Optional().
 			Nillable(),
 		field.String("entitlement_template").
-			GoType(&plan.EntitlementTemplate{}).
+			GoType(&productcatalogmodel.EntitlementTemplate{}).
 			ValueScanner(EntitlementTemplateValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -133,7 +134,7 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("tax_config").
-			GoType(&plan.TaxConfig{}).
+			GoType(&productcatalogmodel.TaxConfig{}).
 			ValueScanner(TaxConfigValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -145,7 +146,7 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("price").
-			GoType(&plan.Price{}).
+			GoType(&productcatalogmodel.Price{}).
 			ValueScanner(PriceValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -185,10 +186,10 @@ func (PlanRateCard) Indexes() []ent.Index {
 	}
 }
 
-var EntitlementTemplateValueScanner = entutils.JSONStringValueScanner[*plan.EntitlementTemplate]()
+var EntitlementTemplateValueScanner = entutils.JSONStringValueScanner[*productcatalogmodel.EntitlementTemplate]()
 
-var TaxConfigValueScanner = entutils.JSONStringValueScanner[*plan.TaxConfig]()
+var TaxConfigValueScanner = entutils.JSONStringValueScanner[*productcatalogmodel.TaxConfig]()
 
-var PriceValueScanner = entutils.JSONStringValueScanner[*plan.Price]()
+var PriceValueScanner = entutils.JSONStringValueScanner[*productcatalogmodel.Price]()
 
-var DiscountsValueScanner = entutils.JSONStringValueScanner[[]plan.Discount]()
+var DiscountsValueScanner = entutils.JSONStringValueScanner[[]productcatalogmodel.Discount]()

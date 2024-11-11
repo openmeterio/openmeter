@@ -7,7 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -153,7 +153,7 @@ func (i LineBase) Validate() error {
 
 type FlatFeeLine struct {
 	Amount      alpacadecimal.Decimal
-	PaymentTerm plan.PaymentTermType
+	PaymentTerm productcatalogmodel.PaymentTermType
 
 	Quantity alpacadecimal.Decimal `json:"quantity"`
 }
@@ -209,7 +209,7 @@ func (i Line) ValidateUsageBased() error {
 	return nil
 }
 
-type Price = plan.Price
+type Price = productcatalogmodel.Price
 
 type UsageBasedLine struct {
 	Price      Price                  `json:"price"`

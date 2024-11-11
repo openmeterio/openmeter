@@ -12,10 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -122,8 +122,8 @@ func (ppc *PlanPhaseCreate) SetNillableStartAfter(ds *datex.ISOString) *PlanPhas
 }
 
 // SetDiscounts sets the "discounts" field.
-func (ppc *PlanPhaseCreate) SetDiscounts(pl []plan.Discount) *PlanPhaseCreate {
-	ppc.mutation.SetDiscounts(pl)
+func (ppc *PlanPhaseCreate) SetDiscounts(m []model.Discount) *PlanPhaseCreate {
+	ppc.mutation.SetDiscounts(m)
 	return ppc
 }
 
@@ -352,7 +352,7 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec, erro
 			Columns: []string{planphase.PlanColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -520,7 +520,7 @@ func (u *PlanPhaseUpsert) UpdateStartAfter() *PlanPhaseUpsert {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanPhaseUpsert) SetDiscounts(v []plan.Discount) *PlanPhaseUpsert {
+func (u *PlanPhaseUpsert) SetDiscounts(v []model.Discount) *PlanPhaseUpsert {
 	u.Set(planphase.FieldDiscounts, v)
 	return u
 }
@@ -712,7 +712,7 @@ func (u *PlanPhaseUpsertOne) UpdateStartAfter() *PlanPhaseUpsertOne {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanPhaseUpsertOne) SetDiscounts(v []plan.Discount) *PlanPhaseUpsertOne {
+func (u *PlanPhaseUpsertOne) SetDiscounts(v []model.Discount) *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -1079,7 +1079,7 @@ func (u *PlanPhaseUpsertBulk) UpdateStartAfter() *PlanPhaseUpsertBulk {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanPhaseUpsertBulk) SetDiscounts(v []plan.Discount) *PlanPhaseUpsertBulk {
+func (u *PlanPhaseUpsertBulk) SetDiscounts(v []model.Discount) *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.SetDiscounts(v)
 	})

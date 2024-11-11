@@ -8,13 +8,14 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
-	pp := &plan.Plan{
+func fromPlanRow(p entdb.Plan) (*planentity.Plan, error) {
+	conf := planentity.NewPlanConfig{
 		NamespacedID: models.NamespacedID{
 			Namespace: p.Namespace,
 			ID:        p.ID,
@@ -24,20 +25,22 @@ func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 			UpdatedAt: p.UpdatedAt,
 			DeletedAt: p.DeletedAt,
 		},
-		Key:         p.Key,
-		Name:        p.Name,
-		Description: p.Description,
-		Metadata:    p.Metadata,
-		Version:     p.Version,
-		Currency:    currency.Code(p.Currency),
-		EffectivePeriod: plan.EffectivePeriod{
-			EffectiveFrom: p.EffectiveFrom,
-			EffectiveTo:   p.EffectiveTo,
+		Plan: productcatalogmodel.PlanGeneric{
+			Key:         p.Key,
+			Name:        p.Name,
+			Description: p.Description,
+			Metadata:    p.Metadata,
+			Version:     p.Version,
+			Currency:    currency.Code(p.Currency),
+			EffectivePeriod: productcatalogmodel.EffectivePeriod{
+				EffectiveFrom: p.EffectiveFrom,
+				EffectiveTo:   p.EffectiveTo,
+			},
 		},
 	}
 
 	if len(p.Edges.Phases) > 0 {
-		phases := make([]plan.Phase, 0, len(p.Edges.Phases))
+		phases := make([]planentity.Phase, 0, len(p.Edges.Phases))
 		for _, edge := range p.Edges.Phases {
 			if edge == nil {
 				continue
@@ -52,19 +55,21 @@ func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 		}
 
 		if len(phases) > 0 {
-			pp.Phases = phases
+			conf.Phases = phases
 		}
 	}
 
-	if err := pp.Validate(); err != nil {
+	pp := planentity.NewPlan(conf)
+
+	if err := pp.Plan.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid plan %s: %w", pp.ID, err)
 	}
 
-	return pp, nil
+	return &pp, nil
 }
 
-func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
-	pp := &plan.Phase{
+func fromPlanPhaseRow(p entdb.PlanPhase) (*planentity.Phase, error) {
+	conf := planentity.NewPhaseConfig{
 		NamespacedID: models.NamespacedID{
 			Namespace: p.Namespace,
 			ID:        p.ID,
@@ -74,11 +79,13 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 			UpdatedAt: p.UpdatedAt,
 			DeletedAt: p.DeletedAt,
 		},
-		Key:         p.Key,
-		Name:        p.Name,
-		Description: p.Description,
-		Metadata:    p.Metadata,
-		PlanID:      p.PlanID,
+		PhaseGeneric: productcatalogmodel.PhaseGeneric{
+			Key:         p.Key,
+			Name:        p.Name,
+			Description: p.Description,
+			Metadata:    p.Metadata,
+			PlanID:      p.PlanID,
+		},
 	}
 
 	// Set Interval
@@ -88,12 +95,12 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 		return nil, fmt.Errorf("invalid startAfter %v: %w", p.StartAfter, err)
 	}
 
-	pp.StartAfter = startAfter
+	conf.PhaseGeneric.StartAfter = startAfter
 
 	// Set Rate Cards
 
 	if len(p.Edges.Ratecards) > 0 {
-		ratecards := make([]plan.RateCard, 0, len(p.Edges.Ratecards))
+		ratecards := make([]planentity.RateCard, 0, len(p.Edges.Ratecards))
 		for _, edge := range p.Edges.Ratecards {
 			if edge == nil {
 				continue
@@ -108,28 +115,30 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 		}
 
 		if len(ratecards) > 0 {
-			pp.RateCards = ratecards
+			conf.RateCards = ratecards
 		}
 	}
 
-	if err = pp.Validate(); err != nil {
+	pp := planentity.NewPhase(conf)
+
+	if err = pp.Phase.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid plan phase %s: %w", pp.ID, err)
 	}
 
-	return pp, nil
+	return &pp, nil
 }
 
-func fromPlanRateCardRow(r entdb.PlanRateCard) (*plan.RateCard, error) {
-	meta := plan.RateCardMeta{
-		NamespacedID: models.NamespacedID{
-			Namespace: r.Namespace,
-			ID:        r.ID,
-		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: r.CreatedAt,
-			UpdatedAt: r.UpdatedAt,
-			DeletedAt: r.DeletedAt,
-		},
+func fromPlanRateCardRow(r entdb.PlanRateCard) (*planentity.RateCard, error) {
+	nsId := models.NamespacedID{
+		Namespace: r.Namespace,
+		ID:        r.ID,
+	}
+	nsModel := models.ManagedModel{
+		CreatedAt: r.CreatedAt,
+		UpdatedAt: r.UpdatedAt,
+		DeletedAt: r.DeletedAt,
+	}
+	meta := productcatalogmodel.RateCardMeta{
 		Key:                 r.Key,
 		Type:                r.Type,
 		Name:                r.Name,
@@ -164,17 +173,17 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (*plan.RateCard, error) {
 		return nil, fmt.Errorf("invalid rate card billing cadence %s: %w", r.ID, err)
 	}
 
-	var ratecard plan.RateCard
+	var ratecard productcatalogmodel.RateCard
 
 	switch r.Type {
-	case plan.FlatFeeRateCardType:
-		ratecard = plan.NewRateCardFrom(plan.FlatFeeRateCard{
+	case productcatalogmodel.FlatFeeRateCardType:
+		ratecard = productcatalogmodel.NewRateCardFrom(productcatalogmodel.FlatFeeRateCard{
 			RateCardMeta:   meta,
 			BillingCadence: billingCadence,
-			Price:          lo.FromPtrOr(r.Price, plan.Price{}),
+			Price:          lo.FromPtrOr(r.Price, productcatalogmodel.Price{}),
 		})
-	case plan.UsageBasedRateCardType:
-		ratecard = plan.NewRateCardFrom(plan.UsageBasedRateCard{
+	case productcatalogmodel.UsageBasedRateCardType:
+		ratecard = productcatalogmodel.NewRateCardFrom(productcatalogmodel.UsageBasedRateCard{
 			RateCardMeta:   meta,
 			BillingCadence: lo.FromPtrOr(billingCadence, datex.Period{}),
 			Price:          r.Price,
@@ -184,10 +193,14 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (*plan.RateCard, error) {
 		return nil, fmt.Errorf("invalid rate card %s: %w", r.ID, err)
 	}
 
-	return &ratecard, nil
+	return &planentity.RateCard{
+		NamespacedID: nsId,
+		ManagedModel: nsModel,
+		RateCard:     ratecard,
+	}, nil
 }
 
-func asPlanRateCardRow(r plan.RateCard) (entdb.PlanRateCard, error) {
+func asPlanRateCardRow(r planentity.RateCard) (entdb.PlanRateCard, error) {
 	meta, err := r.AsMeta()
 	if err != nil {
 		return entdb.PlanRateCard{}, fmt.Errorf("failed to cast rate card to meta: %w", err)
@@ -208,23 +221,23 @@ func asPlanRateCardRow(r plan.RateCard) (entdb.PlanRateCard, error) {
 	}
 
 	switch r.Type() {
-	case plan.FlatFeeRateCardType:
+	case productcatalogmodel.FlatFeeRateCardType:
 		flat, err := r.AsFlatFee()
 		if err != nil {
 			return entdb.PlanRateCard{}, fmt.Errorf("failed to cast flat fee rate card: %w", err)
 		}
 
-		ratecard.Type = plan.FlatFeeRateCardType
+		ratecard.Type = productcatalogmodel.FlatFeeRateCardType
 		ratecard.BillingCadence = flat.BillingCadence.ISOStringPtrOrNil()
 		ratecard.Price = &flat.Price
 
-	case plan.UsageBasedRateCardType:
+	case productcatalogmodel.UsageBasedRateCardType:
 		usage, err := r.AsUsageBased()
 		if err != nil {
 			return entdb.PlanRateCard{}, fmt.Errorf("failed to cast usage based rate card: %w", err)
 		}
 
-		ratecard.Type = plan.UsageBasedRateCardType
+		ratecard.Type = productcatalogmodel.UsageBasedRateCardType
 		ratecard.BillingCadence = lo.ToPtr(usage.BillingCadence.ISOString())
 		ratecard.Price = usage.Price
 	}

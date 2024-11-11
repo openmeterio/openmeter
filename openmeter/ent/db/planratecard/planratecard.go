@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 )
 
 const (
@@ -119,14 +119,14 @@ var (
 	DefaultID func() string
 	// ValueScanner of all PlanRateCard fields.
 	ValueScanner struct {
-		EntitlementTemplate field.TypeValueScanner[*plan.EntitlementTemplate]
-		TaxConfig           field.TypeValueScanner[*plan.TaxConfig]
-		Price               field.TypeValueScanner[*plan.Price]
+		EntitlementTemplate field.TypeValueScanner[*model.EntitlementTemplate]
+		TaxConfig           field.TypeValueScanner[*model.TaxConfig]
+		Price               field.TypeValueScanner[*model.Price]
 	}
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type plan.RateCardType) error {
+func TypeValidator(_type model.RateCardType) error {
 	switch _type {
 	case "flat_fee", "usage_based":
 		return nil

@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -39,17 +39,17 @@ type PlanRateCard struct {
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// Type holds the value of the "type" field.
-	Type plan.RateCardType `json:"type,omitempty"`
+	Type model.RateCardType `json:"type,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// EntitlementTemplate holds the value of the "entitlement_template" field.
-	EntitlementTemplate *plan.EntitlementTemplate `json:"entitlement_template,omitempty"`
+	EntitlementTemplate *model.EntitlementTemplate `json:"entitlement_template,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig *plan.TaxConfig `json:"tax_config,omitempty"`
+	TaxConfig *model.TaxConfig `json:"tax_config,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datex.ISOString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
-	Price *plan.Price `json:"price,omitempty"`
+	Price *model.Price `json:"price,omitempty"`
 	// The phase identifier the ratecard is assigned to.
 	PhaseID string `json:"phase_id,omitempty"`
 	// The feature identifier the ratecard is related to.
@@ -187,7 +187,7 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				prc.Type = plan.RateCardType(value.String)
+				prc.Type = model.RateCardType(value.String)
 			}
 		case planratecard.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {

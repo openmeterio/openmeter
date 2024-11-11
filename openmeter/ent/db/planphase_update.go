@@ -11,11 +11,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -119,8 +119,8 @@ func (ppu *PlanPhaseUpdate) SetNillableStartAfter(ds *datex.ISOString) *PlanPhas
 }
 
 // SetDiscounts sets the "discounts" field.
-func (ppu *PlanPhaseUpdate) SetDiscounts(pl []plan.Discount) *PlanPhaseUpdate {
-	ppu.mutation.SetDiscounts(pl)
+func (ppu *PlanPhaseUpdate) SetDiscounts(m []model.Discount) *PlanPhaseUpdate {
+	ppu.mutation.SetDiscounts(m)
 	return ppu
 }
 
@@ -302,7 +302,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{planphase.PlanColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -315,7 +315,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{planphase.PlanColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -475,8 +475,8 @@ func (ppuo *PlanPhaseUpdateOne) SetNillableStartAfter(ds *datex.ISOString) *Plan
 }
 
 // SetDiscounts sets the "discounts" field.
-func (ppuo *PlanPhaseUpdateOne) SetDiscounts(pl []plan.Discount) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetDiscounts(pl)
+func (ppuo *PlanPhaseUpdateOne) SetDiscounts(m []model.Discount) *PlanPhaseUpdateOne {
+	ppuo.mutation.SetDiscounts(m)
 	return ppuo
 }
 
@@ -688,7 +688,7 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 			Columns: []string{planphase.PlanColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -701,7 +701,7 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 			Columns: []string{planphase.PlanColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

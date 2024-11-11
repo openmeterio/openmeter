@@ -9,11 +9,15 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+const DefaultStartAfter = "P0D"
 
 const (
 	OrderAsc  = sortx.OrderAsc
@@ -35,25 +39,25 @@ type OrderBy string
 type Service interface {
 	// Plans
 
-	ListPlans(ctx context.Context, params ListPlansInput) (pagination.PagedResponse[Plan], error)
-	CreatePlan(ctx context.Context, params CreatePlanInput) (*Plan, error)
+	ListPlans(ctx context.Context, params ListPlansInput) (pagination.PagedResponse[planentity.Plan], error)
+	CreatePlan(ctx context.Context, params CreatePlanInput) (*planentity.Plan, error)
 	DeletePlan(ctx context.Context, params DeletePlanInput) error
-	GetPlan(ctx context.Context, params GetPlanInput) (*Plan, error)
-	UpdatePlan(ctx context.Context, params UpdatePlanInput) (*Plan, error)
-	PublishPlan(ctx context.Context, params PublishPlanInput) (*Plan, error)
-	ArchivePlan(ctx context.Context, params ArchivePlanInput) (*Plan, error)
-	NextPlan(ctx context.Context, params NextPlanInput) (*Plan, error)
+	GetPlan(ctx context.Context, params GetPlanInput) (*planentity.Plan, error)
+	UpdatePlan(ctx context.Context, params UpdatePlanInput) (*planentity.Plan, error)
+	PublishPlan(ctx context.Context, params PublishPlanInput) (*planentity.Plan, error)
+	ArchivePlan(ctx context.Context, params ArchivePlanInput) (*planentity.Plan, error)
+	NextPlan(ctx context.Context, params NextPlanInput) (*planentity.Plan, error)
 
 	// Phases
 
-	ListPhases(ctx context.Context, params ListPhasesInput) (pagination.PagedResponse[Phase], error)
-	CreatePhase(ctx context.Context, params CreatePhaseInput) (*Phase, error)
+	ListPhases(ctx context.Context, params ListPhasesInput) (pagination.PagedResponse[planentity.Phase], error)
+	CreatePhase(ctx context.Context, params CreatePhaseInput) (*planentity.Phase, error)
 	DeletePhase(ctx context.Context, params DeletePhaseInput) error
-	GetPhase(ctx context.Context, params GetPhaseInput) (*Phase, error)
-	UpdatePhase(ctx context.Context, params UpdatePhaseInput) (*Phase, error)
+	GetPhase(ctx context.Context, params GetPhaseInput) (*planentity.Phase, error)
+	UpdatePhase(ctx context.Context, params UpdatePhaseInput) (*planentity.Phase, error)
 }
 
-var _ Validator = (*ListPlansInput)(nil)
+var _ productcatalogmodel.Validator = (*ListPlansInput)(nil)
 
 type ListPlansInput struct {
 	pagination.Page
@@ -78,7 +82,7 @@ func (i ListPlansInput) Validate() error {
 	return nil
 }
 
-var _ Validator = (*CreatePlanInput)(nil)
+var _ productcatalogmodel.Validator = (*CreatePlanInput)(nil)
 
 type CreatePlanInput struct {
 	models.NamespacedModel
@@ -99,7 +103,7 @@ type CreatePlanInput struct {
 	Currency currency.Code `json:"currency"`
 
 	// Phases
-	Phases []Phase `json:"phases"`
+	Phases []planentity.Phase `json:"phases"`
 }
 
 func (i CreatePlanInput) Validate() error {
@@ -122,7 +126,7 @@ func (i CreatePlanInput) Validate() error {
 	}
 
 	for _, phase := range i.Phases {
-		if err := phase.Validate(); err != nil {
+		if err := phase.Phase.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
 		}
 	}
@@ -135,15 +139,15 @@ func (i CreatePlanInput) Validate() error {
 }
 
 var (
-	_ Validator     = (*UpdatePlanInput)(nil)
-	_ Equaler[Plan] = (*UpdatePlanInput)(nil)
+	_ productcatalogmodel.Validator                = (*UpdatePlanInput)(nil)
+	_ productcatalogmodel.Equaler[planentity.Plan] = (*UpdatePlanInput)(nil)
 )
 
 type UpdatePlanInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	*EffectivePeriod
+	*productcatalogmodel.EffectivePeriod
 
 	// Name
 	Name *string `json:"name"`
@@ -155,14 +159,14 @@ type UpdatePlanInput struct {
 	Metadata *map[string]string `json:"metadata,omitempty"`
 
 	// Phases
-	Phases *[]Phase `json:"phases"`
+	Phases *[]planentity.Phase `json:"phases"`
 }
 
-func (i UpdatePlanInput) StrictEqual(p Plan) bool {
+func (i UpdatePlanInput) StrictEqual(p planentity.Plan) bool {
 	return i.Equal(p)
 }
 
-func (i UpdatePlanInput) Equal(p Plan) bool {
+func (i UpdatePlanInput) Equal(p planentity.Plan) bool {
 	if i.Namespace != p.Namespace {
 		return false
 	}
@@ -211,7 +215,7 @@ func (i UpdatePlanInput) Validate() error {
 
 	if i.Phases != nil && len(*i.Phases) > 0 {
 		for _, phase := range *i.Phases {
-			if err := phase.Validate(); err != nil {
+			if err := phase.Phase.Validate(); err != nil {
 				return fmt.Errorf("invalid PlanPhase: %w", err)
 			}
 		}
@@ -276,7 +280,7 @@ type PublishPlanInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	EffectivePeriod
+	productcatalogmodel.EffectivePeriod
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -362,7 +366,7 @@ type ListPhasesInput struct {
 	IncludeDeleted bool
 }
 
-var _ Validator = (*CreatePhaseInput)(nil)
+var _ productcatalogmodel.Validator = (*CreatePhaseInput)(nil)
 
 type CreatePhaseInput struct {
 	models.NamespacedModel
@@ -386,7 +390,7 @@ type CreatePhaseInput struct {
 	PlanID string `json:"planId"`
 
 	// RateCards
-	RateCards []RateCard `json:"rateCards,omitempty"`
+	RateCards []planentity.RateCard `json:"rateCards,omitempty"` // shouldn't it be the models?
 }
 
 func (i CreatePhaseInput) Validate() error {
@@ -411,7 +415,7 @@ func (i CreatePhaseInput) Validate() error {
 	return nil
 }
 
-var _ Validator = (*DeletePhaseInput)(nil)
+var _ productcatalogmodel.Validator = (*DeletePhaseInput)(nil)
 
 type DeletePhaseInput struct {
 	// NamespacedID
@@ -446,7 +450,7 @@ func (i DeletePhaseInput) Validate() error {
 	return nil
 }
 
-var _ Validator = (*GetPhaseInput)(nil)
+var _ productcatalogmodel.Validator = (*GetPhaseInput)(nil)
 
 type GetPhaseInput struct {
 	models.NamespacedID
@@ -478,8 +482,8 @@ func (i GetPhaseInput) Validate() error {
 }
 
 var (
-	_ Validator      = (*UpdatePhaseInput)(nil)
-	_ Equaler[Phase] = (*UpdatePhaseInput)(nil)
+	_ productcatalogmodel.Validator                 = (*UpdatePhaseInput)(nil)
+	_ productcatalogmodel.Equaler[planentity.Phase] = (*UpdatePhaseInput)(nil)
 )
 
 type UpdatePhaseInput struct {
@@ -504,16 +508,16 @@ type UpdatePhaseInput struct {
 	PlanID string `json:"planId"`
 
 	// RateCards
-	RateCards *[]RateCard `json:"rateCards,omitempty"`
+	RateCards *[]planentity.RateCard `json:"rateCards,omitempty"` // shouldn't it be the models?
 }
 
 // StrictEqual implements the Equaler interface.
-func (i UpdatePhaseInput) StrictEqual(p Phase) bool {
+func (i UpdatePhaseInput) StrictEqual(p planentity.Phase) bool {
 	return i.Equal(p)
 }
 
 // Equal implements the Equaler interface.
-func (i UpdatePhaseInput) Equal(p Phase) bool {
+func (i UpdatePhaseInput) Equal(p planentity.Phase) bool {
 	if i.Namespace != p.Namespace {
 		return false
 	}
@@ -558,7 +562,7 @@ func (i UpdatePhaseInput) Validate() error {
 
 	if i.RateCards != nil && len(*i.RateCards) > 0 {
 		for _, rateCards := range *i.RateCards {
-			if err := rateCards.Validate(); err != nil {
+			if err := rateCards.RateCard.Validate(); err != nil {
 				return fmt.Errorf("invalid RateCard: %w", err)
 			}
 		}

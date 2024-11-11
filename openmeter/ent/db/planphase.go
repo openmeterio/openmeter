@@ -10,9 +10,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -40,7 +40,7 @@ type PlanPhase struct {
 	// StartAfter holds the value of the "start_after" field.
 	StartAfter datex.ISOString `json:"start_after,omitempty"`
 	// Discounts holds the value of the "discounts" field.
-	Discounts []plan.Discount `json:"discounts,omitempty"`
+	Discounts []model.Discount `json:"discounts,omitempty"`
 	// The plan identifier the phase is assigned to.
 	PlanID string `json:"plan_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -66,7 +66,7 @@ func (e PlanPhaseEdges) PlanOrErr() (*Plan, error) {
 	if e.Plan != nil {
 		return e.Plan, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: dbplan.Label}
+		return nil, &NotFoundError{label: plan.Label}
 	}
 	return nil, &NotLoadedError{edge: "plan"}
 }

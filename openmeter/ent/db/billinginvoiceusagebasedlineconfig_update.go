@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 )
 
 // BillingInvoiceUsageBasedLineConfigUpdate is the builder for updating BillingInvoiceUsageBasedLineConfig entities.
@@ -29,22 +29,22 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) Where(ps ...predicate.B
 }
 
 // SetPriceType sets the "price_type" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPriceType(pt plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetPriceType(pt)
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPriceType(mt model.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
+	biublcu.mutation.SetPriceType(mt)
 	return biublcu
 }
 
 // SetNillablePriceType sets the "price_type" field if the given value is not nil.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePriceType(pt *plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
-	if pt != nil {
-		biublcu.SetPriceType(*pt)
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePriceType(mt *model.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if mt != nil {
+		biublcu.SetPriceType(*mt)
 	}
 	return biublcu
 }
 
 // SetPrice sets the "price" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPrice(pl *plan.Price) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetPrice(pl)
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPrice(m *model.Price) *BillingInvoiceUsageBasedLineConfigUpdate {
+	biublcu.mutation.SetPrice(m)
 	return biublcu
 }
 
@@ -138,22 +138,22 @@ type BillingInvoiceUsageBasedLineConfigUpdateOne struct {
 }
 
 // SetPriceType sets the "price_type" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPriceType(pt plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetPriceType(pt)
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPriceType(mt model.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	biublcuo.mutation.SetPriceType(mt)
 	return biublcuo
 }
 
 // SetNillablePriceType sets the "price_type" field if the given value is not nil.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePriceType(pt *plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	if pt != nil {
-		biublcuo.SetPriceType(*pt)
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePriceType(mt *model.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if mt != nil {
+		biublcuo.SetPriceType(*mt)
 	}
 	return biublcuo
 }
 
 // SetPrice sets the "price" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPrice(pl *plan.Price) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetPrice(pl)
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPrice(m *model.Price) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	biublcuo.mutation.SetPrice(m)
 	return biublcuo
 }
 

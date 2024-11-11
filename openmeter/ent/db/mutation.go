@@ -38,13 +38,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -10042,7 +10042,7 @@ type BillingInvoiceLineMutation struct {
 	status                  *billingentity.InvoiceLineStatus
 	currency                *currencyx.Code
 	quantity                *alpacadecimal.Decimal
-	tax_config              *plan.TaxConfig
+	tax_config              *model.TaxConfig
 	clearedFields           map[string]struct{}
 	billing_invoice         *string
 	clearedbilling_invoice  bool
@@ -10806,12 +10806,12 @@ func (m *BillingInvoiceLineMutation) ResetQuantity() {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (m *BillingInvoiceLineMutation) SetTaxConfig(pc plan.TaxConfig) {
-	m.tax_config = &pc
+func (m *BillingInvoiceLineMutation) SetTaxConfig(mc model.TaxConfig) {
+	m.tax_config = &mc
 }
 
 // TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingInvoiceLineMutation) TaxConfig() (r plan.TaxConfig, exists bool) {
+func (m *BillingInvoiceLineMutation) TaxConfig() (r model.TaxConfig, exists bool) {
 	v := m.tax_config
 	if v == nil {
 		return
@@ -10822,7 +10822,7 @@ func (m *BillingInvoiceLineMutation) TaxConfig() (r plan.TaxConfig, exists bool)
 // OldTaxConfig returns the old "tax_config" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v plan.TaxConfig, err error) {
+func (m *BillingInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v model.TaxConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
 	}
@@ -11346,7 +11346,7 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetQuantity(v)
 		return nil
 	case billinginvoiceline.FieldTaxConfig:
-		v, ok := value.(plan.TaxConfig)
+		v, ok := value.(model.TaxConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -11658,9 +11658,9 @@ type BillingInvoiceUsageBasedLineConfigMutation struct {
 	typ           string
 	id            *string
 	namespace     *string
-	price_type    *plan.PriceType
+	price_type    *model.PriceType
 	feature_key   *string
-	price         **plan.Price
+	price         **model.Price
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*BillingInvoiceUsageBasedLineConfig, error)
@@ -11808,12 +11808,12 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetNamespace() {
 }
 
 // SetPriceType sets the "price_type" field.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) SetPriceType(pt plan.PriceType) {
-	m.price_type = &pt
+func (m *BillingInvoiceUsageBasedLineConfigMutation) SetPriceType(mt model.PriceType) {
+	m.price_type = &mt
 }
 
 // PriceType returns the value of the "price_type" field in the mutation.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) PriceType() (r plan.PriceType, exists bool) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) PriceType() (r model.PriceType, exists bool) {
 	v := m.price_type
 	if v == nil {
 		return
@@ -11824,7 +11824,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) PriceType() (r plan.PriceTy
 // OldPriceType returns the old "price_type" field's value of the BillingInvoiceUsageBasedLineConfig entity.
 // If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) OldPriceType(ctx context.Context) (v plan.PriceType, err error) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldPriceType(ctx context.Context) (v model.PriceType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldPriceType is only allowed on UpdateOne operations")
 	}
@@ -11880,12 +11880,12 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetFeatureKey() {
 }
 
 // SetPrice sets the "price" field.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) SetPrice(pl *plan.Price) {
-	m.price = &pl
+func (m *BillingInvoiceUsageBasedLineConfigMutation) SetPrice(value *model.Price) {
+	m.price = &value
 }
 
 // Price returns the value of the "price" field in the mutation.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) Price() (r *plan.Price, exists bool) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) Price() (r *model.Price, exists bool) {
 	v := m.price
 	if v == nil {
 		return
@@ -11896,7 +11896,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Price() (r *plan.Price, exi
 // OldPrice returns the old "price" field's value of the BillingInvoiceUsageBasedLineConfig entity.
 // If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) OldPrice(ctx context.Context) (v *plan.Price, err error) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldPrice(ctx context.Context) (v *model.Price, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldPrice is only allowed on UpdateOne operations")
 	}
@@ -12012,7 +12012,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) SetField(name string, value
 		m.SetNamespace(v)
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldPriceType:
-		v, ok := value.(plan.PriceType)
+		v, ok := value.(model.PriceType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -12026,7 +12026,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) SetField(name string, value
 		m.SetFeatureKey(v)
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldPrice:
-		v, ok := value.(*plan.Price)
+		v, ok := value.(*model.Price)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -26528,19 +26528,19 @@ func (m *PlanMutation) OldMetadata(ctx context.Context) (v map[string]string, er
 // ClearMetadata clears the value of the "metadata" field.
 func (m *PlanMutation) ClearMetadata() {
 	m.metadata = nil
-	m.clearedFields[dbplan.FieldMetadata] = struct{}{}
+	m.clearedFields[plan.FieldMetadata] = struct{}{}
 }
 
 // MetadataCleared returns if the "metadata" field was cleared in this mutation.
 func (m *PlanMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[dbplan.FieldMetadata]
+	_, ok := m.clearedFields[plan.FieldMetadata]
 	return ok
 }
 
 // ResetMetadata resets all changes to the "metadata" field.
 func (m *PlanMutation) ResetMetadata() {
 	m.metadata = nil
-	delete(m.clearedFields, dbplan.FieldMetadata)
+	delete(m.clearedFields, plan.FieldMetadata)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -26649,19 +26649,19 @@ func (m *PlanMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err erro
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *PlanMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[dbplan.FieldDeletedAt] = struct{}{}
+	m.clearedFields[plan.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *PlanMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[dbplan.FieldDeletedAt]
+	_, ok := m.clearedFields[plan.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *PlanMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, dbplan.FieldDeletedAt)
+	delete(m.clearedFields, plan.FieldDeletedAt)
 }
 
 // SetName sets the "name" field.
@@ -26734,19 +26734,19 @@ func (m *PlanMutation) OldDescription(ctx context.Context) (v *string, err error
 // ClearDescription clears the value of the "description" field.
 func (m *PlanMutation) ClearDescription() {
 	m.description = nil
-	m.clearedFields[dbplan.FieldDescription] = struct{}{}
+	m.clearedFields[plan.FieldDescription] = struct{}{}
 }
 
 // DescriptionCleared returns if the "description" field was cleared in this mutation.
 func (m *PlanMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[dbplan.FieldDescription]
+	_, ok := m.clearedFields[plan.FieldDescription]
 	return ok
 }
 
 // ResetDescription resets all changes to the "description" field.
 func (m *PlanMutation) ResetDescription() {
 	m.description = nil
-	delete(m.clearedFields, dbplan.FieldDescription)
+	delete(m.clearedFields, plan.FieldDescription)
 }
 
 // SetKey sets the "key" field.
@@ -26911,19 +26911,19 @@ func (m *PlanMutation) OldEffectiveFrom(ctx context.Context) (v *time.Time, err 
 // ClearEffectiveFrom clears the value of the "effective_from" field.
 func (m *PlanMutation) ClearEffectiveFrom() {
 	m.effective_from = nil
-	m.clearedFields[dbplan.FieldEffectiveFrom] = struct{}{}
+	m.clearedFields[plan.FieldEffectiveFrom] = struct{}{}
 }
 
 // EffectiveFromCleared returns if the "effective_from" field was cleared in this mutation.
 func (m *PlanMutation) EffectiveFromCleared() bool {
-	_, ok := m.clearedFields[dbplan.FieldEffectiveFrom]
+	_, ok := m.clearedFields[plan.FieldEffectiveFrom]
 	return ok
 }
 
 // ResetEffectiveFrom resets all changes to the "effective_from" field.
 func (m *PlanMutation) ResetEffectiveFrom() {
 	m.effective_from = nil
-	delete(m.clearedFields, dbplan.FieldEffectiveFrom)
+	delete(m.clearedFields, plan.FieldEffectiveFrom)
 }
 
 // SetEffectiveTo sets the "effective_to" field.
@@ -26960,19 +26960,19 @@ func (m *PlanMutation) OldEffectiveTo(ctx context.Context) (v *time.Time, err er
 // ClearEffectiveTo clears the value of the "effective_to" field.
 func (m *PlanMutation) ClearEffectiveTo() {
 	m.effective_to = nil
-	m.clearedFields[dbplan.FieldEffectiveTo] = struct{}{}
+	m.clearedFields[plan.FieldEffectiveTo] = struct{}{}
 }
 
 // EffectiveToCleared returns if the "effective_to" field was cleared in this mutation.
 func (m *PlanMutation) EffectiveToCleared() bool {
-	_, ok := m.clearedFields[dbplan.FieldEffectiveTo]
+	_, ok := m.clearedFields[plan.FieldEffectiveTo]
 	return ok
 }
 
 // ResetEffectiveTo resets all changes to the "effective_to" field.
 func (m *PlanMutation) ResetEffectiveTo() {
 	m.effective_to = nil
-	delete(m.clearedFields, dbplan.FieldEffectiveTo)
+	delete(m.clearedFields, plan.FieldEffectiveTo)
 }
 
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by ids.
@@ -27065,40 +27065,40 @@ func (m *PlanMutation) Type() string {
 func (m *PlanMutation) Fields() []string {
 	fields := make([]string, 0, 12)
 	if m.namespace != nil {
-		fields = append(fields, dbplan.FieldNamespace)
+		fields = append(fields, plan.FieldNamespace)
 	}
 	if m.metadata != nil {
-		fields = append(fields, dbplan.FieldMetadata)
+		fields = append(fields, plan.FieldMetadata)
 	}
 	if m.created_at != nil {
-		fields = append(fields, dbplan.FieldCreatedAt)
+		fields = append(fields, plan.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, dbplan.FieldUpdatedAt)
+		fields = append(fields, plan.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, dbplan.FieldDeletedAt)
+		fields = append(fields, plan.FieldDeletedAt)
 	}
 	if m.name != nil {
-		fields = append(fields, dbplan.FieldName)
+		fields = append(fields, plan.FieldName)
 	}
 	if m.description != nil {
-		fields = append(fields, dbplan.FieldDescription)
+		fields = append(fields, plan.FieldDescription)
 	}
 	if m.key != nil {
-		fields = append(fields, dbplan.FieldKey)
+		fields = append(fields, plan.FieldKey)
 	}
 	if m.version != nil {
-		fields = append(fields, dbplan.FieldVersion)
+		fields = append(fields, plan.FieldVersion)
 	}
 	if m.currency != nil {
-		fields = append(fields, dbplan.FieldCurrency)
+		fields = append(fields, plan.FieldCurrency)
 	}
 	if m.effective_from != nil {
-		fields = append(fields, dbplan.FieldEffectiveFrom)
+		fields = append(fields, plan.FieldEffectiveFrom)
 	}
 	if m.effective_to != nil {
-		fields = append(fields, dbplan.FieldEffectiveTo)
+		fields = append(fields, plan.FieldEffectiveTo)
 	}
 	return fields
 }
@@ -27108,29 +27108,29 @@ func (m *PlanMutation) Fields() []string {
 // schema.
 func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case dbplan.FieldNamespace:
+	case plan.FieldNamespace:
 		return m.Namespace()
-	case dbplan.FieldMetadata:
+	case plan.FieldMetadata:
 		return m.Metadata()
-	case dbplan.FieldCreatedAt:
+	case plan.FieldCreatedAt:
 		return m.CreatedAt()
-	case dbplan.FieldUpdatedAt:
+	case plan.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case dbplan.FieldDeletedAt:
+	case plan.FieldDeletedAt:
 		return m.DeletedAt()
-	case dbplan.FieldName:
+	case plan.FieldName:
 		return m.Name()
-	case dbplan.FieldDescription:
+	case plan.FieldDescription:
 		return m.Description()
-	case dbplan.FieldKey:
+	case plan.FieldKey:
 		return m.Key()
-	case dbplan.FieldVersion:
+	case plan.FieldVersion:
 		return m.Version()
-	case dbplan.FieldCurrency:
+	case plan.FieldCurrency:
 		return m.Currency()
-	case dbplan.FieldEffectiveFrom:
+	case plan.FieldEffectiveFrom:
 		return m.EffectiveFrom()
-	case dbplan.FieldEffectiveTo:
+	case plan.FieldEffectiveTo:
 		return m.EffectiveTo()
 	}
 	return nil, false
@@ -27141,29 +27141,29 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case dbplan.FieldNamespace:
+	case plan.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case dbplan.FieldMetadata:
+	case plan.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case dbplan.FieldCreatedAt:
+	case plan.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case dbplan.FieldUpdatedAt:
+	case plan.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case dbplan.FieldDeletedAt:
+	case plan.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case dbplan.FieldName:
+	case plan.FieldName:
 		return m.OldName(ctx)
-	case dbplan.FieldDescription:
+	case plan.FieldDescription:
 		return m.OldDescription(ctx)
-	case dbplan.FieldKey:
+	case plan.FieldKey:
 		return m.OldKey(ctx)
-	case dbplan.FieldVersion:
+	case plan.FieldVersion:
 		return m.OldVersion(ctx)
-	case dbplan.FieldCurrency:
+	case plan.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case dbplan.FieldEffectiveFrom:
+	case plan.FieldEffectiveFrom:
 		return m.OldEffectiveFrom(ctx)
-	case dbplan.FieldEffectiveTo:
+	case plan.FieldEffectiveTo:
 		return m.OldEffectiveTo(ctx)
 	}
 	return nil, fmt.Errorf("unknown Plan field %s", name)
@@ -27174,84 +27174,84 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *PlanMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case dbplan.FieldNamespace:
+	case plan.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case dbplan.FieldMetadata:
+	case plan.FieldMetadata:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
 		return nil
-	case dbplan.FieldCreatedAt:
+	case plan.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case dbplan.FieldUpdatedAt:
+	case plan.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case dbplan.FieldDeletedAt:
+	case plan.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case dbplan.FieldName:
+	case plan.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
 		return nil
-	case dbplan.FieldDescription:
+	case plan.FieldDescription:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
 		return nil
-	case dbplan.FieldKey:
+	case plan.FieldKey:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
 		return nil
-	case dbplan.FieldVersion:
+	case plan.FieldVersion:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetVersion(v)
 		return nil
-	case dbplan.FieldCurrency:
+	case plan.FieldCurrency:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
 		return nil
-	case dbplan.FieldEffectiveFrom:
+	case plan.FieldEffectiveFrom:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEffectiveFrom(v)
 		return nil
-	case dbplan.FieldEffectiveTo:
+	case plan.FieldEffectiveTo:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -27267,7 +27267,7 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 func (m *PlanMutation) AddedFields() []string {
 	var fields []string
 	if m.addversion != nil {
-		fields = append(fields, dbplan.FieldVersion)
+		fields = append(fields, plan.FieldVersion)
 	}
 	return fields
 }
@@ -27277,7 +27277,7 @@ func (m *PlanMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *PlanMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case dbplan.FieldVersion:
+	case plan.FieldVersion:
 		return m.AddedVersion()
 	}
 	return nil, false
@@ -27288,7 +27288,7 @@ func (m *PlanMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *PlanMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case dbplan.FieldVersion:
+	case plan.FieldVersion:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -27303,20 +27303,20 @@ func (m *PlanMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *PlanMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(dbplan.FieldMetadata) {
-		fields = append(fields, dbplan.FieldMetadata)
+	if m.FieldCleared(plan.FieldMetadata) {
+		fields = append(fields, plan.FieldMetadata)
 	}
-	if m.FieldCleared(dbplan.FieldDeletedAt) {
-		fields = append(fields, dbplan.FieldDeletedAt)
+	if m.FieldCleared(plan.FieldDeletedAt) {
+		fields = append(fields, plan.FieldDeletedAt)
 	}
-	if m.FieldCleared(dbplan.FieldDescription) {
-		fields = append(fields, dbplan.FieldDescription)
+	if m.FieldCleared(plan.FieldDescription) {
+		fields = append(fields, plan.FieldDescription)
 	}
-	if m.FieldCleared(dbplan.FieldEffectiveFrom) {
-		fields = append(fields, dbplan.FieldEffectiveFrom)
+	if m.FieldCleared(plan.FieldEffectiveFrom) {
+		fields = append(fields, plan.FieldEffectiveFrom)
 	}
-	if m.FieldCleared(dbplan.FieldEffectiveTo) {
-		fields = append(fields, dbplan.FieldEffectiveTo)
+	if m.FieldCleared(plan.FieldEffectiveTo) {
+		fields = append(fields, plan.FieldEffectiveTo)
 	}
 	return fields
 }
@@ -27332,19 +27332,19 @@ func (m *PlanMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *PlanMutation) ClearField(name string) error {
 	switch name {
-	case dbplan.FieldMetadata:
+	case plan.FieldMetadata:
 		m.ClearMetadata()
 		return nil
-	case dbplan.FieldDeletedAt:
+	case plan.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case dbplan.FieldDescription:
+	case plan.FieldDescription:
 		m.ClearDescription()
 		return nil
-	case dbplan.FieldEffectiveFrom:
+	case plan.FieldEffectiveFrom:
 		m.ClearEffectiveFrom()
 		return nil
-	case dbplan.FieldEffectiveTo:
+	case plan.FieldEffectiveTo:
 		m.ClearEffectiveTo()
 		return nil
 	}
@@ -27355,40 +27355,40 @@ func (m *PlanMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *PlanMutation) ResetField(name string) error {
 	switch name {
-	case dbplan.FieldNamespace:
+	case plan.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case dbplan.FieldMetadata:
+	case plan.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case dbplan.FieldCreatedAt:
+	case plan.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case dbplan.FieldUpdatedAt:
+	case plan.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case dbplan.FieldDeletedAt:
+	case plan.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case dbplan.FieldName:
+	case plan.FieldName:
 		m.ResetName()
 		return nil
-	case dbplan.FieldDescription:
+	case plan.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case dbplan.FieldKey:
+	case plan.FieldKey:
 		m.ResetKey()
 		return nil
-	case dbplan.FieldVersion:
+	case plan.FieldVersion:
 		m.ResetVersion()
 		return nil
-	case dbplan.FieldCurrency:
+	case plan.FieldCurrency:
 		m.ResetCurrency()
 		return nil
-	case dbplan.FieldEffectiveFrom:
+	case plan.FieldEffectiveFrom:
 		m.ResetEffectiveFrom()
 		return nil
-	case dbplan.FieldEffectiveTo:
+	case plan.FieldEffectiveTo:
 		m.ResetEffectiveTo()
 		return nil
 	}
@@ -27399,7 +27399,7 @@ func (m *PlanMutation) ResetField(name string) error {
 func (m *PlanMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.phases != nil {
-		edges = append(edges, dbplan.EdgePhases)
+		edges = append(edges, plan.EdgePhases)
 	}
 	return edges
 }
@@ -27408,7 +27408,7 @@ func (m *PlanMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case dbplan.EdgePhases:
+	case plan.EdgePhases:
 		ids := make([]ent.Value, 0, len(m.phases))
 		for id := range m.phases {
 			ids = append(ids, id)
@@ -27422,7 +27422,7 @@ func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 func (m *PlanMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.removedphases != nil {
-		edges = append(edges, dbplan.EdgePhases)
+		edges = append(edges, plan.EdgePhases)
 	}
 	return edges
 }
@@ -27431,7 +27431,7 @@ func (m *PlanMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case dbplan.EdgePhases:
+	case plan.EdgePhases:
 		ids := make([]ent.Value, 0, len(m.removedphases))
 		for id := range m.removedphases {
 			ids = append(ids, id)
@@ -27445,7 +27445,7 @@ func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 func (m *PlanMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.clearedphases {
-		edges = append(edges, dbplan.EdgePhases)
+		edges = append(edges, plan.EdgePhases)
 	}
 	return edges
 }
@@ -27454,7 +27454,7 @@ func (m *PlanMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *PlanMutation) EdgeCleared(name string) bool {
 	switch name {
-	case dbplan.EdgePhases:
+	case plan.EdgePhases:
 		return m.clearedphases
 	}
 	return false
@@ -27472,7 +27472,7 @@ func (m *PlanMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PlanMutation) ResetEdge(name string) error {
 	switch name {
-	case dbplan.EdgePhases:
+	case plan.EdgePhases:
 		m.ResetPhases()
 		return nil
 	}
@@ -27494,7 +27494,7 @@ type PlanPhaseMutation struct {
 	description      *string
 	key              *string
 	start_after      *datex.ISOString
-	discounts        *[]plan.Discount
+	discounts        *[]model.Discount
 	clearedFields    map[string]struct{}
 	plan             *string
 	clearedplan      bool
@@ -27974,12 +27974,12 @@ func (m *PlanPhaseMutation) ResetStartAfter() {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (m *PlanPhaseMutation) SetDiscounts(pl []plan.Discount) {
-	m.discounts = &pl
+func (m *PlanPhaseMutation) SetDiscounts(value []model.Discount) {
+	m.discounts = &value
 }
 
 // Discounts returns the value of the "discounts" field in the mutation.
-func (m *PlanPhaseMutation) Discounts() (r []plan.Discount, exists bool) {
+func (m *PlanPhaseMutation) Discounts() (r []model.Discount, exists bool) {
 	v := m.discounts
 	if v == nil {
 		return
@@ -27990,7 +27990,7 @@ func (m *PlanPhaseMutation) Discounts() (r []plan.Discount, exists bool) {
 // OldDiscounts returns the old "discounts" field's value of the PlanPhase entity.
 // If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanPhaseMutation) OldDiscounts(ctx context.Context) (v []plan.Discount, err error) {
+func (m *PlanPhaseMutation) OldDiscounts(ctx context.Context) (v []model.Discount, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
 	}
@@ -28341,7 +28341,7 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 		m.SetStartAfter(v)
 		return nil
 	case planphase.FieldDiscounts:
-		v, ok := value.([]plan.Discount)
+		v, ok := value.([]model.Discount)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -28583,12 +28583,12 @@ type PlanRateCardMutation struct {
 	name                 *string
 	description          *string
 	key                  *string
-	_type                *plan.RateCardType
+	_type                *model.RateCardType
 	feature_key          *string
-	entitlement_template **plan.EntitlementTemplate
-	tax_config           **plan.TaxConfig
+	entitlement_template **model.EntitlementTemplate
+	tax_config           **model.TaxConfig
 	billing_cadence      *datex.ISOString
-	price                **plan.Price
+	price                **model.Price
 	clearedFields        map[string]struct{}
 	phase                *string
 	clearedphase         bool
@@ -29031,12 +29031,12 @@ func (m *PlanRateCardMutation) ResetKey() {
 }
 
 // SetType sets the "type" field.
-func (m *PlanRateCardMutation) SetType(pct plan.RateCardType) {
-	m._type = &pct
+func (m *PlanRateCardMutation) SetType(mct model.RateCardType) {
+	m._type = &mct
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *PlanRateCardMutation) GetType() (r plan.RateCardType, exists bool) {
+func (m *PlanRateCardMutation) GetType() (r model.RateCardType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -29047,7 +29047,7 @@ func (m *PlanRateCardMutation) GetType() (r plan.RateCardType, exists bool) {
 // OldType returns the old "type" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldType(ctx context.Context) (v plan.RateCardType, err error) {
+func (m *PlanRateCardMutation) OldType(ctx context.Context) (v model.RateCardType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -29116,12 +29116,12 @@ func (m *PlanRateCardMutation) ResetFeatureKey() {
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (m *PlanRateCardMutation) SetEntitlementTemplate(pt *plan.EntitlementTemplate) {
-	m.entitlement_template = &pt
+func (m *PlanRateCardMutation) SetEntitlementTemplate(mt *model.EntitlementTemplate) {
+	m.entitlement_template = &mt
 }
 
 // EntitlementTemplate returns the value of the "entitlement_template" field in the mutation.
-func (m *PlanRateCardMutation) EntitlementTemplate() (r *plan.EntitlementTemplate, exists bool) {
+func (m *PlanRateCardMutation) EntitlementTemplate() (r *model.EntitlementTemplate, exists bool) {
 	v := m.entitlement_template
 	if v == nil {
 		return
@@ -29132,7 +29132,7 @@ func (m *PlanRateCardMutation) EntitlementTemplate() (r *plan.EntitlementTemplat
 // OldEntitlementTemplate returns the old "entitlement_template" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldEntitlementTemplate(ctx context.Context) (v *plan.EntitlementTemplate, err error) {
+func (m *PlanRateCardMutation) OldEntitlementTemplate(ctx context.Context) (v *model.EntitlementTemplate, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldEntitlementTemplate is only allowed on UpdateOne operations")
 	}
@@ -29165,12 +29165,12 @@ func (m *PlanRateCardMutation) ResetEntitlementTemplate() {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (m *PlanRateCardMutation) SetTaxConfig(pc *plan.TaxConfig) {
-	m.tax_config = &pc
+func (m *PlanRateCardMutation) SetTaxConfig(mc *model.TaxConfig) {
+	m.tax_config = &mc
 }
 
 // TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *PlanRateCardMutation) TaxConfig() (r *plan.TaxConfig, exists bool) {
+func (m *PlanRateCardMutation) TaxConfig() (r *model.TaxConfig, exists bool) {
 	v := m.tax_config
 	if v == nil {
 		return
@@ -29181,7 +29181,7 @@ func (m *PlanRateCardMutation) TaxConfig() (r *plan.TaxConfig, exists bool) {
 // OldTaxConfig returns the old "tax_config" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldTaxConfig(ctx context.Context) (v *plan.TaxConfig, err error) {
+func (m *PlanRateCardMutation) OldTaxConfig(ctx context.Context) (v *model.TaxConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
 	}
@@ -29263,12 +29263,12 @@ func (m *PlanRateCardMutation) ResetBillingCadence() {
 }
 
 // SetPrice sets the "price" field.
-func (m *PlanRateCardMutation) SetPrice(pl *plan.Price) {
-	m.price = &pl
+func (m *PlanRateCardMutation) SetPrice(value *model.Price) {
+	m.price = &value
 }
 
 // Price returns the value of the "price" field in the mutation.
-func (m *PlanRateCardMutation) Price() (r *plan.Price, exists bool) {
+func (m *PlanRateCardMutation) Price() (r *model.Price, exists bool) {
 	v := m.price
 	if v == nil {
 		return
@@ -29279,7 +29279,7 @@ func (m *PlanRateCardMutation) Price() (r *plan.Price, exists bool) {
 // OldPrice returns the old "price" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldPrice(ctx context.Context) (v *plan.Price, err error) {
+func (m *PlanRateCardMutation) OldPrice(ctx context.Context) (v *model.Price, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldPrice is only allowed on UpdateOne operations")
 	}
@@ -29693,7 +29693,7 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		m.SetKey(v)
 		return nil
 	case planratecard.FieldType:
-		v, ok := value.(plan.RateCardType)
+		v, ok := value.(model.RateCardType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -29707,14 +29707,14 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		m.SetFeatureKey(v)
 		return nil
 	case planratecard.FieldEntitlementTemplate:
-		v, ok := value.(*plan.EntitlementTemplate)
+		v, ok := value.(*model.EntitlementTemplate)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEntitlementTemplate(v)
 		return nil
 	case planratecard.FieldTaxConfig:
-		v, ok := value.(*plan.TaxConfig)
+		v, ok := value.(*model.TaxConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -29728,7 +29728,7 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		m.SetBillingCadence(v)
 		return nil
 	case planratecard.FieldPrice:
-		v, ok := value.(*plan.Price)
+		v, ok := value.(*model.Price)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

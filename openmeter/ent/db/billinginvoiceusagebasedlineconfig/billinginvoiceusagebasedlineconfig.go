@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 )
 
 const (
@@ -55,12 +55,12 @@ var (
 	DefaultID func() string
 	// ValueScanner of all BillingInvoiceUsageBasedLineConfig fields.
 	ValueScanner struct {
-		Price field.TypeValueScanner[*plan.Price]
+		Price field.TypeValueScanner[*model.Price]
 	}
 )
 
 // PriceTypeValidator is a validator for the "price_type" field enum values. It is called by the builders before save.
-func PriceTypeValidator(pt plan.PriceType) error {
+func PriceTypeValidator(pt model.PriceType) error {
 	switch pt {
 	case "flat", "unit", "tiered":
 		return nil

@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -48,7 +48,7 @@ const (
 	// PlanTable is the table that holds the plan relation/edge.
 	PlanTable = "plan_phases"
 	// PlanInverseTable is the table name for the Plan entity.
-	// It exists in this package in order to avoid circular dependency with the "dbplan" package.
+	// It exists in this package in order to avoid circular dependency with the "plan" package.
 	PlanInverseTable = "plans"
 	// PlanColumn is the table column denoting the plan relation/edge.
 	PlanColumn = "plan_id"
@@ -106,7 +106,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all PlanPhase fields.
 	ValueScanner struct {
-		Discounts field.TypeValueScanner[[]plan.Discount]
+		Discounts field.TypeValueScanner[[]model.Discount]
 	}
 )
 

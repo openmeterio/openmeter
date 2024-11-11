@@ -14,16 +14,17 @@ import (
 	ratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (pagination.PagedResponse[plan.Phase], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[plan.Phase], error) {
+func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (pagination.PagedResponse[planentity.Phase], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[planentity.Phase], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[plan.Phase]{}, fmt.Errorf("invalid list PlanPhases parameters: %w", err)
+			return pagination.PagedResponse[planentity.Phase]{}, fmt.Errorf("invalid list PlanPhases parameters: %w", err)
 		}
 
 		query := a.db.PlanPhase.Query()
@@ -77,7 +78,7 @@ func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (
 			query = query.Order(phasedb.ByStartAfter(order...))
 		}
 
-		response := pagination.PagedResponse[plan.Phase]{
+		response := pagination.PagedResponse[planentity.Phase]{
 			Page: params.Page,
 		}
 
@@ -86,7 +87,7 @@ func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (
 			return response, fmt.Errorf("failed to list PlanPhases: %w", err)
 		}
 
-		result := make([]plan.Phase, 0, len(paged.Items))
+		result := make([]planentity.Phase, 0, len(paged.Items))
 		for _, item := range paged.Items {
 			if item == nil {
 				a.logger.Warn("invalid query result: nil PlanPhase received")
@@ -107,11 +108,11 @@ func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (
 		return response, nil
 	}
 
-	return entutils.TransactingRepo[pagination.PagedResponse[plan.Phase], *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[pagination.PagedResponse[planentity.Phase], *adapter](ctx, a, fn)
 }
 
-func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) (*plan.Phase, error) {
-	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
+func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) (*planentity.Phase, error) {
+	fn := func(ctx context.Context, a *adapter) (*planentity.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid create PlanPhase parameters: %w", err)
 		}
@@ -159,7 +160,7 @@ func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput)
 			return nil, fmt.Errorf("failed to bulk create RateCards for PlanPhase %s: %w", planPhase.ID, err)
 		}
 
-		planPhase.RateCards = make([]plan.RateCard, 0, len(rateCardRows))
+		planPhase.RateCards = make([]planentity.RateCard, 0, len(rateCardRows))
 		for _, rateCardRow := range rateCardRows {
 			if rateCardRow == nil {
 				return nil, errors.New("invalid query result: nil RateCard received after bulk create")
@@ -176,7 +177,7 @@ func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput)
 		return planPhase, nil
 	}
 
-	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[*planentity.Phase, *adapter](ctx, a, fn)
 }
 
 func newRateCardBulkCreate(r []entdb.PlanRateCard, phaseID string, ns string) ([]entdb.PlanRateCard, func(*entdb.PlanRateCardCreate, int)) {
@@ -278,8 +279,8 @@ func (a *adapter) DeletePhase(ctx context.Context, params plan.DeletePhaseInput)
 	return err
 }
 
-func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*plan.Phase, error) {
-	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
+func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*planentity.Phase, error) {
+	fn := func(ctx context.Context, a *adapter) (*planentity.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid get PlanPhase parameters: %w", err)
 		}
@@ -332,11 +333,11 @@ func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*pla
 		return phase, nil
 	}
 
-	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[*planentity.Phase, *adapter](ctx, a, fn)
 }
 
-func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*plan.Phase, error) {
-	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
+func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*planentity.Phase, error) {
+	fn := func(ctx context.Context, a *adapter) (*planentity.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid update PlanPhase parameters: %w", err)
 		}
@@ -383,7 +384,7 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 		}
 
 		if params.RateCards != nil {
-			rateCards := make([]plan.RateCard, 0, len(p.RateCards))
+			rateCards := make([]planentity.RateCard, 0, len(p.RateCards))
 
 			diffResult, err := rateCardsDiff(*params.RateCards, p.RateCards)
 			if err != nil {
@@ -469,7 +470,7 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 		return p, nil
 	}
 
-	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[*planentity.Phase, *adapter](ctx, a, fn)
 }
 
 type rateCardsDiffResult struct {
@@ -486,7 +487,7 @@ type rateCardsDiffResult struct {
 	Keep []entdb.PlanRateCard
 }
 
-func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, error) {
+func rateCardsDiff(inputs, rateCards []planentity.RateCard) (rateCardsDiffResult, error) {
 	result := rateCardsDiffResult{}
 
 	inputsMap := make(map[string]entdb.PlanRateCard, len(inputs))

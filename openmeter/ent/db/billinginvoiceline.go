@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -58,7 +58,7 @@ type BillingInvoiceLine struct {
 	// Quantity holds the value of the "quantity" field.
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig plan.TaxConfig `json:"tax_config,omitempty"`
+	TaxConfig model.TaxConfig `json:"tax_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`

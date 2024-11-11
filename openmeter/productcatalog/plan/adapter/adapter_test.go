@@ -11,7 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,97 +37,106 @@ var planV1Input = plan.CreatePlanInput{
 	Description: lo.ToPtr("Pro plan v1"),
 	Metadata:    map[string]string{"name": "pro"},
 	Currency:    currency.USD,
-	Phases: []plan.Phase{
-		{
+	Phases: []planentity.Phase{
+		planentity.NewPhase(planentity.NewPhaseConfig{
 			NamespacedID: models.NamespacedID{
 				Namespace: namespace,
 			},
-			Key:         "trial",
-			Name:        "Trial",
-			Description: lo.ToPtr("Trial phase"),
-			Metadata:    map[string]string{"name": "trial"},
-			StartAfter:  MonthPeriod,
-			RateCards: []plan.RateCard{
-				plan.NewRateCardFrom(plan.FlatFeeRateCard{
-					RateCardMeta: plan.RateCardMeta{
-						NamespacedID: models.NamespacedID{
-							Namespace: namespace,
-						},
-						Key:                 "trial-ratecard-1",
-						Type:                plan.FlatFeeRateCardType,
-						Name:                "Trial RateCard 1",
-						Description:         lo.ToPtr("Trial RateCard 1"),
-						Metadata:            map[string]string{"name": "trial-ratecard-1"},
-						Feature:             nil,
-						EntitlementTemplate: nil,
-						TaxConfig: &plan.TaxConfig{
-							Stripe: &plan.StripeTaxConfig{
-								Code: "txcd_10000000",
+			PhaseGeneric: productcatalogmodel.PhaseGeneric{
+				Key:         "trial",
+				Name:        "Trial",
+				Description: lo.ToPtr("Trial phase"),
+				Metadata:    map[string]string{"name": "trial"},
+				StartAfter:  MonthPeriod,
+			},
+			RateCards: []planentity.RateCard{
+				{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
+					},
+					RateCard: productcatalogmodel.NewRateCardFrom(productcatalogmodel.FlatFeeRateCard{
+						RateCardMeta: productcatalogmodel.RateCardMeta{
+							Key:                 "trial-ratecard-1",
+							Type:                productcatalogmodel.FlatFeeRateCardType,
+							Name:                "Trial RateCard 1",
+							Description:         lo.ToPtr("Trial RateCard 1"),
+							Metadata:            map[string]string{"name": "trial-ratecard-1"},
+							Feature:             nil,
+							EntitlementTemplate: nil,
+							TaxConfig: &productcatalogmodel.TaxConfig{
+								Stripe: &productcatalogmodel.StripeTaxConfig{
+									Code: "txcd_10000000",
+								},
 							},
 						},
-					},
-					BillingCadence: &MonthPeriod,
-					Price: plan.NewPriceFrom(plan.FlatPrice{
-						PriceMeta: plan.PriceMeta{
-							Type: plan.FlatPriceType,
-						},
-						Amount:      decimal.NewFromInt(0),
-						PaymentTerm: plan.InArrearsPaymentTerm,
+						BillingCadence: &MonthPeriod,
+						Price: productcatalogmodel.NewPriceFrom(productcatalogmodel.FlatPrice{
+							PriceMeta: productcatalogmodel.PriceMeta{
+								Type: productcatalogmodel.FlatPriceType,
+							},
+							Amount:      decimal.NewFromInt(0),
+							PaymentTerm: productcatalogmodel.InArrearsPaymentTerm,
+						}),
 					}),
-				}),
+				},
 			},
-		},
-		{
+		}),
+		planentity.NewPhase(planentity.NewPhaseConfig{
 			NamespacedID: models.NamespacedID{
 				Namespace: namespace,
 			},
-			Key:         "pro",
-			Name:        "Pro",
-			Description: lo.ToPtr("Pro phase"),
-			Metadata:    map[string]string{"name": "pro"},
-			StartAfter:  TwoMonthPeriod,
-			RateCards: []plan.RateCard{
-				plan.NewRateCardFrom(plan.UsageBasedRateCard{
-					RateCardMeta: plan.RateCardMeta{
-						NamespacedID: models.NamespacedID{
-							Namespace: namespace,
-						},
-						Key:                 "pro-ratecard-1",
-						Type:                plan.UsageBasedRateCardType,
-						Name:                "Pro RateCard 1",
-						Description:         lo.ToPtr("Pro RateCard 1"),
-						Metadata:            map[string]string{"name": "pro-ratecard-1"},
-						Feature:             nil,
-						EntitlementTemplate: nil,
-						TaxConfig: &plan.TaxConfig{
-							Stripe: &plan.StripeTaxConfig{
-								Code: "txcd_10000000",
-							},
-						},
+			PhaseGeneric: productcatalogmodel.PhaseGeneric{
+				Key:         "pro",
+				Name:        "Pro",
+				Description: lo.ToPtr("Pro phase"),
+				Metadata:    map[string]string{"name": "pro"},
+				StartAfter:  TwoMonthPeriod,
+			},
+			RateCards: []planentity.RateCard{
+				{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
 					},
-					BillingCadence: MonthPeriod,
-					Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-						PriceMeta: plan.PriceMeta{
-							Type: plan.TieredPriceType,
-						},
-						Mode: plan.VolumeTieredPrice,
-						Tiers: []plan.PriceTier{
-							{
-								UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-								FlatPrice: &plan.PriceTierFlatPrice{
-									Amount: decimal.NewFromInt(100),
-								},
-								UnitPrice: &plan.PriceTierUnitPrice{
-									Amount: decimal.NewFromInt(50),
+					RateCard: productcatalogmodel.NewRateCardFrom(productcatalogmodel.UsageBasedRateCard{
+						RateCardMeta: productcatalogmodel.RateCardMeta{
+							Key:                 "pro-ratecard-1",
+							Type:                productcatalogmodel.UsageBasedRateCardType,
+							Name:                "Pro RateCard 1",
+							Description:         lo.ToPtr("Pro RateCard 1"),
+							Metadata:            map[string]string{"name": "pro-ratecard-1"},
+							Feature:             nil,
+							EntitlementTemplate: nil,
+							TaxConfig: &productcatalogmodel.TaxConfig{
+								Stripe: &productcatalogmodel.StripeTaxConfig{
+									Code: "txcd_10000000",
 								},
 							},
 						},
-						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-						MaximumAmount: nil,
-					})),
-				}),
+						BillingCadence: MonthPeriod,
+						Price: lo.ToPtr(productcatalogmodel.NewPriceFrom(productcatalogmodel.TieredPrice{
+							PriceMeta: productcatalogmodel.PriceMeta{
+								Type: productcatalogmodel.TieredPriceType,
+							},
+							Mode: productcatalogmodel.VolumeTieredPrice,
+							Tiers: []productcatalogmodel.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									FlatPrice: &productcatalogmodel.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(100),
+									},
+									UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(50),
+									},
+								},
+							},
+							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+							MaximumAmount: nil,
+						})),
+					}),
+				},
 			},
 		},
+		),
 	},
 }
 
@@ -161,7 +172,7 @@ func TestPostgresAdapter(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Plan", func(t *testing.T) {
-		var planV1 *plan.Plan
+		var planV1 *planentity.Plan
 
 		t.Run("Create", func(t *testing.T) {
 			planV1, err = repo.CreatePlan(ctx, planV1Input)
@@ -264,7 +275,7 @@ func TestPostgresAdapter(t *testing.T) {
 					Namespace: namespace,
 					ID:        planV1.ID,
 				},
-				EffectivePeriod: &plan.EffectivePeriod{
+				EffectivePeriod: &productcatalogmodel.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now.UTC()),
 					EffectiveTo:   lo.ToPtr(now.Add(30 * 24 * time.Hour).UTC()),
 				},
@@ -316,7 +327,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 		plan.AssertPlanCreateInputEqual(t, planV1Input, *planV1)
 
-		var phase *plan.Phase
+		var phase *planentity.Phase
 
 		t.Run("Create", func(t *testing.T) {
 			phaseInput := plan.CreatePhaseInput{
@@ -329,46 +340,48 @@ func TestPostgresAdapter(t *testing.T) {
 				Metadata:    map[string]string{"name": "team"},
 				PlanID:      planV1.ID,
 				StartAfter:  ThreeMonthPeriod,
-				RateCards: []plan.RateCard{
-					plan.NewRateCardFrom(plan.UsageBasedRateCard{
-						RateCardMeta: plan.RateCardMeta{
-							NamespacedID: models.NamespacedID{
-								Namespace: namespace,
-							},
-							Key:                 "team-ratecard-1",
-							Type:                plan.UsageBasedRateCardType,
-							Name:                "Team RateCard 1",
-							Description:         lo.ToPtr("Team RateCard 1"),
-							Metadata:            map[string]string{"name": "team-ratecard-1"},
-							Feature:             nil,
-							EntitlementTemplate: nil,
-							TaxConfig: &plan.TaxConfig{
-								Stripe: &plan.StripeTaxConfig{
-									Code: "txcd_10000000",
-								},
-							},
+				RateCards: []planentity.RateCard{
+					{
+						NamespacedID: models.NamespacedID{
+							Namespace: namespace,
 						},
-						BillingCadence: MonthPeriod,
-						Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-							PriceMeta: plan.PriceMeta{
-								Type: plan.TieredPriceType,
-							},
-							Mode: plan.VolumeTieredPrice,
-							Tiers: []plan.PriceTier{
-								{
-									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									FlatPrice: &plan.PriceTierFlatPrice{
-										Amount: decimal.NewFromInt(100),
-									},
-									UnitPrice: &plan.PriceTierUnitPrice{
-										Amount: decimal.NewFromInt(50),
+						RateCard: productcatalogmodel.NewRateCardFrom(productcatalogmodel.UsageBasedRateCard{
+							RateCardMeta: productcatalogmodel.RateCardMeta{
+								Key:                 "team-ratecard-1",
+								Type:                productcatalogmodel.UsageBasedRateCardType,
+								Name:                "Team RateCard 1",
+								Description:         lo.ToPtr("Team RateCard 1"),
+								Metadata:            map[string]string{"name": "team-ratecard-1"},
+								Feature:             nil,
+								EntitlementTemplate: nil,
+								TaxConfig: &productcatalogmodel.TaxConfig{
+									Stripe: &productcatalogmodel.StripeTaxConfig{
+										Code: "txcd_10000000",
 									},
 								},
 							},
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							MaximumAmount: nil,
-						})),
-					}),
+							BillingCadence: MonthPeriod,
+							Price: lo.ToPtr(productcatalogmodel.NewPriceFrom(productcatalogmodel.TieredPrice{
+								PriceMeta: productcatalogmodel.PriceMeta{
+									Type: productcatalogmodel.TieredPriceType,
+								},
+								Mode: productcatalogmodel.VolumeTieredPrice,
+								Tiers: []productcatalogmodel.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										FlatPrice: &productcatalogmodel.PriceTierFlatPrice{
+											Amount: decimal.NewFromInt(100),
+										},
+										UnitPrice: &productcatalogmodel.PriceTierUnitPrice{
+											Amount: decimal.NewFromInt(50),
+										},
+									},
+								},
+								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								MaximumAmount: nil,
+							})),
+						}),
+					},
 				},
 			}
 

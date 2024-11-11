@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 )
 
 // BillingInvoiceUsageBasedLineConfig is the model entity for the BillingInvoiceUsageBasedLineConfig schema.
@@ -20,11 +20,11 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// PriceType holds the value of the "price_type" field.
-	PriceType plan.PriceType `json:"price_type,omitempty"`
+	PriceType model.PriceType `json:"price_type,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
-	Price        *plan.Price `json:"price,omitempty"`
+	Price        *model.Price `json:"price,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -68,7 +68,7 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string,
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field price_type", values[i])
 			} else if value.Valid {
-				biublc.PriceType = plan.PriceType(value.String)
+				biublc.PriceType = model.PriceType(value.String)
 			}
 		case billinginvoiceusagebasedlineconfig.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {

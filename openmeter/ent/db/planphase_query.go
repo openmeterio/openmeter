@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -78,7 +78,7 @@ func (ppq *PlanPhaseQuery) QueryPlan() *PlanQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(planphase.Table, planphase.FieldID, selector),
-			sqlgraph.To(dbplan.Table, dbplan.FieldID),
+			sqlgraph.To(plan.Table, plan.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planphase.PlanTable, planphase.PlanColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
@@ -464,7 +464,7 @@ func (ppq *PlanPhaseQuery) loadPlan(ctx context.Context, query *PlanQuery, nodes
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(dbplan.IDIn(ids...))
+	query.Where(plan.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

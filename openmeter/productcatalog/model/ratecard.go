@@ -1,4 +1,4 @@
-package plan
+package model
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -138,23 +137,6 @@ func (r *RateCard) Key() string {
 	return key
 }
 
-func (r *RateCard) Namespace() string {
-	var ns string
-
-	switch r.t {
-	case FlatFeeRateCardType:
-		if r.flatFee != nil {
-			ns = r.flatFee.Namespace
-		}
-	case UsageBasedRateCardType:
-		if r.usageBased != nil {
-			ns = r.usageBased.Namespace
-		}
-	}
-
-	return ns
-}
-
 func (r *RateCard) AsFlatFee() (FlatFeeRateCard, error) {
 	if r.t == "" || r.flatFee == nil {
 		return FlatFeeRateCard{}, errors.New("invalid RateCard: not initialized")
@@ -218,9 +200,6 @@ func NewRateCardFrom[T FlatFeeRateCard | UsageBasedRateCard](c T) RateCard {
 var _ Validator = (*RateCardMeta)(nil)
 
 type RateCardMeta struct {
-	models.NamespacedID
-	models.ManagedModel
-
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
 

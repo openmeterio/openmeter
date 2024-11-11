@@ -37,7 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
@@ -4252,13 +4252,13 @@ func NewPlanClient(c config) *PlanClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `dbplan.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `plan.Hooks(f(g(h())))`.
 func (c *PlanClient) Use(hooks ...Hook) {
 	c.hooks.Plan = append(c.hooks.Plan, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `dbplan.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `plan.Intercept(f(g(h())))`.
 func (c *PlanClient) Intercept(interceptors ...Interceptor) {
 	c.inters.Plan = append(c.inters.Plan, interceptors...)
 }
@@ -4320,7 +4320,7 @@ func (c *PlanClient) DeleteOne(pl *Plan) *PlanDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *PlanClient) DeleteOneID(id string) *PlanDeleteOne {
-	builder := c.Delete().Where(dbplan.ID(id))
+	builder := c.Delete().Where(plan.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &PlanDeleteOne{builder}
@@ -4337,7 +4337,7 @@ func (c *PlanClient) Query() *PlanQuery {
 
 // Get returns a Plan entity by its id.
 func (c *PlanClient) Get(ctx context.Context, id string) (*Plan, error) {
-	return c.Query().Where(dbplan.ID(id)).Only(ctx)
+	return c.Query().Where(plan.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -4355,9 +4355,9 @@ func (c *PlanClient) QueryPhases(pl *Plan) *PlanPhaseQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := pl.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(dbplan.Table, dbplan.FieldID, id),
+			sqlgraph.From(plan.Table, plan.FieldID, id),
 			sqlgraph.To(planphase.Table, planphase.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbplan.PhasesTable, dbplan.PhasesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, plan.PhasesTable, plan.PhasesColumn),
 		)
 		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
 		return fromV, nil
@@ -4505,7 +4505,7 @@ func (c *PlanPhaseClient) QueryPlan(pp *PlanPhase) *PlanQuery {
 		id := pp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(planphase.Table, planphase.FieldID, id),
-			sqlgraph.To(dbplan.Table, dbplan.FieldID),
+			sqlgraph.To(plan.Table, plan.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planphase.PlanTable, planphase.PlanColumn),
 		)
 		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)

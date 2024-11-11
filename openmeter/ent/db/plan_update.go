@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -234,7 +234,7 @@ func (pu *PlanUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (pu *PlanUpdate) defaults() {
 	if _, ok := pu.mutation.UpdatedAt(); !ok {
-		v := dbplan.UpdateDefaultUpdatedAt()
+		v := plan.UpdateDefaultUpdatedAt()
 		pu.mutation.SetUpdatedAt(v)
 	}
 }
@@ -242,7 +242,7 @@ func (pu *PlanUpdate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (pu *PlanUpdate) check() error {
 	if v, ok := pu.mutation.Version(); ok {
-		if err := dbplan.VersionValidator(v); err != nil {
+		if err := plan.VersionValidator(v); err != nil {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
@@ -253,7 +253,7 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := pu.check(); err != nil {
 		return n, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(dbplan.Table, dbplan.Columns, sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(plan.Table, plan.Columns, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
 	if ps := pu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -262,53 +262,53 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := pu.mutation.Metadata(); ok {
-		_spec.SetField(dbplan.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(plan.FieldMetadata, field.TypeJSON, value)
 	}
 	if pu.mutation.MetadataCleared() {
-		_spec.ClearField(dbplan.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(plan.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := pu.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbplan.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := pu.mutation.DeletedAt(); ok {
-		_spec.SetField(dbplan.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldDeletedAt, field.TypeTime, value)
 	}
 	if pu.mutation.DeletedAtCleared() {
-		_spec.ClearField(dbplan.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(plan.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := pu.mutation.Name(); ok {
-		_spec.SetField(dbplan.FieldName, field.TypeString, value)
+		_spec.SetField(plan.FieldName, field.TypeString, value)
 	}
 	if value, ok := pu.mutation.Description(); ok {
-		_spec.SetField(dbplan.FieldDescription, field.TypeString, value)
+		_spec.SetField(plan.FieldDescription, field.TypeString, value)
 	}
 	if pu.mutation.DescriptionCleared() {
-		_spec.ClearField(dbplan.FieldDescription, field.TypeString)
+		_spec.ClearField(plan.FieldDescription, field.TypeString)
 	}
 	if value, ok := pu.mutation.Version(); ok {
-		_spec.SetField(dbplan.FieldVersion, field.TypeInt, value)
+		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
 	}
 	if value, ok := pu.mutation.AddedVersion(); ok {
-		_spec.AddField(dbplan.FieldVersion, field.TypeInt, value)
+		_spec.AddField(plan.FieldVersion, field.TypeInt, value)
 	}
 	if value, ok := pu.mutation.EffectiveFrom(); ok {
-		_spec.SetField(dbplan.FieldEffectiveFrom, field.TypeTime, value)
+		_spec.SetField(plan.FieldEffectiveFrom, field.TypeTime, value)
 	}
 	if pu.mutation.EffectiveFromCleared() {
-		_spec.ClearField(dbplan.FieldEffectiveFrom, field.TypeTime)
+		_spec.ClearField(plan.FieldEffectiveFrom, field.TypeTime)
 	}
 	if value, ok := pu.mutation.EffectiveTo(); ok {
-		_spec.SetField(dbplan.FieldEffectiveTo, field.TypeTime, value)
+		_spec.SetField(plan.FieldEffectiveTo, field.TypeTime, value)
 	}
 	if pu.mutation.EffectiveToCleared() {
-		_spec.ClearField(dbplan.FieldEffectiveTo, field.TypeTime)
+		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
 	}
 	if pu.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -320,8 +320,8 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -336,8 +336,8 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -350,7 +350,7 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{dbplan.Label}
+			err = &NotFoundError{plan.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -586,7 +586,7 @@ func (puo *PlanUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (puo *PlanUpdateOne) defaults() {
 	if _, ok := puo.mutation.UpdatedAt(); !ok {
-		v := dbplan.UpdateDefaultUpdatedAt()
+		v := plan.UpdateDefaultUpdatedAt()
 		puo.mutation.SetUpdatedAt(v)
 	}
 }
@@ -594,7 +594,7 @@ func (puo *PlanUpdateOne) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (puo *PlanUpdateOne) check() error {
 	if v, ok := puo.mutation.Version(); ok {
-		if err := dbplan.VersionValidator(v); err != nil {
+		if err := plan.VersionValidator(v); err != nil {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
@@ -605,7 +605,7 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 	if err := puo.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(dbplan.Table, dbplan.Columns, sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(plan.Table, plan.Columns, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
 	id, ok := puo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Plan.id" for update`)}
@@ -613,12 +613,12 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 	_spec.Node.ID.Value = id
 	if fields := puo.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbplan.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, plan.FieldID)
 		for _, f := range fields {
-			if !dbplan.ValidColumn(f) {
+			if !plan.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != dbplan.FieldID {
+			if f != plan.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -631,53 +631,53 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 		}
 	}
 	if value, ok := puo.mutation.Metadata(); ok {
-		_spec.SetField(dbplan.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(plan.FieldMetadata, field.TypeJSON, value)
 	}
 	if puo.mutation.MetadataCleared() {
-		_spec.ClearField(dbplan.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(plan.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := puo.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbplan.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := puo.mutation.DeletedAt(); ok {
-		_spec.SetField(dbplan.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldDeletedAt, field.TypeTime, value)
 	}
 	if puo.mutation.DeletedAtCleared() {
-		_spec.ClearField(dbplan.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(plan.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := puo.mutation.Name(); ok {
-		_spec.SetField(dbplan.FieldName, field.TypeString, value)
+		_spec.SetField(plan.FieldName, field.TypeString, value)
 	}
 	if value, ok := puo.mutation.Description(); ok {
-		_spec.SetField(dbplan.FieldDescription, field.TypeString, value)
+		_spec.SetField(plan.FieldDescription, field.TypeString, value)
 	}
 	if puo.mutation.DescriptionCleared() {
-		_spec.ClearField(dbplan.FieldDescription, field.TypeString)
+		_spec.ClearField(plan.FieldDescription, field.TypeString)
 	}
 	if value, ok := puo.mutation.Version(); ok {
-		_spec.SetField(dbplan.FieldVersion, field.TypeInt, value)
+		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
 	}
 	if value, ok := puo.mutation.AddedVersion(); ok {
-		_spec.AddField(dbplan.FieldVersion, field.TypeInt, value)
+		_spec.AddField(plan.FieldVersion, field.TypeInt, value)
 	}
 	if value, ok := puo.mutation.EffectiveFrom(); ok {
-		_spec.SetField(dbplan.FieldEffectiveFrom, field.TypeTime, value)
+		_spec.SetField(plan.FieldEffectiveFrom, field.TypeTime, value)
 	}
 	if puo.mutation.EffectiveFromCleared() {
-		_spec.ClearField(dbplan.FieldEffectiveFrom, field.TypeTime)
+		_spec.ClearField(plan.FieldEffectiveFrom, field.TypeTime)
 	}
 	if value, ok := puo.mutation.EffectiveTo(); ok {
-		_spec.SetField(dbplan.FieldEffectiveTo, field.TypeTime, value)
+		_spec.SetField(plan.FieldEffectiveTo, field.TypeTime, value)
 	}
 	if puo.mutation.EffectiveToCleared() {
-		_spec.ClearField(dbplan.FieldEffectiveTo, field.TypeTime)
+		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
 	}
 	if puo.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -689,8 +689,8 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -705,8 +705,8 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -722,7 +722,7 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, puo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{dbplan.Label}
+			err = &NotFoundError{plan.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

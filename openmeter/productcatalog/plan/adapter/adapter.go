@@ -8,12 +8,13 @@ import (
 	"log/slog"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	productcatalogmodel "github.com/openmeterio/openmeter/openmeter/productcatalog/model"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-var _ plan.Validator = (*Config)(nil)
+var _ productcatalogmodel.Validator = (*Config)(nil)
 
 type Config struct {
 	Client *entdb.Client

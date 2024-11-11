@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planentity "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func (s service) ListPhases(ctx context.Context, params plan.ListPhasesInput) (pagination.PagedResponse[plan.Phase], error) {
-	fn := func(ctx context.Context) (pagination.PagedResponse[plan.Phase], error) {
+func (s service) ListPhases(ctx context.Context, params plan.ListPhasesInput) (pagination.PagedResponse[planentity.Phase], error) {
+	fn := func(ctx context.Context) (pagination.PagedResponse[planentity.Phase], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[plan.Phase]{}, fmt.Errorf("invalid list PlanPhases params: %w", err)
+			return pagination.PagedResponse[planentity.Phase]{}, fmt.Errorf("invalid list PlanPhases params: %w", err)
 		}
 
 		return s.adapter.ListPhases(ctx, params)
@@ -21,8 +22,8 @@ func (s service) ListPhases(ctx context.Context, params plan.ListPhasesInput) (p
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) (*plan.Phase, error) {
-	fn := func(ctx context.Context) (*plan.Phase, error) {
+func (s service) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) (*planentity.Phase, error) {
+	fn := func(ctx context.Context) (*planentity.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid create PlanPhase params: %w", err)
 		}
@@ -92,8 +93,8 @@ func (s service) DeletePhase(ctx context.Context, params plan.DeletePhaseInput) 
 	return err
 }
 
-func (s service) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*plan.Phase, error) {
-	fn := func(ctx context.Context) (*plan.Phase, error) {
+func (s service) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*planentity.Phase, error) {
+	fn := func(ctx context.Context) (*planentity.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid get PlanPhase params: %w", err)
 		}
@@ -120,8 +121,8 @@ func (s service) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*plan
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*plan.Phase, error) {
-	fn := func(ctx context.Context) (*plan.Phase, error) {
+func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*planentity.Phase, error) {
+	fn := func(ctx context.Context) (*planentity.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid update PlanPhase params: %w", err)
 		}

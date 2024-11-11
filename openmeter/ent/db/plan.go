@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 )
 
 // Plan is the model entity for the Plan schema.
@@ -71,13 +71,13 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbplan.FieldMetadata:
+		case plan.FieldMetadata:
 			values[i] = new([]byte)
-		case dbplan.FieldVersion:
+		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case dbplan.FieldID, dbplan.FieldNamespace, dbplan.FieldName, dbplan.FieldDescription, dbplan.FieldKey, dbplan.FieldCurrency:
+		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency:
 			values[i] = new(sql.NullString)
-		case dbplan.FieldCreatedAt, dbplan.FieldUpdatedAt, dbplan.FieldDeletedAt, dbplan.FieldEffectiveFrom, dbplan.FieldEffectiveTo:
+		case plan.FieldCreatedAt, plan.FieldUpdatedAt, plan.FieldDeletedAt, plan.FieldEffectiveFrom, plan.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -94,19 +94,19 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case dbplan.FieldID:
+		case plan.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				pl.ID = value.String
 			}
-		case dbplan.FieldNamespace:
+		case plan.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				pl.Namespace = value.String
 			}
-		case dbplan.FieldMetadata:
+		case plan.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -114,64 +114,64 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case dbplan.FieldCreatedAt:
+		case plan.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				pl.CreatedAt = value.Time
 			}
-		case dbplan.FieldUpdatedAt:
+		case plan.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				pl.UpdatedAt = value.Time
 			}
-		case dbplan.FieldDeletedAt:
+		case plan.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				pl.DeletedAt = new(time.Time)
 				*pl.DeletedAt = value.Time
 			}
-		case dbplan.FieldName:
+		case plan.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				pl.Name = value.String
 			}
-		case dbplan.FieldDescription:
+		case plan.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				pl.Description = new(string)
 				*pl.Description = value.String
 			}
-		case dbplan.FieldKey:
+		case plan.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
 				pl.Key = value.String
 			}
-		case dbplan.FieldVersion:
+		case plan.FieldVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field version", values[i])
 			} else if value.Valid {
 				pl.Version = int(value.Int64)
 			}
-		case dbplan.FieldCurrency:
+		case plan.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				pl.Currency = value.String
 			}
-		case dbplan.FieldEffectiveFrom:
+		case plan.FieldEffectiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field effective_from", values[i])
 			} else if value.Valid {
 				pl.EffectiveFrom = new(time.Time)
 				*pl.EffectiveFrom = value.Time
 			}
-		case dbplan.FieldEffectiveTo:
+		case plan.FieldEffectiveTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field effective_to", values[i])
 			} else if value.Valid {
