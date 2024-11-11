@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/oklog/run"
+
 	"github.com/openmeterio/openmeter/app/config"
 )
 
