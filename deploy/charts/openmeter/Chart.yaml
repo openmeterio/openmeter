@@ -1,8 +1,8 @@
 apiVersion: v2
 type: application
 name: openmeter
-version: 1.0.0-beta.53
-appVersion: "v1.0.0-beta.53"
+version: 1.0.0-beta.186
+appVersion: "v1.0.0-beta.186"
 description: "Usage Metering for AI, DevOps, and Billing. Built for engineers to collect and aggregate millions of events in real-time."
 icon: https://openmeter.io/favicon.svg
 keywords:
@@ -14,11 +14,20 @@ home: https://openmeter.io
 sources:
   - https://github.com/openmeterio/openmeter
 dependencies:
-  - name: strimzi-kafka-operator
-    version: "0.39.0"
-    repository: "https://strimzi.io/charts/"
-    condition: kafka.operator.install
   - name: altinity-clickhouse-operator
     version: "0.23.3"
     repository: "https://docs.altinity.com/clickhouse-operator/"
     condition: clickhouse.operator.install
+  - name: kafka
+    version: "30.1.8"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: kafka.enabled
+  - name: postgresql
+    version: "16.1.2"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: postgresql.enabled
+  - name: redis
+    version: "20.2.1"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: redis.enabled
+

@@ -5,5 +5,14 @@ dependencies:
 - name: altinity-clickhouse-operator
   repository: https://docs.altinity.com/clickhouse-operator/
   version: 0.23.3
-digest: sha256:e48ba01d14d535cb31557e3bd5c09e3576577f340dbc34b9aa101b8995c00049
-generated: "2024-03-07T18:23:02.138981+01:00"
+- name: kafka
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 30.1.8
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 16.1.2
+- name: redis
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 20.2.1
+digest: sha256:f4de5a9b17965212a6afccfcdb46f054a8b5011e526f187c84dfb7344825bad8
+generated: "2024-11-08T11:40:40.003502+01:00"

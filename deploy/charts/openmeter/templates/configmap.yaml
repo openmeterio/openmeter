@@ -1,3 +1,48 @@
+{{- define "openmeter.helmValuesConfig" -}}
+{{/* Overwrite kafka config if self-hosted kafka is used */}}
+{{- if .Values.kafka.enabled -}}
+ingest:
+  kafka:
+    broker: {{ include "openmeter.componentName" (list . "kafka") }}-controller-headless:9092
+sink:
+  kafka:
+    brokers: {{ include "openmeter.componentName" (list . "kafka") }}-controller-headless:9092
+{{- end }}
+
+{{/* Overwrite clickhouse config if self-hosted clickhouse is used */}}
+{{- if .Values.clickhouse.enabled -}}
+aggregation:
+  clickhouse:
+    address: clickhouse-{{ include "openmeter.fullname" . }}:9000
+    username: default
+    password: ""
+    database: default
+{{- end }}
+
+{{/* Overwrite postgres config if self-hosted postgres is used */}}
+{{- if .Values.postgresql.enabled -}}
+postgres:
+  autoMigrate: ent
+  url: postgres://application:application@{{ include "openmeter.fullname" . }}-postgres:5432/application
+{{- end }}
+
+{{/* Overwrite svix config if self-hosted svix is used */}}
+{{- if .Values.svix.enabled -}}
+svix:
+  apiKey: {{ .Values.svix.signedJwt }}
+  serverURL: http://{{ include "openmeter.componentName" (list . "svix" ) }}:{{ .Values.svix.service.port }}
+  debug: true
+{{- end }}
+
+{{/* All features are enabled for this installation */}}
+events:
+  enabled: true
+entitlements:
+  enabled: true
+notification:
+  enabled: true
+{{- end }}
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,26 +52,9 @@ metadata:
 data:
   config.yaml: |
     {{- $config := .Values.config -}}
-    {{- if .Values.kafka.enabled -}}
-    {{- $config := omit $config "ingest" }}
-
-    ingest:
-      kafka:
-        broker: PLAINTEXT://{{ include "openmeter.fullname" . }}-kafka-bootstrap:9092
-    {{- end }}
-
-    {{- if .Values.clickhouse.enabled -}}
-    {{- $config := omit $config "aggregation" }}
-
-    aggregation:
-      clickhouse:
-        address: clickhouse-{{ include "openmeter.fullname" . }}:9000
-        username: default
-        password: ""
-        database: default
-    {{- end }}
+    {{- $valuesConfig := fromYaml (include "openmeter.helmValuesConfig" .) -}}
+    {{- $config := mergeOverwrite $config $valuesConfig -}}
 
 
-    {{- if .Values.config -}}
-    {{ .Values.config | toYaml | nindent 4 }}
-    {{- end }}
+    {{ $config | toYaml | nindent 4 }}
+

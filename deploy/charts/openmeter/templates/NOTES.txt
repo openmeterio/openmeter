@@ -1,0 +1,20 @@
+Thank you for installing OpenMeter!
+
+{{ if .Values.postgresql.enabled }}
+It is highly recommended to use your own Postgres for production deployments!
+{{- end }}
+{{- if .Values.clickhouse.enabled }}
+It is highly recommended to use your own Clickhouse for production deployments!
+{{- end }}
+{{- if .Values.clickhouse.enabled }}
+It is highly recommended to use your own ClickHouse for production deployments!
+{{- end }}
+{{- if .Values.kafka.enabled }}
+It is highly recommended to use your own Kafka for production deployments!
+{{- end }}
+{{- if .Values.redis.enabled }}
+It is highly recommended to use your own Redis for production deployments!
+{{- end }}
+{{- if .Values.svix.enabled }}
+It is highly recommended to use your own Svix for production deployments!
+{{- end }}
