@@ -115,11 +115,25 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 			"plan.id", params.ID,
 		)
 
-		// TODO(chrisgacsal): add check which makes sure that Plans with active Subscriptions are not deleted.
-
 		logger.Debug("deleting Plan")
 
-		err := s.adapter.DeletePlan(ctx, params)
+		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.ID,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Plan: %w", err)
+		}
+
+		allowedPlanStatuses := []plan.PlanStatus{plan.ArchivedStatus, plan.ScheduledStatus}
+		planStatus := p.Status()
+		if !lo.Contains(allowedPlanStatuses, p.Status()) {
+			return nil, fmt.Errorf("only Plans in %+v can be deleted, but it has %s state", allowedPlanStatuses, planStatus)
+		}
+
+		err = s.adapter.DeletePlan(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete Plan: %w", err)
 		}
