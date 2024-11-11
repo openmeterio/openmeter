@@ -522,7 +522,11 @@ func (i UpdatePhaseInput) Equal(p Phase) bool {
 		return false
 	}
 
-	if i.Name != nil && *i.Name == p.Name {
+	if i.Name != nil && *i.Name != p.Name {
+		return false
+	}
+
+	if i.StartAfter != nil && *i.StartAfter != p.StartAfter {
 		return false
 	}
 

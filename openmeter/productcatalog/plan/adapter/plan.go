@@ -437,7 +437,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 
 					phase, err := a.UpdatePhase(ctx, updateInput)
 					if err != nil {
-						return nil, fmt.Errorf("failed to update PlanPhasee: %w", err)
+						return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
 					}
 
 					phases = append(phases, *phase)
