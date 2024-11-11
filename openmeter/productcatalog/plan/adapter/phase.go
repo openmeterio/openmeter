@@ -529,6 +529,9 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 		}
 
 		if !match {
+			input.Namespace = rateCard.Namespace
+			input.ID = rateCard.ID
+			input.PhaseID = rateCard.PhaseID
 			result.Update = append(result.Update, input)
 
 			rateCardsVisited[rateCardKey] = struct{}{}
