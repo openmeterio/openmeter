@@ -386,14 +386,14 @@ func mapTieredPriceToAPI(p plan.TieredPrice) (api.RateCardUsageBasedPrice, error
 		if t.FlatPrice != nil {
 			res.FlatPrice = &api.FlatPrice{
 				Amount: t.FlatPrice.Amount.String(),
-				Type:   api.FlatPriceType(t.FlatPrice.Type),
+				Type:   api.FlatPriceType(plan.FlatPriceType),
 			}
 		}
 
 		if t.UnitPrice != nil {
 			res.UnitPrice = &api.UnitPrice{
 				Amount: t.UnitPrice.Amount.String(),
-				Type:   api.UnitPriceType(t.UnitPrice.Type),
+				Type:   api.UnitPriceType(plan.UnitPriceType),
 			}
 		}
 		return res
