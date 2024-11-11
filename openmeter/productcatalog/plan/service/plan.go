@@ -359,16 +359,59 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 
 		logger.Debug("creating new version of a Plan")
 
-		sourcePlan, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: params.Namespace,
-				ID:        params.ID,
+		// Fetch all version of a plan to find the one to be used as source and also to calculate the next version number.
+		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
+			Page: pagination.Page{
+				PageSize:   1000,
+				PageNumber: 1,
 			},
-			Key:     params.Key,
-			Version: params.Version,
+			OrderBy:        plan.OrderByVersion,
+			Order:          plan.OrderAsc,
+			Namespaces:     []string{params.Namespace},
+			Keys:           []string{params.Key},
+			IncludeDeleted: true,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get source Plan: %w", err)
+			return nil, fmt.Errorf("failed to list all versions of the Plan: %w", err)
+		}
+
+		if len(allVersions.Items) == 0 {
+			return nil, fmt.Errorf("no versions available for this plan")
+		}
+
+		// Generate source plan filter from input parameters
+		planFilter := func() func(plan plan.Plan) bool {
+			switch {
+			case params.ID != "":
+				return func(p plan.Plan) bool {
+					return p.Namespace == params.Namespace && p.ID == params.ID
+				}
+			case params.Key != "" && params.Version == 0:
+				return func(p plan.Plan) bool {
+					return p.Namespace == params.Namespace && p.Key == params.Key && p.Status() == plan.ActiveStatus
+				}
+			default:
+				return func(p plan.Plan) bool {
+					return p.Namespace == params.Namespace && p.Key == params.Key && p.Version == params.Version
+				}
+			}
+		}()
+
+		var sourcePlan *plan.Plan
+
+		nextVersion := 1
+		for _, p := range allVersions.Items {
+			if sourcePlan == nil && planFilter(p) {
+				sourcePlan = &p
+			}
+
+			if p.Version >= nextVersion {
+				nextVersion = p.Version + 1
+			}
+		}
+
+		if sourcePlan == nil {
+			return nil, fmt.Errorf("no versions available for plan to use as source for next draft version")
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{
@@ -376,6 +419,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 				Namespace: sourcePlan.Namespace,
 			},
 			Key:         sourcePlan.Key,
+			Version:     nextVersion,
 			Name:        sourcePlan.Name,
 			Description: sourcePlan.Description,
 			Metadata:    sourcePlan.Metadata,

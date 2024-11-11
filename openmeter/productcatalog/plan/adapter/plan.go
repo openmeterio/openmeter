@@ -121,6 +121,10 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 
 		// Create plan
 
+		if params.Version == 0 {
+			params.Version = 1
+		}
+
 		planRow, err := a.db.Plan.Create().
 			SetKey(params.Key).
 			SetNamespace(params.Namespace).
@@ -128,7 +132,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetNillableDescription(params.Description).
 			SetCurrency(params.Currency.String()).
 			SetMetadata(params.Metadata).
-			SetVersion(1).
+			SetVersion(params.Version).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Plan: %w", err)

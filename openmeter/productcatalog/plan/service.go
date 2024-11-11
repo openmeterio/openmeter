@@ -86,6 +86,9 @@ type CreatePlanInput struct {
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
 
+	// Version
+	Version int `json:"version"`
+
 	// Name
 	Name string `json:"name"`
 
@@ -332,8 +335,8 @@ func (i NextPlanInput) Validate() error {
 		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
-	if i.ID == "" && (i.Key == "" || i.Version == 0) {
-		errs = append(errs, errors.New("invalid: either ID or Key/Version pair must be provided"))
+	if i.ID == "" && i.Key == "" {
+		errs = append(errs, errors.New("invalid: either ID or Key pair must be provided"))
 	}
 
 	if len(errs) > 0 {
