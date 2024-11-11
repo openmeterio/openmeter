@@ -53,7 +53,13 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		return nil, fmt.Errorf("entitlement entity is nil")
 	}
 
-	if entitlementEntity.DeletedAt != nil {
+	if entitlementEntity.ActiveFrom != nil && entitlementEntity.ActiveFrom.After(calculatedAt) {
+		// Not yet active entitlement we don't need to process it yet
+		return nil, nil
+	}
+
+	if entitlementEntity.DeletedAt != nil ||
+		(entitlementEntity.ActiveTo != nil && entitlementEntity.ActiveTo.Before(calculatedAt)) {
 		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
 
 		snapshot, err := w.createDeletedSnapshotEvent(ctx,

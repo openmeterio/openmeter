@@ -191,6 +191,8 @@ func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitl
 	return err
 }
 
+// TODO[OM-1009]: This returns all the entitlements even the expired ones, for billing we would need to have a range for
+// the batch ingested events. Let's narrow down the list of entitlements active during that period.
 func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eventFilters []balanceworker.IngestEventQueryFilter) ([]balanceworker.IngestEventDataResponse, error) {
 	return entutils.TransactingRepo[[]balanceworker.IngestEventDataResponse, *entitlementDBAdapter](
 		ctx,
