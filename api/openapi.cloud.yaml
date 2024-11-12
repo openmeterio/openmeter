@@ -11,7 +11,7 @@ info:
 tags:
   - name: Portal
   - name: Apps
-  - name: Notification (Experimental)
+  - name: Notification (Beta)
   - name: Entitlements (Experimental)
   - name: Customers
   - name: Billing (Experimental)
@@ -3748,7 +3748,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
     post:
       operationId: createNotificationChannel
       summary: Create a notification channel
@@ -3798,7 +3798,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
       requestBody:
         required: true
         content:
@@ -3868,7 +3868,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
       requestBody:
         required: true
         content:
@@ -3937,7 +3937,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
     delete:
       operationId: deleteNotificationChannel
       summary: Delete a notification channel
@@ -3999,7 +3999,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
   /api/v1/notification/events:
     get:
       operationId: listNotificationEvents
@@ -4124,7 +4124,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
   /api/v1/notification/events/{eventId}:
     get:
       operationId: getNotificationEvent
@@ -4186,7 +4186,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
   /api/v1/notification/rules:
     get:
       operationId: listNotificationRules
@@ -4293,7 +4293,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
     post:
       operationId: createNotificationRule
       summary: Create a notification rule
@@ -4343,7 +4343,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
       requestBody:
         required: true
         content:
@@ -4413,7 +4413,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
       requestBody:
         required: true
         content:
@@ -4482,7 +4482,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
     delete:
       operationId: deleteNotificationRule
       summary: Delete a notification rule
@@ -4544,7 +4544,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
   /api/v1/notification/rules/{ruleId}/test:
     post:
       operationId: testNotificationRule
@@ -4607,7 +4607,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
   /api/v1/notification/webhook/svix:
     post:
       operationId: receiveSvixOperationalEvent
@@ -4654,7 +4654,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Experimental)
+        - Notification (Beta)
       requestBody:
         required: true
         content:
