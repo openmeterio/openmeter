@@ -154,23 +154,21 @@ func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput)
 
 		bulk, bulkFn := newRateCardBulkCreate(rateCardInputs, planPhase.ID, params.Namespace)
 
-		rateCardRows, err := a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Save(ctx)
-		if err != nil {
+		if err = a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Exec(ctx); err != nil {
 			return nil, fmt.Errorf("failed to bulk create RateCards for PlanPhase %s: %w", planPhase.ID, err)
 		}
 
-		planPhase.RateCards = make([]plan.RateCard, 0, len(rateCardRows))
-		for _, rateCardRow := range rateCardRows {
-			if rateCardRow == nil {
-				return nil, errors.New("invalid query result: nil RateCard received after bulk create")
-			}
+		planPhaseRow, err = a.db.PlanPhase.Query().
+			Where(phasedb.Namespace(params.Namespace), phasedb.ID(planPhase.ID)).
+			WithRatecards(rateCardEagerLoadFeaturesFn).
+			First(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
+		}
 
-			rateCard, err := fromPlanRateCardRow(*rateCardRow)
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-			}
-
-			planPhase.RateCards = append(planPhase.RateCards, *rateCard)
+		planPhase, err = fromPlanPhaseRow(*planPhaseRow)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast PlanPhase %w", err)
 		}
 
 		return planPhase, nil
@@ -191,9 +189,15 @@ func newRateCardBulkCreate(r []entdb.PlanRateCard, phaseID string, ns string) ([
 			SetNillableFeatureKey(r[i].FeatureKey).
 			SetNillableFeaturesID(r[i].FeatureID).
 			SetEntitlementTemplate(r[i].EntitlementTemplate).
-			SetTaxConfig(r[i].TaxConfig).
-			SetNillableBillingCadence(r[i].BillingCadence).
-			SetPrice(r[i].Price)
+			SetNillableBillingCadence(r[i].BillingCadence)
+
+		if r[i].TaxConfig != nil {
+			q.SetTaxConfig(r[i].TaxConfig)
+		}
+
+		if r[i].Price != nil {
+			q.SetPrice(r[i].Price)
+		}
 	}
 }
 
@@ -305,7 +309,7 @@ func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*pla
 			return nil, errors.New("invalid get PlanPhase parameters")
 		}
 
-		query = query.WithRatecards()
+		query = query.WithRatecards(rateCardEagerLoadFeaturesFn)
 
 		phaseRow, err := query.First(ctx)
 		if err != nil {
@@ -382,33 +386,21 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 			}
 		}
 
-		if params.RateCards != nil {
-			rateCards := make([]plan.RateCard, 0, len(p.RateCards))
-
+		if params.RateCards != nil && len(*params.RateCards) > 0 {
 			diffResult, err := rateCardsDiff(*params.RateCards, p.RateCards)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate RateCard diff for PlanPhase update: %w", err)
 			}
 
+			if !diffResult.IsDiff() {
+				return p, nil
+			}
+
 			if len(diffResult.Add) > 0 {
 				bulk, bulkFn := newRateCardBulkCreate(diffResult.Add, p.ID, params.Namespace)
 
-				rateCardRows, err := a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Save(ctx)
-				if err != nil {
+				if err = a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Exec(ctx); err != nil {
 					return nil, fmt.Errorf("failed to bulk create RateCards: %w", err)
-				}
-
-				for _, rateCardRow := range rateCardRows {
-					if rateCardRow == nil {
-						return nil, errors.New("invalid query result: nil RateCard received after bulk create")
-					}
-
-					rateCard, err := fromPlanRateCardRow(*rateCardRow)
-					if err != nil {
-						return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-					}
-
-					rateCards = append(rateCards, *rateCard)
 				}
 			}
 
@@ -423,47 +415,39 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 
 			if len(diffResult.Update) > 0 {
 				for _, rateCardInput := range diffResult.Update {
-					rateCardRow, err := a.db.PlanRateCard.UpdateOneID(rateCardInput.ID).
+					q := a.db.PlanRateCard.UpdateOneID(rateCardInput.ID).
 						Where(ratecarddb.Namespace(params.Namespace)).
-						SetMetadata(rateCardInput.Metadata).
+						SetOrClearMetadata(&rateCardInput.Metadata).
 						SetName(rateCardInput.Name).
-						SetNillableDescription(rateCardInput.Description).
-						SetNillableFeatureKey(rateCardInput.FeatureKey).
-						SetNillableFeaturesID(rateCardInput.FeatureID).
+						SetOrClearDescription(rateCardInput.Description).
+						SetOrClearFeatureKey(rateCardInput.FeatureKey).
 						SetEntitlementTemplate(rateCardInput.EntitlementTemplate).
 						SetTaxConfig(rateCardInput.TaxConfig).
-						SetNillableBillingCadence(rateCardInput.BillingCadence).
-						SetPrice(rateCardInput.Price).
-						Save(ctx)
+						SetOrClearBillingCadence(rateCardInput.BillingCadence).
+						SetPrice(rateCardInput.Price)
+
+					if rateCardInput.FeatureID == nil {
+						q.ClearFeatureID()
+					}
+
+					err = q.Exec(ctx)
 					if err != nil {
 						return nil, fmt.Errorf("failed to update RateCard: %w", err)
 					}
-
-					if rateCardRow == nil {
-						return nil, errors.New("invalid query result: nil RateCard received update")
-					}
-
-					rateCard, err := fromPlanRateCardRow(*rateCardRow)
-					if err != nil {
-						return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-					}
-
-					rateCards = append(rateCards, *rateCard)
 				}
 			}
 
-			if len(diffResult.Keep) > 0 {
-				for _, rateCardRow := range diffResult.Keep {
-					rateCard, err := fromPlanRateCardRow(rateCardRow)
-					if err != nil {
-						return nil, fmt.Errorf("failed to cast RateCard: %w", err)
-					}
-
-					rateCards = append(rateCards, *rateCard)
-				}
+			p, err = a.GetPhase(ctx, plan.GetPhaseInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: params.Namespace,
+					ID:        params.ID,
+				},
+				Key:    params.Key,
+				PlanID: params.PlanID,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get updated PlanPhase: %w", err)
 			}
-
-			p.RateCards = rateCards
 		}
 
 		return p, nil
@@ -542,7 +526,7 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 		}
 	}
 
-	// Collect phases to be deleted
+	// Collect RateCards to be deleted
 	if len(rateCardsVisited) != len(rateCardsMap) {
 		for rateCardKey, rateCard := range rateCardsMap {
 			if _, ok := rateCardsVisited[rateCardKey]; !ok {
@@ -554,11 +538,11 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 	return result, nil
 }
 
-func rateCardCmp(r1, r2 entdb.PlanRateCard) (bool, error) {
-	if r1.ID != r2.ID {
-		return false, nil
-	}
+func (r rateCardsDiffResult) IsDiff() bool {
+	return len(r.Add) > 0 || len(r.Update) > 0 || len(r.Remove) > 0
+}
 
+func rateCardCmp(r1, r2 entdb.PlanRateCard) (bool, error) {
 	if r1.Namespace != r2.Namespace {
 		return false, nil
 	}
