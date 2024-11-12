@@ -10,7 +10,7 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Entitlements;
 
 @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
-@tag("Entitlements (Experimental)")
+@tag("Entitlements (Beta)")
 interface Subjects {
   /**
    * OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).

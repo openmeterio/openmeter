@@ -23,7 +23,7 @@ enum GrantOrderBy {
 }
 
 @route("/api/v1/grants")
-@tag("Entitlements (Experimental)")
+@tag("Entitlements (Beta)")
 interface Grants {
   /**
    * List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.

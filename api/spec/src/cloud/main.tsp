@@ -109,38 +109,38 @@ namespace OpenMeterCloud.App {
 
 namespace OpenMeterCloud.Notification {
   @route("/api/v1/notification/channels")
-  @tag("Notification (Experimental)")
+  @tag("Notification (Beta)")
   interface Channels extends OpenMeter.Notification.Channels {}
 
   @route("/api/v1/notification/rules")
-  @tag("Notification (Experimental)")
+  @tag("Notification (Beta)")
   interface Rules extends OpenMeter.Notification.Rules {}
 
   @route("/api/v1/notification/events")
-  @tag("Notification (Experimental)")
+  @tag("Notification (Beta)")
   interface Events extends OpenMeter.Notification.Events {}
 
   @route("/api/v1/notification/webhook/svix")
-  @tag("Notification (Experimental)")
+  @tag("Notification (Beta)")
   interface SvixOperationalWebhooks
     extends OpenMeter.Notification.SvixOperationalWebhooks {}
 }
 
 namespace OpenMeterCloud.Entitlements {
   @route("/api/v1/entitlements")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
 
   @route("/api/v1/features")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Features extends OpenMeter.Entitlements.Features {}
 
   @route("/api/v1/grants")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Grants extends OpenMeter.Entitlements.Grants {}
 
   @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
 }
 
