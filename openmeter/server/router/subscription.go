@@ -12,7 +12,7 @@ func (a *Router) SubscriptionsCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // (GET /api/v1/subscriptions/{subscriptionId})
-func (a *Router) GetSubscriptionGetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string, params api.GetSubscriptionGetSubscriptionParams) {
+func (a *Router) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string, params api.GetSubscriptionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 

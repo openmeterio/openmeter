@@ -31,9 +31,6 @@ func (m *Generate) Openapi() *dagger.File {
 		From("alpine").
 		WithFile("/work/openapi.yaml", file).
 		WithWorkdir("/work").
-		WithExec([]string{"sed", "-i", "s/ingestEvents_ingestEvents/ingestEvents/", "openapi.yaml"}).
-		WithExec([]string{"sed", "-i", "s/queryMeter_queryMeter/queryMeter/", "openapi.yaml"}).
-		WithExec([]string{"sed", "-i", "s/queryPortalMeter_queryPortalMeter/queryPortalMeter/", "openapi.yaml"}).
 		File("/work/openapi.yaml")
 
 	return file
@@ -51,9 +48,6 @@ func (m *Generate) Openapicloud() *dagger.File {
 		From("alpine").
 		WithFile("/work/openapi.cloud.yaml", file).
 		WithWorkdir("/work").
-		WithExec([]string{"sed", "-i", "s/ingestEvents_ingestEvents/ingestEvents/", "openapi.cloud.yaml"}).
-		WithExec([]string{"sed", "-i", "s/queryMeter_queryMeter/queryMeter/", "openapi.cloud.yaml"}).
-		WithExec([]string{"sed", "-i", "s/queryPortalMeter_queryPortalMeter/queryPortalMeter/", "openapi.cloud.yaml"}).
 		File("/work/openapi.cloud.yaml")
 
 	return file

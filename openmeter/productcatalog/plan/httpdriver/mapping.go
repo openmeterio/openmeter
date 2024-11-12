@@ -514,17 +514,14 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 		return usageRateCard, fmt.Errorf("failed to cast BillingCadence: %w", err)
 	}
 
-	usagePrice, err := usage.Price.AsRateCardUsageBasedPrice()
-	if err != nil {
-		return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
-	}
+	if usage.Price != nil {
+		price, err := AsPrice(*usage.Price)
+		if err != nil {
+			return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
+		}
 
-	price, err := AsPrice(usagePrice)
-	if err != nil {
-		return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
+		usageRateCard.Price = lo.ToPtr(price)
 	}
-
-	usageRateCard.Price = lo.ToPtr(price)
 
 	return usageRateCard, nil
 }
@@ -653,7 +650,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 
 		price = plan.NewPriceFrom(tieredPrice)
 	default:
-		return price, fmt.Errorf("invalid Price type for UsgaeBasedRateCard: %s", usagePriceType)
+		return price, fmt.Errorf("invalid Price type for UsageBasedRateCard: %s", usagePriceType)
 	}
 
 	return price, nil
