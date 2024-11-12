@@ -422,9 +422,15 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 						SetOrClearDescription(rateCardInput.Description).
 						SetOrClearFeatureKey(rateCardInput.FeatureKey).
 						SetEntitlementTemplate(rateCardInput.EntitlementTemplate).
-						SetTaxConfig(rateCardInput.TaxConfig).
-						SetOrClearBillingCadence(rateCardInput.BillingCadence).
-						SetPrice(rateCardInput.Price)
+						SetOrClearBillingCadence(rateCardInput.BillingCadence)
+
+					if rateCardInput.TaxConfig != nil {
+						q.SetTaxConfig(rateCardInput.TaxConfig)
+					}
+
+					if rateCardInput.Price != nil {
+						q.SetPrice(rateCardInput.Price)
+					}
 
 					if rateCardInput.FeatureID == nil {
 						q.ClearFeatureID()
