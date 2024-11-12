@@ -21,7 +21,7 @@ enum FeatureOrderBy {
 }
 
 @route("/api/v1/features")
-@tag("Entitlements (Experimental)")
+@tag("Entitlements (Beta)")
 interface Features {
   /**
    * List features.

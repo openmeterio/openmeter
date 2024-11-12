@@ -21,7 +21,7 @@ enum EntitlementOrderBy {
 }
 
 @route("/api/v1/entitlements")
-@tag("Entitlements (Experimental)")
+@tag("Entitlements (Beta)")
 interface Entitlements {
   /**
    * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.

@@ -12,7 +12,7 @@ tags:
   - name: Portal
   - name: Apps
   - name: Notification (Beta)
-  - name: Entitlements (Experimental)
+  - name: Entitlements (Beta)
   - name: Customers
   - name: Billing (Experimental)
   - name: Plan (Experimental)
@@ -2290,7 +2290,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
@@ -2353,7 +2353,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/events:
     get:
       operationId: listEvents
@@ -2624,7 +2624,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
     post:
       operationId: createFeature
       description: |-
@@ -2677,7 +2677,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
       requestBody:
         required: true
         content:
@@ -2744,7 +2744,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
     delete:
       operationId: deleteFeature
       description: |-
@@ -2804,7 +2804,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/grants:
     get:
       operationId: listGrants
@@ -2897,7 +2897,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/grants/{grantId}:
     delete:
       operationId: voidGrant
@@ -2962,7 +2962,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/integration/stripe/checkout/sessions:
     post:
       operationId: createStripeCheckoutSession
@@ -6137,7 +6137,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
       requestBody:
         required: true
         content:
@@ -6206,7 +6206,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
@@ -6282,7 +6282,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
     post:
       operationId: createGrant
       description: |-
@@ -6358,7 +6358,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
       requestBody:
         required: true
         content:
@@ -6439,7 +6439,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
       requestBody:
         required: true
         content:
@@ -6521,7 +6521,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
@@ -6587,7 +6587,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
     delete:
       operationId: deleteEntitlement
       description: |-
@@ -6650,7 +6650,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
@@ -6752,7 +6752,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
@@ -6817,7 +6817,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Experimental)
+        - Entitlements (Beta)
       requestBody:
         required: true
         content:
