@@ -128,19 +128,19 @@ namespace OpenMeterCloud.Notification {
 
 namespace OpenMeterCloud.Entitlements {
   @route("/api/v1/entitlements")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
 
   @route("/api/v1/features")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Features extends OpenMeter.Entitlements.Features {}
 
   @route("/api/v1/grants")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Grants extends OpenMeter.Entitlements.Grants {}
 
   @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
-  @tag("Entitlements (Experimental)")
+  @tag("Entitlements (Beta)")
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
 }
 
