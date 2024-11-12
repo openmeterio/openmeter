@@ -344,6 +344,10 @@ func init() {
 	billinginvoicelineDescCurrency := billinginvoicelineFields[7].Descriptor()
 	// billinginvoiceline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoiceline.CurrencyValidator = billinginvoicelineDescCurrency.Validators[0].(func(string) error)
+	// billinginvoicelineDescChildUniqueReferenceID is the schema descriptor for child_unique_reference_id field.
+	billinginvoicelineDescChildUniqueReferenceID := billinginvoicelineFields[10].Descriptor()
+	// billinginvoiceline.ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	billinginvoiceline.ChildUniqueReferenceIDValidator = billinginvoicelineDescChildUniqueReferenceID.Validators[0].(func(string) error)
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields0[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.

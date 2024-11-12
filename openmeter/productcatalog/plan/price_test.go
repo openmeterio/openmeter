@@ -313,3 +313,29 @@ func TestTieredPrice(t *testing.T) {
 		}
 	})
 }
+
+func TestTieredPriceSorting(t *testing.T) {
+	in := TieredPrice{
+		Tiers: []PriceTier{
+			{
+				UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+			},
+			{
+				UpToAmount: nil,
+			},
+			{
+				UpToAmount: lo.ToPtr(decimal.NewFromInt(500)),
+			},
+		},
+	}
+
+	out := in.WithSortedTiers()
+
+	assert.Equal(t, []*decimal.Decimal{
+		lo.ToPtr(decimal.NewFromInt(500)),
+		lo.ToPtr(decimal.NewFromInt(1000)),
+		nil,
+	}, lo.Map(out.Tiers, func(t PriceTier, _ int) *decimal.Decimal {
+		return t.UpToAmount
+	}))
+}

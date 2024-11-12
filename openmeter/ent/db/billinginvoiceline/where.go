@@ -134,6 +134,11 @@ func Quantity(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
 }
 
+// ChildUniqueReferenceID applies equality check predicate on the "child_unique_reference_id" field. It's identical to ChildUniqueReferenceIDEQ.
+func ChildUniqueReferenceID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChildUniqueReferenceID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldNamespace, v))
@@ -941,6 +946,71 @@ func TaxConfigIsNil() predicate.BillingInvoiceLine {
 // TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
 func TaxConfigNotNil() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
+}
+
+// ChildUniqueReferenceIDEQ applies the EQ predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDNEQ applies the NEQ predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDIn applies the In predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldChildUniqueReferenceID, vs...))
+}
+
+// ChildUniqueReferenceIDNotIn applies the NotIn predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldChildUniqueReferenceID, vs...))
+}
+
+// ChildUniqueReferenceIDGT applies the GT predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDGTE applies the GTE predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDLT applies the LT predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDLTE applies the LTE predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDContains applies the Contains predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDHasPrefix applies the HasPrefix predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDHasSuffix applies the HasSuffix predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDEqualFold applies the EqualFold predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDContainsFold applies the ContainsFold predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldChildUniqueReferenceID, v))
 }
 
 // HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.

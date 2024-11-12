@@ -285,6 +285,16 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				"postgres": "jsonb",
 			}).
 			Optional(),
+
+		// child_unique_reference_id is uniqe per parent line, can be used for upserting
+		// and identifying lines created for the same reason (e.g. tiered price tier)
+		// between different invoices.
+		//
+		// As entgo doesn't support conditional unique indexes, defaults to ID of the
+		// line.
+		// TODO: add hooks
+		field.String("child_unique_reference_id").
+			NotEmpty(),
 	}
 }
 
@@ -292,6 +302,7 @@ func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "invoice_id"),
 		index.Fields("namespace", "parent_line_id"),
+		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").Unique(),
 	}
 }
 

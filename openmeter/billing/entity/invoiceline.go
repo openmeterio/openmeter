@@ -34,6 +34,8 @@ const (
 	InvoiceLineStatusValid InvoiceLineStatus = "valid"
 	// InvoiceLineStatusSplit is a split invoice line (the child lines will have this set as parent).
 	InvoiceLineStatusSplit InvoiceLineStatus = "split"
+	// InvoiceLineStatusDetailed is a detailed invoice line.
+	InvoiceLineStatusDetailed InvoiceLineStatus = "detailed"
 )
 
 func (InvoiceLineStatus) Values() []string {
@@ -109,12 +111,14 @@ type LineBase struct {
 	// TODO: Add discounts etc
 
 	// Relationships
-	ParentLineID *string           `json:"parentLine,omitempty"`
-	ParentLine   *Line             `json:"parent,omitempty"`
-	RelatedLines []string          `json:"relatedLine,omitempty"`
-	Status       InvoiceLineStatus `json:"status"`
+	ParentLineID           *string           `json:"parentLine,omitempty"`
+	ParentLine             *Line             `json:"parent,omitempty"`
+	DetailedLines          []Line            `json:"detailedLines,omitempty"`
+	Status                 InvoiceLineStatus `json:"status"`
+	ChildUniqueReferenceID *string           `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig *TaxConfig `json:"taxOverrides,omitempty"`
+	TaxConfig *TaxConfig     `json:"taxOverrides,omitempty"`
+	Discounts []LineDiscount `json:"discounts,omitempty"`
 
 	Total alpacadecimal.Decimal `json:"total"`
 }
@@ -227,4 +231,30 @@ func (i UsageBasedLine) Validate() error {
 	}
 
 	return nil
+}
+
+type LineDiscountSource string
+
+const (
+	// ManualLineDiscountSource is a manually added discount.
+	ManualLineDiscountSource LineDiscountSource = "manual"
+	// CalculatedLineDiscountSource is a discount applied due to maximum spend.
+	CalculatedLineDiscountSource LineDiscountSource = "calculated"
+)
+
+type LineDiscountType string
+
+const (
+	// MaximumSpendLineDiscountType is a discount applied due to maximum spend.
+	MaximumSpendLineDiscountType LineDiscountType = "maximum_spend"
+	// CappedTierLineDiscountType is a discount applied due to capped tier (e.g. we are over the biggest tier and the tier structure is not open ended).
+	CappedTierLineDiscountType LineDiscountType = "capped_tier"
+)
+
+type LineDiscount struct {
+	ID          string                `json:"id"`
+	Amount      alpacadecimal.Decimal `json:"amount"`
+	Description *string               `json:"description,omitempty"`
+	Type        *LineDiscountType     `json:"type,omitempty"`
+	Source      LineDiscountSource    `json:"source"`
 }

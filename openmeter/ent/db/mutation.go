@@ -10025,39 +10025,40 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetEdge(name string) error {
 // BillingInvoiceLineMutation represents an operation that mutates the BillingInvoiceLine nodes in the graph.
 type BillingInvoiceLineMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *string
-	namespace               *string
-	metadata                *map[string]string
-	created_at              *time.Time
-	updated_at              *time.Time
-	deleted_at              *time.Time
-	name                    *string
-	description             *string
-	period_start            *time.Time
-	period_end              *time.Time
-	invoice_at              *time.Time
-	_type                   *billingentity.InvoiceLineType
-	status                  *billingentity.InvoiceLineStatus
-	currency                *currencyx.Code
-	quantity                *alpacadecimal.Decimal
-	tax_config              *plan.TaxConfig
-	clearedFields           map[string]struct{}
-	billing_invoice         *string
-	clearedbilling_invoice  bool
-	flat_fee_line           *string
-	clearedflat_fee_line    bool
-	usage_based_line        *string
-	clearedusage_based_line bool
-	parent_line             *string
-	clearedparent_line      bool
-	child_lines             map[string]struct{}
-	removedchild_lines      map[string]struct{}
-	clearedchild_lines      bool
-	done                    bool
-	oldValue                func(context.Context) (*BillingInvoiceLine, error)
-	predicates              []predicate.BillingInvoiceLine
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	metadata                  *map[string]string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	name                      *string
+	description               *string
+	period_start              *time.Time
+	period_end                *time.Time
+	invoice_at                *time.Time
+	_type                     *billingentity.InvoiceLineType
+	status                    *billingentity.InvoiceLineStatus
+	currency                  *currencyx.Code
+	quantity                  *alpacadecimal.Decimal
+	tax_config                *plan.TaxConfig
+	child_unique_reference_id *string
+	clearedFields             map[string]struct{}
+	billing_invoice           *string
+	clearedbilling_invoice    bool
+	flat_fee_line             *string
+	clearedflat_fee_line      bool
+	usage_based_line          *string
+	clearedusage_based_line   bool
+	parent_line               *string
+	clearedparent_line        bool
+	child_lines               map[string]struct{}
+	removedchild_lines        map[string]struct{}
+	clearedchild_lines        bool
+	done                      bool
+	oldValue                  func(context.Context) (*BillingInvoiceLine, error)
+	predicates                []predicate.BillingInvoiceLine
 }
 
 var _ ent.Mutation = (*BillingInvoiceLineMutation)(nil)
@@ -10854,6 +10855,42 @@ func (m *BillingInvoiceLineMutation) ResetTaxConfig() {
 	delete(m.clearedFields, billinginvoiceline.FieldTaxConfig)
 }
 
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (m *BillingInvoiceLineMutation) SetChildUniqueReferenceID(s string) {
+	m.child_unique_reference_id = &s
+}
+
+// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
+func (m *BillingInvoiceLineMutation) ChildUniqueReferenceID() (r string, exists bool) {
+	v := m.child_unique_reference_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
+	}
+	return oldValue.ChildUniqueReferenceID, nil
+}
+
+// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
+func (m *BillingInvoiceLineMutation) ResetChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
 func (m *BillingInvoiceLineMutation) SetBillingInvoiceID(id string) {
 	m.billing_invoice = &id
@@ -11087,7 +11124,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceline.FieldNamespace)
 	}
@@ -11139,6 +11176,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.tax_config != nil {
 		fields = append(fields, billinginvoiceline.FieldTaxConfig)
 	}
+	if m.child_unique_reference_id != nil {
+		fields = append(fields, billinginvoiceline.FieldChildUniqueReferenceID)
+	}
 	return fields
 }
 
@@ -11181,6 +11221,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.Quantity()
 	case billinginvoiceline.FieldTaxConfig:
 		return m.TaxConfig()
+	case billinginvoiceline.FieldChildUniqueReferenceID:
+		return m.ChildUniqueReferenceID()
 	}
 	return nil, false
 }
@@ -11224,6 +11266,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldQuantity(ctx)
 	case billinginvoiceline.FieldTaxConfig:
 		return m.OldTaxConfig(ctx)
+	case billinginvoiceline.FieldChildUniqueReferenceID:
+		return m.OldChildUniqueReferenceID(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceLine field %s", name)
 }
@@ -11351,6 +11395,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTaxConfig(v)
+		return nil
+	case billinginvoiceline.FieldChildUniqueReferenceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChildUniqueReferenceID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine field %s", name)
@@ -11490,6 +11541,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldTaxConfig:
 		m.ResetTaxConfig()
+		return nil
+	case billinginvoiceline.FieldChildUniqueReferenceID:
+		m.ResetChildUniqueReferenceID()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine field %s", name)

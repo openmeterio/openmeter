@@ -51,6 +51,8 @@ type LineBase interface {
 	Period() billingentity.Period
 	Status() billingentity.InvoiceLineStatus
 	HasParent() bool
+	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
+	IsLastInPeriod() bool
 
 	CloneForCreate(in UpdateInput) Line
 	Update(in UpdateInput) Line
@@ -110,6 +112,18 @@ func (l lineBase) Validate(ctx context.Context, invoice *billingentity.Invoice) 
 	}
 
 	return nil
+}
+
+func (l lineBase) IsLastInPeriod() bool {
+	return (l.line.Status == billingentity.InvoiceLineStatusValid && // We only care about valid lines
+		(l.line.ParentLineID == nil || // Either we haven't split the line
+			l.line.Period.End.Equal(l.line.ParentLine.Period.End))) // Or we have split the line and this is the last split
+}
+
+func (l lineBase) IsFirstInPeriod() bool {
+	return (l.line.Status == billingentity.InvoiceLineStatusValid && // We only care about valid lines
+		(l.line.ParentLineID == nil || // Either we haven't split the line
+			l.line.Period.Start.Equal(l.line.ParentLine.Period.Start))) // Or we have split the line and this is the last split
 }
 
 func (l lineBase) Save(ctx context.Context) (Line, error) {

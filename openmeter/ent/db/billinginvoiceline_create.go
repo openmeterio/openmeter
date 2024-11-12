@@ -188,6 +188,12 @@ func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *plan.TaxConfig) *
 	return bilc
 }
 
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bilc *BillingInvoiceLineCreate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetChildUniqueReferenceID(s)
+	return bilc
+}
+
 // SetID sets the "id" field.
 func (bilc *BillingInvoiceLineCreate) SetID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetID(s)
@@ -380,6 +386,14 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
+	if _, ok := bilc.mutation.ChildUniqueReferenceID(); !ok {
+		return &ValidationError{Name: "child_unique_reference_id", err: errors.New(`db: missing required field "BillingInvoiceLine.child_unique_reference_id"`)}
+	}
+	if v, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
+		if err := billinginvoiceline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if len(bilc.mutation.BillingInvoiceIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice", err: errors.New(`db: missing required edge "BillingInvoiceLine.billing_invoice"`)}
 	}
@@ -478,6 +492,10 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	if value, ok := bilc.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 		_node.TaxConfig = value
+	}
+	if value, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
+		_node.ChildUniqueReferenceID = value
 	}
 	if nodes := bilc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -807,6 +825,18 @@ func (u *BillingInvoiceLineUpsert) ClearTaxConfig() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsert) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldChildUniqueReferenceID, v)
+	return u
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldChildUniqueReferenceID)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1088,6 +1118,20 @@ func (u *BillingInvoiceLineUpsertOne) UpdateTaxConfig() *BillingInvoiceLineUpser
 func (u *BillingInvoiceLineUpsertOne) ClearTaxConfig() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetChildUniqueReferenceID(v)
+	})
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateChildUniqueReferenceID()
 	})
 }
 
@@ -1539,6 +1583,20 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateTaxConfig() *BillingInvoiceLineUpse
 func (u *BillingInvoiceLineUpsertBulk) ClearTaxConfig() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetChildUniqueReferenceID(v)
+	})
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateChildUniqueReferenceID()
 	})
 }
 

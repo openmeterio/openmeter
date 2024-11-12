@@ -59,6 +59,8 @@ type BillingInvoiceLine struct {
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig plan.TaxConfig `json:"tax_config,omitempty"`
+	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
+	ChildUniqueReferenceID string `json:"child_unique_reference_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`
@@ -146,7 +148,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldChildUniqueReferenceID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -285,6 +287,12 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
 			}
+		case billinginvoiceline.FieldChildUniqueReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
+			} else if value.Valid {
+				bil.ChildUniqueReferenceID = value.String
+			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
@@ -418,6 +426,9 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", bil.TaxConfig))
+	builder.WriteString(", ")
+	builder.WriteString("child_unique_reference_id=")
+	builder.WriteString(bil.ChildUniqueReferenceID)
 	builder.WriteByte(')')
 	return builder.String()
 }

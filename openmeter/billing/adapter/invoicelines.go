@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -42,6 +43,14 @@ func (r *adapter) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 
 		if line.TaxConfig != nil {
 			newEnt = newEnt.SetTaxConfig(*line.TaxConfig)
+		}
+
+		if line.ChildUniqueReferenceID != nil {
+			newEnt = newEnt.SetChildUniqueReferenceID(*line.ChildUniqueReferenceID)
+		} else {
+			id := ulid.Make().String()
+			newEnt = newEnt.SetChildUniqueReferenceID(id).
+				SetID(id)
 		}
 
 		edges := db.BillingInvoiceLineEdges{}
@@ -230,6 +239,12 @@ func (r *adapter) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 		SetStatus(input.Status).
 		SetOrClearTaxConfig(input.TaxConfig)
 
+	if input.ChildUniqueReferenceID != nil {
+		updateLine = updateLine.SetChildUniqueReferenceID(*input.ChildUniqueReferenceID)
+	} else {
+		updateLine = updateLine.SetChildUniqueReferenceID(existingLine.ID)
+	}
+
 	edges := db.BillingInvoiceLineEdges{}
 
 	// Let's update the line based on the type
@@ -370,6 +385,10 @@ func mapInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (billingentity.Line, er
 			},
 
 			ParentLineID: dbLine.ParentLineID,
+			ChildUniqueReferenceID: lo.If(
+				dbLine.ChildUniqueReferenceID != dbLine.ID,
+				lo.ToPtr(dbLine.ChildUniqueReferenceID),
+			).Else(nil),
 
 			InvoiceAt: dbLine.InvoiceAt,
 

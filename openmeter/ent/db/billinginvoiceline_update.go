@@ -236,6 +236,20 @@ func (bilu *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate
 	return bilu
 }
 
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetChildUniqueReferenceID(s)
+	return bilu
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetChildUniqueReferenceID(*s)
+	}
+	return bilu
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
 func (bilu *BillingInvoiceLineUpdate) SetBillingInvoiceID(id string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetBillingInvoiceID(id)
@@ -403,6 +417,11 @@ func (bilu *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := bilu.mutation.ChildUniqueReferenceID(); ok {
+		if err := billinginvoiceline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if bilu.mutation.BillingInvoiceCleared() && len(bilu.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLine.billing_invoice"`)
 	}
@@ -468,6 +487,9 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if bilu.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := bilu.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
 	if bilu.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -852,6 +874,20 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUp
 	return biluo
 }
 
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetChildUniqueReferenceID(s)
+	return biluo
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetChildUniqueReferenceID(*s)
+	}
+	return biluo
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
 func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoiceID(id string) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetBillingInvoiceID(id)
@@ -1032,6 +1068,11 @@ func (biluo *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := biluo.mutation.ChildUniqueReferenceID(); ok {
+		if err := billinginvoiceline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if biluo.mutation.BillingInvoiceCleared() && len(biluo.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLine.billing_invoice"`)
 	}
@@ -1114,6 +1155,9 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if biluo.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := biluo.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
 	if biluo.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{

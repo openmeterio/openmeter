@@ -449,6 +449,7 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "child_unique_reference_id", Type: field.TypeString},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "usage_based_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -462,25 +463,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_lines_billing_invoices_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[16]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[17]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_flat_fee_line_configs_flat_fee_line",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[17]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[18]},
 				RefColumns: []*schema.Column{BillingInvoiceFlatFeeLineConfigsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_usage_based_line_configs_usage_based_line",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[18]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[19]},
 				RefColumns: []*schema.Column{BillingInvoiceUsageBasedLineConfigsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_lines_child_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[19]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[20]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -504,12 +505,17 @@ var (
 			{
 				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[16]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[17]},
 			},
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[19]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[20]},
+			},
+			{
+				Name:    "billinginvoiceline_namespace_parent_line_id_child_unique_reference_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[20], BillingInvoiceLinesColumns[16]},
 			},
 		},
 	}

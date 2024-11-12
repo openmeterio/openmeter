@@ -50,6 +50,8 @@ const (
 	FieldQuantity = "quantity"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
+	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
@@ -113,6 +115,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldQuantity,
 	FieldTaxConfig,
+	FieldChildUniqueReferenceID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
@@ -148,6 +151,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	ChildUniqueReferenceIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -253,6 +258,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByQuantity orders the results by the quantity field.
 func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
+}
+
+// ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
+func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
 }
 
 // ByBillingInvoiceField orders the results by billing_invoice field.
