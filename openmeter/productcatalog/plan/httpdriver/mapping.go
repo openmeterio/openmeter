@@ -450,7 +450,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 		case api.PricePaymentTermInArrears:
 			paymentTerm = plan.InArrearsPaymentTerm
 		case api.PricePaymentTermInAdvance:
-			fallthrough
+			paymentTerm = plan.InAdvancePaymentTerm
 		default:
 			paymentTerm = plan.DefaultPaymentTerm
 		}
@@ -557,7 +557,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			case api.PricePaymentTermInArrears:
 				flatPrice.PaymentTerm = plan.InArrearsPaymentTerm
 			case api.PricePaymentTermInAdvance:
-				fallthrough
+				flatPrice.PaymentTerm = plan.InAdvancePaymentTerm
 			default:
 				flatPrice.PaymentTerm = plan.DefaultPaymentTerm
 			}
