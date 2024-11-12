@@ -6493,7 +6493,7 @@ paths:
               $ref: '#/components/schemas/CreateSubscriptionRequestBody'
   /api/v1/subscriptions/{subscriptionId}:
     get:
-      operationId: getSubscription_getSubscription
+      operationId: getSubscription
       parameters:
         - name: subscriptionId
           in: path
@@ -13298,7 +13298,7 @@ components:
           description: The type of the RateCard.
           title: RateCard type
         price:
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           nullable: true
       description: Usage-based rate card override.
@@ -13421,7 +13421,7 @@ components:
           description: The billing cadence of the rate card.
           title: Billing cadence
         price:
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           nullable: true
       description: A usage-based rate card defines a price based on usage.
@@ -13489,7 +13489,7 @@ components:
           description: The billing cadence of the rate card.
           title: Billing cadence
         price:
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           nullable: true
       description: A usage-based rate card defines a price based on usage.

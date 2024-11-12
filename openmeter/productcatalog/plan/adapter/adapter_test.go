@@ -264,7 +264,7 @@ func TestPostgresAdapter(t *testing.T) {
 					Namespace: namespace,
 					ID:        planV1.ID,
 				},
-				EffectivePeriod: &plan.EffectivePeriod{
+				EffectivePeriod: plan.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now.UTC()),
 					EffectiveTo:   lo.ToPtr(now.Add(30 * 24 * time.Hour).UTC()),
 				},

@@ -6,13 +6,13 @@ settings:
 
 patchedDependencies:
   '@typespec/http':
-    hash: mbacoywnosoezomkxjecjucw4i
+    hash: tic5dobgj4sqr5mhbwil6u3tyy
     path: patches/@typespec__http.patch
   '@typespec/openapi':
-    hash: 2fzzaalwqhuj7soldqt6ik2c7q
+    hash: 2bd66lgl75kgeptzmk3lwdwxxu
     path: patches/@typespec__openapi.patch
   '@typespec/openapi3':
-    hash: hi3feajnhvkf2yudxgkqm6lx6a
+    hash: nisx33jq7awc2m2tnxa27hjrai
     path: patches/@typespec__openapi3.patch
 
 importers:
@@ -20,26 +20,26 @@ importers:
   .:
     devDependencies:
       '@typespec/compiler':
-        specifier: 0.61.2
-        version: 0.61.2
+        specifier: 0.62.0
+        version: 0.62.0
       '@typespec/http':
-        specifier: 0.61.0
-        version: 0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)
+        specifier: 0.62.0
+        version: 0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)
       '@typespec/openapi':
-        specifier: 0.61.0
-        version: 0.61.0(patch_hash=2fzzaalwqhuj7soldqt6ik2c7q)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))
+        specifier: 0.62.0
+        version: 0.62.0(patch_hash=2bd66lgl75kgeptzmk3lwdwxxu)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))
       '@typespec/openapi3':
-        specifier: 0.61.0
-        version: 0.61.0(patch_hash=hi3feajnhvkf2yudxgkqm6lx6a)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))(@typespec/openapi@0.61.0(patch_hash=2fzzaalwqhuj7soldqt6ik2c7q)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)))(@typespec/versioning@0.61.0(@typespec/compiler@0.61.2))(openapi-types@12.1.3)
+        specifier: 0.62.0
+        version: 0.62.0(patch_hash=nisx33jq7awc2m2tnxa27hjrai)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))(@typespec/openapi@0.62.0(patch_hash=2bd66lgl75kgeptzmk3lwdwxxu)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)))(@typespec/versioning@0.62.0(@typespec/compiler@0.62.0))(openapi-types@12.1.3)
       '@typespec/prettier-plugin-typespec':
-        specifier: 0.61.0
-        version: 0.61.0
+        specifier: 0.62.0
+        version: 0.62.0
       '@typespec/rest':
-        specifier: 0.61.0
-        version: 0.61.0(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))
+        specifier: 0.62.0
+        version: 0.62.0(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))
       '@typespec/versioning':
-        specifier: 0.61.0
-        version: 0.61.0(@typespec/compiler@0.61.2)
+        specifier: 0.62.0
+        version: 0.62.0(@typespec/compiler@0.62.0)
       prettier:
         specifier: 3.3.3
         version: 3.3.3
@@ -49,24 +49,24 @@ packages:
   '@apidevtools/swagger-methods@3.0.2':
     resolution: {integrity: sha512-QAkD5kK2b1WfjDS/UQn/qQkbwF31uqRjPTrsCs5ZG9BQGAkjwvqGFjjPqAuzac/IYzpPtRzjCP1WrTuAIjMrXg==}
 
-  '@babel/code-frame@7.24.7':
-    resolution: {integrity: sha512-BcYH1CVJBO9tvyIZ2jVeXgSIMvGZ2FDRvDdOIVQyuklNKSsx+eppDEBq/g47Ayw+RqNFE+URvOShmf+f/qwAlA==}
+  '@babel/code-frame@7.25.9':
+    resolution: {integrity: sha512-z88xeGxnzehn2sqZ8UdGQEvYErF1odv2CftxInpSYJt6uHuPe9YjahKZITGs3l5LeI9d2ROG+obuDAoSlqbNfQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/code-frame@7.25.7':
-    resolution: {integrity: sha512-0xZJFNE5XMpENsgfHYTw8FbX4kv53mFLn2i3XPoq69LyhYSCBJtitaHx9QnsVTrsogI4Z3+HtEfZ2/GFPOtf5g==}
+  '@babel/code-frame@7.26.2':
+    resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-validator-identifier@7.25.7':
-    resolution: {integrity: sha512-AM6TzwYqGChO45oiuPqwL2t20/HdMC1rTPAesnBCgPCSF1x3oN9MVUwQV2iyz4xqWrctwK5RNC8LV22kaQCNYg==}
+  '@babel/helper-validator-identifier@7.25.9':
+    resolution: {integrity: sha512-Ed61U6XJc3CVRfkERJWDz4dJwKe7iLmmJsbOGu9wSloNSFttHV0I8g6UAgb7qnK5ly5bGLPd4oXZlxCdANBOWQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/highlight@7.25.7':
-    resolution: {integrity: sha512-iYyACpW3iW8Fw+ZybQK+drQre+ns/tKpXbNESfrhNnPLIklLbXr7MYJ6gPEd0iETGLOK+SxMjVvKb/ffmk+FEw==}
+  '@babel/highlight@7.25.9':
+    resolution: {integrity: sha512-llL88JShoCsth8fF8R4SJnIn+WLvR6ccFxu1H3FlMhDontdcmZWf2HgIZ7AIqV3Xcck1idlohrN4EUBQz6klbw==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/runtime@7.25.7':
-    resolution: {integrity: sha512-FjoyLe754PMiYsFaN5C94ttGiOmBNYTf6pLr4xXHAT5uctHb092PBszndLDR5XA/jghQvn4n7JMHl7dmTgbm9w==}
+  '@babel/runtime@7.26.0':
+    resolution: {integrity: sha512-FDSOghenHTiToteC/QRlv2q3DhPZ/oOXTBoirfWNx1Cx3TMVcGWQtMMmQcSvb/JjpNeGzx8Pq/b4fKEJuWm1sw==}
     engines: {node: '>=6.9.0'}
 
   '@humanwhocodes/momoa@2.0.4':
@@ -114,53 +114,57 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@typespec/compiler@0.61.2':
-    resolution: {integrity: sha512-6QxYJd09VWssd/BvY+8eBxTVv085s1UNK63FdPrgT2lgI+j8VMMcpNR9m5l1zWlgGDM7sniA/Or8VCdVA6jerg==}
+  '@typespec/compiler@0.62.0':
+    resolution: {integrity: sha512-RfKJ/rF2Wjxu7dl74oJE8yEfSkeL7NopFlyJ4dW1JQXpRN2IOJYPxas12qZA6H9ZEIB8rBjyrHNxJSQbvn/UDQ==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@typespec/http@0.61.0':
-    resolution: {integrity: sha512-7+AYHkzkc+p652GY9BcEbXY4OZa1fTr03MVmZeafvmbQbXfyzUU9eJld13M3v6NaUWqXWZ7nBNMISyKiXp/kSw==}
+  '@typespec/http@0.62.0':
+    resolution: {integrity: sha512-6H9y9e32lb2s76MMy29ITCwSZNG42sa/qWthiByUvfbTEXMpu5a1fQHNj7RXg+xmDKmVIHv3gAfjGPAWfXhkaQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@typespec/compiler': ~0.61.0
-      '@typespec/streams': ~0.61.0
+      '@typespec/compiler': ~0.62.0
+      '@typespec/streams': ~0.62.0
     peerDependenciesMeta:
       '@typespec/streams':
         optional: true
 
-  '@typespec/openapi3@0.61.0':
-    resolution: {integrity: sha512-ALLsTkK1UiJBzvygV1Zk/yZaym+lOWroGeEUhQNXYShsq+/GLZkK0rl8sd76Gigq+TVXKMOEwUUvgfws/LMUJw==}
+  '@typespec/openapi3@0.62.0':
+    resolution: {integrity: sha512-tfmaPvZ38fM+O5+ZBq4ic7fc32E3v0JOFP9h+7otQyrVprLVCToXpBwaxB7c2nTSJbI4vcxK7/T3Z8BD5j8X+w==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     peerDependencies:
-      '@typespec/compiler': ~0.61.0
-      '@typespec/http': ~0.61.0
-      '@typespec/openapi': ~0.61.0
-      '@typespec/versioning': ~0.61.0
+      '@typespec/compiler': ~0.62.0
+      '@typespec/http': ~0.62.0
+      '@typespec/openapi': ~0.62.0
+      '@typespec/versioning': ~0.62.0
+      '@typespec/xml': '*'
+    peerDependenciesMeta:
+      '@typespec/xml':
+        optional: true
 
-  '@typespec/openapi@0.61.0':
-    resolution: {integrity: sha512-3AF319Ae4yGVOscsCLQeedXUJJcL/NdGOR2/e/nFiL/AOVdgLfIRnpR0Ad9Zj9XAESh1fq9XSu4Mi7N1k4V7rw==}
+  '@typespec/openapi@0.62.0':
+    resolution: {integrity: sha512-Xtm0Nd2BuSmEfSWGtc10ok22jyomYm9L2jY+kVTy+v5J89DrVh0o6+YpipUl1QhcItM1YMBphWHIHPfwkDRbnw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@typespec/compiler': ~0.61.0
-      '@typespec/http': ~0.61.0
+      '@typespec/compiler': ~0.62.0
+      '@typespec/http': ~0.62.0
 
-  '@typespec/prettier-plugin-typespec@0.61.0':
-    resolution: {integrity: sha512-GtOK8KbQxBLgbicEdFIt22alQuP3n+9HYioF0HGzTKwG/EIWMopLOEpT6kr33Q8s3z1h6Vp2Au9qVR8FtAL3xQ==}
+  '@typespec/prettier-plugin-typespec@0.62.0':
+    resolution: {integrity: sha512-VJRtX4RcUYE0qiQpKL8K7Mgfozy/icieaoap44XR+2OmWegZmuR1Qjq5iWtjLBS7MFwSXHel+BT/LBlqu1v+dA==}
 
-  '@typespec/rest@0.61.0':
-    resolution: {integrity: sha512-L9Oyor+l42p6S8GE+UvaZTi+dcu6WubGZKmaBRpX8mCZGsa69EgIK8DQoyxrfMcxAO4I5U0sfkzCKwCVFtRr9g==}
+  '@typespec/rest@0.62.0':
+    resolution: {integrity: sha512-ci5UjelEKFwsPTdpgysoUoDCcw02EnbG4GBuYJdR5mRrFCBZMxrbro+OJLgSN3g/TORSsWlW7dEOWLfbyrmlZQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@typespec/compiler': ~0.61.0
-      '@typespec/http': ~0.61.0
+      '@typespec/compiler': ~0.62.0
+      '@typespec/http': ~0.62.0
 
-  '@typespec/versioning@0.61.0':
-    resolution: {integrity: sha512-PIIug6eg3zc7E+BBHyNHHQD+OBq3FU465nhKrLEp35iVji/sYFuPc1ywnELDuwJVRWm6nvqNL1vtnc+4lEk+oA==}
+  '@typespec/versioning@0.62.0':
+    resolution: {integrity: sha512-M5KTCVH5fBniZU8eQlw+NV13vAmPr58HyBLDIyxeOuV+SHNlx+f+qanUEDIPaJheKlaSSNTEZKsDhs83/iIMMA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@typespec/compiler': ~0.61.0
+      '@typespec/compiler': ~0.62.0
 
   ajv-draft-04@1.0.0:
     resolution: {integrity: sha512-mv00Te6nmYbRp5DCwclxtt7yV/joXJPGS7nM+97GdxvuttCOfgI3K4U25zboyeX0O+myI8ERluxQe5wljMmVIw==}
@@ -464,26 +468,27 @@ snapshots:
 
   '@apidevtools/swagger-methods@3.0.2': {}
 
-  '@babel/code-frame@7.24.7':
+  '@babel/code-frame@7.25.9':
     dependencies:
-      '@babel/highlight': 7.25.7
+      '@babel/highlight': 7.25.9
       picocolors: 1.1.1
 
-  '@babel/code-frame@7.25.7':
+  '@babel/code-frame@7.26.2':
     dependencies:
-      '@babel/highlight': 7.25.7
+      '@babel/helper-validator-identifier': 7.25.9
+      js-tokens: 4.0.0
       picocolors: 1.1.1
 
-  '@babel/helper-validator-identifier@7.25.7': {}
+  '@babel/helper-validator-identifier@7.25.9': {}
 
-  '@babel/highlight@7.25.7':
+  '@babel/highlight@7.25.9':
     dependencies:
-      '@babel/helper-validator-identifier': 7.25.7
+      '@babel/helper-validator-identifier': 7.25.9
       chalk: 2.4.2
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
-  '@babel/runtime@7.25.7':
+  '@babel/runtime@7.26.0':
     dependencies:
       regenerator-runtime: 0.14.1
 
@@ -505,8 +510,8 @@ snapshots:
 
   '@readme/better-ajv-errors@1.6.0(ajv@8.17.1)':
     dependencies:
-      '@babel/code-frame': 7.25.7
-      '@babel/runtime': 7.25.7
+      '@babel/code-frame': 7.26.2
+      '@babel/runtime': 7.26.0
       '@humanwhocodes/momoa': 2.0.4
       ajv: 8.17.1
       chalk: 4.1.2
@@ -539,9 +544,9 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@typespec/compiler@0.61.2':
+  '@typespec/compiler@0.62.0':
     dependencies:
-      '@babel/code-frame': 7.24.7
+      '@babel/code-frame': 7.25.9
       ajv: 8.17.1
       change-case: 5.4.4
       globby: 14.0.2
@@ -556,38 +561,38 @@ snapshots:
       yaml: 2.5.1
       yargs: 17.7.2
 
-  '@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)':
+  '@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)':
     dependencies:
-      '@typespec/compiler': 0.61.2
+      '@typespec/compiler': 0.62.0
 
-  '@typespec/openapi3@0.61.0(patch_hash=hi3feajnhvkf2yudxgkqm6lx6a)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))(@typespec/openapi@0.61.0(patch_hash=2fzzaalwqhuj7soldqt6ik2c7q)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)))(@typespec/versioning@0.61.0(@typespec/compiler@0.61.2))(openapi-types@12.1.3)':
+  '@typespec/openapi3@0.62.0(patch_hash=nisx33jq7awc2m2tnxa27hjrai)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))(@typespec/openapi@0.62.0(patch_hash=2bd66lgl75kgeptzmk3lwdwxxu)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)))(@typespec/versioning@0.62.0(@typespec/compiler@0.62.0))(openapi-types@12.1.3)':
     dependencies:
       '@readme/openapi-parser': 2.6.0(openapi-types@12.1.3)
-      '@typespec/compiler': 0.61.2
-      '@typespec/http': 0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)
-      '@typespec/openapi': 0.61.0(patch_hash=2fzzaalwqhuj7soldqt6ik2c7q)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))
-      '@typespec/versioning': 0.61.0(@typespec/compiler@0.61.2)
+      '@typespec/compiler': 0.62.0
+      '@typespec/http': 0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)
+      '@typespec/openapi': 0.62.0(patch_hash=2bd66lgl75kgeptzmk3lwdwxxu)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))
+      '@typespec/versioning': 0.62.0(@typespec/compiler@0.62.0)
       yaml: 2.5.1
     transitivePeerDependencies:
       - openapi-types
 
-  '@typespec/openapi@0.61.0(patch_hash=2fzzaalwqhuj7soldqt6ik2c7q)(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))':
+  '@typespec/openapi@0.62.0(patch_hash=2bd66lgl75kgeptzmk3lwdwxxu)(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))':
     dependencies:
-      '@typespec/compiler': 0.61.2
-      '@typespec/http': 0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)
+      '@typespec/compiler': 0.62.0
+      '@typespec/http': 0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)
 
-  '@typespec/prettier-plugin-typespec@0.61.0':
+  '@typespec/prettier-plugin-typespec@0.62.0':
     dependencies:
       prettier: 3.3.3
 
-  '@typespec/rest@0.61.0(@typespec/compiler@0.61.2)(@typespec/http@0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2))':
+  '@typespec/rest@0.62.0(@typespec/compiler@0.62.0)(@typespec/http@0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0))':
     dependencies:
-      '@typespec/compiler': 0.61.2
-      '@typespec/http': 0.61.0(patch_hash=mbacoywnosoezomkxjecjucw4i)(@typespec/compiler@0.61.2)
+      '@typespec/compiler': 0.62.0
+      '@typespec/http': 0.62.0(patch_hash=tic5dobgj4sqr5mhbwil6u3tyy)(@typespec/compiler@0.62.0)
 
-  '@typespec/versioning@0.61.0(@typespec/compiler@0.61.2)':
+  '@typespec/versioning@0.62.0(@typespec/compiler@0.62.0)':
     dependencies:
-      '@typespec/compiler': 0.61.2
+      '@typespec/compiler': 0.62.0
 
   ajv-draft-04@1.0.0(ajv@8.17.1):
     optionalDependencies:

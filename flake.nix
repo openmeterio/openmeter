@@ -95,6 +95,7 @@
               kind
               kubectl
               helm-docs
+              kubernetes-helm
 
               benthos
 

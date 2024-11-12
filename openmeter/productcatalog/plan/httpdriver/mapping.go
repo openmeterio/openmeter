@@ -450,7 +450,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 		case api.PricePaymentTermInArrears:
 			paymentTerm = plan.InArrearsPaymentTerm
 		case api.PricePaymentTermInAdvance:
-			fallthrough
+			paymentTerm = plan.InAdvancePaymentTerm
 		default:
 			paymentTerm = plan.DefaultPaymentTerm
 		}
@@ -514,17 +514,14 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 		return usageRateCard, fmt.Errorf("failed to cast BillingCadence: %w", err)
 	}
 
-	usagePrice, err := usage.Price.AsRateCardUsageBasedPrice()
-	if err != nil {
-		return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
-	}
+	if usage.Price != nil {
+		price, err := AsPrice(*usage.Price)
+		if err != nil {
+			return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
+		}
 
-	price, err := AsPrice(usagePrice)
-	if err != nil {
-		return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
+		usageRateCard.Price = lo.ToPtr(price)
 	}
-
-	usageRateCard.Price = lo.ToPtr(price)
 
 	return usageRateCard, nil
 }
@@ -560,7 +557,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			case api.PricePaymentTermInArrears:
 				flatPrice.PaymentTerm = plan.InArrearsPaymentTerm
 			case api.PricePaymentTermInAdvance:
-				fallthrough
+				flatPrice.PaymentTerm = plan.InAdvancePaymentTerm
 			default:
 				flatPrice.PaymentTerm = plan.DefaultPaymentTerm
 			}
@@ -653,7 +650,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 
 		price = plan.NewPriceFrom(tieredPrice)
 	default:
-		return price, fmt.Errorf("invalid Price type for UsgaeBasedRateCard: %s", usagePriceType)
+		return price, fmt.Errorf("invalid Price type for UsageBasedRateCard: %s", usagePriceType)
 	}
 
 	return price, nil
@@ -677,9 +674,6 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 		}
 
 		tier.FlatPrice = &plan.PriceTierFlatPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.FlatPriceType,
-			},
 			Amount: amount,
 		}
 	}
@@ -691,9 +685,6 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 		}
 
 		tier.UnitPrice = &plan.PriceTierUnitPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.UnitPriceType,
-			},
 			Amount: amount,
 		}
 	}

@@ -1,0 +1,83 @@
+{{- if .Values.svix.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openmeter.componentName" (list . "svix") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "svix") | nindent 4 }}
+spec:
+  replicas: {{ .Values.svix.replicaCount }}
+  selector:
+    matchLabels:
+    {{- include "openmeter.componentSelectorLabels" (list . "svix") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openmeter.componentLabels" (list . "svix") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{ if or .Values.postgresql.enabled .Values.redis.enabled -}}
+      initContainers:
+        {{- if .Values.postgresql.enabled -}}
+        {{- include "openmeter.init.postgres" (list . ) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.redis.enabled -}}
+        {{- include "openmeter.init.redis" (list . ) | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.svix.image.repository }}:{{ .Values.svix.image.tag }}"
+          imagePullPolicy: {{ .Values.svix.image.pullPolicy }}
+          env:
+            - name: SVIX_REDIS_DSN
+              value: "redis://{{ include "openmeter.fullname" . }}-redis-master:6379"
+            - name: SVIX_DB_DSN
+              value: "postgres://svix:svix@{{ include "openmeter.fullname" . }}-postgres:5432/svix"
+            - name: SVIX_CACHE_TYPE
+              value: "redis"
+            - name: SVIX_JWT_SECRET
+              value: {{ .Values.svix.signingSecret | quote }}
+            - name: SVIX_LOG_LEVEL
+              value: "debug"
+            - name: SVIX_QUEUE_TYPE
+              value: "redis"
+          ports:
+            - name: http
+              containerPort: 8071
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.svix.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "openmeter.componentName" (list . "svix") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "svix") | nindent 4 }}
+spec:
+  type: {{ .Values.svix.service.type }}
+  ports:
+    - port: {{ .Values.svix.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "openmeter.componentSelectorLabels" (list . "svix") | nindent 4 }}
+{{- end }}

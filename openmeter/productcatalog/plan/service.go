@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+const timeJitter = 30 * time.Second
+
 const (
 	OrderAsc  = sortx.OrderAsc
 	OrderDesc = sortx.OrderDesc
@@ -86,6 +88,9 @@ type CreatePlanInput struct {
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
 
+	// Version
+	Version int `json:"version"`
+
 	// Name
 	Name string `json:"name"`
 
@@ -143,7 +148,7 @@ type UpdatePlanInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	*EffectivePeriod
+	EffectivePeriod
 
 	// Name
 	Name *string `json:"name"`
@@ -171,21 +176,19 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.EffectivePeriod != nil {
-		if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
-			return false
-		}
+	if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
+		return false
 	}
 
 	if i.Name != nil && *i.Name != p.Name {
 		return false
 	}
 
-	if lo.FromPtrOr(i.Description, "") != lo.FromPtrOr(p.Description, "") {
+	if i.Description != nil && lo.FromPtrOr(i.Description, "") != lo.FromPtrOr(p.Description, "") {
 		return false
 	}
 
-	if !MetadataEqual(lo.FromPtrOr(i.Metadata, nil), p.Metadata) {
+	if i.Metadata != nil && !MetadataEqual(*i.Metadata, p.Metadata) {
 		return false
 	}
 
@@ -203,7 +206,7 @@ func (i UpdatePlanInput) Validate() error {
 		return errors.New("invalid Name: must not be empty")
 	}
 
-	if i.EffectivePeriod != nil {
+	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
 		if err := i.EffectivePeriod.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
 		}
@@ -280,16 +283,40 @@ type PublishPlanInput struct {
 }
 
 func (i PublishPlanInput) Validate() error {
+	var errs []error
+
 	if err := i.NamespacedID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	if lo.FromPtrOr(i.EffectiveFrom, time.Time{}).IsZero() {
-		return errors.New("invalid EffectiveFrom: must not be empty")
+	now := time.Now()
+
+	from := lo.FromPtrOr(i.EffectiveFrom, time.Time{})
+
+	if from.IsZero() {
+		errs = append(errs, errors.New("invalid EffectiveFrom: must not be empty"))
 	}
 
-	if !lo.FromPtrOr(i.EffectiveTo, time.Time{}).IsZero() && lo.FromPtrOr(i.EffectiveFrom, time.Time{}).IsZero() {
-		return errors.New("invalid EffectiveFrom: must not be empty if EffectiveTo is also set")
+	if !from.IsZero() && from.Before(now.Add(-timeJitter)) {
+		errs = append(errs, errors.New("invalid EffectiveFrom: period start must not be in the past"))
+	}
+
+	to := lo.FromPtrOr(i.EffectiveTo, time.Time{})
+
+	if !to.IsZero() && from.IsZero() {
+		errs = append(errs, errors.New("invalid EffectiveFrom: must not be empty if EffectiveTo is also set"))
+	}
+
+	if !to.IsZero() && to.Before(now.Add(timeJitter)) {
+		errs = append(errs, errors.New("invalid EffectiveTo: period end must not be in the past"))
+	}
+
+	if !from.IsZero() && !to.IsZero() && from.After(to) {
+		errs = append(errs, errors.New("invalid EffectivePeriod: period start must not be later than period end"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -304,12 +331,24 @@ type ArchivePlanInput struct {
 }
 
 func (i ArchivePlanInput) Validate() error {
+	var errs []error
+
 	if err := i.NamespacedID.Validate(); err != nil {
-		return fmt.Errorf("invalid Namespace: %w", err)
+		errs = append(errs, err)
 	}
 
 	if i.EffectiveTo.IsZero() {
-		return errors.New("invalid EffectiveTo: must not be empty")
+		errs = append(errs, errors.New("invalid EffectiveTo: must not be empty"))
+	}
+
+	now := time.Now()
+
+	if i.EffectiveTo.Before(now.Add(-timeJitter)) {
+		errs = append(errs, errors.New("invalid EffectiveTo: period end must not be in the past"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -334,8 +373,8 @@ func (i NextPlanInput) Validate() error {
 		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
-	if i.ID == "" && (i.Key == "" || i.Version == 0) {
-		errs = append(errs, errors.New("invalid: either ID or Key/Version pair must be provided"))
+	if i.ID == "" && i.Key == "" {
+		errs = append(errs, errors.New("invalid: either ID or Key pair must be provided"))
 	}
 
 	if len(errs) > 0 {
@@ -522,7 +561,11 @@ func (i UpdatePhaseInput) Equal(p Phase) bool {
 		return false
 	}
 
-	if i.Name != nil && *i.Name == p.Name {
+	if i.Name != nil && *i.Name != p.Name {
+		return false
+	}
+
+	if i.StartAfter != nil && *i.StartAfter != p.StartAfter {
 		return false
 	}
 

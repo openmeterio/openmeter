@@ -5,6 +5,8 @@ import (
 	"log/slog"
 )
 
+var _ slog.Handler = (*Handler)(nil)
+
 // NewLogHandler returns a new [slog.Handler]
 func NewLogHandler(handler slog.Handler) slog.Handler {
 	return Handler{handler}

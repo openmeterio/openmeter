@@ -450,8 +450,6 @@ func (p PriceTier) Validate() error {
 var _ Validator = (*PriceTierFlatPrice)(nil)
 
 type PriceTierFlatPrice struct {
-	PriceMeta
-
 	// Amount of the flat price.
 	Amount decimal.Decimal `json:"amount"`
 }
@@ -467,8 +465,6 @@ func (f PriceTierFlatPrice) Validate() error {
 var _ Validator = (*PriceTierUnitPrice)(nil)
 
 type PriceTierUnitPrice struct {
-	PriceMeta
-
 	// Amount of the flat price.
 	Amount decimal.Decimal `json:"amount"`
 }

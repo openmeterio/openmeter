@@ -39,6 +39,9 @@ import (
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
+	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
@@ -106,6 +109,7 @@ func main() {
 	app.SetGlobals()
 
 	logger := app.Logger
+	slog.SetDefault(logger)
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
 		"address":             conf.Address,
@@ -322,6 +326,29 @@ func main() {
 		}()
 	}
 
+	// Initialize plans
+	var planService plan.Service
+	if conf.ProductCatalog.Enabled {
+		adapter, err := planadapter.New(planadapter.Config{
+			Client: app.EntClient,
+			Logger: logger.With("subsystem", "productcatalog.plan"),
+		})
+		if err != nil {
+			logger.Error("failed to initialize plan adapter", "error", err)
+			os.Exit(1)
+		}
+
+		planService, err = planservice.New(planservice.Config{
+			Feature: entitlementConnRegistry.Feature,
+			Adapter: adapter,
+			Logger:  logger.With("subsystem", "productcatalog.plan"),
+		})
+		if err != nil {
+			logger.Error("failed to initialize plan service", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	// Initialize billing
 	var billingService billing.Service
 	if conf.Billing.Enabled {
@@ -364,12 +391,13 @@ func main() {
 			Billing:                     billingService,
 			Customer:                    customerService,
 			DebugConnector:              debugConnector,
-			FeatureConnector:            entitlementConnRegistry.Feature,
-			EntitlementConnector:        entitlementConnRegistry.Entitlement,
 			EntitlementBalanceConnector: entitlementConnRegistry.MeteredEntitlement,
+			EntitlementConnector:        entitlementConnRegistry.Entitlement,
+			FeatureConnector:            entitlementConnRegistry.Feature,
 			GrantConnector:              entitlementConnRegistry.Grant,
 			GrantRepo:                   entitlementConnRegistry.GrantRepo,
 			Notification:                notificationService,
+			Plan:                        planService,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 			NotificationEnabled: conf.Notification.Enabled,

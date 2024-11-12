@@ -187,7 +187,7 @@ func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, nam
 func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error) {
 	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: idOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*NotFoundError](err); ok {
-		ent, err = c.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, idOrFeatureKey, clock.Now())
+		ent, err = c.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, idOrFeatureKey, at)
 	}
 	if err != nil {
 		return nil, err

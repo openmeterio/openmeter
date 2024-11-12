@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -14,6 +15,14 @@ type NotFoundError struct {
 
 func (e NotFoundError) Error() string {
 	return fmt.Sprintf("resource not found in %s namespace", e.Namespace)
+}
+
+func IsNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	var e NotFoundError
+	return errors.As(err, &e)
 }
 
 type genericError struct {

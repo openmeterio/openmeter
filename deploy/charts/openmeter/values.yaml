@@ -115,15 +115,27 @@ affinity: {}
 # -- OpenMeter configuration
 config: {}
 
+# -- Defines parameters for the InitContainers
+init:
+  busybox:
+    tag: "1.37.0"
+
 kafka:
-  # -- Specifies whether Kafka (using the [Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator)) should be installed.
+  # -- Specifies whether Kafka (using the [Bitnami Kafka](oci://registry-1.docker.io/bitnamicharts)) should be installed.
   # **Not recommended for production environments.**
   enabled: true
 
-  operator:
-    # -- Specifies whether [Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator) should be installed.
-    # **Not recommended for production environments.**
-    install: true
+  listeners:
+    client:
+      name: plain
+      containerPort: 9092
+      protocol: PLAINTEXT
+      sslClientAuth: ""
+    controller:
+      name: CONTROLLER
+      containerPort: 9093
+      protocol: SASL_PLAINTEXT
+      sslClientAuth: ""
 
 clickhouse:
   # -- Specifies whether Clickhouse (using the [Clickhouse Operator](https://github.com/Altinity/clickhouse-operator)) should be installed.
@@ -135,10 +147,96 @@ clickhouse:
     # **Not recommended for production environments.**
     install: true
 
-# TODO: add resources to components
+svix:
+  # **Not recommended for production environments.**
+  enabled: true
+
+  # -- Specifies the JWT secret SVIX uses for authentication.
+  # For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
+  # **It is recommended to change this before deployment.**
+  signingSecret: "CeRc6WK8KjzRXrKkd9YFnSWcNyqLSIY8JwiaCeRc6WK4UkM"
+
+  # -- Specifies the JWT OpenMeter uses to authenticate with Svix.
+  # This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
+  signedJwt: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"
+
+  # -- Number of replicas (pods) to launch.
+  replicaCount: 1
+
+  image:
+    # -- Name of the image repository to pull the container image from.
+    repository: docker.io/svix/svix-server
+
+    # -- [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node.
+    pullPolicy: IfNotPresent
+
+    # -- Image tag to use
+    tag: "v1.37"
+
+  service:
+    # -- Kubernetes [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
+  # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#resources) for details.
+  # @default -- No requests or limits.
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+redis:
+  # -- Specifies whether Redis (using the [Bitnami Redis](oci://registry-1.docker.io/bitnamicharts/redis) chart) should be installed.
+  # **Not recommended for production environments.**
+  # All further values can be configured in the `redis` section.
+  enabled: true
+
+  auth:
+    enabled: false
+
+  nameOverride: redis
+
+
+postgresql:
+  # -- Specifies whether Postgres (using the [Bitnami Chart](https://github.com/bitnami/charts/tree/main/bitnami/postgresql) should be installed.
+  # **Not recommended for production environments.**
+  # All further values can be configured in the `postgres` section.
+  enabled: true
+
+  nameOverride: postgres
+
+  primary:
+    initdb:
+      scripts:
+        setup.sql: |
+          CREATE USER application WITH PASSWORD 'application';
+          CREATE DATABASE application;
+          GRANT ALL PRIVILEGES ON DATABASE application TO application;
+          ALTER DATABASE application OWNER TO application;
+          CREATE USER svix WITH PASSWORD 'svix';
+          CREATE DATABASE svix;
+          GRANT ALL PRIVILEGES ON DATABASE svix TO svix;
+          ALTER DATABASE svix OWNER TO svix;
 
 api:
   # -- Number of API replicas (pods) to launch.
+  replicaCount: 1
+
+balanceWorker:
+  # -- Number of Balance Worker replicas (pods) to launch.
+  replicaCount: 1
+
+notificationService:
+  # -- Number of Notification Service replicas (pods) to launch.
   replicaCount: 1
 
 sinkWorker:

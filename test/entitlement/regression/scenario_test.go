@@ -5,12 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
+	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -573,4 +576,90 @@ func TestGrantingAfterOverage(t *testing.T) {
 	assert.Equal(6500.0, currentBalance.Balance)
 	assert.Equal(0.0, currentBalance.Overage)
 	assert.Equal(2000.0, currentBalance.UsageInPeriod)
+}
+
+func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
+	defer clock.ResetTime()
+	deps := setupDependencies(t)
+	defer deps.Close()
+	ctx := context.Background()
+	assert := assert.New(t)
+
+	// Let's create a feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Name:      "feature-1",
+		Key:       "feature-1",
+		Namespace: "namespace-1",
+		MeterSlug: convert.ToPointer("meter-1"),
+	})
+	assert.NoError(err)
+	assert.NotNil(feature)
+
+	// Let's create a new entitlement for the feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"))
+	ent1, err := deps.EntitlementConnector.ScheduleEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:       "namespace-1",
+		FeatureID:       &feature.ID,
+		FeatureKey:      &feature.Key,
+		SubjectKey:      "subject-1",
+		EntitlementType: entitlement.EntitlementTypeMetered,
+		UsagePeriod: &entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodMonth,
+			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
+		},
+		ActiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z")),
+		ActiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2024-08-22T11:30:00Z")),
+	})
+	assert.NoError(err)
+	assert.NotNil(ent1)
+
+	ent2, err := deps.EntitlementConnector.ScheduleEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:       "namespace-1",
+		FeatureID:       &feature.ID,
+		FeatureKey:      &feature.Key,
+		SubjectKey:      "subject-1",
+		EntitlementType: entitlement.EntitlementTypeMetered,
+		UsagePeriod: &entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodMonth,
+			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
+		},
+		ActiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2024-08-22T11:30:00Z")),
+		ActiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2024-08-22T11:35:00Z")),
+	})
+	assert.NoError(err)
+	assert.NotNil(ent2)
+
+	// Lets grant some credit for 500
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:35:18Z"))
+	bwRepo, ok := deps.EntitlementRepo.(balanceworker.BalanceWorkerRepository)
+	assert.True(ok)
+
+	affectedEntitlements, err := bwRepo.ListAffectedEntitlements(ctx, []balanceworker.IngestEventQueryFilter{
+		{
+			Namespace:  "namespace-1",
+			MeterSlugs: []string{"meter-1"},
+			SubjectKey: "subject-1",
+		},
+	})
+	assert.NoError(err)
+	assert.Len(affectedEntitlements, 2)
+
+	entitlements, err := deps.EntitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		Namespaces:     []string{affectedEntitlements[0].Namespace},
+		IDs:            []string{affectedEntitlements[0].EntitlementID},
+		IncludeDeleted: true,
+	})
+	assert.NoError(err)
+	assert.Len(entitlements.Items, 1)
+
+	ns := affectedEntitlements[0].Namespace
+	entID := affectedEntitlements[0].EntitlementID
+
+	value, err := deps.EntitlementConnector.GetEntitlementValue(ctx, ns, "subject-1", entID, clock.Now())
+	assert.NoError(err)
+
+	mappedValues, err := entitlementdriver.MapEntitlementValueToAPI(value)
+	assert.NoError(err)
+	assert.False(mappedValues.HasAccess)
 }
