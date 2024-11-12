@@ -20,22 +20,23 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Aggregation   AggregationConfiguration
-	Entitlements  EntitlementsConfiguration
-	Dedupe        DedupeConfiguration
-	Events        EventsConfiguration
-	Ingest        IngestConfiguration
-	Meters        []*models.Meter
-	Namespace     NamespaceConfiguration
-	Portal        PortalConfiguration
-	Postgres      PostgresConfig
-	Sink          SinkConfiguration
-	BalanceWorker BalanceWorkerConfiguration
-	Notification  NotificationConfiguration
-	Billing       BillingConfiguration
-	Apps          AppsConfiguration
-	StripeApp     StripeAppConfig
-	Svix          SvixConfig
+	Aggregation    AggregationConfiguration
+	Entitlements   EntitlementsConfiguration
+	Dedupe         DedupeConfiguration
+	Events         EventsConfiguration
+	Ingest         IngestConfiguration
+	Meters         []*models.Meter
+	Namespace      NamespaceConfiguration
+	Portal         PortalConfiguration
+	Postgres       PostgresConfig
+	Sink           SinkConfiguration
+	BalanceWorker  BalanceWorkerConfiguration
+	Notification   NotificationConfiguration
+	ProductCatalog ProductCatalogConfiguration
+	Billing        BillingConfiguration
+	Apps           AppsConfiguration
+	StripeApp      StripeAppConfig
+	Svix           SvixConfig
 }
 
 // Validate validates the configuration.
@@ -114,6 +115,18 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "stripe app"))
 	}
 
+	if err := c.ProductCatalog.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "product catalog"))
+	}
+
+	if c.ProductCatalog.Enabled && !c.Entitlements.Enabled {
+		errs = append(errs, errors.New("entitlements must be enabled if product catalog is enabled"))
+	}
+
+	if err := c.Billing.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "billing"))
+	}
+
 	if err := c.Apps.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "apps"))
 	}
@@ -155,5 +168,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureNotification(v)
 	ConfigureStripe(v)
 	ConfigureBilling(v)
+	ConfigureProductCatalog(v)
 	ConfigureApps(v)
 }

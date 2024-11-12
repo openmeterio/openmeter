@@ -34,6 +34,8 @@ import (
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -72,6 +74,7 @@ type Config struct {
 	AppStripe                   appstripe.Service
 	Customer                    customer.Service
 	Billing                     billing.Service
+	Plan                        plan.Service
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
@@ -168,6 +171,7 @@ type Router struct {
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
 	billingHandler            billinghttpdriver.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
+	planHandler               planhttpdriver.Handler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
 	customerHandler           customerhttpdriver.CustomerHandler
@@ -257,6 +261,14 @@ func NewRouter(config Config) (*Router, error) {
 		router.billingHandler = billinghttpdriver.New(
 			staticNamespaceDecoder,
 			config.Billing,
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+	}
+
+	if config.Plan != nil {
+		router.planHandler = planhttpdriver.New(
+			staticNamespaceDecoder,
+			config.Plan,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}

@@ -87,12 +87,12 @@ func (h *handler) ListPlans() ListPlansHandler {
 type (
 	CreatePlanRequest  = plan.CreatePlanInput
 	CreatePlanResponse = api.Plan
-	CreatePlanHandler  httptransport.HandlerWithArgs[CreatePlanRequest, CreatePlanResponse, string]
+	CreatePlanHandler  httptransport.Handler[CreatePlanRequest, CreatePlanResponse]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planID string) (CreatePlanRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {
 			body := api.PlanCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreatePlanRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)

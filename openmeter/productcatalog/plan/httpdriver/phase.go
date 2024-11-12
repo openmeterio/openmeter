@@ -29,8 +29,11 @@ type PhaseKeyPlanParams struct {
 type (
 	ListPhasesRequest  = plan.ListPhasesInput
 	ListPhasesResponse = api.PlanPhasePaginatedResponse
-	ListPhasesParams   = api.ListPlanPhasesParams
-	ListPhasesHandler  httptransport.HandlerWithArgs[ListPhasesRequest, ListPhasesResponse, ListPhasesParams]
+	ListPhasesParams   struct {
+		PlanID string
+		api.ListPlanPhasesParams
+	}
+	ListPhasesHandler httptransport.HandlerWithArgs[ListPhasesRequest, ListPhasesResponse, ListPhasesParams]
 )
 
 func (h *handler) ListPhases() ListPhasesHandler {
@@ -43,6 +46,7 @@ func (h *handler) ListPhases() ListPhasesHandler {
 
 			req := ListPhasesRequest{
 				Namespaces: []string{ns},
+				PlanIDs:    []string{params.PlanID},
 				OrderBy:    plan.OrderBy(lo.FromPtrOr(params.OrderBy, api.PhasesOrderByKey)),
 				Order:      sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
 				Page: pagination.Page{
