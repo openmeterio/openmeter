@@ -209,7 +209,7 @@ enum NotificationRuleOrderBy {
 }
 
 @route("/api/v1/notification/rules")
-@tag("Notification (Experimental)")
+@tag("Notification (Beta)")
 interface Rules {
   /**
    * List all notification rules.
