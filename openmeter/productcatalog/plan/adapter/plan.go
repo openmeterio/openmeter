@@ -414,56 +414,65 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			}
 		}
 
-		if params.Phases != nil {
-			phases := make([]plan.Phase, 0, len(p.Phases))
-
-			diffResult := planPhasesDiff(*params.Phases, p.Phases)
-
-			if len(diffResult.Add) > 0 {
-				for _, createInput := range diffResult.Add {
-					createInput.Namespace = params.Namespace
-
-					phase, err := a.CreatePhase(ctx, createInput)
-					if err != nil {
-						return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
-					}
-
-					phases = append(phases, *phase)
-				}
-			}
-
-			if len(diffResult.Remove) > 0 {
-				for _, deleteInput := range diffResult.Remove {
-					err = a.DeletePhase(ctx, deleteInput)
-					if err != nil {
-						return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
-					}
-				}
-			}
-
-			if len(diffResult.Update) > 0 {
-				for _, updateInput := range diffResult.Update {
-					updateInput.Namespace = params.Namespace
-
-					phase, err := a.UpdatePhase(ctx, updateInput)
-					if err != nil {
-						return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
-					}
-
-					phases = append(phases, *phase)
-				}
-			}
-
-			if len(diffResult.Keep) > 0 {
-				phases = append(phases, diffResult.Keep...)
-			}
-
-			if len(phases) > 0 {
-				plan.SortPhases(p.Phases, plan.SortPhasesByStartAfter)
-			}
-
-			p.Phases = phases
+		// Return early if there are no PlanPhases set in Plan.
+		if params.Phases == nil || len(*params.Phases) == 0 {
+			return p, nil
 		}
+
+		// Return early if there are no changes in PlanPhases.
+		diffResult, err := planPhasesDiff(*params.Phases, p.Phases)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate Plan Phases diff: %w", err)
+		}
+
+		if !diffResult.IsDiff() {
+			return p, nil
+		}
+
+		phases := make([]plan.Phase, 0, len(p.Phases))
+
+		if len(diffResult.Keep) > 0 {
+			phases = append(phases, diffResult.Keep...)
+		}
+
+		if len(diffResult.Add) > 0 {
+			for _, createInput := range diffResult.Add {
+				createInput.Namespace = params.Namespace
+
+				phase, err := a.CreatePhase(ctx, createInput)
+				if err != nil {
+					return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
+				}
+
+				phases = append(phases, *phase)
+			}
+		}
+
+		if len(diffResult.Remove) > 0 {
+			for _, deleteInput := range diffResult.Remove {
+				err = a.DeletePhase(ctx, deleteInput)
+				if err != nil {
+					return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
+				}
+			}
+		}
+
+		if len(diffResult.Update) > 0 {
+			for _, updateInput := range diffResult.Update {
+				updateInput.Namespace = params.Namespace
+
+				phase, err := a.UpdatePhase(ctx, updateInput)
+				if err != nil {
+					return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
+				}
+
+				phases = append(phases, *phase)
+			}
+		}
+
+		plan.SortPhases(p.Phases, plan.SortPhasesByStartAfter)
+
+		p.Phases = phases
 
 		return p, nil
 	}
@@ -476,7 +485,11 @@ var planPhaseAscOrderingByStartAfterFn = func(q *entdb.PlanPhaseQuery) {
 }
 
 var planPhaseEagerLoadRateCardsFn = func(q *entdb.PlanPhaseQuery) {
-	q.WithRatecards()
+	q.WithRatecards(rateCardEagerLoadFeaturesFn)
+}
+
+var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
+	q.WithFeatures()
 }
 
 type planPhasesDiffResult struct {
@@ -493,7 +506,11 @@ type planPhasesDiffResult struct {
 	Keep []plan.Phase
 }
 
-func planPhasesDiff(requested, actual []plan.Phase) planPhasesDiffResult {
+func (d planPhasesDiffResult) IsDiff() bool {
+	return len(d.Add) > 0 || len(d.Update) > 0 || len(d.Remove) > 0
+}
+
+func planPhasesDiff(requested, actual []plan.Phase) (planPhasesDiffResult, error) {
 	result := planPhasesDiffResult{}
 
 	inputsMap := make(map[string]plan.UpdatePhaseInput, len(requested))
@@ -545,10 +562,24 @@ func planPhasesDiff(requested, actual []plan.Phase) planPhasesDiffResult {
 		if !input.Equal(phase) {
 			result.Update = append(result.Update, input)
 			phasesVisited[phaseKey] = struct{}{}
-		} else {
-			result.Keep = append(result.Keep, phase)
-			phasesVisited[phaseKey] = struct{}{}
+
+			continue
 		}
+
+		diffResult, err := rateCardsDiff(lo.FromPtr(input.RateCards), phase.RateCards)
+		if err != nil {
+			return result, err
+		}
+
+		if diffResult.IsDiff() {
+			result.Update = append(result.Update, input)
+			phasesVisited[phaseKey] = struct{}{}
+
+			continue
+		}
+
+		result.Keep = append(result.Keep, phase)
+		phasesVisited[phaseKey] = struct{}{}
 	}
 
 	// Collect phases to be deleted
@@ -565,5 +596,5 @@ func planPhasesDiff(requested, actual []plan.Phase) planPhasesDiffResult {
 		}
 	}
 
-	return result
+	return result, nil
 }

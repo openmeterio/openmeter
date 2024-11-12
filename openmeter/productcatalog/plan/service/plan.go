@@ -25,48 +25,51 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) expandFeatures(ctx context.Context, phases []plan.Phase) error {
-	if len(phases) > 0 {
+func (s service) expandFeatures(ctx context.Context, namespace string, rateCards *[]plan.RateCard) error {
+	if rateCards == nil || len(*rateCards) == 0 {
 		return nil
 	}
 
-	for _, phase := range phases {
-		rateCardFeatures := make(map[string]*feature.Feature)
-
-		for _, rateCard := range phase.RateCards {
-			if rateCardFeature := rateCard.Feature(); rateCardFeature != nil {
-				rateCardFeatures[rateCardFeature.Key] = rateCardFeature
-			}
+	rateCardFeatures := make(map[string]*feature.Feature)
+	rateCardFeatureKeys := make([]string, 0)
+	for _, rateCard := range *rateCards {
+		if rateCardFeature := rateCard.Feature(); rateCardFeature != nil {
+			rateCardFeatures[rateCardFeature.Key] = rateCardFeature
+			rateCardFeatureKeys = append(rateCardFeatureKeys, rateCardFeature.Key)
 		}
+	}
 
-		featureList, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
-			IDsOrKeys: lo.Keys(rateCardFeatures),
-			Namespace: phase.Namespace,
-			Page: pagination.Page{
-				PageSize:   len(rateCardFeatures),
-				PageNumber: 1,
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to list Features for RateCard: %w", err)
+	if len(rateCardFeatureKeys) == 0 {
+		return nil
+	}
+
+	featureList, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
+		IDsOrKeys: rateCardFeatureKeys,
+		Namespace: namespace,
+		Page: pagination.Page{
+			PageSize:   len(rateCardFeatures),
+			PageNumber: 1,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list Features for RateCards: %w", err)
+	}
+
+	// Update features in-place or return error if
+	visited := make([]string, 0)
+	for _, feat := range featureList.Items {
+		if rcFeat, ok := rateCardFeatures[feat.Key]; ok {
+			*rcFeat = feat
+
+			visited = append(visited, feat.Key)
 		}
+	}
 
-		// Update features in-place or return error if
-		visited := make(map[string]struct{})
-		for _, feat := range featureList.Items {
-			if rcFeat, ok := rateCardFeatures[feat.Key]; ok {
-				*rcFeat = feat
+	if len(rateCardFeatures) != len(visited) {
+		missing, r := lo.Difference(rateCardFeatureKeys, visited)
+		missing = append(missing, r...)
 
-				visited[feat.Key] = struct{}{}
-			}
-		}
-
-		if len(rateCardFeatures) != len(visited) {
-			missing, r := lo.Difference(lo.Keys(rateCardFeatures), lo.Keys(visited))
-			missing = append(missing, r...)
-
-			return fmt.Errorf("non-existing Features: %+v", missing)
-		}
+		return fmt.Errorf("non-existing Features: %+v", missing)
 	}
 
 	return nil
@@ -86,8 +89,12 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 		logger.Debug("creating Plan")
 
-		if err := s.expandFeatures(ctx, params.Phases); err != nil {
-			return nil, fmt.Errorf("failed to get Feature for RateCards: %w", err)
+		if len(params.Phases) > 0 {
+			for _, phase := range params.Phases {
+				if err := s.expandFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
+				}
+			}
 		}
 
 		p, err := s.adapter.CreatePlan(ctx, params)
@@ -188,12 +195,13 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			"namespace", params.Namespace,
 			"plan.id", params.ID,
 		)
-
 		logger.Debug("updating Plan")
 
-		if params.Phases != nil {
-			if err := s.expandFeatures(ctx, *params.Phases); err != nil {
-				return nil, fmt.Errorf("failed to get Feature for RateCards: %w", err)
+		if params.Phases != nil && len(*params.Phases) > 0 {
+			for _, phase := range *params.Phases {
+				if err := s.expandFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
+				}
 			}
 		}
 

@@ -266,10 +266,6 @@ type RateCardMeta struct {
 func (r *RateCardMeta) Validate() error {
 	var errs []error
 
-	if r.Feature != nil && r.EntitlementTemplate == nil {
-		errs = append(errs, errors.New("invalid EntitlementTemplate: must be provided if Feature is set"))
-	}
-
 	if r.EntitlementTemplate != nil {
 		if err := r.EntitlementTemplate.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid EntitlementTemplate: %w", err))

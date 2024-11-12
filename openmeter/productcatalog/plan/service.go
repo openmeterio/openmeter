@@ -184,11 +184,11 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if lo.FromPtrOr(i.Description, "") != lo.FromPtrOr(p.Description, "") {
+	if i.Description != nil && lo.FromPtrOr(i.Description, "") != lo.FromPtrOr(p.Description, "") {
 		return false
 	}
 
-	if !MetadataEqual(lo.FromPtrOr(i.Metadata, nil), p.Metadata) {
+	if i.Metadata != nil && !MetadataEqual(*i.Metadata, p.Metadata) {
 		return false
 	}
 

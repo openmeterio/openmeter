@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -95,7 +96,7 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, plan.DraftStatus, getPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.DraftStatus, getPlan.Status())
 			})
 
-			t.Run("New phase", func(t *testing.T) {
+			t.Run("NewPhase", func(t *testing.T) {
 				updatedPhases := slices.Clone(draftPlan.Phases)
 				updatedPhases = append(updatedPhases, plan.Phase{
 					NamespacedID: models.NamespacedID{
@@ -113,13 +114,26 @@ func TestPlanService(t *testing.T) {
 								NamespacedID: models.NamespacedID{
 									Namespace: namespace,
 								},
-								Key:                 "pro-2-ratecard-1",
-								Type:                plan.UsageBasedRateCardType,
-								Name:                "Pro-2 RateCard 1",
-								Description:         lo.ToPtr("Pro-2 RateCard 1"),
-								Metadata:            map[string]string{"name": "pro-ratecard-1"},
-								Feature:             nil,
-								EntitlementTemplate: nil,
+								Key:         "pro-2-ratecard-1",
+								Type:        plan.UsageBasedRateCardType,
+								Name:        "Pro-2 RateCard 1",
+								Description: lo.ToPtr("Pro-2 RateCard 1"),
+								Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
+								Feature: &feature.Feature{
+									Namespace: namespace,
+									Key:       "api_requests_total",
+								},
+								EntitlementTemplate: lo.ToPtr(plan.NewEntitlementTemplateFrom(plan.MeteredEntitlementTemplate{
+									EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
+										Type: entitlement.EntitlementTypeMetered,
+									},
+									Metadata:                nil,
+									IsSoftLimit:             true,
+									IssueAfterReset:         lo.ToPtr(500.0),
+									IssueAfterResetPriority: lo.ToPtr[uint8](1),
+									PreserveOverageAtReset:  lo.ToPtr(true),
+									UsagePeriod:             MonthPeriod,
+								})),
 								TaxConfig: &plan.TaxConfig{
 									Stripe: &plan.StripeTaxConfig{
 										Code: "txcd_10000000",
@@ -166,92 +180,92 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, plan.DraftStatus, updatedPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.DraftStatus, updatedPlan.Status())
 
 				plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
-			})
 
-			t.Run("Update phase", func(t *testing.T) {
-				updatedPhases := slices.Clone(draftPlan.Phases)
-				updatedPhases = append(updatedPhases, plan.Phase{
-					NamespacedID: models.NamespacedID{
-						Namespace: namespace,
-					},
-					Key:         "pro-2",
-					Name:        "Pro-2",
-					Description: lo.ToPtr("Pro-2 phase"),
-					Metadata:    map[string]string{"name": "pro-2"},
-					StartAfter:  SixMonthPeriod,
-					PlanID:      draftPlan.ID,
-					RateCards: []plan.RateCard{
-						plan.NewRateCardFrom(plan.UsageBasedRateCard{
-							RateCardMeta: plan.RateCardMeta{
-								NamespacedID: models.NamespacedID{
-									Namespace: namespace,
-								},
-								Key:                 "pro-2-ratecard-1",
-								Type:                plan.UsageBasedRateCardType,
-								Name:                "Pro-2 RateCard 1",
-								Description:         lo.ToPtr("Pro-2 RateCard 1"),
-								Metadata:            map[string]string{"name": "pro-ratecard-1"},
-								Feature:             nil,
-								EntitlementTemplate: nil,
-								TaxConfig: &plan.TaxConfig{
-									Stripe: &plan.StripeTaxConfig{
-										Code: "txcd_10000000",
+				t.Run("Update", func(t *testing.T) {
+					updatedPhases = slices.Clone(draftPlan.Phases)
+					updatedPhases = append(updatedPhases, plan.Phase{
+						NamespacedID: models.NamespacedID{
+							Namespace: namespace,
+						},
+						Key:         "pro-2",
+						Name:        "Pro-2",
+						Description: lo.ToPtr("Pro-2 phase"),
+						Metadata:    map[string]string{"name": "pro-2"},
+						StartAfter:  SixMonthPeriod,
+						PlanID:      draftPlan.ID,
+						RateCards: []plan.RateCard{
+							plan.NewRateCardFrom(plan.UsageBasedRateCard{
+								RateCardMeta: plan.RateCardMeta{
+									NamespacedID: models.NamespacedID{
+										Namespace: namespace,
 									},
-								},
-							},
-							BillingCadence: MonthPeriod,
-							Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-								PriceMeta: plan.PriceMeta{
-									Type: plan.TieredPriceType,
-								},
-								Mode: plan.VolumeTieredPrice,
-								Tiers: []plan.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-										FlatPrice: &plan.PriceTierFlatPrice{
-											Amount: decimal.NewFromInt(50),
-										},
-										UnitPrice: &plan.PriceTierUnitPrice{
-											Amount: decimal.NewFromInt(25),
+									Key:                 "pro-2-ratecard-1",
+									Type:                plan.UsageBasedRateCardType,
+									Name:                "Pro-2 RateCard 1",
+									Description:         lo.ToPtr("Pro-2 RateCard 1"),
+									Metadata:            map[string]string{"name": "pro-ratecard-1"},
+									Feature:             nil,
+									EntitlementTemplate: nil,
+									TaxConfig: &plan.TaxConfig{
+										Stripe: &plan.StripeTaxConfig{
+											Code: "txcd_10000000",
 										},
 									},
 								},
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-								MaximumAmount: nil,
-							})),
-						}),
-					},
+								BillingCadence: MonthPeriod,
+								Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
+									PriceMeta: plan.PriceMeta{
+										Type: plan.TieredPriceType,
+									},
+									Mode: plan.VolumeTieredPrice,
+									Tiers: []plan.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											FlatPrice: &plan.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(50),
+											},
+											UnitPrice: &plan.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(25),
+											},
+										},
+									},
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									MaximumAmount: nil,
+								})),
+							}),
+						},
+					})
+
+					updateInput = plan.UpdatePlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: planInput.Namespace,
+							ID:        draftPlan.ID,
+						},
+						Phases: lo.ToPtr(updatedPhases),
+					}
+
+					updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
+					require.NoErrorf(t, err, "updating draft Plan must not fail")
+					require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+
+					plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
 				})
 
-				updateInput := plan.UpdatePlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: planInput.Namespace,
-						ID:        draftPlan.ID,
-					},
-					Phases: lo.ToPtr(updatedPhases),
-				}
+				t.Run("Delete", func(t *testing.T) {
+					updateInput = plan.UpdatePlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: planInput.Namespace,
+							ID:        draftPlan.ID,
+						},
+						Phases: lo.ToPtr(draftPlan.Phases),
+					}
 
-				updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
-				require.NoErrorf(t, err, "updating draft Plan must not fail")
-				require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+					updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
+					require.NoErrorf(t, err, "updating draft Plan must not fail")
+					require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
 
-				plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
-			})
-
-			t.Run("Remove phase", func(t *testing.T) {
-				updateInput := plan.UpdatePlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: planInput.Namespace,
-						ID:        draftPlan.ID,
-					},
-					Phases: lo.ToPtr(draftPlan.Phases),
-				}
-
-				updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
-				require.NoErrorf(t, err, "updating draft Plan must not fail")
-				require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
-
-				plan.AssertPlanEqual(t, *updatedPlan, *draftPlan)
+					plan.AssertPlanEqual(t, *updatedPlan, *draftPlan)
+				})
 			})
 
 			var publishedPlan *plan.Plan
@@ -276,23 +290,23 @@ func TestPlanService(t *testing.T) {
 
 				assert.Equalf(t, publishAt, *publishedPlan.EffectiveFrom, "EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
 				assert.Equalf(t, plan.ActiveStatus, publishedPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.ActiveStatus, publishedPlan.Status())
-			})
 
-			t.Run("Update after publish", func(t *testing.T) {
-				updateInput := plan.UpdatePlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: draftPlan.Namespace,
-						ID:        draftPlan.ID,
-					},
-					Name: lo.ToPtr("Invalid Update"),
-				}
+				t.Run("Update", func(t *testing.T) {
+					updateInput := plan.UpdatePlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: draftPlan.Namespace,
+							ID:        draftPlan.ID,
+						},
+						Name: lo.ToPtr("Invalid Update"),
+					}
 
-				_, err = env.Plan.UpdatePlan(ctx, updateInput)
-				require.Errorf(t, err, "updating active Plan must fail")
+					_, err = env.Plan.UpdatePlan(ctx, updateInput)
+					require.Errorf(t, err, "updating active Plan must fail")
+				})
 			})
 
 			var nextPlan *plan.Plan
-			t.Run("New version", func(t *testing.T) {
+			t.Run("NewVersion", func(t *testing.T) {
 				nextInput := plan.NextPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: publishedPlan.Namespace,
@@ -306,87 +320,87 @@ func TestPlanService(t *testing.T) {
 
 				assert.Equalf(t, publishedPlan.Version+1, nextPlan.Version, "new draft Plan must have higher version number")
 				assert.Equalf(t, plan.DraftStatus, nextPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.DraftStatus, nextPlan.Status())
-			})
 
-			var publishedNextPlan *plan.Plan
-			t.Run("Publish next", func(t *testing.T) {
-				publishAt := time.Now().Truncate(time.Microsecond)
+				var publishedNextPlan *plan.Plan
+				t.Run("Publish", func(t *testing.T) {
+					publishAt := time.Now().Truncate(time.Microsecond)
 
-				publishInput := plan.PublishPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: nextPlan.Namespace,
-						ID:        nextPlan.ID,
-					},
-					EffectivePeriod: plan.EffectivePeriod{
-						EffectiveFrom: &publishAt,
-						EffectiveTo:   nil,
-					},
-				}
+					publishInput := plan.PublishPlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: nextPlan.Namespace,
+							ID:        nextPlan.ID,
+						},
+						EffectivePeriod: plan.EffectivePeriod{
+							EffectiveFrom: &publishAt,
+							EffectiveTo:   nil,
+						},
+					}
 
-				publishedNextPlan, err = env.Plan.PublishPlan(ctx, publishInput)
-				require.NoErrorf(t, err, "publishing draft Plan must not fail")
-				require.NotNil(t, publishedNextPlan, "published Plan must not be empty")
-				require.NotNil(t, publishedNextPlan.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
+					publishedNextPlan, err = env.Plan.PublishPlan(ctx, publishInput)
+					require.NoErrorf(t, err, "publishing draft Plan must not fail")
+					require.NotNil(t, publishedNextPlan, "published Plan must not be empty")
+					require.NotNil(t, publishedNextPlan.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
 
-				assert.Equalf(t, publishAt, *publishedNextPlan.EffectiveFrom, "EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
-				assert.Equalf(t, plan.ActiveStatus, publishedNextPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.ActiveStatus, publishedNextPlan.Status())
+					assert.Equalf(t, publishAt, *publishedNextPlan.EffectiveFrom, "EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
+					assert.Equalf(t, plan.ActiveStatus, publishedNextPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.ActiveStatus, publishedNextPlan.Status())
 
-				prevPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: publishedPlan.Namespace,
-						ID:        publishedPlan.ID,
-					},
+					prevPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: publishedPlan.Namespace,
+							ID:        publishedPlan.ID,
+						},
+					})
+					require.NoErrorf(t, err, "getting previous Plan version must not fail")
+					require.NotNil(t, prevPlan, "previous Plan version must not be empty")
+
+					assert.Equalf(t, plan.ArchivedStatus, prevPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.ArchivedStatus, prevPlan.Status())
 				})
-				require.NoErrorf(t, err, "getting previous Plan version must not fail")
-				require.NotNil(t, prevPlan, "previous Plan version must not be empty")
 
-				assert.Equalf(t, plan.ArchivedStatus, prevPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.ArchivedStatus, prevPlan.Status())
-			})
+				var archivedPlan *plan.Plan
+				t.Run("Archive", func(t *testing.T) {
+					archiveAt := time.Now().Truncate(time.Microsecond)
 
-			var archivedPlan *plan.Plan
-			t.Run("Archive next", func(t *testing.T) {
-				archiveAt := time.Now().Truncate(time.Microsecond)
+					archiveInput := plan.ArchivePlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: nextPlan.Namespace,
+							ID:        nextPlan.ID,
+						},
+						EffectiveTo: archiveAt,
+					}
 
-				archiveInput := plan.ArchivePlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: nextPlan.Namespace,
-						ID:        nextPlan.ID,
-					},
-					EffectiveTo: archiveAt,
-				}
+					archivedPlan, err = env.Plan.ArchivePlan(ctx, archiveInput)
+					require.NoErrorf(t, err, "archiving Plan must not fail")
+					require.NotNil(t, archivedPlan, "archived Plan must not be empty")
+					require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
 
-				archivedPlan, err = env.Plan.ArchivePlan(ctx, archiveInput)
-				require.NoErrorf(t, err, "archiving Plan must not fail")
-				require.NotNil(t, archivedPlan, "archived Plan must not be empty")
-				require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
-
-				assert.Equalf(t, archiveAt, *archivedPlan.EffectiveTo, "EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlan.EffectiveTo)
-				assert.Equalf(t, plan.ArchivedStatus, archivedPlan.Status(), "Status mismatch for archived Plan: expected=%s, actual=%s", plan.ArchivedStatus, archivedPlan.Status())
-			})
-
-			t.Run("Delete next", func(t *testing.T) {
-				deleteInput := plan.DeletePlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: archivedPlan.Namespace,
-						ID:        archivedPlan.ID,
-					},
-				}
-
-				err = env.Plan.DeletePlan(ctx, deleteInput)
-				require.NoErrorf(t, err, "deleting Plan must not fail")
-				require.NotNil(t, archivedPlan, "archived Plan must not be empty")
-				require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
-
-				deletedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: archivedPlan.Namespace,
-						ID:        archivedPlan.ID,
-					},
+					assert.Equalf(t, archiveAt, *archivedPlan.EffectiveTo, "EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlan.EffectiveTo)
+					assert.Equalf(t, plan.ArchivedStatus, archivedPlan.Status(), "Status mismatch for archived Plan: expected=%s, actual=%s", plan.ArchivedStatus, archivedPlan.Status())
 				})
-				require.NoErrorf(t, err, "getting deleted Plan version must not fail")
-				require.NotNil(t, deletedPlan, "deleted Plan version must not be empty")
 
-				assert.NotNilf(t, deletedPlan.DeletedAt, "deletedAt must not be empty")
+				t.Run("Delete", func(t *testing.T) {
+					deleteInput := plan.DeletePlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: archivedPlan.Namespace,
+							ID:        archivedPlan.ID,
+						},
+					}
+
+					err = env.Plan.DeletePlan(ctx, deleteInput)
+					require.NoErrorf(t, err, "deleting Plan must not fail")
+					require.NotNil(t, archivedPlan, "archived Plan must not be empty")
+					require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
+
+					deletedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: archivedPlan.Namespace,
+							ID:        archivedPlan.ID,
+						},
+					})
+					require.NoErrorf(t, err, "getting deleted Plan version must not fail")
+					require.NotNil(t, deletedPlan, "deleted Plan version must not be empty")
+
+					assert.NotNilf(t, deletedPlan.DeletedAt, "deletedAt must not be empty")
+				})
 			})
 		})
 	})

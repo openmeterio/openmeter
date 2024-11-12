@@ -51,6 +51,12 @@ func (s service) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) 
 
 		logger.Debug("creating PlanPhase")
 
+		if len(params.RateCards) > 0 {
+			if err := s.expandFeatures(ctx, params.Namespace, &params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
+			}
+		}
+
 		phase, err := s.adapter.CreatePhase(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
