@@ -436,7 +436,7 @@ export interface paths {
      * @description Create a new draft version from plan.
      * It returns error if there is already a plan in draft or planId does not reference the latest published version.
      */
-    post: operations['newDraftPlan']
+    post: operations['nextPlan']
   }
   '/api/v1/plans/{planId}': {
     /**
@@ -457,6 +457,13 @@ export interface paths {
      */
     delete: operations['deletePlan']
   }
+  '/api/v1/plans/{planId}/archive': {
+    /**
+     * Archive plan version
+     * @description Archive a plan version.
+     */
+    post: operations['archivePlan']
+  }
   '/api/v1/plans/{planId}/phases': {
     /**
      * List phases in plan
@@ -467,40 +474,33 @@ export interface paths {
      * Create new phase in plan
      * @description Create new phase in plan.
      */
-    post: operations['createPlanPhases']
+    post: operations['createPlanPhase']
   }
   '/api/v1/plans/{planId}/phases/{planPhaseKey}': {
     /**
      * Get phase for plan
      * @description Get phase in plan.
      */
-    get: operations['getPlanPhases']
+    get: operations['getPlanPhase']
     /**
      * Update phase in plan
      * @description Update phase in plan.
      */
-    put: operations['updatePlanPhases']
+    put: operations['updatePlanPhase']
     /**
      * Delete phase for plan
      * @description Delete phase in plan.
      *
      * Once a phase is deleted it cannot be undeleted.
      */
-    delete: operations['deletePlanPhases']
+    delete: operations['deletePlanPhase']
   }
   '/api/v1/plans/{planId}/publish': {
     /**
      * Publish plan
-     * @description Publish a new plan.
+     * @description Publish a plan version.
      */
     post: operations['publishPlan']
-  }
-  '/api/v1/plans/{planId}/unpublish': {
-    /**
-     * Unpublish plan
-     * @description Unpublish a new plan.
-     */
-    post: operations['unpublishPlan']
   }
   '/api/v1/portal/meters/{meterSlug}/query': {
     /** @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers. */
@@ -615,7 +615,7 @@ export interface paths {
     post: operations['Subscriptions_create']
   }
   '/api/v1/subscriptions/{subscriptionId}': {
-    get: operations['getSubscription_getSubscription']
+    get: operations['getSubscription']
     /**
      * @description Batch processing commands for manipulating running subscriptions.
      * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
@@ -790,44 +790,6 @@ export interface components {
      * @enum {string}
      */
     AppType: 'stripe' | 'sandbox'
-    /** @description A discount on plan. One of: percentage or amount. */
-    AppliedDiscount: components['schemas']['AppliedDiscountPercentage']
-    /** @description Percentage discount on plan. */
-    AppliedDiscountPercentage: {
-      /**
-       * Type
-       * @description The type of the discount.
-       * @enum {string}
-       */
-      type: 'percentage'
-      /**
-       * Percentage
-       * @description The percentage of the discount.
-       */
-      percentage: number
-      /**
-       * Applies To
-       * @description The rate cards that the discount applies to.
-       * When not specified, the discount applies to all rate cards.
-       */
-      appliesTo?: string[]
-    }
-    /** @description Percentage discount on plan. */
-    AppliedDiscountPercentageUpdateItem: {
-      /**
-       * Percentage
-       * @description The percentage of the discount.
-       */
-      percentage: number
-      /**
-       * Applies To
-       * @description The rate cards that the discount applies to.
-       * When not specified, the discount applies to all rate cards.
-       */
-      appliesTo?: string[]
-    }
-    /** @description A discount on plan. One of: percentage or amount. */
-    AppliedDiscountUpdateItem: components['schemas']['AppliedDiscountPercentageUpdateItem']
     /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
     BadRequestProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The balance history window. */
@@ -856,6 +818,7 @@ export interface components {
       /** The line to create */
       lines: components['schemas']['BillingInvoiceLineCreateItem'][]
     }
+    /** @description CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is based on. */
     BillingCreditNoteOriginalInvoiceRef: WithRequired<
       {
         /** @enum {string} */
@@ -962,11 +925,14 @@ export interface components {
       /** The payment settings for this workflow */
       payment?: components['schemas']['BillingWorkflowPaymentSettings']
     }
-    /** DocumentRef is used to describe a reference to an existing document (invoice). */
+    /** @description DocumentRef is used to describe a reference to an existing document (invoice). */
     BillingDocumentRef: components['schemas']['BillingCreditNoteOriginalInvoiceRef']
-    /** @enum {string} */
+    /**
+     * @description DocumentRefType defines the type of document that is being referenced.
+     * @enum {string}
+     */
     BillingDocumentRefType: 'credit_node_original_invoice'
-    /** DueDate contains an amount that should be paid by the given date. */
+    /** @description DueDate contains an amount that should be paid by the given date. */
     BillingDueDate: {
       /**
        * When the payment is due.
@@ -984,11 +950,7 @@ export interface components {
       /** If different from the parent document's base currency. */
       currency?: components['schemas']['CurrencyCode']
     }
-    /**
-     * @description BillingFlatFeeLine represents a line item that is sold to the customer as a flat fee.
-     *
-     * This object represents an item added via subscriptions.
-     */
+    /** @description BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee. */
     BillingFlatFeeLine: {
       /**
        * Display name
@@ -1042,8 +1004,8 @@ export interface components {
       currency: components['schemas']['CurrencyCode']
       /** Map of taxes to be applied and used in the invoice totals. */
       taxes?: components['schemas']['BillingTaxItem'][]
-      /** Tax overrides specify the tax configuration for this line. */
-      taxOverrides?: components['schemas']['TaxConfig'] | null
+      /** Tax config specify the tax configuration for this line. */
+      taxConfig?: components['schemas']['TaxConfig'] | null
       /** Total sum of the line, including discounts and charges. */
       total: components['schemas']['Numeric']
       /** Period of the line item applies to for revenue recognition pruposes. */
@@ -1057,14 +1019,17 @@ export interface components {
       invoiceAt: string
       /** @enum {string} */
       type: 'flat_fee'
-      /** Details about what is being sold. */
-      item: components['schemas']['RateCardFlatFee']
+      /** Price of the item being sold. */
+      amount: components['schemas']['Numeric']
+      /**
+       * Payment term of the line.
+       * @default in_advance
+       */
+      paymentTerm?: components['schemas']['PricePaymentTerm']
+      /** Quantity of the item being sold. */
+      quantity: components['schemas']['Numeric']
     }
-    /**
-     * @description BillingFlatFeeLine represents a line item that is sold to the customer as a flat fee.
-     *
-     * This object represents an item added via subscriptions.
-     */
+    /** @description BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee. */
     BillingFlatFeeLineCreateItem: {
       /**
        * Display name
@@ -1089,8 +1054,8 @@ export interface components {
       invoice?: components['schemas']['BillingInvoiceReference']
       /** The currency of this line */
       currency: components['schemas']['CurrencyCode']
-      /** Tax overrides specify the tax configuration for this line. */
-      taxOverrides?: components['schemas']['TaxConfig'] | null
+      /** Tax config specify the tax configuration for this line. */
+      taxConfig?: components['schemas']['TaxConfig'] | null
       /** Period of the line item applies to for revenue recognition pruposes. */
       period: components['schemas']['BillingPeriod']
       /**
@@ -1102,14 +1067,17 @@ export interface components {
       invoiceAt: string
       /** @enum {string} */
       type: 'flat_fee'
-      /** Details about what is being sold. */
-      item: components['schemas']['RateCardFlatFee']
+      /** Price of the item being sold. */
+      amount: components['schemas']['Numeric']
+      /**
+       * Payment term of the line.
+       * @default in_advance
+       */
+      paymentTerm?: components['schemas']['PricePaymentTerm']
+      /** Quantity of the item being sold. */
+      quantity: components['schemas']['Numeric']
     }
-    /**
-     * @description BillingFlatFeeLine represents a line item that is sold to the customer as a flat fee.
-     *
-     * This object represents an item added via subscriptions.
-     */
+    /** @description BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee. */
     BillingFlatFeeLineCreateOrUpdate: {
       /**
        * Display name
@@ -1139,8 +1107,8 @@ export interface components {
       invoice?: components['schemas']['BillingInvoiceReference']
       /** The currency of this line */
       currency: components['schemas']['CurrencyCode']
-      /** Tax overrides specify the tax configuration for this line. */
-      taxOverrides?: components['schemas']['TaxConfig'] | null
+      /** Tax config specify the tax configuration for this line. */
+      taxConfig?: components['schemas']['TaxConfig'] | null
       /** Period of the line item applies to for revenue recognition pruposes. */
       period: components['schemas']['BillingPeriod']
       /**
@@ -1152,8 +1120,15 @@ export interface components {
       invoiceAt: string
       /** @enum {string} */
       type: 'flat_fee'
-      /** Details about what is being sold. */
-      item: components['schemas']['RateCardFlatFee']
+      /** Price of the item being sold. */
+      amount: components['schemas']['Numeric']
+      /**
+       * Payment term of the line.
+       * @default in_advance
+       */
+      paymentTerm?: components['schemas']['PricePaymentTerm']
+      /** Quantity of the item being sold. */
+      quantity: components['schemas']['Numeric']
     }
     /**
      * DocumentRef is used to describe an existing document or a specific part of it's contents.
@@ -1170,7 +1145,7 @@ export interface components {
       /** Additional details about the document. */
       description?: string
     }
-    /** Invoice represents an invoice in the system. */
+    /** @description Invoice represents an invoice in the system. */
     BillingInvoice: {
       /**
        * ID
@@ -1294,8 +1269,17 @@ export interface components {
       /** Validation issues reported by the invoice workflow. */
       validationIssues?: components['schemas']['BillingValidationIssue'][]
     }
-    /** @enum {string} */
+    /**
+     * @description BillingInvoiceAction represents the actions that can be performed on an invoice.
+     * @enum {string}
+     */
     BillingInvoiceAction: 'advance' | 'approve' | 'delete' | 'retry' | 'void'
+    /**
+     * @description BillingInvoiceCreateInput is the input for creating an invoice.
+     *
+     * Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
+     * operation. Empty invoices are not allowed.
+     */
     BillingInvoiceCreateInput: {
       /**
        * @description The pending line items to include in the invoice, if not provided:
@@ -1313,7 +1297,7 @@ export interface components {
        */
       AsOf?: string
     }
-    /** Discount represents an allowance applied to the complete document independent from the individual lines. */
+    /** @description Discount represents an allowance applied to the complete document independent from the individual lines. */
     BillingInvoiceDiscount: {
       /** Base represents the value used as a base for percent calculations instead of the invoice's sum of lines. */
       base?: components['schemas']['Numeric']
@@ -1356,18 +1340,18 @@ export interface components {
       | 'draft_ready_to_issue'
       | 'issuing_syncing'
       | 'issuing_sync_failed'
-    /** UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price. */
+    /** @description BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price. */
     BillingInvoiceLine:
+      | components['schemas']['BillingUsageBasedLine']
       | components['schemas']['BillingFlatFeeLine']
-      | components['schemas']['BillingFeeLine']
-    /** UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price. */
+    /** @description BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price. */
     BillingInvoiceLineCreateItem:
+      | components['schemas']['BillingUsageBasedLineCreateItem']
       | components['schemas']['BillingFlatFeeLineCreateItem']
-      | components['schemas']['BillingFeeLineCreateItem']
-    /** UnitPriceLine represents a line item that is sold to the customer based on a specific (unit) price. */
+    /** @description BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price. */
     BillingInvoiceLineCreateOrUpdate:
+      | components['schemas']['BillingUsageBasedLineCreateOrUpdate']
       | components['schemas']['BillingFlatFeeLineCreateOrUpdate']
-      | components['schemas']['BillingFeeLineCreateOrUpdate']
     /**
      * @description InvoiceNumber is a unique identifier for the invoice, generated by the
      * invoicing app.
@@ -1388,11 +1372,11 @@ export interface components {
       | 'status'
       | 'createdAt'
       | 'updatedAt'
-    /** Payment contains details as to how the invoice should be paid. */
+    /** @description Payment contains details as to how the invoice should be paid. */
     BillingInvoicePayment: {
       terms?: components['schemas']['BillingPaymentTerms']
     }
-    /** Reference to an invoice. */
+    /** @description Reference to an invoice. */
     BillingInvoiceReference: {
       /**
        * The ID of the invoice.
@@ -1408,6 +1392,12 @@ export interface components {
      * @enum {string}
      */
     BillingInvoiceStatus: 'gathering' | 'draft' | 'issuing' | 'issued'
+    /**
+     * @description InvoiceStatusDetails represents the details of the invoice status.
+     *
+     * API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
+     * the next steps of the invoice instead of the extendedStatus field.
+     */
     BillingInvoiceStatusDetails: {
       /** Is the invoice editable? */
       immutable: boolean
@@ -1418,7 +1408,7 @@ export interface components {
       /** The actions that can be performed on the invoice. */
       availableActions: components['schemas']['BillingInvoiceAction'][]
     }
-    /** Totals contains the summaries of all calculations for the invoice. */
+    /** @description Totals contains the summaries of all calculations for the invoice. */
     BillingInvoiceTotals: {
       /** Sum of all line item sums */
       sum: components['schemas']['Numeric']
@@ -1443,8 +1433,19 @@ export interface components {
       /** How much actually needs to be paid now. */
       due?: components['schemas']['Numeric']
     }
-    /** @enum {string} */
+    /**
+     * @description InvoiceType represents the type of invoice.
+     *
+     * The type of invoice determines the purpose of the invoice and how it should be handled.
+     * @enum {string}
+     */
     BillingInvoiceType: 'standard' | 'credit_note'
+    /**
+     * @description InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+     *
+     * This is a clone of the billing profile's workflow settings at the time of invoice creation
+     * with customer overrides considered.
+     */
     BillingInvoiceWorkflowSettings: {
       /** The apps that will be used to orchestrate the invoice's workflow. */
       apps?: components['schemas']['BillingProfileAppsOrReference']
@@ -1462,7 +1463,7 @@ export interface components {
       /** Timezone of the invoice's date fields. */
       timezone: string
     }
-    /** LineCharge represents an amount added to the line, and will be applied before taxes. */
+    /** @description LineCharge represents an amount added to the line, and will be applied before taxes. */
     BillingLineCharge: {
       /**
        * Percent
@@ -1479,7 +1480,7 @@ export interface components {
       /** Text description as to why the discount was applied. */
       reason?: string
     }
-    /** LineDiscount represents an amount deducted from the line, and will be applied before taxes. */
+    /** @description LineDiscount represents an amount deducted from the line, and will be applied before taxes. */
     BillingLineDiscount: {
       /**
        * Percent
@@ -1497,176 +1498,11 @@ export interface components {
       reason?: string
     }
     /**
-     * Line status specifies the status of the line.
+     * @description Line status specifies the status of the line.
      * @enum {string}
      */
     BillingLineStatus: 'valid' | 'deleted' | 'split'
-    /** @description BillingFeeLine represents a line item that is sold to the customer as a manually added fee. */
-    BillingFeeLine: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
-       */
-      createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
-       */
-      updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
-       */
-      deletedAt?: string
-      /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id: string
-      status: components['schemas']['BillingLineStatus']
-      /** Discounts applied to this line. */
-      discounts?: components['schemas']['BillingLineDiscount'][]
-      /** Charges applied to this line. */
-      charges?: components['schemas']['BillingLineCharge'][]
-      /** The invoice this item belongs to. */
-      invoice?: components['schemas']['BillingInvoiceReference']
-      /** The currency of this line */
-      currency: components['schemas']['CurrencyCode']
-      /** Map of taxes to be applied and used in the invoice totals. */
-      taxes?: components['schemas']['BillingTaxItem'][]
-      /** Tax overrides specify the tax configuration for this line. */
-      taxOverrides?: components['schemas']['TaxConfig'] | null
-      /** Total sum of the line, including discounts and charges. */
-      total: components['schemas']['Numeric']
-      /** Period of the line item applies to for revenue recognition pruposes. */
-      period: components['schemas']['BillingPeriod']
-      /**
-       * The time this line item should be invoiced.
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      invoiceAt: string
-      /** @enum {string} */
-      type: 'manual_fee'
-      /** Price of the item being sold. */
-      price: components['schemas']['Numeric']
-      /** Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
-    }
-    /** @description BillingFeeLine represents a line item that is sold to the customer as a manually added fee. */
-    BillingFeeLineCreateItem: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata']
-      /** Discounts applied to this line. */
-      discounts?: components['schemas']['BillingLineDiscount'][]
-      /** Charges applied to this line. */
-      charges?: components['schemas']['BillingLineCharge'][]
-      /** The invoice this item belongs to. */
-      invoice?: components['schemas']['BillingInvoiceReference']
-      /** The currency of this line */
-      currency: components['schemas']['CurrencyCode']
-      /** Tax overrides specify the tax configuration for this line. */
-      taxOverrides?: components['schemas']['TaxConfig'] | null
-      /** Period of the line item applies to for revenue recognition pruposes. */
-      period: components['schemas']['BillingPeriod']
-      /**
-       * The time this line item should be invoiced.
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      invoiceAt: string
-      /** @enum {string} */
-      type: 'manual_fee'
-      /** Price of the item being sold. */
-      price: components['schemas']['Numeric']
-      /** Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
-    }
-    /** @description BillingFeeLine represents a line item that is sold to the customer as a manually added fee. */
-    BillingFeeLineCreateOrUpdate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id: string
-      /** Discounts applied to this line. */
-      discounts?: components['schemas']['BillingLineDiscount'][]
-      /** Charges applied to this line. */
-      charges?: components['schemas']['BillingLineCharge'][]
-      /** The invoice this item belongs to. */
-      invoice?: components['schemas']['BillingInvoiceReference']
-      /** The currency of this line */
-      currency: components['schemas']['CurrencyCode']
-      /** Tax overrides specify the tax configuration for this line. */
-      taxOverrides?: components['schemas']['TaxConfig'] | null
-      /** Period of the line item applies to for revenue recognition pruposes. */
-      period: components['schemas']['BillingPeriod']
-      /**
-       * The time this line item should be invoiced.
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      invoiceAt: string
-      /** @enum {string} */
-      type: 'manual_fee'
-      /** Price of the item being sold. */
-      price: components['schemas']['Numeric']
-      /** Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
-    }
-    /** Party represents a person or business entity. */
+    /** @description Party represents a person or business entity. */
     BillingParty: {
       /**
        * ID of the party.
@@ -1681,7 +1517,7 @@ export interface components {
       /** Regular post addresses for where information should be sent if needed. */
       addresses?: components['schemas']['Address'][]
     }
-    /** Party represents a person or business entity. */
+    /** @description Party represents a person or business entity. */
     BillingPartyCreate: {
       /** Legal name or representation of the organization. */
       name?: string
@@ -1690,7 +1526,7 @@ export interface components {
       /** Regular post addresses for where information should be sent if needed. */
       addresses?: components['schemas']['Address'][]
     }
-    /** PaymentTermDueDate defines the terms for payment on a specific date. */
+    /** @description PaymentTermDueDate defines the terms for payment on a specific date. */
     BillingPaymentTermDueDate: {
       /**
        * Type of terms to be applied.
@@ -1704,7 +1540,7 @@ export interface components {
       /** When the payment is due. */
       dueAt: components['schemas']['BillingDueDate'][]
     }
-    /** PaymentTermInstant defines the terms for payment on receipt of invoice. */
+    /** @description PaymentTermInstant defines the terms for payment on receipt of invoice. */
     BillingPaymentTermInstant: {
       /**
        * Type of terms to be applied.
@@ -1716,11 +1552,15 @@ export interface components {
       /** Description of the conditions for payment. */
       notes?: string
     }
-    /** PaymentTerms defines the terms for payment. */
+    /** @description PaymentTerms defines the terms for payment. */
     BillingPaymentTerms:
       | components['schemas']['BillingPaymentTermInstant']
       | components['schemas']['BillingPaymentTermDueDate']
-    /** Period represents a time range. */
+    /**
+     * @description Period represents a time range.
+     *
+     * Billing always treats periods as start being inclusive and end being exclusive.
+     */
     BillingPeriod: {
       /**
        * Start of the period.
@@ -1807,6 +1647,10 @@ export interface components {
       invoicing: components['schemas']['App']
       payment: components['schemas']['App']
     }
+    /**
+     * @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
+     * for a billing profile.
+     */
     BillingProfileAppsOrReference:
       | components['schemas']['BillingProfileApps']
       | components['schemas']['BillingProfileAppReferences']
@@ -1887,14 +1731,21 @@ export interface components {
      * @enum {string}
      */
     BillingProfileOrderBy: 'createdAt' | 'updatedAt' | 'default' | 'name'
-    /** @enum {string} */
+    /**
+     * @description TaxBehavior details how the tax item is applied to the base amount.
+     *
+     * Inclusive means the tax is included in the base amount.
+     * Exclusive means the tax is added to the base amount.
+     * @enum {string}
+     */
     BillingTaxBehavior: 'inclusive' | 'exclusive'
     BillingTaxIdentificationCode: string
-    /** Identity stores the details required to identify an entity for tax purposes in a specific country. */
+    /** @description Identity stores the details required to identify an entity for tax purposes in a specific country. */
     BillingTaxIdentity: {
       /** Normalized tax code shown on the original identity document. */
       code?: components['schemas']['BillingTaxIdentificationCode']
     }
+    /** @description TaxConfig stores the configuration for a tax line relative to an invoice line. */
     BillingTaxItem: {
       /** Tax provider configuration. */
       config?: components['schemas']['TaxConfig']
@@ -1908,6 +1759,179 @@ export interface components {
       surcharge?: components['schemas']['Numeric']
       /** Is the tax item inclusive or exclusive of the base amount. */
       behavior?: components['schemas']['BillingTaxBehavior']
+    }
+    /** @description UsageBasedLine represents a line item that is sold to the customer based on usage. */
+    BillingUsageBasedLine: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example "2024-01-01T01:01:01.001Z"
+       */
+      deletedAt?: string
+      /**
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      status: components['schemas']['BillingLineStatus']
+      /** Discounts applied to this line. */
+      discounts?: components['schemas']['BillingLineDiscount'][]
+      /** Charges applied to this line. */
+      charges?: components['schemas']['BillingLineCharge'][]
+      /** The invoice this item belongs to. */
+      invoice?: components['schemas']['BillingInvoiceReference']
+      /** The currency of this line */
+      currency: components['schemas']['CurrencyCode']
+      /** Map of taxes to be applied and used in the invoice totals. */
+      taxes?: components['schemas']['BillingTaxItem'][]
+      /** Tax config specify the tax configuration for this line. */
+      taxConfig?: components['schemas']['TaxConfig'] | null
+      /** Total sum of the line, including discounts and charges. */
+      total: components['schemas']['Numeric']
+      /** Period of the line item applies to for revenue recognition pruposes. */
+      period: components['schemas']['BillingPeriod']
+      /**
+       * The time this line item should be invoiced.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      invoiceAt: string
+      /** @enum {string} */
+      type: 'usage_based'
+      price: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * The feature that the usage is based on.
+       * @description A key is a unique string that is used to identify a resource.
+       */
+      featureKey: string
+      /** Quantity of the item being sold. */
+      quantity?: components['schemas']['Numeric']
+    }
+    /** @description UsageBasedLine represents a line item that is sold to the customer based on usage. */
+    BillingUsageBasedLineCreateItem: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /** Discounts applied to this line. */
+      discounts?: components['schemas']['BillingLineDiscount'][]
+      /** Charges applied to this line. */
+      charges?: components['schemas']['BillingLineCharge'][]
+      /** The invoice this item belongs to. */
+      invoice?: components['schemas']['BillingInvoiceReference']
+      /** The currency of this line */
+      currency: components['schemas']['CurrencyCode']
+      /** Tax config specify the tax configuration for this line. */
+      taxConfig?: components['schemas']['TaxConfig'] | null
+      /** Period of the line item applies to for revenue recognition pruposes. */
+      period: components['schemas']['BillingPeriod']
+      /**
+       * The time this line item should be invoiced.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      invoiceAt: string
+      /** @enum {string} */
+      type: 'usage_based'
+      price: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * The feature that the usage is based on.
+       * @description A key is a unique string that is used to identify a resource.
+       */
+      featureKey: string
+    }
+    /** @description UsageBasedLine represents a line item that is sold to the customer based on usage. */
+    BillingUsageBasedLineCreateOrUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /** Discounts applied to this line. */
+      discounts?: components['schemas']['BillingLineDiscount'][]
+      /** Charges applied to this line. */
+      charges?: components['schemas']['BillingLineCharge'][]
+      /** The invoice this item belongs to. */
+      invoice?: components['schemas']['BillingInvoiceReference']
+      /** The currency of this line */
+      currency: components['schemas']['CurrencyCode']
+      /** Tax config specify the tax configuration for this line. */
+      taxConfig?: components['schemas']['TaxConfig'] | null
+      /** Period of the line item applies to for revenue recognition pruposes. */
+      period: components['schemas']['BillingPeriod']
+      /**
+       * The time this line item should be invoiced.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example "2023-01-01T01:01:01.001Z"
+       */
+      invoiceAt: string
+      /** @enum {string} */
+      type: 'usage_based'
+      price: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * The feature that the usage is based on.
+       * @description A key is a unique string that is used to identify a resource.
+       */
+      featureKey: string
     }
     /**
      * @description ValidationIssue captures any validation issues related to the invoice.
@@ -1964,7 +1988,7 @@ export interface components {
         | null
     }
     /**
-     * VoidInvoiceLineAction describes how to handle the voidied line item in the invoice.
+     * @description VoidInvoiceLineAction describes how to handle the voidied line item in the invoice.
      * @enum {string}
      */
     BillingVoidInvoiceLineAction: 'discard' | 'pending' | 'pending_next_cycle'
@@ -2034,7 +2058,7 @@ export interface components {
      * @enum {string}
      */
     BillingWorkflowCollectionMethod: 'charge_automatically' | 'send_invoice'
-    /** Workflow collection specifies how to collect the pending line items for an invoice */
+    /** @description Workflow collection specifies how to collect the pending line items for an invoice */
     BillingWorkflowCollectionSettings: {
       /**
        * @description When to collect the pending line items into an invoice.
@@ -2082,6 +2106,7 @@ export interface components {
       /** @default charge_automatically */
       collectionMethod?: components['schemas']['BillingWorkflowCollectionMethod']
     }
+    /** @description WorkflowSettings represents the settings for a billing workflow. */
     BillingWorkflowSettings: {
       /** The collection settings for this workflow */
       collection?: components['schemas']['BillingWorkflowCollectionSettings']
@@ -2384,6 +2409,50 @@ export interface components {
        */
       subjectKeys: string[]
     }
+    /**
+     * @description A discount on a price.
+     * One of: percentage, amount, or usage.
+     */
+    Discount: components['schemas']['DiscountPercentage']
+    /** @description Percentage discount. */
+    DiscountPercentage: {
+      /**
+       * Type
+       * @description The type of the discount.
+       * @enum {string}
+       */
+      type: 'percentage'
+      /**
+       * Percentage
+       * @description The percentage of the discount.
+       */
+      percentage: number
+      /**
+       * Discounted RateCards
+       * @description The rate cards that the discount applies to.
+       * When not specified, the discount applies to all rate cards.
+       */
+      rateCards?: string[]
+    }
+    /** @description Percentage discount. */
+    DiscountPercentageUpdateItem: {
+      /**
+       * Percentage
+       * @description The percentage of the discount.
+       */
+      percentage: number
+      /**
+       * Discounted RateCards
+       * @description The rate cards that the discount applies to.
+       * When not specified, the discount applies to all rate cards.
+       */
+      rateCards?: string[]
+    }
+    /**
+     * @description A discount on a price.
+     * One of: percentage, amount, or usage.
+     */
+    DiscountUpdateItem: components['schemas']['DiscountPercentageUpdateItem']
     /**
      * @description Entitlement templates are used to define the entitlements of a plan.
      * Features are omitted from the entitlement template, as they are defined in the rate card.
@@ -3227,26 +3296,10 @@ export interface components {
       /** @description The amount of the flat price. */
       amount: components['schemas']['Numeric']
     }
-    /** @description Flat price. */
-    FlatPriceUpdateItem: {
-      /** @description The amount of the flat price. */
-      amount: components['schemas']['Numeric']
-    }
     /** @description Flat price with payment term. */
     FlatPriceWithPaymentTerm: {
       /** @enum {string} */
       type: 'flat'
-      /** @description The amount of the flat price. */
-      amount: components['schemas']['Numeric']
-      /**
-       * @description The payment term of the flat price.
-       * Defaults to in advance.
-       * @default in_advance
-       */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
-    }
-    /** @description Flat price with payment term. */
-    FlatPriceWithPaymentTermUpdateItem: {
       /** @description The amount of the flat price. */
       amount: components['schemas']['Numeric']
       /**
@@ -4303,20 +4356,6 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
       /**
-       * Effective start date
-       * Format: date-time
-       * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      effectiveFrom?: string
-      /**
-       * Effective end date
-       * Format: date-time
-       * @description The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      effectiveTo?: string
-      /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
@@ -4404,7 +4443,7 @@ export interface components {
        * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['AppliedDiscount'][]
+      discounts?: components['schemas']['Discount'][]
     }
     /** @description Resource create operation model. */
     PlanPhaseCreate: {
@@ -4441,7 +4480,7 @@ export interface components {
        * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['AppliedDiscount'][]
+      discounts?: components['schemas']['Discount'][]
     }
     /** @description Paginated response */
     PlanPhasePaginatedResponse: {
@@ -4480,8 +4519,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata']
-      /** @description Unique key among the plan phases. Used to reference the phase in the subscription & plan. */
-      key?: string
       /**
        * Rate cards
        * @description The rate cards of the plan.
@@ -4498,7 +4535,7 @@ export interface components {
        * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['AppliedDiscount'][]
+      discounts?: components['schemas']['Discount'][]
     }
     /** @description References an exact plan. */
     PlanReference: {
@@ -4529,26 +4566,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata']
-      /**
-       * Currency
-       * @description The currency code of the plan.
-       * @default USD
-       */
-      currency?: components['schemas']['CurrencyCode']
-      /**
-       * Effective start date
-       * Format: date-time
-       * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      effectiveFrom?: string
-      /**
-       * Effective end date
-       * Format: date-time
-       * @description The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
-       * @example "2023-01-01T01:01:01.001Z"
-       */
-      effectiveTo?: string
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -4626,29 +4643,6 @@ export interface components {
        * @description The unit price component of the tier.
        */
       unitPrice: components['schemas']['UnitPrice'] | null
-    }
-    /**
-     * @description A price tier.
-     * At least one price component is required in each tier.
-     */
-    PriceTierUpdateItem: {
-      /**
-       * Up to quantity
-       * Format: double
-       * @description Up to and including to this quantity will be contained in the tier.
-       * If null, the tier is open-ended.
-       */
-      upToAmount: number | null
-      /**
-       * Flat price component
-       * @description The flat price component of the tier.
-       */
-      flatPrice: components['schemas']['FlatPriceUpdateItem'] | null
-      /**
-       * Unit price component
-       * @description The unit price component of the tier.
-       */
-      unitPrice: components['schemas']['UnitPriceUpdateItem'] | null
     }
     /** @description Paginated response */
     ProfilePaginatedResponse: {
@@ -4813,7 +4807,7 @@ export interface components {
        * When null, the feature or service is free.
        * @example {}
        */
-      price: components['schemas']['FlatPriceWithPaymentTermUpdateItem'] | null
+      price: components['schemas']['FlatPriceWithPaymentTerm'] | null
     }
     /** @description The entitlement template with a metered entitlement. */
     RateCardMeteredEntitlement: {
@@ -4941,17 +4935,17 @@ export interface components {
        * @description The billing cadence of the rate card.
        */
       billingCadence: string
-      /**
-       * Price
-       * @description The price of the rate card.
-       * When null, the feature or service is free.
-       * @example {}
-       */
       price:
-        | (components['schemas']['UnitPriceWithCommitments'] | null)
-        | (components['schemas']['TieredPriceWithCommitments'] | null)
-        | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
+        | ({
+            type: 'RateCardUsageBased'
+          } & Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>)
+        | null
     }
+    /** @description The price of the usage based rate card. */
+    RateCardUsageBasedPrice:
+      | components['schemas']['FlatPriceWithPaymentTerm']
+      | components['schemas']['UnitPriceWithCommitments']
+      | components['schemas']['TieredPriceWithCommitments']
     /** @description A usage-based rate card defines a price based on usage. */
     RateCardUsageBasedUpdateItem: {
       /**
@@ -4993,16 +4987,11 @@ export interface components {
        * @description The billing cadence of the rate card.
        */
       billingCadence: string
-      /**
-       * Price
-       * @description The price of the rate card.
-       * When null, the feature or service is free.
-       * @example {}
-       */
       price:
-        | (components['schemas']['UnitPriceWithCommitmentsUpdateItem'] | null)
-        | (components['schemas']['TieredPriceWithCommitmentsUpdateItem'] | null)
-        | (components['schemas']['FlatPriceWithPaymentTermUpdateItem'] | null)
+        | ({
+            type: 'RateCardUsageBasedUpdateItem'
+          } & Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>)
+        | null
     }
     /**
      * @description Recurring period with an interval and an anchor.
@@ -5078,6 +5067,12 @@ export interface components {
        */
       preserveOverage?: boolean
     }
+    /**
+     * @description Sandbox app can be used for testing OpenMeter features.
+     *
+     * The app is not creating anything in external systems, thus it is safe to use for
+     * verifying OpenMeter features.
+     */
     SandboxApp: {
       /**
        * ID
@@ -5688,10 +5683,10 @@ export interface components {
        */
       duration: string
       /**
-       * Discount
+       * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['AppliedDiscountUpdateItem'][]
+      discounts?: components['schemas']['DiscountUpdateItem'][]
     }
     /** @description Expanded subscription phase */
     SubscriptionPhaseExpanded: {
@@ -5741,10 +5736,10 @@ export interface components {
        */
       duration: string
       /**
-       * Discount
+       * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['AppliedDiscount'][]
+      discounts?: components['schemas']['Discount'][]
       /**
        * Format: date-time
        * @description The time from which the phase is active.
@@ -5817,32 +5812,6 @@ export interface components {
        */
       maximumAmount?: components['schemas']['Numeric']
     }
-    /** @description Tiered price with spend commitments. */
-    TieredPriceWithCommitmentsUpdateItem: {
-      /**
-       * Mode
-       * @description Defines if the tiering mode is volume-based or graduated:
-       * - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
-       * - In `graduated` tiering, pricing can change as the quantity grows.
-       */
-      mode: components['schemas']['TieredPriceMode']
-      /**
-       * Tiers
-       * @description The tiers of the tiered price.
-       * At least one price component is required in each tier.
-       */
-      tiers: components['schemas']['PriceTierUpdateItem'][]
-      /**
-       * Minimum amount
-       * @description The customer is committed to spend at least the amount.
-       */
-      minimumAmount?: components['schemas']['Numeric']
-      /**
-       * Maximum amount
-       * @description The customer is limited to spend at most the amount.
-       */
-      maximumAmount?: components['schemas']['Numeric']
-    }
     /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
     UnauthorizedProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
@@ -5888,30 +5857,10 @@ export interface components {
       /** @description The amount of the unit price. */
       amount: components['schemas']['Numeric']
     }
-    /** @description Unit price. */
-    UnitPriceUpdateItem: {
-      /** @description The amount of the unit price. */
-      amount: components['schemas']['Numeric']
-    }
     /** @description Unit price with spend commitments. */
     UnitPriceWithCommitments: {
       /** @enum {string} */
       type: 'unit'
-      /** @description The amount of the unit price. */
-      amount: components['schemas']['Numeric']
-      /**
-       * Minimum amount
-       * @description The customer is committed to spend at least the amount.
-       */
-      minimumAmount?: components['schemas']['Numeric']
-      /**
-       * Maximum amount
-       * @description The customer is limited to spend at most the amount.
-       */
-      maximumAmount?: components['schemas']['Numeric']
-    }
-    /** @description Unit price with spend commitments. */
-    UnitPriceWithCommitmentsUpdateItem: {
       /** @description The amount of the unit price. */
       amount: components['schemas']['Numeric']
       /**
@@ -10377,7 +10326,7 @@ export interface operations {
         key?: string[]
         /** @description Filter by plan.key and plan.version attributes */
         keyVersion?: {
-          [key: string]: number
+          [key: string]: number[]
         }
         page?: components['parameters']['Pagination.page']
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -10490,7 +10439,7 @@ export interface operations {
    * @description Create a new draft version from plan.
    * It returns error if there is already a plan in draft or planId does not reference the latest published version.
    */
-  newDraftPlan: {
+  nextPlan: {
     parameters: {
       path: {
         planIdOrKey: string
@@ -10553,6 +10502,14 @@ export interface operations {
    */
   getPlan: {
     parameters: {
+      query?: {
+        /**
+         * @description Include latest version of the Plan instead of the version in active state.
+         *
+         * Usage: `?includeLatest=true`
+         */
+        includeLatest?: boolean
+      }
       path: {
         planId: string
       }
@@ -10736,6 +10693,67 @@ export interface operations {
     }
   }
   /**
+   * Archive plan version
+   * @description Archive a plan version.
+   */
+  archivePlan: {
+    parameters: {
+      path: {
+        planId: string
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Plan']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  /**
    * List phases in plan
    * @description List all phases in plan.
    */
@@ -10802,7 +10820,7 @@ export interface operations {
    * Create new phase in plan
    * @description Create new phase in plan.
    */
-  createPlanPhases: {
+  createPlanPhase: {
     parameters: {
       path: {
         planId: string
@@ -10862,7 +10880,7 @@ export interface operations {
    * Get phase for plan
    * @description Get phase in plan.
    */
-  getPlanPhases: {
+  getPlanPhase: {
     parameters: {
       path: {
         planId: string
@@ -10924,7 +10942,7 @@ export interface operations {
    * Update phase in plan
    * @description Update phase in plan.
    */
-  updatePlanPhases: {
+  updatePlanPhase: {
     parameters: {
       path: {
         planId: string
@@ -10993,7 +11011,7 @@ export interface operations {
    *
    * Once a phase is deleted it cannot be undeleted.
    */
-  deletePlanPhases: {
+  deletePlanPhase: {
     parameters: {
       path: {
         planId: string
@@ -11051,7 +11069,7 @@ export interface operations {
   }
   /**
    * Publish plan
-   * @description Publish a new plan.
+   * @description Publish a plan version.
    */
   publishPlan: {
     parameters: {
@@ -11060,68 +11078,11 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
-      204: {
-        content: never
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
+      /** @description The request has succeeded. */
+      200: {
         content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+          'application/json': components['schemas']['Plan']
         }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  /**
-   * Unpublish plan
-   * @description Unpublish a new plan.
-   */
-  unpublishPlan: {
-    parameters: {
-      path: {
-        planId: string
-      }
-    }
-    responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
-      204: {
-        content: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
@@ -12327,7 +12288,7 @@ export interface operations {
       }
     }
   }
-  getSubscription_getSubscription: {
+  getSubscription: {
     parameters: {
       query?: {
         expand?: false | true
