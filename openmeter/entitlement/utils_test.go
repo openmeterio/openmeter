@@ -31,7 +31,7 @@ func (m *mockTypeValue) HasAccess() bool {
 	return true
 }
 
-func (m *mockTypeConnector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+func (m *mockTypeConnector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	return &mockTypeValue{}, nil
 }
 

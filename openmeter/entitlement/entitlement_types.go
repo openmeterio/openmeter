@@ -18,7 +18,7 @@ func (NoAccessValue) HasAccess() bool {
 }
 
 type SubTypeConnector interface {
-	GetValue(entitlement *Entitlement, at time.Time) (EntitlementValue, error)
+	GetValue(ctx context.Context, entitlement *Entitlement, at time.Time) (EntitlementValue, error)
 
 	// Runs before creating the entitlement, building the Repository inputs.
 	// If it returns an error the operation has to fail.

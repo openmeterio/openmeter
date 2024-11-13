@@ -202,7 +202,7 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespac
 	if err != nil {
 		return nil, err
 	}
-	return connector.GetValue(ent, at)
+	return connector.GetValue(ctx, ent, at)
 }
 
 func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error) {
