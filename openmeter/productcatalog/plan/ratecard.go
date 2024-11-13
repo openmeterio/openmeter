@@ -61,37 +61,51 @@ func (r *RateCard) Feature() *feature.Feature {
 func (r *RateCard) MarshalJSON() ([]byte, error) {
 	var b []byte
 	var err error
+	var serde interface{}
 
 	switch r.t {
 	case FlatFeeRateCardType:
-		b, err = json.Marshal(r.flatFee)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal FlatFeeRateCard: %w", err)
+		serde = struct {
+			Type RateCardType `json:"type"`
+			*FlatFeeRateCard
+		}{
+			Type:            FlatFeeRateCardType,
+			FlatFeeRateCard: r.flatFee,
 		}
 	case UsageBasedRateCardType:
-		b, err = json.Marshal(r.usageBased)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal UsageBasedRateCard: %w", err)
+		serde = struct {
+			Type RateCardType `json:"type"`
+			*UsageBasedRateCard
+		}{
+			Type:               UsageBasedRateCardType,
+			UsageBasedRateCard: r.usageBased,
 		}
 	default:
 		return nil, fmt.Errorf("invalid type: %s", r.t)
+	}
+
+	b, err = json.Marshal(serde)
+	if err != nil {
+		return nil, fmt.Errorf("failed to JSON serialize RateCard: %w", err)
 	}
 
 	return b, nil
 }
 
 func (r *RateCard) UnmarshalJSON(bytes []byte) error {
-	meta := &RateCardMeta{}
+	serde := &struct {
+		Type RateCardType `json:"type"`
+	}{}
 
-	if err := json.Unmarshal(bytes, meta); err != nil {
-		return fmt.Errorf("failed to json unmarshal type: %w", err)
+	if err := json.Unmarshal(bytes, serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize RateCard type: %w", err)
 	}
 
-	switch meta.Type {
+	switch serde.Type {
 	case FlatFeeRateCardType:
 		v := &FlatFeeRateCard{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal FlatFeeRateCard: %w", err)
+			return fmt.Errorf("failed to JSON deserialize FlatFeeRateCard: %w", err)
 		}
 
 		r.flatFee = v
@@ -99,13 +113,13 @@ func (r *RateCard) UnmarshalJSON(bytes []byte) error {
 	case UsageBasedRateCardType:
 		v := &UsageBasedRateCard{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal UsageBasedRateCard: %w", err)
+			return fmt.Errorf("failed to JSON deserialize UsageBasedRateCard: %w", err)
 		}
 
 		r.usageBased = v
 		r.t = UsageBasedRateCardType
 	default:
-		return fmt.Errorf("invalid type: %s", meta.Type)
+		return fmt.Errorf("invalid RateCard type: %s", serde.Type)
 	}
 
 	return nil
@@ -236,9 +250,6 @@ type RateCardMeta struct {
 
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
-
-	// Type defines the type of the RateCard
-	Type RateCardType `json:"type"`
 
 	// Name of the RateCard
 	Name string `json:"name"`

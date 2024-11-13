@@ -34,7 +34,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "flat-1",
-						Type:        FlatFeeRateCardType,
 						Name:        "Flat 1",
 						Description: lo.ToPtr("Flat 1"),
 						Metadata: map[string]string{
@@ -89,7 +88,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "flat-2",
-						Type:        FlatFeeRateCardType,
 						Name:        "Flat 2",
 						Description: lo.ToPtr("Flat 2"),
 						Metadata: map[string]string{
@@ -167,7 +165,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "usage-1",
-						Type:        UsageBasedRateCardType,
 						Name:        "Usage 1",
 						Description: lo.ToPtr("Usage 1"),
 						Metadata: map[string]string{
@@ -227,7 +224,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "usage-2",
-						Type:        UsageBasedRateCardType,
 						Name:        "Usage 2",
 						Description: lo.ToPtr("Usage 2"),
 						Metadata: map[string]string{

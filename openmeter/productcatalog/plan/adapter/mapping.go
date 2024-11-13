@@ -131,7 +131,6 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (*plan.RateCard, error) {
 			DeletedAt: r.DeletedAt,
 		},
 		Key:                 r.Key,
-		Type:                r.Type,
 		Name:                r.Name,
 		Description:         r.Description,
 		Metadata:            r.Metadata,
