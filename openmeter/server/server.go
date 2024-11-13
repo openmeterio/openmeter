@@ -13,10 +13,12 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -57,7 +59,35 @@ func NewServer(config *Config) (*Server, error) {
 
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
-	r.Use(NewStructuredLogger(slog.Default().Handler(), nil))
+	r.Use(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+
+			attrs := map[string]string{
+				// HTTP attributes
+				string(semconv.HTTPRequestMethodKey): r.Method,
+				string(semconv.URLFullKey):           r.URL.String(),
+
+				// Net attributes
+				string(semconv.NetworkProtocolNameKey): r.Proto,
+				string(semconv.NetworkPeerAddressKey):  r.RemoteAddr,
+
+				// User attributes
+				string(semconv.UserAgentOriginalKey): r.UserAgent(),
+			}
+
+			if reqID := middleware.GetReqID(ctx); reqID != "" {
+				// There is no semantic convention for request ID, so we use our own
+				// Alternatively, we could use rpc.message.id
+				attrs["req_id"] = reqID
+			}
+
+			ctx = contextx.WithAttrs(ctx, attrs)
+
+			h.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
+	r.Use(NewStructuredLogger(slog.Default().Handler()))
 	r.Use(middleware.Recoverer)
 	if config.RouterConfig.PortalCORSEnabled && config.RouterConfig.PortalTokenStrategy != nil {
 		// Enable CORS for portal requests

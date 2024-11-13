@@ -17,7 +17,6 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/framework/operation"
 )
 
 const (
@@ -49,7 +48,6 @@ func NewTelemetry(ctx context.Context, conf config.TelemetryConfig, env string, 
 		otelslog.ResourceMiddleware(res),
 		otelslog.NewHandler,
 		contextx.NewLogHandler,
-		operation.NewLogHandler,
 	).Handler(conf.Log.NewHandler(os.Stdout)))
 
 	slog.SetDefault(logger)

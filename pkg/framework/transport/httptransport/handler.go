@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	intoperation "github.com/openmeterio/openmeter/pkg/framework/internal/operation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -77,7 +79,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 
 	// TODO: rewrite this as a generic hook
 	if h.operationNameFunc != nil {
-		ctx = intoperation.ContextWithName(ctx, h.operationNameFunc(ctx))
+		ctx = contextx.WithAttr(ctx, string(semconv.HTTPRouteKey), h.operationNameFunc(ctx))
 	}
 
 	request, err := h.decodeRequest(ctx, r)
