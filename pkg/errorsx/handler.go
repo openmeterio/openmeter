@@ -4,14 +4,18 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 var (
-	_ Handler = (*SlogHandler)(nil)
-	_ Handler = (*NopHandler)(nil)
+	_ httptransport.ErrorHandler = (Handler)(nil)
+	_ Handler                    = (*SlogHandler)(nil)
+	_ Handler                    = (*NopHandler)(nil)
 )
 
 // Handler handles an error.
+// Same interface as httptransport.ErrorHandler.
 type Handler interface {
 	Handle(err error)
 	HandleContext(ctx context.Context, err error)
@@ -60,7 +64,7 @@ func (h SlogHandler) HandleContext(ctx context.Context, err error) {
 	h.Logger.ErrorContext(ctx, err.Error())
 }
 
-// NopHandler ignores all errors.
+// NopHandler ignores all errors. Useful for testing.
 type NopHandler struct{}
 
 func NewNopHandler() NopHandler {
