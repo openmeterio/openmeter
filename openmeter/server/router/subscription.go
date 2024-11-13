@@ -7,7 +7,7 @@ import (
 )
 
 // (POST /api/v1/subscriptions)
-func (a *Router) SubscriptionsCreate(w http.ResponseWriter, r *http.Request) {
+func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 

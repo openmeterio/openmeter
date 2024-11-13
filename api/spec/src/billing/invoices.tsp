@@ -16,6 +16,7 @@ interface InvoiceEndpoints {
   @get
   @summary("List invoices")
   @operationId("billingListInvoices")
+  @extension("x-internal", true)
   list(
     @query
     @summary("Filter by the customer ID or key")
@@ -49,6 +50,7 @@ interface CustomerInvoicesEndpoints {
   @post
   @summary("Create an invoice")
   @operationId("billingCreateInvoice")
+  @extension("x-internal", true)
   create(
     @path
     customerId: ULID,
@@ -66,6 +68,7 @@ interface CustomerInvoicesEndpoints {
   @get
   @summary("List invoices")
   @operationId("billingListInvoicesByCustomer")
+  @extension("x-internal", true)
   listInvoicesByCustomer(
     @path customerId: ULID,
     ...InvoiceListParams,
@@ -91,6 +94,7 @@ interface CustomerInvoicesEndpoints {
   @route("/lines")
   @summary("Create line items")
   @operationId("billingCreateLineByCustomer")
+  @extension("x-internal", true)
   createLine(@path customerId: ULID, @body request: CreateLinesRequest): {
     @statusCode _: 201;
     @body body: CreateLineResult;
@@ -109,6 +113,7 @@ interface CustomerInvoiceEndpoints {
   @get
   @summary("Get an invoice")
   @operationId("billingGetInvoiceByCustomerInvoiceId")
+  @extension("x-internal", true)
   getInvoice(
     @path
     customerId: ULID,
@@ -128,6 +133,7 @@ interface CustomerInvoiceEndpoints {
   @delete
   @summary("Delete an invoice")
   @operationId("billingDeleteInvoiceByCustomerInvoiceId")
+  @extension("x-internal", true)
   deleteInvoice(
     @path
     customerId: ULID,
@@ -148,6 +154,7 @@ interface CustomerInvoiceEndpoints {
   @route("/tax/recalculate")
   @summary("Recalculate an invoice's tax amounts")
   @operationId("billingRecalculateInvoiceTax")
+  @extension("x-internal", true)
   recalculateTax(
     @path
     customerId: ULID,
@@ -172,6 +179,7 @@ interface CustomerInvoiceEndpoints {
   @route("/approve")
   @summary("Send the invoice to the customer")
   @operationId("billingApproveInvoice")
+  @extension("x-internal", true)
   approve(
     @path
     customerId: ULID,
@@ -194,6 +202,7 @@ interface CustomerInvoiceEndpoints {
   @route("/void")
   @summary("Void an invoice")
   @operationId("billingVoidInvoice")
+  @extension("x-internal", true)
   voidInvoice(
     @path
     customerId: ULID,
@@ -219,6 +228,7 @@ interface CustomerInvoiceEndpoints {
   @route("/advance")
   @summary("Advance the invoice's state to the next status")
   @operationId("billingInvoiceAdvance")
+  @extension("x-internal", true)
   advance(
     @path
     customerId: ULID,
@@ -239,6 +249,7 @@ interface CustomerInvoiceEndpoints {
   @route("/retry")
   @summary("Retry advancing the invoice after a failed attempt.")
   @operationId("billingInvoiceRetry")
+  @extension("x-internal", true)
   retry(
     @path
     customerId: ULID,
@@ -259,6 +270,7 @@ interface CustomerInvoiceEndpoints {
   @route("/lines/{lineId}")
   @summary("Delete an invoice line")
   @operationId("billingDeleteInvoiceLine")
+  @extension("x-internal", true)
   deleteInvoiceLine(
     @path customerId: ULID,
     @path invoiceId: ULID,
@@ -274,6 +286,7 @@ interface CustomerInvoiceEndpoints {
   @route("/lines/{lineId}")
   @summary("Update an invoice line")
   @operationId("billingUpdateInvoiceLine")
+  @extension("x-internal", true)
   updateInvoiceLine(
     @path customerId: ULID,
     @path invoiceId: ULID,

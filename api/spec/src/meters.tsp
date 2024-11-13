@@ -16,6 +16,7 @@ interface Meters {
    */
   @get
   @operationId("listMeters")
+  @summary("List meters")
   list(): Meter[] | CommonErrors;
 
   /**
@@ -23,6 +24,7 @@ interface Meters {
    */
   @get
   @operationId("getMeter")
+  @summary("Get meter")
   get(
     @path meterIdOrSlug: MeterIdentifier,
   ): Meter | NotFoundError | CommonErrors;
@@ -33,6 +35,7 @@ interface Meters {
   @get
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
+  @summary("Query meter")
   @sharedRoute
   queryJson(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "application/json";
@@ -45,6 +48,7 @@ interface Meters {
   @get
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
+  @summary("Query meter")
   @sharedRoute
   queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "text/csv";
@@ -65,6 +69,7 @@ interface Meters {
   @get
   @route("/{meterIdOrSlug}/subjects")
   @operationId("listMeterSubjects")
+  @summary("List meter subjects")
   listSubjects(@path meterIdOrSlug: MeterIdentifier): {
     @body
     @example(#["customer_1", "customer_2"])

@@ -28,6 +28,7 @@ interface Features {
    */
   @get
   @operationId("listFeatures")
+  @summary("List features")
   list(
     /**
      * Filter by meterSlug
@@ -54,6 +55,7 @@ interface Features {
    */
   @post
   @operationId("createFeature")
+  @summary("Create feature")
   create(@body feature: FeatureCreateInputs): {
     @statusCode _: 201;
     @body body: Feature;
@@ -64,6 +66,7 @@ interface Features {
    */
   @get
   @operationId("getFeature")
+  @summary("Get feature")
   get(
     @path featureId: string,
   ): Feature | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -76,6 +79,7 @@ interface Features {
    */
   @delete
   @operationId("deleteFeature")
+  @summary("Delete feature")
   delete(@path featureId: string): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -122,6 +126,9 @@ model FeatureCreateInputs {
 
 // TODO: Remove in v2
 
+/**
+ * List features result
+ */
 @oneOf
 @friendlyName("ListFeaturesResult")
 union ListFeaturesResult {

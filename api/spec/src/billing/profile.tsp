@@ -11,6 +11,8 @@ interface Profiles {
    */
   @get
   @operationId("billingListProfiles")
+  @summary("List billing profiles")
+  @extension("x-internal", true)
   list(
     @query
     includeArchived?: boolean = false,
@@ -32,6 +34,7 @@ interface Profiles {
   @post
   @summary("Create a new billing profile")
   @operationId("billingCreateProfile")
+  @extension("x-internal", true)
   create(@body profile: ProfileCreateInput): {
     @statusCode _: 201;
     @body profile: Profile;
@@ -44,6 +47,7 @@ interface Profiles {
   @delete
   @summary("Archive a billing profile")
   @operationId("billingArchiveProfile")
+  @extension("x-internal", true)
   archive(@path id: string): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
@@ -55,6 +59,7 @@ interface Profiles {
   @get
   @summary("Get a billing profile by ID")
   @operationId("billingGetProfile")
+  @extension("x-internal", true)
   get(
     @path id: string,
     @query expand?: ProfileExpand[],
@@ -67,6 +72,7 @@ interface Profiles {
   @put
   @summary("Update a billing profile")
   @operationId("billingUpdateProfile")
+  @extension("x-internal", true)
   update(@path id: string, @body profile: Profile): {
     @statusCode _: 200;
     @body profile: Profile;

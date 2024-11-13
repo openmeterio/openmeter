@@ -14,6 +14,7 @@ interface Plans {
   @get
   @operationId("listPlans")
   @summary("List plans")
+  @extension("x-internal", true)
   list(
     /**
      * Include deleted plans in response.
@@ -52,6 +53,7 @@ interface Plans {
   @post
   @operationId("createPlan")
   @summary("Create a plan")
+  @extension("x-internal", true)
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>): {
     @statusCode _: 201;
     @bodyRoot body: Plan;
@@ -63,6 +65,7 @@ interface Plans {
   @put
   @operationId("updatePlan")
   @summary("Update a plan")
+  @extension("x-internal", true)
   update(
     @path planId: ULID,
     @body request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<Plan>,
@@ -74,6 +77,7 @@ interface Plans {
   @get
   @operationId("getPlan")
   @summary("Get plan")
+  @extension("x-internal", true)
   get(
     @extension("x-go-type", "string")
     @path
@@ -97,6 +101,7 @@ interface Plans {
   @delete
   @operationId("deletePlan")
   @summary("Delete plan")
+  @extension("x-internal", true)
   delete(@path planId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -109,6 +114,7 @@ interface Plans {
   @sharedRoute
   @operationId("publishPlan")
   @summary("Publish plan")
+  @extension("x-internal", true)
   publish(
     @path planId: ULID,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -121,6 +127,7 @@ interface Plans {
   @sharedRoute
   @operationId("archivePlan")
   @summary("Archive plan version")
+  @extension("x-internal", true)
   archive(
     @path planId: ULID,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -134,6 +141,7 @@ interface Plans {
   @sharedRoute
   @operationId("nextPlan")
   @summary("New draft plan")
+  @extension("x-internal", true)
   next(
     @extension("x-go-type", "string")
     @path
@@ -153,6 +161,7 @@ interface PlanPhases {
   @get
   @operationId("listPlanPhases")
   @summary("List phases in plan")
+  @extension("x-internal", true)
   list(
     @path planId: ULID,
 
@@ -172,6 +181,7 @@ interface PlanPhases {
   @post
   @operationId("createPlanPhase")
   @summary("Create new phase in plan")
+  @extension("x-internal", true)
   create(
     @path planId: ULID,
     @body request: TypeSpec.Rest.Resource.ResourceCreateModel<PlanPhase>,
@@ -186,6 +196,7 @@ interface PlanPhases {
   @put
   @operationId("updatePlanPhase")
   @summary("Update phase in plan")
+  @extension("x-internal", true)
   update(
     @path planId: ULID,
     @path planPhaseKey: Key,
@@ -200,6 +211,7 @@ interface PlanPhases {
   @get
   @operationId("getPlanPhase")
   @summary("Get phase for plan")
+  @extension("x-internal", true)
   get(
     @path planId: ULID,
     @path planPhaseKey: Key,
@@ -213,6 +225,7 @@ interface PlanPhases {
   @delete
   @operationId("deletePlanPhase")
   @summary("Delete phase for plan")
+  @extension("x-internal", true)
   delete(@path planId: ULID, @path planPhaseKey: Key): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -222,8 +235,10 @@ interface PlanPhases {
 @tag("Subscriptions")
 interface Subscriptions {
   @get
-  @operationId("getSubscription")
   @sharedRoute
+  @operationId("getSubscription")
+  @summary("Get subscription")
+  @extension("x-internal", true)
   get(
     @path subscriptionId: ULID,
     @query expand?: false,
@@ -235,8 +250,10 @@ interface Subscriptions {
   ): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   @get
-  @operationId("getSubscription")
   @sharedRoute
+  @operationId("getSubscription")
+  @summary("Get subscription")
+  @extension("x-internal", true)
   getExpanded(
     @path subscriptionId: ULID,
     @query expand: true,
@@ -247,6 +264,10 @@ interface Subscriptions {
     @query at?: DateTime,
   ): SubscriptionExpanded | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
+  @post
+  @operationId("createSubscription")
+  @summary("Create subscription")
+  @extension("x-internal", true)
   create(
     @body body: CreateSubscriptionRequestBody,
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
@@ -263,7 +284,9 @@ interface Subscriptions {
    */
   @patch
   @operationId("editSubscription")
+  @summary("Edit subscription")
   @route("/{subscriptionId}")
+  @extension("x-internal", true)
   edit(
     @path subscriptionId: ULID,
 
@@ -281,7 +304,9 @@ interface Subscriptions {
    */
   @post
   @operationId("migrateSubscription")
+  @summary("Migrate subscription")
   @route("/{subscriptionId}/migrate")
+  @extension("x-internal", true)
   migrate(
     @path subscriptionId: ULID,
     @body body: {
@@ -299,7 +324,9 @@ interface Subscriptions {
    */
   @post
   @operationId("cancelSubscription")
+  @summary("Cancel subscription")
   @route("/{subscriptionId}/cancel")
+  @extension("x-internal", true)
   cancel(
     @path subscriptionId: ULID,
     @body body: {
@@ -319,7 +346,9 @@ interface Subscriptions {
    */
   @post
   @operationId("unscheduleCancelation")
+  @summary("Unschedule cancelation")
   @route("/{subscriptionId}/unschedule-cancelation")
+  @extension("x-internal", true)
   unscheduleCancelation(@path subscriptionId: ULID):
     | Subscription
     | OpenMeter.ConflictError

@@ -16,6 +16,7 @@ interface Subjects {
    */
   @get
   @operationId("listSubjects")
+  @summary("List subjects")
   list(): OpenMeter.Subject[] | OpenMeter.CommonErrors;
 
   /**
@@ -23,6 +24,7 @@ interface Subjects {
    */
   @get
   @operationId("getSubject")
+  @summary("Get subject")
   get(
     @path subjectIdOrKey: string,
   ): OpenMeter.Subject | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -35,6 +37,7 @@ interface Subjects {
    */
   @post
   @operationId("upsertSubject")
+  @summary("Upsert subject")
   upsert(
     @body subject: SubjectUpsert[],
   ): OpenMeter.Subject[] | OpenMeter.CommonErrors;
@@ -44,6 +47,7 @@ interface Subjects {
    */
   @delete
   @operationId("deleteSubject")
+  @summary("Delete subject")
   delete(@path subjectIdOrKey: string): void | OpenMeter.CommonErrors;
 }
 

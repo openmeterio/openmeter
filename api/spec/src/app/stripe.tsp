@@ -28,6 +28,8 @@ interface AppStripe {
   @post
   @route("/api/v1/apps/{id}/stripe/webhook")
   @operationId("appStripeWebhook")
+  @summary("Stripe webhook")
+  @extension("x-internal", true)
   webhook(
     @path id: ULID,
     @body body: StripeWebhookEvent,
@@ -39,6 +41,8 @@ interface AppStripe {
   @post
   @route("/api/v1/integration/stripe/checkout/sessions")
   @operationId("createStripeCheckoutSession")
+  @summary("Create checkout session")
+  @extension("x-internal", true)
   createCheckoutSession(@body body: CreateStripeCheckoutSessionRequest): {
     @statusCode _: 201;
     @body body: CreateStripeCheckoutSessionResult;

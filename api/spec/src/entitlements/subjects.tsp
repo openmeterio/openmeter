@@ -39,6 +39,7 @@ interface Subjects {
    */
   @get
   @operationId("listSubjectEntitlements")
+  @summary("List entitlements")
   list(
     @path subjectIdOrKey: string,
     @query includeDeleted?: boolean = false,
@@ -49,6 +50,7 @@ interface Subjects {
    */
   @get
   @operationId("getEntitlement")
+  @summary("Get entitlement")
   get(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
@@ -60,6 +62,7 @@ interface Subjects {
    */
   @delete
   @operationId("deleteEntitlement")
+  @summary("Delete entitlement")
   delete(@path subjectIdOrKey: string, @path entitlementId: string): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
@@ -72,6 +75,7 @@ interface Subjects {
   @put
   @operationId("overrideEntitlement")
   @route("/{entitlementIdOrFeatureKey}/override")
+  @summary("Override entitlement")
   override(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -91,6 +95,7 @@ interface Subjects {
   @get
   @operationId("listEntitlementGrants")
   @route("/{entitlementIdOrFeatureKey}/grants")
+  @summary("List entitlement grants")
   getGrants(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -114,6 +119,7 @@ interface Subjects {
   @post
   @operationId("createGrant")
   @route("/{entitlementIdOrFeatureKey}/grants")
+  @summary("Create grant")
   createGrant(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -131,6 +137,7 @@ interface Subjects {
   @get
   @operationId("getEntitlementValue")
   @route("/{entitlementIdOrFeatureKey}/value")
+  @summary("Get entitlement value")
   getEntitlementValue(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -147,6 +154,7 @@ interface Subjects {
   @get
   @operationId("getEntitlementHistory")
   @route("/{entitlementId}/history")
+  @summary("Get entitlement history")
   getEntitlementHistory(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
@@ -181,6 +189,7 @@ interface Subjects {
   @post
   @operationId("resetEntitlementUsage")
   @route("/{entitlementId}/reset")
+  @summary("Reset entitlement")
   reset(
     @path subjectIdOrKey: string,
     @path entitlementId: string,

@@ -306,6 +306,7 @@ interface Rules {
   @post
   @route("/{ruleId}/test")
   @operationId("testNotificationRule")
+  @summary("Test notification rule")
   test(@path ruleId: ULID): {
     @statusCode _: 201;
     @body body: NotificationEvent;

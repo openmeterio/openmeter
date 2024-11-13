@@ -10,20 +10,28 @@ info:
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
   - name: Apps
-  - name: Portal
-  - name: Notification (Beta)
-  - name: Entitlements (Beta)
   - name: Billing (Experimental)
   - name: Plan (Experimental)
   - name: Subscriptions
-  - name: Events
-  - name: Meters
   - name: Debug
   - name: Customers
+  - name: Portal
+    description: With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time.
+  - name: Notification (Beta)
+    description: Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. For example, you can email your customers when they reach 75%, 100%, and 150% of their monthly token allowance and notify your sales team when an overage happens to drive expansions.
+  - name: Entitlements (Beta)
+    description: Entitlements make it possible to implement complex pricing scenarios such as monthly quotas, prepaid billing, and per-customer pricing. Don't just list usage limits on your marketing page—enforce them within your application to control the cost of expensive resources like LLMs.
+  - name: Subjects
+    description: Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. [Read more](https://openmeter.io/docs/cloud/subjects).
+  - name: Events
+    description: A usage event can be anything you need to track accurately over time for billing or analytics purposes. [Read more](https://openmeter.io/docs/concepts/usage-events).
+  - name: Meters
+    description: Meters are used to aggregate usage events. They are designed to offer multiple aggregation methods and window sizes, making it highly adaptable to your specific needs.
 paths:
   /api/v1/apps:
     get:
       operationId: listApps
+      summary: List apps
       description: List apps.
       parameters:
         - $ref: '#/components/parameters/PaginatedQuery.page'
@@ -73,9 +81,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
   /api/v1/apps/{id}:
     get:
       operationId: getApp
+      summary: Get app
       description: Get the app.
       parameters:
         - name: id
@@ -136,8 +146,10 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
     delete:
       operationId: uninstallApp
+      summary: Uninstall app
       description: Uninstall an app.
       parameters:
         - name: id
@@ -194,9 +206,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
   /api/v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
+      summary: Stripe webhook
       description: Stripe webhook.
       parameters:
         - name: id
@@ -263,6 +277,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeWebhookEvent'
+      x-internal: true
   /api/v1/billing/customer:
     get:
       operationId: billingListCustomerOverrides
@@ -331,6 +346,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/customer/{customerId}:
     post:
       operationId: billingUpsertCustomerOverride
@@ -407,6 +423,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomerWorkflowOverrideCreate'
+      x-internal: true
     get:
       operationId: billingGetCustomerOverrideById
       summary: Get a customer override
@@ -470,6 +487,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
     delete:
       operationId: billingDeleteCustomerOverride
       summary: Delete a customer override
@@ -529,6 +547,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices:
     get:
       operationId: billingListInvoices
@@ -603,6 +622,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}:
     post:
       operationId: billingCreateInvoice
@@ -678,6 +698,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingInvoiceCreateInput'
+      x-internal: true
     get:
       operationId: billingListInvoicesByCustomer
       summary: List invoices
@@ -746,6 +767,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}:
     get:
       operationId: billingGetInvoiceByCustomerInvoiceId
@@ -827,6 +849,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
     delete:
       operationId: billingDeleteInvoiceByCustomerInvoiceId
       summary: Delete an invoice
@@ -896,6 +919,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/advance:
     post:
       operationId: billingInvoiceAdvance
@@ -972,6 +996,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/approve:
     post:
       operationId: billingApproveInvoice
@@ -1050,6 +1075,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId}:
     delete:
       operationId: billingDeleteInvoiceLine
@@ -1124,6 +1150,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
     put:
       operationId: billingUpdateInvoiceLine
       summary: Update an invoice line
@@ -1207,6 +1234,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingInvoiceLineCreateOrUpdate'
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry:
     post:
       operationId: billingInvoiceRetry
@@ -1281,6 +1309,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/tax/recalculate:
     post:
       operationId: billingRecalculateInvoiceTax
@@ -1355,6 +1384,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/void:
     post:
       operationId: billingVoidInvoice
@@ -1437,6 +1467,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingVoidInvoiceInput'
+      x-internal: true
   /api/v1/billing/invoices/{customerId}/lines:
     post:
       operationId: billingCreateLineByCustomer
@@ -1512,9 +1543,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCreateLinesRequest'
+      x-internal: true
   /api/v1/billing/profile:
     get:
       operationId: billingListProfiles
+      summary: List billing profiles
       description: List all billing profiles
       parameters:
         - name: includeArchived
@@ -1583,6 +1616,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
     post:
       operationId: billingCreateProfile
       summary: Create a new billing profile
@@ -1643,6 +1677,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileCreateInput'
+      x-internal: true
   /api/v1/billing/profile/{id}:
     delete:
       operationId: billingArchiveProfile
@@ -1701,6 +1736,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
     get:
       operationId: billingGetProfile
       summary: Get a billing profile by ID
@@ -1770,6 +1806,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
+      x-internal: true
     put:
       operationId: billingUpdateProfile
       summary: Update a billing profile
@@ -1837,9 +1874,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileCreateOrUpdate'
+      x-internal: true
   /api/v1/customers:
     post:
       operationId: createCustomer
+      summary: Create customer
       description: Create a new customer.
       parameters: []
       responses:
@@ -1893,8 +1932,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Customer'
+      x-internal: true
     get:
       operationId: listCustomers
+      summary: List customers
       description: List customers.
       parameters:
         - $ref: '#/components/parameters/CustomerOrderByOrdering.order'
@@ -1950,9 +1991,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+      x-internal: true
   /api/v1/customers/{id}:
     get:
       operationId: getCustomer
+      summary: Get customer
       description: Get a customer by ID.
       parameters:
         - name: id
@@ -2013,8 +2056,10 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+      x-internal: true
     put:
       operationId: updateCustomer
+      summary: Update customer
       description: Update a customer by ID.
       parameters:
         - name: id
@@ -2081,8 +2126,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Customer'
+      x-internal: true
     delete:
       operationId: deleteCustomer
+      summary: Delete customer
       description: Delete a customer by ID.
       parameters:
         - name: id
@@ -2143,6 +2190,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+      x-internal: true
   /api/v1/debug/metrics:
     get:
       operationId: getDebugMetrics
@@ -2293,6 +2341,7 @@ paths:
   /api/v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
+      summary: Get entitlement by id
       description: Get entitlement by id.
       parameters:
         - name: entitlementId
@@ -2491,6 +2540,7 @@ paths:
       operationId: ingestEvents
       parameters: []
       description: Ingests an event or batch of events following the CloudEvents specification.
+      summary: Ingest events
       responses:
         '200':
           description: The request has succeeded.
@@ -2555,6 +2605,7 @@ paths:
   /api/v1/features:
     get:
       operationId: listFeatures
+      summary: List features
       description: List features.
       parameters:
         - name: meterSlug
@@ -2626,6 +2677,7 @@ paths:
         - Entitlements (Beta)
     post:
       operationId: createFeature
+      summary: Create feature
       description: |-
         Features are either metered or static. A feature is metered if meterSlug is provided at creation.
         For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
@@ -2686,6 +2738,7 @@ paths:
   /api/v1/features/{featureId}:
     get:
       operationId: getFeature
+      summary: Get feature
       description: Get a feature by ID.
       parameters:
         - name: featureId
@@ -2746,6 +2799,7 @@ paths:
         - Entitlements (Beta)
     delete:
       operationId: deleteFeature
+      summary: Delete feature
       description: |-
         Archive a feature by ID.
 
@@ -2807,6 +2861,7 @@ paths:
   /api/v1/grants:
     get:
       operationId: listGrants
+      summary: List grants
       description: |-
         List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
         To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
@@ -2900,6 +2955,7 @@ paths:
   /api/v1/grants/{grantId}:
     delete:
       operationId: voidGrant
+      summary: Void grant
       description: |-
         Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
         For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
@@ -2965,6 +3021,7 @@ paths:
   /api/v1/integration/stripe/checkout/sessions:
     post:
       operationId: createStripeCheckoutSession
+      summary: Create checkout session
       description: Create checkout session.
       parameters: []
       responses:
@@ -3024,9 +3081,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
+      x-internal: true
   /api/v1/marketplace/listings:
     get:
       operationId: listMarketplaceListings
+      summary: List available apps
       description: List available apps of the app marketplace.
       parameters:
         - $ref: '#/components/parameters/PaginatedQuery.page'
@@ -3076,9 +3135,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
   /api/v1/marketplace/listings/{type}:
     get:
       operationId: getMarketplaceListing
+      summary: Get app details by type
       description: Get a marketplace listing by type.
       parameters:
         - name: type
@@ -3131,9 +3192,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
+      summary: Install app via API key
       description: Install an marketplace via API Key.
       parameters:
         - $ref: '#/components/parameters/MarketplaceApiKeyInstallRequest.type'
@@ -3202,9 +3265,11 @@ paths:
                     If not set defaults to the marketplace item's description.
               required:
                 - apiKey
+      x-internal: true
   /api/v1/marketplace/listings/{type}/install/oauth2:
     get:
       operationId: marketplaceOAuth2InstallGetURL
+      summary: Get OAuth2 install URL
       description: |-
         Install an app via OAuth.
         Returns a URL to start the OAuth 2.0 flow.
@@ -3259,9 +3324,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
   /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
     get:
       operationId: marketplaceOAuth2InstallAuthorize
+      summary: Install app via OAuth2
       description: |-
         Authorize OAuth2 code.
         Verifies the OAuth code and exchanges it for a token and refresh token
@@ -3313,9 +3380,11 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+      x-internal: true
   /api/v1/meters:
     get:
       operationId: listMeters
+      summary: List meters
       description: List meters.
       parameters: []
       responses:
@@ -3368,6 +3437,7 @@ paths:
   /api/v1/meters/{meterIdOrSlug}:
     get:
       operationId: getMeter
+      summary: Get meter
       description: Get a meter by ID or slug.
       parameters:
         - name: meterIdOrSlug
@@ -3449,6 +3519,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for usage. Query meter for usage.
+      summary: Query meter Query meter
       responses:
         '200':
           description: The request has succeeded.
@@ -3506,6 +3577,7 @@ paths:
   /api/v1/meters/{meterIdOrSlug}/subjects:
     get:
       operationId: listMeterSubjects
+      summary: List meter subjects
       description: List subjects for a meter.
       parameters:
         - name: meterIdOrSlug
@@ -4439,6 +4511,7 @@ paths:
   /api/v1/notification/rules/{ruleId}/test:
     post:
       operationId: testNotificationRule
+      summary: Test notification rule
       description: Test a notification rule by sending a test event with random data.
       parameters:
         - name: ruleId
@@ -4652,6 +4725,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
     post:
       operationId: createPlan
       summary: Create a plan
@@ -4708,6 +4782,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanCreate'
+      x-internal: true
   /api/v1/plans/{planIdOrKey}/next:
     post:
       operationId: nextPlan
@@ -4783,6 +4858,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
   /api/v1/plans/{planId}:
     put:
       operationId: updatePlan
@@ -4853,6 +4929,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanUpdate'
+      x-internal: true
     get:
       operationId: getPlan
       summary: Get plan
@@ -4936,6 +5013,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
     delete:
       operationId: deletePlan
       summary: Delete plan
@@ -4998,6 +5076,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
   /api/v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
@@ -5062,6 +5141,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
   /api/v1/plans/{planId}/phases:
     get:
       operationId: listPlanPhases
@@ -5136,6 +5216,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
     post:
       operationId: createPlanPhase
       summary: Create new phase in plan
@@ -5199,6 +5280,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanPhaseCreate'
+      x-internal: true
   /api/v1/plans/{planId}/phases/{planPhaseKey}:
     put:
       operationId: updatePlanPhase
@@ -5277,6 +5359,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanPhaseUpdate'
+      x-internal: true
     get:
       operationId: getPlanPhase
       summary: Get phase for plan
@@ -5348,6 +5431,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
     delete:
       operationId: deletePlanPhase
       summary: Delete phase for plan
@@ -5418,6 +5502,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
   /api/v1/plans/{planId}/publish:
     post:
       operationId: publishPlan
@@ -5482,6 +5567,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Plan (Experimental)
+      x-internal: true
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
@@ -5501,6 +5587,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
+      summary: Query meter Query meter
       responses:
         '200':
           description: The request has succeeded.
@@ -5560,6 +5647,7 @@ paths:
   /api/v1/portal/tokens:
     post:
       operationId: createPortalToken
+      summary: Create consumer portal token
       description: Create a consumer portal token.
       parameters: []
       responses:
@@ -5615,6 +5703,7 @@ paths:
               $ref: '#/components/schemas/PortalToken'
     get:
       operationId: listPortalTokens
+      summary: List consumer portal tokens
       description: List tokens.
       parameters:
         - name: limit
@@ -5752,6 +5841,7 @@ paths:
               $ref: '#/components/schemas/EntitlementCreateInputs'
     get:
       operationId: listSubjectEntitlements
+      summary: List entitlements
       description: List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
       parameters:
         - name: subjectIdOrKey
@@ -5816,6 +5906,7 @@ paths:
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
+      summary: List entitlement grants
       description: List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
       parameters:
         - name: subjectIdOrKey
@@ -5891,6 +5982,7 @@ paths:
         - Entitlements (Beta)
     post:
       operationId: createGrant
+      summary: Create grant
       description: |-
         Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
 
@@ -5974,6 +6066,7 @@ paths:
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideEntitlement
+      summary: Override entitlement
       description: |-
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
 
@@ -6055,6 +6148,7 @@ paths:
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getEntitlementValue
+      summary: Get entitlement value
       description: |-
         This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
 
@@ -6131,6 +6225,7 @@ paths:
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
+      summary: Get entitlement
       description: Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
       parameters:
         - name: subjectIdOrKey
@@ -6196,6 +6291,7 @@ paths:
         - Entitlements (Beta)
     delete:
       operationId: deleteEntitlement
+      summary: Delete entitlement
       description: |-
         Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
         As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
@@ -6260,6 +6356,7 @@ paths:
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
+      summary: Get entitlement history
       description: |-
         Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
 
@@ -6362,6 +6459,7 @@ paths:
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
+      summary: Reset entitlement
       description: |-
         Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
 
@@ -6432,7 +6530,8 @@ paths:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
   /api/v1/subscriptions:
     post:
-      operationId: Subscriptions_create
+      operationId: createSubscription
+      summary: Create subscription
       parameters: []
       responses:
         '200':
@@ -6491,6 +6590,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionRequestBody'
+      x-internal: true
   /api/v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription
@@ -6520,6 +6620,7 @@ paths:
             format: date-time
             example: 2023-01-01T01:01:01.001Z
           explode: false
+      summary: Get subscription Get subscription
       responses:
         '200':
           description: The request has succeeded.
@@ -6571,10 +6672,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
+      x-internal: true
       tags:
         - Subscriptions
     patch:
       operationId: editSubscription
+      summary: Edit subscription
       description: |-
         Batch processing commands for manipulating running subscriptions.
         The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
@@ -6662,9 +6765,11 @@ paths:
                   - $ref: '#/components/schemas/SubscriptionEditAdd'
                   - $ref: '#/components/schemas/SubscriptionEditExtend'
                   - $ref: '#/components/schemas/SubscriptionEditRemoveWithValue'
+      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription
+      summary: Cancel subscription
       description: Cancels the subscription.
       parameters:
         - name: subscriptionId
@@ -6743,9 +6848,11 @@ paths:
                   format: date-time
                   example: 2023-01-01T01:01:01.001Z
                   description: If not provided the subscription is canceled immediately.
+      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/migrate:
     post:
       operationId: migrateSubscription
+      summary: Migrate subscription
       description: Migrates the subscripiton to the procided version of the plan.
       parameters:
         - name: subscriptionId
@@ -6824,9 +6931,11 @@ paths:
                   minimum: 1
               required:
                 - targetVersion
+      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unscheduleCancelation
+      summary: Unschedule cancelation
       description: Cancels the scheduled cancelation.
       parameters:
         - name: subscriptionId
@@ -6893,6 +7002,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
+      x-internal: true
 components:
   parameters:
     BillingInvoiceListParams.expand:
@@ -11405,12 +11515,14 @@ components:
           items:
             $ref: '#/components/schemas/Entitlement'
         - $ref: '#/components/schemas/EntitlementPaginatedResponse'
+      description: List entitlements result
     ListFeaturesResult:
       oneOf:
         - type: array
           items:
             $ref: '#/components/schemas/Feature'
         - $ref: '#/components/schemas/FeaturePaginatedResponse'
+      description: List features result
     MarketplaceListing:
       type: object
       required:

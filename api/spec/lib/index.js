@@ -3,12 +3,14 @@ import { casingRule } from './rules/casing.js'
 import { docDecoratorRule } from './rules/docs.js'
 import { friendlyNameRule } from './rules/friendlyName.js'
 import { discriminatedUnionsRule } from './rules/discriminatedUnions.js'
+import { operationSummaryRule } from './rules/operationSummary.js'
 
 const rules = [
   casingRule,
   docDecoratorRule,
   friendlyNameRule,
   discriminatedUnionsRule,
+  operationSummaryRule,
 ]
 
 // Linter experimentation

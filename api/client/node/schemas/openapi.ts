@@ -8,17 +8,29 @@ type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
 
 export interface paths {
   '/api/v1/apps': {
-    /** @description List apps. */
+    /**
+     * List apps
+     * @description List apps.
+     */
     get: operations['listApps']
   }
   '/api/v1/apps/{id}': {
-    /** @description Get the app. */
+    /**
+     * Get app
+     * @description Get the app.
+     */
     get: operations['getApp']
-    /** @description Uninstall an app. */
+    /**
+     * Uninstall app
+     * @description Uninstall an app.
+     */
     delete: operations['uninstallApp']
   }
   '/api/v1/apps/{id}/stripe/webhook': {
-    /** @description Stripe webhook. */
+    /**
+     * Stripe webhook
+     * @description Stripe webhook.
+     */
     post: operations['appStripeWebhook']
   }
   '/api/v1/billing/customer': {
@@ -169,7 +181,10 @@ export interface paths {
     post: operations['billingCreateLineByCustomer']
   }
   '/api/v1/billing/profile': {
-    /** @description List all billing profiles */
+    /**
+     * List billing profiles
+     * @description List all billing profiles
+     */
     get: operations['billingListProfiles']
     /**
      * Create a new billing profile
@@ -198,17 +213,32 @@ export interface paths {
     delete: operations['billingArchiveProfile']
   }
   '/api/v1/customers': {
-    /** @description List customers. */
+    /**
+     * List customers
+     * @description List customers.
+     */
     get: operations['listCustomers']
-    /** @description Create a new customer. */
+    /**
+     * Create customer
+     * @description Create a new customer.
+     */
     post: operations['createCustomer']
   }
   '/api/v1/customers/{id}': {
-    /** @description Get a customer by ID. */
+    /**
+     * Get customer
+     * @description Get a customer by ID.
+     */
     get: operations['getCustomer']
-    /** @description Update a customer by ID. */
+    /**
+     * Update customer
+     * @description Update a customer by ID.
+     */
     put: operations['updateCustomer']
-    /** @description Delete a customer by ID. */
+    /**
+     * Delete customer
+     * @description Delete a customer by ID.
+     */
     delete: operations['deleteCustomer']
   }
   '/api/v1/debug/metrics': {
@@ -230,7 +260,10 @@ export interface paths {
     get: operations['listEntitlements']
   }
   '/api/v1/entitlements/{entitlementId}': {
-    /** @description Get entitlement by id. */
+    /**
+     * Get entitlement by id
+     * @description Get entitlement by id.
+     */
     get: operations['getEntitlementById']
   }
   '/api/v1/events': {
@@ -241,13 +274,20 @@ export interface paths {
      * If the from query param is not provided it defaults to last 72 hours.
      */
     get: operations['listEvents']
-    /** @description Ingests an event or batch of events following the CloudEvents specification. */
+    /**
+     * Ingest events
+     * @description Ingests an event or batch of events following the CloudEvents specification.
+     */
     post: operations['ingestEvents']
   }
   '/api/v1/features': {
-    /** @description List features. */
+    /**
+     * List features
+     * @description List features.
+     */
     get: operations['listFeatures']
     /**
+     * Create feature
      * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
      * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
      * Only meters with SUM and COUNT aggregation are supported for features.
@@ -256,9 +296,13 @@ export interface paths {
     post: operations['createFeature']
   }
   '/api/v1/features/{featureId}': {
-    /** @description Get a feature by ID. */
+    /**
+     * Get feature
+     * @description Get a feature by ID.
+     */
     get: operations['getFeature']
     /**
+     * Delete feature
      * @description Archive a feature by ID.
      *
      * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
@@ -268,6 +312,7 @@ export interface paths {
   }
   '/api/v1/grants': {
     /**
+     * List grants
      * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
      * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
      * If page is provided that takes precedence and the paginated response is returned.
@@ -276,29 +321,43 @@ export interface paths {
   }
   '/api/v1/grants/{grantId}': {
     /**
+     * Void grant
      * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
      * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
      */
     delete: operations['voidGrant']
   }
   '/api/v1/integration/stripe/checkout/sessions': {
-    /** @description Create checkout session. */
+    /**
+     * Create checkout session
+     * @description Create checkout session.
+     */
     post: operations['createStripeCheckoutSession']
   }
   '/api/v1/marketplace/listings': {
-    /** @description List available apps of the app marketplace. */
+    /**
+     * List available apps
+     * @description List available apps of the app marketplace.
+     */
     get: operations['listMarketplaceListings']
   }
   '/api/v1/marketplace/listings/{type}': {
-    /** @description Get a marketplace listing by type. */
+    /**
+     * Get app details by type
+     * @description Get a marketplace listing by type.
+     */
     get: operations['getMarketplaceListing']
   }
   '/api/v1/marketplace/listings/{type}/install/apikey': {
-    /** @description Install an marketplace via API Key. */
+    /**
+     * Install app via API key
+     * @description Install an marketplace via API Key.
+     */
     post: operations['marketplaceAppAPIKeyInstall']
   }
   '/api/v1/marketplace/listings/{type}/install/oauth2': {
     /**
+     * Get OAuth2 install URL
      * @description Install an app via OAuth.
      * Returns a URL to start the OAuth 2.0 flow.
      */
@@ -306,29 +365,48 @@ export interface paths {
   }
   '/api/v1/marketplace/listings/{type}/install/oauth2/authorize': {
     /**
+     * Install app via OAuth2
      * @description Authorize OAuth2 code.
      * Verifies the OAuth code and exchanges it for a token and refresh token
      */
     get: operations['marketplaceOAuth2InstallAuthorize']
   }
   '/api/v1/meters': {
-    /** @description List meters. */
+    /**
+     * List meters
+     * @description List meters.
+     */
     get: operations['listMeters']
-    /** @description Create a meter. */
+    /**
+     * Create meter
+     * @description Create a meter.
+     */
     post: operations['createMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}': {
-    /** @description Get a meter by ID or slug. */
+    /**
+     * Get meter
+     * @description Get a meter by ID or slug.
+     */
     get: operations['getMeter']
-    /** @description Delete a meter. */
+    /**
+     * Delete meter
+     * @description Delete a meter.
+     */
     delete: operations['deleteMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}/query': {
-    /** @description Query meter for usage. Query meter for usage. */
+    /**
+     * Query meter Query meter
+     * @description Query meter for usage. Query meter for usage.
+     */
     get: operations['queryMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}/subjects': {
-    /** @description List subjects for a meter. */
+    /**
+     * List meter subjects
+     * @description List subjects for a meter.
+     */
     get: operations['listMeterSubjects']
   }
   '/api/v1/notification/channels': {
@@ -408,7 +486,10 @@ export interface paths {
     delete: operations['deleteNotificationRule']
   }
   '/api/v1/notification/rules/{ruleId}/test': {
-    /** @description Test a notification rule by sending a test event with random data. */
+    /**
+     * Test notification rule
+     * @description Test a notification rule by sending a test event with random data.
+     */
     post: operations['testNotificationRule']
   }
   '/api/v1/notification/webhook/svix': {
@@ -503,23 +584,39 @@ export interface paths {
     post: operations['publishPlan']
   }
   '/api/v1/portal/meters/{meterSlug}/query': {
-    /** @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers. */
+    /**
+     * Query meter Query meter
+     * @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
+     */
     get: operations['queryPortalMeter']
   }
   '/api/v1/portal/tokens': {
-    /** @description List tokens. */
+    /**
+     * List consumer portal tokens
+     * @description List tokens.
+     */
     get: operations['listPortalTokens']
-    /** @description Create a consumer portal token. */
+    /**
+     * Create consumer portal token
+     * @description Create a consumer portal token.
+     */
     post: operations['createPortalToken']
   }
   '/api/v1/portal/tokens/invalidate': {
-    /** @description Invalidates consumer portal tokens by ID or subject. */
+    /**
+     * Invalidate portal tokens
+     * @description Invalidates consumer portal tokens by ID or subject.
+     */
     post: operations['invalidatePortalTokens']
   }
   '/api/v1/subjects': {
-    /** @description List subjects. */
+    /**
+     * List subjects
+     * @description List subjects.
+     */
     get: operations['listSubjects']
     /**
+     * Upsert subject
      * @description Upserts a subject. Creates or updates subject.
      *
      * If the subject doesn't exist, it will be created.
@@ -528,13 +625,22 @@ export interface paths {
     post: operations['upsertSubject']
   }
   '/api/v1/subjects/{subjectIdOrKey}': {
-    /** @description Get subject by ID or key. */
+    /**
+     * Get subject
+     * @description Get subject by ID or key.
+     */
     get: operations['getSubject']
-    /** @description Delete subject by ID or key. */
+    /**
+     * Delete subject
+     * @description Delete subject by ID or key.
+     */
     delete: operations['deleteSubject']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements': {
-    /** @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead. */
+    /**
+     * List entitlements
+     * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
+     */
     get: operations['listSubjectEntitlements']
     /**
      * Create an entitlement
@@ -551,9 +657,13 @@ export interface paths {
     post: operations['createEntitlement']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants': {
-    /** @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey. */
+    /**
+     * List entitlement grants
+     * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
+     */
     get: operations['listEntitlementGrants']
     /**
+     * Create grant
      * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
      *
      * A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
@@ -570,6 +680,7 @@ export interface paths {
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override': {
     /**
+     * Override entitlement
      * @description Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
      *
      * This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
@@ -578,6 +689,7 @@ export interface paths {
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value': {
     /**
+     * Get entitlement value
      * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
      *
      * For convenience reasons, /value works with both entitlementId and featureKey.
@@ -585,9 +697,13 @@ export interface paths {
     get: operations['getEntitlementValue']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}': {
-    /** @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead. */
+    /**
+     * Get entitlement
+     * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
+     */
     get: operations['getEntitlement']
     /**
+     * Delete entitlement
      * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
      * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
      */
@@ -595,6 +711,7 @@ export interface paths {
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history': {
     /**
+     * Get entitlement history
      * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
      *
      * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
@@ -605,6 +722,7 @@ export interface paths {
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset': {
     /**
+     * Reset entitlement
      * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
      *
      * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
@@ -612,11 +730,14 @@ export interface paths {
     post: operations['resetEntitlementUsage']
   }
   '/api/v1/subscriptions': {
-    post: operations['Subscriptions_create']
+    /** Create subscription */
+    post: operations['createSubscription']
   }
   '/api/v1/subscriptions/{subscriptionId}': {
+    /** Get subscription Get subscription */
     get: operations['getSubscription']
     /**
+     * Edit subscription
      * @description Batch processing commands for manipulating running subscriptions.
      * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
      *
@@ -629,15 +750,24 @@ export interface paths {
     patch: operations['editSubscription']
   }
   '/api/v1/subscriptions/{subscriptionId}/cancel': {
-    /** @description Cancels the subscription. */
+    /**
+     * Cancel subscription
+     * @description Cancels the subscription.
+     */
     post: operations['cancelSubscription']
   }
   '/api/v1/subscriptions/{subscriptionId}/migrate': {
-    /** @description Migrates the subscripiton to the procided version of the plan. */
+    /**
+     * Migrate subscription
+     * @description Migrates the subscripiton to the procided version of the plan.
+     */
     post: operations['migrateSubscription']
   }
   '/api/v1/subscriptions/{subscriptionId}/unschedule-cancelation': {
-    /** @description Cancels the scheduled cancelation. */
+    /**
+     * Unschedule cancelation
+     * @description Cancels the scheduled cancelation.
+     */
     post: operations['unscheduleCancelation']
   }
 }
@@ -3459,9 +3589,11 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['BillingInvoice'][]
     }
+    /** @description List entitlements result */
     ListEntitlementsResult:
       | components['schemas']['Entitlement'][]
       | components['schemas']['EntitlementPaginatedResponse']
+    /** @description List features result */
     ListFeaturesResult:
       | components['schemas']['Feature'][]
       | components['schemas']['FeaturePaginatedResponse']
@@ -6066,7 +6198,10 @@ export type $defs = Record<string, never>
 export type external = Record<string, never>
 
 export interface operations {
-  /** @description List apps. */
+  /**
+   * List apps
+   * @description List apps.
+   */
   listApps: {
     parameters: {
       query?: {
@@ -6119,7 +6254,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get the app. */
+  /**
+   * Get app
+   * @description Get the app.
+   */
   getApp: {
     parameters: {
       path: {
@@ -6177,7 +6315,10 @@ export interface operations {
       }
     }
   }
-  /** @description Uninstall an app. */
+  /**
+   * Uninstall app
+   * @description Uninstall an app.
+   */
   uninstallApp: {
     parameters: {
       path: {
@@ -6233,7 +6374,10 @@ export interface operations {
       }
     }
   }
-  /** @description Stripe webhook. */
+  /**
+   * Stripe webhook
+   * @description Stripe webhook.
+   */
   appStripeWebhook: {
     parameters: {
       path: {
@@ -7410,7 +7554,10 @@ export interface operations {
       }
     }
   }
-  /** @description List all billing profiles */
+  /**
+   * List billing profiles
+   * @description List all billing profiles
+   */
   billingListProfiles: {
     parameters: {
       query?: {
@@ -7716,7 +7863,10 @@ export interface operations {
       }
     }
   }
-  /** @description List customers. */
+  /**
+   * List customers
+   * @description List customers.
+   */
   listCustomers: {
     parameters: {
       query?: {
@@ -7775,7 +7925,10 @@ export interface operations {
       }
     }
   }
-  /** @description Create a new customer. */
+  /**
+   * Create customer
+   * @description Create a new customer.
+   */
   createCustomer: {
     requestBody: {
       content: {
@@ -7827,7 +7980,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get a customer by ID. */
+  /**
+   * Get customer
+   * @description Get a customer by ID.
+   */
   getCustomer: {
     parameters: {
       path: {
@@ -7885,7 +8041,10 @@ export interface operations {
       }
     }
   }
-  /** @description Update a customer by ID. */
+  /**
+   * Update customer
+   * @description Update a customer by ID.
+   */
   updateCustomer: {
     parameters: {
       path: {
@@ -7948,7 +8107,10 @@ export interface operations {
       }
     }
   }
-  /** @description Delete a customer by ID. */
+  /**
+   * Delete customer
+   * @description Delete a customer by ID.
+   */
   deleteCustomer: {
     parameters: {
       path: {
@@ -8138,7 +8300,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get entitlement by id. */
+  /**
+   * Get entitlement by id
+   * @description Get entitlement by id.
+   */
   getEntitlementById: {
     parameters: {
       path: {
@@ -8298,7 +8463,10 @@ export interface operations {
       }
     }
   }
-  /** @description Ingests an event or batch of events following the CloudEvents specification. */
+  /**
+   * Ingest events
+   * @description Ingests an event or batch of events following the CloudEvents specification.
+   */
   ingestEvents: {
     requestBody: {
       content: {
@@ -8352,7 +8520,10 @@ export interface operations {
       }
     }
   }
-  /** @description List features. */
+  /**
+   * List features
+   * @description List features.
+   */
   listFeatures: {
     parameters: {
       query?: {
@@ -8414,6 +8585,7 @@ export interface operations {
     }
   }
   /**
+   * Create feature
    * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
    * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
    * Only meters with SUM and COUNT aggregation are supported for features.
@@ -8470,7 +8642,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get a feature by ID. */
+  /**
+   * Get feature
+   * @description Get a feature by ID.
+   */
   getFeature: {
     parameters: {
       path: {
@@ -8529,6 +8704,7 @@ export interface operations {
     }
   }
   /**
+   * Delete feature
    * @description Archive a feature by ID.
    *
    * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
@@ -8590,6 +8766,7 @@ export interface operations {
     }
   }
   /**
+   * List grants
    * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
    * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
    * If page is provided that takes precedence and the paginated response is returned.
@@ -8667,6 +8844,7 @@ export interface operations {
     }
   }
   /**
+   * Void grant
    * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
    * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
    */
@@ -8731,7 +8909,10 @@ export interface operations {
       }
     }
   }
-  /** @description Create checkout session. */
+  /**
+   * Create checkout session
+   * @description Create checkout session.
+   */
   createStripeCheckoutSession: {
     requestBody: {
       content: {
@@ -8789,7 +8970,10 @@ export interface operations {
       }
     }
   }
-  /** @description List available apps of the app marketplace. */
+  /**
+   * List available apps
+   * @description List available apps of the app marketplace.
+   */
   listMarketplaceListings: {
     parameters: {
       query?: {
@@ -8842,7 +9026,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get a marketplace listing by type. */
+  /**
+   * Get app details by type
+   * @description Get a marketplace listing by type.
+   */
   getMarketplaceListing: {
     parameters: {
       path: {
@@ -8894,7 +9081,10 @@ export interface operations {
       }
     }
   }
-  /** @description Install an marketplace via API Key. */
+  /**
+   * Install app via API key
+   * @description Install an marketplace via API Key.
+   */
   marketplaceAppAPIKeyInstall: {
     parameters: {
       path: {
@@ -8964,6 +9154,7 @@ export interface operations {
     }
   }
   /**
+   * Get OAuth2 install URL
    * @description Install an app via OAuth.
    * Returns a URL to start the OAuth 2.0 flow.
    */
@@ -9019,6 +9210,7 @@ export interface operations {
     }
   }
   /**
+   * Install app via OAuth2
    * @description Authorize OAuth2 code.
    * Verifies the OAuth code and exchanges it for a token and refresh token
    */
@@ -9078,7 +9270,10 @@ export interface operations {
       }
     }
   }
-  /** @description List meters. */
+  /**
+   * List meters
+   * @description List meters.
+   */
   listMeters: {
     responses: {
       /** @description The request has succeeded. */
@@ -9125,7 +9320,10 @@ export interface operations {
       }
     }
   }
-  /** @description Create a meter. */
+  /**
+   * Create meter
+   * @description Create a meter.
+   */
   createMeter: {
     requestBody: {
       content: {
@@ -9177,7 +9375,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get a meter by ID or slug. */
+  /**
+   * Get meter
+   * @description Get a meter by ID or slug.
+   */
   getMeter: {
     parameters: {
       path: {
@@ -9235,7 +9436,10 @@ export interface operations {
       }
     }
   }
-  /** @description Delete a meter. */
+  /**
+   * Delete meter
+   * @description Delete a meter.
+   */
   deleteMeter: {
     parameters: {
       path: {
@@ -9285,7 +9489,10 @@ export interface operations {
       }
     }
   }
-  /** @description Query meter for usage. Query meter for usage. */
+  /**
+   * Query meter Query meter
+   * @description Query meter for usage. Query meter for usage.
+   */
   queryMeter: {
     parameters: {
       query?: {
@@ -9353,7 +9560,10 @@ export interface operations {
       }
     }
   }
-  /** @description List subjects for a meter. */
+  /**
+   * List meter subjects
+   * @description List subjects for a meter.
+   */
   listMeterSubjects: {
     parameters: {
       path: {
@@ -10196,7 +10406,10 @@ export interface operations {
       }
     }
   }
-  /** @description Test a notification rule by sending a test event with random data. */
+  /**
+   * Test notification rule
+   * @description Test a notification rule by sending a test event with random data.
+   */
   testNotificationRule: {
     parameters: {
       path: {
@@ -11128,7 +11341,10 @@ export interface operations {
       }
     }
   }
-  /** @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers. */
+  /**
+   * Query meter Query meter
+   * @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
+   */
   queryPortalMeter: {
     parameters: {
       query?: {
@@ -11195,7 +11411,10 @@ export interface operations {
       }
     }
   }
-  /** @description List tokens. */
+  /**
+   * List consumer portal tokens
+   * @description List tokens.
+   */
   listPortalTokens: {
     parameters: {
       query?: {
@@ -11247,7 +11466,10 @@ export interface operations {
       }
     }
   }
-  /** @description Create a consumer portal token. */
+  /**
+   * Create consumer portal token
+   * @description Create a consumer portal token.
+   */
   createPortalToken: {
     requestBody: {
       content: {
@@ -11299,7 +11521,10 @@ export interface operations {
       }
     }
   }
-  /** @description Invalidates consumer portal tokens by ID or subject. */
+  /**
+   * Invalidate portal tokens
+   * @description Invalidates consumer portal tokens by ID or subject.
+   */
   invalidatePortalTokens: {
     requestBody: {
       content: {
@@ -11354,7 +11579,10 @@ export interface operations {
       }
     }
   }
-  /** @description List subjects. */
+  /**
+   * List subjects
+   * @description List subjects.
+   */
   listSubjects: {
     responses: {
       /** @description The request has succeeded. */
@@ -11402,6 +11630,7 @@ export interface operations {
     }
   }
   /**
+   * Upsert subject
    * @description Upserts a subject. Creates or updates subject.
    *
    * If the subject doesn't exist, it will be created.
@@ -11458,7 +11687,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get subject by ID or key. */
+  /**
+   * Get subject
+   * @description Get subject by ID or key.
+   */
   getSubject: {
     parameters: {
       path: {
@@ -11516,7 +11748,10 @@ export interface operations {
       }
     }
   }
-  /** @description Delete subject by ID or key. */
+  /**
+   * Delete subject
+   * @description Delete subject by ID or key.
+   */
   deleteSubject: {
     parameters: {
       path: {
@@ -11566,7 +11801,10 @@ export interface operations {
       }
     }
   }
-  /** @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead. */
+  /**
+   * List entitlements
+   * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
+   */
   listSubjectEntitlements: {
     parameters: {
       query?: {
@@ -11695,7 +11933,10 @@ export interface operations {
       }
     }
   }
-  /** @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey. */
+  /**
+   * List entitlement grants
+   * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
+   */
   listEntitlementGrants: {
     parameters: {
       query?: {
@@ -11753,6 +11994,7 @@ export interface operations {
     }
   }
   /**
+   * Create grant
    * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
    *
    * A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
@@ -11829,6 +12071,7 @@ export interface operations {
     }
   }
   /**
+   * Override entitlement
    * @description Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
    *
    * This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
@@ -11903,6 +12146,7 @@ export interface operations {
     }
   }
   /**
+   * Get entitlement value
    * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
    *
    * For convenience reasons, /value works with both entitlementId and featureKey.
@@ -11968,7 +12212,10 @@ export interface operations {
       }
     }
   }
-  /** @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead. */
+  /**
+   * Get entitlement
+   * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
+   */
   getEntitlement: {
     parameters: {
       path: {
@@ -12028,6 +12275,7 @@ export interface operations {
     }
   }
   /**
+   * Delete entitlement
    * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
    * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
    */
@@ -12088,6 +12336,7 @@ export interface operations {
     }
   }
   /**
+   * Get entitlement history
    * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
    *
    * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
@@ -12166,6 +12415,7 @@ export interface operations {
     }
   }
   /**
+   * Reset entitlement
    * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
    *
    * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
@@ -12231,7 +12481,8 @@ export interface operations {
       }
     }
   }
-  Subscriptions_create: {
+  /** Create subscription */
+  createSubscription: {
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateSubscriptionRequestBody']
@@ -12288,6 +12539,7 @@ export interface operations {
       }
     }
   }
+  /** Get subscription Get subscription */
   getSubscription: {
     parameters: {
       query?: {
@@ -12353,6 +12605,7 @@ export interface operations {
     }
   }
   /**
+   * Edit subscription
    * @description Batch processing commands for manipulating running subscriptions.
    * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
    *
@@ -12436,7 +12689,10 @@ export interface operations {
       }
     }
   }
-  /** @description Cancels the subscription. */
+  /**
+   * Cancel subscription
+   * @description Cancels the subscription.
+   */
   cancelSubscription: {
     parameters: {
       path: {
@@ -12512,7 +12768,10 @@ export interface operations {
       }
     }
   }
-  /** @description Migrates the subscripiton to the procided version of the plan. */
+  /**
+   * Migrate subscription
+   * @description Migrates the subscripiton to the procided version of the plan.
+   */
   migrateSubscription: {
     parameters: {
       path: {
@@ -12583,7 +12842,10 @@ export interface operations {
       }
     }
   }
-  /** @description Cancels the scheduled cancelation. */
+  /**
+   * Unschedule cancelation
+   * @description Cancels the scheduled cancelation.
+   */
   unscheduleCancelation: {
     parameters: {
       path: {
