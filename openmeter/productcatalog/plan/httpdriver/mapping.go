@@ -322,9 +322,6 @@ func AsPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error)
 			switch discount.Type {
 			case api.DiscountPercentageTypePercentage:
 				percentageDiscount := plan.PercentageDiscount{
-					DiscountMeta: plan.DiscountMeta{
-						Type: plan.PercentageDiscountType,
-					},
 					Percentage: decimal.NewFromFloat(float64(discount.Percentage)),
 					RateCards:  lo.FromPtrOr(discount.RateCards, nil),
 				}
