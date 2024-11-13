@@ -449,7 +449,7 @@ func (r *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 
 	if in.ExpandedFields.Lines {
 		// TODO[later]: line updates (with changed flag)
-		r.logger.Warn("line updates are not yet implemented")
+		r.logger.WarnContext(ctx, "line updates are not yet implemented")
 	}
 
 	return nil

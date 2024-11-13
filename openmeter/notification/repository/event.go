@@ -110,7 +110,7 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 	result := make([]notification.Event, 0, len(paged.Items))
 	for _, eventRow := range paged.Items {
 		if eventRow == nil {
-			r.logger.Warn("invalid query result: nil notification event received")
+			r.logger.WarnContext(ctx, "invalid query result: nil notification event received")
 			continue
 		}
 
@@ -219,7 +219,7 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 	statusBulkQuery := make([]*entdb.NotificationEventDeliveryStatusCreate, 0, len(ruleRow.Edges.Channels))
 	for _, channel := range ruleRow.Edges.Channels {
 		if channel == nil {
-			r.logger.Warn("invalid query result: nil channel received")
+			r.logger.WarnContext(ctx, "invalid query result: nil channel received")
 			continue
 		}
 
@@ -291,7 +291,7 @@ func (r repository) ListEventsDeliveryStatus(ctx context.Context, params notific
 	result := make([]notification.EventDeliveryStatus, 0, len(paged.Items))
 	for _, statusRow := range paged.Items {
 		if statusRow == nil {
-			r.logger.Warn("invalid query response: nil notification event delivery status received")
+			r.logger.WarnContext(ctx, "invalid query response: nil notification event delivery status received")
 			continue
 		}
 

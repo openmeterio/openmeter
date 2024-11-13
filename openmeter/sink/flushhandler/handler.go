@@ -101,7 +101,7 @@ func (f *flushEventHandler) start(ctx context.Context) {
 	defer close(f.drainDone)
 
 	if f.isShutdown.Load() {
-		f.logger.Error("failed to start flush event handler as it is already shut down")
+		f.logger.ErrorContext(ctx, "failed to start flush event handler as it is already shut down")
 		return
 	}
 
@@ -110,7 +110,7 @@ func (f *flushEventHandler) start(ctx context.Context) {
 		select {
 		case event := <-f.events:
 			if err := f.invokeCallbackWithTimeout(event); err != nil {
-				f.logger.Error("failed to invoke callback", "error", err)
+				f.logger.ErrorContext(ctx, "failed to invoke callback", "error", err)
 			}
 		case <-ctx.Done():
 			shouldRun = false
@@ -124,7 +124,7 @@ func (f *flushEventHandler) start(ctx context.Context) {
 
 	for event := range f.events {
 		if err := f.invokeCallback(drainContext, event); err != nil {
-			f.logger.Error("failed to invoke callback", "error", err)
+			f.logger.ErrorContext(ctx, "failed to invoke callback", "error", err)
 		}
 	}
 }
@@ -167,7 +167,7 @@ func (f *flushEventHandler) OnFlushSuccess(ctx context.Context, event []models.S
 		f.metrics.eventsFailed.Add(ctx, 1)
 		return fmt.Errorf("context canceled handler: %s", f.name)
 	default:
-		f.logger.Error("flush handler: work queue full, callback might be hanging", "event", event, "name", f.name)
+		f.logger.ErrorContext(ctx, "flush handler: work queue full, callback might be hanging", "event", event, "name", f.name)
 		f.metrics.eventChannelFull.Add(ctx, 1)
 		select {
 		case f.events <- event:

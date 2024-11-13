@@ -174,7 +174,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 		// have multiple gathering invoices for the same customer.
 		// This is a rare case, but we should log it at least, later we can implement a call that
 		// merges these invoices (it's fine to just move the Lines to the first invoice)
-		s.logger.Warn("more than one pending invoice found", "customer", input.CustomerID, "namespace", input.Namespace)
+		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", input.CustomerID, "namespace", input.Namespace)
 	}
 
 	return &upsertLineInvoiceResponse{

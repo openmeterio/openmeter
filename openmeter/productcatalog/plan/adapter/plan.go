@@ -92,7 +92,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		result := make([]plan.Plan, 0, len(paged.Items))
 		for _, item := range paged.Items {
 			if item == nil {
-				a.logger.Warn("invalid query result: nil Plan received")
+				a.logger.WarnContext(ctx, "invalid query result: nil Plan received")
 				continue
 			}
 

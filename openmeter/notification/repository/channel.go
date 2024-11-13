@@ -62,7 +62,7 @@ func (r repository) ListChannels(ctx context.Context, params notification.ListCh
 	result := make([]notification.Channel, 0, len(paged.Items))
 	for _, item := range paged.Items {
 		if item == nil {
-			r.logger.Warn("invalid query result: nil notification channel received")
+			r.logger.WarnContext(ctx, "invalid query result: nil notification channel received")
 			continue
 		}
 

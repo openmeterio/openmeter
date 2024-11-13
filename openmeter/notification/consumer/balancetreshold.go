@@ -132,7 +132,7 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 	if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
 		// This should never happen, but let's log it and trigger the event, so that we have a better reference point
 		// in place
-		b.Logger.Error("last event is not a balance threshold event", slog.String("event_id", lastEvent.ID))
+		b.Logger.ErrorContext(ctx, "last event is not a balance threshold event", slog.String("event_id", lastEvent.ID))
 		return b.createEvent(ctx, createEventInput)
 	}
 

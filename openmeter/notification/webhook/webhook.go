@@ -305,7 +305,7 @@ func New(config Config) (Handler, error) {
 		})
 		if err != nil {
 			if config.SkipRegistrationOnError {
-				config.Logger.Warn("failed to register event types", "error", err)
+				config.Logger.WarnContext(ctx, "failed to register event types", "error", err)
 			} else {
 				return nil, fmt.Errorf("failed to register event types: %w", err)
 			}

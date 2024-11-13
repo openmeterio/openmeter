@@ -73,7 +73,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	for _, chunk := range chunkedEvents {
 		if err := h.publisher.Publish(ctx, ingestevents.EventBatchedIngest{Events: chunk}); err != nil {
 			finalErr = errors.Join(finalErr, err)
-			h.logger.Error("failed to publish change notification", "error", err)
+			h.logger.ErrorContext(ctx, "failed to publish change notification", "error", err)
 		}
 	}
 

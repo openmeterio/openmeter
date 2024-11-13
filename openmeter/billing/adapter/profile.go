@@ -133,7 +133,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 	result := make([]billingentity.BaseProfile, 0, len(paged.Items))
 	for _, item := range paged.Items {
 		if item == nil {
-			a.logger.Warn("invalid query result: nil billing profile received")
+			a.logger.WarnContext(ctx, "invalid query result: nil billing profile received")
 			continue
 		}
 
