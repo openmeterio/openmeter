@@ -142,7 +142,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			DebugConnector:     MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
-			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewContextHandler(errorsx.NopHandler{})),
+			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
 			NamespaceManager:    namespaceManager,
 			PortalTokenStrategy: portalTokenStrategy,
 			ErrorHandler:        errorsx.NopHandler{},

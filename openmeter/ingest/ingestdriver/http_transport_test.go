@@ -33,7 +33,7 @@ func TestIngestEvents(t *testing.T) {
 		service.IngestEvents,
 		namespacedriver.StaticNamespaceDecoder("test"),
 		nil,
-		errorsx.NewContextHandler(errorsx.NopHandler{}),
+		errorsx.NewNopHandler(),
 	)
 
 	server := httptest.NewServer(handler)
@@ -83,7 +83,7 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 		service.IngestEvents,
 		namespacedriver.StaticNamespaceDecoder("test"),
 		nil,
-		errorsx.NewContextHandler(errorsx.NopHandler{}),
+		errorsx.NewNopHandler(),
 	)
 
 	server := httptest.NewServer(handler)
@@ -109,7 +109,7 @@ func TestBatchHandler(t *testing.T) {
 		service.IngestEvents,
 		namespacedriver.StaticNamespaceDecoder("test"),
 		nil,
-		errorsx.NewContextHandler(errorsx.NopHandler{}),
+		errorsx.NewNopHandler(),
 	)
 
 	server := httptest.NewServer(handler)

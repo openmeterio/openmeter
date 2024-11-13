@@ -138,7 +138,7 @@ func main() {
 		ingestService.IngestEvents,
 		namespacedriver.StaticNamespaceDecoder(app.NamespaceManager.GetDefaultNamespace()),
 		nil,
-		errorsx.NewContextHandler(errorsx.NewAppHandler(errorsx.NewSlogHandler(logger))),
+		errorsx.NewSlogHandler(logger),
 	)
 
 	// Initialize portal
@@ -383,7 +383,7 @@ func main() {
 			Meters:              app.MeterRepository,
 			PortalTokenStrategy: portalTokenStrategy,
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
-			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
+			ErrorHandler:        errorsx.NewSlogHandler(logger),
 			// deps
 			App:                         appService,
 			AppStripe:                   appStripeService,
