@@ -16,6 +16,7 @@ interface Tokens {
    */
   @post
   @operationId("createPortalToken")
+  @summary("Create consumer portal token")
   create(@body token: Token): {
     // TODO: Should be 201
     @statusCode _: 200;
@@ -28,6 +29,7 @@ interface Tokens {
    */
   @get
   @operationId("listPortalTokens")
+  @summary("List consumer portal tokens")
   list(
     @query
     @minValue(1)
@@ -88,6 +90,7 @@ interface Meters {
   @get
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
+  @summary("Query meter")
   @sharedRoute
   queryJson(
     @path meterSlug: Key,
@@ -103,6 +106,7 @@ interface Meters {
   @get
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
+  @summary("Query meter")
   @sharedRoute
   queryCsv(
     @path meterSlug: Key,

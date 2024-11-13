@@ -22,6 +22,8 @@ interface Customers {
    */
   @post
   @operationId("createCustomer")
+  @summary("Create customer")
+  @extension("x-internal", true)
   create(@body customer: Customer): Customer | CommonErrors;
 
   /**
@@ -29,6 +31,8 @@ interface Customers {
    */
   @get
   @operationId("listCustomers")
+  @summary("List customers")
+  @extension("x-internal", true)
   list(...ListCustomersParams): Paginated<Customer> | CommonErrors;
 
   /**
@@ -37,6 +41,8 @@ interface Customers {
   @get
   @route("/{id}")
   @operationId("getCustomer")
+  @summary("Get customer")
+  @extension("x-internal", true)
   get(@path id: ULID): Customer | NotFoundError | CommonErrors;
 
   /**
@@ -45,6 +51,8 @@ interface Customers {
   @put
   @route("/{id}")
   @operationId("updateCustomer")
+  @summary("Update customer")
+  @extension("x-internal", true)
   update(
     @path id: ULID,
     @body customer: Customer,
@@ -56,6 +64,8 @@ interface Customers {
   @delete
   @route("/{id}")
   @operationId("deleteCustomer")
+  @summary("Delete customer")
+  @extension("x-internal", true)
   delete(@path id: ULID): Customer | NotFoundError | CommonErrors;
 }
 

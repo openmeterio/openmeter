@@ -66,6 +66,7 @@ interface Entitlements {
    */
   @get
   @operationId("getEntitlementById")
+  @summary("Get entitlement by id")
   get(
     @path
     entitlementId: ULID,
@@ -74,6 +75,9 @@ interface Entitlements {
 
 // TODO: Remove in v2
 
+/**
+ * List entitlements result
+ */
 @oneOf
 @friendlyName("ListEntitlementsResult")
 union ListEntitlementsResult {

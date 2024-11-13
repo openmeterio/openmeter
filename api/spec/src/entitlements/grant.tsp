@@ -32,6 +32,7 @@ interface Grants {
    */
   @get
   @operationId("listGrants")
+  @summary("List grants")
   list(
     /**
      * Filtering by multiple features.
@@ -65,6 +66,7 @@ interface Grants {
    */
   @delete
   @operationId("voidGrant")
+  @summary("Void grant")
   delete(@path grantId: string):
     | {
         @statusCode _: 204;

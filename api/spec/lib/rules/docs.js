@@ -11,7 +11,9 @@ export const docDecoratorRule = createRule({
     model: (target) => {
       if (
         target.name &&
-        !target.decorators.find((d) => d.decorator?.name === '$docFromComment')
+        !target.decorators.find(
+          (d) => d.decorator?.name === 'docFromCommentDecorator',
+        )
       ) {
         context.reportDiagnostic({
           target,
@@ -24,7 +26,9 @@ export const docDecoratorRule = createRule({
     enum: (target) => {
       if (
         target.name &&
-        !target.decorators.find((d) => d.decorator?.name === '$docFromComment')
+        !target.decorators.find(
+          (d) => d.decorator?.name === 'docFromCommentDecorator',
+        )
       ) {
         context.reportDiagnostic({
           target,
@@ -37,7 +41,9 @@ export const docDecoratorRule = createRule({
     union: (target) => {
       if (
         target.name &&
-        !target.decorators.find((d) => d.decorator?.name === '$docFromComment')
+        !target.decorators.find(
+          (d) => d.decorator?.name === 'docFromCommentDecorator',
+        )
       ) {
         context.reportDiagnostic({
           target,

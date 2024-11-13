@@ -100,6 +100,7 @@ interface Events {
    */
   @post
   @operationId("ingestEvents")
+  @summary("Ingest") // summary will be combined with the next operation summary (Ingest events)
   @sharedRoute
   ingestEvent(
     @header contentType: "application/cloudevents+json",
@@ -111,6 +112,7 @@ interface Events {
 
   @post
   @operationId("ingestEvents")
+  @summary("events")
   @sharedRoute
   ingestEvents(
     @header contentType: "application/cloudevents-batch+json",

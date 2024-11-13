@@ -29,6 +29,42 @@ using TypeSpec.OpenAPI;
 @server("https://127.0.0.1:8888", "Local")
 @server("https://openmeter.cloud", "Cloud")
 @useAuth(CloudTokenAuth | CloudCookieAuth)
+@tagMetadata(
+  "Meters",
+  #{
+    description: "Meters are used to aggregate usage events. They are designed to offer multiple aggregation methods and window sizes, making it highly adaptable to your specific needs.",
+  }
+)
+@tagMetadata(
+  "Events",
+  #{
+    description: "A usage event can be anything you need to track accurately over time for billing or analytics purposes.",
+  }
+)
+@tagMetadata(
+  "Subjects",
+  #{
+    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. [Read more](https://openmeter.io/docs/cloud/subjects).",
+  }
+)
+@tagMetadata(
+  "Entitlements (Beta)",
+  #{
+    description: "Entitlements make it possible to implement complex pricing scenarios such as monthly quotas, prepaid billing, and per-customer pricing. Don't just list usage limits on your marketing page—enforce them within your application to control the cost of expensive resources like LLMs. [Read more](https://openmeter.io/docs/guides/entitlements/overview).",
+  }
+)
+@tagMetadata(
+  "Notification (Beta)",
+  #{
+    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. For example, you can email your customers when they reach 75%, 100%, and 150% of their monthly token allowance and notify your sales team when an overage happens to drive expansions. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
+  }
+)
+@tagMetadata(
+  "Portal",
+  #{
+    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time. [Read more](https://openmeter.io/docs/guides/customer-dashboard).",
+  }
+)
 namespace OpenMeterCloud;
 
 @route("/api/v1/events")
@@ -43,6 +79,7 @@ interface Meters extends OpenMeter.Meters {
    */
   @post
   @operationId("createMeter")
+  @summary("Create meter")
   create(
     @body
     meter: MeterCreate,
@@ -56,6 +93,7 @@ interface Meters extends OpenMeter.Meters {
    */
   @delete
   @operationId("deleteMeter")
+  @summary("Delete meter")
   delete(
     @path meterIdOrSlug: OpenMeter.MeterIdentifier,
   ): void | OpenMeter.CommonErrors;
@@ -71,6 +109,7 @@ namespace OpenMeterCloud.Portal {
     @route("/invalidate")
     @post
     @operationId("invalidatePortalTokens")
+    @summary("Invalidate portal tokens")
     invalidate(
       /**
        * Invalidate a portal token by ID.

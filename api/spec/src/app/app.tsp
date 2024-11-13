@@ -28,6 +28,8 @@ interface Apps {
    */
   @get
   @operationId("listApps")
+  @summary("List apps")
+  @extension("x-internal", true)
   list(...ListAppsRequest): Paginated<App> | CommonErrors;
 
   /**
@@ -36,6 +38,8 @@ interface Apps {
   @get
   @route("/{id}")
   @operationId("getApp")
+  @summary("Get app")
+  @extension("x-internal", true)
   get(@path id: ULID): App | NotFoundError | CommonErrors;
 
   /**
@@ -44,6 +48,8 @@ interface Apps {
   @delete
   @route("/{id}")
   @operationId("uninstallApp")
+  @summary("Uninstall app")
+  @extension("x-internal", true)
   uninstall(@path id: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
