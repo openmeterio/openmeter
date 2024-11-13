@@ -66,9 +66,6 @@ var planV1Input = plan.CreatePlanInput{
 					},
 					BillingCadence: &MonthPeriod,
 					Price: plan.NewPriceFrom(plan.FlatPrice{
-						PriceMeta: plan.PriceMeta{
-							Type: plan.FlatPriceType,
-						},
 						Amount:      decimal.NewFromInt(0),
 						PaymentTerm: plan.InArrearsPaymentTerm,
 					}),
@@ -105,9 +102,6 @@ var planV1Input = plan.CreatePlanInput{
 					},
 					BillingCadence: MonthPeriod,
 					Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-						PriceMeta: plan.PriceMeta{
-							Type: plan.TieredPriceType,
-						},
 						Mode: plan.VolumeTieredPrice,
 						Tiers: []plan.PriceTier{
 							{
@@ -350,9 +344,6 @@ func TestPostgresAdapter(t *testing.T) {
 						},
 						BillingCadence: MonthPeriod,
 						Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-							PriceMeta: plan.PriceMeta{
-								Type: plan.TieredPriceType,
-							},
 							Mode: plan.VolumeTieredPrice,
 							Tiers: []plan.PriceTier{
 								{

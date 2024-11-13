@@ -338,9 +338,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Equal(s.T(),
 			tieredPrice,
 			plan.TieredPrice{
-				PriceMeta: plan.PriceMeta{
-					Type: plan.TieredPriceType,
-				},
 				Mode: plan.VolumeTieredPrice,
 				Tiers: []plan.PriceTier{
 					{

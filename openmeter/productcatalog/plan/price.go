@@ -75,42 +75,59 @@ type Price struct {
 func (p *Price) MarshalJSON() ([]byte, error) {
 	var b []byte
 	var err error
+	var serde interface{}
 
 	switch p.t {
 	case FlatPriceType:
-		b, err = json.Marshal(p.flat)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal FlatPrice: %w", err)
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*FlatPrice
+		}{
+			Type:      p.t,
+			FlatPrice: p.flat,
 		}
 	case UnitPriceType:
-		b, err = json.Marshal(p.unit)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal UnitPrice: %w", err)
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*UnitPrice
+		}{
+			Type:      p.t,
+			UnitPrice: p.unit,
 		}
 	case TieredPriceType:
-		b, err = json.Marshal(p.tiered)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal TieredPrice: %w", err)
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*TieredPrice
+		}{
+			Type:        p.t,
+			TieredPrice: p.tiered,
 		}
 	default:
-		return nil, fmt.Errorf("invalid type: %s", p.t)
+		return nil, fmt.Errorf("invalid Price type: %s", p.t)
+	}
+
+	b, err = json.Marshal(serde)
+	if err != nil {
+		return nil, fmt.Errorf("failed to JSON serialize Price: %w", err)
 	}
 
 	return b, nil
 }
 
 func (p *Price) UnmarshalJSON(bytes []byte) error {
-	meta := &PriceMeta{}
+	serde := &struct {
+		Type PriceType `json:"type"`
+	}{}
 
-	if err := json.Unmarshal(bytes, meta); err != nil {
-		return fmt.Errorf("failed to json unmarshal Price type: %w", err)
+	if err := json.Unmarshal(bytes, serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize Price type: %w", err)
 	}
 
-	switch meta.Type {
+	switch serde.Type {
 	case FlatPriceType:
 		v := &FlatPrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal FlatPrice: %w", err)
+			return fmt.Errorf("failed to JSON deserialize FlatPrice: %w", err)
 		}
 
 		p.flat = v
@@ -118,7 +135,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	case UnitPriceType:
 		v := &UnitPrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal UnitPrice: %w", err)
+			return fmt.Errorf("failed to JSON deserialize UnitPrice: %w", err)
 		}
 
 		p.unit = v
@@ -132,7 +149,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		p.tiered = v
 		p.t = TieredPriceType
 	default:
-		return fmt.Errorf("invalid type: %s", meta.Type)
+		return fmt.Errorf("invalid Price type: %s", serde.Type)
 	}
 
 	return nil
@@ -194,19 +211,16 @@ func (p *Price) AsTiered() (TieredPrice, error) {
 func (p *Price) FromFlat(price FlatPrice) {
 	p.flat = &price
 	p.t = FlatPriceType
-	p.flat.Type = UnitPriceType
 }
 
 func (p *Price) FromUnit(price UnitPrice) {
 	p.unit = &price
 	p.t = UnitPriceType
-	p.unit.Type = UnitPriceType
 }
 
 func (p *Price) FromTiered(price TieredPrice) {
 	p.tiered = &price
 	p.t = TieredPriceType
-	p.tiered.Type = TieredPriceType
 }
 
 func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) Price {
@@ -227,14 +241,7 @@ func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) Price {
 	return p
 }
 
-type PriceMeta struct {
-	// Type of the price.
-	Type PriceType `json:"type"`
-}
-
 type FlatPrice struct {
-	PriceMeta
-
 	// Amount of the flat price.
 	Amount decimal.Decimal `json:"amount"`
 
@@ -262,8 +269,6 @@ func (f FlatPrice) Validate() error {
 }
 
 type UnitPrice struct {
-	PriceMeta
-
 	// Amount of the unit price.
 	Amount decimal.Decimal `json:"amount"`
 
@@ -337,8 +342,6 @@ func NewTieredPriceMode(s string) (TieredPriceMode, error) {
 }
 
 type TieredPrice struct {
-	PriceMeta
-
 	// Mode defines whether the tier is volume-based or graduated.
 	// * VolumeTieredPrice: the maximum quantity within a period determines the per-unit price
 	// * GraduatedTieredPrice: pricing can change as the quantity grows

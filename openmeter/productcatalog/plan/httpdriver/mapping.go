@@ -454,9 +454,6 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	}
 
 	flatPrice := plan.FlatPrice{
-		PriceMeta: plan.PriceMeta{
-			Type: plan.FlatPriceType,
-		},
 		Amount:      amount,
 		PaymentTerm: paymentTerm,
 	}
@@ -538,11 +535,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			return price, fmt.Errorf("failed to cast FlatPrice: %w", err)
 		}
 
-		flatPrice := plan.FlatPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.FlatPriceType,
-			},
-		}
+		flatPrice := plan.FlatPrice{}
 
 		flatPrice.Amount, err = decimal.NewFromString(flat.Amount)
 		if err != nil {
@@ -567,11 +560,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			return price, fmt.Errorf("failed to cast UnitPrice: %w", err)
 		}
 
-		unitPrice := plan.UnitPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.UnitPriceType,
-			},
-		}
+		unitPrice := plan.UnitPrice{}
 
 		unitPrice.Amount, err = decimal.NewFromString(unit.Amount)
 		if err != nil {
@@ -604,9 +593,6 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 		}
 
 		tieredPrice := plan.TieredPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.TieredPriceType,
-			},
 			Tiers: nil,
 		}
 

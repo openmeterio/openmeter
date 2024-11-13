@@ -350,7 +350,7 @@ func mapFlatPriceToAPI(p plan.FlatPrice) (api.RateCardUsageBasedPrice, error) {
 	err := out.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
 		Amount:      p.Amount.String(),
 		PaymentTerm: lo.ToPtr(api.PricePaymentTerm(p.PaymentTerm)),
-		Type:        api.FlatPriceWithPaymentTermType(p.Type),
+		Type:        api.FlatPriceWithPaymentTermType(plan.FlatPriceType),
 	})
 	if err != nil {
 		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map flat price: %w", err)
@@ -366,7 +366,7 @@ func mapUnitPriceToAPI(p plan.UnitPrice) (api.RateCardUsageBasedPrice, error) {
 		Amount:        p.Amount.String(),
 		MaximumAmount: decimalPtrToStringPtr(p.MaximumAmount),
 		MinimumAmount: decimalPtrToStringPtr(p.MinimumAmount),
-		Type:          api.UnitPriceWithCommitmentsType(p.Type),
+		Type:          api.UnitPriceWithCommitmentsType(plan.UnitPriceType),
 	})
 	if err != nil {
 		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map unit price: %w", err)
@@ -404,7 +404,7 @@ func mapTieredPriceToAPI(p plan.TieredPrice) (api.RateCardUsageBasedPrice, error
 		Mode:          api.TieredPriceMode(p.Mode),
 		MinimumAmount: decimalPtrToStringPtr(p.MinimumAmount),
 		MaximumAmount: decimalPtrToStringPtr(p.MaximumAmount),
-		Type:          api.TieredPriceWithCommitmentsType(p.Type),
+		Type:          api.TieredPriceWithCommitmentsType(plan.TieredPriceType),
 	})
 	if err != nil {
 		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map tiered price: %w", err)

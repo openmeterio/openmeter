@@ -68,16 +68,10 @@ func TestFlatFeeRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
-					Price: Price{
-						t: FlatPriceType,
-						flat: &FlatPrice{
-							PriceMeta: PriceMeta{
-								Type: FlatPriceType,
-							},
-							Amount:      decimal.NewFromInt(1000),
-							PaymentTerm: InArrearsPaymentTerm,
-						},
-					},
+					Price: NewPriceFrom(FlatPrice{
+						Amount:      decimal.NewFromInt(1000),
+						PaymentTerm: InArrearsPaymentTerm,
+					}),
 				},
 				ExpectedError: false,
 			},
@@ -129,16 +123,10 @@ func TestFlatFeeRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: lo.ToPtr(datex.MustParse(t, "P0M")),
-					Price: Price{
-						t: FlatPriceType,
-						flat: &FlatPrice{
-							PriceMeta: PriceMeta{
-								Type: FlatPriceType,
-							},
-							Amount:      decimal.NewFromInt(-1000),
-							PaymentTerm: PaymentTermType("invalid"),
-						},
-					},
+					Price: NewPriceFrom(FlatPrice{
+						Amount:      decimal.NewFromInt(-1000),
+						PaymentTerm: PaymentTermType("invalid"),
+					}),
 				},
 				ExpectedError: true,
 			},
@@ -217,17 +205,11 @@ func TestUsageBasedRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: datex.MustParse(t, "P1M"),
-					Price: lo.ToPtr(Price{
-						t: UnitPriceType,
-						unit: &UnitPrice{
-							PriceMeta: PriceMeta{
-								Type: UnitPriceType,
-							},
-							Amount:        decimal.NewFromInt(1000),
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-							MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-						},
-					}),
+					Price: lo.ToPtr(NewPriceFrom(UnitPrice{
+						Amount:        decimal.NewFromInt(1000),
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+					})),
 				},
 				ExpectedError: false,
 			},
@@ -283,17 +265,11 @@ func TestUsageBasedRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: datex.MustParse(t, "P0M"),
-					Price: lo.ToPtr(Price{
-						t: UnitPriceType,
-						unit: &UnitPrice{
-							PriceMeta: PriceMeta{
-								Type: UnitPriceType,
-							},
-							Amount:        decimal.NewFromInt(-1000),
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-							MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-						},
-					}),
+					Price: lo.ToPtr(NewPriceFrom(UnitPrice{
+						Amount:        decimal.NewFromInt(-1000),
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+					})),
 				},
 				ExpectedError: true,
 			},
