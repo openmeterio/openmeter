@@ -245,7 +245,7 @@ func NewRateCardFrom[T FlatFeeRateCard | UsageBasedRateCard](c T) RateCard {
 var _ Validator = (*RateCardMeta)(nil)
 
 type RateCardMeta struct {
-	models.NamespacedID
+	models.NamespacedID `json:"-"`
 	models.ManagedModel
 
 	// Key is the unique key for Plan.

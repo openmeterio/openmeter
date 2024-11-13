@@ -1,17 +1,146 @@
 package plan
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestRateCard_JSON(t *testing.T) {
+	tests := []struct {
+		Name          string
+		RateCard      RateCard
+		ExpectedError bool
+	}{
+		{
+			Name: "FlatFee",
+			RateCard: NewRateCardFrom(FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
+						UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
+						DeletedAt: lo.ToPtr(time.Now().UTC()),
+					},
+					Key:         "ratecard-1",
+					Name:        "RateCard 1",
+					Description: lo.ToPtr("RateCard 1"),
+					Metadata: map[string]string{
+						"key": "value",
+					},
+					Feature: &feature.Feature{
+						ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
+						Name:      "Feature 1",
+						Key:       "feature-1",
+						MeterSlug: lo.ToPtr("meter-1"),
+						MeterGroupByFilters: map[string]string{
+							"key": "value",
+						},
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
+						UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+						ArchivedAt: lo.ToPtr(time.Now().UTC()),
+					},
+					EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						Config: []byte(`{"key":"value"}`),
+					})),
+					TaxConfig: &TaxConfig{
+						Stripe: &StripeTaxConfig{
+							Code: "txcd_99999999",
+						},
+					},
+				},
+				BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
+				Price: NewPriceFrom(FlatPrice{
+					Amount:      decimal.NewFromInt(1000),
+					PaymentTerm: InAdvancePaymentTerm,
+				}),
+			}),
+		},
+		{
+			Name: "UsageBased",
+			RateCard: NewRateCardFrom(UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
+						UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
+						DeletedAt: lo.ToPtr(time.Now().UTC()),
+					},
+					Key:         "ratecard-2",
+					Name:        "RateCard 2",
+					Description: lo.ToPtr("RateCard 2"),
+					Metadata: map[string]string{
+						"key": "value",
+					},
+					Feature: &feature.Feature{
+						ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
+						Name:      "Feature 2",
+						Key:       "feature-2",
+						MeterSlug: lo.ToPtr("meter-2"),
+						MeterGroupByFilters: map[string]string{
+							"key": "value",
+						},
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
+						UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+						ArchivedAt: lo.ToPtr(time.Now().UTC()),
+					},
+					EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						IsSoftLimit:             true,
+						IssueAfterReset:         lo.ToPtr(500.0),
+						IssueAfterResetPriority: lo.ToPtr[uint8](1),
+						PreserveOverageAtReset:  lo.ToPtr(true),
+						UsagePeriod:             datex.MustParse(t, "P1M"),
+					})),
+					TaxConfig: &TaxConfig{
+						Stripe: &StripeTaxConfig{
+							Code: "txcd_99999999",
+						},
+					},
+				},
+				BillingCadence: datex.MustParse(t, "P1M"),
+				Price: lo.ToPtr(NewPriceFrom(UnitPrice{
+					Amount:        decimal.NewFromInt(1000),
+					MinimumAmount: lo.ToPtr(decimal.NewFromInt(10)),
+					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+				})),
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			b, err := json.Marshal(&test.RateCard)
+			require.NoError(t, err)
+
+			t.Logf("Serialized RateCard: %s", string(b))
+
+			d := RateCard{}
+			err = json.Unmarshal(b, &d)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.RateCard, d)
+		})
+	}
+}
 
 func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
