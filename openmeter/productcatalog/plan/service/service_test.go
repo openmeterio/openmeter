@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -115,7 +114,6 @@ func TestPlanService(t *testing.T) {
 									Namespace: namespace,
 								},
 								Key:         "pro-2-ratecard-1",
-								Type:        plan.UsageBasedRateCardType,
 								Name:        "Pro-2 RateCard 1",
 								Description: lo.ToPtr("Pro-2 RateCard 1"),
 								Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
@@ -124,9 +122,6 @@ func TestPlanService(t *testing.T) {
 									Key:       "api_requests_total",
 								},
 								EntitlementTemplate: lo.ToPtr(plan.NewEntitlementTemplateFrom(plan.MeteredEntitlementTemplate{
-									EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-										Type: entitlement.EntitlementTypeMetered,
-									},
 									Metadata:                nil,
 									IsSoftLimit:             true,
 									IssueAfterReset:         lo.ToPtr(500.0),
@@ -142,9 +137,6 @@ func TestPlanService(t *testing.T) {
 							},
 							BillingCadence: MonthPeriod,
 							Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-								PriceMeta: plan.PriceMeta{
-									Type: plan.TieredPriceType,
-								},
 								Mode: plan.VolumeTieredPrice,
 								Tiers: []plan.PriceTier{
 									{
@@ -200,7 +192,6 @@ func TestPlanService(t *testing.T) {
 										Namespace: namespace,
 									},
 									Key:                 "pro-2-ratecard-1",
-									Type:                plan.UsageBasedRateCardType,
 									Name:                "Pro-2 RateCard 1",
 									Description:         lo.ToPtr("Pro-2 RateCard 1"),
 									Metadata:            map[string]string{"name": "pro-ratecard-1"},
@@ -214,9 +205,6 @@ func TestPlanService(t *testing.T) {
 								},
 								BillingCadence: MonthPeriod,
 								Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-									PriceMeta: plan.PriceMeta{
-										Type: plan.TieredPriceType,
-									},
 									Mode: plan.VolumeTieredPrice,
 									Tiers: []plan.PriceTier{
 										{
@@ -442,7 +430,6 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 								Namespace: namespace,
 							},
 							Key:                 "trial-ratecard-1",
-							Type:                plan.FlatFeeRateCardType,
 							Name:                "Trial RateCard 1",
 							Description:         lo.ToPtr("Trial RateCard 1"),
 							Metadata:            map[string]string{"name": "trial-ratecard-1"},
@@ -456,9 +443,6 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						},
 						BillingCadence: &MonthPeriod,
 						Price: plan.NewPriceFrom(plan.FlatPrice{
-							PriceMeta: plan.PriceMeta{
-								Type: plan.FlatPriceType,
-							},
 							Amount:      decimal.NewFromInt(0),
 							PaymentTerm: plan.InArrearsPaymentTerm,
 						}),
@@ -481,7 +465,6 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 								Namespace: namespace,
 							},
 							Key:                 "pro-ratecard-1",
-							Type:                plan.UsageBasedRateCardType,
 							Name:                "Pro RateCard 1",
 							Description:         lo.ToPtr("Pro RateCard 1"),
 							Metadata:            map[string]string{"name": "pro-ratecard-1"},
@@ -495,9 +478,6 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						},
 						BillingCadence: MonthPeriod,
 						Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-							PriceMeta: plan.PriceMeta{
-								Type: plan.TieredPriceType,
-							},
 							Mode: plan.VolumeTieredPrice,
 							Tiers: []plan.PriceTier{
 								{

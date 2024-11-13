@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,7 +34,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "flat-1",
-						Type:        FlatFeeRateCardType,
 						Name:        "Flat 1",
 						Description: lo.ToPtr("Flat 1"),
 						Metadata: map[string]string{
@@ -55,18 +53,12 @@ func TestFlatFeeRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeStatic,
-							static: &StaticEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeStatic,
-								},
-								Metadata: map[string]string{
-									"name": "static-1",
-								},
-								Config: []byte("\"test\""),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "static-1",
 							},
-						},
+							Config: []byte(`"test"`),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "txcd_99999999",
@@ -75,16 +67,10 @@ func TestFlatFeeRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
-					Price: Price{
-						t: FlatPriceType,
-						flat: &FlatPrice{
-							PriceMeta: PriceMeta{
-								Type: FlatPriceType,
-							},
-							Amount:      decimal.NewFromInt(1000),
-							PaymentTerm: InArrearsPaymentTerm,
-						},
-					},
+					Price: NewPriceFrom(FlatPrice{
+						Amount:      decimal.NewFromInt(1000),
+						PaymentTerm: InArrearsPaymentTerm,
+					}),
 				},
 				ExpectedError: false,
 			},
@@ -102,7 +88,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "flat-2",
-						Type:        FlatFeeRateCardType,
 						Name:        "Flat 2",
 						Description: lo.ToPtr("Flat 2"),
 						Metadata: map[string]string{
@@ -122,18 +107,12 @@ func TestFlatFeeRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeStatic,
-							static: &StaticEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeStatic,
-								},
-								Metadata: map[string]string{
-									"name": "static-1",
-								},
-								Config: []byte("invalid JSON"),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "static-1",
 							},
-						},
+							Config: []byte("invalid JSON"),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "invalid_code",
@@ -142,16 +121,10 @@ func TestFlatFeeRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: lo.ToPtr(datex.MustParse(t, "P0M")),
-					Price: Price{
-						t: FlatPriceType,
-						flat: &FlatPrice{
-							PriceMeta: PriceMeta{
-								Type: FlatPriceType,
-							},
-							Amount:      decimal.NewFromInt(-1000),
-							PaymentTerm: PaymentTermType("invalid"),
-						},
-					},
+					Price: NewPriceFrom(FlatPrice{
+						Amount:      decimal.NewFromInt(-1000),
+						PaymentTerm: PaymentTermType("invalid"),
+					}),
 				},
 				ExpectedError: true,
 			},
@@ -192,7 +165,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "usage-1",
-						Type:        UsageBasedRateCardType,
 						Name:        "Usage 1",
 						Description: lo.ToPtr("Usage 1"),
 						Metadata: map[string]string{
@@ -212,22 +184,16 @@ func TestUsageBasedRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeMetered,
-							metered: &MeteredEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeMetered,
-								},
-								Metadata: map[string]string{
-									"name": "Entitlement 1",
-								},
-								IsSoftLimit:             true,
-								IssueAfterReset:         lo.ToPtr(500.0),
-								IssueAfterResetPriority: lo.ToPtr[uint8](1),
-								PreserveOverageAtReset:  nil,
-								UsagePeriod:             datex.MustParse(t, "P1M"),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "Entitlement 1",
 							},
-						},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(500.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](1),
+							PreserveOverageAtReset:  nil,
+							UsagePeriod:             datex.MustParse(t, "P1M"),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "txcd_99999999",
@@ -236,17 +202,11 @@ func TestUsageBasedRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: datex.MustParse(t, "P1M"),
-					Price: lo.ToPtr(Price{
-						t: UnitPriceType,
-						unit: &UnitPrice{
-							PriceMeta: PriceMeta{
-								Type: UnitPriceType,
-							},
-							Amount:        decimal.NewFromInt(1000),
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-							MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-						},
-					}),
+					Price: lo.ToPtr(NewPriceFrom(UnitPrice{
+						Amount:        decimal.NewFromInt(1000),
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+					})),
 				},
 				ExpectedError: false,
 			},
@@ -264,7 +224,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 							DeletedAt: &time.Time{},
 						},
 						Key:         "usage-2",
-						Type:        UsageBasedRateCardType,
 						Name:        "Usage 2",
 						Description: lo.ToPtr("Usage 2"),
 						Metadata: map[string]string{
@@ -284,22 +243,16 @@ func TestUsageBasedRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeMetered,
-							metered: &MeteredEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeMetered,
-								},
-								Metadata: map[string]string{
-									"name": "Entitlement 1",
-								},
-								IsSoftLimit:             true,
-								IssueAfterReset:         lo.ToPtr(500.0),
-								IssueAfterResetPriority: lo.ToPtr[uint8](1),
-								PreserveOverageAtReset:  nil,
-								UsagePeriod:             datex.MustParse(t, "P1M"),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "Entitlement 1",
 							},
-						},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(500.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](1),
+							PreserveOverageAtReset:  nil,
+							UsagePeriod:             datex.MustParse(t, "P1M"),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "invalid_code",
@@ -308,17 +261,11 @@ func TestUsageBasedRateCard(t *testing.T) {
 						PhaseID: "",
 					},
 					BillingCadence: datex.MustParse(t, "P0M"),
-					Price: lo.ToPtr(Price{
-						t: UnitPriceType,
-						unit: &UnitPrice{
-							PriceMeta: PriceMeta{
-								Type: UnitPriceType,
-							},
-							Amount:        decimal.NewFromInt(-1000),
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-							MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-						},
-					}),
+					Price: lo.ToPtr(NewPriceFrom(UnitPrice{
+						Amount:        decimal.NewFromInt(-1000),
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+					})),
 				},
 				ExpectedError: true,
 			},

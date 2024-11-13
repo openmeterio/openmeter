@@ -202,7 +202,6 @@ func AssertRateCardEqual(t *testing.T, r1, r2 RateCard) {
 	require.NoErrorf(t, err, "AsMeta must not fail")
 
 	assert.Equalf(t, m1.Key, m2.Key, "key mismatch")
-	assert.Equalf(t, m1.Type, m2.Type, "type mismatch")
 	assert.Equalf(t, m1.Name, m2.Name, "name mismatch")
 	assert.Equalf(t, lo.FromPtrOr(m1.Description, ""), lo.FromPtrOr(m2.Description, ""), "description mismatch")
 	assert.Equalf(t, lo.FromPtrOr(m1.Description, ""), lo.FromPtrOr(m2.Description, ""), "description mismatch")

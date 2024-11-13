@@ -52,7 +52,6 @@ var planV1Input = plan.CreatePlanInput{
 							Namespace: namespace,
 						},
 						Key:                 "trial-ratecard-1",
-						Type:                plan.FlatFeeRateCardType,
 						Name:                "Trial RateCard 1",
 						Description:         lo.ToPtr("Trial RateCard 1"),
 						Metadata:            map[string]string{"name": "trial-ratecard-1"},
@@ -66,9 +65,6 @@ var planV1Input = plan.CreatePlanInput{
 					},
 					BillingCadence: &MonthPeriod,
 					Price: plan.NewPriceFrom(plan.FlatPrice{
-						PriceMeta: plan.PriceMeta{
-							Type: plan.FlatPriceType,
-						},
 						Amount:      decimal.NewFromInt(0),
 						PaymentTerm: plan.InArrearsPaymentTerm,
 					}),
@@ -91,7 +87,6 @@ var planV1Input = plan.CreatePlanInput{
 							Namespace: namespace,
 						},
 						Key:                 "pro-ratecard-1",
-						Type:                plan.UsageBasedRateCardType,
 						Name:                "Pro RateCard 1",
 						Description:         lo.ToPtr("Pro RateCard 1"),
 						Metadata:            map[string]string{"name": "pro-ratecard-1"},
@@ -105,9 +100,6 @@ var planV1Input = plan.CreatePlanInput{
 					},
 					BillingCadence: MonthPeriod,
 					Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-						PriceMeta: plan.PriceMeta{
-							Type: plan.TieredPriceType,
-						},
 						Mode: plan.VolumeTieredPrice,
 						Tiers: []plan.PriceTier{
 							{
@@ -336,7 +328,6 @@ func TestPostgresAdapter(t *testing.T) {
 								Namespace: namespace,
 							},
 							Key:                 "team-ratecard-1",
-							Type:                plan.UsageBasedRateCardType,
 							Name:                "Team RateCard 1",
 							Description:         lo.ToPtr("Team RateCard 1"),
 							Metadata:            map[string]string{"name": "team-ratecard-1"},
@@ -350,9 +341,6 @@ func TestPostgresAdapter(t *testing.T) {
 						},
 						BillingCadence: MonthPeriod,
 						Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-							PriceMeta: plan.PriceMeta{
-								Type: plan.TieredPriceType,
-							},
 							Mode: plan.VolumeTieredPrice,
 							Tiers: []plan.PriceTier{
 								{

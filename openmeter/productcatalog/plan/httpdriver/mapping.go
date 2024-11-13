@@ -402,7 +402,6 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 				DeletedAt: flat.DeletedAt,
 			},
 			Key:         flat.Key,
-			Type:        plan.FlatFeeRateCardType,
 			Name:        flat.Name,
 			Description: flat.Description,
 			Metadata:    lo.FromPtrOr(flat.Metadata, nil),
@@ -454,9 +453,6 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	}
 
 	flatPrice := plan.FlatPrice{
-		PriceMeta: plan.PriceMeta{
-			Type: plan.FlatPriceType,
-		},
 		Amount:      amount,
 		PaymentTerm: paymentTerm,
 	}
@@ -479,7 +475,6 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 				DeletedAt: usage.DeletedAt,
 			},
 			Key:         usage.Key,
-			Type:        plan.UsageBasedRateCardType,
 			Name:        usage.Name,
 			Description: usage.Description,
 			Metadata:    lo.FromPtrOr(usage.Metadata, nil),
@@ -538,11 +533,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			return price, fmt.Errorf("failed to cast FlatPrice: %w", err)
 		}
 
-		flatPrice := plan.FlatPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.FlatPriceType,
-			},
-		}
+		flatPrice := plan.FlatPrice{}
 
 		flatPrice.Amount, err = decimal.NewFromString(flat.Amount)
 		if err != nil {
@@ -567,11 +558,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			return price, fmt.Errorf("failed to cast UnitPrice: %w", err)
 		}
 
-		unitPrice := plan.UnitPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.UnitPriceType,
-			},
-		}
+		unitPrice := plan.UnitPrice{}
 
 		unitPrice.Amount, err = decimal.NewFromString(unit.Amount)
 		if err != nil {
@@ -604,9 +591,6 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 		}
 
 		tieredPrice := plan.TieredPrice{
-			PriceMeta: plan.PriceMeta{
-				Type: plan.TieredPriceType,
-			},
 			Tiers: nil,
 		}
 
@@ -711,9 +695,6 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 		}
 
 		meteredTemplate := plan.MeteredEntitlementTemplate{
-			EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-				Type: entitlement.EntitlementTypeMetered,
-			},
 			Metadata:                lo.FromPtrOr(metered.Metadata, nil),
 			IsSoftLimit:             lo.FromPtrOr(metered.IsSoftLimit, false),
 			IssueAfterReset:         metered.IssueAfterReset,
@@ -730,9 +711,6 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 		}
 
 		staticTemplate := plan.StaticEntitlementTemplate{
-			EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-				Type: entitlement.EntitlementTypeMetered,
-			},
 			Metadata: lo.FromPtrOr(static.Metadata, nil),
 			Config:   static.Config,
 		}
@@ -745,9 +723,6 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 		}
 
 		booleanTemplate := plan.BooleanEntitlementTemplate{
-			EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-				Type: entitlement.EntitlementTypeMetered,
-			},
 			Metadata: lo.FromPtrOr(boolean.Metadata, nil),
 		}
 

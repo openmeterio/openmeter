@@ -1,12 +1,81 @@
 package plan
 
 import (
+	"encoding/json"
 	"testing"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestPrice_JSON(t *testing.T) {
+	tests := []struct {
+		Name          string
+		Price         Price
+		ExpectedError bool
+	}{
+		{
+			Name: "Flat",
+			Price: NewPriceFrom(FlatPrice{
+				Amount:      decimal.NewFromInt(1000),
+				PaymentTerm: InAdvancePaymentTerm,
+			}),
+		},
+		{
+			Name: "Unit",
+			Price: NewPriceFrom(UnitPrice{
+				Amount:        decimal.NewFromInt(1000),
+				MinimumAmount: lo.ToPtr(decimal.NewFromInt(10)),
+				MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+			}),
+		},
+		{
+			Name: "Tiered",
+			Price: NewPriceFrom(TieredPrice{
+				Mode: VolumeTieredPrice,
+				Tiers: []PriceTier{
+					{
+						UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						FlatPrice: &PriceTierFlatPrice{
+							Amount: decimal.NewFromInt(1000),
+						},
+						UnitPrice: &PriceTierUnitPrice{
+							Amount: decimal.NewFromInt(5),
+						},
+					},
+					{
+						UpToAmount: nil,
+						FlatPrice: &PriceTierFlatPrice{
+							Amount: decimal.NewFromInt(1500),
+						},
+						UnitPrice: &PriceTierUnitPrice{
+							Amount: decimal.NewFromInt(1),
+						},
+					},
+				},
+				MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+				MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			b, err := json.Marshal(&test.Price)
+			require.NoError(t, err)
+
+			t.Logf("Serialized Price: %s", string(b))
+
+			d := Price{}
+			err = json.Unmarshal(b, &d)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Price, d)
+		})
+	}
+}
 
 func TestFlatPrice(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
@@ -18,9 +87,6 @@ func TestFlatPrice(t *testing.T) {
 			{
 				Name: "valid",
 				Price: FlatPrice{
-					PriceMeta: PriceMeta{
-						Type: FlatPriceType,
-					},
 					Amount:      decimal.NewFromInt(1000),
 					PaymentTerm: InArrearsPaymentTerm,
 				},
@@ -29,9 +95,6 @@ func TestFlatPrice(t *testing.T) {
 			{
 				Name: "invalid",
 				Price: FlatPrice{
-					PriceMeta: PriceMeta{
-						Type: FlatPriceType,
-					},
 					Amount:      decimal.NewFromInt(-1000),
 					PaymentTerm: PaymentTermType("invalid"),
 				},
@@ -63,9 +126,6 @@ func TestUnitPrice(t *testing.T) {
 			{
 				Name: "valid with min,max",
 				Price: UnitPrice{
-					PriceMeta: PriceMeta{
-						Type: UnitPriceType,
-					},
 					Amount:        decimal.NewFromInt(1000),
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
@@ -75,9 +135,6 @@ func TestUnitPrice(t *testing.T) {
 			{
 				Name: "valid with min only",
 				Price: UnitPrice{
-					PriceMeta: PriceMeta{
-						Type: UnitPriceType,
-					},
 					Amount:        decimal.NewFromInt(1000),
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: nil,
@@ -87,9 +144,6 @@ func TestUnitPrice(t *testing.T) {
 			{
 				Name: "valid with max only",
 				Price: UnitPrice{
-					PriceMeta: PriceMeta{
-						Type: UnitPriceType,
-					},
 					Amount:        decimal.NewFromInt(1000),
 					MinimumAmount: nil,
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
@@ -99,9 +153,6 @@ func TestUnitPrice(t *testing.T) {
 			{
 				Name: "invalid",
 				Price: UnitPrice{
-					PriceMeta: PriceMeta{
-						Type: UnitPriceType,
-					},
 					Amount:        decimal.NewFromInt(-1000),
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(-2000)),
@@ -134,9 +185,6 @@ func TestTieredPrice(t *testing.T) {
 			{
 				Name: "valid with min,max",
 				Price: TieredPrice{
-					PriceMeta: PriceMeta{
-						Type: TieredPriceType,
-					},
 					Mode: VolumeTieredPrice,
 					Tiers: []PriceTier{
 						{
@@ -166,9 +214,6 @@ func TestTieredPrice(t *testing.T) {
 			{
 				Name: "valid with min only",
 				Price: TieredPrice{
-					PriceMeta: PriceMeta{
-						Type: TieredPriceType,
-					},
 					Mode: VolumeTieredPrice,
 					Tiers: []PriceTier{
 						{
@@ -198,9 +243,6 @@ func TestTieredPrice(t *testing.T) {
 			{
 				Name: "valid with max only",
 				Price: TieredPrice{
-					PriceMeta: PriceMeta{
-						Type: TieredPriceType,
-					},
 					Mode: VolumeTieredPrice,
 					Tiers: []PriceTier{
 						{
@@ -230,9 +272,6 @@ func TestTieredPrice(t *testing.T) {
 			{
 				Name: "invalid",
 				Price: TieredPrice{
-					PriceMeta: PriceMeta{
-						Type: TieredPriceType,
-					},
 					Mode: TieredPriceMode("invalid"),
 					Tiers: []PriceTier{
 						{
