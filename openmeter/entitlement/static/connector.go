@@ -25,7 +25,7 @@ func NewStaticEntitlementConnector() Connector {
 	}
 }
 
-func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+func (c *connector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	static, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return nil, err

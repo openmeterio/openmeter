@@ -91,13 +91,13 @@ func NewMeteredEntitlementConnector(
 	}
 }
 
-func (e *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+func (e *connector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	metered, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return nil, err
 	}
 
-	balance, err := e.GetEntitlementBalance(context.Background(), models.NamespacedID{
+	balance, err := e.GetEntitlementBalance(ctx, models.NamespacedID{
 		Namespace: metered.Namespace,
 		ID:        metered.ID,
 	}, at)
