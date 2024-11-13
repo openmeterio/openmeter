@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -55,18 +54,12 @@ func TestFlatFeeRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeStatic,
-							static: &StaticEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeStatic,
-								},
-								Metadata: map[string]string{
-									"name": "static-1",
-								},
-								Config: []byte("\"test\""),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "static-1",
 							},
-						},
+							Config: []byte(`"test"`),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "txcd_99999999",
@@ -122,18 +115,12 @@ func TestFlatFeeRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeStatic,
-							static: &StaticEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeStatic,
-								},
-								Metadata: map[string]string{
-									"name": "static-1",
-								},
-								Config: []byte("invalid JSON"),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "static-1",
 							},
-						},
+							Config: []byte("invalid JSON"),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "invalid_code",
@@ -212,22 +199,16 @@ func TestUsageBasedRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeMetered,
-							metered: &MeteredEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeMetered,
-								},
-								Metadata: map[string]string{
-									"name": "Entitlement 1",
-								},
-								IsSoftLimit:             true,
-								IssueAfterReset:         lo.ToPtr(500.0),
-								IssueAfterResetPriority: lo.ToPtr[uint8](1),
-								PreserveOverageAtReset:  nil,
-								UsagePeriod:             datex.MustParse(t, "P1M"),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "Entitlement 1",
 							},
-						},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(500.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](1),
+							PreserveOverageAtReset:  nil,
+							UsagePeriod:             datex.MustParse(t, "P1M"),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "txcd_99999999",
@@ -284,22 +265,16 @@ func TestUsageBasedRateCard(t *testing.T) {
 							CreatedAt:  time.Time{},
 							UpdatedAt:  time.Time{},
 						},
-						EntitlementTemplate: &EntitlementTemplate{
-							t: entitlement.EntitlementTypeMetered,
-							metered: &MeteredEntitlementTemplate{
-								EntitlementTemplateMeta: EntitlementTemplateMeta{
-									Type: entitlement.EntitlementTypeMetered,
-								},
-								Metadata: map[string]string{
-									"name": "Entitlement 1",
-								},
-								IsSoftLimit:             true,
-								IssueAfterReset:         lo.ToPtr(500.0),
-								IssueAfterResetPriority: lo.ToPtr[uint8](1),
-								PreserveOverageAtReset:  nil,
-								UsagePeriod:             datex.MustParse(t, "P1M"),
+						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "Entitlement 1",
 							},
-						},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(500.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](1),
+							PreserveOverageAtReset:  nil,
+							UsagePeriod:             datex.MustParse(t, "P1M"),
+						})),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "invalid_code",

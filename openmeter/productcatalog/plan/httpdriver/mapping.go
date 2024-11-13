@@ -711,9 +711,6 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 		}
 
 		meteredTemplate := plan.MeteredEntitlementTemplate{
-			EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-				Type: entitlement.EntitlementTypeMetered,
-			},
 			Metadata:                lo.FromPtrOr(metered.Metadata, nil),
 			IsSoftLimit:             lo.FromPtrOr(metered.IsSoftLimit, false),
 			IssueAfterReset:         metered.IssueAfterReset,
@@ -730,9 +727,6 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 		}
 
 		staticTemplate := plan.StaticEntitlementTemplate{
-			EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-				Type: entitlement.EntitlementTypeMetered,
-			},
 			Metadata: lo.FromPtrOr(static.Metadata, nil),
 			Config:   static.Config,
 		}
@@ -745,9 +739,6 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 		}
 
 		booleanTemplate := plan.BooleanEntitlementTemplate{
-			EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-				Type: entitlement.EntitlementTypeMetered,
-			},
 			Metadata: lo.FromPtrOr(boolean.Metadata, nil),
 		}
 

@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -124,9 +123,6 @@ func TestPlanService(t *testing.T) {
 									Key:       "api_requests_total",
 								},
 								EntitlementTemplate: lo.ToPtr(plan.NewEntitlementTemplateFrom(plan.MeteredEntitlementTemplate{
-									EntitlementTemplateMeta: plan.EntitlementTemplateMeta{
-										Type: entitlement.EntitlementTypeMetered,
-									},
 									Metadata:                nil,
 									IsSoftLimit:             true,
 									IssueAfterReset:         lo.ToPtr(500.0),

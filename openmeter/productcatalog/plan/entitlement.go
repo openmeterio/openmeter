@@ -36,42 +36,59 @@ type EntitlementTemplate struct {
 func (e *EntitlementTemplate) MarshalJSON() ([]byte, error) {
 	var b []byte
 	var err error
+	var serde interface{}
 
 	switch e.t {
 	case entitlement.EntitlementTypeMetered:
-		b, err = json.Marshal(e.metered)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal metered entitlement: %w", err)
+		serde = struct {
+			Type entitlement.EntitlementType `json:"type"`
+			*MeteredEntitlementTemplate
+		}{
+			Type:                       entitlement.EntitlementTypeMetered,
+			MeteredEntitlementTemplate: e.metered,
 		}
 	case entitlement.EntitlementTypeStatic:
-		b, err = json.Marshal(e.static)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal metered entitlement: %w", err)
+		serde = struct {
+			Type entitlement.EntitlementType `json:"type"`
+			*StaticEntitlementTemplate
+		}{
+			Type:                      entitlement.EntitlementTypeStatic,
+			StaticEntitlementTemplate: e.static,
 		}
 	case entitlement.EntitlementTypeBoolean:
-		b, err = json.Marshal(e.boolean)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal metered entitlement: %w", err)
+		serde = struct {
+			Type entitlement.EntitlementType `json:"type"`
+			*BooleanEntitlementTemplate
+		}{
+			Type:                       entitlement.EntitlementTypeBoolean,
+			BooleanEntitlementTemplate: e.boolean,
 		}
 	default:
-		return nil, fmt.Errorf("invalid entitlement type: %s", e.t)
+		return nil, fmt.Errorf("invalid Entitlement type: %s", e.t)
+	}
+
+	b, err = json.Marshal(serde)
+	if err != nil {
+		return nil, fmt.Errorf("failed to JSON serialize EntitlementTemplate: %w", err)
 	}
 
 	return b, nil
 }
 
 func (e *EntitlementTemplate) UnmarshalJSON(bytes []byte) error {
-	meta := &EntitlementTemplateMeta{}
+	serde := struct {
+		Type entitlement.EntitlementType `json:"type"`
+	}{}
 
-	if err := json.Unmarshal(bytes, meta); err != nil {
-		return fmt.Errorf("failed to json unmarshal entitlement template type: %w", err)
+	if err := json.Unmarshal(bytes, &serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize EntitlementTemplate type: %w", err)
 	}
 
-	switch meta.Type {
+	switch serde.Type {
 	case entitlement.EntitlementTypeMetered:
 		v := &MeteredEntitlementTemplate{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal metered entitlement template: %w", err)
+			return fmt.Errorf("failed to JSON deserialize EntitlementTemplate: %w", err)
 		}
 
 		e.metered = v
@@ -79,7 +96,7 @@ func (e *EntitlementTemplate) UnmarshalJSON(bytes []byte) error {
 	case entitlement.EntitlementTypeStatic:
 		v := &StaticEntitlementTemplate{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal metered entitlement template: %w", err)
+			return fmt.Errorf("failed to JSON deserialize EntitlementTemplate: %w", err)
 		}
 
 		e.static = v
@@ -87,13 +104,13 @@ func (e *EntitlementTemplate) UnmarshalJSON(bytes []byte) error {
 	case entitlement.EntitlementTypeBoolean:
 		v := &BooleanEntitlementTemplate{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal boolean entitlement template: %w", err)
+			return fmt.Errorf("failed to JSON deserialize EntitlementTemplate: %w", err)
 		}
 
 		e.boolean = v
 		e.t = entitlement.EntitlementTypeBoolean
 	default:
-		return fmt.Errorf("invalid entitlement type: %s", meta.Type)
+		return fmt.Errorf("invalid EntitlementTemplate type: %s", serde.Type)
 	}
 
 	return nil
@@ -177,14 +194,7 @@ func NewEntitlementTemplateFrom[T MeteredEntitlementTemplate | StaticEntitlement
 	return *r
 }
 
-type EntitlementTemplateMeta struct {
-	// Type defines the type of the entitlement.Entitlement.
-	Type entitlement.EntitlementType `json:"type"`
-}
-
 type MeteredEntitlementTemplate struct {
-	EntitlementTemplateMeta
-
 	// Metadata a set of key/value pairs describing metadata for the RateCard.
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -215,8 +225,6 @@ func (t MeteredEntitlementTemplate) Validate() error {
 }
 
 type StaticEntitlementTemplate struct {
-	EntitlementTemplateMeta
-
 	// Metadata a set of key/value pairs describing metadata for the RateCard.
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -237,8 +245,6 @@ func (t StaticEntitlementTemplate) Validate() error {
 }
 
 type BooleanEntitlementTemplate struct {
-	EntitlementTemplateMeta
-
 	// Metadata a set of key/value pairs describing metadata for the RateCard.
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
