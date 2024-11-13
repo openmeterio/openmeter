@@ -45,7 +45,7 @@ func NewPublisher(
 		logger.Info("closing event publisher")
 
 		if err = publisher.Close(); err != nil {
-			logger.Error("failed to close event publisher", "error", err)
+			logger.ErrorContext(ctx, "failed to close event publisher", "error", err)
 		}
 	}, nil
 }

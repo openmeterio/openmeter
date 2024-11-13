@@ -61,7 +61,7 @@ func (h *Handler) Start() error {
 				return
 			case <-ticker.C:
 				if err := h.Reconcile(ctx); err != nil {
-					logger.Error("failed to reconcile event(s)", "error", err)
+					logger.ErrorContext(ctx, "failed to reconcile event(s)", "error", err)
 				}
 			}
 		}
@@ -156,7 +156,7 @@ func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event
 	state := notification.EventDeliveryStatusStateSuccess
 	_, err := h.webhook.SendMessage(ctx, sendIn)
 	if err != nil {
-		logger.Error("failed to send webhook message: error returned by webhook service", "error", err)
+		logger.ErrorContext(ctx, "failed to send webhook message: error returned by webhook service", "error", err)
 		stateReason = "failed to send webhook message: error returned by webhook service"
 		state = notification.EventDeliveryStatusStateFailed
 	}

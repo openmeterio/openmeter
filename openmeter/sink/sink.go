@@ -248,7 +248,7 @@ func (s *Sink) flush(ctx context.Context) error {
 	defer func() {
 		err = s.resume()
 		if err != nil {
-			logger.Error("failed to resume partitions after flush", "err", err)
+			logger.ErrorContext(ctx, "failed to resume partitions after flush", "err", err)
 		}
 	}()
 
@@ -300,7 +300,7 @@ func (s *Sink) flush(ctx context.Context) error {
 
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
 			if offsetStoreErr != nil {
-				logger.Error("consistency failure", "err", err, "messages", messages)
+				logger.ErrorContext(ctx, "consistency failure", "err", err, "messages", messages)
 			}
 
 			// Return error, stop consuming
@@ -331,7 +331,7 @@ func (s *Sink) flush(ctx context.Context) error {
 
 			err := s.config.FlushEventHandler.OnFlushSuccess(ctx, messages)
 			if err != nil {
-				logger.Error("failed to invoke OnFlushSuccess callback", "err", err)
+				logger.ErrorContext(ctx, "failed to invoke OnFlushSuccess callback", "err", err)
 			}
 		}()
 	}
@@ -427,7 +427,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 		retry.Context(dedupeCtx),
 		retry.OnRetry(func(n uint, err error) {
 			dedupeSet.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
-			logger.Warn("failed to sink to redis, will retry", "err", err, "retry", n)
+			logger.WarnContext(ctx, "failed to sink to redis, will retry", "err", err, "retry", n)
 		}),
 	)
 	if err != nil {
@@ -458,7 +458,7 @@ func (s *Sink) updateNamespaceStore(ctx context.Context) error {
 	return nil
 }
 
-func (s *Sink) updateTopicSubscription(_ context.Context, metadataTimeout time.Duration) error {
+func (s *Sink) updateTopicSubscription(ctx context.Context, metadataTimeout time.Duration) error {
 	logger := s.config.Logger.With("operation", "updateTopicSubscription")
 
 	logger.Debug("fetching metadata")
@@ -480,7 +480,7 @@ func (s *Sink) updateTopicSubscription(_ context.Context, metadataTimeout time.D
 	}
 
 	if len(topics) == 0 {
-		logger.Warn("no topics found to be subscribed to", "regexp", s.namespaceTopicRegexp.String())
+		logger.WarnContext(ctx, "no topics found to be subscribed to", "regexp", s.namespaceTopicRegexp.String())
 
 		return nil
 	}
@@ -570,7 +570,7 @@ func (s *Sink) setFlushTimer(ctx context.Context) {
 		err := s.flush(ctx)
 		if err != nil {
 			// TODO: should we panic?
-			logger.Error("failed to flush", "err", err)
+			logger.ErrorContext(ctx, "failed to flush", "err", err)
 		}
 	}
 
@@ -612,7 +612,7 @@ func (s *Sink) Run(ctx context.Context) error {
 		err := s.subscribeToNamespaces(ctx)
 		if err != nil {
 			// TODO: should we panic?
-			logger.Error("failed to subscribe to namespaces", "err", err)
+			logger.ErrorContext(ctx, "failed to subscribe to namespaces", "err", err)
 		}
 		s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 	}
@@ -667,9 +667,9 @@ func (s *Sink) Run(ctx context.Context) error {
 				// able to handle/recover from them automatically.
 				// See: https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.h#L415
 				if e.Code() <= -100 {
-					logger.Warn("kafka local error", attrs...)
+					logger.WarnContext(ctx, "kafka local error", attrs...)
 				} else {
-					logger.Error("kafka broker error", attrs...)
+					logger.ErrorContext(ctx, "kafka broker error", attrs...)
 				}
 
 			case kafka.OffsetsCommitted:
@@ -685,7 +685,7 @@ func (s *Sink) Run(ctx context.Context) error {
 					var stats kafkastats.Stats
 
 					if err = json.Unmarshal([]byte(e.String()), &stats); err != nil {
-						logger.Warn("failed to unmarshal Kafka client stats", slog.String("err", err.Error()))
+						logger.WarnContext(ctx, "failed to unmarshal Kafka client stats", slog.String("err", err.Error()))
 					}
 
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

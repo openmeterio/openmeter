@@ -45,7 +45,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	}
 
 	if handlingError != nil {
-		w.opts.Logger.Error("error handling batched ingest event", "error", handlingError)
+		w.opts.Logger.ErrorContext(ctx, "error handling batched ingest event", "error", handlingError)
 	}
 
 	return handlingError

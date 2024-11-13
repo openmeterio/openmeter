@@ -74,7 +74,7 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 	result := make([]notification.Rule, 0, len(paged.Items))
 	for _, ruleRow := range paged.Items {
 		if ruleRow == nil {
-			r.logger.Warn("invalid query result: nil notification rule received")
+			r.logger.WarnContext(ctx, "invalid query result: nil notification rule received")
 			continue
 		}
 

@@ -259,7 +259,7 @@ func (p *topicProvisioner) DeProvision(ctx context.Context, topics ...string) er
 
 		// Skip protected topics to avoid accidental deletion
 		if _, ok := p.protectedTopics[topic]; ok {
-			p.logger.Info("skip topic: protected topic", "topic", topic)
+			p.logger.InfoContext(ctx, "skip topic: protected topic", "topic", topic)
 
 			continue
 		}

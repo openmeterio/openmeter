@@ -89,7 +89,7 @@ func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (
 		result := make([]plan.Phase, 0, len(paged.Items))
 		for _, item := range paged.Items {
 			if item == nil {
-				a.logger.Warn("invalid query result: nil PlanPhase received")
+				a.logger.WarnContext(ctx, "invalid query result: nil PlanPhase received")
 				continue
 			}
 

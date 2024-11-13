@@ -126,9 +126,9 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 						// is already configured to do that.
 						m := ev
 						if m.TopicPartition.Error != nil {
-							logger.Error("kafka delivery failed", "error", m.TopicPartition.Error)
+							logger.ErrorContext(ctx, "kafka delivery failed", "error", m.TopicPartition.Error)
 						} else {
-							logger.Debug("kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
+							logger.DebugContext(ctx, "kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
 						}
 					case *kafka.Stats:
 						// Report Kafka client metrics
@@ -140,7 +140,7 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 							var stats kafkastats.Stats
 
 							if err := json.Unmarshal([]byte(e.String()), &stats); err != nil {
-								logger.Warn("failed to unmarshal Kafka client stats", slog.String("err", err.Error()))
+								logger.WarnContext(ctx, "failed to unmarshal Kafka client stats", slog.String("err", err.Error()))
 							}
 
 							ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -165,9 +165,9 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 						// able to handle/recover from them automatically.
 						// See: https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.h#L415
 						if ev.Code() <= -100 {
-							logger.Warn("kafka local error", attrs...)
+							logger.WarnContext(ctx, "kafka local error", attrs...)
 						} else {
-							logger.Error("kafka broker error", attrs...)
+							logger.ErrorContext(ctx, "kafka broker error", attrs...)
 						}
 					}
 				case <-ctx.Done():

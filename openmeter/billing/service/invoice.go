@@ -347,7 +347,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 			}
 
 			sm.Invoice.ValidationIssues = validationIssues
-			s.logger.Info("invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", sm.Invoice.Status)
+			s.logger.InfoContext(ctx, "invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", sm.Invoice.Status)
 
 			return nil
 		})

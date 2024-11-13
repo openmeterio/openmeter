@@ -202,7 +202,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 			// Post-create hook
 			for _, observer := range *a.observers {
 				if err := observer.PostCreate(ctx, customer); err != nil {
-					a.logger.Error("failed to create customer: post-create hook failed", "error", err)
+					a.logger.ErrorContext(ctx, "failed to create customer: post-create hook failed", "error", err)
 					return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
 				}
 			}
