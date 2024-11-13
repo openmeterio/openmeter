@@ -56,38 +56,49 @@ func (d *Discount) RateCardKeys() []string {
 func (d *Discount) MarshalJSON() ([]byte, error) {
 	var b []byte
 	var err error
+	var serde interface{}
 
 	switch d.t {
 	case PercentageDiscountType:
-		b, err = json.Marshal(d.percentage)
-		if err != nil {
-			return nil, fmt.Errorf("failed to json marshal percentage discount: %w", err)
+		serde = struct {
+			Type DiscountType `json:"type"`
+			*PercentageDiscount
+		}{
+			Type:               PercentageDiscountType,
+			PercentageDiscount: d.percentage,
 		}
 	default:
-		return nil, fmt.Errorf("invalid discount type: %s", d.t)
+		return nil, fmt.Errorf("invalid Discount type: %s", d.t)
+	}
+
+	b, err = json.Marshal(serde)
+	if err != nil {
+		return nil, fmt.Errorf("failed to JSON serialize Discount: %w", err)
 	}
 
 	return b, nil
 }
 
 func (d *Discount) UnmarshalJSON(bytes []byte) error {
-	meta := &DiscountMeta{}
+	serde := &struct {
+		Type DiscountType `json:"type"`
+	}{}
 
-	if err := json.Unmarshal(bytes, meta); err != nil {
-		return fmt.Errorf("failed to json unmarshal discount type: %w", err)
+	if err := json.Unmarshal(bytes, serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize Discount type: %w", err)
 	}
 
-	switch meta.Type {
+	switch serde.Type {
 	case PercentageDiscountType:
 		v := &PercentageDiscount{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal percentage discount: %w", err)
+			return fmt.Errorf("failed to JSON deserialize Discount: %w", err)
 		}
 
 		d.percentage = v
 		d.t = PercentageDiscountType
 	default:
-		return fmt.Errorf("invalid discount type: %s", meta.Type)
+		return fmt.Errorf("invalid Discount type: %s", serde.Type)
 	}
 
 	return nil
@@ -127,7 +138,7 @@ func NewDiscountFrom[T PercentageDiscount](v T) Discount {
 	d := Discount{}
 
 	switch any(v).(type) {
-	case FlatPrice:
+	case PercentageDiscount:
 		percentage := any(v).(PercentageDiscount)
 		d.FromPercentage(percentage)
 	}
@@ -135,16 +146,9 @@ func NewDiscountFrom[T PercentageDiscount](v T) Discount {
 	return d
 }
 
-type DiscountMeta struct {
-	// Type of the Discount.
-	Type DiscountType `json:"type"`
-}
-
 var _ Validator = (*PercentageDiscount)(nil)
 
 type PercentageDiscount struct {
-	DiscountMeta
-
 	// Percentage defines percentage of the discount.
 	Percentage decimal.Decimal `json:"percentage"`
 
