@@ -8,18 +8,11 @@ package operation
 
 import (
 	"context"
-
-	"github.com/openmeterio/openmeter/pkg/framework/internal/operation"
 )
 
 // Operation is the fundamental building block of RPC-style APIs.
 // It represents a single operation that can be performed by a caller.
 type Operation[Request any, Response any] func(ctx context.Context, request Request) (Response, error)
-
-// Name returns the name of the operation from the context (if any).
-func Name(ctx context.Context) (string, bool) {
-	return operation.Name(ctx)
-}
 
 // AsNoResponseOperation wraps a func (context.Context, request Request) error typed function as an operation
 // useful for Delete like methods

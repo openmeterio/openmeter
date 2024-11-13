@@ -17,7 +17,9 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/server"
 )
 
 type Server struct {
@@ -57,7 +59,15 @@ func NewServer(config *Config) (*Server, error) {
 
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
-	r.Use(NewStructuredLogger(slog.Default().Handler(), nil))
+	r.Use(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			ctx = contextx.WithAttrs(ctx, server.GetRequestAttributes(r))
+
+			h.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
+	r.Use(server.NewRequestLoggerMiddleware(slog.Default().Handler()))
 	r.Use(middleware.Recoverer)
 	if config.RouterConfig.PortalCORSEnabled && config.RouterConfig.PortalTokenStrategy != nil {
 		// Enable CORS for portal requests

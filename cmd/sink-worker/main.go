@@ -87,7 +87,6 @@ func main() {
 	app.SetGlobals()
 
 	logger := app.Logger
-	slog.SetDefault(logger)
 
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
 		"telemetry.address":   conf.Telemetry.Address,

@@ -29,7 +29,6 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
@@ -89,25 +88,33 @@ func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res 
 }
 
 func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata) *slog.Logger {
-	return slog.New(
-		slogmulti.Pipe(
-			// Common handlers
-			contextx.NewLogHandler,
-			operation.NewLogHandler,
-		).Handler(slogmulti.Fanout(
-			// Original logger (with otel context middleware)
-			slogmulti.Pipe(
-				otelslog.ResourceMiddleware(res),
-				otelslog.NewHandler,
-			).Handler(conf.NewHandler(os.Stdout)),
+	// Stdout logger
+	stdoutLogger := slogmulti.
+		Pipe(
+			otelslog.ResourceMiddleware(res),
+			otelslog.NewHandler,
+		).
+		Handler(conf.NewHandler(os.Stdout))
 
-			// Otel logger
-			NewLevelHandler(
-				realotelslog.NewHandler(metadata.OpenTelemetryName, realotelslog.WithLoggerProvider(loggerProvider)),
-				conf.Level,
-			),
-		)),
+	// OTel logger
+	// It already has the resource middleware applied by the loggerProvider
+	otelLogger := NewLevelHandler(
+		realotelslog.NewHandler(metadata.OpenTelemetryName, realotelslog.WithLoggerProvider(loggerProvider)),
+		conf.Level,
 	)
+
+	// Fanout logger to stdout and OTel logger
+	out := slogmulti.Fanout(
+		stdoutLogger,
+		otelLogger,
+	)
+
+	// Enrich log records
+	middlewares := slogmulti.Pipe(
+		contextx.NewLogHandler,
+	)
+
+	return slog.New(middlewares.Handler(out))
 }
 
 func NewMeterProvider(ctx context.Context, conf config.MetricsTelemetryConfig, res *resource.Resource, logger *slog.Logger) (*sdkmetric.MeterProvider, func(), error) {
