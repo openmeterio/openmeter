@@ -250,7 +250,8 @@ type EventType struct {
 	Description string
 	GroupName   string
 	// Schemas defines the list of schemas for each event type version
-	Schemas map[string]map[string]interface{}
+	Schemas    map[string]map[string]interface{}
+	Deprecated bool
 }
 
 type Handler interface {

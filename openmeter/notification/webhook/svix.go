@@ -84,6 +84,7 @@ func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params Regis
 			FeatureFlag: *svix.NullableString(nil),
 			GroupName:   *svix.NullableString(&eventType.GroupName),
 			Schemas:     eventType.Schemas,
+			Deprecated:  &eventType.Deprecated,
 		}
 
 		_, err := h.client.EventType.Update(ctx, eventType.Name, input)
