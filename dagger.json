@@ -1,5 +1,6 @@
 {
   "name": "openmeter",
+  "engineVersion": "v0.14.0",
   "sdk": "go",
   "exclude": [
     ".devenv",
@@ -94,7 +95,6 @@
     }
   ],
   "source": ".dagger",
-  "engineVersion": "v0.13.6",
   "views": [
     {
       "name": "default",
