@@ -362,7 +362,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 		})
 	})
 
-	t.Run("usage present, max spend set, but not hit", func(t *testing.T) {
+	t.Run("usage present, max spend set and hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: plan.NewPriceFrom(plan.UnitPrice{
 				Amount:        alpacadecimal.NewFromFloat(10),

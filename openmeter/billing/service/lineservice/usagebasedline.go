@@ -219,7 +219,7 @@ func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse,
 }
 
 func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageResponse, unitPrice plan.UnitPrice) (newDetailedLinesInput, error) {
-	out := make(newDetailedLinesInput, 0, 3)
+	out := make(newDetailedLinesInput, 0, 2)
 	totalPreUsageAmount := usage.PreLinePeriodQty.Mul(unitPrice.Amount)
 
 	if usage.LinePeriodQty.IsPositive() {
@@ -635,38 +635,6 @@ func (i newDetailedLinesInput) Sum() alpacadecimal.Decimal {
 	}
 
 	return sum
-}
-
-func (i newDetailedLinesInput) ApplyDiscount(amount alpacadecimal.Decimal, discountType billingentity.LineDiscountType) alpacadecimal.Decimal {
-	remaining := amount
-	for idx := range i {
-		if remaining.IsZero() {
-			break
-		}
-
-		line := &i[idx]
-		lineTotal := line.Amount.Mul(line.Quantity)
-
-		if lineTotal.LessThan(remaining) {
-			line.Discounts = append(line.Discounts, billingentity.LineDiscount{
-				Amount:      lineTotal,
-				Description: formatMaximumSpendDiscountDescription(lineTotal),
-				Type:        lo.ToPtr(discountType),
-				Source:      billingentity.CalculatedLineDiscountSource,
-			})
-
-			remaining = remaining.Sub(lineTotal)
-			continue
-		}
-
-		line.Discounts = append(line.Discounts, billingentity.LineDiscount{
-			Amount:      remaining,
-			Description: formatMaximumSpendDiscountDescription(remaining),
-			Type:        lo.ToPtr(discountType),
-			Source:      billingentity.CalculatedLineDiscountSource,
-		})
-	}
-	return remaining
 }
 
 type newDetailedLineInput struct {
