@@ -149,6 +149,28 @@ func TestFromKafkaPayloadToCloudEvents(t *testing.T) {
 			},
 		},
 		{
+			description: "should handle when data is null",
+			payload: CloudEventsKafkaPayload{
+				Id:      "123",
+				Type:    "test",
+				Source:  "test",
+				Subject: "test",
+				Time:    tm.Unix(),
+				Data:    "null",
+			},
+			want: func() event.Event {
+				ev := event.New()
+				ev.SetID("123")
+				ev.SetSource("test")
+				ev.SetType("test")
+				ev.SetSubject("test")
+				ev.SetTime(tm)
+				err := ev.SetData(event.ApplicationJSON, nil)
+				assert.Nil(t, err)
+				return ev
+			},
+		},
+		{
 			description: "should return error when data is invalid",
 			payload: CloudEventsKafkaPayload{
 				Id:      "123",
