@@ -270,6 +270,9 @@ type RateCardMeta struct {
 	// TaxConfig defines provider specific tax information.
 	TaxConfig *TaxConfig `json:"taxConfig,omitempty"`
 
+	// Price defines the price for the RateCard
+	Price *Price `json:"price"`
+
 	// PhaseID is the ULID identifier of the Phase the RateCard belongs to.
 	PhaseID string `json:"-"`
 }
@@ -289,6 +292,12 @@ func (r *RateCardMeta) Validate() error {
 		}
 	}
 
+	if r.Price != nil {
+		if err := r.Price.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid Price: %w", err))
+		}
+	}
+
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
@@ -305,9 +314,6 @@ type FlatFeeRateCard struct {
 	// When nil (null) it means it is a one time fee.
 	// Example: "P1D12H"
 	BillingCadence *datex.Period `json:"billingCadence"`
-
-	// Price defines the price for the RateCard
-	Price Price `json:"price"`
 }
 
 func (r *FlatFeeRateCard) Validate() error {
@@ -321,10 +327,6 @@ func (r *FlatFeeRateCard) Validate() error {
 		if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
 			errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
 		}
-	}
-
-	if err := r.Price.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Price: %w", err))
 	}
 
 	if len(errs) > 0 {
@@ -342,9 +344,6 @@ type UsageBasedRateCard struct {
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
 	BillingCadence datex.Period `json:"billingCadence"`
-
-	// Price defines the price for the RateCard
-	Price *Price `json:"price"`
 }
 
 func (r *UsageBasedRateCard) Validate() error {

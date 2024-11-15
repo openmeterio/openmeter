@@ -435,28 +435,29 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 		}
 	}
 
-	amount, err := decimal.NewFromString(flat.Price.Amount)
-	if err != nil {
-		return flatRateCard, fmt.Errorf("failed to cast Price Amount to decimal: %w", err)
-	}
-
-	var paymentTerm plan.PaymentTermType
-	if flat.Price.PaymentTerm != nil {
-		switch *flat.Price.PaymentTerm {
-		case api.PricePaymentTermInArrears:
-			paymentTerm = plan.InArrearsPaymentTerm
-		case api.PricePaymentTermInAdvance:
-			paymentTerm = plan.InAdvancePaymentTerm
-		default:
-			paymentTerm = plan.DefaultPaymentTerm
+	if flat.Price != nil {
+		amount, err := decimal.NewFromString(flat.Price.Amount)
+		if err != nil {
+			return flatRateCard, fmt.Errorf("failed to cast Price Amount to decimal: %w", err)
 		}
-	}
 
-	flatPrice := plan.FlatPrice{
-		Amount:      amount,
-		PaymentTerm: paymentTerm,
+		var paymentTerm plan.PaymentTermType
+		if flat.Price.PaymentTerm != nil {
+			switch *flat.Price.PaymentTerm {
+			case api.PricePaymentTermInArrears:
+				paymentTerm = plan.InArrearsPaymentTerm
+			case api.PricePaymentTermInAdvance:
+				paymentTerm = plan.InAdvancePaymentTerm
+			default:
+				paymentTerm = plan.DefaultPaymentTerm
+			}
+		}
+
+		flatRateCard.Price = lo.ToPtr(plan.NewPriceFrom(plan.FlatPrice{
+			Amount:      amount,
+			PaymentTerm: paymentTerm,
+		}))
 	}
-	flatRateCard.Price = plan.NewPriceFrom(flatPrice)
 
 	return flatRateCard, nil
 }
