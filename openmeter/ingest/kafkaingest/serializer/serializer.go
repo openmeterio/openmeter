@@ -1,7 +1,6 @@
 package serializer
 
 import (
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
