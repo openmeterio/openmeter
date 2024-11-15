@@ -78,7 +78,7 @@ func validateEventWithMeter(m models.Meter, sm *sinkmodels.SinkMessage) {
 	if err != nil {
 		sm.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.INVALID,
-			Error: errors.New("cannot parse event"),
+			Error: errors.New("cannot unmarshal event data"),
 		}
 
 		return
