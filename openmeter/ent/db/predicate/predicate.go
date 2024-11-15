@@ -33,6 +33,9 @@ type BillingInvoiceFlatFeeLineConfig func(*sql.Selector)
 // BillingInvoiceLine is the predicate function for billinginvoiceline builders.
 type BillingInvoiceLine func(*sql.Selector)
 
+// BillingInvoiceLineDiscount is the predicate function for billinginvoicelinediscount builders.
+type BillingInvoiceLineDiscount func(*sql.Selector)
+
 // BillingInvoiceUsageBasedLineConfig is the predicate function for billinginvoiceusagebasedlineconfig builders.
 type BillingInvoiceUsageBasedLineConfig func(*sql.Selector)
 

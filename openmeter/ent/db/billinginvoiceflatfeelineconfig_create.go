@@ -29,9 +29,9 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNamespace(s string) *Bi
 	return bifflcc
 }
 
-// SetAmount sets the "amount" field.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigCreate {
-	bifflcc.mutation.SetAmount(a)
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetPerUnitAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigCreate {
+	bifflcc.mutation.SetPerUnitAmount(a)
 	return bifflcc
 }
 
@@ -100,8 +100,8 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) check() error {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bifflcc.mutation.Amount(); !ok {
-		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.amount"`)}
+	if _, ok := bifflcc.mutation.PerUnitAmount(); !ok {
+		return &ValidationError{Name: "per_unit_amount", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.per_unit_amount"`)}
 	}
 	return nil
 }
@@ -143,9 +143,9 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) createSpec() (*BillingInvo
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bifflcc.mutation.Amount(); ok {
-		_spec.SetField(billinginvoiceflatfeelineconfig.FieldAmount, field.TypeOther, value)
-		_node.Amount = value
+	if value, ok := bifflcc.mutation.PerUnitAmount(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, field.TypeOther, value)
+		_node.PerUnitAmount = value
 	}
 	return _node, _spec
 }
@@ -199,15 +199,15 @@ type (
 	}
 )
 
-// SetAmount sets the "amount" field.
-func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpsert {
-	u.Set(billinginvoiceflatfeelineconfig.FieldAmount, v)
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.Set(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, v)
 	return u
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdateAmount() *BillingInvoiceFlatFeeLineConfigUpsert {
-	u.SetExcluded(billinginvoiceflatfeelineconfig.FieldAmount)
+// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdatePerUnitAmount() *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.SetExcluded(billinginvoiceflatfeelineconfig.FieldPerUnitAmount)
 	return u
 }
 
@@ -262,17 +262,17 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) Update(set func(*BillingInvoi
 	return u
 }
 
-// SetAmount sets the "amount" field.
-func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
-		s.SetAmount(v)
+		s.SetPerUnitAmount(v)
 	})
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdateAmount() *BillingInvoiceFlatFeeLineConfigUpsertOne {
+// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdatePerUnitAmount() *BillingInvoiceFlatFeeLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
-		s.UpdateAmount()
+		s.UpdatePerUnitAmount()
 	})
 }
 
@@ -494,17 +494,17 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) Update(set func(*BillingInvo
 	return u
 }
 
-// SetAmount sets the "amount" field.
-func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
-		s.SetAmount(v)
+		s.SetPerUnitAmount(v)
 	})
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdateAmount() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdatePerUnitAmount() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
-		s.UpdateAmount()
+		s.UpdatePerUnitAmount()
 	})
 }
 

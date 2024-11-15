@@ -32,28 +32,31 @@ func (c CreateInvoiceLinesInput) Validate() error {
 	return nil
 }
 
-type CreateInvoiceLinesAdapterInput []billingentity.Line
+type CreateInvoiceLinesAdapterInput struct {
+	Namespace string
+	Lines     []*billingentity.Line
+}
 
 func (c CreateInvoiceLinesAdapterInput) Validate() error {
-	for i, line := range c {
+	if c.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	for i, line := range c.Lines {
 		if err := line.Validate(); err != nil {
-			return fmt.Errorf("Line[%d]: %w", i, err)
+			return fmt.Errorf("line[%d]: %w", i, err)
 		}
 
 		if line.Namespace == "" {
-			return fmt.Errorf("Line[%d]: namespace is required", i)
+			return fmt.Errorf("line[%d]: namespace is required", i)
 		}
 
 		if line.InvoiceID == "" {
-			return fmt.Errorf("Line[%d]: invoice id is required", i)
+			return fmt.Errorf("line[%d]: invoice id is required", i)
 		}
 	}
 
 	return nil
-}
-
-type CreateInvoiceLinesResponse struct {
-	Lines []billingentity.Line
 }
 
 type ListInvoiceLinesAdapterInput struct {
@@ -62,6 +65,7 @@ type ListInvoiceLinesAdapterInput struct {
 	CustomerID                 string
 	InvoiceStatuses            []billingentity.InvoiceStatus
 	InvoiceAtBefore            *time.Time
+	IncludeDeleted             bool
 	ParentLineIDs              []string
 	ParentLineIDsIncludeParent bool
 	Statuses                   []billingentity.InvoiceLineStatus

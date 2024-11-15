@@ -311,7 +311,9 @@ func (u UnitPrice) Validate() error {
 }
 
 const (
-	VolumeTieredPrice    TieredPriceMode = "volume"
+	// In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+	VolumeTieredPrice TieredPriceMode = "volume"
+	// In `graduated` tiering, pricing can change as the quantity grows.
 	GraduatedTieredPrice TieredPriceMode = "graduated"
 )
 

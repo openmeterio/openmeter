@@ -13,8 +13,8 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
-	// FieldAmount holds the string denoting the amount field in the database.
-	FieldAmount = "amount"
+	// FieldPerUnitAmount holds the string denoting the per_unit_amount field in the database.
+	FieldPerUnitAmount = "per_unit_amount"
 	// Table holds the table name of the billinginvoiceflatfeelineconfig in the database.
 	Table = "billing_invoice_flat_fee_line_configs"
 )
@@ -23,7 +23,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
-	FieldAmount,
+	FieldPerUnitAmount,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -56,7 +56,7 @@ func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
 }
 
-// ByAmount orders the results by the amount field.
-func ByAmount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+// ByPerUnitAmount orders the results by the per_unit_amount field.
+func ByPerUnitAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPerUnitAmount, opts...).ToFunc()
 }

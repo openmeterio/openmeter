@@ -65,7 +65,7 @@ func New(in Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) FromEntity(line billingentity.Line) (Line, error) {
+func (s *Service) FromEntity(line *billingentity.Line) (Line, error) {
 	base := lineBase{
 		service: s,
 		line:    line,
@@ -85,8 +85,8 @@ func (s *Service) FromEntity(line billingentity.Line) (Line, error) {
 	}
 }
 
-func (s *Service) FromEntities(line []billingentity.Line) (Lines, error) {
-	return slicesx.MapWithErr(line, func(l billingentity.Line) (Line, error) {
+func (s *Service) FromEntities(line []*billingentity.Line) (Lines, error) {
+	return slicesx.MapWithErr(line, func(l *billingentity.Line) (Line, error) {
 		return s.FromEntity(l)
 	})
 }
@@ -129,23 +129,25 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 	return ent, nil
 }
 
-func (s *Service) CreateLines(ctx context.Context, lines ...Line) (Lines, error) {
+func (s *Service) UpsertLines(ctx context.Context, ns string, lines ...Line) (Lines, error) {
 	if len(lines) == 0 {
 		return nil, nil
 	}
 
-	newLines, err := s.BillingAdapter.CreateInvoiceLines(
+	newLines, err := s.BillingAdapter.UpsertInvoiceLines(
 		ctx,
-		lo.Map(lines, func(line Line, _ int) billingentity.Line {
-			entity := line.ToEntity()
-			return entity
-		}),
+		billing.CreateInvoiceLinesAdapterInput{
+			Namespace: ns,
+			Lines: lo.Map(lines, func(line Line, _ int) *billingentity.Line {
+				return line.ToEntity()
+			}),
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating invoice lines: %w", err)
 	}
 
-	return slicesx.MapWithErr(newLines.Lines, func(line billingentity.Line) (Line, error) {
+	return slicesx.MapWithErr(newLines, func(line *billingentity.Line) (Line, error) {
 		return s.FromEntity(line)
 	})
 }
@@ -168,11 +170,6 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billinge
 	return s.FromEntities(lineEntities)
 }
 
-type snapshotQuantityResult struct {
-	Line          Line
-	DetailedLines []Line
-}
-
 type Line interface {
 	LineBase
 
@@ -180,14 +177,14 @@ type Line interface {
 
 	Validate(ctx context.Context, invoice *billingentity.Invoice) error
 	CanBeInvoicedAsOf(context.Context, time.Time) (*billingentity.Period, error)
-	SnapshotQuantity(context.Context, *billingentity.Invoice) (*snapshotQuantityResult, error)
+	SnapshotQuantity(context.Context, *billingentity.Invoice) error
 	PrepareForCreate(context.Context) (Line, error)
 }
 
 type Lines []Line
 
-func (s Lines) ToEntities() []billingentity.Line {
-	return lo.Map(s, func(service Line, _ int) billingentity.Line {
+func (s Lines) ToEntities() []*billingentity.Line {
+	return lo.Map(s, func(service Line, _ int) *billingentity.Line {
 		return service.ToEntity()
 	})
 }

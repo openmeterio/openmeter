@@ -68,9 +68,9 @@ func Namespace(v string) predicate.BillingInvoiceFlatFeeLineConfig {
 	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldNamespace, v))
 }
 
-// Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
-func Amount(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldAmount, v))
+// PerUnitAmount applies equality check predicate on the "per_unit_amount" field. It's identical to PerUnitAmountEQ.
+func PerUnitAmount(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldPerUnitAmount, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -138,44 +138,44 @@ func NamespaceContainsFold(v string) predicate.BillingInvoiceFlatFeeLineConfig {
 	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldContainsFold(FieldNamespace, v))
 }
 
-// AmountEQ applies the EQ predicate on the "amount" field.
-func AmountEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldAmount, v))
+// PerUnitAmountEQ applies the EQ predicate on the "per_unit_amount" field.
+func PerUnitAmountEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldPerUnitAmount, v))
 }
 
-// AmountNEQ applies the NEQ predicate on the "amount" field.
-func AmountNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNEQ(FieldAmount, v))
+// PerUnitAmountNEQ applies the NEQ predicate on the "per_unit_amount" field.
+func PerUnitAmountNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNEQ(FieldPerUnitAmount, v))
 }
 
-// AmountIn applies the In predicate on the "amount" field.
-func AmountIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldIn(FieldAmount, vs...))
+// PerUnitAmountIn applies the In predicate on the "per_unit_amount" field.
+func PerUnitAmountIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldIn(FieldPerUnitAmount, vs...))
 }
 
-// AmountNotIn applies the NotIn predicate on the "amount" field.
-func AmountNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNotIn(FieldAmount, vs...))
+// PerUnitAmountNotIn applies the NotIn predicate on the "per_unit_amount" field.
+func PerUnitAmountNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNotIn(FieldPerUnitAmount, vs...))
 }
 
-// AmountGT applies the GT predicate on the "amount" field.
-func AmountGT(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldGT(FieldAmount, v))
+// PerUnitAmountGT applies the GT predicate on the "per_unit_amount" field.
+func PerUnitAmountGT(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldGT(FieldPerUnitAmount, v))
 }
 
-// AmountGTE applies the GTE predicate on the "amount" field.
-func AmountGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldGTE(FieldAmount, v))
+// PerUnitAmountGTE applies the GTE predicate on the "per_unit_amount" field.
+func PerUnitAmountGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldGTE(FieldPerUnitAmount, v))
 }
 
-// AmountLT applies the LT predicate on the "amount" field.
-func AmountLT(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldLT(FieldAmount, v))
+// PerUnitAmountLT applies the LT predicate on the "per_unit_amount" field.
+func PerUnitAmountLT(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldLT(FieldPerUnitAmount, v))
 }
 
-// AmountLTE applies the LTE predicate on the "amount" field.
-func AmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
-	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldLTE(FieldAmount, v))
+// PerUnitAmountLTE applies the LTE predicate on the "per_unit_amount" field.
+func PerUnitAmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldLTE(FieldPerUnitAmount, v))
 }
 
 // And groups predicates with the AND operator between them.

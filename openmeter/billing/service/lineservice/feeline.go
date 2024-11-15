@@ -25,8 +25,6 @@ func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billingenti
 	return nil, nil
 }
 
-func (l feeLine) SnapshotQuantity(context.Context, *billingentity.Invoice) (*snapshotQuantityResult, error) {
-	return &snapshotQuantityResult{
-		Line: l,
-	}, nil
+func (l feeLine) SnapshotQuantity(context.Context, *billingentity.Invoice) error {
+	return nil
 }

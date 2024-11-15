@@ -7945,7 +7945,7 @@ components:
         - period
         - invoiceAt
         - type
-        - amount
+        - perUnitAmount
         - quantity
       properties:
         name:
@@ -8042,7 +8042,7 @@ components:
           type: string
           enum:
             - flat_fee
-        amount:
+        perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Price of the item being sold.
@@ -8064,7 +8064,7 @@ components:
         - period
         - invoiceAt
         - type
-        - amount
+        - perUnitAmount
         - quantity
       properties:
         name:
@@ -8123,7 +8123,7 @@ components:
           type: string
           enum:
             - flat_fee
-        amount:
+        perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Price of the item being sold.
@@ -8146,7 +8146,7 @@ components:
         - period
         - invoiceAt
         - type
-        - amount
+        - perUnitAmount
         - quantity
       properties:
         name:
@@ -8210,7 +8210,7 @@ components:
           type: string
           enum:
             - flat_fee
-        amount:
+        perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Price of the item being sold.

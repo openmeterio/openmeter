@@ -477,7 +477,7 @@ model FlatFeeLine {
   type: LineTypes.flatFee;
 
   @summary("Price of the item being sold.")
-  amount: Money;
+  perUnitAmount: Money;
 
   @summary("Payment term of the line.")
   paymentTerm?: OpenMeter.ProductCatalog.PricePaymentTerm = OpenMeter.ProductCatalog.PricePaymentTerm.inAdvance;

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -194,6 +195,14 @@ func (bilc *BillingInvoiceLineCreate) SetChildUniqueReferenceID(s string) *Billi
 	return bilc
 }
 
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetChildUniqueReferenceID(*s)
+	}
+	return bilc
+}
+
 // SetID sets the "id" field.
 func (bilc *BillingInvoiceLineCreate) SetID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetID(s)
@@ -262,19 +271,34 @@ func (bilc *BillingInvoiceLineCreate) SetParentLine(b *BillingInvoiceLine) *Bill
 	return bilc.SetParentLineID(b.ID)
 }
 
-// AddChildLineIDs adds the "child_lines" edge to the BillingInvoiceLine entity by IDs.
-func (bilc *BillingInvoiceLineCreate) AddChildLineIDs(ids ...string) *BillingInvoiceLineCreate {
-	bilc.mutation.AddChildLineIDs(ids...)
+// AddDetailedLineIDs adds the "detailed_lines" edge to the BillingInvoiceLine entity by IDs.
+func (bilc *BillingInvoiceLineCreate) AddDetailedLineIDs(ids ...string) *BillingInvoiceLineCreate {
+	bilc.mutation.AddDetailedLineIDs(ids...)
 	return bilc
 }
 
-// AddChildLines adds the "child_lines" edges to the BillingInvoiceLine entity.
-func (bilc *BillingInvoiceLineCreate) AddChildLines(b ...*BillingInvoiceLine) *BillingInvoiceLineCreate {
+// AddDetailedLines adds the "detailed_lines" edges to the BillingInvoiceLine entity.
+func (bilc *BillingInvoiceLineCreate) AddDetailedLines(b ...*BillingInvoiceLine) *BillingInvoiceLineCreate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return bilc.AddChildLineIDs(ids...)
+	return bilc.AddDetailedLineIDs(ids...)
+}
+
+// AddLineDiscountIDs adds the "line_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
+func (bilc *BillingInvoiceLineCreate) AddLineDiscountIDs(ids ...string) *BillingInvoiceLineCreate {
+	bilc.mutation.AddLineDiscountIDs(ids...)
+	return bilc
+}
+
+// AddLineDiscounts adds the "line_discounts" edges to the BillingInvoiceLineDiscount entity.
+func (bilc *BillingInvoiceLineCreate) AddLineDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilc.AddLineDiscountIDs(ids...)
 }
 
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
@@ -386,14 +410,6 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
-	if _, ok := bilc.mutation.ChildUniqueReferenceID(); !ok {
-		return &ValidationError{Name: "child_unique_reference_id", err: errors.New(`db: missing required field "BillingInvoiceLine.child_unique_reference_id"`)}
-	}
-	if v, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
-		if err := billinginvoiceline.ChildUniqueReferenceIDValidator(v); err != nil {
-			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.child_unique_reference_id": %w`, err)}
-		}
-	}
 	if len(bilc.mutation.BillingInvoiceIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice", err: errors.New(`db: missing required edge "BillingInvoiceLine.billing_invoice"`)}
 	}
@@ -495,7 +511,7 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	}
 	if value, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = value
+		_node.ChildUniqueReferenceID = &value
 	}
 	if nodes := bilc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -565,15 +581,31 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_node.ParentLineID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bilc.mutation.ChildLinesIDs(); len(nodes) > 0 {
+	if nodes := bilc.mutation.DetailedLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChildLinesTable,
-			Columns: []string{billinginvoiceline.ChildLinesColumn},
+			Table:   billinginvoiceline.DetailedLinesTable,
+			Columns: []string{billinginvoiceline.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.LineDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineDiscountsTable,
+			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -834,6 +866,12 @@ func (u *BillingInvoiceLineUpsert) SetChildUniqueReferenceID(v string) *BillingI
 // UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
 func (u *BillingInvoiceLineUpsert) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsert {
 	u.SetExcluded(billinginvoiceline.FieldChildUniqueReferenceID)
+	return u
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsert) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldChildUniqueReferenceID)
 	return u
 }
 
@@ -1132,6 +1170,13 @@ func (u *BillingInvoiceLineUpsertOne) SetChildUniqueReferenceID(v string) *Billi
 func (u *BillingInvoiceLineUpsertOne) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
+	})
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearChildUniqueReferenceID()
 	})
 }
 
@@ -1597,6 +1642,13 @@ func (u *BillingInvoiceLineUpsertBulk) SetChildUniqueReferenceID(v string) *Bill
 func (u *BillingInvoiceLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
+	})
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearChildUniqueReferenceID()
 	})
 }
 

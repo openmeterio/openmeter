@@ -33,6 +33,8 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 				return CreateLineByCustomerRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
 
+			// TODO[OM-982]: limit to single depth, valid line creation
+
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return CreateLineByCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -60,10 +62,10 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 			}
 
 			res := CreateLineByCustomerResponse{
-				Lines: make([]api.BillingInvoiceLine, 0, len(lines.Lines)),
+				Lines: make([]api.BillingInvoiceLine, 0, len(lines)),
 			}
 
-			for _, line := range lines.Lines {
+			for _, line := range lines {
 				line, err := mapBillingLineToAPI(line)
 				if err != nil {
 					return CreateLineByCustomerResponse{}, fmt.Errorf("failed to map line: %w", err)
@@ -113,7 +115,7 @@ func mapCreateFlatFeeLineToEntity(line api.BillingFlatFeeLineCreateItem, ns stri
 		return billingentity.Line{}, fmt.Errorf("failed to map quantity: %w", err)
 	}
 
-	amount, err := alpacadecimal.NewFromString(line.Amount)
+	perUnitAmount, err := alpacadecimal.NewFromString(line.PerUnitAmount)
 	if err != nil {
 		return billingentity.Line{}, fmt.Errorf("failed to parse price: %w", err)
 	}
@@ -144,9 +146,9 @@ func mapCreateFlatFeeLineToEntity(line api.BillingFlatFeeLineCreateItem, ns stri
 			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 		},
 		FlatFee: billingentity.FlatFeeLine{
-			Amount:      amount,
-			PaymentTerm: lo.FromPtrOr((*plan.PaymentTermType)(line.PaymentTerm), plan.InAdvancePaymentTerm),
-			Quantity:    qty,
+			PerUnitAmount: perUnitAmount,
+			PaymentTerm:   lo.FromPtrOr((*plan.PaymentTermType)(line.PaymentTerm), plan.InAdvancePaymentTerm),
+			Quantity:      qty,
 		},
 	}, nil
 }
@@ -205,7 +207,7 @@ func mapTaxConfigToAPI(to *billingentity.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(planhttpdriver.FromTaxConfig(*to))
 }
 
-func mapBillingLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
+func mapBillingLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, error) {
 	switch line.Type {
 	case billingentity.InvoiceLineTypeFee:
 		return mapFeeLineToAPI(line)
@@ -216,7 +218,7 @@ func mapBillingLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error
 	}
 }
 
-func mapFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
+func mapFeeLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, error) {
 	feeLine := api.BillingFlatFeeLine{
 		Type: api.BillingFlatFeeLineTypeFlatFee,
 		Id:   line.ID,
@@ -241,9 +243,9 @@ func mapFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
 			End:   line.Period.End,
 		},
 
-		Amount:    line.FlatFee.Amount.String(),
-		Quantity:  line.FlatFee.Quantity.String(),
-		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+		PerUnitAmount: line.FlatFee.PerUnitAmount.String(),
+		Quantity:      line.FlatFee.Quantity.String(),
+		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
 	}
 
 	out := api.BillingInvoiceLine{}
@@ -255,7 +257,7 @@ func mapFeeLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
 	return out, nil
 }
 
-func mapUsageBasedLineToAPI(line billingentity.Line) (api.BillingInvoiceLine, error) {
+func mapUsageBasedLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, error) {
 	price, err := mapPriceToAPI(line.UsageBased.Price)
 	if err != nil {
 		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map price: %w", err)

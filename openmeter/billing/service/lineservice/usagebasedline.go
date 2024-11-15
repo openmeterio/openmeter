@@ -22,13 +22,13 @@ const (
 	UnitPriceMinSpendChildUniqueReferenceID = "unit-price-min-spend"
 	UnitPriceMaxSpendChildUniqueReferenceID = "unit-price-max-spend"
 
-	GraduatedFlatPriceChildUniqueReferenceID = "graduated-flat-price"
-	GraduatedUnitPriceChildUniqueReferenceID = "graduated-tiered-price"
-	GraduatedMinSpendChildUniqueReferenceID  = "graduated-min-spend"
+	VolumeFlatPriceChildUniqueReferenceID = "volume-flat-price"
+	VolumeUnitPriceChildUniqueReferenceID = "volume-tiered-price"
+	VolumeMinSpendChildUniqueReferenceID  = "volume-min-spend"
 
-	VolumeTieredPriceUsageChildUniqueReferenceID = "volume-tiered-%d-price-usage"
-	VolumeTieredFlatPriceChildUniqueReferenceID  = "volume-tiered-%d-flat-price"
-	VolumeMinSpendChildUniqueReferenceID         = "volume-tiered-min-spend"
+	GraduatedTieredPriceUsageChildUniqueReferenceID = "graduated-tiered-%d-price-usage"
+	GraduatedTieredFlatPriceChildUniqueReferenceID  = "graduated-tiered-%d-flat-price"
+	GraduatedMinSpendChildUniqueReferenceID         = "graduated-tiered-min-spend"
 )
 
 type usageBasedLine struct {
@@ -72,8 +72,8 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 			return nil, err
 		}
 
-		if tiered.Mode == plan.GraduatedTieredPrice {
-			// Graduated tiers are only billable if we have all the data acquired, as otherwise
+		if tiered.Mode == plan.VolumeTieredPrice {
+			// Volume tiers are only billable if we have all the data acquired, as otherwise
 			// we might overcharge the customer (if we are at tier bundaries)
 			if !asof.Before(l.line.InvoiceAt) {
 				return &l.line.Period, nil
@@ -120,15 +120,15 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 	}
 }
 
-func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) (*snapshotQuantityResult, error) {
+func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) error {
 	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	usage, err := l.service.getFeatureUsage(ctx,
 		getFeatureUsageInput{
-			Line:       &l.line,
+			Line:       l.line,
 			ParentLine: l.line.ParentLine,
 			Feature:    featureMeter.feature,
 			Meter:      featureMeter.meter,
@@ -136,22 +136,24 @@ func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingen
 		},
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	updatedLineEntity := l.line
-	updatedLineEntity.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
+	l.line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
 
-	updatedLine, err := l.service.FromEntity(updatedLineEntity)
+	newDetailedLinesInput, err := l.calculateDetailedLines(usage)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// TODO[OM-980]: yield detailed lines here
+	detailedLines, err := l.newDetailedLines(newDetailedLinesInput...)
+	if err != nil {
+		return fmt.Errorf("detailed lines: %w", err)
+	}
 
-	return &snapshotQuantityResult{
-		Line: updatedLine,
-	}, nil
+	l.line.Children = l.line.ChildrenRetainingRecords(detailedLines)
+
+	return nil
 }
 
 func (l usageBasedLine) calculateDetailedLines(usage *featureUsageResponse) (newDetailedLinesInput, error) {
@@ -177,11 +179,11 @@ func (l usageBasedLine) calculateDetailedLines(usage *featureUsageResponse) (new
 		}
 
 		switch tieredPrice.Mode {
-		case plan.GraduatedTieredPrice:
-			return l.calculateGraduatedTieredPriceDetailedLines(usage, tieredPrice)
-
 		case plan.VolumeTieredPrice:
 			return l.calculateVolumeTieredPriceDetailedLines(usage, tieredPrice)
+
+		case plan.GraduatedTieredPrice:
+			return l.calculateGraduatedTieredPriceDetailedLines(usage, tieredPrice)
 		default:
 			return nil, fmt.Errorf("unsupported tiered price mode: %s", tieredPrice.Mode)
 		}
@@ -197,8 +199,8 @@ func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse,
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
-				Quantity:               alpacadecimal.NewFromInt(1),
-				Amount:                 flatPrice.Amount,
+				Quantity:               alpacadecimal.NewFromFloat(1),
+				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 				PaymentTerm:            plan.InAdvancePaymentTerm,
 			},
@@ -207,8 +209,8 @@ func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse,
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
-				Quantity:               alpacadecimal.NewFromInt(1),
-				Amount:                 flatPrice.Amount,
+				Quantity:               alpacadecimal.NewFromFloat(1),
+				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 				PaymentTerm:            plan.InArrearsPaymentTerm,
 			},
@@ -226,7 +228,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 		usageLine := newDetailedLineInput{
 			Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
 			Quantity:               usage.LinePeriodQty,
-			Amount:                 unitPrice.Amount,
+			PerUnitAmount:          unitPrice.Amount,
 			ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
 			PaymentTerm:            plan.InArrearsPaymentTerm,
 		}
@@ -252,9 +254,9 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 			}
 
 			out = append(out, newDetailedLineInput{
-				Name:     fmt.Sprintf("%s: minimum spend", l.line.Name),
-				Quantity: alpacadecimal.NewFromInt(1),
-				Amount:   unitPrice.MinimumAmount.Sub(totalUsageAmount),
+				Name:          fmt.Sprintf("%s: minimum spend", l.line.Name),
+				Quantity:      alpacadecimal.NewFromFloat(1),
+				PerUnitAmount: unitPrice.MinimumAmount.Sub(totalUsageAmount),
 				// Min spend is always billed for the whole period
 				Period:                 &period,
 				ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
@@ -266,9 +268,9 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 	return out, nil
 }
 
-func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featureUsageResponse, price plan.TieredPrice) (newDetailedLinesInput, error) {
+func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUsageResponse, price plan.TieredPrice) (newDetailedLinesInput, error) {
 	if !usage.PreLinePeriodQty.IsZero() {
-		return nil, billingentity.ErrInvoiceLineGraduatedSplitNotSupported
+		return nil, billingentity.ErrInvoiceLineVolumeSplitNotSupported
 	}
 
 	if !l.IsLastInPeriod() {
@@ -277,49 +279,49 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 
 	out := make(newDetailedLinesInput, 0, 4)
 
-	// No usage => we are not billing any tiers
-	if !usage.LinePeriodQty.IsZero() {
-		tier, tierIndex := findTierForQuantity(price, usage.LinePeriodQty)
-		if tier == nil {
-			return nil, fmt.Errorf("could not find tier for quantity %s (most probably tier is not open ended, thus invalid)", usage.LinePeriodQty)
+	findTierRes, err := findTierForQuantity(price, usage.LinePeriodQty)
+	if err != nil {
+		return nil, err
+	}
+
+	tier := findTierRes.Tier
+	tierIndex := findTierRes.Index
+
+	if tier.FlatPrice != nil {
+		line := newDetailedLineInput{
+			Name:                   fmt.Sprintf("%s: flat price for tier %d", l.line.Name, tierIndex+1),
+			Quantity:               alpacadecimal.NewFromFloat(1),
+			PerUnitAmount:          tier.FlatPrice.Amount,
+			ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
+			PaymentTerm:            plan.InArrearsPaymentTerm,
 		}
 
-		if tier.FlatPrice != nil {
-			line := newDetailedLineInput{
-				Name:                   fmt.Sprintf("%s: flat price for tier %d", l.line.Name, tierIndex+1),
-				Quantity:               alpacadecimal.NewFromInt(1),
-				Amount:                 tier.FlatPrice.Amount,
-				ChildUniqueReferenceID: GraduatedFlatPriceChildUniqueReferenceID,
-				PaymentTerm:            plan.InArrearsPaymentTerm,
-			}
+		if price.MaximumAmount != nil {
+			line = line.AddDiscountForOverage(addDiscountInput{
+				BilledAmountBeforeLine: out.Sum(),
+				MaxSpend:               *price.MaximumAmount,
+			})
+		}
+		out = append(out, line)
+	}
 
-			if price.MaximumAmount != nil {
-				line = line.AddDiscountForOverage(addDiscountInput{
-					BilledAmountBeforeLine: out.Sum(),
-					MaxSpend:               *price.MaximumAmount,
-				})
-			}
-			out = append(out, line)
+	if tier.UnitPrice != nil && !usage.LinePeriodQty.IsZero() {
+		line := newDetailedLineInput{
+			Name:                   fmt.Sprintf("%s: unit price for tier %d", l.line.Name, tierIndex+1),
+			Quantity:               usage.LinePeriodQty,
+			PerUnitAmount:          tier.UnitPrice.Amount,
+			ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
+			PaymentTerm:            plan.InArrearsPaymentTerm,
 		}
 
-		if tier.UnitPrice != nil {
-			line := newDetailedLineInput{
-				Name:                   fmt.Sprintf("%s: unit price for tier %d", l.line.Name, tierIndex+1),
-				Quantity:               usage.LinePeriodQty,
-				Amount:                 tier.UnitPrice.Amount,
-				ChildUniqueReferenceID: GraduatedUnitPriceChildUniqueReferenceID,
-				PaymentTerm:            plan.InArrearsPaymentTerm,
-			}
-
-			if price.MaximumAmount != nil {
-				line = line.AddDiscountForOverage(addDiscountInput{
-					BilledAmountBeforeLine: out.Sum(),
-					MaxSpend:               *price.MaximumAmount,
-				})
-			}
-
-			out = append(out, line)
+		if price.MaximumAmount != nil {
+			line = line.AddDiscountForOverage(addDiscountInput{
+				BilledAmountBeforeLine: out.Sum(),
+				MaxSpend:               *price.MaximumAmount,
+			})
 		}
+
+		out = append(out, line)
 	}
 
 	total := out.Sum()
@@ -327,9 +329,9 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 	if price.MinimumAmount != nil && total.LessThan(*price.MinimumAmount) {
 		out = append(out, newDetailedLineInput{
 			Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
-			Quantity:               alpacadecimal.NewFromInt(1),
-			Amount:                 price.MinimumAmount.Sub(total),
-			ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
+			Quantity:               alpacadecimal.NewFromFloat(1),
+			PerUnitAmount:          price.MinimumAmount.Sub(total),
+			ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 			PaymentTerm:            plan.InArrearsPaymentTerm,
 		})
 	}
@@ -337,18 +339,26 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 	return out, nil
 }
 
-func findTierForQuantity(price plan.TieredPrice, quantity alpacadecimal.Decimal) (*plan.PriceTier, int) {
+type findTierForQuantityResult struct {
+	Tier  *plan.PriceTier
+	Index int
+}
+
+func findTierForQuantity(price plan.TieredPrice, quantity alpacadecimal.Decimal) (findTierForQuantityResult, error) {
 	for i, tier := range price.WithSortedTiers().Tiers {
 		if tier.UpToAmount == nil || quantity.LessThanOrEqual(*tier.UpToAmount) {
-			return &price.Tiers[i], i
+			return findTierForQuantityResult{
+				Tier:  &price.Tiers[i],
+				Index: i,
+			}, nil
 		}
 	}
 
 	// Technically this should not happen, as the last tier should have an upper limit of infinity
-	return nil, 0
+	return findTierForQuantityResult{}, fmt.Errorf("could not find tier for quantity %s: %w", quantity, billingentity.ErrInvoiceLineMissingOpenEndedTier)
 }
 
-func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUsageResponse, price plan.TieredPrice) (newDetailedLinesInput, error) {
+func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featureUsageResponse, price plan.TieredPrice) (newDetailedLinesInput, error) {
 	out := make(newDetailedLinesInput, 0, len(price.Tiers))
 
 	err := tieredPriceCalculator(tieredPriceCalculatorInput{
@@ -364,8 +374,8 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 				newLine := newDetailedLineInput{
 					Name:                   fmt.Sprintf("%s: usage price for tier %d", l.line.Name, tierIndex),
 					Quantity:               in.Quantity,
-					Amount:                 in.Tier.UnitPrice.Amount,
-					ChildUniqueReferenceID: fmt.Sprintf(VolumeTieredPriceUsageChildUniqueReferenceID, tierIndex),
+					PerUnitAmount:          in.Tier.UnitPrice.Amount,
+					ChildUniqueReferenceID: fmt.Sprintf(GraduatedTieredPriceUsageChildUniqueReferenceID, tierIndex),
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 				}
 
@@ -385,9 +395,9 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 			if in.Tier.FlatPrice != nil && in.AtTierBoundary {
 				newLine := newDetailedLineInput{
 					Name:                   fmt.Sprintf("%s: flat price for tier %d", l.line.Name, tierIndex),
-					Quantity:               alpacadecimal.NewFromInt(1),
-					Amount:                 in.Tier.FlatPrice.Amount,
-					ChildUniqueReferenceID: fmt.Sprintf(VolumeTieredFlatPriceChildUniqueReferenceID, tierIndex),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					PerUnitAmount:          in.Tier.FlatPrice.Amount,
+					ChildUniqueReferenceID: fmt.Sprintf(GraduatedTieredFlatPriceChildUniqueReferenceID, tierIndex),
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 				}
 
@@ -406,9 +416,9 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 			if l.IsLastInPeriod() && price.MinimumAmount != nil && periodTotal.LessThan(*price.MinimumAmount) {
 				out = append(out, newDetailedLineInput{
 					Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
-					Quantity:               alpacadecimal.NewFromInt(1),
-					Amount:                 price.MinimumAmount.Sub(periodTotal),
-					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					PerUnitAmount:          price.MinimumAmount.Sub(periodTotal),
+					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 				})
 			}
@@ -457,8 +467,8 @@ func (i tieredPriceCalculatorInput) Validate() error {
 		return err
 	}
 
-	if i.TieredPrice.Mode != plan.VolumeTieredPrice {
-		return fmt.Errorf("only volume tiered prices are supported")
+	if i.TieredPrice.Mode != plan.GraduatedTieredPrice {
+		return fmt.Errorf("only graduated tiered prices are supported")
 	}
 
 	if i.FromQty.IsNegative() {
@@ -527,7 +537,7 @@ func splitTierRangeAtBoundary(from, to alpacadecimal.Decimal, qtyRange tierRange
 	return append(res, pendingLine)
 }
 
-// getTotalAmountForVolumeTieredPrice calculates the total amount for a volume tiered price for a given quantity
+// getTotalAmountForGraduatedTieredPrice calculates the total amount for a graduated tiered price for a given quantity
 // without considering any discounts
 func tieredPriceCalculator(in tieredPriceCalculatorInput) error {
 	// Note: this is not the most efficient algorithm, but it is at least pseudo-readable
@@ -627,7 +637,7 @@ func (i newDetailedLinesInput) Sum() alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 
 	for _, in := range i {
-		sum = sum.Add(in.Amount.Mul(in.Quantity))
+		sum = sum.Add(in.PerUnitAmount.Mul(in.Quantity))
 
 		for _, discount := range in.Discounts {
 			sum = sum.Sub(discount.Amount)
@@ -640,7 +650,7 @@ func (i newDetailedLinesInput) Sum() alpacadecimal.Decimal {
 type newDetailedLineInput struct {
 	Name                   string                `json:"name"`
 	Quantity               alpacadecimal.Decimal `json:"quantity"`
-	Amount                 alpacadecimal.Decimal `json:"amount"`
+	PerUnitAmount          alpacadecimal.Decimal `json:"perUnitAmount"`
 	ChildUniqueReferenceID string                `json:"childUniqueReferenceID"`
 	Period                 *billingentity.Period `json:"period,omitempty"`
 	// PaymentTerm is the payment term for the detailed line, defaults to arrears
@@ -654,7 +664,7 @@ func (i newDetailedLineInput) Validate() error {
 		return fmt.Errorf("quantity must be zero or positive")
 	}
 
-	if i.Amount.IsNegative() {
+	if i.PerUnitAmount.IsNegative() {
 		return fmt.Errorf("amount must be zero or positive")
 	}
 
@@ -675,7 +685,7 @@ type addDiscountInput struct {
 }
 
 func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDetailedLineInput {
-	lineTotal := i.Amount.Mul(i.Quantity)
+	lineTotal := i.PerUnitAmount.Mul(i.Quantity)
 	currentBillableAmount := in.BilledAmountBeforeLine.Add(lineTotal)
 
 	if currentBillableAmount.LessThanOrEqual(in.MaxSpend) {
@@ -688,8 +698,7 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 		i.Discounts = append(i.Discounts, billingentity.LineDiscount{
 			Amount:      lineTotal,
 			Description: formatMaximumSpendDiscountDescription(in.MaxSpend),
-			Type:        lo.ToPtr(billingentity.MaximumSpendLineDiscountType),
-			Source:      billingentity.CalculatedLineDiscountSource,
+			Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
 		})
 		return i
 	}
@@ -698,40 +707,44 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 	i.Discounts = append(i.Discounts, billingentity.LineDiscount{
 		Amount:      discountAmount,
 		Description: formatMaximumSpendDiscountDescription(in.MaxSpend),
-		Type:        lo.ToPtr(billingentity.MaximumSpendLineDiscountType),
-		Source:      billingentity.CalculatedLineDiscountSource,
+		Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
 	})
 
 	return i
 }
 
-func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]Line, error) {
-	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (Line, error) {
+func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*billingentity.Line, error) {
+	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (*billingentity.Line, error) {
 		if err := in.Validate(); err != nil {
 			return nil, err
 		}
 
-		return l.service.FromEntity(billingentity.Line{
+		period := l.line.Period
+		if in.Period != nil {
+			period = *in.Period
+		}
+
+		return &billingentity.Line{
 			LineBase: billingentity.LineBase{
 				Namespace:              l.line.Namespace,
 				Type:                   billingentity.InvoiceLineTypeFee,
 				Status:                 billingentity.InvoiceLineStatusDetailed,
-				Period:                 lo.If(in.Period != nil, *in.Period).Else(l.line.Period),
+				Period:                 period,
 				Name:                   in.Name,
 				InvoiceAt:              l.line.InvoiceAt,
 				InvoiceID:              l.line.InvoiceID,
 				Currency:               l.line.Currency,
 				ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
 				ParentLineID:           lo.ToPtr(l.line.ID),
-				// TODO: Parent line?
-				TaxConfig: l.line.TaxConfig,
+				TaxConfig:              l.line.TaxConfig,
 			},
 			FlatFee: billingentity.FlatFeeLine{
-				PaymentTerm: lo.CoalesceOrEmpty(in.PaymentTerm, plan.InArrearsPaymentTerm),
-				Amount:      in.Amount,
-				Quantity:    in.Quantity,
+				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, plan.InArrearsPaymentTerm),
+				PerUnitAmount: in.PerUnitAmount,
+				Quantity:      in.Quantity,
 			},
-		})
+			Discounts: billingentity.NewLineDiscounts(in.Discounts),
+		}, nil
 	})
 }
 

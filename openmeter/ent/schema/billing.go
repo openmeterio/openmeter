@@ -289,12 +289,10 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		// child_unique_reference_id is uniqe per parent line, can be used for upserting
 		// and identifying lines created for the same reason (e.g. tiered price tier)
 		// between different invoices.
-		//
-		// As entgo doesn't support conditional unique indexes, defaults to ID of the
-		// line.
-		// TODO: add hooks
+		// TODO: rename to unique_reference_id??
 		field.String("child_unique_reference_id").
-			NotEmpty(),
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -302,7 +300,10 @@ func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "invoice_id"),
 		index.Fields("namespace", "parent_line_id"),
-		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").Unique(),
+		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).Unique(),
 	}
 }
 
@@ -321,10 +322,12 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			StorageKey(edge.Column("usage_based_line_config_id")).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("child_lines", BillingInvoiceLine.Type).
+		edge.To("detailed_lines", BillingInvoiceLine.Type).
 			From("parent_line").
 			Field("parent_line_id").
 			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("line_discounts", BillingInvoiceLineDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
@@ -342,7 +345,7 @@ func (BillingInvoiceFlatFeeLineConfig) Mixin() []ent.Mixin {
 
 func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 	return []ent.Field{
-		field.Other("amount", alpacadecimal.Decimal{}).
+		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
@@ -373,6 +376,63 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+	}
+}
+
+type BillingInvoiceLineDiscount struct {
+	ent.Schema
+}
+
+func (BillingInvoiceLineDiscount) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingInvoiceLineDiscount) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("line_id").
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}),
+
+		// TODO: rename to child_unique_reference_id
+		field.Enum("type").
+			GoType(billingentity.LineDiscountType("")).
+			Optional().
+			Nillable(),
+
+		field.String("description").
+			Optional().
+			Nillable(),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+	}
+}
+
+func (BillingInvoiceLineDiscount) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "line_id"),
+		index.Fields("namespace", "line_id", "type").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL AND type IS NOT NULL"),
+			).
+			Unique(),
+	}
+}
+
+func (BillingInvoiceLineDiscount) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("line_discounts").
+			Field("line_id").
+			Unique().
+			Required(),
 	}
 }
 

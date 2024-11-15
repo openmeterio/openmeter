@@ -32,7 +32,7 @@ type CustomerOverrideService interface {
 }
 
 type InvoiceLineService interface {
-	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) (*CreateInvoiceLinesResponse, error)
+	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*billingentity.Line, error)
 }
 
 type InvoiceService interface {
