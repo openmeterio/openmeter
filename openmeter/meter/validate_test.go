@@ -32,6 +32,19 @@ func TestValidateEvent(t *testing.T) {
 		want        error
 	}{
 		{
+			description: "should pass with valid event",
+			event: func(t *testing.T) event.Event {
+				ev := event.New()
+				ev.SetType("api-calls")
+
+				err := ev.SetData(event.ApplicationJSON, []byte(`{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`))
+				require.NoError(t, err)
+
+				return ev
+			},
+			want: nil,
+		},
+		{
 			description: "should return error with invalid json",
 			event: func(t *testing.T) event.Event {
 				ev := event.New()
@@ -43,6 +56,16 @@ func TestValidateEvent(t *testing.T) {
 				return ev
 			},
 			want: errors.New("cannot unmarshal event data"),
+		},
+		{
+			description: "should return error with missing data property",
+			event: func(t *testing.T) event.Event {
+				ev := event.New()
+				ev.SetType("api-calls")
+
+				return ev
+			},
+			want: errors.New(`event data is missing value property at "$.duration_ms"`),
 		},
 		{
 			description: "should return error with value property not found",

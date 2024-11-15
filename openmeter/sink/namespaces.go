@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
-
-	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -75,30 +72,13 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 	}
 }
 
-func kafkaPayloadToCloudEvents(payload serializer.CloudEventsKafkaPayload) (event.Event, error) {
-	ev := event.New()
-
-	ev.SetID(payload.Id)
-	ev.SetType(payload.Type)
-	ev.SetSource(payload.Source)
-	ev.SetSubject(payload.Subject)
-	ev.SetTime(time.Unix(payload.Time, 0))
-
-	err := ev.SetData(event.ApplicationJSON, []byte(payload.Data))
-	if err != nil {
-		return event.Event{}, err
-	}
-
-	return ev, nil
-}
-
 // validateEventWithMeter validates a single event against a single meter
 func validateEventWithMeter(m models.Meter, sm *sinkmodels.SinkMessage) {
-	ev, err := kafkaPayloadToCloudEvents(*sm.Serialized)
+	ev, err := serializer.FromKafkaPayloadToCloudEvents(*sm.Serialized)
 	if err != nil {
 		sm.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.INVALID,
-			Error: errors.New("cannot parse event"),
+			Error: errors.New("cannot unmarshal event data"),
 		}
 
 		return
