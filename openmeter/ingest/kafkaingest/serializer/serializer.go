@@ -3,6 +3,9 @@ package serializer
 import (
 	_ "embed"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 )
@@ -25,6 +28,7 @@ type CloudEventsKafkaPayload struct {
 	Data string `json:"data"`
 }
 
+// ToCloudEventsKafkaPayload serializes a CloudEvent to a CloudEventsKafkaPayload.
 func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) {
 	payload := CloudEventsKafkaPayload{
 		Id:      ev.ID(),
@@ -34,16 +38,52 @@ func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) 
 		Time:    ev.Time().Unix(),
 	}
 
-	// We try to parse data as JSON.
-	// CloudEvents data can be other than JSON but currently we only support JSON data.
-	var data interface{}
-	err := json.Unmarshal(ev.Data(), &data)
-	if err != nil {
-		return payload, err
+	// Data is optional in CloudEvents.
+	if len(ev.Data()) > 0 {
+		// Parse CloudEvents data.
+		var data interface{}
+		err := ev.DataAs(&data)
+		if err != nil {
+			return payload, errors.New("cannot unmarshal cloudevents data")
+		}
+
+		// Serialize data to JSON.
+		// We only support JSON seralizable data for now.
+		payloadData, err := json.Marshal(data)
+		if err != nil {
+			return payload, errors.New("cannot json serialize cloudevents data")
+		}
+
+		payload.Data = string(payloadData)
 	}
 
-	payloadData, _ := json.Marshal(data)
-	payload.Data = string(payloadData)
-
 	return payload, nil
+}
+
+// FromKafkaPayloadToCloudEvents deserialized a CloudEventsKafkaPayload to a CloudEvent.
+func FromKafkaPayloadToCloudEvents(payload CloudEventsKafkaPayload) (event.Event, error) {
+	ev := event.New()
+
+	ev.SetID(payload.Id)
+	ev.SetType(payload.Type)
+	ev.SetSource(payload.Source)
+	ev.SetSubject(payload.Subject)
+	ev.SetTime(time.Unix(payload.Time, 0))
+
+	// Data is optional in CloudEvents.
+	if payload.Data != "" {
+		var data interface{}
+
+		err := json.Unmarshal([]byte(payload.Data), &data)
+		if err != nil {
+			return event.Event{}, fmt.Errorf("cannot parse kafka payload data as json: %w", err)
+		}
+
+		err = ev.SetData(event.ApplicationJSON, data)
+		if err != nil {
+			return event.Event{}, fmt.Errorf("cannot set cloudevents data: %w", err)
+		}
+	}
+
+	return ev, nil
 }

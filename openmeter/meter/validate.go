@@ -11,17 +11,17 @@ import (
 
 // ValidateEvent validates an event against a meter.
 func ValidateEvent(meter Meter, ev event.Event) error {
+	// We can skip count events as they don't have value property
+	if meter.Aggregation == MeterAggregationCount {
+		return nil
+	}
+
 	// Parse CloudEvents data
 	var data interface{}
 
 	err := ev.DataAs(&data)
 	if err != nil {
 		return errors.New("cannot unmarshal event data")
-	}
-
-	// We can skip count events as they don't have value property
-	if meter.Aggregation == MeterAggregationCount {
-		return nil
 	}
 
 	// Get value from event data by value property
