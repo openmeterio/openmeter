@@ -146,19 +146,22 @@ func TestInvalidIngest(t *testing.T) {
 		return gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
 	}
 
-	// Send an event with invalid json data
+	// Send an event with invalid json data.
+	// CloudEvents accepts data as object or string, we are sending an invalid object as string.
+	// This should be rejected with a bad request.
 	{
-		ev := cloudevents.New()
-		ev.SetID(ulid.Make().String())
-		ev.SetSource("my-app")
-		ev.SetType(eventType)
-		ev.SetSubject("customer-1")
-		ev.SetTime(getTime())
-		_ = ev.SetData(cloudevents.ApplicationJSON, []byte("{"))
+		payload := fmt.Sprintf(`{
+			"id": "%s",
+			"source": "my-app",
+			"type": "%s",
+			"subject": "customer-1",
+			"time": "%s",
+			"data": "{"
+		}`, ulid.Make().String(), eventType, getTime().Format(time.RFC3339))
 
-		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/json", strings.NewReader(payload))
 		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	}
 
 	// Send an event with unsupported data content type: xml
@@ -173,7 +176,7 @@ func TestInvalidIngest(t *testing.T) {
 
 		resp, err := client.IngestEventWithResponse(context.Background(), ev)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode())
 	}
 
 	// Send an event without data
@@ -209,7 +212,7 @@ func TestInvalidIngest(t *testing.T) {
 
 	// Wait for events to be processed
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
-		resp, err := client.QueryMeterWithResponse(context.Background(), "dedupe", nil)
+		resp, err := client.QueryMeterWithResponse(context.Background(), eventType, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
@@ -224,20 +227,16 @@ func TestInvalidIngest(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode())
 	require.NotNil(t, resp.JSON200)
-	require.Len(t, resp.JSON200, 3)
 
 	events := *resp.JSON200
+	require.Len(t, resp.JSON200, 1)
 
-	// invalid json data should have an error
+	// invalid json data gets rejected with a bad request so it should not be in the list
+	// unsupported data content gets rejected with a bad request so it should not be in the list
+
+	// missing data should have processing error
+	// we only validate events against meters in the processing pipeline so this is an async error
 	require.NotNil(t, events[0].ValidationError)
-	require.Equal(t, "cannot unmarshal event data", events[0].ValidationError)
-
-	// unsupported data content type should have an error
-	require.NotNil(t, events[1].ValidationError)
-	require.Equal(t, "cannot unmarshal event data", events[1].ValidationError)
-
-	// missing data should have an error
-	require.NotNil(t, events[2].ValidationError)
 	require.Equal(t, `event data is missing value property at "$.duration_ms"`, events[2].ValidationError)
 }
 
