@@ -149,7 +149,7 @@ func TestInvalidIngest(t *testing.T) {
 	// Send an event with invalid json data
 	{
 		ev := cloudevents.New()
-		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetID(ulid.Make().String())
 		ev.SetSource("my-app")
 		ev.SetType(eventType)
 		ev.SetSubject("customer-1")
@@ -164,7 +164,7 @@ func TestInvalidIngest(t *testing.T) {
 	// Send an event with unsupported data content type: xml
 	{
 		ev := cloudevents.New()
-		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetID(ulid.Make().String())
 		ev.SetSource("my-app")
 		ev.SetType(eventType)
 		ev.SetSubject("customer-1")
@@ -179,7 +179,7 @@ func TestInvalidIngest(t *testing.T) {
 	// Send an event without data
 	{
 		ev := cloudevents.New()
-		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetID(ulid.Make().String())
 		ev.SetSource("my-app")
 		ev.SetType(eventType)
 		ev.SetSubject("customer-1")
@@ -193,7 +193,7 @@ func TestInvalidIngest(t *testing.T) {
 	// Send a valid event, this is what we should get back
 	{
 		ev := cloudevents.New()
-		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetID(ulid.Make().String())
 		ev.SetSource("my-app")
 		ev.SetType(eventType)
 		ev.SetSubject("customer-1")
