@@ -11048,11 +11048,11 @@ components:
           description: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
           nullable: true
         data:
+          type: object
           nullable: true
-          oneOf:
-            - type: object
-            - type: string
-          description: The event payload.
+          description: |-
+            The event payload.
+            Optional, if present it must be a JSON object.
       example:
         id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
         source: service-name

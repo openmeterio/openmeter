@@ -3251,8 +3251,11 @@ export interface components {
        * @example "2023-01-01T01:01:01.001Z"
        */
       time?: string | null
-      /** @description The event payload. */
-      data?: Record<string, never> | string | null
+      /**
+       * @description The event payload.
+       * Optional, if present it must be a JSON object.
+       */
+      data?: Record<string, unknown> | null
     }
     /**
      * @description The expiration duration enum
