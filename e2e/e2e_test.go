@@ -13,6 +13,7 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -132,6 +133,112 @@ func TestBatchIngest(t *testing.T) {
 		require.Len(t, resp.JSON200.Data, 1)
 		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
 	}, time.Minute, time.Second)
+}
+
+func TestInvalidIngest(t *testing.T) {
+	client := initClient(t)
+
+	// Make clickhouse's job easier by sending events within a fix time range
+	now := time.Now()
+	eventType := "ingest_invalid"
+
+	getTime := func() time.Time {
+		return gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+	}
+
+	// Send an event with invalid json data
+	{
+		ev := cloudevents.New()
+		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject("customer-1")
+		ev.SetTime(getTime())
+		_ = ev.SetData(cloudevents.ApplicationJSON, []byte("{"))
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Send an event with unsupported data content type: xml
+	{
+		ev := cloudevents.New()
+		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject("customer-1")
+		ev.SetTime(getTime())
+		_ = ev.SetData(cloudevents.ApplicationXML, []byte("<xml></xml>"))
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Send an event without data
+	{
+		ev := cloudevents.New()
+		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject("customer-1")
+		ev.SetTime(getTime())
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Send a valid event, this is what we should get back
+	{
+		ev := cloudevents.New()
+		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject("customer-1")
+		ev.SetTime(getTime())
+		_ = ev.SetData(cloudevents.ApplicationJSON, map[string]string{
+			"duration_ms": "100",
+		})
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Wait for events to be processed
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		resp, err := client.QueryMeterWithResponse(context.Background(), "dedupe", nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		require.Len(t, resp.JSON200.Data, 1)
+		assert.Equal(t, 100.0, resp.JSON200.Data[0].Value)
+	}, time.Minute, time.Second)
+
+	// List events with has error should return the invalid events
+	resp, err := client.ListEventsWithResponse(context.Background(), &api.ListEventsParams{
+		HasError: lo.ToPtr(true),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+	require.NotNil(t, resp.JSON200)
+	require.Len(t, resp.JSON200, 3)
+
+	events := *resp.JSON200
+
+	// invalid json data should have an error
+	require.NotNil(t, events[0].ValidationError)
+	require.Equal(t, "cannot unmarshal event data", events[0].ValidationError)
+
+	// unsupported data content type should have an error
+	require.NotNil(t, events[1].ValidationError)
+	require.Equal(t, "cannot unmarshal event data", events[1].ValidationError)
+
+	// missing data should have an error
+	require.NotNil(t, events[2].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, events[2].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {

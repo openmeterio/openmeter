@@ -46,6 +46,11 @@ meters:
     eventType: batchingest
     valueProperty: $.duration_ms
     aggregation: SUM
+  - slug: ingest_invalid
+    description: Meter for testing ingesting invalid events
+    eventType: ingest_invalid
+    valueProperty: $.duration_ms
+    aggregation: SUM
   - slug: dedupe
     description: Meter for testing deduplication
     eventType: dedupe
