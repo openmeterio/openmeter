@@ -88,6 +88,34 @@ func (d ingestEventsRequestDecoder) decode(ctx context.Context, r *http.Request)
 	contentType := r.Header.Get("Content-Type")
 
 	switch contentType {
+	case "application/json":
+		var apiRequest api.IngestEventsBody
+
+		err := json.NewDecoder(r.Body).Decode(&apiRequest)
+		if err != nil {
+			return req, ErrorInvalidEvent{
+				Err: err,
+			}
+		}
+
+		// Try to parse as a single event
+		e, err := apiRequest.AsEvent()
+		if err == nil {
+			req.Events = []event.Event{e}
+		} else {
+			// Try to parse as a batch of events
+			e, err := apiRequest.AsIngestEventsBody1()
+			if err == nil {
+				req.Events = e
+			}
+		}
+
+		// If we still don't have any events, return an error
+		if len(req.Events) == 0 {
+			return req, ErrorInvalidEvent{
+				Err: errors.New("no events found"),
+			}
+		}
 	case "application/cloudevents+json":
 		var apiRequest api.IngestEventsApplicationCloudeventsPlusJSONRequestBody
 
