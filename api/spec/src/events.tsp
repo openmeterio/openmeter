@@ -147,6 +147,9 @@ union IngestEventsBody {
 
 /**
  * CloudEvents Specification JSON Schema
+ *
+ * Optional properties are nullable according to the CloudEvents specification:
+ * OPTIONAL not omitted attributes MAY be represented as a null JSON value.
  */
 @extension("x-go-type", "event.Event")
 @extension(
@@ -198,7 +201,7 @@ model Event {
    * Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
    */
   @example("application/json")
-  datacontenttype?: "application/json" | null = "application/json";
+  datacontenttype?: "application/json" | null;
 
   /**
    * Identifies the schema that data adheres to.

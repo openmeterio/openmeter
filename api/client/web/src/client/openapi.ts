@@ -4003,6 +4003,9 @@ export interface components {
     }
     /**
      * @description CloudEvents Specification JSON Schema
+     *
+     *     Optional properties are nullable according to the CloudEvents specification:
+     *     OPTIONAL not omitted attributes MAY be represented as a null JSON value.
      * @example {
      *       "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
      *       "source": "service-name",
@@ -4037,11 +4040,10 @@ export interface components {
       type: string
       /**
        * @description Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
-       * @default application/json
        * @example application/json
        * @enum {string|null}
        */
-      datacontenttype: 'application/json'
+      datacontenttype?: 'application/json' | null
       /**
        * Format: uri
        * @description Identifies the schema that data adheres to.
