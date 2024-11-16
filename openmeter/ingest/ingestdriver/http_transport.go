@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -141,26 +140,6 @@ func (d ingestEventsRequestDecoder) decode(ctx context.Context, r *http.Request)
 		req.Events = apiRequest
 	default:
 		return req, ErrorInvalidContentType{ContentType: contentType}
-	}
-
-	// Validate the data content type of each event.
-	for _, ev := range req.Events {
-		contentType := ev.DataContentType()
-
-		// In some event formats the datacontenttype attribute MAY be omitted.
-		// For example, if a JSON format event has no datacontenttype attribute,
-		// then it is implied that the data is a JSON value conforming to the "application/json" media type.
-		// In other words: a JSON-format event with no datacontenttype is exactly equivalent to one with datacontenttype="application/json".
-		// https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
-		if contentType == "" {
-			continue
-		}
-
-		if contentType != "application/json" {
-			return req, ErrorInvalidEvent{
-				Err: fmt.Errorf("unsupported cloudevents data content type with id %s: %s", ev.ID(), contentType),
-			}
-		}
 	}
 
 	return req, nil

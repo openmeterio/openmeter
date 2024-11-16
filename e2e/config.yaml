@@ -46,6 +46,11 @@ meters:
     eventType: batchingest
     valueProperty: $.duration_ms
     aggregation: SUM
+  - slug: ingest_content_type_application_json
+    description: Meter for testing ingestion
+    eventType: ingest_content_type_application_json
+    valueProperty: $.duration_ms
+    aggregation: SUM
   - slug: ingest_invalid
     description: Meter for testing ingesting invalid events
     eventType: ingest_invalid

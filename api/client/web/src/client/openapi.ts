@@ -4036,10 +4036,12 @@ export interface components {
        */
       type: string
       /**
-       * @description Content type of the data value. Must adhere to RFC 2046 format.
+       * @description Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+       * @default application/json
        * @example application/json
+       * @enum {string|null}
        */
-      datacontenttype?: string | null
+      datacontenttype: 'application/json'
       /**
        * Format: uri
        * @description Identifies the schema that data adheres to.

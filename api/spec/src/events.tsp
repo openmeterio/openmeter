@@ -195,11 +195,11 @@ model Event {
   type: string;
 
   /**
-   * Content type of the data value. Must adhere to RFC 2046 format.
+   * Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
    */
-  @minLength(1)
   @example("application/json")
-  datacontenttype?: string | null;
+  datacontenttype?: "application/json" | null = "application/json";
+
 
   /**
    * Identifies the schema that data adheres to.
