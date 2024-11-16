@@ -247,11 +247,12 @@ func TestInvalidIngest(t *testing.T) {
 
 		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
 		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		resp.Body.Close()
 	}
 
 	// Send an event where data is null
+	// null data should be treated as no data in CloudEvents and should be accepted
 	{
 		payload := fmt.Sprintf(`{
 				"specversion" : "1.0",
@@ -320,22 +321,20 @@ func TestInvalidIngest(t *testing.T) {
 	require.NotNil(t, resp.JSON200)
 
 	events := *resp.JSON200
-	require.Len(t, events, 3)
+	require.Len(t, events, 2)
 
 	// unsupported data content gets rejected with a bad request so it should not be in the list
 
-	// string data should have processing error
+	// non json data should be rejected with a bad request so it should not be in the list
+
+	// null data should have processing error
 	require.NotNil(t, events[0].ValidationError)
 	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[0].ValidationError)
 
-	// null data should have processing error
-	require.NotNil(t, events[1].ValidationError)
-	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[1].ValidationError)
-
 	// missing data should have processing error
 	// we only validate events against meters in the processing pipeline so this is an async error
-	require.NotNil(t, events[2].ValidationError)
-	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[2].ValidationError)
+	require.NotNil(t, events[1].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[1].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {

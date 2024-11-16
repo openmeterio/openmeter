@@ -224,9 +224,10 @@ model Event {
 
   /**
    * The event payload.
+   * Optional, if present it must be a JSON object.
    */
   @oneOf
-  data?: {} | string | null;
+  data?: {} | null;
 }
 
 /**

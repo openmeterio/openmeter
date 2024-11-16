@@ -104,7 +104,6 @@ export class EventsClient extends BaseClient {
           time: ev.time?.toISOString(),
           datacontenttype: ev.datacontenttype,
           dataschema: ev.dataschema,
-          // @ts-expect-error data type
           data: ev.data,
         }
 
