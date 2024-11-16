@@ -216,23 +216,6 @@ func TestInvalidIngest(t *testing.T) {
 		return gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
 	}
 
-	// Send an event where data is a string not an object
-	{
-		payload := fmt.Sprintf(`{
-			"specversion" : "1.0",
-			"id": "%s",
-			"source": "my-app",
-			"type": "%s",
-			"subject": "%s",
-			"time": "%s",
-			"data": "{}"
-		}`, ulid.Make().String(), eventType, subject, getTime().Format(time.RFC3339))
-
-		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
-		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode)
-	}
-
 	// Send an event with unsupported data content type: xml
 	{
 		ev := cloudevents.New()
@@ -246,6 +229,40 @@ func TestInvalidIngest(t *testing.T) {
 		resp, err := client.IngestEventWithResponse(context.Background(), ev)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode())
+	}
+
+	// Send an event where data is a string
+	{
+		payload := fmt.Sprintf(`{
+			"specversion" : "1.0",
+			"id": "%s",
+			"source": "my-app",
+			"type": "%s",
+			"subject": "%s",
+			"time": "%s",
+			"data": "string"
+		}`, ulid.Make().String(), eventType, subject, getTime().Format(time.RFC3339))
+
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+	}
+
+	// Send an event where data is null
+	{
+		payload := fmt.Sprintf(`{
+				"specversion" : "1.0",
+				"id": "%s",
+				"source": "my-app",
+				"type": "%s",
+				"subject": "%s",
+				"time": "%s",
+				"data": null
+			}`, ulid.Make().String(), eventType, subject, getTime().Format(time.RFC3339))
+
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode)
 	}
 
 	// Send an event without data
@@ -299,17 +316,22 @@ func TestInvalidIngest(t *testing.T) {
 	require.NotNil(t, resp.JSON200)
 
 	events := *resp.JSON200
-	require.Len(t, events, 2)
+	require.Len(t, events, 3)
 
-	// non json value data gets rejected with a bad request so it should not be in the list
 	// unsupported data content gets rejected with a bad request so it should not be in the list
+
+	// string data should have processing error
 	require.NotNil(t, events[0].ValidationError)
 	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[0].ValidationError)
 
-	// missing data should have processing error
-	// we only validate events against meters in the processing pipeline so this is an async error
+	// null data should have processing error
 	require.NotNil(t, events[1].ValidationError)
 	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[1].ValidationError)
+
+	// missing data should have processing error
+	// we only validate events against meters in the processing pipeline so this is an async error
+	require.NotNil(t, events[2].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[2].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {
