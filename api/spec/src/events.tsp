@@ -106,8 +106,7 @@ interface Events {
     @header contentType: "application/cloudevents+json",
     @body body: Event,
   ): {
-    @header contentType: "application/cloudevents+json";
-    @body _: Event;
+    @statusCode _: 204;
   } | CommonErrors;
 
   @post
@@ -118,9 +117,32 @@ interface Events {
     @header contentType: "application/cloudevents-batch+json",
     @body body: Event[],
   ): {
-    @header contentType: "application/cloudevents-batch+json";
-    @body _: Event[];
+    @statusCode _: 204;
   } | CommonErrors;
+
+  @post
+  @operationId("ingestEvents")
+  @summary("")
+  @sharedRoute
+  ingestEventsJson(
+    @header contentType: "application/json",
+    @body body: IngestEventsBody,
+  ): {
+    @statusCode _: 204;
+  } | CommonErrors;
+}
+
+/**
+ * The body of the events request.
+ * Either a single event or a batch of events.
+ */
+@friendlyName("IngestEventsBody")
+union IngestEventsBody {
+  @friendlyName("Event")
+  Event: Event,
+
+  @friendlyName("Events")
+  Events: Event[],
 }
 
 /**

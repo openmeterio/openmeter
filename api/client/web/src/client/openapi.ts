@@ -4341,6 +4341,11 @@ export interface components {
        */
       usage: number
     }
+    /** @description The body of the events request.
+     *     Either a single event or a batch of events. */
+    IngestEventsBody:
+      | components['schemas']['Event']
+      | components['schemas']['Event'][]
     /**
      * @description An ingested event with optional validation error.
      * @example {
@@ -10044,18 +10049,16 @@ export interface operations {
       content: {
         'application/cloudevents+json': components['schemas']['Event']
         'application/cloudevents-batch+json': components['schemas']['Event'][]
+        'application/json': components['schemas']['IngestEventsBody']
       }
     }
     responses: {
-      /** @description The request has succeeded. */
-      200: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
         headers: {
           [name: string]: unknown
         }
-        content: {
-          'application/cloudevents+json': components['schemas']['Event']
-          'application/cloudevents-batch+json': components['schemas']['Event'][]
-        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

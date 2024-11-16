@@ -2540,19 +2540,10 @@ paths:
       operationId: ingestEvents
       parameters: []
       description: Ingests an event or batch of events following the CloudEvents specification.
-      summary: Ingest events
+      summary: 'Ingest events '
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/cloudevents+json:
-              schema:
-                $ref: '#/components/schemas/Event'
-            application/cloudevents-batch+json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Event'
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -2602,6 +2593,9 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/Event'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestEventsBody'
   /api/v1/features:
     get:
       operationId: listFeatures
@@ -11766,6 +11760,15 @@ components:
           example: 100
           description: The usage in the period
       description: Usage Record
+    IngestEventsBody:
+      anyOf:
+        - $ref: '#/components/schemas/Event'
+        - type: array
+          items:
+            $ref: '#/components/schemas/Event'
+      description: |-
+        The body of the events request.
+        Either a single event or a batch of events.
     IngestedEvent:
       type: object
       required:
