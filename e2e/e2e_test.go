@@ -13,6 +13,7 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -89,6 +90,76 @@ func TestIngest(t *testing.T) {
 	}, time.Minute, time.Second)
 }
 
+// Send an event with content type application/json.
+// We treat request as application/cloudevents+json if it's a single event
+// and treat application/cloudevents-batch+json if it's an array of events.
+func TestIngestContentTypeApplicationJSON(t *testing.T) {
+	client := initClient(t)
+
+	tm := time.Now().Add(-time.Hour).Format(time.RFC3339)
+	eventType := "ingest_content_type_application_json"
+
+	// Send a single event
+	{
+		payload := fmt.Sprintf(`{
+			"specversion" : "1.0",
+			"id": "%s",
+			"source": "my-app",
+			"type": "%s",
+			"subject": "customer-1",
+			"time": "%s",
+			"data": { "duration_ms": "100" }
+		}`, ulid.Make().String(), eventType, tm)
+
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/json", strings.NewReader(payload))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
+	}
+
+	// Send an array of events
+	{
+		payload := fmt.Sprintf(`[
+			{
+				"specversion" : "1.0",
+				"id": "%s",
+				"source": "my-app",
+				"type": "%s",
+				"subject": "customer-1",
+				"time": "%s",
+				"data": { "duration_ms": "100" }
+			},
+			{
+				"specversion" : "1.0",
+				"id": "%s",
+				"source": "my-app",
+				"type": "%s",
+				"subject": "customer-1",
+				"time": "%s",
+				"data": { "duration_ms": "100" }
+			}
+		]`,
+			ulid.Make().String(), eventType, tm,
+			ulid.Make().String(), eventType, tm,
+		)
+
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/json", strings.NewReader(payload))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
+	}
+
+	// Wait for events to be processed
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		resp, err := client.QueryMeterWithResponse(context.Background(), eventType, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		require.Len(t, resp.JSON200.Data, 1)
+		assert.Equal(t, 300.0, resp.JSON200.Data[0].Value)
+	}, time.Minute, time.Second)
+}
+
 func TestBatchIngest(t *testing.T) {
 	client := initClient(t)
 
@@ -132,6 +203,139 @@ func TestBatchIngest(t *testing.T) {
 		require.Len(t, resp.JSON200.Data, 1)
 		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
 	}, time.Minute, time.Second)
+}
+
+func TestInvalidIngest(t *testing.T) {
+	client := initClient(t)
+
+	// Make clickhouse's job easier by sending events within a fix time range
+	now := time.Now()
+	eventType := "ingest_invalid"
+	subject := eventType
+	meterKey := eventType
+
+	getTime := func() time.Time {
+		return gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+	}
+
+	// Send an event with unsupported data content type: xml
+	{
+		ev := cloudevents.New()
+		ev.SetID(ulid.Make().String())
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject(subject)
+		ev.SetTime(getTime())
+		_ = ev.SetData(cloudevents.ApplicationXML, []byte("<xml></xml>"))
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode())
+	}
+
+	// Send an event where data is a string
+	{
+		payload := fmt.Sprintf(`{
+			"specversion" : "1.0",
+			"id": "%s",
+			"source": "my-app",
+			"type": "%s",
+			"subject": "%s",
+			"time": "%s",
+			"data": "string"
+		}`, ulid.Make().String(), eventType, subject, getTime().Format(time.RFC3339))
+
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
+	}
+
+	// Send an event where data is null
+	{
+		payload := fmt.Sprintf(`{
+				"specversion" : "1.0",
+				"id": "%s",
+				"source": "my-app",
+				"type": "%s",
+				"subject": "%s",
+				"time": "%s",
+				"data": null
+			}`, ulid.Make().String(), eventType, subject, getTime().Format(time.RFC3339))
+
+		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
+	}
+
+	// Send an event without data
+	{
+		ev := cloudevents.New()
+		ev.SetID(ulid.Make().String())
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject(subject)
+		ev.SetTime(getTime())
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Send a valid event, this is what we should get back
+	{
+		ev := cloudevents.New()
+		ev.SetID(ulid.Make().String())
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject(subject)
+		ev.SetTime(getTime())
+		_ = ev.SetData(cloudevents.ApplicationJSON, map[string]string{
+			"duration_ms": "100",
+		})
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Wait for events to be processed
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		resp, err := client.QueryMeterWithResponse(context.Background(), meterKey, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		require.Len(t, resp.JSON200.Data, 1)
+		assert.Equal(t, 100.0, resp.JSON200.Data[0].Value)
+	}, time.Minute, time.Second)
+
+	// List events with has error should return the invalid events
+	resp, err := client.ListEventsWithResponse(context.Background(), &api.ListEventsParams{
+		Subject:  &subject,
+		HasError: lo.ToPtr(true),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+	require.NotNil(t, resp.JSON200)
+
+	events := *resp.JSON200
+	require.Len(t, events, 3)
+
+	// unsupported data content gets rejected with a bad request so it should not be in the list
+
+	// string data should have processing error
+	require.NotNil(t, events[0].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[0].ValidationError)
+
+	// null data should have processing error
+	require.NotNil(t, events[1].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[1].ValidationError)
+
+	// missing data should have processing error
+	// we only validate events against meters in the processing pipeline so this is an async error
+	require.NotNil(t, events[2].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[2].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {

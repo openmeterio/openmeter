@@ -258,22 +258,27 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 			return nil, err
 		}
 
-		// Parse data
-		var data interface{}
-		err := json.Unmarshal([]byte(dataStr), &data)
-		if err != nil {
-			return nil, fmt.Errorf("query events parse data: %w", err)
-		}
-
 		event := event.New()
 		event.SetID(id)
 		event.SetType(eventType)
 		event.SetSubject(subject)
 		event.SetSource(source)
 		event.SetTime(eventTime)
-		err = event.SetData("application/json", data)
-		if err != nil {
-			return nil, fmt.Errorf("query events set data: %w", err)
+
+		// Parse data, data is optional on CloudEvents.
+		// For now we only support application/json.
+		// TODO (pmarton): store data content type in the database
+		if dataStr != "" {
+			var data interface{}
+			err := json.Unmarshal([]byte(dataStr), &data)
+			if err != nil {
+				return nil, fmt.Errorf("query events parse data: %w", err)
+			}
+
+			err = event.SetData("application/json", data)
+			if err != nil {
+				return nil, fmt.Errorf("query events set data: %w", err)
+			}
 		}
 
 		ingestedEvent := api.IngestedEvent{

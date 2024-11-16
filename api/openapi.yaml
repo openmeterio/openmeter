@@ -11025,10 +11025,11 @@ components:
           description: Contains a value describing the type of event related to the originating occurrence.
         datacontenttype:
           type: string
+          enum:
+            - application/json
           nullable: true
           example: application/json
-          minLength: 1
-          description: Content type of the data value. Must adhere to RFC 2046 format.
+          description: Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
         dataschema:
           type: string
           format: uri
@@ -11059,7 +11060,11 @@ components:
         type: prompt
         subject: customer-id
         time: 2023-01-01T01:01:01.001Z
-      description: CloudEvents Specification JSON Schema
+      description: |-
+        CloudEvents Specification JSON Schema
+
+        Optional properties are nullable according to the CloudEvents specification:
+        OPTIONAL not omitted attributes MAY be represented as a null JSON value.
       x-go-type-import:
         path: github.com/cloudevents/sdk-go/v2/event
       x-go-type: event.Event
