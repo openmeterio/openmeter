@@ -114,6 +114,7 @@ func TestIngestContentTypeApplicationJSON(t *testing.T) {
 		resp, err := client.IngestEventsWithBody(context.Background(), "application/json", strings.NewReader(payload))
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
 	}
 
 	// Send an array of events
@@ -145,6 +146,7 @@ func TestIngestContentTypeApplicationJSON(t *testing.T) {
 		resp, err := client.IngestEventsWithBody(context.Background(), "application/json", strings.NewReader(payload))
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
 	}
 
 	// Wait for events to be processed
@@ -246,6 +248,7 @@ func TestInvalidIngest(t *testing.T) {
 		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
 	}
 
 	// Send an event where data is null
@@ -263,6 +266,7 @@ func TestInvalidIngest(t *testing.T) {
 		resp, err := client.IngestEventsWithBody(context.Background(), "application/cloudevents+json", strings.NewReader(payload))
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, resp.StatusCode)
+		resp.Body.Close()
 	}
 
 	// Send an event without data

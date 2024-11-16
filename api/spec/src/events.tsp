@@ -200,7 +200,6 @@ model Event {
   @example("application/json")
   datacontenttype?: "application/json" | null = "application/json";
 
-
   /**
    * Identifies the schema that data adheres to.
    */
