@@ -227,7 +227,7 @@ model Event {
    * Optional, if present it must be a JSON object.
    */
   @oneOf
-  data?: {} | null;
+  data?: Record<unknown> | null;
 }
 
 /**

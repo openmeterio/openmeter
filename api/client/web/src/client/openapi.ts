@@ -4062,7 +4062,9 @@ export interface components {
       time?: string | null
       /** @description The event payload.
        *     Optional, if present it must be a JSON object. */
-      data?: Record<string, never>
+      data?: {
+        [key: string]: unknown
+      } | null
     }
     /**
      * @description The expiration duration enum

@@ -11049,6 +11049,7 @@ components:
           nullable: true
         data:
           type: object
+          additionalProperties: {}
           nullable: true
           description: |-
             The event payload.
