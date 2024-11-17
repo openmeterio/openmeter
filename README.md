@@ -15,7 +15,7 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/openmeterio/openmeter)
 ![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/openmeterio?label=Follow)
 
-OpenMeter is a Real-Time and Scalable Usage Metering for AI, Usage-Based Billing, Infrastructure, and IoT use-cases.
+OpenMeter is a scalable Metering and Billing platform for AI and DevTool products with real-time insights and usage limit enforcement.
 
 Learn more about OpenMeter at [https://openmeter.io](https://openmeter.io).
 
