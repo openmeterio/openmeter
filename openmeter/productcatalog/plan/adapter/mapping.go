@@ -136,6 +136,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (*plan.RateCard, error) {
 		Metadata:            r.Metadata,
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
+		Price:               r.Price,
 		PhaseID:             r.PhaseID,
 	}
 
@@ -170,13 +171,11 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (*plan.RateCard, error) {
 		ratecard = plan.NewRateCardFrom(plan.FlatFeeRateCard{
 			RateCardMeta:   meta,
 			BillingCadence: billingCadence,
-			Price:          lo.FromPtrOr(r.Price, plan.Price{}),
 		})
 	case plan.UsageBasedRateCardType:
 		ratecard = plan.NewRateCardFrom(plan.UsageBasedRateCard{
 			RateCardMeta:   meta,
 			BillingCadence: lo.FromPtrOr(billingCadence, datex.Period{}),
-			Price:          r.Price,
 		})
 	}
 	if err = ratecard.Validate(); err != nil {
@@ -218,7 +217,7 @@ func asPlanRateCardRow(r plan.RateCard) (entdb.PlanRateCard, error) {
 
 		ratecard.Type = plan.FlatFeeRateCardType
 		ratecard.BillingCadence = flat.BillingCadence.ISOStringPtrOrNil()
-		ratecard.Price = &flat.Price
+		ratecard.Price = flat.Price
 
 	case plan.UsageBasedRateCardType:
 		usage, err := r.AsUsageBased()

@@ -134,24 +134,24 @@ func TestPlanService(t *testing.T) {
 										Code: "txcd_10000000",
 									},
 								},
-							},
-							BillingCadence: MonthPeriod,
-							Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-								Mode: plan.VolumeTieredPrice,
-								Tiers: []plan.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-										FlatPrice: &plan.PriceTierFlatPrice{
-											Amount: decimal.NewFromInt(100),
-										},
-										UnitPrice: &plan.PriceTierUnitPrice{
-											Amount: decimal.NewFromInt(50),
+								Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
+									Mode: plan.VolumeTieredPrice,
+									Tiers: []plan.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											FlatPrice: &plan.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(100),
+											},
+											UnitPrice: &plan.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(50),
+											},
 										},
 									},
-								},
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-								MaximumAmount: nil,
-							})),
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									MaximumAmount: nil,
+								})),
+							},
+							BillingCadence: MonthPeriod,
 						}),
 					},
 				})
@@ -202,24 +202,24 @@ func TestPlanService(t *testing.T) {
 											Code: "txcd_10000000",
 										},
 									},
-								},
-								BillingCadence: MonthPeriod,
-								Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-									Mode: plan.VolumeTieredPrice,
-									Tiers: []plan.PriceTier{
-										{
-											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-											FlatPrice: &plan.PriceTierFlatPrice{
-												Amount: decimal.NewFromInt(50),
-											},
-											UnitPrice: &plan.PriceTierUnitPrice{
-												Amount: decimal.NewFromInt(25),
+									Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
+										Mode: plan.VolumeTieredPrice,
+										Tiers: []plan.PriceTier{
+											{
+												UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+												FlatPrice: &plan.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(50),
+												},
+												UnitPrice: &plan.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(25),
+												},
 											},
 										},
-									},
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									MaximumAmount: nil,
-								})),
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										MaximumAmount: nil,
+									})),
+								},
+								BillingCadence: MonthPeriod,
 							}),
 						},
 					})
@@ -440,12 +440,12 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 									Code: "txcd_10000000",
 								},
 							},
+							Price: lo.ToPtr(plan.NewPriceFrom(plan.FlatPrice{
+								Amount:      decimal.NewFromInt(0),
+								PaymentTerm: plan.InArrearsPaymentTerm,
+							})),
 						},
 						BillingCadence: &MonthPeriod,
-						Price: plan.NewPriceFrom(plan.FlatPrice{
-							Amount:      decimal.NewFromInt(0),
-							PaymentTerm: plan.InArrearsPaymentTerm,
-						}),
 					}),
 				},
 			},
@@ -475,24 +475,24 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 									Code: "txcd_10000000",
 								},
 							},
-						},
-						BillingCadence: MonthPeriod,
-						Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
-							Mode: plan.VolumeTieredPrice,
-							Tiers: []plan.PriceTier{
-								{
-									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									FlatPrice: &plan.PriceTierFlatPrice{
-										Amount: decimal.NewFromInt(100),
-									},
-									UnitPrice: &plan.PriceTierUnitPrice{
-										Amount: decimal.NewFromInt(50),
+							Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
+								Mode: plan.VolumeTieredPrice,
+								Tiers: []plan.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										FlatPrice: &plan.PriceTierFlatPrice{
+											Amount: decimal.NewFromInt(100),
+										},
+										UnitPrice: &plan.PriceTierUnitPrice{
+											Amount: decimal.NewFromInt(50),
+										},
 									},
 								},
-							},
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							MaximumAmount: nil,
-						})),
+								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								MaximumAmount: nil,
+							})),
+						},
+						BillingCadence: MonthPeriod,
 					}),
 				},
 			},
