@@ -81,7 +81,7 @@ model CreateStripeCheckoutSessionRequest {
    * Provide a customer ID to use an existing OpenMeter customer.
    * or provide a customer object to create a new customer.
    */
-  customer: CustomerId | Customer;
+  customer: CustomerId | Rest.Resource.ResourceCreateModel<Customer>;
 
   /**
    * Stripe customer ID.

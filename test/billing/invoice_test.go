@@ -52,10 +52,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: namespace,
 
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),
@@ -447,10 +445,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: namespace,
 
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
@@ -864,10 +860,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 				Namespace: namespace,
 
-				Customer: customerentity.Customer{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "Test Customer",
-					}),
+				CustomerMutate: customerentity.CustomerMutate{
+					Name:         "Test Customer",
 					PrimaryEmail: lo.ToPtr("test@test.com"),
 					BillingAddress: &models.Address{
 						Country: lo.ToPtr(models.CountryCode("US")),
@@ -1192,10 +1186,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 				Namespace: namespace,
 
-				Customer: customerentity.Customer{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "Test Customer",
-					}),
+				CustomerMutate: customerentity.CustomerMutate{
+					Name:         "Test Customer",
 					PrimaryEmail: lo.ToPtr("test@test.com"),
 					BillingAddress: &models.Address{
 						Country: lo.ToPtr(models.CountryCode("US")),
@@ -1316,10 +1308,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: namespace,
 
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),

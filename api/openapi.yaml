@@ -1938,14 +1938,14 @@ paths:
       summary: List customers
       description: List customers.
       parameters:
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.order'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.orderBy'
         - $ref: '#/components/parameters/queryCustomerList.includeDeleted'
         - $ref: '#/components/parameters/queryCustomerList.name'
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
       responses:
         '200':
           description: The request has succeeded.
@@ -9760,7 +9760,7 @@ components:
         customer:
           anyOf:
             - $ref: '#/components/schemas/CustomerId'
-            - $ref: '#/components/schemas/Customer'
+            - $ref: '#/components/schemas/CustomerCreate'
           description: |-
             Provide a customer ID to use an existing OpenMeter customer.
             or provide a customer object to create a new customer.
@@ -11649,8 +11649,15 @@ components:
       description: Paginated response
     ListAppsRequest:
       type: object
-      allOf:
-        - $ref: '#/components/schemas/PaginatedQuery'
+      properties:
+        page:
+          type: integer
+          description: The page number.
+          default: 1
+        pageSize:
+          type: integer
+          description: The number of items in the page.
+          default: 100
       description: Query params for listing installed apps
     ListEntitlementsResult:
       oneOf:
@@ -12593,18 +12600,6 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
-    PaginatedQuery:
-      type: object
-      properties:
-        page:
-          type: integer
-          description: The page number.
-          default: 1
-        pageSize:
-          type: integer
-          description: The number of items in the page.
-          default: 100
-      description: Paginated query parameters.
     Percentage:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?%$
@@ -14971,44 +14966,6 @@ components:
             $ref: '#/components/schemas/GrantBurnDownHistorySegment'
           description: Grant burndown history.
       description: The windowed balance history.
-    queryCustomerList:
-      type: object
-      properties:
-        order:
-          allOf:
-            - $ref: '#/components/schemas/SortOrder'
-          example: ASC
-          description: The order direction.
-          default: ASC
-        orderBy:
-          allOf:
-            - $ref: '#/components/schemas/CustomerOrderBy'
-          description: The order by field.
-        includeDeleted:
-          type: boolean
-          description: Include deleted customers.
-          default: false
-        name:
-          type: string
-          example: ACME
-          description: |-
-            Filter customers by name.
-            Case-insensitive partial match.
-        primaryEmail:
-          type: string
-          example: acme@test.com
-          description: |-
-            Filter customers by primary email.
-            Case-insensitive partial match.
-        subject:
-          type: string
-          example: my_subject_key
-          description: |-
-            Filter customers by usage attribution subject.
-            Case-insensitive partial match.
-      allOf:
-        - $ref: '#/components/schemas/PaginatedQuery'
-      description: Query params for listing customers.
   securitySchemes:
     PortalTokenAuth:
       type: http

@@ -25,7 +25,9 @@ interface Customers {
   @operationId("createCustomer")
   @summary("Create customer")
   @extension("x-internal", true)
-  create(@body customer: Rest.Resource.ResourceCreateModel<Customer>): Customer | CommonErrors;
+  create(
+    @body customer: Rest.Resource.ResourceCreateModel<Customer>,
+  ): Customer | CommonErrors;
 
   /**
    * List customers.
@@ -76,7 +78,9 @@ interface Customers {
  * Query params for listing customers.
  */
 @friendlyName("queryCustomerList")
-model ListCustomersParams extends PaginatedQuery {
+model ListCustomersParams {
+  ...PaginatedQuery;
+
   /**
    * Order customers by.
    * @TODO: set default value to CustomerOrderBy.name

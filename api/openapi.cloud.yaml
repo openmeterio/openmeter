@@ -1931,28 +1931,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Customer'
+              $ref: '#/components/schemas/CustomerCreate'
       x-internal: true
     get:
       operationId: listCustomers
       summary: List customers
       description: List customers.
       parameters:
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.order'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.orderBy'
         - $ref: '#/components/parameters/queryCustomerList.includeDeleted'
         - $ref: '#/components/parameters/queryCustomerList.name'
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerList'
+                $ref: '#/components/schemas/CustomerPaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -2125,7 +2125,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Customer'
+              $ref: '#/components/schemas/CustomerReplaceUpdate'
       x-internal: true
     delete:
       operationId: deleteCustomer
@@ -2140,12 +2140,8 @@ paths:
             example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Customer'
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -10154,7 +10150,7 @@ components:
         customer:
           anyOf:
             - $ref: '#/components/schemas/CustomerId'
-            - $ref: '#/components/schemas/Customer'
+            - $ref: '#/components/schemas/CustomerCreate'
           description: |-
             Provide a customer ID to use an existing OpenMeter customer.
             or provide a customer object to create a new customer.
@@ -10395,6 +10391,63 @@ components:
         createdAt: 2024-01-01T01:01:01.001Z
         updatedAt: 2024-01-01T01:01:01.001Z
       description: A customer object.
+    CustomerCreate:
+      type: object
+      required:
+        - name
+        - usageAttribution
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        timezone:
+          type: string
+          description: Timezone of the customer.
+          title: Timezone
+        usageAttribution:
+          allOf:
+            - $ref: '#/components/schemas/CustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer
+          title: Usage Attribution
+        primaryEmail:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billingAddress:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+        external:
+          allOf:
+            - $ref: '#/components/schemas/CustomerExternalMapping'
+          description: External mappings for the customer.
+          title: External Mappings
+      description: Resource create operation model.
     CustomerExternalMapping:
       type: object
       properties:
@@ -10417,32 +10470,6 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
       description: Create Stripe checkout session customer ID.
-    CustomerList:
-      type: object
-      required:
-        - page
-        - pageSize
-        - totalCount
-        - items
-      properties:
-        page:
-          type: integer
-          description: The page number.
-        pageSize:
-          type: integer
-          minimum: 1
-          maximum: 1000
-          description: The number of items in the page.
-        totalCount:
-          type: integer
-          description: The total number of items.
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Customer'
-          maxItems: 1000
-          description: The items in the page.
-      description: A page of results.
     CustomerOrderBy:
       type: string
       enum:
@@ -10476,6 +10503,89 @@ components:
             $ref: '#/components/schemas/BillingCustomerOverride'
           description: The items in the current page.
       description: Paginated response
+    CustomerPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+          description: The items in the current page.
+      description: Paginated response
+    CustomerReplaceUpdate:
+      type: object
+      required:
+        - name
+        - usageAttribution
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        timezone:
+          type: string
+          description: Timezone of the customer.
+          title: Timezone
+        usageAttribution:
+          allOf:
+            - $ref: '#/components/schemas/CustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer
+          title: Usage Attribution
+        primaryEmail:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billingAddress:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+        external:
+          allOf:
+            - $ref: '#/components/schemas/CustomerExternalMapping'
+          description: External mappings for the customer.
+          title: External Mappings
+      description: Resource update operation model.
     CustomerUsageAttribution:
       type: object
       required:

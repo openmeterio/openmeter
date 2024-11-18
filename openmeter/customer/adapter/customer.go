@@ -311,23 +311,14 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				}
 			}
 
-			getCustomerInput := customerentity.GetCustomerInput{
-				Namespace: input.Namespace,
-				ID:        input.ID,
-			}
-
-			if err := getCustomerInput.Validate(); err != nil {
-				return nil, fmt.Errorf("invalid customer ID: %w", err)
-			}
-
 			// Get the customer to diff the subjects
-			dbCustomer, err := repo.GetCustomer(ctx, getCustomerInput)
+			dbCustomer, err := repo.GetCustomer(ctx, customerentity.GetCustomerInput(input.CustomerID))
 			if err != nil {
 				return nil, err
 			}
 
 			query := repo.db.Customer.UpdateOneID(dbCustomer.ID).
-				Where(customerdb.Namespace(input.Namespace)).
+				Where(customerdb.Namespace(dbCustomer.Namespace)).
 				SetUpdatedAt(clock.Now().UTC()).
 				SetName(input.Name).
 				SetOrClearDescription(input.Description).
@@ -360,16 +351,13 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			if err != nil {
 				if entdb.IsNotFound(err) {
 					return nil, customerentity.NotFoundError{
-						CustomerID: customerentity.CustomerID{
-							Namespace: input.Namespace,
-							ID:        input.ID,
-						},
+						CustomerID: input.CustomerID,
 					}
 				}
 
 				if entdb.IsConstraintError(err) {
 					return nil, customerentity.SubjectKeyConflictError{
-						Namespace:   input.Namespace,
+						Namespace:   input.CustomerID.Namespace,
 						SubjectKeys: input.UsageAttribution.SubjectKeys,
 					}
 				}
@@ -401,8 +389,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 						subjectsKeysToAdd,
 						func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
 							return repo.db.CustomerSubjects.Create().
-								SetNamespace(input.Namespace).
-								SetCustomerID(input.ID).
+								SetNamespace(input.CustomerID.Namespace).
+								SetCustomerID(input.CustomerID.ID).
 								SetSubjectKey(subjectKey)
 						},
 					)...,
@@ -411,7 +399,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			if err != nil {
 				if entdb.IsConstraintError(err) {
 					return nil, customerentity.SubjectKeyConflictError{
-						Namespace:   input.Namespace,
+						Namespace:   input.CustomerID.Namespace,
 						SubjectKeys: subjectsKeysToAdd,
 					}
 				}
@@ -439,14 +427,14 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 
 			_, err = repo.db.CustomerSubjects.
 				Delete().
-				Where(customersubjectsdb.CustomerID(input.ID)).
-				Where(customersubjectsdb.Namespace(input.Namespace)).
+				Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
+				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
 				Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
 					return nil, customerentity.SubjectKeyConflictError{
-						Namespace:   input.Namespace,
+						Namespace:   input.CustomerID.Namespace,
 						SubjectKeys: subjectKeysToRemove,
 					}
 				}
@@ -468,8 +456,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				}
 
 				entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
-					Namespace:  input.Namespace,
-					CustomerID: input.ID,
+					Namespace:  input.CustomerID.Namespace,
+					CustomerID: input.CustomerID.ID,
 					SubjectKey: subjectKey,
 				})
 			}
@@ -477,8 +465,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			// Add the new subjects
 			for _, subjectKey := range subjectsKeysToAdd {
 				entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
-					Namespace:  input.Namespace,
-					CustomerID: input.ID,
+					Namespace:  input.CustomerID.Namespace,
+					CustomerID: input.CustomerID.ID,
 					SubjectKey: subjectKey,
 				})
 			}

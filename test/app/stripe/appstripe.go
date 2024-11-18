@@ -15,7 +15,6 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var TestStripeAPIKey = "test_stripe_api_key"
@@ -170,10 +169,8 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 	// Create a customer
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Test Customer",
 			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,
@@ -209,10 +206,8 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	// Create test customers
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Test Customer",
 			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,
@@ -229,10 +224,8 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer Without Stripe",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Test Customer Without Stripe",
 		},
 	})
 
@@ -282,10 +275,8 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	// Create test customers
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Test Customer",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Test Customer",
 			Apps: []customerentity.CustomerApp{
 				{
 					Type: appentitybase.AppTypeStripe,

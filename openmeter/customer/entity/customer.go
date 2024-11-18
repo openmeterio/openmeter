@@ -26,6 +26,12 @@ type Customer struct {
 }
 
 func (c Customer) Validate() error {
+	if c.Name == "" {
+		return ValidationError{
+			Err: errors.New("name is required"),
+		}
+	}
+
 	if c.Timezone != nil {
 		if err := c.Timezone.Validate(); err != nil {
 			return ValidationError{
@@ -82,6 +88,42 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 	return apiCustomer, nil
 }
 
+type CustomerMutate struct {
+	Name             string                   `json:"name"`
+	Description      *string                  `json:"description,omitempty"`
+	Timezone         *timezone.Timezone       `json:"timezone"`
+	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
+	PrimaryEmail     *string                  `json:"primaryEmail"`
+	Currency         *currencyx.Code          `json:"currency"`
+	BillingAddress   *models.Address          `json:"billingAddress"`
+	Apps             []CustomerApp            `json:"apps"`
+}
+
+func (c CustomerMutate) Validate() error {
+	if c.Name == "" {
+		return ValidationError{
+			Err: errors.New("name is required"),
+		}
+	}
+
+	if c.Timezone != nil {
+		if err := c.Timezone.Validate(); err != nil {
+			return ValidationError{
+				Err: err,
+			}
+		}
+	}
+
+	if c.Currency != nil {
+		if err := c.Currency.Validate(); err != nil {
+			return ValidationError{
+				Err: err,
+			}
+		}
+	}
+	return nil
+}
+
 type CustomerID models.NamespacedID
 
 func (i CustomerID) Validate() error {
@@ -130,7 +172,7 @@ type ListCustomersInput struct {
 // CreateCustomerInput represents the input for the CreateCustomer method
 type CreateCustomerInput struct {
 	Namespace string
-	Customer
+	CustomerMutate
 }
 
 func (i CreateCustomerInput) Validate() error {
@@ -140,13 +182,7 @@ func (i CreateCustomerInput) Validate() error {
 		}
 	}
 
-	if i.Name == "" {
-		return ValidationError{
-			Err: errors.New("customer name is required"),
-		}
-	}
-
-	if err := i.Customer.Validate(); err != nil {
+	if err := i.CustomerMutate.Validate(); err != nil {
 		return ValidationError{
 			Err: err,
 		}
@@ -157,25 +193,18 @@ func (i CreateCustomerInput) Validate() error {
 
 // UpdateCustomerInput represents the input for the UpdateCustomer method
 type UpdateCustomerInput struct {
-	Namespace string
-	ID        string
-	Customer
+	CustomerID CustomerID
+	CustomerMutate
 }
 
 func (i UpdateCustomerInput) Validate() error {
-	if i.Namespace == "" {
+	if err := i.CustomerID.Validate(); err != nil {
 		return ValidationError{
-			Err: errors.New("namespace is required"),
+			Err: err,
 		}
 	}
 
-	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("customer id is required"),
-		}
-	}
-
-	if err := i.Customer.Validate(); err != nil {
+	if err := i.CustomerMutate.Validate(); err != nil {
 		return ValidationError{
 			Err: err,
 		}

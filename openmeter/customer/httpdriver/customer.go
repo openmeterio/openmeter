@@ -19,7 +19,7 @@ import (
 
 type (
 	ListCustomersRequest  = customerentity.ListCustomersInput
-	ListCustomersResponse = api.CustomerList
+	ListCustomersResponse = api.CustomerPaginatedResponse
 	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
 )
@@ -102,7 +102,7 @@ type (
 func (h *handler) CreateCustomer() CreateCustomerHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateCustomerRequest, error) {
-			body := api.Customer{}
+			body := api.CustomerCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateCustomerRequest{}, fmt.Errorf("field to decode create customer request: %w", err)
 			}
@@ -112,9 +112,18 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			req := NewCreateCustomerInput(ns, body)
-
-			return req, nil
+			return CreateCustomerRequest{
+				Namespace: ns,
+				CustomerMutate: customerentity.CustomerMutate{
+					Name:             body.Name,
+					Description:      body.Description,
+					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
+					PrimaryEmail:     body.PrimaryEmail,
+					BillingAddress:   mapAddress(body.BillingAddress),
+					Currency:         mapCurrency(body.Currency),
+					Timezone:         mapTimezone(body.Timezone),
+				},
+			}, nil
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
 			customer, err := h.service.CreateCustomer(ctx, request)
@@ -143,7 +152,7 @@ type (
 func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerID string) (UpdateCustomerRequest, error) {
-			body := api.Customer{}
+			body := api.CustomerReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateCustomerRequest{}, fmt.Errorf("field to decode update customer request: %w", err)
 			}
@@ -153,10 +162,21 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerRequest{}, err
 			}
 
-			req := newUpdateCustomerInput(ns, body)
-			req.ID = customerID
-
-			return req, nil
+			return UpdateCustomerRequest{
+				CustomerID: customerentity.CustomerID{
+					Namespace: ns,
+					ID:        customerID,
+				},
+				CustomerMutate: customerentity.CustomerMutate{
+					Name:             body.Name,
+					Description:      body.Description,
+					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
+					PrimaryEmail:     body.PrimaryEmail,
+					BillingAddress:   mapAddress(body.BillingAddress),
+					Currency:         mapCurrency(body.Currency),
+					Timezone:         mapTimezone(body.Timezone),
+				},
+			}, nil
 		},
 		func(ctx context.Context, request UpdateCustomerRequest) (UpdateCustomerResponse, error) {
 			customer, err := h.service.UpdateCustomer(ctx, request)
