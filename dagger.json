@@ -79,11 +79,6 @@
       "pin": "691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
-      "name": "stainless",
-      "source": "github.com/sagikazarmark/daggerverse/stainless@691dcc2fc5e53b351453c803c8abb1a5ad727d1b",
-      "pin": "691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
-    },
-    {
       "name": "svix",
       "source": "github.com/sagikazarmark/daggerverse/svix@126b5fbbdad70dbf2a8689600baec2eb78c05ef4",
       "pin": "126b5fbbdad70dbf2a8689600baec2eb78c05ef4"
