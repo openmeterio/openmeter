@@ -207,71 +207,53 @@ func (a *adapter) DeletePhase(ctx context.Context, params plan.DeletePhaseInput)
 			return nil, fmt.Errorf("invalid delete PlanPhase parameters: %w", err)
 		}
 
-		if params.SkipSoftDelete {
-			// Delete plan phase permanently
-			err := a.db.PlanPhase.DeleteOneID(params.ID).
-				Where(phasedb.Namespace(params.Namespace)).
-				Exec(ctx)
-			if err != nil {
-				if entdb.IsNotFound(err) {
-					return nil, plan.NotFoundError{
-						NamespacedModel: models.NamespacedModel{
-							Namespace: params.Namespace,
-						},
-					}
-				}
-
-				return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
-			}
-		} else {
-			phaseRow, err := a.db.PlanPhase.Query().
-				Where(
-					phasedb.And(
-						phasedb.Namespace(params.Namespace),
-						phasedb.ID(params.ID),
-					),
-				).
-				WithRatecards().
-				First(ctx)
-			if err != nil {
-				if entdb.IsNotFound(err) {
-					return nil, plan.NotFoundError{
-						NamespacedModel: models.NamespacedModel{
-							Namespace: params.Namespace,
-						},
-					}
-				}
-
-				return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
-			}
-
-			// Soft delete plan phase and its rate cards
-			deletedAt := time.Now().UTC()
-			err = a.db.PlanPhase.UpdateOneID(params.ID).
-				Where(phasedb.Namespace(params.Namespace)).
-				SetDeletedAt(deletedAt).
-				Exec(ctx)
-			if err != nil {
-				if entdb.IsNotFound(err) {
-					return nil, plan.NotFoundError{
-						NamespacedModel: models.NamespacedModel{
-							Namespace: params.Namespace,
-						},
-					}
-				}
-
-				return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
-			}
-
-			for _, ratecard := range phaseRow.Edges.Ratecards {
-				err = a.db.PlanRateCard.UpdateOneID(ratecard.ID).
-					Where(ratecarddb.Namespace(params.Namespace)).
-					SetDeletedAt(deletedAt).
-					Exec(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("failed to delete RateCard: %w", err)
+		phase, err := a.GetPhase(ctx, plan.GetPhaseInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.ID,
+			},
+			Key:    params.Key,
+			PlanID: params.PlanID,
+		})
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return nil, plan.NotFoundError{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: params.Namespace,
+					},
 				}
 			}
+
+			return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
+		}
+
+		// Soft delete plan phase and its rate cards
+		deletedAt := time.Now().UTC()
+		err = a.db.PlanPhase.UpdateOneID(phase.ID).
+			Where(phasedb.Namespace(phase.Namespace)).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return nil, plan.NotFoundError{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: params.Namespace,
+					},
+				}
+			}
+
+			return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
+		}
+
+		err = a.db.PlanRateCard.Update().
+			Where(
+				ratecarddb.Namespace(phase.Namespace),
+				ratecarddb.PhaseID(phase.ID),
+			).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete RateCards: %w", err)
 		}
 
 		return nil, nil

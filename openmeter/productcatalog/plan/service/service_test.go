@@ -78,7 +78,7 @@ func TestPlanService(t *testing.T) {
 			plan.AssertPlanCreateInputEqual(t, planInput, *draftPlan)
 			assert.Equalf(t, plan.DraftStatus, draftPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.DraftStatus, draftPlan.Status())
 
-			t.Run("Get draft plan", func(t *testing.T) {
+			t.Run("Get", func(t *testing.T) {
 				getPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: planInput.Namespace,
@@ -455,6 +455,179 @@ func TestPlanService(t *testing.T) {
 					require.NotNil(t, deletedPlan, "deleted Plan version must not be empty")
 
 					assert.NotNilf(t, deletedPlan.DeletedAt, "deletedAt must not be empty")
+				})
+			})
+		})
+	})
+
+	t.Run("Phase", func(t *testing.T) {
+		t.Run("CreatePlan", func(t *testing.T) {
+			planInput := NewProPlan(t, namespace)
+			planInput.Key = "Pro Phase"
+
+			draftPlan, err := env.Plan.CreatePlan(ctx, planInput)
+			require.NoErrorf(t, err, "creating Plan must not fail")
+			require.NotNil(t, draftPlan, "Plan must not be empty")
+
+			plan.AssertPlanCreateInputEqual(t, planInput, *draftPlan)
+			assert.Equalf(t, plan.DraftStatus, draftPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.DraftStatus, draftPlan.Status())
+
+			t.Run("Get", func(t *testing.T) {
+				getPhase, err := env.Plan.GetPhase(ctx, plan.GetPhaseInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: draftPlan.Namespace,
+					},
+					Key:    draftPlan.Phases[0].Key,
+					PlanID: draftPlan.ID,
+				})
+				require.NoErrorf(t, err, "getting PlanPhase must not fail")
+				require.NotNil(t, getPhase, "PlanPhase must not be empty")
+
+				assert.Equalf(t, draftPlan.Phases[0].ID, getPhase.ID, "PlanPhase ID mismatch: %s = %s", draftPlan.Phases[0].ID, getPhase.ID)
+				assert.Equalf(t, draftPlan.Phases[0].Key, getPhase.Key, "PlanPhase Key mismatch: %s = %s", draftPlan.Key, getPhase.Key)
+			})
+
+			t.Run("Create", func(t *testing.T) {
+				newPhaseInput := plan.CreatePhaseInput{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: draftPlan.Namespace,
+					},
+					Key:         "pro-2",
+					Name:        "Pro-2",
+					Description: lo.ToPtr("Pro-2 phase"),
+					Metadata:    map[string]string{"name": "pro-2"},
+					StartAfter:  ThreeMonthPeriod,
+					PlanID:      draftPlan.ID,
+					RateCards: []plan.RateCard{
+						plan.NewRateCardFrom(plan.UsageBasedRateCard{
+							RateCardMeta: plan.RateCardMeta{
+								NamespacedID: models.NamespacedID{
+									Namespace: namespace,
+								},
+								Key:         "pro-2-ratecard-1",
+								Name:        "Pro-2 RateCard 1",
+								Description: lo.ToPtr("Pro-2 RateCard 1"),
+								Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
+								Feature: &feature.Feature{
+									Namespace: namespace,
+									Key:       "api_requests_total",
+								},
+								EntitlementTemplate: lo.ToPtr(plan.NewEntitlementTemplateFrom(plan.MeteredEntitlementTemplate{
+									Metadata:                nil,
+									IsSoftLimit:             true,
+									IssueAfterReset:         lo.ToPtr(500.0),
+									IssueAfterResetPriority: lo.ToPtr[uint8](1),
+									PreserveOverageAtReset:  lo.ToPtr(true),
+									UsagePeriod:             MonthPeriod,
+								})),
+								TaxConfig: &plan.TaxConfig{
+									Stripe: &plan.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
+									Mode: plan.VolumeTieredPrice,
+									Tiers: []plan.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											FlatPrice: &plan.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(100),
+											},
+											UnitPrice: &plan.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(50),
+											},
+										},
+									},
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									MaximumAmount: nil,
+								})),
+							},
+							BillingCadence: MonthPeriod,
+						}),
+					},
+				}
+				newPhase, err := env.Plan.CreatePhase(ctx, newPhaseInput)
+				require.NoErrorf(t, err, "creating PlanPhase must not fail")
+				require.NotNil(t, newPhase, "PlanPhase must not be empty")
+
+				plan.AssertPhaseCreateInputEqual(t, newPhaseInput, *newPhase)
+
+				t.Run("Update", func(t *testing.T) {
+					updateInput := plan.UpdatePhaseInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: draftPlan.Namespace,
+						},
+						Key:         newPhase.Key,
+						Name:        lo.ToPtr("Pro-3"),
+						Description: lo.ToPtr("Pro-3"),
+						Metadata:    lo.ToPtr(map[string]string{"name": "pro-3"}),
+						StartAfter:  lo.ToPtr(SixMonthPeriod),
+						PlanID:      draftPlan.ID,
+						RateCards: lo.ToPtr([]plan.RateCard{
+							plan.NewRateCardFrom(plan.UsageBasedRateCard{
+								RateCardMeta: plan.RateCardMeta{
+									NamespacedID: models.NamespacedID{
+										Namespace: namespace,
+									},
+									Key:         "pro-2-ratecard-1",
+									Name:        "Pro-2 RateCard 1",
+									Description: lo.ToPtr("Pro-2 RateCard 1"),
+									Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
+									Feature: &feature.Feature{
+										Namespace: namespace,
+										Key:       "api_requests_total",
+									},
+									EntitlementTemplate: lo.ToPtr(plan.NewEntitlementTemplateFrom(plan.MeteredEntitlementTemplate{
+										Metadata:                nil,
+										IsSoftLimit:             true,
+										IssueAfterReset:         lo.ToPtr(500.0),
+										IssueAfterResetPriority: lo.ToPtr[uint8](1),
+										PreserveOverageAtReset:  lo.ToPtr(true),
+										UsagePeriod:             MonthPeriod,
+									})),
+									TaxConfig: &plan.TaxConfig{
+										Stripe: &plan.StripeTaxConfig{
+											Code: "txcd_10000000",
+										},
+									},
+									Price: lo.ToPtr(plan.NewPriceFrom(plan.TieredPrice{
+										Mode: plan.VolumeTieredPrice,
+										Tiers: []plan.PriceTier{
+											{
+												UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+												FlatPrice: &plan.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(100),
+												},
+												UnitPrice: &plan.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(50),
+												},
+											},
+										},
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										MaximumAmount: nil,
+									})),
+								},
+								BillingCadence: MonthPeriod,
+							}),
+						}),
+					}
+
+					updatedPhase, err := env.Plan.UpdatePhase(ctx, updateInput)
+					require.NoErrorf(t, err, "updating PlanPhase must not fail")
+					require.NotNil(t, updatedPhase, "PlanPhase must not be empty")
+
+					plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
+				})
+
+				t.Run("Delete", func(t *testing.T) {
+					err = env.Plan.DeletePhase(ctx, plan.DeletePhaseInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: draftPlan.Namespace,
+						},
+						Key:    newPhase.Key,
+						PlanID: draftPlan.ID,
+					})
+					require.NoErrorf(t, err, "deleting PlanPhase must not fail")
 				})
 			})
 		})
