@@ -425,18 +425,18 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 	return req, nil
 }
 
-func AsPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error) {
+func AsPlanPhase(a api.PlanPhase, namespace, planID string) (plan.Phase, error) {
 	var err error
 
 	phase := plan.Phase{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
-			ID:        phaseID,
 		},
 		Key:         a.Key,
 		Name:        a.Name,
 		Description: a.Description,
 		Metadata:    lo.FromPtrOr(a.Metadata, nil),
+		PlanID:      planID,
 	}
 
 	phase.StartAfter, err = datex.ISOString(lo.FromPtrOr(a.StartAfter, plan.DefaultStartAfter)).Parse()
@@ -880,7 +880,7 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 
 	phases := make([]plan.Phase, 0, len(a.Phases))
 	for _, phase := range a.Phases {
-		planPhase, err := AsPlanPhase(phase, namespace, "")
+		planPhase, err := AsPlanPhase(phase, namespace, planID)
 		if err != nil {
 			return req, fmt.Errorf("failed to cast Plan Phase from HTTP update request: %w", err)
 		}

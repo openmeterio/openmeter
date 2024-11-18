@@ -198,8 +198,8 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 func (i UpdatePlanInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Namespace or ID: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
 	}
 
 	if i.Name != nil && *i.Name == "" {
