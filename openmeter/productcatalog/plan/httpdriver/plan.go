@@ -41,10 +41,11 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespaces:  []string{ns},
-				IDs:         lo.FromPtrOr(params.Id, nil),
-				Keys:        lo.FromPtrOr(params.Key, nil),
-				KeyVersions: lo.FromPtrOr(params.KeyVersion, nil),
+				Namespaces:     []string{ns},
+				IDs:            lo.FromPtrOr(params.Id, nil),
+				Keys:           lo.FromPtrOr(params.Key, nil),
+				KeyVersions:    lo.FromPtrOr(params.KeyVersion, nil),
+				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
 			}
 
 			return req, nil
