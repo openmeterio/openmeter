@@ -10,58 +10,51 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
-// NewCreateCustomerInput creates a new customer.CreateCustomerInput.
-func NewCreateCustomerInput(namespace string, apiCustomer api.Customer) customerentity.CreateCustomerInput {
-	return customerentity.CreateCustomerInput{
-		Namespace: namespace,
-		Customer:  newFromAPICustomer(namespace, apiCustomer),
+func MapCustomerCreate(body api.CustomerCreate) customerentity.CustomerMutate {
+	return customerentity.CustomerMutate{
+		Name:             body.Name,
+		Description:      body.Description,
+		UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
+		PrimaryEmail:     body.PrimaryEmail,
+		BillingAddress:   mapAddress(body.BillingAddress),
+		Currency:         mapCurrency(body.Currency),
+		Timezone:         mapTimezone(body.Timezone),
 	}
 }
 
-// newUpdateCustomerInput creates a new customer.UpdateCustomerInput.
-func newUpdateCustomerInput(namespace string, apiCustomer api.Customer) customerentity.UpdateCustomerInput {
-	return customerentity.UpdateCustomerInput{
-		Namespace: namespace,
-		Customer:  newFromAPICustomer(namespace, apiCustomer),
+func mapCurrency(apiCurrency *string) *currencyx.Code {
+	if apiCurrency == nil {
+		return nil
 	}
+
+	return lo.ToPtr(currencyx.Code(*apiCurrency))
 }
 
-// newFromAPICustomer creates a new customer.Customer from an api.Customer.
-func newFromAPICustomer(namespace string, apiCustomer api.Customer) customerentity.Customer {
-	customerModel := customerentity.Customer{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   namespace,
-			Name:        apiCustomer.Name,
-			Description: apiCustomer.Description,
-		}),
-		UsageAttribution: customerentity.CustomerUsageAttribution(apiCustomer.UsageAttribution),
-		PrimaryEmail:     apiCustomer.PrimaryEmail,
+func mapTimezone(apiTimezone *string) *timezone.Timezone {
+	if apiTimezone == nil {
+		return nil
 	}
 
-	if apiCustomer.BillingAddress != nil {
-		address := models.Address{
-			City:        apiCustomer.BillingAddress.City,
-			State:       apiCustomer.BillingAddress.State,
-			PostalCode:  apiCustomer.BillingAddress.PostalCode,
-			Line1:       apiCustomer.BillingAddress.Line1,
-			Line2:       apiCustomer.BillingAddress.Line2,
-			PhoneNumber: apiCustomer.BillingAddress.PhoneNumber,
-		}
+	return lo.ToPtr(timezone.Timezone(*apiTimezone))
+}
 
-		if apiCustomer.BillingAddress.Country != nil {
-			address.Country = lo.ToPtr(models.CountryCode(*apiCustomer.BillingAddress.Country))
-		}
-
-		customerModel.BillingAddress = &address
+func mapAddress(apiAddress *api.Address) *models.Address {
+	if apiAddress == nil {
+		return nil
 	}
 
-	if apiCustomer.Currency != nil {
-		customerModel.Currency = lo.ToPtr(currencyx.Code(*apiCustomer.Currency))
+	address := models.Address{
+		City:        apiAddress.City,
+		State:       apiAddress.State,
+		PostalCode:  apiAddress.PostalCode,
+		Line1:       apiAddress.Line1,
+		Line2:       apiAddress.Line2,
+		PhoneNumber: apiAddress.PhoneNumber,
 	}
 
-	if apiCustomer.Timezone != nil {
-		customerModel.Timezone = lo.ToPtr(timezone.Timezone(*apiCustomer.Timezone))
+	if apiAddress.Country != nil {
+		address.Country = lo.ToPtr(models.CountryCode(*apiAddress.Country))
 	}
 
-	return customerModel
+	return &address
 }

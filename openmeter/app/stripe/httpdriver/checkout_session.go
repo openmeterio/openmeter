@@ -51,14 +51,17 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				}
 			} else {
 				// If err try to parse customer field as customer input
-				apiCustomer, err := body.Customer.AsCustomer()
+				customerCreate, err := body.Customer.AsCustomerCreate()
 				if err != nil {
 					return CreateAppStripeCheckoutSessionRequest{}, appstripe.ValidationError{
 						Err: fmt.Errorf("failed to decode customer: %w", err),
 					}
 				}
 
-				createCustomerInput = lo.ToPtr(customerhttpdriver.NewCreateCustomerInput(namespace, apiCustomer))
+				createCustomerInput = &customerentity.CreateCustomerInput{
+					Namespace:      namespace,
+					CustomerMutate: customerhttpdriver.MapCustomerCreate(customerCreate),
+				}
 			}
 
 			req := CreateAppStripeCheckoutSessionRequest{

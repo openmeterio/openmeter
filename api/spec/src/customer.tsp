@@ -2,6 +2,7 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
+import "./rest.tsp";
 import "./errors.tsp";
 import "./pagination.tsp";
 import "./types.tsp";
@@ -24,7 +25,10 @@ interface Customers {
   @operationId("createCustomer")
   @summary("Create customer")
   @extension("x-internal", true)
-  create(@body customer: Customer): Customer | CommonErrors;
+  create(@body customer: Rest.Resource.ResourceCreateModel<Customer>): {
+    @statusCode _: 201;
+    @body body: Customer;
+  } | CommonErrors;
 
   /**
    * List customers.
@@ -33,7 +37,7 @@ interface Customers {
   @operationId("listCustomers")
   @summary("List customers")
   @extension("x-internal", true)
-  list(...ListCustomersParams): Paginated<Customer> | CommonErrors;
+  list(...ListCustomersParams): PaginatedResponse<Customer> | CommonErrors;
 
   /**
    * Get a customer by ID.
@@ -55,7 +59,7 @@ interface Customers {
   @extension("x-internal", true)
   update(
     @path id: ULID,
-    @body customer: Customer,
+    @body customer: Rest.Resource.ResourceReplaceModel<Customer>,
   ): Customer | NotFoundError | CommonErrors;
 
   /**
@@ -66,14 +70,18 @@ interface Customers {
   @operationId("deleteCustomer")
   @summary("Delete customer")
   @extension("x-internal", true)
-  delete(@path id: ULID): Customer | NotFoundError | CommonErrors;
+  delete(@path id: ULID): {
+    @statusCode _: 204;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
  * Query params for listing customers.
  */
 @friendlyName("queryCustomerList")
-model ListCustomersParams extends PaginatedQuery {
+model ListCustomersParams {
+  ...PaginatedQuery;
+
   /**
    * Order customers by.
    * @TODO: set default value to CustomerOrderBy.name

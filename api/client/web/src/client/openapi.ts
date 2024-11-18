@@ -3116,7 +3116,7 @@ export interface components {
        *     or provide a customer object to create a new customer. */
       customer:
         | components['schemas']['CustomerId']
-        | components['schemas']['Customer']
+        | components['schemas']['CustomerCreate']
       /** @description Stripe customer ID.
        *     If not provided OpenMeter creates a new Stripe customer or
        *     uses the OpenMeter customer's default Stripe customer ID. */
@@ -3292,6 +3292,56 @@ export interface components {
        */
       external?: components['schemas']['CustomerExternalMapping']
     }
+    /** @description Resource create operation model. */
+    CustomerCreate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Timezone
+       * @description Timezone of the customer.
+       */
+      timezone?: string
+      /**
+       * Usage Attribution
+       * @description Mapping to attribute metered usage to the customer
+       */
+      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      /**
+       * Primary Email
+       * @description The primary email address of the customer.
+       */
+      primaryEmail?: string
+      /**
+       * Currency
+       * @description Currency of the customer.
+       *     Used for billing, tax and invoicing.
+       */
+      currency?: components['schemas']['CurrencyCode']
+      /**
+       * Billing Address
+       * @description The billing address of the customer.
+       *     Used for tax and invoicing.
+       */
+      billingAddress?: components['schemas']['Address']
+      /**
+       * External Mappings
+       * @description External mappings for the customer.
+       */
+      external?: components['schemas']['CustomerExternalMapping']
+    }
     /** @description External mappings for the customer. */
     CustomerExternalMapping: {
       /**
@@ -3309,17 +3359,6 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
-    }
-    /** @description A page of results. */
-    CustomerList: {
-      /** @description The page number. */
-      page: number
-      /** @description The number of items in the page. */
-      pageSize: number
-      /** @description The total number of items. */
-      totalCount: number
-      /** @description The items in the page. */
-      items: components['schemas']['Customer'][]
     }
     /**
      * @description Order by options for customers.
@@ -3345,6 +3384,76 @@ export interface components {
       pageSize: number
       /** @description The items in the current page. */
       items: components['schemas']['BillingCustomerOverride'][]
+    }
+    /** @description Paginated response */
+    CustomerPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['Customer'][]
+    }
+    /** @description Resource update operation model. */
+    CustomerReplaceUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Timezone
+       * @description Timezone of the customer.
+       */
+      timezone?: string
+      /**
+       * Usage Attribution
+       * @description Mapping to attribute metered usage to the customer
+       */
+      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      /**
+       * Primary Email
+       * @description The primary email address of the customer.
+       */
+      primaryEmail?: string
+      /**
+       * Currency
+       * @description Currency of the customer.
+       *     Used for billing, tax and invoicing.
+       */
+      currency?: components['schemas']['CurrencyCode']
+      /**
+       * Billing Address
+       * @description The billing address of the customer.
+       *     Used for tax and invoicing.
+       */
+      billingAddress?: components['schemas']['Address']
+      /**
+       * External Mappings
+       * @description External mappings for the customer.
+       */
+      external?: components['schemas']['CustomerExternalMapping']
     }
     /** @description Mapping to attribute metered usage to the customer.
      *     One customer can have multiple subjects,
@@ -9187,6 +9296,10 @@ export interface operations {
   listCustomers: {
     parameters: {
       query?: {
+        /** @description The page number. */
+        page?: components['parameters']['PaginatedQuery.page']
+        /** @description The number of items in the page. */
+        pageSize?: components['parameters']['PaginatedQuery.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['CustomerOrderByOrdering.order']
         /** @description The order by field. */
@@ -9202,10 +9315,6 @@ export interface operations {
         /** @description Filter customers by usage attribution subject.
          *     Case-insensitive partial match. */
         subject?: components['parameters']['queryCustomerList.subject']
-        /** @description The page number. */
-        page?: components['parameters']['PaginatedQuery.page']
-        /** @description The number of items in the page. */
-        pageSize?: components['parameters']['PaginatedQuery.pageSize']
       }
       header?: never
       path?: never
@@ -9219,7 +9328,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['CustomerList']
+          'application/json': components['schemas']['CustomerPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -9287,12 +9396,12 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['Customer']
+        'application/json': components['schemas']['CustomerCreate']
       }
     }
     responses: {
-      /** @description The request has succeeded. */
-      200: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
         headers: {
           [name: string]: unknown
         }
@@ -9452,7 +9561,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['Customer']
+        'application/json': components['schemas']['CustomerReplaceUpdate']
       }
     }
     responses: {
@@ -9541,14 +9650,12 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description The request has succeeded. */
-      200: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
         headers: {
           [name: string]: unknown
         }
-        content: {
-          'application/json': components['schemas']['Customer']
-        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

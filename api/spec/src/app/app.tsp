@@ -59,7 +59,9 @@ interface Apps {
  * Query params for listing installed apps
  */
 @friendlyName("ListAppsRequest")
-model ListAppsRequest extends PaginatedQuery {}
+model ListAppsRequest {
+  ...PaginatedQuery;
+}
 
 /**
  * Type of the app.

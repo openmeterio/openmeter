@@ -63,10 +63,8 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	// Create a createdCustomer
 	createdCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: TestName,
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:           TestName,
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			Timezone:       &TestTimezone,
@@ -97,10 +95,8 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	// Test conflicts
 	_, err = service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: TestName,
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: TestName,
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -124,10 +120,8 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	// Create a customer with mandatory fields
 	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: TestName,
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: TestName,
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -144,12 +138,12 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 
 	// Update the customer with new fields
 	updatedCustomer, err := service.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
-		Namespace: s.namespace,
-		ID:        originalCustomer.ID,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: newName,
-			}),
+		CustomerID: customerentity.CustomerID{
+			Namespace: s.namespace,
+			ID:        originalCustomer.ID,
+		},
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:           newName,
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			Timezone:       &TestTimezone,
@@ -186,10 +180,8 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	// Create a customer 1
 	createCustomer1, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Customer 1",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Customer 1",
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-1"},
 			},
@@ -202,10 +194,8 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	// Create a customer 2
 	createCustomer2, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Customer 2",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Customer 2",
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-2"},
 			},
@@ -220,10 +210,8 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 
 	_, err = service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: differentNamespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Customer 3",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Customer 3",
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-3"},
 			},
@@ -310,10 +298,8 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	// Create a customer
 	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: TestName,
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: TestName,
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -346,10 +332,8 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// Create a customer
 	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: TestName,
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: TestName,
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},

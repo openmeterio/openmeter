@@ -49,11 +49,8 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	// Given we have an existing customer
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(
-				models.ManagedResourceInput{
-					Name: "Johny the Doe",
-				}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Johny the Doe",
 		},
 	})
 	require.NoError(s.T(), err)
@@ -151,11 +148,8 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	// Given we have an existing customer
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(
-				models.ManagedResourceInput{
-					Name: "Johny the Doe",
-				}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Johny the Doe",
 		},
 	})
 	require.NoError(s.T(), err)
@@ -226,10 +220,8 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Johny the Doe",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Johny the Doe",
 		},
 	})
 	require.NoError(s.T(), err)
@@ -324,10 +316,8 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Johny the Doe",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:     "Johny the Doe",
 			Timezone: lo.ToPtr(timezone.Timezone("Europe/Berlin")),
 			BillingAddress: &models.Address{
 				City:    lo.ToPtr("Berlin"),
@@ -372,10 +362,8 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: ns,
 
-		Customer: customerentity.Customer{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Name: "Johny the Doe",
-			}),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: "Johny the Doe",
 		},
 	})
 
