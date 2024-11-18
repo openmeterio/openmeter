@@ -60,7 +60,7 @@ require (
 	github.com/stripe/stripe-go/v80 v80.2.1
 	github.com/svix/svix-webhooks v1.40.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.6.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.57.0
 	go.opentelemetry.io/otel v1.32.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.7.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.32.0
