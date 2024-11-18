@@ -386,7 +386,7 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 			}
 		}
 
-		if params.RateCards != nil && len(*params.RateCards) > 0 {
+		if params.RateCards != nil {
 			diffResult, err := rateCardsDiff(*params.RateCards, p.RateCards)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate RateCard diff for PlanPhase update: %w", err)
