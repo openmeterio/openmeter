@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -33,19 +36,25 @@ func (s service) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) 
 			"phase.key", params.Key,
 		)
 
-		planPhases, err := s.adapter.ListPhases(ctx, plan.ListPhasesInput{
-			OrderBy:    plan.OrderByStartAfter,
-			Order:      plan.OrderAsc,
-			Namespaces: []string{params.Namespace},
-			PlanIDs:    []string{params.PlanID},
+		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.PlanID,
+			},
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to list PlanPhases in Plan: %w", err)
+			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		for _, planPhase := range planPhases.Items {
+		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		planStatus := p.Status()
+		if !lo.Contains(allowedPlanStatuses, p.Status()) {
+			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
+		}
+
+		for _, planPhase := range p.Phases {
 			if planPhase.StartAfter == params.StartAfter {
-				return nil, fmt.Errorf("there is already a PlanPhase wit hteh same StartAfter perdiod: %q", planPhase.Key)
+				return nil, fmt.Errorf("there is already a PlanPhase with the same StartAfter perdiod: %q", planPhase.Key)
 			}
 		}
 
@@ -84,7 +93,23 @@ func (s service) DeletePhase(ctx context.Context, params plan.DeletePhaseInput) 
 
 		logger.Debug("deleting PlanPhase")
 
-		err := s.adapter.DeletePhase(ctx, params)
+		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.PlanID,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Plan: %w", err)
+		}
+
+		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus, plan.ArchivedStatus}
+		planStatus := p.Status()
+		if !lo.Contains(allowedPlanStatuses, p.Status()) {
+			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
+		}
+
+		err = s.adapter.DeletePhase(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
 		}
@@ -138,18 +163,24 @@ func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) 
 			"plan.id", params.ID,
 		)
 
-		if params.StartAfter != nil {
-			planPhases, err := s.adapter.ListPhases(ctx, plan.ListPhasesInput{
-				OrderBy:    plan.OrderByStartAfter,
-				Order:      plan.OrderAsc,
-				Namespaces: []string{params.Namespace},
-				PlanIDs:    []string{params.PlanID},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to list PlanPhases in Plan: %w", err)
-			}
+		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.PlanID,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Plan: %w", err)
+		}
 
-			for _, planPhase := range planPhases.Items {
+		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		planStatus := p.Status()
+		if !lo.Contains(allowedPlanStatuses, p.Status()) {
+			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
+		}
+
+		if params.StartAfter != nil {
+			for _, planPhase := range p.Phases {
 				if planPhase.StartAfter == *params.StartAfter {
 					return nil, fmt.Errorf("there is already a PlanPhase with the same StartAfter perdiod: %q", planPhase.Key)
 				}

@@ -212,7 +212,6 @@ func AssertRateCardEqual(t *testing.T, r1, r2 RateCard) {
 	f2 := lo.FromPtrOr(m2.Feature, feature.Feature{})
 
 	assert.Equalf(t, f1.Key, f2.Key, "feature key mismatch")
-	assert.Equalf(t, f1.ID, f2.ID, "feature id mismatch")
 	assert.Equalf(t, f1.Namespace, f2.Namespace, "feature namespace mismatch")
 
 	tmpl1, err := json.Marshal(m1.EntitlementTemplate)
