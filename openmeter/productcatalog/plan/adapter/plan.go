@@ -414,8 +414,8 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			}
 		}
 
-		// Return early if there are no PlanPhases set in Plan.
-		if params.Phases == nil || len(*params.Phases) == 0 {
+		// Return early if there are no updates for PlanPhases
+		if params.Phases == nil {
 			return p, nil
 		}
 

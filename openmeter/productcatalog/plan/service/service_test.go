@@ -341,6 +341,41 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, publishedPlan.Version+1, nextPlan.Version, "new draft Plan must have higher version number")
 				assert.Equalf(t, plan.DraftStatus, nextPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.DraftStatus, nextPlan.Status())
 
+				t.Run("Phases", func(t *testing.T) {
+					t.Run("Remove", func(t *testing.T) {
+						updateInput := plan.UpdatePlanInput{
+							NamespacedID: models.NamespacedID{
+								Namespace: planInput.Namespace,
+								ID:        nextPlan.ID,
+							},
+							Phases: lo.ToPtr([]plan.Phase{}),
+						}
+
+						updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
+						require.NoErrorf(t, err, "removing all PlanPhases from draft Plan must not fail")
+						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+
+						plan.AssertPlanPhasesEqual(t, []plan.Phase{}, updatedPlan.Phases)
+					})
+
+					t.Run("ReAdd", func(t *testing.T) {
+						reAddPhases := slices.Clone(draftPlan.Phases)
+						updateInput := plan.UpdatePlanInput{
+							NamespacedID: models.NamespacedID{
+								Namespace: planInput.Namespace,
+								ID:        nextPlan.ID,
+							},
+							Phases: lo.ToPtr(reAddPhases),
+						}
+
+						updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
+						require.NoErrorf(t, err, "updating draft Plan must not fail")
+						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+
+						plan.AssertPlanPhasesEqual(t, reAddPhases, updatedPlan.Phases)
+					})
+				})
+
 				var publishedNextPlan *plan.Plan
 				t.Run("Publish", func(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
