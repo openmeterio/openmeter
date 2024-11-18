@@ -157,7 +157,7 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
 			Key:                 rc.Key,
-			Metadata:            lo.ToPtr(rc.Metadata),
+			Metadata:            lo.EmptyableToPtr(rc.Metadata),
 			Name:                rc.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
@@ -296,7 +296,7 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
 			Key:                 rc.Key,
-			Metadata:            lo.ToPtr(rc.Metadata),
+			Metadata:            lo.EmptyableToPtr(rc.Metadata),
 			Name:                rc.Name,
 			Price:               &price,
 			TaxConfig:           taxConfig,
@@ -350,7 +350,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 			IsSoftLimit:             lo.ToPtr(metered.IsSoftLimit),
 			IssueAfterReset:         metered.IssueAfterReset,
 			IssueAfterResetPriority: metered.IssueAfterResetPriority,
-			Metadata:                lo.ToPtr(metered.Metadata),
+			Metadata:                lo.EmptyableToPtr(metered.Metadata),
 			PreserveOverageAtReset:  metered.PreserveOverageAtReset,
 			Type:                    api.RateCardMeteredEntitlementTypeMetered,
 			UsagePeriod:             lo.ToPtr(metered.UsagePeriod.ISOString().String()),
@@ -365,7 +365,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 		}
 
 		err = result.FromRateCardStaticEntitlement(api.RateCardStaticEntitlement{
-			Metadata: lo.ToPtr(static.Metadata),
+			Metadata: lo.EmptyableToPtr(static.Metadata),
 			Type:     api.RateCardStaticEntitlementTypeStatic,
 		})
 		if err != nil {
@@ -378,7 +378,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 		}
 
 		err = result.FromRateCardBooleanEntitlement(api.RateCardBooleanEntitlement{
-			Metadata: lo.ToPtr(boolean.Metadata),
+			Metadata: lo.EmptyableToPtr(boolean.Metadata),
 			Type:     api.RateCardBooleanEntitlementTypeBoolean,
 		})
 		if err != nil {
