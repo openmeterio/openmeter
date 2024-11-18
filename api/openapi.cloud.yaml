@@ -5032,7 +5032,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlanUpdate'
+              $ref: '#/components/schemas/PlanReplaceUpdate'
       x-internal: true
     get:
       operationId: getPlan
@@ -7972,8 +7972,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -8365,8 +8367,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -8482,8 +8486,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         discounts:
@@ -8562,8 +8568,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         id:
@@ -8671,8 +8679,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -9300,8 +9310,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -9425,8 +9437,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         supplier:
@@ -9464,8 +9478,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         updatedAt:
@@ -9580,8 +9596,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -9697,8 +9715,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         discounts:
@@ -9773,8 +9793,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         id:
@@ -10303,8 +10325,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -12890,8 +12914,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -12991,8 +13017,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         key:
@@ -13056,13 +13084,18 @@ components:
     PlanPhase:
       type: object
       required:
-        - name
-        - createdAt
-        - updatedAt
         - key
+        - name
         - rateCards
         - startAfter
       properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
         name:
           type: string
           minLength: 1
@@ -13075,37 +13108,12 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        createdAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was created.
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was last updated.
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was permanently deleted.
-          title: Deletion Time
-          readOnly: true
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: Unique key among the plan phases. Used to reference the phase in the subscription & plan.
         rateCards:
           type: array
           items:
@@ -13129,11 +13137,18 @@ components:
     PlanPhaseCreate:
       type: object
       required:
-        - name
         - key
+        - name
         - rateCards
         - startAfter
       properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
         name:
           type: string
           minLength: 1
@@ -13146,16 +13161,12 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: Unique key among the plan phases. Used to reference the phase in the subscription & plan.
         rateCards:
           type: array
           items:
@@ -13217,8 +13228,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         rateCards:
@@ -13257,16 +13270,11 @@ components:
           type: integer
           description: The plan version.
       description: References an exact plan.
-    PlanStatus:
-      type: string
-      enum:
-        - draft
-        - active
-        - archived
-        - scheduled
-      description: The status of a plan.
-    PlanUpdate:
+    PlanReplaceUpdate:
       type: object
+      required:
+        - name
+        - phases
       properties:
         name:
           type: string
@@ -13280,8 +13288,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         phases:
@@ -13293,7 +13303,15 @@ components:
             The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
             A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
           title: Plan phases
-      description: Resource create or update operation model.
+      description: Resource update operation model.
+    PlanStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+        - scheduled
+      description: The status of a plan.
     PortalToken:
       type: object
       required:
@@ -13452,14 +13470,25 @@ components:
     RateCardFlatFee:
       type: object
       required:
-        - name
-        - createdAt
-        - updatedAt
-        - key
         - type
+        - key
+        - name
         - billingCadence
         - price
       properties:
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the RateCard.
+          title: RateCard type
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
         name:
           type: string
           minLength: 1
@@ -13472,44 +13501,12 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        createdAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was created.
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was last updated.
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was permanently deleted.
-          title: Deletion Time
-          readOnly: true
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A semi-unique identifier for the resource.
-          title: Key
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: The type of the RateCard.
-          title: RateCard type
         featureKey:
           type: string
           minLength: 1
@@ -13548,11 +13545,17 @@ components:
     RateCardFlatFeeUpdateItem:
       type: object
       required:
-        - name
         - type
+        - name
         - billingCadence
         - price
       properties:
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the RateCard.
+          title: RateCard type
         name:
           type: string
           minLength: 1
@@ -13565,16 +13568,12 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: The type of the RateCard.
-          title: RateCard type
         featureKey:
           type: string
           minLength: 1
@@ -13692,14 +13691,25 @@ components:
     RateCardUsageBased:
       type: object
       required:
-        - name
-        - createdAt
-        - updatedAt
-        - key
         - type
+        - key
+        - name
         - billingCadence
         - price
       properties:
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the RateCard.
+          title: RateCard type
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
         name:
           type: string
           minLength: 1
@@ -13712,44 +13722,12 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        createdAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was created.
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was last updated.
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: Timestamp of when the resource was permanently deleted.
-          title: Deletion Time
-          readOnly: true
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A semi-unique identifier for the resource.
-          title: Key
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: The type of the RateCard.
-          title: RateCard type
         featureKey:
           type: string
           minLength: 1
@@ -13791,11 +13769,17 @@ components:
     RateCardUsageBasedUpdateItem:
       type: object
       required:
-        - name
         - type
+        - name
         - billingCadence
         - price
       properties:
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the RateCard.
+          title: RateCard type
         name:
           type: string
           minLength: 1
@@ -13808,16 +13792,12 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: The type of the RateCard.
-          title: RateCard type
         featureKey:
           type: string
           minLength: 1
@@ -13952,8 +13932,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -14040,8 +14022,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -14351,8 +14335,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -14554,8 +14540,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -14628,8 +14616,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:
@@ -14771,8 +14761,10 @@ components:
           description: Optional description of the resource. Maximum 1024 characters.
           title: Description
         metadata:
+          type: object
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          nullable: true
           description: Additional metadata for the resource.
           title: Metadata
         createdAt:

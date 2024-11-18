@@ -110,7 +110,7 @@ model Resource {
    * Additional metadata for the resource.
    */
   @summary("Metadata")
-  metadata?: Metadata; // FIXME: linter error for: = #{};
+  metadata?: Metadata | null;
 
   ...ResourceTimestamps;
 }

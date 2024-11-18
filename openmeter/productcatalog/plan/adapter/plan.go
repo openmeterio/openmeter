@@ -434,6 +434,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		if len(diffResult.Update) > 0 {
 			for _, updateInput := range diffResult.Update {
 				updateInput.Namespace = params.Namespace
+				updateInput.PlanID = p.ID
 
 				phase, err := a.UpdatePhase(ctx, updateInput)
 				if err != nil {

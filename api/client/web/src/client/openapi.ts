@@ -1681,7 +1681,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -1943,7 +1943,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -2022,7 +2022,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /** Discounts applied to this line. */
       discounts?: components['schemas']['BillingLineDiscount'][]
       /** Charges applied to this line. */
@@ -2070,7 +2070,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -2139,7 +2139,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -2566,7 +2566,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -2644,7 +2644,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /** The name and contact information for the supplier this billing profile represents */
       supplier: components['schemas']['BillingPartyCreate']
       /** The billing workflow settings for this profile */
@@ -2669,7 +2669,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Last update time of the resource
        * Format: date-time
@@ -2739,7 +2739,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -2817,7 +2817,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /** Discounts applied to this line. */
       discounts?: components['schemas']['BillingLineDiscount'][]
       /** Charges applied to this line. */
@@ -2862,7 +2862,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -3237,7 +3237,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -5207,7 +5207,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -5293,7 +5293,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Key
        * @description A semi-unique identifier for the resource.
@@ -5340,6 +5340,11 @@ export interface components {
     /** @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses. */
     PlanPhase: {
       /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
@@ -5353,30 +5358,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: string
-      /** @description Unique key among the plan phases. Used to reference the phase in the subscription & plan. */
-      key: string
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Rate cards
        * @description The rate cards of the plan.
@@ -5398,6 +5380,11 @@ export interface components {
     /** @description Resource create operation model. */
     PlanPhaseCreate: {
       /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
@@ -5411,9 +5398,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
-      /** @description Unique key among the plan phases. Used to reference the phase in the subscription & plan. */
-      key: string
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Rate cards
        * @description The rate cards of the plan.
@@ -5468,7 +5453,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Rate cards
        * @description The rate cards of the plan.
@@ -5494,18 +5479,13 @@ export interface components {
       /** @description The plan version. */
       version: number
     }
-    /**
-     * @description The status of a plan.
-     * @enum {string}
-     */
-    PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
-    /** @description Resource create or update operation model. */
-    PlanUpdate: {
+    /** @description Resource update operation model. */
+    PlanReplaceUpdate: {
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
-      name?: string
+      name: string
       /**
        * Description
        * @description Optional description of the resource. Maximum 1024 characters.
@@ -5515,14 +5495,19 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
        */
-      phases?: components['schemas']['PlanPhase'][]
+      phases: components['schemas']['PlanPhase'][]
     }
+    /**
+     * @description The status of a plan.
+     * @enum {string}
+     */
+    PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
     /** @description A consumer portal token.
      *
      *     Validator doesn't obey required for readOnly properties
@@ -5630,6 +5615,16 @@ export interface components {
     /** @description A flat fee rate card defines a one-time purchase or a recurring fee. */
     RateCardFlatFee: {
       /**
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'flat_fee'
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
@@ -5643,38 +5638,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: string
-      /**
-       * Key
-       * @description A semi-unique identifier for the resource.
-       */
-      key: string
-      /**
-       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'flat_fee'
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Feature key
        * @description The feature the customer is entitled to use.
@@ -5705,6 +5669,11 @@ export interface components {
     /** @description A flat fee rate card defines a one-time purchase or a recurring fee. */
     RateCardFlatFeeUpdateItem: {
       /**
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'flat_fee'
+      /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
@@ -5718,12 +5687,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'flat_fee'
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Feature key
        * @description The feature the customer is entitled to use.
@@ -5813,6 +5777,16 @@ export interface components {
     /** @description A usage-based rate card defines a price based on usage. */
     RateCardUsageBased: {
       /**
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'usage_based'
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      key: string
+      /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
@@ -5826,38 +5800,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: string
-      /**
-       * Key
-       * @description A semi-unique identifier for the resource.
-       */
-      key: string
-      /**
-       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage_based'
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Feature key
        * @description The feature the customer is entitled to use.
@@ -5889,6 +5832,11 @@ export interface components {
     /** @description A usage-based rate card defines a price based on usage. */
     RateCardUsageBasedUpdateItem: {
       /**
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'usage_based'
+      /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
@@ -5902,12 +5850,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage_based'
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Feature key
        * @description The feature the customer is entitled to use.
@@ -6026,7 +5969,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -6125,7 +6068,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -6355,7 +6298,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -6472,7 +6415,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -6532,7 +6475,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -6635,7 +6578,7 @@ export interface components {
        * Metadata
        * @description Additional metadata for the resource.
        */
-      metadata?: components['schemas']['Metadata']
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Creation Time
        * Format: date-time
@@ -13249,7 +13192,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['PlanUpdate']
+        'application/json': components['schemas']['PlanReplaceUpdate']
       }
     }
     responses: {
