@@ -32,17 +32,14 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 		Version:       p.Version,
 	}
 
-	if len(p.Phases) > 0 {
-		resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
-
-		for _, phase := range p.Phases {
-			planPhase, err := FromPlanPhase(phase)
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast Plan: %w", err)
-			}
-
-			resp.Phases = append(resp.Phases, planPhase)
+	resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
+	for _, phase := range p.Phases {
+		planPhase, err := FromPlanPhase(phase)
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast Plan: %w", err)
 		}
+
+		resp.Phases = append(resp.Phases, planPhase)
 	}
 
 	var status api.PlanStatus
@@ -97,17 +94,14 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 		resp.Discounts = lo.ToPtr(discounts)
 	}
 
-	if len(p.RateCards) > 0 {
-		resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
-
-		for _, rateCard := range p.RateCards {
-			rc, err := FromRateCard(rateCard)
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast RateCard: %w", err)
-			}
-
-			resp.RateCards = append(resp.RateCards, rc)
+	resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
+	for _, rateCard := range p.RateCards {
+		rc, err := FromRateCard(rateCard)
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast RateCard: %w", err)
 		}
+
+		resp.RateCards = append(resp.RateCards, rc)
 	}
 
 	return resp, nil
