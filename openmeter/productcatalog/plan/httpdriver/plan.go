@@ -140,7 +140,7 @@ type (
 func (h *handler) UpdatePlan() UpdatePlanHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, planID string) (UpdatePlanRequest, error) {
-			body := api.PlanUpdate{}
+			body := api.PlanReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdatePlanRequest{}, fmt.Errorf("failed to decode update plan request: %w", err)
 			}

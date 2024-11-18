@@ -97,13 +97,33 @@ model Plan {
  */
 @friendlyName("PlanPhase")
 model PlanPhase {
-  ...OmitProperties<Resource, "id">;
-
   /**
-   * Unique key among the plan phases. Used to reference the phase in the subscription & plan.
+   * A semi-unique identifier for the resource.
    */
   @visibility("read", "create")
+  @summary("Key")
   key: Key;
+
+  /**
+   * Human-readable name for the resource. Between 1 and 256 characters.
+   */
+  @summary("Display name")
+  @minLength(1)
+  @maxLength(256)
+  name: string;
+
+  /**
+   * Optional description of the resource. Maximum 1024 characters.
+   */
+  @maxLength(1024)
+  @summary("Description")
+  description?: string;
+
+  /**
+   * Additional metadata for the resource.
+   */
+  @summary("Metadata")
+  metadata?: Metadata | null;
 
   /**
    * The rate cards of the plan.

@@ -63,14 +63,11 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 
 func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	resp := api.PlanPhase{
-		CreatedAt:   p.CreatedAt,
-		DeletedAt:   p.DeletedAt,
 		Description: p.Description,
 		Key:         p.Key,
 		Metadata:    lo.EmptyableToPtr(p.Metadata),
 		Name:        p.Name,
 		StartAfter:  lo.ToPtr(p.StartAfter.ISOString().String()),
-		UpdatedAt:   p.UpdatedAt,
 	}
 
 	if len(p.Discounts) > 0 {
@@ -142,8 +139,6 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 
 		err = resp.FromRateCardFlatFee(api.RateCardFlatFee{
 			BillingCadence:      lo.ToPtr(rc.BillingCadence.ISOString().String()),
-			CreatedAt:           rc.CreatedAt,
-			DeletedAt:           rc.DeletedAt,
 			Description:         rc.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
@@ -157,7 +152,6 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 			},
 			TaxConfig: taxConfig,
 			Type:      api.RateCardFlatFeeTypeFlatFee,
-			UpdatedAt: rc.UpdatedAt,
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast FlatPriceRateCard: %w", err)
@@ -292,11 +286,6 @@ func AsPlanPhase(a api.PlanPhase, namespace, phaseID string) (plan.Phase, error)
 			Namespace: namespace,
 			ID:        phaseID,
 		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: a.CreatedAt,
-			UpdatedAt: a.UpdatedAt,
-			DeletedAt: a.DeletedAt,
-		},
 		Key:         a.Key,
 		Name:        a.Name,
 		Description: a.Description,
@@ -390,11 +379,6 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 			NamespacedID: models.NamespacedID{
 				Namespace: namespace,
 			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: flat.CreatedAt,
-				UpdatedAt: flat.UpdatedAt,
-				DeletedAt: flat.DeletedAt,
-			},
 			Key:         flat.Key,
 			Name:        flat.Name,
 			Description: flat.Description,
@@ -463,11 +447,6 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 		RateCardMeta: plan.RateCardMeta{
 			NamespacedID: models.NamespacedID{
 				Namespace: namespace,
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: usage.CreatedAt,
-				UpdatedAt: usage.UpdatedAt,
-				DeletedAt: usage.DeletedAt,
 			},
 			Key:         usage.Key,
 			Name:        usage.Name,
@@ -741,32 +720,27 @@ func AsTaxConfig(c api.TaxConfig) plan.TaxConfig {
 	return tc
 }
 
-func AsUpdatePlanRequest(a api.PlanUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
+func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
 	req := UpdatePlanRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
 			ID:        planID,
 		},
-		Name:        a.Name,
+		Name:        lo.ToPtr(a.Name),
 		Description: a.Description,
 		Metadata:    a.Metadata,
 	}
 
-	if a.Phases != nil && *a.Phases != nil {
-		phases := make([]plan.Phase, 0, len(*a.Phases))
-		if len(*a.Phases) > 0 {
-			for _, phase := range *a.Phases {
-				planPhase, err := AsPlanPhase(phase, namespace, "")
-				if err != nil {
-					return req, fmt.Errorf("failed to cast Plan Phase from HTTP update request: %w", err)
-				}
-
-				phases = append(phases, planPhase)
-			}
+	phases := make([]plan.Phase, 0, len(a.Phases))
+	for _, phase := range a.Phases {
+		planPhase, err := AsPlanPhase(phase, namespace, "")
+		if err != nil {
+			return req, fmt.Errorf("failed to cast Plan Phase from HTTP update request: %w", err)
 		}
 
-		req.Phases = &phases
+		phases = append(phases, planPhase)
 	}
+	req.Phases = &phases
 
 	return req, nil
 }

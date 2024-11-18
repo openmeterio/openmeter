@@ -21,6 +21,7 @@ model QueryPagination {
   @query
   @minValue(1)
   @example(1)
+  @pageIndex
   page?: integer = 1;
 
   /**
@@ -32,6 +33,7 @@ model QueryPagination {
   @minValue(1)
   @maxValue(1000)
   @example(100)
+  @pageSize
   pageSize?: integer = 100;
 }
 
@@ -122,5 +124,6 @@ model PaginatedResponse<T> {
   /**
    * The items in the current page.
    */
+  @pageItems
   items: T[];
 }

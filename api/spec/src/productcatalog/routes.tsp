@@ -1,3 +1,5 @@
+import "../rest.tsp";
+
 namespace OpenMeter.ProductCatalog;
 
 using TypeSpec.Http;
@@ -11,7 +13,7 @@ interface Plans {
   /**
    * List all plans.
    */
-  @get
+  @list
   @operationId("listPlans")
   @summary("List plans")
   @extension("x-internal", true)
@@ -56,7 +58,7 @@ interface Plans {
   @extension("x-internal", true)
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>): {
     @statusCode _: 201;
-    @bodyRoot body: Plan;
+    @body body: Plan;
   } | OpenMeter.CommonErrors;
 
   /**
@@ -68,7 +70,7 @@ interface Plans {
   @extension("x-internal", true)
   update(
     @path planId: ULID,
-    @body request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<Plan>,
+    @body request: TypeSpec.Rest.Resource.ResourceReplaceModel<Plan>,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -111,7 +113,6 @@ interface Plans {
    */
   @post
   @route("/{planId}/publish")
-  @sharedRoute
   @operationId("publishPlan")
   @summary("Publish plan")
   @extension("x-internal", true)
@@ -124,7 +125,6 @@ interface Plans {
    */
   @post
   @route("/{planId}/archive")
-  @sharedRoute
   @operationId("archivePlan")
   @summary("Archive plan version")
   @extension("x-internal", true)
@@ -138,7 +138,6 @@ interface Plans {
    */
   @post
   @route("/{planIdOrKey}/next")
-  @sharedRoute
   @operationId("nextPlan")
   @summary("New draft plan")
   @extension("x-internal", true)
@@ -148,7 +147,7 @@ interface Plans {
     planIdOrKey: PlanIdOrKey,
   ): {
     @statusCode _: 201;
-    @bodyRoot body: Plan;
+    @body body: Plan;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
