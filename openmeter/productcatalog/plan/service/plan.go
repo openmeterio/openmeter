@@ -134,7 +134,7 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.ArchivedStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []plan.PlanStatus{plan.ArchivedStatus, plan.ScheduledStatus, plan.DraftStatus}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be deleted, but it has %s state", allowedPlanStatuses, planStatus)
