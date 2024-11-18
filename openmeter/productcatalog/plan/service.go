@@ -262,9 +262,6 @@ func (i GetPlanInput) Validate() error {
 
 type DeletePlanInput struct {
 	models.NamespacedID
-
-	// SkipSoftDelete defines whether plan needs to be permanently or soft deleted.
-	SkipSoftDelete bool `json:"skipSoftDelete,omitempty"`
 }
 
 func (i DeletePlanInput) Validate() error {
@@ -462,9 +459,6 @@ type DeletePhaseInput struct {
 
 	// PlanID identifies the Plan the Phase belongs to. See Key.
 	PlanID string `json:"planId"`
-
-	// SkipSoftDelete defines whether plan phase needs to be permanently or soft deleted.
-	SkipSoftDelete bool `json:"skipSoftDelete,omitempty"`
 }
 
 func (i DeletePhaseInput) Validate() error {
