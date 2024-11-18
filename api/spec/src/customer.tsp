@@ -25,9 +25,10 @@ interface Customers {
   @operationId("createCustomer")
   @summary("Create customer")
   @extension("x-internal", true)
-  create(
-    @body customer: Rest.Resource.ResourceCreateModel<Customer>,
-  ): Customer | CommonErrors;
+  create(@body customer: Rest.Resource.ResourceCreateModel<Customer>): {
+    @statusCode _: 201;
+    @body body: Customer;
+  } | CommonErrors;
 
   /**
    * List customers.

@@ -8004,8 +8004,8 @@ export interface operations {
       }
     }
     responses: {
-      /** @description The request has succeeded. */
-      200: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
         content: {
           'application/json': components['schemas']['Customer']
         }
