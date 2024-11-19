@@ -409,19 +409,6 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			phases = append(phases, diffResult.Keep...)
 		}
 
-		if len(diffResult.Add) > 0 {
-			for _, createInput := range diffResult.Add {
-				createInput.Namespace = params.Namespace
-
-				phase, err := a.CreatePhase(ctx, createInput)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
-				}
-
-				phases = append(phases, *phase)
-			}
-		}
-
 		if len(diffResult.Remove) > 0 {
 			for _, deleteInput := range diffResult.Remove {
 				err = a.DeletePhase(ctx, deleteInput)
@@ -439,6 +426,19 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				phase, err := a.UpdatePhase(ctx, updateInput)
 				if err != nil {
 					return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
+				}
+
+				phases = append(phases, *phase)
+			}
+		}
+
+		if len(diffResult.Add) > 0 {
+			for _, createInput := range diffResult.Add {
+				createInput.Namespace = params.Namespace
+
+				phase, err := a.CreatePhase(ctx, createInput)
+				if err != nil {
+					return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
 				}
 
 				phases = append(phases, *phase)
