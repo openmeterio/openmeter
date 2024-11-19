@@ -225,13 +225,12 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 			}
 
 			// Soft delete the customer
-			query := repo.db.Customer.Update().
+			rows, err := repo.db.Customer.Update().
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace)).
 				Where(customerdb.DeletedAtIsNil()).
-				SetDeletedAt(clock.Now().UTC())
-
-			rows, err := query.Save(ctx)
+				SetDeletedAt(clock.Now().UTC()).
+				Save(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete customer: %w", err)
 			}
@@ -240,6 +239,16 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 				return nil, customerentity.NotFoundError{
 					CustomerID: customerentity.CustomerID(input),
 				}
+			}
+
+			// Hard delete the customer subjects to make them re-usable
+			_, err = repo.db.CustomerSubjects.
+				Delete().
+				Where(customersubjectsdb.CustomerID(input.ID)).
+				Where(customersubjectsdb.Namespace(input.Namespace)).
+				Exec(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
 			}
 
 			// Deleted customer

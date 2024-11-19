@@ -330,7 +330,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	service := s.Env.Customer()
 
 	// Create a customer
-	originalCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	input := customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
 			Name: TestName,
@@ -338,7 +338,8 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
-	})
+	}
+	originalCustomer, err := service.CreateCustomer(ctx, input)
 
 	require.NoError(t, err, "Creating customer must not return error")
 	require.NotNil(t, originalCustomer, "Customer must not be nil")
@@ -365,4 +366,8 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// TODO: it is a wrapped error, we need to unwrap it, instead we are checking the error message for now
 	// require.ErrorAs(t, err, customer.NotFoundError{CustomerID: customerId}, "Deleting customer again must return not found error")
 	require.ErrorContains(t, err, "not found", "Deleting customer again must return not found error")
+
+	// Should allow to create a customer with the same subject keys
+	_, err = service.CreateCustomer(ctx, input)
+	require.NoError(t, err, "Creating a customer with the same subject keys must not return error")
 }
