@@ -370,7 +370,7 @@ type (
 
 func (h *handler) NextPlan() NextPlanHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planID string) (NextPlanRequest, error) {
+		func(ctx context.Context, r *http.Request, planIdOrKey string) (NextPlanRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return NextPlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -378,12 +378,15 @@ func (h *handler) NextPlan() NextPlanHandler {
 
 			// TODO(chrisgacsal): update api.Request in TypeSpec definition to allow setting EffectivePeriod.To
 
+			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
+			idOrKey := NewIDOrKey(planIdOrKey)
+
 			req := NextPlanRequest{
 				NamespacedID: models.NamespacedID{
 					Namespace: ns,
-					ID:        planID,
+					ID:        idOrKey.ID,
 				},
-				Key:     "",
+				Key:     idOrKey.Key,
 				Version: 0,
 			}
 
