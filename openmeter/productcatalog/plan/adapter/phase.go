@@ -378,14 +378,6 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 				return p, nil
 			}
 
-			if len(diffResult.Add) > 0 {
-				bulk, bulkFn := newRateCardBulkCreate(diffResult.Add, p.ID, params.Namespace)
-
-				if err = a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Exec(ctx); err != nil {
-					return nil, fmt.Errorf("failed to bulk create RateCards: %w", err)
-				}
-			}
-
 			if len(diffResult.Remove) > 0 {
 				for _, rateCard := range diffResult.Remove {
 					err = a.db.PlanRateCard.DeleteOneID(rateCard.ID).Where(ratecarddb.Namespace(params.Namespace)).Exec(ctx)
@@ -422,6 +414,14 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 					if err != nil {
 						return nil, fmt.Errorf("failed to update RateCard: %w", err)
 					}
+				}
+			}
+
+			if len(diffResult.Add) > 0 {
+				bulk, bulkFn := newRateCardBulkCreate(diffResult.Add, p.ID, params.Namespace)
+
+				if err = a.db.PlanRateCard.MapCreateBulk(bulk, bulkFn).Exec(ctx); err != nil {
+					return nil, fmt.Errorf("failed to bulk create RateCards: %w", err)
 				}
 			}
 
@@ -485,9 +485,19 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 	for rateCardKey, input := range inputsMap {
 		rateCard, ok := rateCardsMap[rateCardKey]
 
-		// Collect new phases
+		// Create RateCard
 		if !ok {
 			result.Add = append(result.Add, input)
+
+			rateCardsVisited[rateCardKey] = struct{}{}
+
+			continue
+		}
+
+		// Replace RateCard as type attribute is immutable for RateCards
+		if input.Type != rateCard.Type {
+			result.Add = append(result.Add, input)
+			result.Remove = append(result.Remove, rateCard)
 
 			rateCardsVisited[rateCardKey] = struct{}{}
 
@@ -500,6 +510,7 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 			return result, fmt.Errorf("failed to compare RateCard: %w", err)
 		}
 
+		// Update in-place
 		if !match {
 			input.Namespace = rateCard.Namespace
 			input.ID = rateCard.ID
@@ -507,7 +518,7 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 			result.Update = append(result.Update, input)
 
 			rateCardsVisited[rateCardKey] = struct{}{}
-		} else {
+		} else { // Keep it as is
 			result.Keep = append(result.Keep, rateCard)
 
 			rateCardsVisited[rateCardKey] = struct{}{}
@@ -515,11 +526,9 @@ func rateCardsDiff(inputs, rateCards []plan.RateCard) (rateCardsDiffResult, erro
 	}
 
 	// Collect RateCards to be deleted
-	if len(rateCardsVisited) != len(rateCardsMap) {
-		for rateCardKey, rateCard := range rateCardsMap {
-			if _, ok := rateCardsVisited[rateCardKey]; !ok {
-				result.Remove = append(result.Remove, rateCard)
-			}
+	for rateCardKey, rateCard := range rateCardsMap {
+		if _, ok := rateCardsVisited[rateCardKey]; !ok {
+			result.Remove = append(result.Remove, rateCard)
 		}
 	}
 

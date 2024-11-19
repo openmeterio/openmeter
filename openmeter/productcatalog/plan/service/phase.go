@@ -187,6 +187,12 @@ func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) 
 			}
 		}
 
+		if params.RateCards != nil && len(*params.RateCards) > 0 {
+			if err := s.expandFeatures(ctx, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
+			}
+		}
+
 		logger.Debug("updating PlanPhase")
 
 		phase, err := s.adapter.UpdatePhase(ctx, params)
