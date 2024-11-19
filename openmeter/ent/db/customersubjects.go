@@ -26,6 +26,10 @@ type CustomerSubjects struct {
 	SubjectKey string `json:"subject_key,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// DeletedAt holds the value of the "deleted_at" field.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// IsDeleted holds the value of the "is_deleted" field.
+	IsDeleted bool `json:"is_deleted,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerSubjectsQuery when eager-loading is set.
 	Edges        CustomerSubjectsEdges `json:"edges"`
@@ -57,11 +61,13 @@ func (*CustomerSubjects) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case customersubjects.FieldIsDeleted:
+			values[i] = new(sql.NullBool)
 		case customersubjects.FieldID:
 			values[i] = new(sql.NullInt64)
 		case customersubjects.FieldNamespace, customersubjects.FieldCustomerID, customersubjects.FieldSubjectKey:
 			values[i] = new(sql.NullString)
-		case customersubjects.FieldCreatedAt:
+		case customersubjects.FieldCreatedAt, customersubjects.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -107,6 +113,19 @@ func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				cs.CreatedAt = value.Time
+			}
+		case customersubjects.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				cs.DeletedAt = new(time.Time)
+				*cs.DeletedAt = value.Time
+			}
+		case customersubjects.FieldIsDeleted:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_deleted", values[i])
+			} else if value.Valid {
+				cs.IsDeleted = value.Bool
 			}
 		default:
 			cs.selectValues.Set(columns[i], values[i])
@@ -160,6 +179,14 @@ func (cs *CustomerSubjects) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(cs.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := cs.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("is_deleted=")
+	builder.WriteString(fmt.Sprintf("%v", cs.IsDeleted))
 	builder.WriteByte(')')
 	return builder.String()
 }

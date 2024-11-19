@@ -60,7 +60,9 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 			// Build the database query
 			query := repo.db.Customer.
 				Query().
-				WithSubjects().
+				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
+					query.Where(customersubjectsdb.IsDeletedEQ(false))
+				}).
 				Where(customerdb.Namespace(input.Namespace))
 
 			// Do not return deleted customers by default
@@ -224,12 +226,14 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 				}
 			}
 
+			deletedAt := clock.Now().UTC()
+
 			// Soft delete the customer
 			rows, err := repo.db.Customer.Update().
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace)).
 				Where(customerdb.DeletedAtIsNil()).
-				SetDeletedAt(clock.Now().UTC()).
+				SetDeletedAt(deletedAt).
 				Save(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete customer: %w", err)
@@ -241,11 +245,14 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 				}
 			}
 
-			// Hard delete the customer subjects to make them re-usable
-			_, err = repo.db.CustomerSubjects.
-				Delete().
+			// Soft delete the customer subjects
+			err = repo.db.CustomerSubjects.
+				Update().
 				Where(customersubjectsdb.CustomerID(input.ID)).
 				Where(customersubjectsdb.Namespace(input.Namespace)).
+				Where(customersubjectsdb.IsDeletedEQ(false)).
+				SetIsDeleted(true).
+				SetDeletedAt(deletedAt).
 				Exec(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
@@ -284,7 +291,9 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 			}
 
 			query := repo.db.Customer.Query().
-				WithSubjects().
+				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
+					query.Where(customersubjectsdb.IsDeletedEQ(false))
+				}).
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -434,11 +443,14 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				}
 			}
 
-			_, err = repo.db.CustomerSubjects.
-				Delete().
+			err = repo.db.CustomerSubjects.
+				Update().
 				Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
 				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
 				Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
+				Where(customersubjectsdb.IsDeletedEQ(false)).
+				SetIsDeleted(true).
+				SetDeletedAt(clock.Now().UTC()).
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
