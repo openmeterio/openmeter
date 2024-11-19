@@ -576,6 +576,8 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 			default:
 				paymentTerm = plan.DefaultPaymentTerm
 			}
+		} else {
+			paymentTerm = plan.DefaultPaymentTerm
 		}
 
 		flatRateCard.Price = lo.ToPtr(plan.NewPriceFrom(plan.FlatPrice{

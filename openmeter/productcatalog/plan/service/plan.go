@@ -423,6 +423,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 			OrderBy:        plan.OrderByVersion,
 			Order:          plan.OrderAsc,
 			Namespaces:     []string{params.Namespace},
+			IDs:            []string{params.ID},
 			Keys:           []string{params.Key},
 			IncludeDeleted: true,
 		})
@@ -435,19 +436,32 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		}
 
 		// Generate source plan filter from input parameters
-		planFilter := func() func(plan plan.Plan) bool {
+
+		// planFilterFunc is a filter function which returns tuple where the first boolean means that
+		// there is a match while the second tells the caller to stop further invocations as there is an exact match.
+		type planFilterFunc func(plan plan.Plan) (match bool, stop bool)
+
+		sourcePlanFilterFunc := func() planFilterFunc {
 			switch {
 			case params.ID != "":
-				return func(p plan.Plan) bool {
-					return p.Namespace == params.Namespace && p.ID == params.ID
+				return func(p plan.Plan) (match bool, stop bool) {
+					if p.Namespace == params.Namespace && p.ID == params.ID {
+						return true, true
+					}
+
+					return false, false
 				}
 			case params.Key != "" && params.Version == 0:
-				return func(p plan.Plan) bool {
-					return p.Namespace == params.Namespace && p.Key == params.Key && p.Status() == plan.ActiveStatus
+				return func(p plan.Plan) (match bool, stop bool) {
+					return p.Namespace == params.Namespace && p.Key == params.Key, false
 				}
 			default:
-				return func(p plan.Plan) bool {
-					return p.Namespace == params.Namespace && p.Key == params.Key && p.Version == params.Version
+				return func(p plan.Plan) (match bool, stop bool) {
+					if p.Namespace == params.Namespace && p.Key == params.Key && p.Version == params.Version {
+						return true, true
+					}
+
+					return false, false
 				}
 			}
 		}()
@@ -455,9 +469,17 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		var sourcePlan *plan.Plan
 
 		nextVersion := 1
+		var match, stop bool
 		for _, p := range allVersions.Items {
-			if sourcePlan == nil && planFilter(p) {
-				sourcePlan = &p
+			if p.Status() == plan.DraftStatus {
+				return nil, fmt.Errorf("only a single draft version is allowed for Plan")
+			}
+
+			if !stop {
+				match, stop = sourcePlanFilterFunc(p)
+				if match {
+					sourcePlan = &p
+				}
 			}
 
 			if p.Version >= nextVersion {

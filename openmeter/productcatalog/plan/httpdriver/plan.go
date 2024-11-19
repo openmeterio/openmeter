@@ -41,10 +41,11 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespaces:  []string{ns},
-				IDs:         lo.FromPtrOr(params.Id, nil),
-				Keys:        lo.FromPtrOr(params.Key, nil),
-				KeyVersions: lo.FromPtrOr(params.KeyVersion, nil),
+				Namespaces:     []string{ns},
+				IDs:            lo.FromPtrOr(params.Id, nil),
+				Keys:           lo.FromPtrOr(params.Key, nil),
+				KeyVersions:    lo.FromPtrOr(params.KeyVersion, nil),
+				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
 			}
 
 			return req, nil
@@ -220,11 +221,8 @@ func (h *handler) DeletePlan() DeletePlanHandler {
 type (
 	GetPlanRequest       = plan.GetPlanInput
 	GetPlanRequestParams struct {
-		// PlanID is the plan unique identifier in ULID format.
-		ID string
-
-		// Key is the unique key for Plan.
-		Key string
+		// PlanID or Key.
+		IDOrKey string
 
 		// Version is the version of the Plan.
 		// If not set the latest version is assumed.
@@ -246,12 +244,15 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
+			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
+			idOrKey := NewIDOrKey(params.IDOrKey)
+
 			return GetPlanRequest{
 				NamespacedID: models.NamespacedID{
 					Namespace: ns,
-					ID:        params.ID,
+					ID:        idOrKey.ID,
 				},
-				Key:           params.Key,
+				Key:           idOrKey.Key,
 				Version:       params.Version,
 				IncludeLatest: params.IncludeLatest,
 			}, nil
@@ -369,7 +370,7 @@ type (
 
 func (h *handler) NextPlan() NextPlanHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planID string) (NextPlanRequest, error) {
+		func(ctx context.Context, r *http.Request, planIdOrKey string) (NextPlanRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return NextPlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -377,12 +378,15 @@ func (h *handler) NextPlan() NextPlanHandler {
 
 			// TODO(chrisgacsal): update api.Request in TypeSpec definition to allow setting EffectivePeriod.To
 
+			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
+			idOrKey := NewIDOrKey(planIdOrKey)
+
 			req := NextPlanRequest{
 				NamespacedID: models.NamespacedID{
 					Namespace: ns,
-					ID:        planID,
+					ID:        idOrKey.ID,
 				},
-				Key:     "",
+				Key:     idOrKey.Key,
 				Version: 0,
 			}
 

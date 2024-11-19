@@ -247,7 +247,7 @@ type FlatPrice struct {
 
 	// PaymentTerm defines the payment term of the flat price.
 	// Defaults to InAdvancePaymentTerm.
-	PaymentTerm PaymentTermType `json:"payment_term,omitempty"`
+	PaymentTerm PaymentTermType `json:"paymentTerm,omitempty"`
 }
 
 func (f FlatPrice) Validate() error {

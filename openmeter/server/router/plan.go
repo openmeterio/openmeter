@@ -44,14 +44,14 @@ func (a *Router) DeletePlan(w http.ResponseWriter, r *http.Request, planId strin
 
 // Get plan
 // (GET /api/v1/plans/{planId})
-func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planId string, params api.GetPlanParams) {
+func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey string, params api.GetPlanParams) {
 	if a.config.Plan == nil {
-		unimplemented.GetPlan(w, r, planId, params)
+		unimplemented.GetPlan(w, r, planIdOrKey, params)
 		return
 	}
 
 	a.planHandler.GetPlan().With(planhttpdriver.GetPlanRequestParams{
-		ID:            planId,
+		IDOrKey:       planIdOrKey,
 		IncludeLatest: lo.FromPtrOr(params.IncludeLatest, false),
 	}).ServeHTTP(w, r)
 }
