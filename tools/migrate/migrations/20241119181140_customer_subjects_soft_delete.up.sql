@@ -6,5 +6,6 @@ DROP INDEX "customersubjects_namespace_subject_key";
 ALTER TABLE "customer_subjects" ADD COLUMN "deleted_at" timestamptz NULL, ADD COLUMN "is_deleted" boolean NOT NULL DEFAULT false;
 -- create index "customersubjects_namespace_customer_id_is_deleted" to table: "customer_subjects"
 CREATE INDEX "customersubjects_namespace_customer_id_is_deleted" ON "customer_subjects" ("namespace", "customer_id", "is_deleted");
+-- atlas:nolint MF101
 -- create index "customersubjects_namespace_subject_key_is_deleted" to table: "customer_subjects"
 CREATE UNIQUE INDEX "customersubjects_namespace_subject_key_is_deleted" ON "customer_subjects" ("namespace", "subject_key", "is_deleted") WHERE (is_deleted = false);
