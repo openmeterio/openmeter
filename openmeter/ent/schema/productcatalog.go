@@ -178,9 +178,9 @@ func (PlanRateCard) Edges() []ent.Edge {
 
 func (PlanRateCard) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("phase_id", "key").
+		index.Fields("phase_id", "key", "deleted_at").
 			Unique(),
-		index.Fields("phase_id", "feature_key").
+		index.Fields("phase_id", "feature_key", "deleted_at").
 			Unique(),
 	}
 }

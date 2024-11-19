@@ -195,6 +195,8 @@ func AssertPlanRateCardsEqual(t *testing.T, r1, r2 []RateCard) {
 func AssertRateCardEqual(t *testing.T, r1, r2 RateCard) {
 	t.Helper()
 
+	assert.Equalf(t, r1.Type(), r2.Type(), "type mismatch")
+
 	m1, err := r1.AsMeta()
 	require.NoErrorf(t, err, "AsMeta must not fail")
 

@@ -181,9 +181,19 @@ func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) 
 
 		if params.StartAfter != nil {
 			for _, planPhase := range p.Phases {
-				if planPhase.StartAfter == *params.StartAfter {
-					return nil, fmt.Errorf("there is already a PlanPhase with the same StartAfter perdiod: %q", planPhase.Key)
+				if planPhase.Key == params.Key {
+					continue
 				}
+
+				if planPhase.StartAfter == *params.StartAfter {
+					return nil, fmt.Errorf("there is already a PlanPhase with the same StartAfter period: %q", planPhase.Key)
+				}
+			}
+		}
+
+		if params.RateCards != nil && len(*params.RateCards) > 0 {
+			if err := s.expandFeatures(ctx, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 			}
 		}
 

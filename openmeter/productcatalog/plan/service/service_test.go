@@ -619,6 +619,61 @@ func TestPlanService(t *testing.T) {
 					plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
 				})
 
+				t.Run("ReplaceRateCard", func(t *testing.T) {
+					updateInput := plan.UpdatePhaseInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: draftPlan.Namespace,
+						},
+						Key:         newPhase.Key,
+						Name:        lo.ToPtr("Pro-3"),
+						Description: lo.ToPtr("Pro-3"),
+						Metadata:    lo.ToPtr(map[string]string{"name": "pro-3"}),
+						StartAfter:  lo.ToPtr(SixMonthPeriod),
+						PlanID:      draftPlan.ID,
+						RateCards: lo.ToPtr([]plan.RateCard{
+							plan.NewRateCardFrom(plan.FlatFeeRateCard{
+								RateCardMeta: plan.RateCardMeta{
+									NamespacedID: models.NamespacedID{
+										Namespace: namespace,
+									},
+									Key:         "pro-2-ratecard-1",
+									Name:        "Pro-2 RateCard 1",
+									Description: lo.ToPtr("Pro-2 RateCard 1"),
+									Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
+									Feature: &feature.Feature{
+										Namespace: namespace,
+										Key:       "api_requests_total",
+									},
+									EntitlementTemplate: lo.ToPtr(plan.NewEntitlementTemplateFrom(plan.MeteredEntitlementTemplate{
+										Metadata:                nil,
+										IsSoftLimit:             true,
+										IssueAfterReset:         lo.ToPtr(500.0),
+										IssueAfterResetPriority: lo.ToPtr[uint8](1),
+										PreserveOverageAtReset:  lo.ToPtr(true),
+										UsagePeriod:             MonthPeriod,
+									})),
+									TaxConfig: &plan.TaxConfig{
+										Stripe: &plan.StripeTaxConfig{
+											Code: "txcd_10000000",
+										},
+									},
+									Price: lo.ToPtr(plan.NewPriceFrom(plan.FlatPrice{
+										Amount:      decimal.NewFromInt(1000),
+										PaymentTerm: plan.InAdvancePaymentTerm,
+									})),
+								},
+								BillingCadence: &MonthPeriod,
+							}),
+						}),
+					}
+
+					updatedPhase, err := env.Plan.UpdatePhase(ctx, updateInput)
+					require.NoErrorf(t, err, "updating PlanPhase must not fail")
+					require.NotNil(t, updatedPhase, "PlanPhase must not be empty")
+
+					plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
+				})
+
 				t.Run("Delete", func(t *testing.T) {
 					err = env.Plan.DeletePhase(ctx, plan.DeletePhaseInput{
 						NamespacedID: models.NamespacedID{
