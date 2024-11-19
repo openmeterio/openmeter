@@ -221,11 +221,8 @@ func (h *handler) DeletePlan() DeletePlanHandler {
 type (
 	GetPlanRequest       = plan.GetPlanInput
 	GetPlanRequestParams struct {
-		// PlanID is the plan unique identifier in ULID format.
-		ID string
-
-		// Key is the unique key for Plan.
-		Key string
+		// PlanID or Key.
+		IDOrKey string
 
 		// Version is the version of the Plan.
 		// If not set the latest version is assumed.
@@ -247,12 +244,15 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
+			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
+			idOrKey := NewIDOrKey(params.IDOrKey)
+
 			return GetPlanRequest{
 				NamespacedID: models.NamespacedID{
 					Namespace: ns,
-					ID:        params.ID,
+					ID:        idOrKey.ID,
 				},
-				Key:           params.Key,
+				Key:           idOrKey.Key,
 				Version:       params.Version,
 				IncludeLatest: params.IncludeLatest,
 			}, nil
