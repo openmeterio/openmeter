@@ -1324,14 +1324,14 @@ var (
 				Columns: []*schema.Column{PlanRateCardsColumns[1], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
 			},
 			{
-				Name:    "planratecard_phase_id_key",
+				Name:    "planratecard_phase_id_key_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[8]},
+				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
 			},
 			{
-				Name:    "planratecard_phase_id_feature_key",
+				Name:    "planratecard_phase_id_feature_key_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[10]},
+				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[10], PlanRateCardsColumns[5]},
 			},
 		},
 	}
