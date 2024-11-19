@@ -181,8 +181,12 @@ func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) 
 
 		if params.StartAfter != nil {
 			for _, planPhase := range p.Phases {
+				if planPhase.Key == params.Key {
+					continue
+				}
+
 				if planPhase.StartAfter == *params.StartAfter {
-					return nil, fmt.Errorf("there is already a PlanPhase with the same StartAfter perdiod: %q", planPhase.Key)
+					return nil, fmt.Errorf("there is already a PlanPhase with the same StartAfter period: %q", planPhase.Key)
 				}
 			}
 		}
