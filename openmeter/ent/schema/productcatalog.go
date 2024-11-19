@@ -101,7 +101,7 @@ func (PlanPhase) Edges() []ent.Edge {
 func (PlanPhase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "key"),
-		index.Fields("plan_id", "key").
+		index.Fields("plan_id", "key", "deleted_at").
 			Unique(),
 	}
 }

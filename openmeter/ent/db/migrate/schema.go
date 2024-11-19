@@ -1257,9 +1257,9 @@ var (
 				Columns: []*schema.Column{PlanPhasesColumns[1], PlanPhasesColumns[8]},
 			},
 			{
-				Name:    "planphase_plan_id_key",
+				Name:    "planphase_plan_id_key_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{PlanPhasesColumns[11], PlanPhasesColumns[8]},
+				Columns: []*schema.Column{PlanPhasesColumns[11], PlanPhasesColumns[8], PlanPhasesColumns[5]},
 			},
 		},
 	}

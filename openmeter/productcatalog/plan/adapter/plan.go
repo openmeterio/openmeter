@@ -57,6 +57,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		// * ordering by StartAfter
 		// * with eager load RateCards
 		query = query.WithPhases(
+			planPhaseIncludeDeleted(false),
 			planPhaseEagerLoadRateCardsFn,
 		)
 
@@ -222,17 +223,20 @@ func (a *adapter) DeletePlan(ctx context.Context, params plan.DeletePlanInput) e
 			return nil, fmt.Errorf("failed to delete Plan: %w", err)
 		}
 
-		for _, phase := range p.Phases {
-			err = a.DeletePhase(ctx, plan.DeletePhaseInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: params.Namespace,
-					ID:        phase.ID,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to delete PlanPhase for plan: %w", err)
-			}
-		}
+		// NOTE(chrisgacsal): do not mark Phases as deleted as fetching a deleted Plan will return 0 Phases
+		// making it impossible to get the state of the Plan before deletion.
+		//
+		//for _, phase := range p.Phases {
+		//	err = a.DeletePhase(ctx, plan.DeletePhaseInput{
+		//		NamespacedID: models.NamespacedID{
+		//			Namespace: params.Namespace,
+		//			ID:        phase.ID,
+		//		},
+		//	})
+		//	if err != nil {
+		//		return nil, fmt.Errorf("failed to delete PlanPhase for plan: %w", err)
+		//	}
+		//}
 
 		return nil, nil
 	}
@@ -311,6 +315,7 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		// * ordering by StartAfter
 		// * with eager load RateCards
 		query = query.WithPhases(
+			planPhaseIncludeDeleted(false),
 			planPhaseEagerLoadRateCardsFn,
 			planPhaseAscOrderingByStartAfterFn,
 		)
@@ -453,6 +458,16 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 	}
 
 	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
+}
+
+func planPhaseIncludeDeleted(include bool) func(*entdb.PlanPhaseQuery) {
+	if include {
+		return func(q *entdb.PlanPhaseQuery) {}
+	} else {
+		return func(q *entdb.PlanPhaseQuery) {
+			q.Where(phasedb.DeletedAtIsNil())
+		}
+	}
 }
 
 var planPhaseAscOrderingByStartAfterFn = func(q *entdb.PlanPhaseQuery) {
