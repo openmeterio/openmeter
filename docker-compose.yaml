@@ -128,7 +128,7 @@ services:
         target: /docker-entrypoint-initdb.d/svix.sql
     command: ["postgres", "-c", "wal_level=logical"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "$${POSTGRES_DB}", "-U", "$${POSTGRES_USER}"]
+      test: ["CMD", "pg_isready", "-d", "postgres", "-U", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 30
