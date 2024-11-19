@@ -1078,6 +1078,20 @@ func (u *CustomerUpdateOne) SetOrClearCurrency(value *currencyx.Code) *CustomerU
 	return u.SetCurrency(*value)
 }
 
+func (u *CustomerSubjectsUpdate) SetOrClearDeletedAt(value *time.Time) *CustomerSubjectsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *CustomerSubjectsUpdateOne) SetOrClearDeletedAt(value *time.Time) *CustomerSubjectsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *EntitlementUpdate) SetOrClearMetadata(value *map[string]string) *EntitlementUpdate {
 	if value == nil {
 		return u.ClearMetadata()
