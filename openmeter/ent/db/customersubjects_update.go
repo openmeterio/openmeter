@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -24,6 +25,40 @@ type CustomerSubjectsUpdate struct {
 // Where appends a list predicates to the CustomerSubjectsUpdate builder.
 func (csu *CustomerSubjectsUpdate) Where(ps ...predicate.CustomerSubjects) *CustomerSubjectsUpdate {
 	csu.mutation.Where(ps...)
+	return csu
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (csu *CustomerSubjectsUpdate) SetDeletedAt(t time.Time) *CustomerSubjectsUpdate {
+	csu.mutation.SetDeletedAt(t)
+	return csu
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (csu *CustomerSubjectsUpdate) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsUpdate {
+	if t != nil {
+		csu.SetDeletedAt(*t)
+	}
+	return csu
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (csu *CustomerSubjectsUpdate) ClearDeletedAt() *CustomerSubjectsUpdate {
+	csu.mutation.ClearDeletedAt()
+	return csu
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (csu *CustomerSubjectsUpdate) SetIsDeleted(b bool) *CustomerSubjectsUpdate {
+	csu.mutation.SetIsDeleted(b)
+	return csu
+}
+
+// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
+func (csu *CustomerSubjectsUpdate) SetNillableIsDeleted(b *bool) *CustomerSubjectsUpdate {
+	if b != nil {
+		csu.SetIsDeleted(*b)
+	}
 	return csu
 }
 
@@ -79,6 +114,15 @@ func (csu *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (n int, err erro
 			}
 		}
 	}
+	if value, ok := csu.mutation.DeletedAt(); ok {
+		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
+	}
+	if csu.mutation.DeletedAtCleared() {
+		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := csu.mutation.IsDeleted(); ok {
+		_spec.SetField(customersubjects.FieldIsDeleted, field.TypeBool, value)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, csu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customersubjects.Label}
@@ -97,6 +141,40 @@ type CustomerSubjectsUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *CustomerSubjectsMutation
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (csuo *CustomerSubjectsUpdateOne) SetDeletedAt(t time.Time) *CustomerSubjectsUpdateOne {
+	csuo.mutation.SetDeletedAt(t)
+	return csuo
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (csuo *CustomerSubjectsUpdateOne) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsUpdateOne {
+	if t != nil {
+		csuo.SetDeletedAt(*t)
+	}
+	return csuo
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (csuo *CustomerSubjectsUpdateOne) ClearDeletedAt() *CustomerSubjectsUpdateOne {
+	csuo.mutation.ClearDeletedAt()
+	return csuo
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (csuo *CustomerSubjectsUpdateOne) SetIsDeleted(b bool) *CustomerSubjectsUpdateOne {
+	csuo.mutation.SetIsDeleted(b)
+	return csuo
+}
+
+// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
+func (csuo *CustomerSubjectsUpdateOne) SetNillableIsDeleted(b *bool) *CustomerSubjectsUpdateOne {
+	if b != nil {
+		csuo.SetIsDeleted(*b)
+	}
+	return csuo
 }
 
 // Mutation returns the CustomerSubjectsMutation object of the builder.
@@ -180,6 +258,15 @@ func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *Cust
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := csuo.mutation.DeletedAt(); ok {
+		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
+	}
+	if csuo.mutation.DeletedAtCleared() {
+		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := csuo.mutation.IsDeleted(); ok {
+		_spec.SetField(customersubjects.FieldIsDeleted, field.TypeBool, value)
 	}
 	_node = &CustomerSubjects{config: csuo.config}
 	_spec.Assign = _node.assignValues
