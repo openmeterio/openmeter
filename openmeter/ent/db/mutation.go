@@ -11819,7 +11819,7 @@ type BillingInvoiceLineDiscountMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
-	_type                       *billingentity.LineDiscountType
+	child_unique_reference_id   *string
 	description                 *string
 	amount                      *alpacadecimal.Decimal
 	clearedFields               map[string]struct{}
@@ -12127,53 +12127,53 @@ func (m *BillingInvoiceLineDiscountMutation) ResetLineID() {
 	m.billing_invoice_line = nil
 }
 
-// SetType sets the "type" field.
-func (m *BillingInvoiceLineDiscountMutation) SetType(bdt billingentity.LineDiscountType) {
-	m._type = &bdt
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (m *BillingInvoiceLineDiscountMutation) SetChildUniqueReferenceID(s string) {
+	m.child_unique_reference_id = &s
 }
 
-// GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceLineDiscountMutation) GetType() (r billingentity.LineDiscountType, exists bool) {
-	v := m._type
+// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
+func (m *BillingInvoiceLineDiscountMutation) ChildUniqueReferenceID() (r string, exists bool) {
+	v := m.child_unique_reference_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldType returns the old "type" field's value of the BillingInvoiceLineDiscount entity.
+// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the BillingInvoiceLineDiscount entity.
 // If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineDiscountMutation) OldType(ctx context.Context) (v *billingentity.LineDiscountType, err error) {
+func (m *BillingInvoiceLineDiscountMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldType is only allowed on UpdateOne operations")
+		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldType requires an ID field in the mutation")
+		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldType: %w", err)
+		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
 	}
-	return oldValue.Type, nil
+	return oldValue.ChildUniqueReferenceID, nil
 }
 
-// ClearType clears the value of the "type" field.
-func (m *BillingInvoiceLineDiscountMutation) ClearType() {
-	m._type = nil
-	m.clearedFields[billinginvoicelinediscount.FieldType] = struct{}{}
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (m *BillingInvoiceLineDiscountMutation) ClearChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	m.clearedFields[billinginvoicelinediscount.FieldChildUniqueReferenceID] = struct{}{}
 }
 
-// TypeCleared returns if the "type" field was cleared in this mutation.
-func (m *BillingInvoiceLineDiscountMutation) TypeCleared() bool {
-	_, ok := m.clearedFields[billinginvoicelinediscount.FieldType]
+// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
+func (m *BillingInvoiceLineDiscountMutation) ChildUniqueReferenceIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicelinediscount.FieldChildUniqueReferenceID]
 	return ok
 }
 
-// ResetType resets all changes to the "type" field.
-func (m *BillingInvoiceLineDiscountMutation) ResetType() {
-	m._type = nil
-	delete(m.clearedFields, billinginvoicelinediscount.FieldType)
+// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
+func (m *BillingInvoiceLineDiscountMutation) ResetChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	delete(m.clearedFields, billinginvoicelinediscount.FieldChildUniqueReferenceID)
 }
 
 // SetDescription sets the "description" field.
@@ -12351,8 +12351,8 @@ func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
 	if m.billing_invoice_line != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldLineID)
 	}
-	if m._type != nil {
-		fields = append(fields, billinginvoicelinediscount.FieldType)
+	if m.child_unique_reference_id != nil {
+		fields = append(fields, billinginvoicelinediscount.FieldChildUniqueReferenceID)
 	}
 	if m.description != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldDescription)
@@ -12378,8 +12378,8 @@ func (m *BillingInvoiceLineDiscountMutation) Field(name string) (ent.Value, bool
 		return m.DeletedAt()
 	case billinginvoicelinediscount.FieldLineID:
 		return m.LineID()
-	case billinginvoicelinediscount.FieldType:
-		return m.GetType()
+	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
+		return m.ChildUniqueReferenceID()
 	case billinginvoicelinediscount.FieldDescription:
 		return m.Description()
 	case billinginvoicelinediscount.FieldAmount:
@@ -12403,8 +12403,8 @@ func (m *BillingInvoiceLineDiscountMutation) OldField(ctx context.Context, name 
 		return m.OldDeletedAt(ctx)
 	case billinginvoicelinediscount.FieldLineID:
 		return m.OldLineID(ctx)
-	case billinginvoicelinediscount.FieldType:
-		return m.OldType(ctx)
+	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
+		return m.OldChildUniqueReferenceID(ctx)
 	case billinginvoicelinediscount.FieldDescription:
 		return m.OldDescription(ctx)
 	case billinginvoicelinediscount.FieldAmount:
@@ -12453,12 +12453,12 @@ func (m *BillingInvoiceLineDiscountMutation) SetField(name string, value ent.Val
 		}
 		m.SetLineID(v)
 		return nil
-	case billinginvoicelinediscount.FieldType:
-		v, ok := value.(billingentity.LineDiscountType)
+	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetType(v)
+		m.SetChildUniqueReferenceID(v)
 		return nil
 	case billinginvoicelinediscount.FieldDescription:
 		v, ok := value.(string)
@@ -12507,8 +12507,8 @@ func (m *BillingInvoiceLineDiscountMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicelinediscount.FieldDeletedAt) {
 		fields = append(fields, billinginvoicelinediscount.FieldDeletedAt)
 	}
-	if m.FieldCleared(billinginvoicelinediscount.FieldType) {
-		fields = append(fields, billinginvoicelinediscount.FieldType)
+	if m.FieldCleared(billinginvoicelinediscount.FieldChildUniqueReferenceID) {
+		fields = append(fields, billinginvoicelinediscount.FieldChildUniqueReferenceID)
 	}
 	if m.FieldCleared(billinginvoicelinediscount.FieldDescription) {
 		fields = append(fields, billinginvoicelinediscount.FieldDescription)
@@ -12530,8 +12530,8 @@ func (m *BillingInvoiceLineDiscountMutation) ClearField(name string) error {
 	case billinginvoicelinediscount.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case billinginvoicelinediscount.FieldType:
-		m.ClearType()
+	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
+		m.ClearChildUniqueReferenceID()
 		return nil
 	case billinginvoicelinediscount.FieldDescription:
 		m.ClearDescription()
@@ -12559,8 +12559,8 @@ func (m *BillingInvoiceLineDiscountMutation) ResetField(name string) error {
 	case billinginvoicelinediscount.FieldLineID:
 		m.ResetLineID()
 		return nil
-	case billinginvoicelinediscount.FieldType:
-		m.ResetType()
+	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
+		m.ResetChildUniqueReferenceID()
 		return nil
 	case billinginvoicelinediscount.FieldDescription:
 		m.ResetDescription()

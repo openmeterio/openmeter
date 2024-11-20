@@ -714,18 +714,18 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDeletedAt(value *time.Ti
 	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearType(value *billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpdate {
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdate {
 	if value == nil {
-		return u.ClearType()
+		return u.ClearChildUniqueReferenceID()
 	}
-	return u.SetType(*value)
+	return u.SetChildUniqueReferenceID(*value)
 }
 
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearType(value *billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpdateOne {
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdateOne {
 	if value == nil {
-		return u.ClearType()
+		return u.ClearChildUniqueReferenceID()
 	}
-	return u.SetType(*value)
+	return u.SetChildUniqueReferenceID(*value)
 }
 
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDescription(value *string) *BillingInvoiceLineDiscountUpdate {

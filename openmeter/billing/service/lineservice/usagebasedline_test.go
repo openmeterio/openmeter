@@ -382,9 +382,9 @@ func TestUnitPriceCalculation(t *testing.T) {
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
-							Description: lo.ToPtr("Maximum spend discount for charges over 100"),
-							Amount:      alpacadecimal.NewFromFloat(20),
-							Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+							Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
+							Amount:                 alpacadecimal.NewFromFloat(20),
+							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -778,9 +778,9 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
-							Description: lo.ToPtr("Maximum spend discount for charges over 125"),
-							Amount:      alpacadecimal.NewFromFloat(25),
-							Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+							Description:            lo.ToPtr("Maximum spend discount for charges over 125"),
+							Amount:                 alpacadecimal.NewFromFloat(25),
+							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -1015,9 +1015,9 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
-							Description: lo.ToPtr("Maximum spend discount for charges over 170"),
-							Amount:      alpacadecimal.NewFromFloat(5),
-							Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
+							Amount:                 alpacadecimal.NewFromFloat(5),
+							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -1029,9 +1029,9 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
-							Description: lo.ToPtr("Maximum spend discount for charges over 170"),
-							Amount:      alpacadecimal.NewFromFloat(7),
-							Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
+							Amount:                 alpacadecimal.NewFromFloat(7),
+							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -1068,9 +1068,9 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billingentity.LineDiscount{
 				{
-					Description: lo.ToPtr("Maximum spend discount for charges over 10000"),
-					Amount:      alpacadecimal.NewFromFloat(600),
-					Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+					Amount:                 alpacadecimal.NewFromFloat(600),
+					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)
@@ -1088,9 +1088,9 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billingentity.LineDiscount{
 				{
-					Description: lo.ToPtr("Maximum spend discount for charges over 10000"),
-					Amount:      alpacadecimal.NewFromFloat(1000),
-					Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+					Amount:                 alpacadecimal.NewFromFloat(1000),
+					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)
@@ -1108,9 +1108,9 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billingentity.LineDiscount{
 				{
-					Description: lo.ToPtr("Maximum spend discount for charges over 10000"),
-					Amount:      alpacadecimal.NewFromFloat(1000),
-					Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+					Amount:                 alpacadecimal.NewFromFloat(1000),
+					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)

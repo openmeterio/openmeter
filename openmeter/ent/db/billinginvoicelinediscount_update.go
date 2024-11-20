@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -71,23 +70,23 @@ func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableLineID(s *string) *Bil
 	return bildu
 }
 
-// SetType sets the "type" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetType(bdt billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetType(bdt)
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bildu *BillingInvoiceLineDiscountUpdate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineDiscountUpdate {
+	bildu.mutation.SetChildUniqueReferenceID(s)
 	return bildu
 }
 
-// SetNillableType sets the "type" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableType(bdt *billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpdate {
-	if bdt != nil {
-		bildu.SetType(*bdt)
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineDiscountUpdate {
+	if s != nil {
+		bildu.SetChildUniqueReferenceID(*s)
 	}
 	return bildu
 }
 
-// ClearType clears the value of the "type" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearType() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearType()
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (bildu *BillingInvoiceLineDiscountUpdate) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpdate {
+	bildu.mutation.ClearChildUniqueReferenceID()
 	return bildu
 }
 
@@ -185,11 +184,6 @@ func (bildu *BillingInvoiceLineDiscountUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bildu *BillingInvoiceLineDiscountUpdate) check() error {
-	if v, ok := bildu.mutation.GetType(); ok {
-		if err := billinginvoicelinediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.type": %w`, err)}
-		}
-	}
 	if bildu.mutation.BillingInvoiceLineCleared() && len(bildu.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLineDiscount.billing_invoice_line"`)
 	}
@@ -217,11 +211,11 @@ func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n i
 	if bildu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bildu.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeEnum, value)
+	if value, ok := bildu.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
-	if bildu.mutation.TypeCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldType, field.TypeEnum)
+	if bildu.mutation.ChildUniqueReferenceIDCleared() {
+		_spec.ClearField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := bildu.mutation.Description(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)
@@ -321,23 +315,23 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableLineID(s *string) 
 	return bilduo
 }
 
-// SetType sets the "type" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetType(bdt billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetType(bdt)
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetChildUniqueReferenceID(s string) *BillingInvoiceLineDiscountUpdateOne {
+	bilduo.mutation.SetChildUniqueReferenceID(s)
 	return bilduo
 }
 
-// SetNillableType sets the "type" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableType(bdt *billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpdateOne {
-	if bdt != nil {
-		bilduo.SetType(*bdt)
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineDiscountUpdateOne {
+	if s != nil {
+		bilduo.SetChildUniqueReferenceID(*s)
 	}
 	return bilduo
 }
 
-// ClearType clears the value of the "type" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearType() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearType()
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpdateOne {
+	bilduo.mutation.ClearChildUniqueReferenceID()
 	return bilduo
 }
 
@@ -448,11 +442,6 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bilduo *BillingInvoiceLineDiscountUpdateOne) check() error {
-	if v, ok := bilduo.mutation.GetType(); ok {
-		if err := billinginvoicelinediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.type": %w`, err)}
-		}
-	}
 	if bilduo.mutation.BillingInvoiceLineCleared() && len(bilduo.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLineDiscount.billing_invoice_line"`)
 	}
@@ -497,11 +486,11 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 	if bilduo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bilduo.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeEnum, value)
+	if value, ok := bilduo.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
-	if bilduo.mutation.TypeCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldType, field.TypeEnum)
+	if bilduo.mutation.ChildUniqueReferenceIDCleared() {
+		_spec.ClearField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := bilduo.mutation.Description(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)

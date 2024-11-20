@@ -8,7 +8,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -90,6 +89,11 @@ func DeletedAt(v time.Time) predicate.BillingInvoiceLineDiscount {
 // LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
 func LineID(v string) predicate.BillingInvoiceLineDiscount {
 	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldLineID, v))
+}
+
+// ChildUniqueReferenceID applies equality check predicate on the "child_unique_reference_id" field. It's identical to ChildUniqueReferenceIDEQ.
+func ChildUniqueReferenceID(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldChildUniqueReferenceID, v))
 }
 
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
@@ -362,44 +366,79 @@ func LineIDContainsFold(v string) predicate.BillingInvoiceLineDiscount {
 	return predicate.BillingInvoiceLineDiscount(sql.FieldContainsFold(FieldLineID, v))
 }
 
-// TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billingentity.LineDiscountType) predicate.BillingInvoiceLineDiscount {
-	vc := v
-	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldType, vc))
+// ChildUniqueReferenceIDEQ applies the EQ predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDEQ(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldChildUniqueReferenceID, v))
 }
 
-// TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billingentity.LineDiscountType) predicate.BillingInvoiceLineDiscount {
-	vc := v
-	return predicate.BillingInvoiceLineDiscount(sql.FieldNEQ(FieldType, vc))
+// ChildUniqueReferenceIDNEQ applies the NEQ predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDNEQ(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNEQ(FieldChildUniqueReferenceID, v))
 }
 
-// TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billingentity.LineDiscountType) predicate.BillingInvoiceLineDiscount {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingInvoiceLineDiscount(sql.FieldIn(FieldType, v...))
+// ChildUniqueReferenceIDIn applies the In predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDIn(vs ...string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldIn(FieldChildUniqueReferenceID, vs...))
 }
 
-// TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billingentity.LineDiscountType) predicate.BillingInvoiceLineDiscount {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingInvoiceLineDiscount(sql.FieldNotIn(FieldType, v...))
+// ChildUniqueReferenceIDNotIn applies the NotIn predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDNotIn(vs ...string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNotIn(FieldChildUniqueReferenceID, vs...))
 }
 
-// TypeIsNil applies the IsNil predicate on the "type" field.
-func TypeIsNil() predicate.BillingInvoiceLineDiscount {
-	return predicate.BillingInvoiceLineDiscount(sql.FieldIsNull(FieldType))
+// ChildUniqueReferenceIDGT applies the GT predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDGT(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldGT(FieldChildUniqueReferenceID, v))
 }
 
-// TypeNotNil applies the NotNil predicate on the "type" field.
-func TypeNotNil() predicate.BillingInvoiceLineDiscount {
-	return predicate.BillingInvoiceLineDiscount(sql.FieldNotNull(FieldType))
+// ChildUniqueReferenceIDGTE applies the GTE predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDGTE(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldGTE(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDLT applies the LT predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDLT(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldLT(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDLTE applies the LTE predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDLTE(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldLTE(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDContains applies the Contains predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDContains(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldContains(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDHasPrefix applies the HasPrefix predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDHasPrefix(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldHasPrefix(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDHasSuffix applies the HasSuffix predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDHasSuffix(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldHasSuffix(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDIsNil applies the IsNil predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDIsNil() predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldIsNull(FieldChildUniqueReferenceID))
+}
+
+// ChildUniqueReferenceIDNotNil applies the NotNil predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDNotNil() predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNotNull(FieldChildUniqueReferenceID))
+}
+
+// ChildUniqueReferenceIDEqualFold applies the EqualFold predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDEqualFold(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEqualFold(FieldChildUniqueReferenceID, v))
+}
+
+// ChildUniqueReferenceIDContainsFold applies the ContainsFold predicate on the "child_unique_reference_id" field.
+func ChildUniqueReferenceIDContainsFold(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldContainsFold(FieldChildUniqueReferenceID, v))
 }
 
 // DescriptionEQ applies the EQ predicate on the "description" field.

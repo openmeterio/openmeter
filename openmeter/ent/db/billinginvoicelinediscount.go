@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 )
@@ -30,8 +29,8 @@ type BillingInvoiceLineDiscount struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
-	// Type holds the value of the "type" field.
-	Type *billingentity.LineDiscountType `json:"type,omitempty"`
+	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
+	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// Amount holds the value of the "amount" field.
@@ -69,7 +68,7 @@ func (*BillingInvoiceLineDiscount) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoicelinediscount.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldType, billinginvoicelinediscount.FieldDescription:
+		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription:
 			values[i] = new(sql.NullString)
 		case billinginvoicelinediscount.FieldCreatedAt, billinginvoicelinediscount.FieldUpdatedAt, billinginvoicelinediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -125,12 +124,12 @@ func (bild *BillingInvoiceLineDiscount) assignValues(columns []string, values []
 			} else if value.Valid {
 				bild.LineID = value.String
 			}
-		case billinginvoicelinediscount.FieldType:
+		case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
+				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
 			} else if value.Valid {
-				bild.Type = new(billingentity.LineDiscountType)
-				*bild.Type = billingentity.LineDiscountType(value.String)
+				bild.ChildUniqueReferenceID = new(string)
+				*bild.ChildUniqueReferenceID = value.String
 			}
 		case billinginvoicelinediscount.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -203,9 +202,9 @@ func (bild *BillingInvoiceLineDiscount) String() string {
 	builder.WriteString("line_id=")
 	builder.WriteString(bild.LineID)
 	builder.WriteString(", ")
-	if v := bild.Type; v != nil {
-		builder.WriteString("type=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
+	if v := bild.ChildUniqueReferenceID; v != nil {
+		builder.WriteString("child_unique_reference_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := bild.Description; v != nil {

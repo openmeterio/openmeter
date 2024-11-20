@@ -289,7 +289,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		// child_unique_reference_id is uniqe per parent line, can be used for upserting
 		// and identifying lines created for the same reason (e.g. tiered price tier)
 		// between different invoices.
-		// TODO: rename to unique_reference_id??
 		field.String("child_unique_reference_id").
 			Optional().
 			Nillable(),
@@ -398,9 +397,7 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}),
 
-		// TODO: rename to child_unique_reference_id
-		field.Enum("type").
-			GoType(billingentity.LineDiscountType("")).
+		field.String("child_unique_reference_id").
 			Optional().
 			Nillable(),
 
@@ -418,9 +415,9 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 func (BillingInvoiceLineDiscount) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "line_id"),
-		index.Fields("namespace", "line_id", "type").
+		index.Fields("namespace", "line_id", "child_unique_reference_id").
 			Annotations(
-				entsql.IndexWhere("deleted_at IS NULL AND type IS NOT NULL"),
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).
 			Unique(),
 	}

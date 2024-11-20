@@ -3,12 +3,10 @@
 package billinginvoicelinediscount
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 )
 
 const (
@@ -26,8 +24,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
+	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
+	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
 	// FieldAmount holds the string denoting the amount field in the database.
@@ -53,7 +51,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldLineID,
-	FieldType,
+	FieldChildUniqueReferenceID,
 	FieldDescription,
 	FieldAmount,
 }
@@ -80,16 +78,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billingentity.LineDiscountType) error {
-	switch _type {
-	case "line_maximum_spend", "maximum_spend":
-		return nil
-	default:
-		return fmt.Errorf("billinginvoicelinediscount: invalid enum value for type field: %q", _type)
-	}
-}
 
 // OrderOption defines the ordering options for the BillingInvoiceLineDiscount queries.
 type OrderOption func(*sql.Selector)
@@ -124,9 +112,9 @@ func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
 }
 
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
+// ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
+func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
 }
 
 // ByDescription orders the results by the description field.

@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 )
@@ -80,16 +79,16 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetLineID(s string) *BillingInvoi
 	return bildc
 }
 
-// SetType sets the "type" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetType(bdt billingentity.LineDiscountType) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetType(bdt)
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetChildUniqueReferenceID(s)
 	return bildc
 }
 
-// SetNillableType sets the "type" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableType(bdt *billingentity.LineDiscountType) *BillingInvoiceLineDiscountCreate {
-	if bdt != nil {
-		bildc.SetType(*bdt)
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bildc *BillingInvoiceLineDiscountCreate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineDiscountCreate {
+	if s != nil {
+		bildc.SetChildUniqueReferenceID(*s)
 	}
 	return bildc
 }
@@ -207,11 +206,6 @@ func (bildc *BillingInvoiceLineDiscountCreate) check() error {
 	if _, ok := bildc.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.line_id"`)}
 	}
-	if v, ok := bildc.mutation.GetType(); ok {
-		if err := billinginvoicelinediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.type": %w`, err)}
-		}
-	}
 	if _, ok := bildc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.amount"`)}
 	}
@@ -270,9 +264,9 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 		_spec.SetField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bildc.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeEnum, value)
-		_node.Type = &value
+	if value, ok := bildc.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
+		_node.ChildUniqueReferenceID = &value
 	}
 	if value, ok := bildc.mutation.Description(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)
@@ -393,21 +387,21 @@ func (u *BillingInvoiceLineDiscountUpsert) UpdateLineID() *BillingInvoiceLineDis
 	return u
 }
 
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetType(v billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldType, v)
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineDiscountUpsert) SetChildUniqueReferenceID(v string) *BillingInvoiceLineDiscountUpsert {
+	u.Set(billinginvoicelinediscount.FieldChildUniqueReferenceID, v)
 	return u
 }
 
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateType() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldType)
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsert) UpdateChildUniqueReferenceID() *BillingInvoiceLineDiscountUpsert {
+	u.SetExcluded(billinginvoicelinediscount.FieldChildUniqueReferenceID)
 	return u
 }
 
-// ClearType clears the value of the "type" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearType() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldType)
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineDiscountUpsert) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpsert {
+	u.SetNull(billinginvoicelinediscount.FieldChildUniqueReferenceID)
 	return u
 }
 
@@ -544,24 +538,24 @@ func (u *BillingInvoiceLineDiscountUpsertOne) UpdateLineID() *BillingInvoiceLine
 	})
 }
 
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetType(v billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpsertOne {
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) SetChildUniqueReferenceID(v string) *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetType(v)
+		s.SetChildUniqueReferenceID(v)
 	})
 }
 
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateType() *BillingInvoiceLineDiscountUpsertOne {
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertOne) UpdateChildUniqueReferenceID() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateType()
+		s.UpdateChildUniqueReferenceID()
 	})
 }
 
-// ClearType clears the value of the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearType() *BillingInvoiceLineDiscountUpsertOne {
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearType()
+		s.ClearChildUniqueReferenceID()
 	})
 }
 
@@ -870,24 +864,24 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateLineID() *BillingInvoiceLin
 	})
 }
 
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetType(v billingentity.LineDiscountType) *BillingInvoiceLineDiscountUpsertBulk {
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetChildUniqueReferenceID(v string) *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetType(v)
+		s.SetChildUniqueReferenceID(v)
 	})
 }
 
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateType() *BillingInvoiceLineDiscountUpsertBulk {
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateChildUniqueReferenceID() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateType()
+		s.UpdateChildUniqueReferenceID()
 	})
 }
 
-// ClearType clears the value of the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearType() *BillingInvoiceLineDiscountUpsertBulk {
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearType()
+		s.ClearChildUniqueReferenceID()
 	})
 }
 

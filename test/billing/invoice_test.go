@@ -1623,8 +1623,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				lineservice.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      20,
 					PerUnitAmount: 100,
-					Discounts: map[billingentity.LineDiscountType]float64{
-						billingentity.LineMaximumSpendDiscountType: 1000,
+					Discounts: map[string]float64{
+						billingentity.LineMaximumSpendReferenceID: 1000,
 					},
 				},
 			},
@@ -1820,7 +1820,7 @@ type lineExpectations struct {
 type feeLineExpect struct {
 	Quantity      float64
 	PerUnitAmount float64
-	Discounts     map[billingentity.LineDiscountType]float64
+	Discounts     map[string]float64
 }
 
 func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations lineExpectations) {
@@ -1845,8 +1845,8 @@ func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations l
 		discounts := detail.Discounts.Get()
 		require.Len(t, discounts, len(expect.Discounts), "discounts should match")
 
-		discountsById := lo.GroupBy(discounts, func(d billingentity.LineDiscount) billingentity.LineDiscountType {
-			return *d.Type
+		discountsById := lo.GroupBy(discounts, func(d billingentity.LineDiscount) string {
+			return *d.ChildUniqueReferenceID
 		})
 
 		for discountType, discountExpect := range expect.Discounts {

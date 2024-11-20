@@ -454,21 +454,10 @@ func (i UsageBasedLine) Validate() error {
 	return nil
 }
 
-type LineDiscountType string
-
 const (
-	// LineMaximumSpendDiscountType is a discount applied due to maximum spend.
-	LineMaximumSpendDiscountType LineDiscountType = "line_maximum_spend"
-	// MaximumSpendDiscountType is a discount applied due to multi-line maximum spend.
-	MaximumSpendDiscountType LineDiscountType = "maximum_spend"
+	// LineMaximumSpendReferenceID is a discount applied due to maximum spend.
+	LineMaximumSpendReferenceID = "line_maximum_spend"
 )
-
-func (LineDiscountType) Values() []string {
-	return []string{
-		string(LineMaximumSpendDiscountType),
-		string(MaximumSpendDiscountType),
-	}
-}
 
 type LineDiscount struct {
 	ID        string     `json:"id"`
@@ -476,9 +465,9 @@ type LineDiscount struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	Amount      alpacadecimal.Decimal `json:"amount"`
-	Description *string               `json:"description,omitempty"`
-	Type        *LineDiscountType     `json:"type,omitempty"`
+	Amount                 alpacadecimal.Decimal `json:"amount"`
+	Description            *string               `json:"description,omitempty"`
+	ChildUniqueReferenceID *string               `json:"childUniqueReferenceId,omitempty"`
 }
 
 func (i LineDiscount) Equal(other LineDiscount) bool {
@@ -511,16 +500,16 @@ func (c LineDiscounts) ChildrenRetainingRecords(l LineDiscounts) LineDiscounts {
 
 	existingItemsByType := lo.GroupBy(
 		lo.Filter(c.Get(), func(item LineDiscount, _ int) bool {
-			return item.Type != nil
+			return item.ChildUniqueReferenceID != nil
 		}),
-		func(item LineDiscount) LineDiscountType {
-			return *item.Type
+		func(item LineDiscount) string {
+			return *item.ChildUniqueReferenceID
 		},
 	)
 
 	clonedNewItems = lo.Map(clonedNewItems, func(newItem LineDiscount, _ int) LineDiscount {
-		if newItem.Type != nil {
-			if existingItems, ok := existingItemsByType[*newItem.Type]; ok {
+		if newItem.ChildUniqueReferenceID != nil {
+			if existingItems, ok := existingItemsByType[*newItem.ChildUniqueReferenceID]; ok {
 				existing := existingItems[0]
 
 				// Let's retain the created and updated at timestamps so that we

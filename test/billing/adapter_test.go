@@ -647,14 +647,14 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	lineIn.Children.Get()[0].Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
 		{
-			Amount:      alpacadecimal.NewFromFloat(10),
-			Description: lo.ToPtr("Test Discount 1"),
-			Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+			Amount:                 alpacadecimal.NewFromFloat(10),
+			Description:            lo.ToPtr("Test Discount 1"),
+			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 		},
 		{
-			Amount:      alpacadecimal.NewFromFloat(20),
-			Description: lo.ToPtr("Test Discount 2"),
-			Type:        lo.ToPtr(billingentity.MaximumSpendDiscountType),
+			Amount:                 alpacadecimal.NewFromFloat(20),
+			Description:            lo.ToPtr("Test Discount 2"),
+			ChildUniqueReferenceID: lo.ToPtr("max-spend-multiline"),
 		},
 		{
 			Amount:      alpacadecimal.NewFromFloat(30),
@@ -684,9 +684,9 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	childLine.Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
 		// Should get the ID from the original discount by calling the ChildrenRetainingRecords
 		{
-			Amount:      alpacadecimal.NewFromFloat(30),
-			Description: lo.ToPtr("Test Discount 1 v2"),
-			Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+			Amount:                 alpacadecimal.NewFromFloat(30),
+			Description:            lo.ToPtr("Test Discount 1 v2"),
+			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 		},
 		// Maximum spend is deleted
 		{
@@ -732,7 +732,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			ID: "notfound",
 		},
 		func(d billingentity.LineDiscount) bool {
-			return d.Type != nil && *d.Type == billingentity.LineMaximumSpendDiscountType
+			return d.ChildUniqueReferenceID != nil && *d.ChildUniqueReferenceID == billingentity.LineMaximumSpendReferenceID
 		},
 	)
 	currentVersion := findDiscountByDescritpion(persistedDiscounts, "Test Discount 1 v2")

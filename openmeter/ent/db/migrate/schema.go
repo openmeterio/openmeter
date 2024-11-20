@@ -529,7 +529,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "type", Type: field.TypeEnum, Nullable: true, Enums: []string{"line_maximum_spend", "maximum_spend"}},
+		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -564,11 +564,11 @@ var (
 				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[8]},
 			},
 			{
-				Name:    "billinginvoicelinediscount_namespace_line_id_type",
+				Name:    "billinginvoicelinediscount_namespace_line_id_child_unique_reference_id",
 				Unique:  true,
 				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[8], BillingInvoiceLineDiscountsColumns[5]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL AND type IS NOT NULL",
+					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
 			},
 		},

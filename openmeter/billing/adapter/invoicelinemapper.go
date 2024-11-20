@@ -182,9 +182,9 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			UpdatedAt: discount.UpdatedAt.In(time.UTC),
 			DeletedAt: convert.TimePtrIn(discount.DeletedAt, time.UTC),
 
-			Amount:      discount.Amount,
-			Description: discount.Description,
-			Type:        discount.Type,
+			Amount:                 discount.Amount,
+			Description:            discount.Description,
+			ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
 		}
 	})
 	invoiceLine.Discounts = billingentity.NewLineDiscounts(discounts)

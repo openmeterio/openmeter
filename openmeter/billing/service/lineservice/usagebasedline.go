@@ -696,18 +696,18 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 	if currentBillableAmount.GreaterThanOrEqual(in.MaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(in.MaxSpend) {
 		// 100% discount
 		i.Discounts = append(i.Discounts, billingentity.LineDiscount{
-			Amount:      lineTotal,
-			Description: formatMaximumSpendDiscountDescription(in.MaxSpend),
-			Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+			Amount:                 lineTotal,
+			Description:            formatMaximumSpendDiscountDescription(in.MaxSpend),
+			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 		})
 		return i
 	}
 
 	discountAmount := currentBillableAmount.Sub(in.MaxSpend)
 	i.Discounts = append(i.Discounts, billingentity.LineDiscount{
-		Amount:      discountAmount,
-		Description: formatMaximumSpendDiscountDescription(in.MaxSpend),
-		Type:        lo.ToPtr(billingentity.LineMaximumSpendDiscountType),
+		Amount:                 discountAmount,
+		Description:            formatMaximumSpendDiscountDescription(in.MaxSpend),
+		ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 	})
 
 	return i

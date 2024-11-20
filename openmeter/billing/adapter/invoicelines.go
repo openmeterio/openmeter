@@ -180,7 +180,7 @@ func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Create
 				SetNamespace(d.Line.Namespace).
 				SetLineID(d.Line.ID).
 				SetAmount(d.Discount.Amount).
-				SetNillableType(d.Discount.Type).
+				SetNillableChildUniqueReferenceID(d.Discount.ChildUniqueReferenceID).
 				SetNillableDescription(d.Discount.Description)
 
 			return create, nil
