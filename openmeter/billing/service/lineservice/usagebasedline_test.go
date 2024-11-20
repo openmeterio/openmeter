@@ -617,7 +617,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 			price: plan.NewPriceFrom(plan.TieredPrice{
 				Mode:          plan.VolumeTieredPrice,
 				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -625,8 +625,15 @@ func TestTieredVolumeCalculation(t *testing.T) {
 			},
 			expect: newDetailedLinesInput{
 				{
-					Name:                   "feature: minimum spend",
+					Name:                   "feature: flat price for tier 1",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
+					PaymentTerm:            plan.InArrearsPaymentTerm,
+				},
+				{
+					Name:                   "feature: minimum spend",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
@@ -705,29 +712,6 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
-				},
-			},
-		})
-	})
-
-	t.Run("tiered volume, no usage, min spend should be returned", func(t *testing.T) {
-		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
-			}),
-			lineMode: lastInPeriodSplitLineMode,
-			usage: featureUsageResponse{
-				LinePeriodQty: alpacadecimal.NewFromFloat(0),
-			},
-			expect: newDetailedLinesInput{
-				{
-					Name:                   "feature: minimum spend",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
 				},
 			},

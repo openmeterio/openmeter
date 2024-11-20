@@ -465,7 +465,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			l.ParentLineID = lo.ToPtr(lines[0].ID)
 		})
 
-		lines[0].Children = lines[0].ChildrenRetainingRecords(
+		lines[0].Children = lines[0].ChildrenWithIDReuse(
 			lineChildren,
 		)
 
@@ -536,7 +536,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		}
 		detailedLines[0] = newLine
 
-		lines[0].Children = lines[0].ChildrenRetainingRecords(
+		lines[0].Children = lines[0].ChildrenWithIDReuse(
 			detailedLines,
 		)
 
@@ -682,7 +682,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	// Let's update the discounts
 	childLine := lines[0].Children.Get()[0].Clone()
 	childLine.Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
-		// Should get the ID from the original discount by calling the ChildrenRetainingRecords
+		// Should get the ID from the original discount by calling the ChildrenWithIDReuse
 		{
 			Amount:                 alpacadecimal.NewFromFloat(30),
 			Description:            lo.ToPtr("Test Discount 1 v2"),
@@ -707,7 +707,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	})
 
 	updateLineIn := lines[0].Clone()
-	updateLineIn.Children = updateLineIn.ChildrenRetainingRecords(
+	updateLineIn.Children = updateLineIn.ChildrenWithIDReuse(
 		[]*billingentity.Line{childLine},
 	)
 

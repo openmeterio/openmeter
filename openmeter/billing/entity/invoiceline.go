@@ -398,9 +398,9 @@ func (c *LineChildren) RemoveByID(id string) bool {
 	return true
 }
 
-// ChildrenRetainingRecords returns a new LineChildren instance with the given lines. If the line has a child
+// ChildrenWithIDReuse returns a new LineChildren instance with the given lines. If the line has a child
 // with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
-func (c Line) ChildrenRetainingRecords(l []*Line) LineChildren {
+func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
 	if !c.Children.IsPresent() {
 		return NewLineChildren(l)
 	}
@@ -436,7 +436,7 @@ func (c Line) ChildrenRetainingRecords(l []*Line) LineChildren {
 			newChild.CreatedAt = existing.CreatedAt
 			newChild.UpdatedAt = existing.UpdatedAt
 
-			newChild.Discounts = existing.Discounts.ChildrenRetainingRecords(newChild.Discounts)
+			newChild.Discounts = existing.Discounts.ChildrenWithIDReuse(newChild.Discounts)
 		}
 	}
 
@@ -508,7 +508,7 @@ func (c LineDiscounts) Map(fn func(LineDiscount) LineDiscount) LineDiscounts {
 	}
 }
 
-func (c LineDiscounts) ChildrenRetainingRecords(l LineDiscounts) LineDiscounts {
+func (c LineDiscounts) ChildrenWithIDReuse(l LineDiscounts) LineDiscounts {
 	if !c.IsPresent() {
 		return l
 	}

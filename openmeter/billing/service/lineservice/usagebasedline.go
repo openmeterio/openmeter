@@ -151,7 +151,7 @@ func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingen
 		return fmt.Errorf("detailed lines: %w", err)
 	}
 
-	l.line.Children = l.line.ChildrenRetainingRecords(detailedLines)
+	l.line.Children = l.line.ChildrenWithIDReuse(detailedLines)
 
 	return nil
 }
