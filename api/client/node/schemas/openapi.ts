@@ -3,49 +3,104 @@
  * Do not make direct changes to the file.
  */
 
-/** WithRequired type helpers */
-type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
-
 export interface paths {
   '/api/v1/apps': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List apps
      * @description List apps.
      */
     get: operations['listApps']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/apps/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get app
      * @description Get the app.
      */
     get: operations['getApp']
+    put?: never
+    post?: never
     /**
      * Uninstall app
      * @description Uninstall an app.
      */
     delete: operations['uninstallApp']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/apps/{id}/stripe/webhook': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Stripe webhook
      * @description Stripe webhook.
      */
     post: operations['appStripeWebhook']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/customer': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List customer overrides
      * @description List customer overrides
      */
     get: operations['billingListCustomerOverrides']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/customer/{customerId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get a customer override
      * @description Get a customer override by id.
      */
     get: operations['billingGetCustomerOverrideById']
+    put?: never
     /**
      * Create/update a customer override
      * @description Create/update a new customer override.
@@ -56,146 +111,295 @@ export interface paths {
      * @description Delete a customer override by id.
      */
     delete: operations['billingDeleteCustomerOverride']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List invoices
      * @description List invoices
      */
     get: operations['billingListInvoices']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List invoices
      * @description List invoices for a specific customer
      */
     get: operations['billingListInvoicesByCustomer']
+    put?: never
     /**
      * Create an invoice
      * @description Create a new invoice from the pending line items.
      *
-     * This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
+     *     This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
      *
-     * When creating an invoice, the pending line items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
+     *     When creating an invoice, the pending line items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
      *
-     * New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
+     *     New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
      *
-     * The call can return multiple invoices if the pending line items are in different currencies.
+     *     The call can return multiple invoices if the pending line items are in different currencies.
      */
     post: operations['billingCreateInvoice']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get an invoice
      * @description Get an invoice by ID.
      */
     get: operations['billingGetInvoiceByCustomerInvoiceId']
+    put?: never
+    post?: never
     /**
      * Delete an invoice
      * @description Delete an invoice
      *
-     * Only invoices that are in the draft (or earlier) status can be deleted.
+     *     Only invoices that are in the draft (or earlier) status can be deleted.
      */
     delete: operations['billingDeleteInvoiceByCustomerInvoiceId']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/advance': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Advance the invoice's state to the next status
      * @description Advance the invoice's state to the next status.
      *
-     * The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
+     *     The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
      *
-     * The action can be called when the invoice's statusDetails' actions field contain the "advance" action.
+     *     The action can be called when the invoice's statusDetails' actions field contain the "advance" action.
      */
     post: operations['billingInvoiceAdvance']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/approve': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Send the invoice to the customer
      * @description Approve an invoice and start executing the payment workflow.
      *
-     * This call instantly sends the invoice to the customer using the configured billing profile app.
+     *     This call instantly sends the invoice to the customer using the configured billing profile app.
      *
-     * This call is valid in two invoice statuses:
-     * - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
-     * - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
+     *     This call is valid in two invoice statuses:
+     *     - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
+     *     - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
      */
     post: operations['billingApproveInvoice']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
     /**
      * Update an invoice line
      * @description Update an invoice line
      */
     put: operations['billingUpdateInvoiceLine']
+    post?: never
     /**
      * Delete an invoice line
      * @description Delete an invoice line
      */
     delete: operations['billingDeleteInvoiceLine']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Retry advancing the invoice after a failed attempt.
      * @description Retry advancing the invoice after a failed attempt.
      *
-     * The action can be called when the invoice's statusDetails' actions field contain the "retry" action.
+     *     The action can be called when the invoice's statusDetails' actions field contain the "retry" action.
      */
     post: operations['billingInvoiceRetry']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/tax/recalculate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Recalculate an invoice's tax amounts
      * @description Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
      *
-     * Note: charges might apply, depending on the tax provider.
+     *     Note: charges might apply, depending on the tax provider.
      */
     post: operations['billingRecalculateInvoiceTax']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/void': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Void an invoice
      * @description Void an invoice
      *
-     * Only invoices that have been alread issued can be voided.
+     *     Only invoices that have been alread issued can be voided.
      *
-     * Voiding an invoice will mark it as voided, the user can specify how to handle the voided line items.
+     *     Voiding an invoice will mark it as voided, the user can specify how to handle the voided line items.
      */
     post: operations['billingVoidInvoice']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/invoices/{customerId}/lines': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Create line items
      * @description Create a new pending line item (charge).
      *
-     * This call is used to create a new pending line item for the customer without explicitly
-     * assigning it to an invoice.
+     *     This call is used to create a new pending line item for the customer without explicitly
+     *     assigning it to an invoice.
      *
-     * The line item will be either allocated to an existing invoice in gathering state or a new invoice is
-     * created for the line item.
+     *     The line item will be either allocated to an existing invoice in gathering state or a new invoice is
+     *     created for the line item.
      *
-     * A new invoice will be created if:
-     * - there is no invoice in gathering state
-     * - the currency of the line item doesn't match the currency of any invoices in gathering state
+     *     A new invoice will be created if:
+     *     - there is no invoice in gathering state
+     *     - the currency of the line item doesn't match the currency of any invoices in gathering state
      */
     post: operations['billingCreateLineByCustomer']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/profile': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List billing profiles
      * @description List all billing profiles
      */
     get: operations['billingListProfiles']
+    put?: never
     /**
      * Create a new billing profile
      * @description Create a new billing profile
      *
-     * Billing profiles are representations of a customer's billing information. Customer overrides
-     * can be applied to a billing profile to customize the billing behavior for a specific customer.
+     *     Billing profiles are representations of a customer's billing information. Customer overrides
+     *     can be applied to a billing profile to customize the billing behavior for a specific customer.
      */
     post: operations['billingCreateProfile']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/billing/profile/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get a billing profile by ID
      * @description Get a billing profile by ID
@@ -206,25 +410,48 @@ export interface paths {
      * @description Update a billing profile
      */
     put: operations['billingUpdateProfile']
+    post?: never
     /**
      * Archive a billing profile
      * @description Archive a billing profile
      */
     delete: operations['billingArchiveProfile']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/customers': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List customers
      * @description List customers.
      */
     get: operations['listCustomers']
+    put?: never
     /**
      * Create customer
      * @description Create a new customer.
      */
     post: operations['createCustomer']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/customers/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get customer
      * @description Get a customer by ID.
@@ -235,193 +462,445 @@ export interface paths {
      * @description Update a customer by ID.
      */
     put: operations['updateCustomer']
+    post?: never
     /**
      * Delete customer
      * @description Delete a customer by ID.
      */
     delete: operations['deleteCustomer']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/debug/metrics': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get event metrics
      * @description Returns debug metrics (in OpenMetrics format) like the number of ingested events since mindnight UTC.
      *
-     * The OpenMetrics Counter(s) reset every day at midnight UTC.
+     *     The OpenMetrics Counter(s) reset every day at midnight UTC.
      */
     get: operations['getDebugMetrics']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/entitlements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List all entitlements
      * @description List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
-     * To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
-     * If page is provided that takes precedence and the paginated response is returned.
+     *     To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
+     *     If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listEntitlements']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/entitlements/{entitlementId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get entitlement by id
      * @description Get entitlement by id.
      */
     get: operations['getEntitlementById']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List ingested events
      * @description List ingested events within a time range.
      *
-     * If the from query param is not provided it defaults to last 72 hours.
+     *     If the from query param is not provided it defaults to last 72 hours.
      */
     get: operations['listEvents']
+    put?: never
     /**
      * Ingest events
      * @description Ingests an event or batch of events following the CloudEvents specification.
      */
     post: operations['ingestEvents']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/features': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List features
      * @description List features.
      */
     get: operations['listFeatures']
+    put?: never
     /**
      * Create feature
      * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
-     * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
-     * Only meters with SUM and COUNT aggregation are supported for features.
-     * Features cannot be updated later, only archived.
+     *     For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
+     *     Only meters with SUM and COUNT aggregation are supported for features.
+     *     Features cannot be updated later, only archived.
      */
     post: operations['createFeature']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/features/{featureId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get feature
      * @description Get a feature by ID.
      */
     get: operations['getFeature']
+    put?: never
+    post?: never
     /**
      * Delete feature
      * @description Archive a feature by ID.
      *
-     * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
-     * This means, if you want to create a new feature with the same key, and then create entitlements for it, the previous entitlements have to be deleted first on a per subject basis.
+     *     Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
+     *     This means, if you want to create a new feature with the same key, and then create entitlements for it, the previous entitlements have to be deleted first on a per subject basis.
      */
     delete: operations['deleteFeature']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/grants': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List grants
      * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
-     * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
-     * If page is provided that takes precedence and the paginated response is returned.
+     *     To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+     *     If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listGrants']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/grants/{grantId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
     /**
      * Void grant
      * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
-     * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
+     *     For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
      */
     delete: operations['voidGrant']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/integration/stripe/checkout/sessions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Create checkout session
      * @description Create checkout session.
      */
     post: operations['createStripeCheckoutSession']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/marketplace/listings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List available apps
      * @description List available apps of the app marketplace.
      */
     get: operations['listMarketplaceListings']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/marketplace/listings/{type}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get app details by type
      * @description Get a marketplace listing by type.
      */
     get: operations['getMarketplaceListing']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/marketplace/listings/{type}/install/apikey': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Install app via API key
      * @description Install an marketplace via API Key.
      */
     post: operations['marketplaceAppAPIKeyInstall']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/marketplace/listings/{type}/install/oauth2': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get OAuth2 install URL
      * @description Install an app via OAuth.
-     * Returns a URL to start the OAuth 2.0 flow.
+     *     Returns a URL to start the OAuth 2.0 flow.
      */
     get: operations['marketplaceOAuth2InstallGetURL']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/marketplace/listings/{type}/install/oauth2/authorize': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Install app via OAuth2
      * @description Authorize OAuth2 code.
-     * Verifies the OAuth code and exchanges it for a token and refresh token
+     *     Verifies the OAuth code and exchanges it for a token and refresh token
      */
     get: operations['marketplaceOAuth2InstallAuthorize']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/meters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List meters
      * @description List meters.
      */
     get: operations['listMeters']
+    put?: never
     /**
      * Create meter
      * @description Create a meter.
      */
     post: operations['createMeter']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/meters/{meterIdOrSlug}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get meter
      * @description Get a meter by ID or slug.
      */
     get: operations['getMeter']
+    put?: never
+    post?: never
     /**
      * Delete meter
      * @description Delete a meter.
      */
     delete: operations['deleteMeter']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/meters/{meterIdOrSlug}/query': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Query meter Query meter
      * @description Query meter for usage. Query meter for usage.
      */
     get: operations['queryMeter']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/meters/{meterIdOrSlug}/subjects': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List meter subjects
      * @description List subjects for a meter.
      */
     get: operations['listMeterSubjects']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/channels': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List notification channels
      * @description List all notification channels.
      */
     get: operations['listNotificationChannels']
+    put?: never
     /**
      * Create a notification channel
      * @description Create a new notification channel.
      */
     post: operations['createNotificationChannel']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/channels/{channelId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get notification channel
      * @description Get a notification channel by id.
@@ -432,41 +911,90 @@ export interface paths {
      * @description Update notification channel.
      */
     put: operations['updateNotificationChannel']
+    post?: never
     /**
      * Delete a notification channel
      * @description Soft delete notification channel by id.
      *
-     * Once a notification channel is deleted it cannot be undeleted.
+     *     Once a notification channel is deleted it cannot be undeleted.
      */
     delete: operations['deleteNotificationChannel']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List notification events
      * @description List all notification events.
      */
     get: operations['listNotificationEvents']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/events/{eventId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get notification event
      * @description Get a notification event by id.
      */
     get: operations['getNotificationEvent']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/rules': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List notification rules
      * @description List all notification rules.
      */
     get: operations['listNotificationRules']
+    put?: never
     /**
      * Create a notification rule
      * @description Create a new notification rule.
      */
     post: operations['createNotificationRule']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/rules/{ruleId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get notification rule
      * @description Get a notification rule by id.
@@ -477,49 +1005,111 @@ export interface paths {
      * @description Update notification rule.
      */
     put: operations['updateNotificationRule']
+    post?: never
     /**
      * Delete a notification rule
      * @description Soft delete notification rule by id.
      *
-     * Once a notification rule is deleted it cannot be undeleted.
+     *     Once a notification rule is deleted it cannot be undeleted.
      */
     delete: operations['deleteNotificationRule']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/rules/{ruleId}/test': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Test notification rule
      * @description Test a notification rule by sending a test event with random data.
      */
     post: operations['testNotificationRule']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/notification/webhook/svix': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Receive Svix operational events
      * @description Callback endpoint used by Svix to notify about operational events.
      */
     post: operations['receiveSvixOperationalEvent']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List plans
      * @description List all plans.
      */
     get: operations['listPlans']
+    put?: never
     /**
      * Create a plan
      * @description Create a new plan.
      */
     post: operations['createPlan']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans/{planIdOrKey}/next': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * New draft plan
      * @description Create a new draft version from plan.
-     * It returns error if there is already a plan in draft or planId does not reference the latest published version.
+     *     It returns error if there is already a plan in draft or planId does not reference the latest published version.
      */
     post: operations['nextPlan']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans/{planId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get plan
      * @description Get a plan by id or key. The latest published version is returned if latter is used.
@@ -530,34 +1120,70 @@ export interface paths {
      * @description Update plan by id.
      */
     put: operations['updatePlan']
+    post?: never
     /**
      * Delete plan
      * @description Soft delete plan by plan.id.
      *
-     * Once a plan is deleted it cannot be undeleted.
+     *     Once a plan is deleted it cannot be undeleted.
      */
     delete: operations['deletePlan']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans/{planId}/archive': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Archive plan version
      * @description Archive a plan version.
      */
     post: operations['archivePlan']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans/{planId}/phases': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List phases in plan
      * @description List all phases in plan.
      */
     get: operations['listPlanPhases']
+    put?: never
     /**
      * Create new phase in plan
      * @description Create new phase in plan.
      */
     post: operations['createPlanPhase']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans/{planId}/phases/{planPhaseKey}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get phase for plan
      * @description Get phase in plan.
@@ -568,212 +1194,442 @@ export interface paths {
      * @description Update phase in plan.
      */
     put: operations['updatePlanPhase']
+    post?: never
     /**
      * Delete phase for plan
      * @description Delete phase in plan.
      *
-     * Once a phase is deleted it cannot be undeleted.
+     *     Once a phase is deleted it cannot be undeleted.
      */
     delete: operations['deletePlanPhase']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/plans/{planId}/publish': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Publish plan
      * @description Publish a plan version.
      */
     post: operations['publishPlan']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/portal/meters/{meterSlug}/query': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Query meter Query meter
      * @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
      */
     get: operations['queryPortalMeter']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/portal/tokens': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List consumer portal tokens
      * @description List tokens.
      */
     get: operations['listPortalTokens']
+    put?: never
     /**
      * Create consumer portal token
      * @description Create a consumer portal token.
      */
     post: operations['createPortalToken']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/portal/tokens/invalidate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Invalidate portal tokens
      * @description Invalidates consumer portal tokens by ID or subject.
      */
     post: operations['invalidatePortalTokens']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List subjects
      * @description List subjects.
      */
     get: operations['listSubjects']
+    put?: never
     /**
      * Upsert subject
      * @description Upserts a subject. Creates or updates subject.
      *
-     * If the subject doesn't exist, it will be created.
-     * If the subject exists, it will be partially updated with the provided fields.
+     *     If the subject doesn't exist, it will be created.
+     *     If the subject exists, it will be partially updated with the provided fields.
      */
     post: operations['upsertSubject']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get subject
      * @description Get subject by ID or key.
      */
     get: operations['getSubject']
+    put?: never
+    post?: never
     /**
      * Delete subject
      * @description Delete subject by ID or key.
      */
     delete: operations['deleteSubject']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List entitlements
      * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
      */
     get: operations['listSubjectEntitlements']
+    put?: never
     /**
      * Create an entitlement
      * @description OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
      *
-     * - Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
-     * - Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
-     * - Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
+     *     - Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+     *     - Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
+     *     - Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
      *
-     * A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
+     *     A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
      *
-     * Once an entitlement is created you cannot modify it, only delete it.
+     *     Once an entitlement is created you cannot modify it, only delete it.
      */
     post: operations['createEntitlement']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List entitlement grants
      * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
      */
     get: operations['listEntitlementGrants']
+    put?: never
     /**
      * Create grant
      * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
      *
-     * A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
+     *     A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
      *
-     * Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
+     *     Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
      *
-     * Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
+     *     Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
      *
-     * Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+     *     Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
      *
-     * Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
+     *     Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
      */
     post: operations['createGrant']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
     /**
      * Override entitlement
      * @description Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
      *
-     * This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
+     *     This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
      */
     put: operations['overrideEntitlement']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get entitlement value
      * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
      *
-     * For convenience reasons, /value works with both entitlementId and featureKey.
+     *     For convenience reasons, /value works with both entitlementId and featureKey.
      */
     get: operations['getEntitlementValue']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get entitlement
      * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
      */
     get: operations['getEntitlement']
+    put?: never
+    post?: never
     /**
      * Delete entitlement
      * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
-     * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
+     *     As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
      */
     delete: operations['deleteEntitlement']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get entitlement history
      * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
      *
-     * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
+     *     BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
      *
-     * WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
+     *     WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
      */
     get: operations['getEntitlementHistory']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Reset entitlement
      * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
      *
-     * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
+     *     Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
      */
     post: operations['resetEntitlementUsage']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subscriptions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /** Create subscription */
     post: operations['createSubscription']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subscriptions/{subscriptionId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /** Get subscription Get subscription */
     get: operations['getSubscription']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
     /**
      * Edit subscription
      * @description Batch processing commands for manipulating running subscriptions.
-     * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+     *     The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
      *
-     * Add operations insert a new member based on the creation input without altering the existing members.
+     *     Add operations insert a new member based on the creation input without altering the existing members.
      *
-     * Remove operations remove the member from the collection / document.
+     *     Remove operations remove the member from the collection / document.
      *
-     * The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
+     *     The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
      */
     patch: operations['editSubscription']
+    trace?: never
   }
   '/api/v1/subscriptions/{subscriptionId}/cancel': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Cancel subscription
      * @description Cancels the subscription.
      */
     post: operations['cancelSubscription']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subscriptions/{subscriptionId}/migrate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Migrate subscription
      * @description Migrates the subscripiton to the procided version of the plan.
      */
     post: operations['migrateSubscription']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/subscriptions/{subscriptionId}/unschedule-cancelation': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Unschedule cancelation
      * @description Cancels the scheduled cancelation.
      */
     post: operations['unscheduleCancelation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
 }
-
 export type webhooks = Record<string, never>
-
 export interface components {
   schemas: {
     /** @description Address */
@@ -789,32 +1645,28 @@ export interface components {
     /**
      * @description Set of key-value pairs managed by the system. Cannot be modified by user.
      * @example {
-     *   "externalId": "019142cc-a016-796a-8113-1a942fecd26d"
-     * }
+     *       "externalId": "019142cc-a016-796a-8113-1a942fecd26d"
+     *     }
      */
     Annotations: {
       [key: string]: unknown
     }
-    /**
-     * @description App.
-     * One of: stripe
-     */
+    /** @description App.
+     *     One of: stripe */
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
-    /**
-     * @description Abstract base model for installed apps.
+    /** @description Abstract base model for installed apps.
      *
-     * Represent an app installed to the organization.
-     * This is an actual instance, with its own configuration and credentials.
-     */
+     *     Represent an app installed to the organization.
+     *     This is an actual instance, with its own configuration and credentials. */
     AppBase: {
       /**
        * ID
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -834,38 +1686,38 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description The marketplace listing that this installed app is based on. */
-      listing: components['schemas']['MarketplaceListing']
+      readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['AppStatus']
+      readonly status: components['schemas']['AppStatus']
     }
     /**
      * @description App capability.
      *
-     * Capabilities only exist in config so they don't extend the Resource model.
+     *     Capabilities only exist in config so they don't extend the Resource model.
      * @example {
-     *   "type": "collectPayments",
-     *   "key": "stripe_collect_payment",
-     *   "name": "Collect Payments",
-     *   "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
-     * }
+     *       "type": "collectPayments",
+     *       "key": "stripe_collect_payment",
+     *       "name": "Collect Payments",
+     *       "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
+     *     }
      */
     AppCapability: {
       /** @description The capability type. */
@@ -898,11 +1750,9 @@ export interface components {
       /** @description The items in the page. */
       items: components['schemas']['App'][]
     }
-    /**
-     * @description App reference
+    /** @description App reference
      *
-     * Can be used as a short reference to an app if the full app object is not needed.
-     */
+     *     Can be used as a short reference to an app if the full app object is not needed. */
     AppReference: {
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
@@ -930,13 +1780,13 @@ export interface components {
        * @description The total usage of the feature in the period.
        * @example 100
        */
-      usage: number
+      readonly usage: number
       /**
        * Format: double
        * @description The entitlement balance at the start of the period.
        * @example 100
        */
-      balanceAtStart: number
+      readonly balanceAtStart: number
     }
     /** @description Response for creating a pending charge */
     BillingCreateLineResult: {
@@ -949,55 +1799,52 @@ export interface components {
       lines: components['schemas']['BillingInvoiceLineCreateItem'][]
     }
     /** @description CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is based on. */
-    BillingCreditNoteOriginalInvoiceRef: WithRequired<
-      {
-        /** @enum {string} */
-        type: 'credit_node_original_invoice'
-        /**
-         * IssueAt reflects the time the document was issued.
-         * Format: date-time
-         * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-         * @example "2023-01-01T01:01:01.001Z"
-         */
-        issuedAt?: string
-        /** (Serial) Number of the referenced document. */
-        number?: components['schemas']['BillingInvoiceNumber']
-        /**
-         * Link to the source document.
-         * Format: uri
-         */
-        url: string
-      } & components['schemas']['BillingGenericDocumentRef'],
-      'type' | 'url'
-    >
+    BillingCreditNoteOriginalInvoiceRef: {
+      /** @enum {string} */
+      type: 'credit_node_original_invoice'
+      /**
+       * IssueAt reflects the time the document was issued.
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      issuedAt?: string
+      /** (Serial) Number of the referenced document. */
+      number?: components['schemas']['BillingInvoiceNumber']
+      /**
+       * Link to the source document.
+       * Format: uri
+       */
+      url: string
+    } & WithRequired<components['schemas']['BillingGenericDocumentRef'], 'type'>
     /** @description Customer specific workflow overrides. */
     BillingCustomerOverride: {
       /**
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       workflow: components['schemas']['BillingCustomerWorkflowOverride']
       /**
        * @description The billing profile this override is associated with.
        *
-       * If not provided, the default billing profile is chosen if available.
+       *     If not provided, the default billing profile is chosen if available.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       billingProfile?: string
@@ -1013,23 +1860,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** The collection settings for this workflow */
       collection?: components['schemas']['BillingWorkflowCollectionSettings']
       /** The invoicing settings for this workflow */
@@ -1041,7 +1888,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       taxApp: components['schemas']['App']
       invoicingApp: components['schemas']['App']
       paymentApp: components['schemas']['App']
@@ -1068,7 +1915,7 @@ export interface components {
        * When the payment is due.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       dueAt: string
       /** Other details to take into account for the due date. */
@@ -1101,23 +1948,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -1137,14 +1984,14 @@ export interface components {
       /** Tax config specify the tax configuration for this line. */
       taxConfig?: components['schemas']['TaxConfig'] | null
       /** Total sum of the line, including discounts and charges. */
-      total: components['schemas']['Numeric']
+      readonly total: components['schemas']['Numeric']
       /** Period of the line item applies to for revenue recognition pruposes. */
       period: components['schemas']['BillingPeriod']
       /**
        * The time this line item should be invoiced.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: string
       /** @enum {string} */
@@ -1155,7 +2002,7 @@ export interface components {
        * Payment term of the line.
        * @default in_advance
        */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
+      paymentTerm: components['schemas']['PricePaymentTerm']
       /** Quantity of the item being sold. */
       quantity: components['schemas']['Numeric']
     }
@@ -1192,7 +2039,7 @@ export interface components {
        * The time this line item should be invoiced.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: string
       /** @enum {string} */
@@ -1203,7 +2050,7 @@ export interface components {
        * Payment term of the line.
        * @default in_advance
        */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
+      paymentTerm: components['schemas']['PricePaymentTerm']
       /** Quantity of the item being sold. */
       quantity: components['schemas']['Numeric']
     }
@@ -1245,7 +2092,7 @@ export interface components {
        * The time this line item should be invoiced.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: string
       /** @enum {string} */
@@ -1256,16 +2103,16 @@ export interface components {
        * Payment term of the line.
        * @default in_advance
        */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
+      paymentTerm: components['schemas']['PricePaymentTerm']
       /** Quantity of the item being sold. */
       quantity: components['schemas']['Numeric']
     }
     /**
      * DocumentRef is used to describe an existing document or a specific part of it's contents.
      * @description Omitted fields:
-     * period: Tax period in which the referred document had an effect required by some tax regimes and formats.
-     * stamps: Seals of approval from other organisations that may need to be listed.
-     * ext: 	Extensions for additional codes that may be required.
+     *     period: Tax period in which the referred document had an effect required by some tax regimes and formats.
+     *     stamps: Seals of approval from other organisations that may need to be listed.
+     *     ext: 	Extensions for additional codes that may be required.
      */
     BillingGenericDocumentRef: {
       /** Type of the document referenced. */
@@ -1282,7 +2129,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Description
        * @description Optional description of the resource. Maximum 1024 characters.
@@ -1297,23 +2144,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
        *
-       * For updates the updatedAt field is used to detect conflicts.
-       * @example "2024-01-01T01:01:01.001Z"
+       *     For updates the updatedAt field is used to detect conflicts.
+       * @example 2024-01-01T01:01:01.001Z
        */
       updatedAt: string
       type: components['schemas']['BillingInvoiceType']
@@ -1325,11 +2172,11 @@ export interface components {
        * (Serial) Number of the invoice
        * @description Number specifies the human readable key used to reference this Invoice.
        *
-       * The number only gets populated after the invoice had been issued.
+       *     The number only gets populated after the invoice had been issued.
        *
-       * Please note that the number is (depending on the upstream settings) either unique for the
-       * whole organization or unique for the customer, or in multi (stripe) account setups unique for the
-       * account.
+       *     Please note that the number is (depending on the upstream settings) either unique for the
+       *     whole organization or unique for the customer, or in multi (stripe) account setups unique for the
+       *     account.
        */
       number?: components['schemas']['BillingInvoiceNumber']
       /** Currency for all invoice totals. */
@@ -1347,10 +2194,10 @@ export interface components {
        * Format: date-time
        * @description The time the invoice was issued.
        *
-       * Depending on the status of the invoice this can mean multiple things:
-       * - draft, gathering: The time the invoice will be issued based on the workflow settings.
-       * - issued: The time the invoice was issued.
-       * @example "2023-01-01T01:01:01.001Z"
+       *     Depending on the status of the invoice this can mean multiple things:
+       *     - draft, gathering: The time the invoice will be issued based on the workflow settings.
+       *     - issued: The time the invoice was issued.
+       * @example 2023-01-01T01:01:01.001Z
        */
       issuedAt?: string
       /**
@@ -1358,17 +2205,17 @@ export interface components {
        * Format: date-time
        * @description The time until the invoice is in draft status.
        *
-       * On draft invoice creation it is calculated from the workflow settings.
+       *     On draft invoice creation it is calculated from the workflow settings.
        *
-       * If manual approval is required, the draftUntil time is set.
-       * @example "2023-01-01T01:01:01.001Z"
+       *     If manual approval is required, the draftUntil time is set.
+       * @example 2023-01-01T01:01:01.001Z
        */
       draftUntil?: string
       /**
        * Due time of the fulfillment of the invoice.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       dueAt?: string
       /** The period the invoice covers. If the invoice has no line items, it's not set. */
@@ -1378,16 +2225,16 @@ export interface components {
        * Format: date-time
        * @description The time the invoice was voided.
        *
-       * If the invoice was voided, this field will be set to the time the invoice was voided.
-       * @example "2023-01-01T01:01:01.001Z"
+       *     If the invoice was voided, this field will be set to the time the invoice was voided.
+       * @example 2023-01-01T01:01:01.001Z
        */
       voidedAt?: string
       /**
        * The workflow settings associated with this invoice
        * @description The workflow associated with the invoice.
        *
-       * It is always a snapshot of the workflow settings at the time of invoice creation. The
-       * field is optional as it should be explicitly requested with expand options.
+       *     It is always a snapshot of the workflow settings at the time of invoice creation. The
+       *     field is optional as it should be explicitly requested with expand options.
        */
       workflow?: components['schemas']['BillingInvoiceWorkflowSettings']
       /** List of invoice lines representing each of the items sold to the customer. */
@@ -1404,26 +2251,22 @@ export interface components {
      * @enum {string}
      */
     BillingInvoiceAction: 'advance' | 'approve' | 'delete' | 'retry' | 'void'
-    /**
-     * @description BillingInvoiceCreateInput is the input for creating an invoice.
+    /** @description BillingInvoiceCreateInput is the input for creating an invoice.
      *
-     * Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
-     * operation. Empty invoices are not allowed.
-     */
+     *     Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
+     *     operation. Empty invoices are not allowed. */
     BillingInvoiceCreateInput: {
-      /**
-       * @description The pending line items to include in the invoice, if not provided:
-       * - all line items that have invoice_at < asOf will be included
-       * - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
-       * of the billing cycle
-       */
+      /** @description The pending line items to include in the invoice, if not provided:
+       *     - all line items that have invoice_at < asOf will be included
+       *     - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
+       *     of the billing cycle */
       IncludePendingLines?: string[]
       /**
        * Format: date-time
        * @description The time as of which the invoice is created.
        *
-       * If not provided, the current time is used.
-       * @example "2023-01-01T01:01:01.001Z"
+       *     If not provided, the current time is used.
+       * @example 2023-01-01T01:01:01.001Z
        */
       AsOf?: string
     }
@@ -1451,8 +2294,8 @@ export interface components {
     /**
      * @description InvoiceExtendedStatus describes the extended status of an invoice.
      *
-     * This is used to provide more detailed information about the status of the invoice. Useful for
-     * troubelshooting invoice workflow issues.
+     *     This is used to provide more detailed information about the status of the invoice. Useful for
+     *     troubelshooting invoice workflow issues.
      * @enum {string}
      */
     BillingInvoiceExtendedStatus:
@@ -1484,11 +2327,11 @@ export interface components {
       | components['schemas']['BillingFlatFeeLineCreateOrUpdate']
     /**
      * @description InvoiceNumber is a unique identifier for the invoice, generated by the
-     * invoicing app.
+     *     invoicing app.
      *
-     * The uniqueness depends on a lot of factors:
-     * - app setting (unique per app or unique per customer)
-     * - multiple app scenarios (multiple apps generating invoices with the same prefix)
+     *     The uniqueness depends on a lot of factors:
+     *     - app setting (unique per app or unique per customer)
+     *     - multiple app scenarios (multiple apps generating invoices with the same prefix)
      * @example INV-2024-01-01-01
      */
     BillingInvoiceNumber: string
@@ -1522,12 +2365,10 @@ export interface components {
      * @enum {string}
      */
     BillingInvoiceStatus: 'gathering' | 'draft' | 'issuing' | 'issued'
-    /**
-     * @description InvoiceStatusDetails represents the details of the invoice status.
+    /** @description InvoiceStatusDetails represents the details of the invoice status.
      *
-     * API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
-     * the next steps of the invoice instead of the extendedStatus field.
-     */
+     *     API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
+     *     the next steps of the invoice instead of the extendedStatus field. */
     BillingInvoiceStatusDetails: {
       /** Is the invoice editable? */
       immutable: boolean
@@ -1566,16 +2407,14 @@ export interface components {
     /**
      * @description InvoiceType represents the type of invoice.
      *
-     * The type of invoice determines the purpose of the invoice and how it should be handled.
+     *     The type of invoice determines the purpose of the invoice and how it should be handled.
      * @enum {string}
      */
     BillingInvoiceType: 'standard' | 'credit_note'
-    /**
-     * @description InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+    /** @description InvoiceWorkflowSettings represents the workflow settings used by the invoice.
      *
-     * This is a clone of the billing profile's workflow settings at the time of invoice creation
-     * with customer overrides considered.
-     */
+     *     This is a clone of the billing profile's workflow settings at the time of invoice creation
+     *     with customer overrides considered. */
     BillingInvoiceWorkflowSettings: {
       /** The apps that will be used to orchestrate the invoice's workflow. */
       apps?: components['schemas']['BillingProfileAppsOrReference']
@@ -1583,8 +2422,8 @@ export interface components {
        * The billing profile on which the workflow was based on.
        * @description sourceBillingProfileID is the billing profile on which the workflow was based on.
        *
-       * The profile is snapshotted on invoice creation, after which it can be altered independently
-       * of the profile itself.
+       *     The profile is snapshotted on invoice creation, after which it can be altered independently
+       *     of the profile itself.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       sourceBillingProfileID: string
@@ -1686,24 +2525,22 @@ export interface components {
     BillingPaymentTerms:
       | components['schemas']['BillingPaymentTermInstant']
       | components['schemas']['BillingPaymentTermDueDate']
-    /**
-     * @description Period represents a time range.
+    /** @description Period represents a time range.
      *
-     * Billing always treats periods as start being inclusive and end being exclusive.
-     */
+     *     Billing always treats periods as start being inclusive and end being exclusive. */
     BillingPeriod: {
       /**
        * Start of the period.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       start: string
       /**
        * End of the period.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       end: string
     }
@@ -1714,7 +2551,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -1734,23 +2571,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Last update time of the resource
        * Format: date-time
        * @description When the resource was last updated.
        *
-       * For updates this field must be set to the last update time to detect conflicts.
-       * @example "2023-01-01T01:01:01.001Z"
+       *     For updates this field must be set to the last update time to detect conflicts.
+       * @example 2023-01-01T01:01:01.001Z
        */
       updatedAt: string
       /** The name and contact information for the supplier this billing profile represents */
@@ -1777,10 +2614,8 @@ export interface components {
       invoicing: components['schemas']['App']
       payment: components['schemas']['App']
     }
-    /**
-     * @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
-     * for a billing profile.
-     */
+    /** @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
+     *     for a billing profile. */
     BillingProfileAppsOrReference:
       | components['schemas']['BillingProfileApps']
       | components['schemas']['BillingProfileAppReferences']
@@ -1840,8 +2675,8 @@ export interface components {
        * Format: date-time
        * @description When the resource was last updated.
        *
-       * For updates this field must be set to the last update time to detect conflicts.
-       * @example "2023-01-01T01:01:01.001Z"
+       *     For updates this field must be set to the last update time to detect conflicts.
+       * @example 2023-01-01T01:01:01.001Z
        */
       updatedAt: string
       /** The name and contact information for the supplier this billing profile represents */
@@ -1864,8 +2699,8 @@ export interface components {
     /**
      * @description TaxBehavior details how the tax item is applied to the base amount.
      *
-     * Inclusive means the tax is included in the base amount.
-     * Exclusive means the tax is added to the base amount.
+     *     Inclusive means the tax is included in the base amount.
+     *     Exclusive means the tax is added to the base amount.
      * @enum {string}
      */
     BillingTaxBehavior: 'inclusive' | 'exclusive'
@@ -1879,11 +2714,9 @@ export interface components {
     BillingTaxItem: {
       /** Tax provider configuration. */
       config?: components['schemas']['TaxConfig']
-      /**
-       * Percent defines the percentage set manually or determined from the rate
-       * key (calculated if rate present). A nil percent implies that this tax combo
-       * is **exempt** from tax.
-       */
+      /** Percent defines the percentage set manually or determined from the rate
+       *     key (calculated if rate present). A nil percent implies that this tax combo
+       *     is **exempt** from tax. */
       percent?: components['schemas']['Percentage']
       /** Some countries require an additional surcharge (calculated if rate present). */
       surcharge?: components['schemas']['Numeric']
@@ -1911,23 +2744,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -1947,14 +2780,14 @@ export interface components {
       /** Tax config specify the tax configuration for this line. */
       taxConfig?: components['schemas']['TaxConfig'] | null
       /** Total sum of the line, including discounts and charges. */
-      total: components['schemas']['Numeric']
+      readonly total: components['schemas']['Numeric']
       /** Period of the line item applies to for revenue recognition pruposes. */
       period: components['schemas']['BillingPeriod']
       /**
        * The time this line item should be invoiced.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: string
       /** @enum {string} */
@@ -2001,7 +2834,7 @@ export interface components {
        * The time this line item should be invoiced.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: string
       /** @enum {string} */
@@ -2051,7 +2884,7 @@ export interface components {
        * The time this line item should be invoiced.
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: string
       /** @enum {string} */
@@ -2063,11 +2896,9 @@ export interface components {
        */
       featureKey: string
     }
-    /**
-     * @description ValidationIssue captures any validation issues related to the invoice.
+    /** @description ValidationIssue captures any validation issues related to the invoice.
      *
-     * Issues with severity "critical" will prevent the invoice from being issued.
-     */
+     *     Issues with severity "critical" will prevent the invoice from being issued. */
     BillingValidationIssue: {
       /** The severity of the issue. */
       severity: components['schemas']['BillingValidationIssueSeverity']
@@ -2085,7 +2916,7 @@ export interface components {
     /**
      * @description ValidationIssueSeverity describes the severity of a validation issue.
      *
-     * Issues with severity "critical" will prevent the invoice from being issued.
+     *     Issues with severity "critical" will prevent the invoice from being issued.
      * @enum {string}
      */
     BillingValidationIssueSeverity: 'critical' | 'warning'
@@ -2108,11 +2939,9 @@ export interface components {
        * @description The reason for voiding the invoice.
        */
       reason: string
-      /**
-       * @description Per line item overrides for the action.
+      /** @description Per line item overrides for the action.
        *
-       * If not specified, the `action` will be applied to all line items.
-       */
+       *     If not specified, the `action` will be applied to all line items. */
       overrides:
         | components['schemas']['BillingVoidInvoiceLineOverride'][]
         | null
@@ -2139,23 +2968,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** The collection settings for this workflow */
       collection?: components['schemas']['BillingWorkflowCollectionSettings']
       /** The invoicing settings for this workflow */
@@ -2167,18 +2996,16 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
     }
-    /**
-     * @description AppIdOrType can be used to reference an app during creation only.
+    /** @description AppIdOrType can be used to reference an app during creation only.
      *
-     * This can be either an AppType or the ULID of an app.
-     */
+     *     This can be either an AppType or the ULID of an app. */
     BillingWorkflowAppIdOrType: string
     /**
      * Collection alignment
      * @description CollectionAlignment specifies when the pending line items should be collected into
-     * an invoice.
+     *     an invoice.
      * @enum {string}
      */
     BillingWorkflowCollectionAlignment: 'subscription'
@@ -2194,14 +3021,14 @@ export interface components {
        * @description When to collect the pending line items into an invoice.
        * @default subscription
        */
-      alignment?: components['schemas']['BillingWorkflowCollectionAlignment']
+      alignment: components['schemas']['BillingWorkflowCollectionAlignment']
       /**
        * Format: ISO8601
        * @description The interval for collecting the pending line items into an invoice.
        * @default PT1H
        * @example P1D
        */
-      interval?: string
+      interval: string
     }
     /**
      * Workflow invoice settings
@@ -2212,21 +3039,21 @@ export interface components {
        * @description Whether to automatically issue the invoice after the draftPeriod has passed.
        * @default true
        */
-      autoAdvance?: boolean
+      autoAdvance: boolean
       /**
        * Format: ISO8601
        * @description The period for the invoice to be kept in draft status for manual reviews.
        * @default P1D
        * @example P1D
        */
-      draftPeriod?: string
+      draftPeriod: string
       /**
        * Format: ISO8601
        * @description The period after which the invoice is due.
        * @default P7D
        * @example P1D
        */
-      dueAfter?: string
+      dueAfter: string
     }
     /**
      * Workflow payment settings
@@ -2234,7 +3061,7 @@ export interface components {
      */
     BillingWorkflowPaymentSettings: {
       /** @default charge_automatically */
-      collectionMethod?: components['schemas']['BillingWorkflowCollectionMethod']
+      collectionMethod: components['schemas']['BillingWorkflowCollectionMethod']
     }
     /** @description WorkflowSettings represents the settings for a billing workflow. */
     BillingWorkflowSettings: {
@@ -2274,7 +3101,7 @@ export interface components {
     ConflictProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
      * @description [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
-     * Custom two-letter country codes are also supported for convenience.
+     *     Custom two-letter country codes are also supported for convenience.
      * @example US
      */
     CountryCode: string
@@ -2285,18 +3112,14 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       appId?: string
-      /**
-       * @description Provide a customer ID to use an existing OpenMeter customer.
-       * or provide a customer object to create a new customer.
-       */
+      /** @description Provide a customer ID to use an existing OpenMeter customer.
+       *     or provide a customer object to create a new customer. */
       customer:
         | components['schemas']['CustomerId']
         | components['schemas']['CustomerCreate']
-      /**
-       * @description Stripe customer ID.
-       * If not provided OpenMeter creates a new Stripe customer or
-       * uses the OpenMeter customer's default Stripe customer ID.
-       */
+      /** @description Stripe customer ID.
+       *     If not provided OpenMeter creates a new Stripe customer or
+       *     uses the OpenMeter customer's default Stripe customer ID. */
       stripeCustomerId?: string
       /** @description Options passed to Stripe when creating the checkout session. */
       options: components['schemas']['CreateStripeCheckoutSessionRequestOptions']
@@ -2330,10 +3153,8 @@ export interface components {
       setupIntentId: string
       /** @description URL to show the checkout session. */
       url: string
-      /**
-       * @description Mode
-       * Always `setup` for now.
-       */
+      /** @description Mode
+       *     Always `setup` for now. */
       mode: components['schemas']['StripeCheckoutSessionMode']
       /** @description Cancel URL. */
       cancelURL?: string
@@ -2358,17 +3179,15 @@ export interface components {
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       activeFrom: string
-      /**
-       * @description Batch processing commands for customizing the susbcription.
-       * The key format is `/phases/{phaseKey}/items/{itemKey}`.
+      /** @description Batch processing commands for customizing the susbcription.
+       *     The key format is `/phases/{phaseKey}/items/{itemKey}`.
        *
-       * Add operations insert a new member based on the creation input without altering the existing members.
+       *     Add operations insert a new member based on the creation input without altering the existing members.
        *
-       * Remove operations remove the member from the document.
-       */
+       *     Remove operations remove the member from the document. */
       customizations: (
         | components['schemas']['SubscriptionEditAddItem']
         | components['schemas']['SubscriptionEditRemoveItem']
@@ -2376,26 +3195,26 @@ export interface components {
     }
     /**
      * @description Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-     * Custom three-letter currency codes are also supported for convenience.
+     *     Custom three-letter currency codes are also supported for convenience.
      * @example USD
      */
     CurrencyCode: string
     /**
      * @description A customer object.
      * @example {
-     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
-     *   "name": "ACME Inc.",
-     *   "usageAttribution": {
-     *     "subjectKeys": [
-     *       "my_subject_key"
-     *     ]
-     *   },
-     *   "external": {
-     *     "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
-     *   },
-     *   "createdAt": "2024-01-01T01:01:01.001Z",
-     *   "updatedAt": "2024-01-01T01:01:01.001Z"
-     * }
+     *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *       "name": "ACME Inc.",
+     *       "usageAttribution": {
+     *         "subjectKeys": [
+     *           "my_subject_key"
+     *         ]
+     *       },
+     *       "external": {
+     *         "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
+     *       },
+     *       "createdAt": "2024-01-01T01:01:01.001Z",
+     *       "updatedAt": "2024-01-01T01:01:01.001Z"
+     *     }
      */
     Customer: {
       /**
@@ -2403,7 +3222,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -2423,23 +3242,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Timezone
        * @description Timezone of the customer.
@@ -2458,13 +3277,13 @@ export interface components {
       /**
        * Currency
        * @description Currency of the customer.
-       * Used for billing, tax and invoicing.
+       *     Used for billing, tax and invoicing.
        */
       currency?: components['schemas']['CurrencyCode']
       /**
        * Billing Address
        * @description The billing address of the customer.
-       * Used for tax and invoicing.
+       *     Used for tax and invoicing.
        */
       billingAddress?: components['schemas']['Address']
       /**
@@ -2508,13 +3327,13 @@ export interface components {
       /**
        * Currency
        * @description Currency of the customer.
-       * Used for billing, tax and invoicing.
+       *     Used for billing, tax and invoicing.
        */
       currency?: components['schemas']['CurrencyCode']
       /**
        * Billing Address
        * @description The billing address of the customer.
-       * Used for tax and invoicing.
+       *     Used for tax and invoicing.
        */
       billingAddress?: components['schemas']['Address']
       /**
@@ -2528,8 +3347,8 @@ export interface components {
       /**
        * Stripe Customer
        * @description The Stripe customer ID.
-       * Mapping to a Stripe Customer object.
-       * Required to use Stripe as an invocing provider.
+       *     Mapping to a Stripe Customer object.
+       *     Required to use Stripe as an invocing provider.
        */
       stripeCustomerId?: string
     }
@@ -2621,13 +3440,13 @@ export interface components {
       /**
        * Currency
        * @description Currency of the customer.
-       * Used for billing, tax and invoicing.
+       *     Used for billing, tax and invoicing.
        */
       currency?: components['schemas']['CurrencyCode']
       /**
        * Billing Address
        * @description The billing address of the customer.
-       * Used for tax and invoicing.
+       *     Used for tax and invoicing.
        */
       billingAddress?: components['schemas']['Address']
       /**
@@ -2636,11 +3455,9 @@ export interface components {
        */
       external?: components['schemas']['CustomerExternalMapping']
     }
-    /**
-     * @description Mapping to attribute metered usage to the customer.
-     * One customer can have multiple subjects,
-     * but one subject can only belong to one customer.
-     */
+    /** @description Mapping to attribute metered usage to the customer.
+     *     One customer can have multiple subjects,
+     *     but one subject can only belong to one customer. */
     CustomerUsageAttribution: {
       /**
        * SubjectKeys
@@ -2648,10 +3465,8 @@ export interface components {
        */
       subjectKeys: string[]
     }
-    /**
-     * @description A discount on a price.
-     * One of: percentage, amount, or usage.
-     */
+    /** @description A discount on a price.
+     *     One of: percentage, amount, or usage. */
     Discount: components['schemas']['DiscountPercentage']
     /** @description Percentage discount. */
     DiscountPercentage: {
@@ -2669,7 +3484,7 @@ export interface components {
       /**
        * Discounted RateCards
        * @description The rate cards that the discount applies to.
-       * When not specified, the discount applies to all rate cards.
+       *     When not specified, the discount applies to all rate cards.
        */
       rateCards?: string[]
     }
@@ -2683,19 +3498,15 @@ export interface components {
       /**
        * Discounted RateCards
        * @description The rate cards that the discount applies to.
-       * When not specified, the discount applies to all rate cards.
+       *     When not specified, the discount applies to all rate cards.
        */
       rateCards?: string[]
     }
-    /**
-     * @description A discount on a price.
-     * One of: percentage, amount, or usage.
-     */
+    /** @description A discount on a price.
+     *     One of: percentage, amount, or usage. */
     DiscountUpdateItem: components['schemas']['DiscountPercentageUpdateItem']
-    /**
-     * @description Entitlement templates are used to define the entitlements of a plan.
-     * Features are omitted from the entitlement template, as they are defined in the rate card.
-     */
+    /** @description Entitlement templates are used to define the entitlements of a plan.
+     *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     Entitlement:
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
@@ -2706,30 +3517,30 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
       /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * Type
        * @description The type of the entitlement.
@@ -2756,58 +3567,58 @@ export interface components {
       usagePeriod?: components['schemas']['RecurringPeriod']
     }
     /** @description Entitlement template of a boolean entitlement. */
-    EntitlementBoolean: WithRequired<
-      {
-        /** @enum {string} */
-        type: 'boolean'
-        /**
-         * Creation Time
-         * Format: date-time
-         * @description Timestamp of when the resource was created.
-         * @example "2024-01-01T01:01:01.001Z"
-         */
-        createdAt: string
-        /**
-         * Last Update Time
-         * Format: date-time
-         * @description Timestamp of when the resource was last updated.
-         * @example "2024-01-01T01:01:01.001Z"
-         */
-        updatedAt: string
-        /**
-         * Deletion Time
-         * Format: date-time
-         * @description Timestamp of when the resource was permanently deleted.
-         * @example "2024-01-01T01:01:01.001Z"
-         */
-        deletedAt?: string
-        /** @description Additional metadata for the feature. */
-        metadata?: components['schemas']['Metadata']
-        /**
-         * @description Readonly unique ULID identifier.
-         * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-         */
-        id: string
-        /**
-         * @description The identifier key unique to the subject
-         * @example customer-1
-         */
-        subjectKey: string
-        /**
-         * @description The feature the subject is entitled to use.
-         * @example example-feature-key
-         */
-        featureKey: string
-        /**
-         * @description The feature the subject is entitled to use.
-         * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-         */
-        featureId: string
-        /** @description The current usage period. */
-        currentUsagePeriod?: components['schemas']['Period']
-        /** @description The defined usage period of the entitlement */
-        usagePeriod?: components['schemas']['RecurringPeriod']
-      } & components['schemas']['EntitlementBaseTemplate'],
+    EntitlementBoolean: {
+      /** @enum {string} */
+      type: 'boolean'
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: string
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: string
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: string
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * @description Readonly unique ULID identifier.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description The identifier key unique to the subject
+       * @example customer-1
+       */
+      subjectKey: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example example-feature-key
+       */
+      featureKey: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      featureId: string
+      /** @description The current usage period. */
+      currentUsagePeriod?: components['schemas']['Period']
+      /** @description The defined usage period of the entitlement */
+      usagePeriod?: components['schemas']['RecurringPeriod']
+    } & WithRequired<
+      components['schemas']['EntitlementBaseTemplate'],
       | 'type'
       | 'createdAt'
       | 'updatedAt'
@@ -2820,13 +3631,13 @@ export interface components {
     EntitlementBooleanCreateInputs: {
       /**
        * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
+       *     Either featureKey or featureId is required.
        * @example example-feature-key
        */
       featureKey?: string
       /**
        * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
+       *     Either featureKey or featureId is required.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       featureId?: string
@@ -2848,23 +3659,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Format: double
        * @description The amount to grant. Should be a positive number.
@@ -2874,18 +3685,18 @@ export interface components {
       /**
        * Format: uint8
        * @description The priority of the grant. Grants with higher priority are applied first.
-       * Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-       * For example, a priority of 1 is more urgent than a priority of 2.
-       * When there are several grants available for the same subject, the system selects the grant with the highest priority.
-       * In cases where grants share the same priority level, the grant closest to its expiration will be used first.
-       * In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+       *     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+       *     For example, a priority of 1 is more urgent than a priority of 2.
+       *     When there are several grants available for the same subject, the system selects the grant with the highest priority.
+       *     In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+       *     In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
        * @example 1
        */
       priority?: number
       /**
        * Format: date-time
        * @description Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       effectiveAt: string
       /** @description The grant expiration definition */
@@ -2893,52 +3704,52 @@ export interface components {
       /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-       * Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
        * @default 0
        * @example 100
        */
-      maxRolloverAmount?: number
+      maxRolloverAmount: number
       /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-       * Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
        * @default 0
        * @example 100
        */
-      minRolloverAmount?: number
+      minRolloverAmount: number
       /**
        * @description The grant metadata.
        * @example {
-       *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
-       * }
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
        */
       metadata?: components['schemas']['Metadata']
       /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * @description The unique entitlement ULID that the grant is associated with.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      entitlementId: string
+      readonly entitlementId: string
       /**
        * Format: date-time
        * @description The next time the grant will recurr.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       nextRecurrence?: string
       /**
        * Format: date-time
        * @description The time the grant expires.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      expiresAt?: string
+      readonly expiresAt?: string
       /**
        * Format: date-time
        * @description The time the grant was voided.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       voidedAt?: string
       /** @description The recurrence period of the grant. */
@@ -2955,18 +3766,18 @@ export interface components {
       /**
        * Format: uint8
        * @description The priority of the grant. Grants with higher priority are applied first.
-       * Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-       * For example, a priority of 1 is more urgent than a priority of 2.
-       * When there are several grants available for the same subject, the system selects the grant with the highest priority.
-       * In cases where grants share the same priority level, the grant closest to its expiration will be used first.
-       * In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+       *     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+       *     For example, a priority of 1 is more urgent than a priority of 2.
+       *     When there are several grants available for the same subject, the system selects the grant with the highest priority.
+       *     In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+       *     In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
        * @example 1
        */
       priority?: number
       /**
        * Format: date-time
        * @description Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       effectiveAt: string
       /** @description The grant expiration definition */
@@ -2974,33 +3785,31 @@ export interface components {
       /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-       * Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
        * @default 0
        * @example 100
        */
-      maxRolloverAmount?: number
+      maxRolloverAmount: number
       /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
-       * Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
        * @default 0
        * @example 100
        */
-      minRolloverAmount?: number
+      minRolloverAmount: number
       /**
        * @description The grant metadata.
        * @example {
-       *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
-       * }
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
        */
       metadata?: components['schemas']['Metadata']
       /** @description The subject of the grant. */
       recurrence?: components['schemas']['RecurringPeriodCreateInput']
     }
-    /**
-     * @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
-     * Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
-     */
+    /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
+     *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
     EntitlementMetered: {
       /** @enum {string} */
       type: 'metered'
@@ -3009,20 +3818,20 @@ export interface components {
        * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
        * @default false
        */
-      isSoftLimit?: boolean
+      isSoftLimit: boolean
       /**
        * @deprecated
        * @description Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
        * @default false
        */
-      isUnlimited?: boolean
+      isUnlimited: boolean
       /**
        * Initial grant amount
        * Format: double
        * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
-       * If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
-       * That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
-       * Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+       *     If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       *     That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       *     Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
        */
       issueAfterReset?: number
       /**
@@ -3031,41 +3840,41 @@ export interface components {
        * @description Defines the grant priority for the default grant.
        * @default 1
        */
-      issueAfterResetPriority?: number
+      issueAfterResetPriority: number
       /**
        * Preserve overage at reset
        * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
        * @default false
        */
-      preserveOverageAtReset?: boolean
+      preserveOverageAtReset: boolean
       /**
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
       /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * @description The identifier key unique to the subject
        * @example customer-1
@@ -3084,31 +3893,31 @@ export interface components {
       /**
        * Format: date-time
        * @description The time the last reset happened.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      lastReset: string
+      readonly lastReset: string
       /** @description The current usage period. */
-      currentUsagePeriod: components['schemas']['Period']
+      readonly currentUsagePeriod: components['schemas']['Period']
       /**
        * Format: date-time
        * @description The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      measureUsageFrom: string
+      readonly measureUsageFrom: string
       /** @description THe usage period of the entitlement. */
-      usagePeriod: components['schemas']['RecurringPeriod']
+      readonly usagePeriod: components['schemas']['RecurringPeriod']
     }
     /** @description Create inpurs for metered entitlement */
     EntitlementMeteredCreateInputs: {
       /**
        * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
+       *     Either featureKey or featureId is required.
        * @example example-feature-key
        */
       featureKey?: string
       /**
        * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
+       *     Either featureKey or featureId is required.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       featureId?: string
@@ -3121,13 +3930,13 @@ export interface components {
        * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
        * @default false
        */
-      isSoftLimit?: boolean
+      isSoftLimit: boolean
       /**
        * @deprecated
        * @description Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
        * @default false
        */
-      isUnlimited?: boolean
+      isUnlimited: boolean
       /** @description The usage period associated with the entitlement. */
       usagePeriod: components['schemas']['RecurringPeriodCreateInput']
       /** @description Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time. */
@@ -3136,9 +3945,9 @@ export interface components {
        * Initial grant amount
        * Format: double
        * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
-       * If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
-       * That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
-       * Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+       *     If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       *     That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       *     Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
        */
       issueAfterReset?: number
       /**
@@ -3147,13 +3956,13 @@ export interface components {
        * @description Defines the grant priority for the default grant.
        * @default 1
        */
-      issueAfterResetPriority?: number
+      issueAfterResetPriority: number
       /**
        * Preserve overage at reset
        * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
        * @default false
        */
-      preserveOverageAtReset?: boolean
+      preserveOverageAtReset: boolean
     }
     /**
      * @description Order by options for entitlements.
@@ -3194,30 +4003,30 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
       /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * @description The identifier key unique to the subject
        * @example customer-1
@@ -3242,13 +4051,13 @@ export interface components {
     EntitlementStaticCreateInputs: {
       /**
        * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
+       *     Either featureKey or featureId is required.
        * @example example-feature-key
        */
       featureKey?: string
       /**
        * @description The feature the subject is entitled to use.
-       * Either featureKey or featureId is required.
+       *     Either featureKey or featureId is required.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       featureId?: string
@@ -3276,44 +4085,44 @@ export interface components {
        * @description Whether the subject has access to the feature. Shared accross all entitlement types.
        * @example true
        */
-      hasAccess: boolean
+      readonly hasAccess: boolean
       /**
        * Format: double
        * @description Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
        * @example 100
        */
-      balance?: number
+      readonly balance?: number
       /**
        * Format: double
        * @description Only available for metered entitlements. Returns the total feature usage in the current period.
        * @example 50
        */
-      usage?: number
+      readonly usage?: number
       /**
        * Format: double
        * @description Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
        * @example 0
        */
-      overage?: number
+      readonly overage?: number
       /**
        * @description Only available for static entitlements. The JSON parsable config of the entitlement.
        * @example { key: "value" }
        */
-      config?: string
+      readonly config?: string
     }
     /**
      * @description CloudEvents Specification JSON Schema
      *
-     * Optional properties are nullable according to the CloudEvents specification:
-     * OPTIONAL not omitted attributes MAY be represented as a null JSON value.
+     *     Optional properties are nullable according to the CloudEvents specification:
+     *     OPTIONAL not omitted attributes MAY be represented as a null JSON value.
      * @example {
-     *   "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
-     *   "source": "service-name",
-     *   "specversion": "1.0",
-     *   "type": "prompt",
-     *   "subject": "customer-id",
-     *   "time": "2023-01-01T01:01:01.001Z"
-     * }
+     *       "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
+     *       "source": "service-name",
+     *       "specversion": "1.0",
+     *       "type": "prompt",
+     *       "subject": "customer-id",
+     *       "time": "2023-01-01T01:01:01.001Z"
+     *     }
      */
     Event: {
       /**
@@ -3357,13 +4166,11 @@ export interface components {
       /**
        * Format: date-time
        * @description Timestamp of when the occurrence happened. Must adhere to RFC 3339.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       time?: string | null
-      /**
-       * @description The event payload.
-       * Optional, if present it must be a JSON object.
-       */
+      /** @description The event payload.
+       *     Optional, if present it must be a JSON object. */
       data?: {
         [key: string]: unknown
       } | null
@@ -3383,39 +4190,37 @@ export interface components {
        */
       count: number
     }
-    /**
-     * @description Represents a feature that can be enabled or disabled for a plan.
-     * Used both for product catalog and entitlements.
-     */
+    /** @description Represents a feature that can be enabled or disabled for a plan.
+     *     Used both for product catalog and entitlements. */
     Feature: {
       /**
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Archival Time
        * Format: date-time
        * @description Timestamp of when the resource was archived.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      archivedAt?: string
+      readonly archivedAt?: string
       /**
        * The unique key of the feature
        * @description A key is a unique string that is used to identify a resource.
@@ -3426,8 +4231,8 @@ export interface components {
       /**
        * Optional metadata
        * @example {
-       *   "key": "value"
-       * }
+       *       "key": "value"
+       *     }
        */
       metadata?: components['schemas']['Metadata']
       /**
@@ -3439,13 +4244,13 @@ export interface components {
       /**
        * Meter group by filters
        * @description Optional meter group by filters.
-       * Useful if the meter scope is broader than what feature tracks.
-       * Example scenario would be a meter tracking all token use with groupBy fields for the model,
-       * then the feature could filter for model=gpt-4.
+       *     Useful if the meter scope is broader than what feature tracks.
+       *     Example scenario would be a meter tracking all token use with groupBy fields for the model,
+       *     then the feature could filter for model=gpt-4.
        * @example {
-       *   "model": "gpt-4",
-       *   "type": "input"
-       * }
+       *       "model": "gpt-4",
+       *       "type": "input"
+       *     }
        */
       meterGroupByFilters?: {
         [key: string]: string
@@ -3454,12 +4259,10 @@ export interface components {
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
     }
-    /**
-     * @description Represents a feature that can be enabled or disabled for a plan.
-     * Used both for product catalog and entitlements.
-     */
+    /** @description Represents a feature that can be enabled or disabled for a plan.
+     *     Used both for product catalog and entitlements. */
     FeatureCreateInputs: {
       /**
        * The unique key of the feature
@@ -3471,8 +4274,8 @@ export interface components {
       /**
        * Optional metadata
        * @example {
-       *   "key": "value"
-       * }
+       *       "key": "value"
+       *     }
        */
       metadata?: components['schemas']['Metadata']
       /**
@@ -3484,13 +4287,13 @@ export interface components {
       /**
        * Meter group by filters
        * @description Optional meter group by filters.
-       * Useful if the meter scope is broader than what feature tracks.
-       * Example scenario would be a meter tracking all token use with groupBy fields for the model,
-       * then the feature could filter for model=gpt-4.
+       *     Useful if the meter scope is broader than what feature tracks.
+       *     Example scenario would be a meter tracking all token use with groupBy fields for the model,
+       *     then the feature could filter for model=gpt-4.
        * @example {
-       *   "model": "gpt-4",
-       *   "type": "input"
-       * }
+       *       "model": "gpt-4",
+       *       "type": "input"
+       *     }
        */
       meterGroupByFilters?: {
         [key: string]: string
@@ -3507,7 +4310,7 @@ export interface components {
       /**
        * Feature Key
        * @description The key is an immutable unique identifier of the feature used throughout the API,
-       * for example when interacting with a subject's entitlements.
+       *     for example when interacting with a subject's entitlements.
        * @example gpt4_tokens
        */
       key: string
@@ -3546,26 +4349,27 @@ export interface components {
     }
     /** @description Flat price with payment term. */
     FlatPriceWithPaymentTerm: {
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'flat'
       /** @description The amount of the flat price. */
       amount: components['schemas']['Numeric']
       /**
        * @description The payment term of the flat price.
-       * Defaults to in advance.
+       *     Defaults to in advance.
        * @default in_advance
        */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
+      paymentTerm: components['schemas']['PricePaymentTerm']
     }
     /** @description The server understood the request but refuses to authorize it. */
     ForbiddenProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The server, while acting as a gateway or proxy, did not receive a timely response from an upstream server it needed to access in order to complete the request. */
     GatewayTimeoutProblemResponse: components['schemas']['UnexpectedProblemResponse']
-    /**
-     * @description A segment of the grant burn down history.
+    /** @description A segment of the grant burn down history.
      *
-     * A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period.
-     */
+     *     A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period. */
     GrantBurnDownHistorySegment: {
       /** @description The period of the segment. */
       period: components['schemas']['Period']
@@ -3574,26 +4378,26 @@ export interface components {
        * @description The total usage of the grant in the period.
        * @example 100
        */
-      usage: number
+      readonly usage: number
       /**
        * Format: double
        * @description Overuse that wasn't covered by grants.
        * @example 100
        */
-      overage: number
+      readonly overage: number
       /**
        * Format: double
        * @description entitlement balance at the start of the period.
        * @example 100
        */
-      balanceAtStart: number
+      readonly balanceAtStart: number
       /**
        * @description The balance breakdown of each active grant at the start of the period: GrantID: Balance
        * @example {
-       *   "01G65Z755AFWAKHE12NY0CQ9FH": 100
-       * }
+       *       "01G65Z755AFWAKHE12NY0CQ9FH": 100
+       *     }
        */
-      grantBalancesAtStart: {
+      readonly grantBalancesAtStart: {
         [key: string]: number
       }
       /**
@@ -3601,18 +4405,18 @@ export interface components {
        * @description The entitlement balance at the end of the period.
        * @example 100
        */
-      balanceAtEnd: number
+      readonly balanceAtEnd: number
       /**
        * @description The balance breakdown of each active grant at the end of the period: GrantID: Balance
        * @example {
-       *   "01G65Z755AFWAKHE12NY0CQ9FH": 100
-       * }
+       *       "01G65Z755AFWAKHE12NY0CQ9FH": 100
+       *     }
        */
-      grantBalancesAtEnd: {
+      readonly grantBalancesAtEnd: {
         [key: string]: number
       }
       /** @description Which grants were actually burnt down in the period and by what amount. */
-      grantUsages: readonly components['schemas']['GrantUsageRecord'][]
+      readonly grantUsages: components['schemas']['GrantUsageRecord'][]
     }
     /**
      * @description Order by options for grants.
@@ -3653,27 +4457,25 @@ export interface components {
        */
       usage: number
     }
-    /**
-     * @description The body of the events request.
-     * Either a single event or a batch of events.
-     */
+    /** @description The body of the events request.
+     *     Either a single event or a batch of events. */
     IngestEventsBody:
       | components['schemas']['Event']
       | components['schemas']['Event'][]
     /**
      * @description An ingested event with optional validation error.
      * @example {
-     *   "event": {
-     *     "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
-     *     "source": "service-name",
-     *     "specversion": "1.0",
-     *     "type": "prompt",
-     *     "subject": "customer-id",
-     *     "time": "2023-01-01T01:01:01.001Z"
-     *   },
-     *   "ingestedAt": "2023-01-01T01:01:01.001Z",
-     *   "storedAt": "2023-01-01T01:01:02.001Z"
-     * }
+     *       "event": {
+     *         "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
+     *         "source": "service-name",
+     *         "specversion": "1.0",
+     *         "type": "prompt",
+     *         "subject": "customer-id",
+     *         "time": "2023-01-01T01:01:01.001Z"
+     *       },
+     *       "ingestedAt": "2023-01-01T01:01:01.001Z",
+     *       "storedAt": "2023-01-01T01:01:02.001Z"
+     *     }
      */
     IngestedEvent: {
       event: components['schemas']['Event']
@@ -3682,13 +4484,13 @@ export interface components {
       /**
        * Format: date-time
        * @description The date and time the event was ingested.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       ingestedAt: string
       /**
        * Format: date-time
        * @description The date and time the event was stored.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       storedAt: string
     }
@@ -3724,35 +4526,35 @@ export interface components {
       | components['schemas']['FeaturePaginatedResponse']
     /**
      * @description A marketplace listing.
-     * Represent an available app in the app marketplace that can be installed to the organization.
+     *     Represent an available app in the app marketplace that can be installed to the organization.
      *
-     * Marketplace apps only exist in config so they don't extend the Resource model.
+     *     Marketplace apps only exist in config so they don't extend the Resource model.
      * @example {
-     *   "type": "stripe",
-     *   "name": "Stripe",
-     *   "description": "Stripe interation allows you to collect payments with Stripe.",
-     *   "iconUrl": "/images/stripe.png",
-     *   "capabilities": [
-     *     {
-     *       "type": "calculateTax",
-     *       "key": "stripe_calculate_tax",
-     *       "name": "Calculate Tax",
-     *       "description": "Stripe Tax calculates tax portion of the invoices."
-     *     },
-     *     {
-     *       "type": "invoiceCustomers",
-     *       "key": "stripe_invoice_customers",
-     *       "name": "Invoice Customers",
-     *       "description": "Stripe invoices customers with due amount."
-     *     },
-     *     {
-     *       "type": "collectPayments",
-     *       "key": "stripe_collect_payments",
-     *       "name": "Collect Payments",
-     *       "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
+     *       "type": "stripe",
+     *       "name": "Stripe",
+     *       "description": "Stripe interation allows you to collect payments with Stripe.",
+     *       "iconUrl": "/images/stripe.png",
+     *       "capabilities": [
+     *         {
+     *           "type": "calculateTax",
+     *           "key": "stripe_calculate_tax",
+     *           "name": "Calculate Tax",
+     *           "description": "Stripe Tax calculates tax portion of the invoices."
+     *         },
+     *         {
+     *           "type": "invoiceCustomers",
+     *           "key": "stripe_invoice_customers",
+     *           "name": "Invoice Customers",
+     *           "description": "Stripe invoices customers with due amount."
+     *         },
+     *         {
+     *           "type": "collectPayments",
+     *           "key": "stripe_collect_payments",
+     *           "name": "Collect Payments",
+     *           "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
+     *         }
+     *       ]
      *     }
-     *   ]
-     * }
      */
     MarketplaceListing: {
       /** @description The app's type */
@@ -3789,15 +4591,15 @@ export interface components {
     /**
      * Format: date-time
      * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-     * @example "2023-01-01T01:01:01.001Z"
+     * @example 2023-01-01T01:01:01.001Z
      */
     MeasureUsageFromTime: string
     /**
      * @description Set of key-value pairs.
-     * Metadata can be used to store additional information about a resource.
+     *     Metadata can be used to store additional information about a resource.
      * @example {
-     *   "externalId": "019142cc-a016-796a-8113-1a942fecd26d"
-     * }
+     *       "externalId": "019142cc-a016-796a-8113-1a942fecd26d"
+     *     }
      */
     Metadata: {
       [key: string]: string
@@ -3805,28 +4607,28 @@ export interface components {
     /**
      * @description A meter is a configuration that defines how to match and aggregate events.
      * @example {
-     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
-     *   "slug": "tokens_total",
-     *   "description": "AI Token Usage",
-     *   "aggregation": "SUM",
-     *   "windowSize": "MINUTE",
-     *   "eventType": "prompt",
-     *   "valueProperty": "$.tokens",
-     *   "groupBy": {
-     *     "model": "$.model",
-     *     "type": "$.type"
-     *   }
-     * }
+     *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *       "slug": "tokens_total",
+     *       "description": "AI Token Usage",
+     *       "aggregation": "SUM",
+     *       "windowSize": "MINUTE",
+     *       "eventType": "prompt",
+     *       "valueProperty": "$.tokens",
+     *       "groupBy": {
+     *         "model": "$.model",
+     *         "type": "$.type"
+     *       }
+     *     }
      */
     Meter: {
       /**
        * @description A unique identifier for the meter.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * @description A unique, human-readable identifier for the meter.
-       * Must consist only alphanumeric and underscore characters.
+       *     Must consist only alphanumeric and underscore characters.
        * @example tokens_total
        */
       slug: string
@@ -3847,21 +4649,21 @@ export interface components {
       /**
        * @description JSONPath expression to extract the value from the ingested event's data property.
        *
-       * The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+       *     The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
        *
-       * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+       *     For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
        * @example $.tokens
        */
       valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
-       * Keys must be unique and consist only alphanumeric and underscore characters.
+       *     Keys must be unique and consist only alphanumeric and underscore characters.
        *
-       * TODO: add key format enforcement
+       *     TODO: add key format enforcement
        * @example {
-       *   "type": "$.type"
-       * }
+       *       "type": "$.type"
+       *     }
        */
       groupBy?: {
         [key: string]: string
@@ -3875,22 +4677,22 @@ export interface components {
     /**
      * @description A meter is a configuration that defines how to match and aggregate events.
      * @example {
-     *   "slug": "tokens_total",
-     *   "description": "AI Token Usage",
-     *   "aggregation": "SUM",
-     *   "windowSize": "MINUTE",
-     *   "eventType": "prompt",
-     *   "valueProperty": "$.tokens",
-     *   "groupBy": {
-     *     "model": "$.model",
-     *     "type": "$.type"
-     *   }
-     * }
+     *       "slug": "tokens_total",
+     *       "description": "AI Token Usage",
+     *       "aggregation": "SUM",
+     *       "windowSize": "MINUTE",
+     *       "eventType": "prompt",
+     *       "valueProperty": "$.tokens",
+     *       "groupBy": {
+     *         "model": "$.model",
+     *         "type": "$.type"
+     *       }
+     *     }
      */
     MeterCreate: {
       /**
        * @description A unique, human-readable identifier for the meter.
-       * Must consist only alphanumeric and underscore characters.
+       *     Must consist only alphanumeric and underscore characters.
        * @example tokens_total
        */
       slug: string
@@ -3911,21 +4713,21 @@ export interface components {
       /**
        * @description JSONPath expression to extract the value from the ingested event's data property.
        *
-       * The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+       *     The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
        *
-       * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+       *     For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
        * @example $.tokens
        */
       valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
-       * Keys must be unique and consist only alphanumeric and underscore characters.
+       *     Keys must be unique and consist only alphanumeric and underscore characters.
        *
-       * TODO: add key format enforcement
+       *     TODO: add key format enforcement
        * @example {
-       *   "type": "$.type"
-       * }
+       *       "type": "$.type"
+       *     }
        */
       groupBy?: {
         [key: string]: string
@@ -3934,34 +4736,34 @@ export interface components {
     /**
      * @description The result of a meter query.
      * @example {
-     *   "from": "2023-01-01T00:00:00.000Z",
-     *   "to": "2023-01-02T00:00:00.000Z",
-     *   "windowSize": "DAY",
-     *   "data": [
-     *     {
-     *       "value": 12,
-     *       "windowStart": "2023-01-01T00:00:00.000Z",
-     *       "windowEnd": "2023-01-02T00:00:00.000Z",
-     *       "subject": "customer-1",
-     *       "groupBy": {
-     *         "model": "gpt-4-turbo",
-     *         "type": "prompt"
-     *       }
+     *       "from": "2023-01-01T00:00:00Z",
+     *       "to": "2023-01-02T00:00:00Z",
+     *       "windowSize": "DAY",
+     *       "data": [
+     *         {
+     *           "value": 12,
+     *           "windowStart": "2023-01-01T00:00:00Z",
+     *           "windowEnd": "2023-01-02T00:00:00Z",
+     *           "subject": "customer-1",
+     *           "groupBy": {
+     *             "model": "gpt-4-turbo",
+     *             "type": "prompt"
+     *           }
+     *         }
+     *       ]
      *     }
-     *   ]
-     * }
      */
     MeterQueryResult: {
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       from?: string
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       to?: string
       windowSize?: components['schemas']['WindowSize']
@@ -3970,28 +4772,28 @@ export interface components {
     /**
      * @description A row in the result of a meter query.
      * @example {
-     *   "value": 12,
-     *   "windowStart": "2023-01-01T00:00:00.000Z",
-     *   "windowEnd": "2023-01-02T00:00:00.000Z",
-     *   "subject": "customer-1",
-     *   "groupBy": {
-     *     "model": "gpt-4-turbo",
-     *     "type": "prompt"
-     *   }
-     * }
+     *       "value": 12,
+     *       "windowStart": "2023-01-01T00:00:00Z",
+     *       "windowEnd": "2023-01-02T00:00:00Z",
+     *       "subject": "customer-1",
+     *       "groupBy": {
+     *         "model": "gpt-4-turbo",
+     *         "type": "prompt"
+     *       }
+     *     }
      */
     MeterQueryRow: {
       value: number
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       windowStart: string
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       windowEnd: string
       subject?: string
@@ -4014,12 +4816,12 @@ export interface components {
        * @description Identifies the notification channel.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * Channel Type
        * @description Notification channel type.
        */
-      type: components['schemas']['NotificationChannelType']
+      readonly type: components['schemas']['NotificationChannelType']
     }
     /**
      * @description Order by options for notification channels.
@@ -4057,29 +4859,29 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Channel Unique Identifier
        * @description Identifies the notification channel.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * Channel Type
        * @description Notification channel type.
@@ -4098,7 +4900,7 @@ export interface components {
        * @default false
        * @example true
        */
-      disabled?: boolean
+      disabled: boolean
       /**
        * Webhook URL
        * @description Webhook URL where the notification is sent.
@@ -4116,7 +4918,7 @@ export interface components {
        * Signing Secret
        * @description Signing secret used for webhook request validation on the receiving end.
        *
-       * Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+       *     Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
        * @example whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
        */
       signingSecret?: string
@@ -4141,7 +4943,7 @@ export interface components {
        * @default false
        * @example true
        */
-      disabled?: boolean
+      disabled: boolean
       /**
        * Webhook URL
        * @description Webhook URL where the notification is sent.
@@ -4159,7 +4961,7 @@ export interface components {
        * Signing Secret
        * @description Signing secret used for webhook request validation on the receiving end.
        *
-       * Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+       *     Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
        * @example whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
        */
       signingSecret?: string
@@ -4171,31 +4973,31 @@ export interface components {
        * @description A unique identifier of the notification event.
        * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
        */
-      id: string
+      readonly id: string
       /**
        * Event Type
        * @description Type of the notification event.
        */
-      type: components['schemas']['NotificationEventType']
+      readonly type: components['schemas']['NotificationEventType']
       /**
        * Creation Time
        * Format: date-time
        * @description Timestamp when the notification event was created in RFC 3339 format.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      createdAt: string
-      rule: components['schemas']['NotificationRule']
+      readonly createdAt: string
+      readonly rule: components['schemas']['NotificationRule']
       /**
        * Delivery Status
        * @description The delivery status of the notification event.
        */
-      deliveryStatus: readonly components['schemas']['NotificationEventDeliveryStatus'][]
-      payload: components['schemas']['NotificationEventPayload']
+      readonly deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
+      readonly payload: components['schemas']['NotificationEventPayload']
       /**
        * Annotations
        * @description Set of key-value pairs managed by the system. Cannot be modified by user.
        */
-      annotations?: components['schemas']['Annotations']
+      readonly annotations?: components['schemas']['Annotations']
     }
     /** @description Payload for notification event with `entitlements.balance.threshold` type. */
     NotificationEventBalanceThresholdPayload: {
@@ -4204,38 +5006,38 @@ export interface components {
        * @description A unique identifier for the notification event the payload belongs to.
        * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
        */
-      id: string
+      readonly id: string
       /**
        * Notification Event Type
        * @description Type of the notification event.
        * @enum {string}
        */
-      type: 'entitlements.balance.threshold'
+      readonly type: 'entitlements.balance.threshold'
       /**
        * Creation Time
        * Format: date-time
        * @description Timestamp when the notification event was created in RFC 3339 format.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      timestamp: string
+      readonly timestamp: string
       /**
        * Payload Data
        * @description The data of the payload.
        */
-      data: components['schemas']['NotificationEventBalanceThresholdPayloadData']
+      readonly data: components['schemas']['NotificationEventBalanceThresholdPayloadData']
     }
     /** @description Data of the payload for notification event with `entitlements.balance.threshold` type. */
     NotificationEventBalanceThresholdPayloadData: {
       /** Entitlement */
-      entitlement: components['schemas']['EntitlementMetered']
+      readonly entitlement: components['schemas']['EntitlementMetered']
       /** Feature */
-      feature: components['schemas']['Feature']
+      readonly feature: components['schemas']['Feature']
       /** Subject */
-      subject: components['schemas']['Subject']
+      readonly subject: components['schemas']['Subject']
       /** Entitlement Value */
-      value: components['schemas']['EntitlementValue']
+      readonly value: components['schemas']['EntitlementValue']
       /** Threshold */
-      threshold: components['schemas']['NotificationRuleBalanceThresholdValue']
+      readonly threshold: components['schemas']['NotificationRuleBalanceThresholdValue']
     }
     /** @description The delivery status of the notification event. */
     NotificationEventDeliveryStatus: {
@@ -4243,25 +5045,25 @@ export interface components {
        * @description Delivery state of the notification event to the channel.
        * @example SUCCESS
        */
-      state: components['schemas']['NotificationEventDeliveryStatusState']
+      readonly state: components['schemas']['NotificationEventDeliveryStatusState']
       /**
        * State Reason
        * @description The reason of the last deliverry state update.
        * @example Failed to dispatch event due to provider error.
        */
-      reason: string
+      readonly reason: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the status was last updated in RFC 3339 format.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Notification Channel
        * @description Notification channel the delivery sattus associated with.
        */
-      channel: components['schemas']['NotificationChannelMeta']
+      readonly channel: components['schemas']['NotificationChannelMeta']
     }
     /**
      * Delivery State
@@ -4313,29 +5115,29 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Rule Unique Identifier
        * @description Identifies the notification rule.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
+      readonly id: string
       /**
        * Rule Type
        * @description Notification rule type.
@@ -4354,7 +5156,7 @@ export interface components {
        * @default false
        * @example true
        */
-      disabled?: boolean
+      disabled: boolean
       /**
        * Channels assigned to Rule
        * @description List of notification channels the rule applies to.
@@ -4391,7 +5193,7 @@ export interface components {
        * @default false
        * @example true
        */
-      disabled?: boolean
+      disabled: boolean
       /**
        * Entitlement Balance Thresholds
        * @description List of thresholds the rule suppose to be triggered.
@@ -4477,13 +5279,13 @@ export interface components {
       /**
        * Format: date-time
        * @description Period start time.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       from: string
       /**
        * Format: date-time
        * @description Period end time.
-       * @example "2023-02-01T01:01:01.001Z"
+       * @example 2023-02-01T01:01:01.001Z
        */
       to: string
     }
@@ -4499,7 +5301,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -4519,23 +5321,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * Key
        * @description A semi-unique identifier for the resource.
@@ -4546,7 +5348,7 @@ export interface components {
        * @description Version of the plan. Incremented when the plan is updated.
        * @default 1
        */
-      version: number
+      readonly version: number
       /**
        * Currency
        * @description The currency code of the plan.
@@ -4557,30 +5359,30 @@ export interface components {
        * Effective start date
        * Format: date-time
        * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      effectiveFrom?: string
+      readonly effectiveFrom?: string
       /**
        * Effective end date
        * Format: date-time
        * @description The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      effectiveTo?: string
+      readonly effectiveTo?: string
       /**
        * Status
        * @description The status of the plan.
-       * Computed based on the effective start and end dates:
-       * - draft = no effectiveFrom
-       * - active = effectiveFrom <= now < effectiveTo
-       * - archived / inactive = effectiveTo <= now
-       * - scheduled = now < effectiveFrom < effectiveTo
+       *     Computed based on the effective start and end dates:
+       *     - draft = no effectiveFrom
+       *     - active = effectiveFrom <= now < effectiveTo
+       *     - archived / inactive = effectiveTo <= now
+       *     - scheduled = now < effectiveFrom < effectiveTo
        */
-      status: components['schemas']['PlanStatus']
+      readonly status: components['schemas']['PlanStatus']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
-       * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+       *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
        */
       phases: components['schemas']['PlanPhase'][]
     }
@@ -4615,7 +5417,7 @@ export interface components {
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
-       * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+       *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
        */
       phases: components['schemas']['PlanPhase'][]
     }
@@ -4806,7 +5608,7 @@ export interface components {
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
-       * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+       *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
        */
       phases: components['schemas']['PlanPhase'][]
     }
@@ -4815,43 +5617,41 @@ export interface components {
      * @enum {string}
      */
     PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
-    /**
-     * @description A consumer portal token.
+    /** @description A consumer portal token.
      *
-     * Validator doesn't obey required for readOnly properties
-     * See: https://github.com/stoplightio/spectral/issues/1274
-     */
+     *     Validator doesn't obey required for readOnly properties
+     *     See: https://github.com/stoplightio/spectral/issues/1274 */
     PortalToken: {
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id?: string
+      readonly id?: string
       /** @example customer-1 */
       subject: string
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      expiresAt?: string
-      expired?: boolean
+      readonly expiresAt?: string
+      readonly expired?: boolean
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
-      createdAt?: string
+      readonly createdAt?: string
       /**
        * @description The token is only returned at creation.
        * @example om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo
        */
-      token?: string
+      readonly token?: string
       /**
        * @description Optional, if defined only the specified meters will be allowed.
        * @example [
-       *   "tokens_total"
-       * ]
+       *       "tokens_total"
+       *     ]
        */
       allowedMeterSlugs?: string[]
     }
@@ -4859,20 +5659,18 @@ export interface components {
     PreconditionFailedProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
      * @description The payment term of a flat price.
-     * One of: in_advance or in_arrears.
+     *     One of: in_advance or in_arrears.
      * @enum {string}
      */
     PricePaymentTerm: 'in_advance' | 'in_arrears'
-    /**
-     * @description A price tier.
-     * At least one price component is required in each tier.
-     */
+    /** @description A price tier.
+     *     At least one price component is required in each tier. */
     PriceTier: {
       /**
        * Up to quantity
        * Format: double
        * @description Up to and including to this quantity will be contained in the tier.
-       * If null, the tier is open-ended.
+       *     If null, the tier is open-ended.
        */
       upToAmount: number | null
       /**
@@ -4917,10 +5715,8 @@ export interface components {
       /** @enum {string} */
       type: 'boolean'
     }
-    /**
-     * @description Entitlement templates are used to define the entitlements of a plan.
-     * Features are omitted from the entitlement template, as they are defined in the rate card.
-     */
+    /** @description Entitlement templates are used to define the entitlements of a plan.
+     *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     RateCardEntitlement:
       | components['schemas']['RateCardMeteredEntitlement']
       | components['schemas']['RateCardStaticEntitlement']
@@ -4928,8 +5724,7 @@ export interface components {
     /** @description A flat fee rate card defines a one-time purchase or a recurring fee. */
     RateCardFlatFee: {
       /**
-       * RateCard type
-       * @description The type of the RateCard.
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
@@ -4962,20 +5757,20 @@ export interface components {
       /**
        * Tax config
        * @description The tax config of the rate card.
-       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
        */
       taxConfig?: components['schemas']['TaxConfig']
       /**
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
-       * When null it means it is a one time fee.
+       *     When null it means it is a one time fee.
        */
       billingCadence: string | null
       /**
        * Price
        * @description The price of the rate card.
-       * When null, the feature or service is free.
+       *     When null, the feature or service is free.
        * @example {}
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
@@ -4983,8 +5778,7 @@ export interface components {
     /** @description A flat fee rate card defines a one-time purchase or a recurring fee. */
     RateCardFlatFeeUpdateItem: {
       /**
-       * RateCard type
-       * @description The type of the RateCard.
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
@@ -5012,20 +5806,20 @@ export interface components {
       /**
        * Tax config
        * @description The tax config of the rate card.
-       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
        */
       taxConfig?: components['schemas']['TaxConfig']
       /**
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
-       * When null it means it is a one time fee.
+       *     When null it means it is a one time fee.
        */
       billingCadence: string | null
       /**
        * Price
        * @description The price of the rate card.
-       * When null, the feature or service is free.
+       *     When null, the feature or service is free.
        * @example {}
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
@@ -5041,14 +5835,14 @@ export interface components {
        * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
        * @default false
        */
-      isSoftLimit?: boolean
+      isSoftLimit: boolean
       /**
        * Initial grant amount
        * Format: double
        * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
-       * If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
-       * That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
-       * Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+       *     If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       *     That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       *     Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
        */
       issueAfterReset?: number
       /**
@@ -5057,18 +5851,18 @@ export interface components {
        * @description Defines the grant priority for the default grant.
        * @default 1
        */
-      issueAfterResetPriority?: number
+      issueAfterResetPriority: number
       /**
        * Preserve overage at reset
        * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
        * @default false
        */
-      preserveOverageAtReset?: boolean
+      preserveOverageAtReset: boolean
       /**
        * Usage Period
        * Format: duration
        * @description The interval of the metered entitlement.
-       * Defaults to the billing cadence of the rate card.
+       *     Defaults to the billing cadence of the rate card.
        */
       usagePeriod?: string
     }
@@ -5092,8 +5886,7 @@ export interface components {
     /** @description A usage-based rate card defines a price based on usage. */
     RateCardUsageBased: {
       /**
-       * RateCard type
-       * @description The type of the RateCard.
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
@@ -5126,7 +5919,7 @@ export interface components {
       /**
        * Tax config
        * @description The tax config of the rate card.
-       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
        */
       taxConfig?: components['schemas']['TaxConfig']
       /**
@@ -5135,11 +5928,10 @@ export interface components {
        * @description The billing cadence of the rate card.
        */
       billingCadence: string
-      price:
-        | ({
-            type: 'RateCardUsageBased'
-          } & Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>)
-        | null
+      price: Omit<
+        components['schemas']['RateCardUsageBasedPrice'],
+        'type'
+      > | null
     }
     /** @description The price of the usage based rate card. */
     RateCardUsageBasedPrice:
@@ -5149,8 +5941,7 @@ export interface components {
     /** @description A usage-based rate card defines a price based on usage. */
     RateCardUsageBasedUpdateItem: {
       /**
-       * RateCard type
-       * @description The type of the RateCard.
+       * @description The type of the RateCard. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
@@ -5178,7 +5969,7 @@ export interface components {
       /**
        * Tax config
        * @description The tax config of the rate card.
-       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
        */
       taxConfig?: components['schemas']['TaxConfig']
       /**
@@ -5187,18 +5978,17 @@ export interface components {
        * @description The billing cadence of the rate card.
        */
       billingCadence: string
-      price:
-        | ({
-            type: 'RateCardUsageBasedUpdateItem'
-          } & Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>)
-        | null
+      price: Omit<
+        components['schemas']['RateCardUsageBasedPrice'],
+        'type'
+      > | null
     }
     /**
      * @description Recurring period with an interval and an anchor.
      * @example {
-     *   "interval": "DAY",
-     *   "anchor": "2023-01-01T01:01:01.001Z"
-     * }
+     *       "interval": "DAY",
+     *       "anchor": "2023-01-01T01:01:01.001Z"
+     *     }
      */
     RecurringPeriod: {
       /**
@@ -5210,16 +6000,16 @@ export interface components {
        * Anchor time
        * Format: date-time
        * @description A date-time anchor to base the recurring period on.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       anchor: string
     }
     /**
      * @description Recurring period with an interval and an anchor.
      * @example {
-     *   "interval": "DAY",
-     *   "anchor": "2023-01-01T01:01:01.001Z"
-     * }
+     *       "interval": "DAY",
+     *       "anchor": "2023-01-01T01:01:01.001Z"
+     *     }
      */
     RecurringPeriodCreateInput: {
       /**
@@ -5231,13 +6021,13 @@ export interface components {
        * Anchor time
        * Format: date-time
        * @description A date-time anchor to base the recurring period on.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       anchor?: string
     }
     /**
      * @description The unit of time for the interval.
-     * One of: `day`, `week`, `month`, or `year`.
+     *     One of: `day`, `week`, `month`, or `year`.
      * @enum {string}
      */
     RecurringPeriodInterval: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
@@ -5251,35 +6041,29 @@ export interface components {
       /**
        * Format: date-time
        * @description The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       effectiveAt?: string
-      /**
-       * @description Determines whether the usage period anchor is retained or reset to the effectiveAt time.
-       * - If true, the usage period anchor is retained.
-       * - If false, the usage period anchor is reset to the effectiveAt time.
-       */
+      /** @description Determines whether the usage period anchor is retained or reset to the effectiveAt time.
+       *     - If true, the usage period anchor is retained.
+       *     - If false, the usage period anchor is reset to the effectiveAt time. */
       retainAnchor?: boolean
-      /**
-       * @description Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
-       * - If true, the overage is preserved.
-       * - If false, the overage is forgiven.
-       */
+      /** @description Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
+       *     - If true, the overage is preserved.
+       *     - If false, the overage is forgiven. */
       preserveOverage?: boolean
     }
-    /**
-     * @description Sandbox app can be used for testing OpenMeter features.
+    /** @description Sandbox app can be used for testing OpenMeter features.
      *
-     * The app is not creating anything in external systems, thus it is safe to use for
-     * verifying OpenMeter features.
-     */
+     *     The app is not creating anything in external systems, thus it is safe to use for
+     *     verifying OpenMeter features. */
     SandboxApp: {
       /**
        * ID
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -5299,27 +6083,27 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description The marketplace listing that this installed app is based on. */
-      listing: components['schemas']['MarketplaceListing']
+      readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['AppStatus']
+      readonly status: components['schemas']['AppStatus']
       /**
        * @description The app's type is Sandbox.
        * @enum {string}
@@ -5336,41 +6120,41 @@ export interface components {
     /**
      * @description A installed Stripe app object.
      * @example {
-     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
-     *   "type": "stripe",
-     *   "name": "Stripe",
-     *   "status": "ready",
-     *   "listing": {
-     *     "type": "stripe",
-     *     "name": "Stripe",
-     *     "description": "Stripe interation allows you to collect payments with Stripe.",
-     *     "iconUrl": "/images/stripe.png",
-     *     "capabilities": [
-     *       {
-     *         "type": "calculateTax",
-     *         "key": "stripe_calculate_tax",
-     *         "name": "Calculate Tax",
-     *         "description": "Stripe Tax calculates tax portion of the invoices."
+     *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *       "type": "stripe",
+     *       "name": "Stripe",
+     *       "status": "ready",
+     *       "listing": {
+     *         "type": "stripe",
+     *         "name": "Stripe",
+     *         "description": "Stripe interation allows you to collect payments with Stripe.",
+     *         "iconUrl": "/images/stripe.png",
+     *         "capabilities": [
+     *           {
+     *             "type": "calculateTax",
+     *             "key": "stripe_calculate_tax",
+     *             "name": "Calculate Tax",
+     *             "description": "Stripe Tax calculates tax portion of the invoices."
+     *           },
+     *           {
+     *             "type": "invoiceCustomers",
+     *             "key": "stripe_invoice_customers",
+     *             "name": "Invoice Customers",
+     *             "description": "Stripe invoices customers with due amount."
+     *           },
+     *           {
+     *             "type": "collectPayments",
+     *             "key": "stripe_collect_payments",
+     *             "name": "Collect Payments",
+     *             "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
+     *           }
+     *         ]
      *       },
-     *       {
-     *         "type": "invoiceCustomers",
-     *         "key": "stripe_invoice_customers",
-     *         "name": "Invoice Customers",
-     *         "description": "Stripe invoices customers with due amount."
-     *       },
-     *       {
-     *         "type": "collectPayments",
-     *         "key": "stripe_collect_payments",
-     *         "name": "Collect Payments",
-     *         "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
-     *       }
-     *     ]
-     *   },
-     *   "createdAt": "2024-01-01T01:01:01.001Z",
-     *   "updatedAt": "2024-01-01T01:01:01.001Z",
-     *   "stripeAccountId": "acct_123456789",
-     *   "livemode": true
-     * }
+     *       "createdAt": "2024-01-01T01:01:01.001Z",
+     *       "updatedAt": "2024-01-01T01:01:01.001Z",
+     *       "stripeAccountId": "acct_123456789",
+     *       "livemode": true
+     *     }
      */
     StripeApp: {
       /**
@@ -5378,7 +6162,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -5398,27 +6182,27 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description The marketplace listing that this installed app is based on. */
-      listing: components['schemas']['MarketplaceListing']
+      readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
-      status: components['schemas']['AppStatus']
+      readonly status: components['schemas']['AppStatus']
       /**
        * @description The app's type is Stripe.
        * @enum {string}
@@ -5468,7 +6252,7 @@ export interface components {
        * Tax code
        * @description Product tax code.
        *
-       * See: https://docs.stripe.com/tax/tax-codes
+       *     See: https://docs.stripe.com/tax/tax-codes
        * @example txcd_10000000
        */
       code: string
@@ -5512,23 +6296,23 @@ export interface components {
     /**
      * @description A subject is a unique identifier for a user or entity.
      * @example {
-     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
-     *   "key": "customer-id",
-     *   "displayName": "Customer Name",
-     *   "metadata": {
-     *     "hubspotId": "123456"
-     *   },
-     *   "currentPeriodStart": "2023-01-01T00:00:00.000Z",
-     *   "currentPeriodEnd": "2023-02-01T00:00:00.000Z",
-     *   "stripeCustomerId": "cus_JMOlctsKV8"
-     * }
+     *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *       "key": "customer-id",
+     *       "displayName": "Customer Name",
+     *       "metadata": {
+     *         "hubspotId": "123456"
+     *       },
+     *       "currentPeriodStart": "2023-01-01T00:00:00Z",
+     *       "currentPeriodEnd": "2023-02-01T00:00:00Z",
+     *       "stripeCustomerId": "cus_JMOlctsKV8"
+     *     }
      */
     Subject: {
       /**
        * @description A unique identifier for the subject.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * @description A unique, human-readable identifier for the subject.
        * @example customer-id
@@ -5546,13 +6330,13 @@ export interface components {
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T00:00:00.000Z"
+       * @example 2023-01-01T00:00:00Z
        */
       currentPeriodStart?: string
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-02-01T00:00:00.000Z"
+       * @example 2023-02-01T00:00:00Z
        */
       currentPeriodEnd?: string
       /** @example cus_JMOlctsKV8 */
@@ -5561,15 +6345,15 @@ export interface components {
     /**
      * @description A subject is a unique identifier for a user or entity.
      * @example {
-     *   "key": "customer-id",
-     *   "displayName": "Customer Name",
-     *   "metadata": {
-     *     "hubspotId": "123456"
-     *   },
-     *   "currentPeriodStart": "2023-01-01T00:00:00.000Z",
-     *   "currentPeriodEnd": "2023-02-01T00:00:00.000Z",
-     *   "stripeCustomerId": "cus_JMOlctsKV8"
-     * }
+     *       "key": "customer-id",
+     *       "displayName": "Customer Name",
+     *       "metadata": {
+     *         "hubspotId": "123456"
+     *       },
+     *       "currentPeriodStart": "2023-01-01T00:00:00Z",
+     *       "currentPeriodEnd": "2023-02-01T00:00:00Z",
+     *       "stripeCustomerId": "cus_JMOlctsKV8"
+     *     }
      */
     SubjectUpsert: {
       /**
@@ -5589,13 +6373,13 @@ export interface components {
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-01-01T00:00:00.000Z"
+       * @example 2023-01-01T00:00:00Z
        */
       currentPeriodStart?: string
       /**
        * Format: date-time
        * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example "2023-02-01T00:00:00.000Z"
+       * @example 2023-02-01T00:00:00Z
        */
       currentPeriodEnd?: string
       /** @example cus_JMOlctsKV8 */
@@ -5608,7 +6392,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -5628,23 +6412,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * @description The customer ID of the subscription.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -5655,14 +6439,14 @@ export interface components {
       /**
        * Currency
        * @description The currency code of the subscription.
-       * Will be revised once we add multi currency support.
+       *     Will be revised once we add multi currency support.
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
       /**
        * Format: date-time
        * @description If the subscription is canceled or otherwise have to end activeTo denotes the end date.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: string
     }
@@ -5725,7 +6509,7 @@ export interface components {
        * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      id: string
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -5745,23 +6529,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /**
        * @description The customer ID of the subscription.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -5772,14 +6556,14 @@ export interface components {
       /**
        * Currency
        * @description The currency code of the subscription.
-       * Will be revised once we add multi currency support.
+       *     Will be revised once we add multi currency support.
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
       /**
        * Format: date-time
        * @description If the subscription is canceled or otherwise have to end activeTo denotes the end date.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: string
       phases: components['schemas']['SubscriptionPhaseExpanded'][]
@@ -5805,53 +6589,52 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
-      /**
-       * @description The identifier of the RateCard.
-       * SubscriptionItem/RateCard can be identified, it has a reference:
+      readonly deletedAt?: string
+      /** @description The identifier of the RateCard.
+       *     SubscriptionItem/RateCard can be identified, it has a reference:
        *
-       * 1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
-       * 1.1 It can be an ID reference, for an exact version of the Feature (Features can change across versions)
-       * 1.2 It can be a Key reference, which always refers to the latest (active or inactive) version of a Feature
+       *     1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
+       *     1.1 It can be an ID reference, for an exact version of the Feature (Features can change across versions)
+       *     1.2 It can be a Key reference, which always refers to the latest (active or inactive) version of a Feature
        *
-       * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
+       *     2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
        *
-       * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item.
-       */
+       *     We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item. */
       key: string
       /**
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
-       * When null, the rate card is a one-time purchase.
+       *     When null, the rate card is a one-time purchase.
        */
       billingCandence: string | null
       /**
        * Price
        * @description The price of the rate card.
-       * When null, the feature or service is free.
+       *     When null, the feature or service is free.
        * @example {}
        */
       price:
         | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
         | (components['schemas']['UnitPriceWithCommitments'] | null)
         | (components['schemas']['TieredPriceWithCommitments'] | null)
+        | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
       /** @description Describes what access is gained via the SubscriptionItem */
       included?: {
         /** @description The feature the customer is entitled to use. */
@@ -5861,7 +6644,7 @@ export interface components {
       /**
        * Tax config
        * @description The tax config of the Subscription Item.
-       * When undefined, the tax config of the feature or the default tax config of the plan is used.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
        */
       taxConfig?: components['schemas']['TaxConfig']
     }
@@ -5871,7 +6654,7 @@ export interface components {
        * Start after
        * Format: duration
        * @description Interval after the subscription starts to transition to the phase.
-       * When null, the phase starts immediately after the subscription starts.
+       *     When null, the phase starts immediately after the subscription starts.
        * @example P1Y1D
        */
       startAfter: string | null
@@ -5909,23 +6692,23 @@ export interface components {
        * Creation Time
        * Format: date-time
        * @description Timestamp of when the resource was created.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      createdAt: string
+      readonly createdAt: string
       /**
        * Last Update Time
        * Format: date-time
        * @description Timestamp of when the resource was last updated.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      updatedAt: string
+      readonly updatedAt: string
       /**
        * Deletion Time
        * Format: date-time
        * @description Timestamp of when the resource was permanently deleted.
-       * @example "2024-01-01T01:01:01.001Z"
+       * @example 2024-01-01T01:01:01.001Z
        */
-      deletedAt?: string
+      readonly deletedAt?: string
       /** @description A locally unique identifier for the resource. */
       key: string
       /**
@@ -5943,7 +6726,7 @@ export interface components {
       /**
        * Format: date-time
        * @description The time from which the phase is active.
-       * @example "2023-01-01T01:01:01.001Z"
+       * @example 2023-01-01T01:01:01.001Z
        */
       activeFrom: string
       items: components['schemas']['SubscriptionItem'][]
@@ -5986,19 +6769,22 @@ export interface components {
     TieredPriceMode: 'volume' | 'graduated'
     /** @description Tiered price with spend commitments. */
     TieredPriceWithCommitments: {
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'tiered'
       /**
        * Mode
        * @description Defines if the tiering mode is volume-based or graduated:
-       * - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
-       * - In `graduated` tiering, pricing can change as the quantity grows.
+       *     - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+       *     - In `graduated` tiering, pricing can change as the quantity grows.
        */
       mode: components['schemas']['TieredPriceMode']
       /**
        * Tiers
        * @description The tiers of the tiered price.
-       * At least one price component is required in each tier.
+       *     At least one price component is required in each tier.
        */
       tiers: components['schemas']['PriceTier'][]
       /**
@@ -6014,10 +6800,8 @@ export interface components {
     }
     /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
     UnauthorizedProblemResponse: components['schemas']['UnexpectedProblemResponse']
-    /**
-     * @description A Problem Details object (RFC 7807).
-     * Additional properties specific to the problem type may be present.
-     */
+    /** @description A Problem Details object (RFC 7807).
+     *     Additional properties specific to the problem type may be present. */
     UnexpectedProblemResponse: {
       /**
        * Format: uri
@@ -6048,7 +6832,8 @@ export interface components {
        * @example urn:request:local/JMOlctsKV8-000001
        */
       instance: string
-      [key: string]: (string | number) | undefined
+    } & {
+      [key: string]: string | number
     }
     /** @description Unit price. */
     UnitPrice: {
@@ -6059,7 +6844,10 @@ export interface components {
     }
     /** @description Unit price with spend commitments. */
     UnitPriceWithCommitments: {
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'unit'
       /** @description The amount of the unit price. */
       amount: components['schemas']['Numeric']
@@ -6081,12 +6869,10 @@ export interface components {
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
     /** @description The windowed balance history. */
     WindowedBalanceHistory: {
-      /**
-       * @description The windowed balance history.
-       * - It only returns rows for windows where there was usage.
-       * - The windows are inclusive at their start and exclusive at their end.
-       * - The last window may be smaller than the window size and is inclusive at both ends.
-       */
+      /** @description The windowed balance history.
+       *     - It only returns rows for windows where there was usage.
+       *     - The windows are inclusive at their start and exclusive at their end.
+       *     - The last window may be smaller than the window size and is inclusive at both ends. */
       windowedHistory: components['schemas']['BalanceHistoryWindow'][]
       /** @description Grant burndown history. */
       burndownHistory: components['schemas']['GrantBurnDownHistorySegment'][]
@@ -6094,363 +6880,397 @@ export interface components {
   }
   responses: never
   parameters: {
-    'BillingInvoiceListParams.expand'?: components['schemas']['BillingInvoiceExpand'][]
-    'BillingInvoiceListParams.extendedStatuses'?: components['schemas']['BillingInvoiceExtendedStatus'][]
-    'BillingInvoiceListParams.issuedAfter'?: string
-    'BillingInvoiceListParams.issuedBefore'?: string
-    'BillingInvoiceListParams.statuses'?: components['schemas']['BillingInvoiceStatus'][]
+    'BillingInvoiceListParams.expand': components['schemas']['BillingInvoiceExpand'][]
+    'BillingInvoiceListParams.extendedStatuses': components['schemas']['BillingInvoiceExtendedStatus'][]
+    'BillingInvoiceListParams.issuedAfter': string
+    'BillingInvoiceListParams.issuedBefore': string
+    'BillingInvoiceListParams.statuses': components['schemas']['BillingInvoiceStatus'][]
     /** @description The order direction. */
-    'CustomerOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'CustomerOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'CustomerOrderByOrdering.orderBy'?: components['schemas']['CustomerOrderBy']
+    'CustomerOrderByOrdering.orderBy': components['schemas']['CustomerOrderBy']
     /** @description The order direction. */
-    'CustomerOverrideOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'CustomerOverrideOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'CustomerOverrideOrderByOrdering.orderBy'?: components['schemas']['BillingCustomerOverrideOrderBy']
+    'CustomerOverrideOrderByOrdering.orderBy': components['schemas']['BillingCustomerOverrideOrderBy']
     /** @description The order direction. */
-    'EntitlementOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'EntitlementOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'EntitlementOrderByOrdering.orderBy'?: components['schemas']['EntitlementOrderBy']
+    'EntitlementOrderByOrdering.orderBy': components['schemas']['EntitlementOrderBy']
     /** @description The order direction. */
-    'FeatureOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'FeatureOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'FeatureOrderByOrdering.orderBy'?: components['schemas']['FeatureOrderBy']
+    'FeatureOrderByOrdering.orderBy': components['schemas']['FeatureOrderBy']
     /** @description The order direction. */
-    'GrantOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'GrantOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'GrantOrderByOrdering.orderBy'?: components['schemas']['GrantOrderBy']
+    'GrantOrderByOrdering.orderBy': components['schemas']['GrantOrderBy']
     /** @description The order direction. */
-    'InvoiceOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'InvoiceOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'InvoiceOrderByOrdering.orderBy'?: components['schemas']['BillingInvoiceOrderBy']
-    /**
-     * @description Number of items to return.
+    'InvoiceOrderByOrdering.orderBy': components['schemas']['BillingInvoiceOrderBy']
+    /** @description Number of items to return.
      *
-     * Default is 100.
-     */
-    'LimitOffset.limit'?: number
-    /**
-     * @description Number of items to skip.
+     *     Default is 100. */
+    'LimitOffset.limit': number
+    /** @description Number of items to skip.
      *
-     * Default is 0.
-     */
-    'LimitOffset.offset'?: number
+     *     Default is 0. */
+    'LimitOffset.offset': number
     /** @description The type of the app to install. */
     'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
     /** @description The type of the app to install. */
     'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['AppType']
     /** @description Simple filter for group bys with exact match. */
-    'MeterQuery.filterGroupBy'?: {
+    'MeterQuery.filterGroupBy': {
       [key: string]: string
     }
-    /**
-     * @description Start date-time in RFC 3339 format.
+    /** @description Start date-time in RFC 3339 format.
      *
-     * Inclusive.
-     */
-    'MeterQuery.from'?: string
-    /**
-     * @description If not specified a single aggregate will be returned for each subject and time window.
-     * `subject` is a reserved group by value.
-     */
-    'MeterQuery.groupBy'?: string[]
+     *     Inclusive. */
+    'MeterQuery.from': string
+    /** @description If not specified a single aggregate will be returned for each subject and time window.
+     *     `subject` is a reserved group by value. */
+    'MeterQuery.groupBy': string[]
     /** @description Filtering by multiple subjects. */
-    'MeterQuery.subject'?: string[]
-    /**
-     * @description End date-time in RFC 3339 format.
+    'MeterQuery.subject': string[]
+    /** @description End date-time in RFC 3339 format.
      *
-     * Inclusive.
-     */
-    'MeterQuery.to'?: string
+     *     Inclusive. */
+    'MeterQuery.to': string
     /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
-    'MeterQuery.windowSize'?: components['schemas']['WindowSize']
-    /**
-     * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-     * If not specified, the UTC timezone will be used.
-     */
-    'MeterQuery.windowTimeZone'?: string
+    'MeterQuery.windowSize': components['schemas']['WindowSize']
+    /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+     *     If not specified, the UTC timezone will be used. */
+    'MeterQuery.windowTimeZone': string
     /** @description The order direction. */
-    'NotificationChannelOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'NotificationChannelOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'NotificationChannelOrderByOrdering.orderBy'?: components['schemas']['NotificationChannelOrderBy']
+    'NotificationChannelOrderByOrdering.orderBy': components['schemas']['NotificationChannelOrderBy']
     /** @description The order direction. */
-    'NotificationEventOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'NotificationEventOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'NotificationEventOrderByOrdering.orderBy'?: components['schemas']['NotificationEventOrderBy']
+    'NotificationEventOrderByOrdering.orderBy': components['schemas']['NotificationEventOrderBy']
     /** @description The order direction. */
-    'NotificationRuleOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'NotificationRuleOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'NotificationRuleOrderByOrdering.orderBy'?: components['schemas']['NotificationRuleOrderBy']
-    /**
-     * @description Error code.
-     * Required with the error response.
-     */
-    'OAuth2AuthorizationCodeGrantErrorParams.error'?: components['schemas']['OAuth2AuthorizationCodeGrantErrorType']
-    /**
-     * @description Optional human-readable text providing additional information,
-     * used to assist the client developer in understanding the error that occurred.
-     */
-    'OAuth2AuthorizationCodeGrantErrorParams.error_description'?: string
-    /**
-     * @description Optional uri identifying a human-readable web page with
-     * information about the error, used to provide the client
-     * developer with additional information about the error
-     */
-    'OAuth2AuthorizationCodeGrantErrorParams.error_uri'?: string
-    /**
-     * @description Authorization code which the client will later exchange for an access token.
-     * Required with the success response.
-     */
-    'OAuth2AuthorizationCodeGrantSuccessParams.code'?: string
-    /**
-     * @description Required if the "state" parameter was present in the client authorization request.
-     * The exact value received from the client:
+    'NotificationRuleOrderByOrdering.orderBy': components['schemas']['NotificationRuleOrderBy']
+    /** @description Error code.
+     *     Required with the error response. */
+    'OAuth2AuthorizationCodeGrantErrorParams.error': components['schemas']['OAuth2AuthorizationCodeGrantErrorType']
+    /** @description Optional human-readable text providing additional information,
+     *     used to assist the client developer in understanding the error that occurred. */
+    'OAuth2AuthorizationCodeGrantErrorParams.error_description': string
+    /** @description Optional uri identifying a human-readable web page with
+     *     information about the error, used to provide the client
+     *     developer with additional information about the error */
+    'OAuth2AuthorizationCodeGrantErrorParams.error_uri': string
+    /** @description Authorization code which the client will later exchange for an access token.
+     *     Required with the success response. */
+    'OAuth2AuthorizationCodeGrantSuccessParams.code': string
+    /** @description Required if the "state" parameter was present in the client authorization request.
+     *     The exact value received from the client:
      *
-     * Unique, randomly generated, opaque, and non-guessable string that is sent
-     * when starting an authentication request and validated when processing the response.
-     */
-    'OAuth2AuthorizationCodeGrantSuccessParams.state'?: string
+     *     Unique, randomly generated, opaque, and non-guessable string that is sent
+     *     when starting an authentication request and validated when processing the response. */
+    'OAuth2AuthorizationCodeGrantSuccessParams.state': string
     /** @description The page number. */
-    'PaginatedQuery.page'?: number
+    'PaginatedQuery.page': number
     /** @description The number of items in the page. */
-    'PaginatedQuery.pageSize'?: number
-    /**
-     * @description Start date-time in RFC 3339 format.
+    'PaginatedQuery.pageSize': number
+    /** @description Start date-time in RFC 3339 format.
      *
-     * Inclusive.
-     */
-    'Pagination.page'?: number
-    /**
-     * @description Number of items per page.
+     *     Inclusive. */
+    'Pagination.page': number
+    /** @description Number of items per page.
      *
-     * Default is 100.
-     */
-    'Pagination.pageSize'?: number
+     *     Default is 100. */
+    'Pagination.pageSize': number
     /** @description The order direction. */
-    'PhasesOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'PhasesOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'PhasesOrderByOrdering.orderBy'?: components['schemas']['PhasesOrderBy']
+    'PhasesOrderByOrdering.orderBy': components['schemas']['PhasesOrderBy']
     /** @description The order direction. */
-    'PlanOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'PlanOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'PlanOrderByOrdering.orderBy'?: components['schemas']['PlanOrderBy']
+    'PlanOrderByOrdering.orderBy': components['schemas']['PlanOrderBy']
     /** @description The order direction. */
-    'ProfileOrderByOrdering.order'?: components['schemas']['SortOrder']
+    'ProfileOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
-    'ProfileOrderByOrdering.orderBy'?: components['schemas']['BillingProfileOrderBy']
+    'ProfileOrderByOrdering.orderBy': components['schemas']['BillingProfileOrderBy']
     /** @description Include deleted customers. */
-    'queryCustomerList.includeDeleted'?: boolean
-    /**
-     * @description Filter customers by name.
-     * Case-insensitive partial match.
-     */
-    'queryCustomerList.name'?: string
-    /**
-     * @description Filter customers by primary email.
-     * Case-insensitive partial match.
-     */
-    'queryCustomerList.primaryEmail'?: string
-    /**
-     * @description Filter customers by usage attribution subject.
-     * Case-insensitive partial match.
-     */
-    'queryCustomerList.subject'?: string
+    'queryCustomerList.includeDeleted': boolean
+    /** @description Filter customers by name.
+     *     Case-insensitive partial match. */
+    'queryCustomerList.name': string
+    /** @description Filter customers by primary email.
+     *     Case-insensitive partial match. */
+    'queryCustomerList.primaryEmail': string
+    /** @description Filter customers by usage attribution subject.
+     *     Case-insensitive partial match. */
+    'queryCustomerList.subject': string
   }
   requestBodies: never
   headers: never
   pathItems: never
 }
-
 export type $defs = Record<string, never>
-
-export type external = Record<string, never>
-
 export interface operations {
-  /**
-   * List apps
-   * @description List apps.
-   */
   listApps: {
     parameters: {
       query?: {
+        /** @description The page number. */
         page?: components['parameters']['PaginatedQuery.page']
+        /** @description The number of items in the page. */
         pageSize?: components['parameters']['PaginatedQuery.pageSize']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['AppList']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get app
-   * @description Get the app.
-   */
   getApp: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['App']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Uninstall app
-   * @description Uninstall an app.
-   */
   uninstallApp: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Stripe webhook
-   * @description Stripe webhook.
-   */
   appStripeWebhook: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -6460,185 +7280,267 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['StripeWebhookResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List customer overrides
-   * @description List customer overrides
-   */
   billingListCustomerOverrides: {
     parameters: {
       query?: {
         billingProfile?: string[]
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['CustomerOverrideOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['CustomerOverrideOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['CustomerOverridePaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get a customer override
-   * @description Get a customer override by id.
-   */
   billingGetCustomerOverrideById: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingCustomerOverride']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create/update a customer override
-   * @description Create/update a new customer override.
-   */
   billingUpsertCustomerOverride: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -6648,123 +7550,170 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingCustomerOverride']
         }
       }
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingCustomerOverride']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete a customer override
-   * @description Delete a customer override by id.
-   */
   billingDeleteCustomerOverride: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List invoices
-   * @description List invoices
-   */
   billingListInvoices: {
     parameters: {
       query?: {
@@ -6774,63 +7723,98 @@ export interface operations {
         issuedAfter?: components['parameters']['BillingInvoiceListParams.issuedAfter']
         issuedBefore?: components['parameters']['BillingInvoiceListParams.issuedBefore']
         expand?: components['parameters']['BillingInvoiceListParams.expand']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['InvoiceOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['InvoiceOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['InvoicePaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List invoices
-   * @description List invoices for a specific customer
-   */
   billingListInvoicesByCustomer: {
     parameters: {
       query?: {
@@ -6839,79 +7823,108 @@ export interface operations {
         issuedAfter?: components['parameters']['BillingInvoiceListParams.issuedAfter']
         issuedBefore?: components['parameters']['BillingInvoiceListParams.issuedBefore']
         expand?: components['parameters']['BillingInvoiceListParams.expand']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['InvoiceOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['InvoiceOrderByOrdering.orderBy']
       }
+      header?: never
       path: {
         customerId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['InvoicePaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create an invoice
-   * @description Create a new invoice from the pending line items.
-   *
-   * This should be only called if for some reason we need to invoice a customer outside of the normal billing cycle.
-   *
-   * When creating an invoice, the pending line items will be marked as invoiced and the invoice will be created with the total amount of the pending items.
-   *
-   * New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
-   *
-   * The call can return multiple invoices if the pending line items are in different currencies.
-   */
   billingCreateInvoice: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -6921,320 +7934,423 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get an invoice
-   * @description Get an invoice by ID.
-   */
   billingGetInvoiceByCustomerInvoiceId: {
     parameters: {
       query: {
         expand: components['schemas']['BillingInvoiceExpand'][]
       }
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete an invoice
-   * @description Delete an invoice
-   *
-   * Only invoices that are in the draft (or earlier) status can be deleted.
-   */
   billingDeleteInvoiceByCustomerInvoiceId: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Advance the invoice's state to the next status
-   * @description Advance the invoice's state to the next status.
-   *
-   * The call doesn't "approve the invoice", it only advances the invoice to the next status if the transition would be automatic.
-   *
-   * The action can be called when the invoice's statusDetails' actions field contain the "advance" action.
-   */
   billingInvoiceAdvance: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Send the invoice to the customer
-   * @description Approve an invoice and start executing the payment workflow.
-   *
-   * This call instantly sends the invoice to the customer using the configured billing profile app.
-   *
-   * This call is valid in two invoice statuses:
-   * - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
-   * - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
-   */
   billingApproveInvoice: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update an invoice line
-   * @description Update an invoice line
-   */
   billingUpdateInvoiceLine: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
         lineId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -7244,257 +8360,344 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoiceLine']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete an invoice line
-   * @description Delete an invoice line
-   */
   billingDeleteInvoiceLine: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
         lineId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Retry advancing the invoice after a failed attempt.
-   * @description Retry advancing the invoice after a failed attempt.
-   *
-   * The action can be called when the invoice's statusDetails' actions field contain the "retry" action.
-   */
   billingInvoiceRetry: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Recalculate an invoice's tax amounts
-   * @description Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
-   *
-   * Note: charges might apply, depending on the tax provider.
-   */
   billingRecalculateInvoiceTax: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Void an invoice
-   * @description Void an invoice
-   *
-   * Only invoices that have been alread issued can be voided.
-   *
-   * Voiding an invoice will mark it as voided, the user can specify how to handle the voided line items.
-   */
   billingVoidInvoice: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
         invoiceId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -7504,73 +8707,86 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingInvoice']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create line items
-   * @description Create a new pending line item (charge).
-   *
-   * This call is used to create a new pending line item for the customer without explicitly
-   * assigning it to an invoice.
-   *
-   * The line item will be either allocated to an existing invoice in gathering state or a new invoice is
-   * created for the line item.
-   *
-   * A new invoice will be created if:
-   * - there is no invoice in gathering state
-   * - the currency of the line item doesn't match the currency of any invoices in gathering state
-   */
   billingCreateLineByCustomer: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         customerId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -7580,118 +8796,173 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingCreateLineResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List billing profiles
-   * @description List all billing profiles
-   */
   billingListProfiles: {
     parameters: {
       query?: {
         includeArchived?: boolean
         expand?: components['schemas']['BillingProfileExpand'][]
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['ProfileOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['ProfileOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['ProfilePaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create a new billing profile
-   * @description Create a new billing profile
-   *
-   * Billing profiles are representations of a customer's billing information. Customer overrides
-   * can be applied to a billing profile to customize the billing behavior for a specific customer.
-   */
   billingCreateProfile: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['BillingProfileCreateInput']
@@ -7700,121 +8971,164 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingProfile']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get a billing profile by ID
-   * @description Get a billing profile by ID
-   */
   billingGetProfile: {
     parameters: {
       query?: {
         expand?: components['schemas']['BillingProfileExpand'][]
       }
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingProfile']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update a billing profile
-   * @description Update a billing profile
-   */
   billingUpdateProfile: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -7824,180 +9138,262 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['BillingProfile']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Archive a billing profile
-   * @description Archive a billing profile
-   */
   billingArchiveProfile: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List customers
-   * @description List customers.
-   */
   listCustomers: {
     parameters: {
       query?: {
+        /** @description The page number. */
         page?: components['parameters']['PaginatedQuery.page']
+        /** @description The number of items in the page. */
         pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description The order direction. */
         order?: components['parameters']['CustomerOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['CustomerOrderByOrdering.orderBy']
+        /** @description Include deleted customers. */
         includeDeleted?: components['parameters']['queryCustomerList.includeDeleted']
+        /** @description Filter customers by name.
+         *     Case-insensitive partial match. */
         name?: components['parameters']['queryCustomerList.name']
+        /** @description Filter customers by primary email.
+         *     Case-insensitive partial match. */
         primaryEmail?: components['parameters']['queryCustomerList.primaryEmail']
+        /** @description Filter customers by usage attribution subject.
+         *     Case-insensitive partial match. */
         subject?: components['parameters']['queryCustomerList.subject']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['CustomerPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create customer
-   * @description Create a new customer.
-   */
   createCustomer: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['CustomerCreate']
@@ -8006,118 +9402,162 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Customer']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get customer
-   * @description Get a customer by ID.
-   */
   getCustomer: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Customer']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update customer
-   * @description Update a customer by ID.
-   */
   updateCustomer: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -8127,413 +9567,541 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Customer']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete customer
-   * @description Delete a customer by ID.
-   */
   deleteCustomer: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         id: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get event metrics
-   * @description Returns debug metrics (in OpenMetrics format) like the number of ingested events since mindnight UTC.
-   *
-   * The OpenMetrics Counter(s) reset every day at midnight UTC.
-   */
   getDebugMetrics: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'text/plain': string
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List all entitlements
-   * @description List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
-   * To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
-   * If page is provided that takes precedence and the paginated response is returned.
-   */
   listEntitlements: {
     parameters: {
       query?: {
-        /**
-         * @description Filtering by multiple features.
+        /** @description Filtering by multiple features.
          *
-         * Usage: `?feature=feature-1&feature=feature-2`
-         */
+         *     Usage: `?feature=feature-1&feature=feature-2` */
         feature?: string[]
-        /**
-         * @description Filtering by multiple subjects.
+        /** @description Filtering by multiple subjects.
          *
-         * Usage: `?subject=customer-1&subject=customer-2`
-         */
+         *     Usage: `?subject=customer-1&subject=customer-2` */
         subject?: string[]
-        /**
-         * @description Filtering by multiple entitlement types.
+        /** @description Filtering by multiple entitlement types.
          *
-         * Usage: `?entitlementType=metered&entitlementType=boolean`
-         */
+         *     Usage: `?entitlementType=metered&entitlementType=boolean` */
         entitlementType?: components['schemas']['EntitlementType'][]
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['EntitlementOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['EntitlementOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['ListEntitlementsResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get entitlement by id
-   * @description Get entitlement by id.
-   */
   getEntitlementById: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         entitlementId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Entitlement']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List ingested events
-   * @description List ingested events within a time range.
-   *
-   * If the from query param is not provided it defaults to last 72 hours.
-   */
   listEvents: {
     parameters: {
       query?: {
-        /**
-         * @description Start date-time in RFC 3339 format.
+        /** @description Start date-time in RFC 3339 format.
          *
-         * Inclusive.
-         */
+         *     Inclusive. */
         ingestedAtFrom?: string
-        /**
-         * @description End date-time in RFC 3339 format.
+        /** @description End date-time in RFC 3339 format.
          *
-         * Inclusive.
-         */
+         *     Inclusive. */
         ingestedAtTo?: string
-        /**
-         * @description If not provided lists all events.
+        /** @description If not provided lists all events.
          *
-         * If provided with true, only list events with processing error.
+         *     If provided with true, only list events with processing error.
          *
-         * If provided with false, only list events without processing error.
-         */
+         *     If provided with false, only list events without processing error. */
         hasError?: boolean
-        /**
-         * @description The event ID.
+        /** @description The event ID.
          *
-         * Accepts partial ID.
-         */
+         *     Accepts partial ID. */
         id?: string
-        /**
-         * @description The event subject.
+        /** @description The event subject.
          *
-         * Accepts partial subject.
-         */
+         *     Accepts partial subject. */
         subject?: string
-        /**
-         * @description Start date-time in RFC 3339 format.
+        /** @description Start date-time in RFC 3339 format.
          *
-         * Inclusive.
-         */
+         *     Inclusive. */
         from?: string
-        /**
-         * @description End date-time in RFC 3339 format.
+        /** @description End date-time in RFC 3339 format.
          *
-         * Inclusive.
-         */
+         *     Inclusive. */
         to?: string
         /** @description Number of events to return. */
         limit?: number
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['IngestedEvent'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Ingest events
-   * @description Ingests an event or batch of events following the CloudEvents specification.
-   */
   ingestEvents: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/cloudevents+json': components['schemas']['Event']
@@ -8542,52 +10110,69 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List features
-   * @description List features.
-   */
   listFeatures: {
     parameters: {
       query?: {
@@ -8595,67 +10180,105 @@ export interface operations {
         meterSlug?: string[]
         /** @description Filter by meterGroupByFilters */
         includeArchived?: boolean
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['FeatureOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['FeatureOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['ListFeaturesResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create feature
-   * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
-   * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
-   * Only meters with SUM and COUNT aggregation are supported for features.
-   * Features cannot be updated later, only archived.
-   */
   createFeature: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['FeatureCreateInputs']
@@ -8664,205 +10287,282 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Feature']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get feature
-   * @description Get a feature by ID.
-   */
   getFeature: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         featureId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Feature']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete feature
-   * @description Archive a feature by ID.
-   *
-   * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
-   * This means, if you want to create a new feature with the same key, and then create entitlements for it, the previous entitlements have to be deleted first on a per subject basis.
-   */
   deleteFeature: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         featureId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List grants
-   * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
-   * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
-   * If page is provided that takes precedence and the paginated response is returned.
-   */
   listGrants: {
     parameters: {
       query?: {
-        /**
-         * @description Filtering by multiple features.
+        /** @description Filtering by multiple features.
          *
-         * Usage: `?feature=feature-1&feature=feature-2`
-         */
+         *     Usage: `?feature=feature-1&feature=feature-2` */
         feature?: string[]
-        /**
-         * @description Filtering by multiple subjects.
+        /** @description Filtering by multiple subjects.
          *
-         * Usage: `?subject=customer-1&subject=customer-2`
-         */
+         *     Usage: `?subject=customer-1&subject=customer-2` */
         subject?: string[]
         /** @description Include deleted */
         includeDeleted?: boolean
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
         offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
         limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
         order?: components['parameters']['GrantOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['GrantOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json':
             | components['schemas']['EntitlementGrant'][]
@@ -8871,113 +10571,159 @@ export interface operations {
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Void grant
-   * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
-   * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
-   */
   voidGrant: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         grantId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create checkout session
-   * @description Create checkout session.
-   */
   createStripeCheckoutSession: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateStripeCheckoutSessionRequest']
@@ -8986,188 +10732,252 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['CreateStripeCheckoutSessionResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List available apps
-   * @description List available apps of the app marketplace.
-   */
   listMarketplaceListings: {
     parameters: {
       query?: {
+        /** @description The page number. */
         page?: components['parameters']['PaginatedQuery.page']
+        /** @description The number of items in the page. */
         pageSize?: components['parameters']['PaginatedQuery.pageSize']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['MarketplaceListingList']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get app details by type
-   * @description Get a marketplace listing by type.
-   */
   getMarketplaceListing: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         type: components['schemas']['AppType']
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['MarketplaceListing']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Install app via API key
-   * @description Install an marketplace via API Key.
-   */
   marketplaceAppAPIKeyInstall: {
     parameters: {
+      query?: never
+      header?: never
       path: {
+        /** @description The type of the app to install. */
         type: components['parameters']['MarketplaceApiKeyInstallRequest.type']
       }
+      cookie?: never
     }
     requestBody: {
       content: {
         'application/json': {
-          /**
-           * @description The API key for the provider.
-           * For example, the Stripe API key.
-           */
+          /** @description The API key for the provider.
+           *     For example, the Stripe API key. */
           apiKey: string
-          /**
-           * @description Name of the application to install.
+          /** @description Name of the application to install.
            *
-           * If not set defaults to the marketplace item's description.
-           */
+           *     If not set defaults to the marketplace item's description. */
           name?: string
         }
       }
@@ -9175,220 +10985,321 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['AppBase']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get OAuth2 install URL
-   * @description Install an app via OAuth.
-   * Returns a URL to start the OAuth 2.0 flow.
-   */
   marketplaceOAuth2InstallGetURL: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         type: components['schemas']['AppType']
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['ClientAppStartResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Install app via OAuth2
-   * @description Authorize OAuth2 code.
-   * Verifies the OAuth code and exchanges it for a token and refresh token
-   */
   marketplaceOAuth2InstallAuthorize: {
     parameters: {
       query?: {
+        /** @description Required if the "state" parameter was present in the client authorization request.
+         *     The exact value received from the client:
+         *
+         *     Unique, randomly generated, opaque, and non-guessable string that is sent
+         *     when starting an authentication request and validated when processing the response. */
         state?: components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.state']
+        /** @description Authorization code which the client will later exchange for an access token.
+         *     Required with the success response. */
         code?: components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.code']
+        /** @description Error code.
+         *     Required with the error response. */
         error?: components['parameters']['OAuth2AuthorizationCodeGrantErrorParams.error']
+        /** @description Optional human-readable text providing additional information,
+         *     used to assist the client developer in understanding the error that occurred. */
         error_description?: components['parameters']['OAuth2AuthorizationCodeGrantErrorParams.error_description']
+        /** @description Optional uri identifying a human-readable web page with
+         *     information about the error, used to provide the client
+         *     developer with additional information about the error */
         error_uri?: components['parameters']['OAuth2AuthorizationCodeGrantErrorParams.error_uri']
       }
+      header?: never
       path: {
+        /** @description The type of the app to install. */
         type: components['parameters']['MarketplaceOAuth2InstallAuthorizeRequest.type']
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description Redirection */
       303: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List meters
-   * @description List meters.
-   */
   listMeters: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Meter'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create meter
-   * @description Create a meter.
-   */
   createMeter: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['MeterCreate']
@@ -9397,184 +11308,265 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Meter']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get meter
-   * @description Get a meter by ID or slug.
-   */
   getMeter: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         meterIdOrSlug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Meter']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete meter
-   * @description Delete a meter.
-   */
   deleteMeter: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         meterIdOrSlug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Query meter Query meter
-   * @description Query meter for usage. Query meter for usage.
-   */
   queryMeter: {
     parameters: {
       query?: {
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         from?: components['parameters']['MeterQuery.from']
+        /** @description End date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         to?: components['parameters']['MeterQuery.to']
+        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
         windowSize?: components['parameters']['MeterQuery.windowSize']
+        /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+         *     If not specified, the UTC timezone will be used. */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
+        /** @description Filtering by multiple subjects. */
         subject?: components['parameters']['MeterQuery.subject']
+        /** @description Simple filter for group bys with exact match. */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
+        /** @description If not specified a single aggregate will be returned for each subject and time window.
+         *     `subject` is a reserved group by value. */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
+      header?: never
       path: {
         meterIdOrSlug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['MeterQueryResult']
           'text/csv': string
@@ -9582,178 +11574,247 @@ export interface operations {
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List meter subjects
-   * @description List subjects for a meter.
-   */
   listMeterSubjects: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         meterIdOrSlug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': string[]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List notification channels
-   * @description List all notification channels.
-   */
   listNotificationChannels: {
     parameters: {
       query?: {
-        /**
-         * @description Include deleted notification channels in response.
+        /** @description Include deleted notification channels in response.
          *
-         * Usage: `?includeDeleted=true`
-         */
+         *     Usage: `?includeDeleted=true` */
         includeDeleted?: boolean
-        /**
-         * @description Include disabled notification channels in response.
+        /** @description Include disabled notification channels in response.
          *
-         * Usage: `?includeDisabled=false`
-         */
+         *     Usage: `?includeDisabled=false` */
         includeDisabled?: boolean
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
         order?: components['parameters']['NotificationChannelOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['NotificationChannelOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationChannelPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create a notification channel
-   * @description Create a new notification channel.
-   */
   createNotificationChannel: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['NotificationChannelCreateRequest']
@@ -9762,118 +11823,162 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationChannel']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get notification channel
-   * @description Get a notification channel by id.
-   */
   getNotificationChannel: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         channelId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationChannel']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update a notification channel
-   * @description Update notification channel.
-   */
   updateNotificationChannel: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         channelId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -9883,355 +11988,465 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationChannel']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete a notification channel
-   * @description Soft delete notification channel by id.
-   *
-   * Once a notification channel is deleted it cannot be undeleted.
-   */
   deleteNotificationChannel: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         channelId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List notification events
-   * @description List all notification events.
-   */
   listNotificationEvents: {
     parameters: {
       query?: {
-        /**
-         * @description Start date-time in RFC 3339 format.
-         * Inclusive.
-         */
+        /** @description Start date-time in RFC 3339 format.
+         *     Inclusive. */
         from?: string
-        /**
-         * @description End date-time in RFC 3339 format.
-         * Inclusive.
-         */
+        /** @description End date-time in RFC 3339 format.
+         *     Inclusive. */
         to?: string
-        /**
-         * @description Filtering by multiple feature ids or keys.
+        /** @description Filtering by multiple feature ids or keys.
          *
-         * Usage: `?feature=feature-1&feature=feature-2`
-         */
+         *     Usage: `?feature=feature-1&feature=feature-2` */
         feature?: string[]
-        /**
-         * @description Filtering by multiple subject ids or keys.
+        /** @description Filtering by multiple subject ids or keys.
          *
-         * Usage: `?subject=subject-1&subject=subject-2`
-         */
+         *     Usage: `?subject=subject-1&subject=subject-2` */
         subject?: string[]
-        /**
-         * @description Filtering by multiple rule ids.
+        /** @description Filtering by multiple rule ids.
          *
-         * Usage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5`
-         */
+         *     Usage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5` */
         rule?: string[]
-        /**
-         * @description Filtering by multiple channel ids.
+        /** @description Filtering by multiple channel ids.
          *
-         * Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J`
-         */
+         *     Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J` */
         channel?: string[]
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
         order?: components['parameters']['NotificationEventOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['NotificationEventOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationEventPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get notification event
-   * @description Get a notification event by id.
-   */
   getNotificationEvent: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         eventId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationEvent']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List notification rules
-   * @description List all notification rules.
-   */
   listNotificationRules: {
     parameters: {
       query?: {
-        /**
-         * @description Include deleted notification rules in response.
+        /** @description Include deleted notification rules in response.
          *
-         * Usage: `?includeDeleted=true`
-         */
+         *     Usage: `?includeDeleted=true` */
         includeDeleted?: boolean
-        /**
-         * @description Include disabled notification rules in response.
+        /** @description Include disabled notification rules in response.
          *
-         * Usage: `?includeDisabled=false`
-         */
+         *     Usage: `?includeDisabled=false` */
         includeDisabled?: boolean
-        /**
-         * @description Filtering by multiple feature ids/keys.
+        /** @description Filtering by multiple feature ids/keys.
          *
-         * Usage: `?feature=feature-1&feature=feature-2`
-         */
+         *     Usage: `?feature=feature-1&feature=feature-2` */
         feature?: string[]
-        /**
-         * @description Filtering by multiple notifiaction channel ids.
+        /** @description Filtering by multiple notifiaction channel ids.
          *
-         * Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
-         */
+         *     Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3` */
         channel?: string[]
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
         order?: components['parameters']['NotificationRuleOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['NotificationRuleOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationRulePaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create a notification rule
-   * @description Create a new notification rule.
-   */
   createNotificationRule: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['NotificationRuleCreateRequest']
@@ -10240,118 +12455,162 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationRule']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get notification rule
-   * @description Get a notification rule by id.
-   */
   getNotificationRule: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         ruleId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationRule']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update a notification rule
-   * @description Update notification rule.
-   */
   updateNotificationRule: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         ruleId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -10361,241 +12620,328 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationRule']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete a notification rule
-   * @description Soft delete notification rule by id.
-   *
-   * Once a notification rule is deleted it cannot be undeleted.
-   */
   deleteNotificationRule: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         ruleId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Test notification rule
-   * @description Test a notification rule by sending a test event with random data.
-   */
   testNotificationRule: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         ruleId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['NotificationEvent']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Receive Svix operational events
-   * @description Callback endpoint used by Svix to notify about operational events.
-   */
   receiveSvixOperationalEvent: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['SvixOperationalWebhookRequest']
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List plans
-   * @description List all plans.
-   */
   listPlans: {
     parameters: {
       query?: {
-        /**
-         * @description Include deleted plans in response.
+        /** @description Include deleted plans in response.
          *
-         * Usage: `?includeDeleted=true`
-         */
+         *     Usage: `?includeDeleted=true` */
         includeDeleted?: boolean
         /** @description Filter by plan.id attribute */
         id?: string[]
@@ -10605,62 +12951,97 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
         order?: components['parameters']['PlanOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['PlanOrderByOrdering.orderBy']
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PlanPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create a plan
-   * @description Create a new plan.
-   */
   createPlan: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['PlanCreate']
@@ -10669,188 +13050,252 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Plan']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * New draft plan
-   * @description Create a new draft version from plan.
-   * It returns error if there is already a plan in draft or planId does not reference the latest published version.
-   */
   nextPlan: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planIdOrKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Plan']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get plan
-   * @description Get a plan by id or key. The latest published version is returned if latter is used.
-   */
   getPlan: {
     parameters: {
       query?: {
-        /**
-         * @description Include latest version of the Plan instead of the version in active state.
+        /** @description Include latest version of the Plan instead of the version in active state.
          *
-         * Usage: `?includeLatest=true`
-         */
+         *     Usage: `?includeLatest=true` */
         includeLatest?: boolean
       }
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Plan']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update a plan
-   * @description Update plan by id.
-   */
   updatePlan: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -10860,248 +13305,345 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Plan']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete plan
-   * @description Soft delete plan by plan.id.
-   *
-   * Once a plan is deleted it cannot be undeleted.
-   */
   deletePlan: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Archive plan version
-   * @description Archive a plan version.
-   */
   archivePlan: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Plan']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List phases in plan
-   * @description List all phases in plan.
-   */
   listPlanPhases: {
     parameters: {
       query?: {
         /** @description Filter by phase.key attribute */
         key?: string[]
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
         order?: components['parameters']['PhasesOrderByOrdering.order']
+        /** @description The order by field. */
         orderBy?: components['parameters']['PhasesOrderByOrdering.orderBy']
       }
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PlanPhasePaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create new phase in plan
-   * @description Create new phase in plan.
-   */
   createPlanPhase: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -11111,120 +13653,164 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PlanPhase']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get phase for plan
-   * @description Get phase in plan.
-   */
   getPlanPhase: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
         planPhaseKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PlanPhase']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Update phase in plan
-   * @description Update phase in plan.
-   */
   updatePlanPhase: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
         planPhaseKey: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -11234,198 +13820,282 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PlanPhase']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete phase for plan
-   * @description Delete phase in plan.
-   *
-   * Once a phase is deleted it cannot be undeleted.
-   */
   deletePlanPhase: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
         planPhaseKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Publish plan
-   * @description Publish a plan version.
-   */
   publishPlan: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         planId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Plan']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Query meter Query meter
-   * @description Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
-   */
   queryPortalMeter: {
     parameters: {
       query?: {
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         from?: components['parameters']['MeterQuery.from']
+        /** @description End date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
         to?: components['parameters']['MeterQuery.to']
+        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
         windowSize?: components['parameters']['MeterQuery.windowSize']
+        /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+         *     If not specified, the UTC timezone will be used. */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
+        /** @description Simple filter for group bys with exact match. */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
+        /** @description If not specified a single aggregate will be returned for each subject and time window.
+         *     `subject` is a reserved group by value. */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
+      header?: never
       path: {
         meterSlug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['MeterQueryResult']
           'text/csv': string
@@ -11433,108 +14103,152 @@ export interface operations {
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List consumer portal tokens
-   * @description List tokens.
-   */
   listPortalTokens: {
     parameters: {
       query?: {
         limit?: number
       }
+      header?: never
+      path?: never
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PortalToken'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create consumer portal token
-   * @description Create a consumer portal token.
-   */
   createPortalToken: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['PortalToken']
@@ -11543,53 +14257,76 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['PortalToken']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Invalidate portal tokens
-   * @description Invalidates consumer portal tokens by ID or subject.
-   */
   invalidatePortalTokens: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': {
@@ -11601,106 +14338,150 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List subjects
-   * @description List subjects.
-   */
   listSubjects: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subject'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Upsert subject
-   * @description Upserts a subject. Creates or updates subject.
-   *
-   * If the subject doesn't exist, it will be created.
-   * If the subject exists, it will be partially updated with the provided fields.
-   */
   upsertSubject: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['SubjectUpsert'][]
@@ -11709,237 +14490,314 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subject'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get subject
-   * @description Get subject by ID or key.
-   */
   getSubject: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subject']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete subject
-   * @description Delete subject by ID or key.
-   */
   deleteSubject: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List entitlements
-   * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
-   */
   listSubjectEntitlements: {
     parameters: {
       query?: {
         includeDeleted?: boolean
       }
+      header?: never
       path: {
         subjectIdOrKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Entitlement'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create an entitlement
-   * @description OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
-   *
-   * - Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
-   * - Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
-   * - Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
-   *
-   * A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
-   *
-   * Once an entitlement is created you cannot modify it, only delete it.
-   */
   createEntitlement: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -11949,134 +14807,167 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Entitlement']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * List entitlement grants
-   * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
-   */
   listEntitlementGrants: {
     parameters: {
       query?: {
         includeDeleted?: boolean
         orderBy?: components['schemas']['GrantOrderBy']
       }
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementIdOrFeatureKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['EntitlementGrant'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Create grant
-   * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
-   *
-   * A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
-   *
-   * Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
-   *
-   * Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
-   *
-   * Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
-   *
-   * Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
-   */
   createGrant: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementIdOrFeatureKey: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -12086,66 +14977,87 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['EntitlementGrant']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Override entitlement
-   * @description Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
-   *
-   * This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
-   */
   overrideEntitlement: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementIdOrFeatureKey: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -12155,341 +15067,450 @@ export interface operations {
     responses: {
       /** @description The request has succeeded and a new resource has been created as a result. */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Entitlement']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get entitlement value
-   * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
-   *
-   * For convenience reasons, /value works with both entitlementId and featureKey.
-   */
   getEntitlementValue: {
     parameters: {
       query?: {
         time?: string
       }
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementIdOrFeatureKey: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['EntitlementValue']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get entitlement
-   * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
-   */
   getEntitlement: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Entitlement']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Delete entitlement
-   * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
-   * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
-   */
   deleteEntitlement: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Get entitlement history
-   * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
-   *
-   * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
-   *
-   * WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
-   */
   getEntitlementHistory: {
     parameters: {
       query: {
         /** @description Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter. */
         from?: string
-        /**
-         * @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
-         * If not now then gets truncated to the granularity of the underlying meter.
-         */
+        /** @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
+         *     If not now then gets truncated to the granularity of the underlying meter. */
         to?: string
         /** @description Windowsize */
         windowSize: components['schemas']['WindowSize']
         /** @description The timezone used when calculating the windows. */
         windowTimeZone?: string
       }
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['WindowedBalanceHistory']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Reset entitlement
-   * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
-   *
-   * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
-   */
   resetEntitlementUsage: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subjectIdOrKey: string
         entitlementId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -12497,56 +15518,85 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful. */
+      /** @description There is no content to send for this request, but the headers may be useful.  */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /** Create subscription */
   createSubscription: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateSubscriptionRequestBody']
@@ -12555,55 +15605,78 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subscription']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /** Get subscription Get subscription */
   getSubscription: {
     parameters: {
       query?: {
@@ -12611,13 +15684,19 @@ export interface operations {
         /** @description The time at which the subscription should be queried. If not provided the current time is used. */
         at?: string
       }
+      header?: never
       path: {
         subscriptionId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json':
             | components['schemas']['Subscription']
@@ -12626,64 +15705,77 @@ export interface operations {
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Edit subscription
-   * @description Batch processing commands for manipulating running subscriptions.
-   * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
-   *
-   * Add operations insert a new member based on the creation input without altering the existing members.
-   *
-   * Remove operations remove the member from the collection / document.
-   *
-   * The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
-   */
   editSubscription: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subscriptionId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -12699,69 +15791,95 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subscription']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Cancel subscription
-   * @description Cancels the subscription.
-   */
   cancelSubscription: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subscriptionId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -12769,7 +15887,7 @@ export interface operations {
           /**
            * Format: date-time
            * @description If not provided the subscription is canceled immediately.
-           * @example "2023-01-01T01:01:01.001Z"
+           * @example 2023-01-01T01:01:01.001Z
            */
           effectiveDate?: string
         }
@@ -12778,69 +15896,95 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subscription']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Migrate subscription
-   * @description Migrates the subscripiton to the procided version of the plan.
-   */
   migrateSubscription: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subscriptionId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -12852,125 +15996,182 @@ export interface operations {
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subscription']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
-  /**
-   * Unschedule cancelation
-   * @description Cancels the scheduled cancelation.
-   */
   unscheduleCancelation: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         subscriptionId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description The request has succeeded. */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Subscription']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['BadRequestProblemResponse']
         }
       }
       /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
         }
       }
       /** @description The server understood the request but refuses to authorize it. */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The request could not be completed due to a conflict with the current state of the target resource. */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
         }
       }
       /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
         }
       }
       /** @description An unexpected error response. */
       default: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/problem+json': components['schemas']['UnexpectedProblemResponse']
         }
       }
     }
   }
+}
+type WithRequired<T, K extends keyof T> = T & {
+  [P in K]-?: T[P]
 }

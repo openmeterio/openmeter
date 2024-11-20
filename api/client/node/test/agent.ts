@@ -6,8 +6,8 @@ import {
   mockEntitlementGrant,
   mockEntitlementGrantCreateInput,
   mockEntitlementValue,
-  mockEvent,
   mockFeature,
+  mockIngestedEvent,
   mockMeter,
   mockMeterValue,
   mockSubject,
@@ -75,19 +75,11 @@ client
       Accept: 'application/json',
     },
   })
-  .reply(
-    200,
-    [
-      {
-        event: mockEvent,
-      },
-    ],
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  )
+  .reply(200, [mockIngestedEvent], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 
 client
   .intercept({
