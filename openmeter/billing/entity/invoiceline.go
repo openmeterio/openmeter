@@ -379,6 +379,25 @@ func (c LineChildren) Map(fn func(*Line) *Line) LineChildren {
 	}
 }
 
+func (c LineChildren) GetByID(id string) *Line {
+	return lo.FindOrElse(c.Get(), nil, func(line *Line) bool {
+		return line.ID == id
+	})
+}
+
+func (c *LineChildren) RemoveByID(id string) bool {
+	toBeRemoved := c.GetByID(id)
+	if toBeRemoved == nil {
+		return false
+	}
+
+	c.OptionalSlice = c.OptionalSlice.Filter(func(l *Line) bool {
+		return l.ID != id
+	})
+
+	return true
+}
+
 // ChildrenRetainingRecords returns a new LineChildren instance with the given lines. If the line has a child
 // with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
 func (c Line) ChildrenRetainingRecords(l []*Line) LineChildren {

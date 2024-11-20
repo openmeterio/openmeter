@@ -211,7 +211,18 @@ func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Create
 
 	// Step 4b: Taxes (TODO[later]: implement)
 
-	// Step 5: Refetch the lines, as due to the upserts we doesn't have a full view of the data
+	// Step 5: Update updated_at for all the affected lines
+	if len(lineDiffs.AffectedLineIDs) > 0 {
+		err := r.db.BillingInvoiceLine.Update().
+			SetUpdatedAt(clock.Now().In(time.UTC)).
+			Where(billinginvoiceline.IDIn(lineDiffs.AffectedLineIDs.AsSlice()...)).
+			Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("updating updated_at for lines: %w", err)
+		}
+	}
+
+	// Step 6: Refetch the lines, as due to the upserts we doesn't have a full view of the data
 	return r.fetchLines(ctx, input.Namespace, lo.Map(input.Lines, func(line *billingentity.Line, _ int) string {
 		return line.ID
 	}))

@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/pkg/set"
 )
 
 type operation string
@@ -67,6 +68,11 @@ type invoiceLineDiff struct {
 	// Dependant entities
 	Discounts diff[discountWithLine]
 
+	// AffectedLineIDs contains the list of line IDs that are affected by the diff, even if they
+	// are not updated. We can use this to update the UpdatedAt of the lines if any of the dependant
+	// entities are updated.
+	AffectedLineIDs set.Set[string]
+
 	// ChildrenDiff contains the diff for the children of the line, we need to make this two-staged
 	// as first we need to make sure that the parent line IDs of the children are correct, and then
 	// we can update the children themselves.
@@ -86,7 +92,10 @@ func (d *invoiceLineDiff) NeedsCreate(item ...*billingentity.Line) {
 func diffInvoiceLines(lines []*billingentity.Line) (*invoiceLineDiff, error) {
 	var outErr error
 	diff := invoiceLineDiff{
-		ChildrenDiff: &invoiceLineDiff{},
+		AffectedLineIDs: set.New[string](),
+		ChildrenDiff: &invoiceLineDiff{
+			AffectedLineIDs: set.New[string](),
+		},
 	}
 
 	workItems := lo.Map(lines, func(l *billingentity.Line, _ int) *billingentity.Line {
@@ -164,6 +173,20 @@ func diffInvoiceLines(lines []*billingentity.Line) (*invoiceLineDiff, error) {
 		return nil, outErr
 	}
 
+	diff.AffectedLineIDs = set.Subtract(
+		set.Union(diff.AffectedLineIDs, diff.ChildrenDiff.AffectedLineIDs),
+		set.New(lo.Map(diff.LineBase.ToUpdate, func(l *billingentity.Line, _ int) string {
+			return l.ID
+		})...),
+		set.New(lo.Map(diff.ChildrenDiff.LineBase.ToUpdate, func(l *billingentity.Line, _ int) string {
+			return l.ID
+		})...),
+	)
+
+	// Let's make sure we are not leaking any in-progress calculation details
+	diff.ChildrenDiff.AffectedLineIDs = nil
+	diff.ChildrenDiff.ChildrenDiff = nil
+
 	return &diff, nil
 }
 
@@ -185,9 +208,8 @@ func diffLineBaseEntities(line *billingentity.Line, out *invoiceLineDiff) error 
 
 	switch line.Type {
 	case billingentity.InvoiceLineTypeFee:
-		// TODO: any dependant object (such as discounts should also update the line's UpdatedAt)
 		if !line.DBState.FlatFee.Equal(line.FlatFee) {
-			// Due to UpdatedAt + QTY
+			// Due to quantity being stored in the base entity, we need to update the base entity
 			baseNeedsUpdate = true
 
 			out.FlatFee.NeedsUpdate(line)
@@ -202,6 +224,8 @@ func diffLineBaseEntities(line *billingentity.Line, out *invoiceLineDiff) error 
 
 	if baseNeedsUpdate {
 		out.LineBase.NeedsUpdate(line)
+
+		out.AffectedLineIDs.Add(lineParentIDs(line, lineIDExcludeSelf)...)
 	}
 
 	return handleLineDependantEntities(line, operationUpdate, out)
@@ -224,6 +248,9 @@ func getChildrenActions(dbSave []*billingentity.Line, current []*billingentity.L
 			if err := handleLineDependantEntities(dbLine, operationDelete, out); err != nil {
 				return err
 			}
+
+			// Deleting a child is considered an update for the parent
+			out.AffectedLineIDs.Add(lineParentIDs(dbLine, lineIDExcludeSelf)...)
 		}
 	}
 
@@ -238,6 +265,9 @@ func getChildrenActions(dbSave []*billingentity.Line, current []*billingentity.L
 			if err := handleLineDependantEntities(currentLine, operationCreate, out); err != nil {
 				return err
 			}
+
+			// Adding a child is considered an update for the parent even if the db line of parent has not changed
+			out.AffectedLineIDs.Add(lineParentIDs(currentLine, lineIDExcludeSelf)...)
 			continue
 		}
 
@@ -309,6 +339,8 @@ func handleLineDiscountUpdate(line *billingentity.Line, out *invoiceLineDiff) er
 				Discount: dbDiscount,
 				Line:     line,
 			})
+
+			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDIncludeSelf)...)
 		}
 	}
 
@@ -319,6 +351,9 @@ func handleLineDiscountUpdate(line *billingentity.Line, out *invoiceLineDiff) er
 				Discount: currentDiscount,
 				Line:     line,
 			})
+
+			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDIncludeSelf)...)
+
 			continue
 		}
 
@@ -337,8 +372,42 @@ func handleLineDiscountUpdate(line *billingentity.Line, out *invoiceLineDiff) er
 				Discount: currentDiscount,
 				Line:     line,
 			})
+
+			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDIncludeSelf)...)
 		}
 	}
 
 	return nil
+}
+
+type lineIDIncludeFlag int
+
+const (
+	lineIDIncludeSelf lineIDIncludeFlag = iota
+	lineIDExcludeSelf
+)
+
+func lineParentIDs(line *billingentity.Line, includeLineID lineIDIncludeFlag) []string {
+	out := make([]string, 0, 3)
+
+	if line == nil {
+		return out
+	}
+
+	if includeLineID == lineIDIncludeSelf {
+		out = append(out, line.ID)
+	}
+
+	currentLine := line
+	for currentLine != nil {
+		if currentLine.ParentLineID == nil {
+			break
+		}
+
+		out = append(out, *currentLine.ParentLineID)
+
+		currentLine = currentLine.ParentLine
+	}
+
+	return out
 }

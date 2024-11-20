@@ -1,5 +1,7 @@
 package slicesx
 
+import "github.com/samber/lo"
+
 type SliceDifference[T any] struct {
 	MissingFromThis  []T
 	MissingFromOther []T
@@ -52,4 +54,16 @@ func (s OptionalSlice[T]) Map(fn func(T) T) OptionalSlice[T] {
 	}
 
 	return OptionalSlice[T]{slice: &newSlice}
+}
+
+func (s OptionalSlice[T]) Filter(pred func(T) bool) OptionalSlice[T] {
+	if s.slice == nil {
+		return OptionalSlice[T]{}
+	}
+
+	return OptionalSlice[T]{
+		slice: lo.ToPtr(lo.Filter(*s.slice, func(item T, _ int) bool {
+			return pred(item)
+		})),
+	}
 }
