@@ -61,7 +61,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 			query := repo.db.Customer.
 				Query().
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-					query.Where(customersubjectsdb.IsDeletedEQ(false))
+					query.Where(customersubjectsdb.DeletedAtIsNil())
 				}).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -250,8 +250,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 				Update().
 				Where(customersubjectsdb.CustomerID(input.ID)).
 				Where(customersubjectsdb.Namespace(input.Namespace)).
-				Where(customersubjectsdb.IsDeletedEQ(false)).
-				SetIsDeleted(true).
+				Where(customersubjectsdb.DeletedAtIsNil()).
 				SetDeletedAt(deletedAt).
 				Exec(ctx)
 			if err != nil {
@@ -292,7 +291,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 
 			query := repo.db.Customer.Query().
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-					query.Where(customersubjectsdb.IsDeletedEQ(false))
+					query.Where(customersubjectsdb.DeletedAtIsNil())
 				}).
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace))
@@ -448,8 +447,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
 				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
 				Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
-				Where(customersubjectsdb.IsDeletedEQ(false)).
-				SetIsDeleted(true).
+				Where(customersubjectsdb.DeletedAtIsNil()).
 				SetDeletedAt(clock.Now().UTC()).
 				Exec(ctx)
 			if err != nil {

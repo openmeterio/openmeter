@@ -88,19 +88,16 @@ func (CustomerSubjects) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
-		// We use boolean for soft delete instead of time.Time
-		// because we can only add unique indexes on fields that are not nullable.
-		field.Bool("is_deleted").Default(false),
 	}
 }
 
 func (CustomerSubjects) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "customer_id", "is_deleted"),
-		index.Fields("namespace", "subject_key", "is_deleted").
+		index.Fields("namespace", "customer_id"),
+		index.Fields("namespace", "subject_key", "deleted_at").
 			Annotations(
 				// Partial index: We skip the index on active non deleted customer subjects.
-				entsql.IndexWhere("is_deleted = false"),
+				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
 	}

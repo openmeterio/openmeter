@@ -17868,7 +17868,6 @@ type CustomerSubjectsMutation struct {
 	subject_key     *string
 	created_at      *time.Time
 	deleted_at      *time.Time
-	is_deleted      *bool
 	clearedFields   map[string]struct{}
 	customer        *string
 	clearedcustomer bool
@@ -18168,42 +18167,6 @@ func (m *CustomerSubjectsMutation) ResetDeletedAt() {
 	delete(m.clearedFields, customersubjects.FieldDeletedAt)
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (m *CustomerSubjectsMutation) SetIsDeleted(b bool) {
-	m.is_deleted = &b
-}
-
-// IsDeleted returns the value of the "is_deleted" field in the mutation.
-func (m *CustomerSubjectsMutation) IsDeleted() (r bool, exists bool) {
-	v := m.is_deleted
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIsDeleted returns the old "is_deleted" field's value of the CustomerSubjects entity.
-// If the CustomerSubjects object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerSubjectsMutation) OldIsDeleted(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIsDeleted is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIsDeleted requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsDeleted: %w", err)
-	}
-	return oldValue.IsDeleted, nil
-}
-
-// ResetIsDeleted resets all changes to the "is_deleted" field.
-func (m *CustomerSubjectsMutation) ResetIsDeleted() {
-	m.is_deleted = nil
-}
-
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (m *CustomerSubjectsMutation) ClearCustomer() {
 	m.clearedcustomer = true
@@ -18265,7 +18228,7 @@ func (m *CustomerSubjectsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerSubjectsMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 5)
 	if m.namespace != nil {
 		fields = append(fields, customersubjects.FieldNamespace)
 	}
@@ -18280,9 +18243,6 @@ func (m *CustomerSubjectsMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, customersubjects.FieldDeletedAt)
-	}
-	if m.is_deleted != nil {
-		fields = append(fields, customersubjects.FieldIsDeleted)
 	}
 	return fields
 }
@@ -18302,8 +18262,6 @@ func (m *CustomerSubjectsMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case customersubjects.FieldDeletedAt:
 		return m.DeletedAt()
-	case customersubjects.FieldIsDeleted:
-		return m.IsDeleted()
 	}
 	return nil, false
 }
@@ -18323,8 +18281,6 @@ func (m *CustomerSubjectsMutation) OldField(ctx context.Context, name string) (e
 		return m.OldCreatedAt(ctx)
 	case customersubjects.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case customersubjects.FieldIsDeleted:
-		return m.OldIsDeleted(ctx)
 	}
 	return nil, fmt.Errorf("unknown CustomerSubjects field %s", name)
 }
@@ -18368,13 +18324,6 @@ func (m *CustomerSubjectsMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
-		return nil
-	case customersubjects.FieldIsDeleted:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIsDeleted(v)
 		return nil
 	}
 	return fmt.Errorf("unknown CustomerSubjects field %s", name)
@@ -18448,9 +18397,6 @@ func (m *CustomerSubjectsMutation) ResetField(name string) error {
 		return nil
 	case customersubjects.FieldDeletedAt:
 		m.ResetDeletedAt()
-		return nil
-	case customersubjects.FieldIsDeleted:
-		m.ResetIsDeleted()
 		return nil
 	}
 	return fmt.Errorf("unknown CustomerSubjects field %s", name)

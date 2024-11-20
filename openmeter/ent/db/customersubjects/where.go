@@ -80,11 +80,6 @@ func DeletedAt(v time.Time) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// IsDeleted applies equality check predicate on the "is_deleted" field. It's identical to IsDeletedEQ.
-func IsDeleted(v bool) predicate.CustomerSubjects {
-	return predicate.CustomerSubjects(sql.FieldEQ(FieldIsDeleted, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldEQ(FieldNamespace, v))
@@ -368,16 +363,6 @@ func DeletedAtIsNil() predicate.CustomerSubjects {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// IsDeletedEQ applies the EQ predicate on the "is_deleted" field.
-func IsDeletedEQ(v bool) predicate.CustomerSubjects {
-	return predicate.CustomerSubjects(sql.FieldEQ(FieldIsDeleted, v))
-}
-
-// IsDeletedNEQ applies the NEQ predicate on the "is_deleted" field.
-func IsDeletedNEQ(v bool) predicate.CustomerSubjects {
-	return predicate.CustomerSubjects(sql.FieldNEQ(FieldIsDeleted, v))
 }
 
 // HasCustomer applies the HasEdge predicate on the "customer" edge.
