@@ -62,6 +62,9 @@ func (c Customer) AsAPICustomer() (api.Customer, error) {
 		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
 		PrimaryEmail:     c.PrimaryEmail,
 		Description:      c.Description,
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
+		DeletedAt:        c.DeletedAt,
 	}
 
 	if c.BillingAddress != nil {
