@@ -215,7 +215,7 @@ func (i UpdatePlanInput) Validate() error {
 	if i.Phases != nil && len(*i.Phases) > 0 {
 		for _, phase := range *i.Phases {
 			if err := phase.Validate(); err != nil {
-				return fmt.Errorf("invalid PlanPhase: %w", err)
+				errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
 			}
 		}
 	}

@@ -276,7 +276,26 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
-			return nil, fmt.Errorf("only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
+			return nil, fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
+		}
+
+		// Check if there is at least one Phase available for Plan
+		if len(p.Phases) == 0 {
+			return nil, fmt.Errorf("invalid Plan: at least one PlanPhase is required")
+		}
+
+		// Check if there is at least one Phase with StartAfter set to P0D to ensure there is no leading gap in Plan lifecycle
+		var hasZeroStartAfter bool
+		for _, phase := range p.Phases {
+			if phase.DeletedAt == nil && phase.StartAfter.IsZero() {
+				hasZeroStartAfter = true
+
+				break
+			}
+		}
+
+		if !hasZeroStartAfter {
+			return nil, fmt.Errorf("invalid Plan: at least one PlanPhase with StartAfter set to 0 (P0D) is required")
 		}
 
 		// Find and archive Plan version with plan.ActiveStatus if there is one. Only perform lookup if
