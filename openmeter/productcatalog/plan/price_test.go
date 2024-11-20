@@ -205,11 +205,35 @@ func TestTieredPrice(t *testing.T) {
 								Amount: decimal.NewFromInt(1),
 							},
 						},
+						{
+							UpToAmount: nil,
+							UnitPrice: &PriceTierUnitPrice{
+								Amount: decimal.NewFromInt(1),
+							},
+						},
 					},
 					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
 				},
 				ExpectedError: false,
+			},
+			{
+				Name: "missing open ended tier",
+				Price: TieredPrice{
+					Mode: VolumeTieredPrice,
+					Tiers: []PriceTier{
+						{
+							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+							FlatPrice: &PriceTierFlatPrice{
+								Amount: decimal.NewFromInt(5),
+							},
+							UnitPrice: &PriceTierUnitPrice{
+								Amount: decimal.NewFromInt(5),
+							},
+						},
+					},
+				},
+				ExpectedError: true,
 			},
 			{
 				Name: "valid with min only",
@@ -232,6 +256,15 @@ func TestTieredPrice(t *testing.T) {
 							},
 							UnitPrice: &PriceTierUnitPrice{
 								Amount: decimal.NewFromInt(1),
+							},
+						},
+						{
+							UpToAmount: nil,
+							FlatPrice: &PriceTierFlatPrice{
+								Amount: decimal.NewFromInt(0),
+							},
+							UnitPrice: &PriceTierUnitPrice{
+								Amount: decimal.NewFromFloat(0.5),
 							},
 						},
 					},
@@ -261,6 +294,15 @@ func TestTieredPrice(t *testing.T) {
 							},
 							UnitPrice: &PriceTierUnitPrice{
 								Amount: decimal.NewFromInt(1),
+							},
+						},
+						{
+							UpToAmount: nil,
+							FlatPrice: &PriceTierFlatPrice{
+								Amount: decimal.NewFromInt(0),
+							},
+							UnitPrice: &PriceTierUnitPrice{
+								Amount: decimal.NewFromFloat(0.5),
 							},
 						},
 					},

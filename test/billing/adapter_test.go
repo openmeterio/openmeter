@@ -258,6 +258,9 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		splitPost.UpdatedAt = lines[0].UpdatedAt
 		splitPost.ParentLine = splitPost.ParentLine.WithoutDBState()
 		splitPost.ParentLine.Children = billingentity.LineChildren{}
+		splitPost.ParentLine.CreatedAt = lines[0].ParentLine.CreatedAt
+		splitPost.ParentLine.UpdatedAt = lines[0].ParentLine.UpdatedAt
+
 		require.Equal(s.T(), splitPost.WithoutDBState(), lines[0].WithoutDBState())
 
 		newLastLine = mergeDBFields(newLastLine, lines[1])
