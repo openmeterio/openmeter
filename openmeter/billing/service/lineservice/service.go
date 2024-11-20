@@ -66,9 +66,15 @@ func New(in Config) (*Service, error) {
 }
 
 func (s *Service) FromEntity(line *billingentity.Line) (Line, error) {
+	currencyCalc, err := line.Currency.Calculator()
+	if err != nil {
+		return nil, fmt.Errorf("creating currency calculator: %w", err)
+	}
+
 	base := lineBase{
-		service: s,
-		line:    line,
+		service:  s,
+		line:     line,
+		currency: currencyCalc,
 	}
 
 	switch line.Type {
@@ -179,6 +185,7 @@ type Line interface {
 	CanBeInvoicedAsOf(context.Context, time.Time) (*billingentity.Period, error)
 	SnapshotQuantity(context.Context, *billingentity.Invoice) error
 	PrepareForCreate(context.Context) (Line, error)
+	UpdateTotals() error
 }
 
 type Lines []Line

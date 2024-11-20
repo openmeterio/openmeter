@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/calculation"
 )
 
 type InvoiceCalculator interface {
@@ -32,6 +33,7 @@ func (c *invoiceCalculator) Calculate(i *billingentity.Invoice) error {
 		}
 
 		if changed {
+			// TODO: get rid of this and use the same framework as the line service
 			i.Changed = true
 		}
 	}
@@ -46,21 +48,8 @@ func (c *invoiceCalculator) Calculate(i *billingentity.Invoice) error {
 type InvoiceCalculation func(*billingentity.Invoice) (bool, error)
 
 var InvoiceCalculations = []InvoiceCalculation{
-	CalculateDraftUntilIfMissing,
-}
-
-// CalculateDraftUntilIfMissing calculates the draft until date if it is missing.
-// If it's set we are not updating it as the user should update that instead of manipulating the
-// workflow config.
-func CalculateDraftUntilIfMissing(i *billingentity.Invoice) (bool, error) {
-	if !i.ExpandedFields.Workflow || i.DraftUntil != nil || !i.Workflow.Config.Invoicing.AutoAdvance {
-		return false, nil
-	}
-
-	draftUntil, _ := i.Workflow.Config.Invoicing.DraftPeriod.AddTo(i.CreatedAt)
-	i.DraftUntil = &draftUntil
-
-	return true, nil
+	calculation.DraftUntilIfMissing,
+	calculation.Totals,
 }
 
 type MockableInvoiceCalculator struct {

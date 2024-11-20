@@ -104,6 +104,8 @@ type CreateInvoiceAdapterInput struct {
 	Type        billingentity.InvoiceType
 	Description *string
 	DueAt       *time.Time
+
+	Totals billingentity.Totals
 }
 
 func (c CreateInvoiceAdapterInput) Validate() error {
@@ -129,6 +131,10 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 
 	if err := c.Type.Validate(); err != nil {
 		return fmt.Errorf("type: %w", err)
+	}
+
+	if err := c.Totals.Validate(); err != nil {
+		return fmt.Errorf("totals: %w", err)
 	}
 
 	return nil

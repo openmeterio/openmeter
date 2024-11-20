@@ -107,6 +107,104 @@ func (bilu *BillingInvoiceLineUpdate) ClearDescription() *BillingInvoiceLineUpda
 	return bilu
 }
 
+// SetAmount sets the "amount" field.
+func (bilu *BillingInvoiceLineUpdate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetAmount(a)
+	return bilu
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetAmount(*a)
+	}
+	return bilu
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (bilu *BillingInvoiceLineUpdate) SetTaxesTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetTaxesTotal(a)
+	return bilu
+}
+
+// SetNillableTaxesTotal sets the "taxes_total" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableTaxesTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetTaxesTotal(*a)
+	}
+	return bilu
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (bilu *BillingInvoiceLineUpdate) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetTaxesInclusiveTotal(a)
+	return bilu
+}
+
+// SetNillableTaxesInclusiveTotal sets the "taxes_inclusive_total" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableTaxesInclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetTaxesInclusiveTotal(*a)
+	}
+	return bilu
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (bilu *BillingInvoiceLineUpdate) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetTaxesExclusiveTotal(a)
+	return bilu
+}
+
+// SetNillableTaxesExclusiveTotal sets the "taxes_exclusive_total" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableTaxesExclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetTaxesExclusiveTotal(*a)
+	}
+	return bilu
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (bilu *BillingInvoiceLineUpdate) SetChargesTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetChargesTotal(a)
+	return bilu
+}
+
+// SetNillableChargesTotal sets the "charges_total" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableChargesTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetChargesTotal(*a)
+	}
+	return bilu
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (bilu *BillingInvoiceLineUpdate) SetDiscountsTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetDiscountsTotal(a)
+	return bilu
+}
+
+// SetNillableDiscountsTotal sets the "discounts_total" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableDiscountsTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetDiscountsTotal(*a)
+	}
+	return bilu
+}
+
+// SetTotal sets the "total" field.
+func (bilu *BillingInvoiceLineUpdate) SetTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetTotal(a)
+	return bilu
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if a != nil {
+		bilu.SetTotal(*a)
+	}
+	return bilu
+}
+
 // SetInvoiceID sets the "invoice_id" field.
 func (bilu *BillingInvoiceLineUpdate) SetInvoiceID(s string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetInvoiceID(s)
@@ -502,6 +600,27 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	if bilu.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoiceline.FieldDescription, field.TypeString)
 	}
+	if value, ok := bilu.mutation.Amount(); ok {
+		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.TaxesTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.ChargesTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.Total(); ok {
+		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
+	}
 	if value, ok := bilu.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
 	}
@@ -827,6 +946,104 @@ func (biluo *BillingInvoiceLineUpdateOne) SetNillableDescription(s *string) *Bil
 // ClearDescription clears the value of the "description" field.
 func (biluo *BillingInvoiceLineUpdateOne) ClearDescription() *BillingInvoiceLineUpdateOne {
 	biluo.mutation.ClearDescription()
+	return biluo
+}
+
+// SetAmount sets the "amount" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetAmount(a)
+	return biluo
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetAmount(*a)
+	}
+	return biluo
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetTaxesTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetTaxesTotal(a)
+	return biluo
+}
+
+// SetNillableTaxesTotal sets the "taxes_total" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxesTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetTaxesTotal(*a)
+	}
+	return biluo
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetTaxesInclusiveTotal(a)
+	return biluo
+}
+
+// SetNillableTaxesInclusiveTotal sets the "taxes_inclusive_total" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxesInclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetTaxesInclusiveTotal(*a)
+	}
+	return biluo
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetTaxesExclusiveTotal(a)
+	return biluo
+}
+
+// SetNillableTaxesExclusiveTotal sets the "taxes_exclusive_total" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxesExclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetTaxesExclusiveTotal(*a)
+	}
+	return biluo
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetChargesTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetChargesTotal(a)
+	return biluo
+}
+
+// SetNillableChargesTotal sets the "charges_total" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableChargesTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetChargesTotal(*a)
+	}
+	return biluo
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetDiscountsTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetDiscountsTotal(a)
+	return biluo
+}
+
+// SetNillableDiscountsTotal sets the "discounts_total" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableDiscountsTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetDiscountsTotal(*a)
+	}
+	return biluo
+}
+
+// SetTotal sets the "total" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetTotal(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetTotal(a)
+	return biluo
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTotal(a *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if a != nil {
+		biluo.SetTotal(*a)
+	}
 	return biluo
 }
 
@@ -1254,6 +1471,27 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if biluo.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoiceline.FieldDescription, field.TypeString)
+	}
+	if value, ok := biluo.mutation.Amount(); ok {
+		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.TaxesTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.ChargesTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.Total(); ok {
+		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
 	}
 	if value, ok := biluo.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)

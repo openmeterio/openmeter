@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 )
 
@@ -21,7 +22,9 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	Namespace string `json:"namespace,omitempty"`
 	// PerUnitAmount holds the value of the "per_unit_amount" field.
 	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
-	selectValues  sql.SelectValues
+	// Category holds the value of the "category" field.
+	Category     billingentity.FlatFeeCategory `json:"category,omitempty"`
+	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -31,7 +34,7 @@ func (*BillingInvoiceFlatFeeLineConfig) scanValues(columns []string) ([]any, err
 		switch columns[i] {
 		case billinginvoiceflatfeelineconfig.FieldPerUnitAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceflatfeelineconfig.FieldID, billinginvoiceflatfeelineconfig.FieldNamespace:
+		case billinginvoiceflatfeelineconfig.FieldID, billinginvoiceflatfeelineconfig.FieldNamespace, billinginvoiceflatfeelineconfig.FieldCategory:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -65,6 +68,12 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, va
 				return fmt.Errorf("unexpected type %T for field per_unit_amount", values[i])
 			} else if value != nil {
 				bifflc.PerUnitAmount = *value
+			}
+		case billinginvoiceflatfeelineconfig.FieldCategory:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field category", values[i])
+			} else if value.Valid {
+				bifflc.Category = billingentity.FlatFeeCategory(value.String)
 			}
 		default:
 			bifflc.selectValues.Set(columns[i], values[i])
@@ -107,6 +116,9 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("per_unit_amount=")
 	builder.WriteString(fmt.Sprintf("%v", bifflc.PerUnitAmount))
+	builder.WriteString(", ")
+	builder.WriteString("category=")
+	builder.WriteString(fmt.Sprintf("%v", bifflc.Category))
 	builder.WriteByte(')')
 	return builder.String()
 }

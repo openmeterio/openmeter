@@ -1558,6 +1558,22 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 			},
 		})
+
+		// Let's validate the totals
+		requireTotals(s.T(), expectedTotals{
+			Amount: 1000,
+			Total:  1000,
+		}, flatPerUnit.Children.Get()[0].Totals)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 1000,
+			Total:  1000,
+		}, flatPerUnit.Totals)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 1000,
+			Total:  1000,
+		}, out[0].Totals)
 	})
 
 	s.Run("create mid period invoice - pt2", func() {
@@ -1642,6 +1658,24 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 			},
 		})
+
+		// Let's validate the totals
+		requireTotals(s.T(), expectedTotals{
+			Amount:         2000,
+			DiscountsTotal: 1000,
+			Total:          1000,
+		}, flatPerUnit.Totals)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 1450,
+			Total:  1450,
+		}, tieredGraduated.Totals)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount:         3450,
+			DiscountsTotal: 1000,
+			Total:          2450,
+		}, out[0].Totals)
 	})
 
 	s.Run("create end of period invoice", func() {
@@ -1717,6 +1751,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			},
 		})
 
+		requireTotals(s.T(), expectedTotals{
+			Amount: 100,
+			Total:  100,
+		}, flatPerUsage.Totals)
+
 		requireDetailedLines(s.T(), tieredVolume, lineExpectations{
 			Details: map[string]feeLineExpect{
 				lineservice.VolumeUnitPriceChildUniqueReferenceID: {
@@ -1730,6 +1769,12 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			},
 		})
 
+		requireTotals(s.T(), expectedTotals{
+			Amount:       2000,
+			ChargesTotal: 1000,
+			Total:        3000,
+		}, tieredVolume.Totals)
+
 		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
 			Details: map[string]feeLineExpect{
 				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
@@ -1742,6 +1787,18 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 			},
 		})
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 1250,
+			Total:  1250,
+		}, tieredGraduated.Totals)
+
+		// invoice totals
+		requireTotals(s.T(), expectedTotals{
+			Amount:       3350,
+			ChargesTotal: 1000,
+			Total:        4350,
+		}, out[0].Totals)
 	})
 }
 
@@ -1856,4 +1913,38 @@ func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations l
 			require.Equal(t, discountExpect, discount.Amount.InexactFloat64(), "discount amount should match")
 		}
 	}
+}
+
+type expectedTotals struct {
+	// Amount is the total amount value of the line before taxes, discounts and commitments
+	Amount float64 `json:"amount"`
+	// ChargesTotal is the amount of value of the line that are due to additional charges
+	ChargesTotal float64 `json:"chargesTotal"`
+	// DiscountsTotal is the amount of value of the line that are due to discounts
+	DiscountsTotal float64 `json:"discountsTotal"`
+
+	// TaxesInclusiveTotal is the total amount of taxes that are included in the line
+	TaxesInclusiveTotal float64 `json:"taxesInclusiveTotal"`
+	// TaxesExclusiveTotal is the total amount of taxes that are excluded from the line
+	TaxesExclusiveTotal float64 `json:"taxesExclusiveTotal"`
+	// TaxesTotal is the total amount of taxes that are included in the line
+	TaxesTotal float64 `json:"taxesTotal"`
+
+	// Total is the total amount value of the line after taxes, discounts and commitments
+	Total float64 `json:"total"`
+}
+
+func requireTotals(t *testing.T, expected expectedTotals, totals billingentity.Totals) {
+	t.Helper()
+	totalsFloat := expectedTotals{
+		Amount:              totals.Amount.InexactFloat64(),
+		ChargesTotal:        totals.ChargesTotal.InexactFloat64(),
+		DiscountsTotal:      totals.DiscountsTotal.InexactFloat64(),
+		TaxesInclusiveTotal: totals.TaxesInclusiveTotal.InexactFloat64(),
+		TaxesExclusiveTotal: totals.TaxesExclusiveTotal.InexactFloat64(),
+		TaxesTotal:          totals.TaxesTotal.InexactFloat64(),
+		Total:               totals.Total.InexactFloat64(),
+	}
+
+	require.Equal(t, expected, totalsFloat)
 }

@@ -105,6 +105,48 @@ func (bilc *BillingInvoiceLineCreate) SetNillableDescription(s *string) *Billing
 	return bilc
 }
 
+// SetAmount sets the "amount" field.
+func (bilc *BillingInvoiceLineCreate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetAmount(a)
+	return bilc
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (bilc *BillingInvoiceLineCreate) SetTaxesTotal(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetTaxesTotal(a)
+	return bilc
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (bilc *BillingInvoiceLineCreate) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetTaxesInclusiveTotal(a)
+	return bilc
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (bilc *BillingInvoiceLineCreate) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetTaxesExclusiveTotal(a)
+	return bilc
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (bilc *BillingInvoiceLineCreate) SetChargesTotal(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetChargesTotal(a)
+	return bilc
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (bilc *BillingInvoiceLineCreate) SetDiscountsTotal(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetDiscountsTotal(a)
+	return bilc
+}
+
+// SetTotal sets the "total" field.
+func (bilc *BillingInvoiceLineCreate) SetTotal(a alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	bilc.mutation.SetTotal(a)
+	return bilc
+}
+
 // SetInvoiceID sets the "invoice_id" field.
 func (bilc *BillingInvoiceLineCreate) SetInvoiceID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetInvoiceID(s)
@@ -369,6 +411,27 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 	if _, ok := bilc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingInvoiceLine.name"`)}
 	}
+	if _, ok := bilc.mutation.Amount(); !ok {
+		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLine.amount"`)}
+	}
+	if _, ok := bilc.mutation.TaxesTotal(); !ok {
+		return &ValidationError{Name: "taxes_total", err: errors.New(`db: missing required field "BillingInvoiceLine.taxes_total"`)}
+	}
+	if _, ok := bilc.mutation.TaxesInclusiveTotal(); !ok {
+		return &ValidationError{Name: "taxes_inclusive_total", err: errors.New(`db: missing required field "BillingInvoiceLine.taxes_inclusive_total"`)}
+	}
+	if _, ok := bilc.mutation.TaxesExclusiveTotal(); !ok {
+		return &ValidationError{Name: "taxes_exclusive_total", err: errors.New(`db: missing required field "BillingInvoiceLine.taxes_exclusive_total"`)}
+	}
+	if _, ok := bilc.mutation.ChargesTotal(); !ok {
+		return &ValidationError{Name: "charges_total", err: errors.New(`db: missing required field "BillingInvoiceLine.charges_total"`)}
+	}
+	if _, ok := bilc.mutation.DiscountsTotal(); !ok {
+		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "BillingInvoiceLine.discounts_total"`)}
+	}
+	if _, ok := bilc.mutation.Total(); !ok {
+		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "BillingInvoiceLine.total"`)}
+	}
 	if _, ok := bilc.mutation.InvoiceID(); !ok {
 		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "BillingInvoiceLine.invoice_id"`)}
 	}
@@ -476,6 +539,34 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	if value, ok := bilc.mutation.Description(); ok {
 		_spec.SetField(billinginvoiceline.FieldDescription, field.TypeString, value)
 		_node.Description = &value
+	}
+	if value, ok := bilc.mutation.Amount(); ok {
+		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
+		_node.Amount = value
+	}
+	if value, ok := bilc.mutation.TaxesTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesTotal, field.TypeOther, value)
+		_node.TaxesTotal = value
+	}
+	if value, ok := bilc.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesInclusiveTotal, field.TypeOther, value)
+		_node.TaxesInclusiveTotal = value
+	}
+	if value, ok := bilc.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxesExclusiveTotal, field.TypeOther, value)
+		_node.TaxesExclusiveTotal = value
+	}
+	if value, ok := bilc.mutation.ChargesTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldChargesTotal, field.TypeOther, value)
+		_node.ChargesTotal = value
+	}
+	if value, ok := bilc.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldDiscountsTotal, field.TypeOther, value)
+		_node.DiscountsTotal = value
+	}
+	if value, ok := bilc.mutation.Total(); ok {
+		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
+		_node.Total = value
 	}
 	if value, ok := bilc.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
@@ -740,6 +831,90 @@ func (u *BillingInvoiceLineUpsert) UpdateDescription() *BillingInvoiceLineUpsert
 // ClearDescription clears the value of the "description" field.
 func (u *BillingInvoiceLineUpsert) ClearDescription() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldDescription)
+	return u
+}
+
+// SetAmount sets the "amount" field.
+func (u *BillingInvoiceLineUpsert) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldAmount, v)
+	return u
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateAmount() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldAmount)
+	return u
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (u *BillingInvoiceLineUpsert) SetTaxesTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTaxesTotal, v)
+	return u
+}
+
+// UpdateTaxesTotal sets the "taxes_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTaxesTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTaxesTotal)
+	return u
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (u *BillingInvoiceLineUpsert) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTaxesInclusiveTotal, v)
+	return u
+}
+
+// UpdateTaxesInclusiveTotal sets the "taxes_inclusive_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTaxesInclusiveTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTaxesInclusiveTotal)
+	return u
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (u *BillingInvoiceLineUpsert) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTaxesExclusiveTotal, v)
+	return u
+}
+
+// UpdateTaxesExclusiveTotal sets the "taxes_exclusive_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTaxesExclusiveTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTaxesExclusiveTotal)
+	return u
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (u *BillingInvoiceLineUpsert) SetChargesTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldChargesTotal, v)
+	return u
+}
+
+// UpdateChargesTotal sets the "charges_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateChargesTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldChargesTotal)
+	return u
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (u *BillingInvoiceLineUpsert) SetDiscountsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldDiscountsTotal, v)
+	return u
+}
+
+// UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateDiscountsTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldDiscountsTotal)
+	return u
+}
+
+// SetTotal sets the "total" field.
+func (u *BillingInvoiceLineUpsert) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTotal, v)
+	return u
+}
+
+// UpdateTotal sets the "total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTotal)
 	return u
 }
 
@@ -1023,6 +1198,104 @@ func (u *BillingInvoiceLineUpsertOne) UpdateDescription() *BillingInvoiceLineUps
 func (u *BillingInvoiceLineUpsertOne) ClearDescription() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetAmount sets the "amount" field.
+func (u *BillingInvoiceLineUpsertOne) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetAmount(v)
+	})
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateAmount() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateAmount()
+	})
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (u *BillingInvoiceLineUpsertOne) SetTaxesTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxesTotal(v)
+	})
+}
+
+// UpdateTaxesTotal sets the "taxes_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTaxesTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxesTotal()
+	})
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (u *BillingInvoiceLineUpsertOne) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxesInclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesInclusiveTotal sets the "taxes_inclusive_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTaxesInclusiveTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxesInclusiveTotal()
+	})
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (u *BillingInvoiceLineUpsertOne) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxesExclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesExclusiveTotal sets the "taxes_exclusive_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTaxesExclusiveTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxesExclusiveTotal()
+	})
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (u *BillingInvoiceLineUpsertOne) SetChargesTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetChargesTotal(v)
+	})
+}
+
+// UpdateChargesTotal sets the "charges_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateChargesTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateChargesTotal()
+	})
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (u *BillingInvoiceLineUpsertOne) SetDiscountsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetDiscountsTotal(v)
+	})
+}
+
+// UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateDiscountsTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetTotal sets the "total" field.
+func (u *BillingInvoiceLineUpsertOne) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTotal(v)
+	})
+}
+
+// UpdateTotal sets the "total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTotal()
 	})
 }
 
@@ -1495,6 +1768,104 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateDescription() *BillingInvoiceLineUp
 func (u *BillingInvoiceLineUpsertBulk) ClearDescription() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetAmount sets the "amount" field.
+func (u *BillingInvoiceLineUpsertBulk) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetAmount(v)
+	})
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateAmount() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateAmount()
+	})
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTaxesTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxesTotal(v)
+	})
+}
+
+// UpdateTaxesTotal sets the "taxes_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTaxesTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxesTotal()
+	})
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxesInclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesInclusiveTotal sets the "taxes_inclusive_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTaxesInclusiveTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxesInclusiveTotal()
+	})
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxesExclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesExclusiveTotal sets the "taxes_exclusive_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTaxesExclusiveTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxesExclusiveTotal()
+	})
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetChargesTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetChargesTotal(v)
+	})
+}
+
+// UpdateChargesTotal sets the "charges_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateChargesTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateChargesTotal()
+	})
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetDiscountsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetDiscountsTotal(v)
+	})
+}
+
+// UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateDiscountsTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetTotal sets the "total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTotal(v)
+	})
+}
+
+// UpdateTotal sets the "total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTotal()
 	})
 }
 

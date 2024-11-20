@@ -98,6 +98,41 @@ func Description(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldDescription, v))
 }
 
+// Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
+func Amount(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldAmount, v))
+}
+
+// TaxesTotal applies equality check predicate on the "taxes_total" field. It's identical to TaxesTotalEQ.
+func TaxesTotal(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTaxesTotal, v))
+}
+
+// TaxesInclusiveTotal applies equality check predicate on the "taxes_inclusive_total" field. It's identical to TaxesInclusiveTotalEQ.
+func TaxesInclusiveTotal(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesExclusiveTotal applies equality check predicate on the "taxes_exclusive_total" field. It's identical to TaxesExclusiveTotalEQ.
+func TaxesExclusiveTotal(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTaxesExclusiveTotal, v))
+}
+
+// ChargesTotal applies equality check predicate on the "charges_total" field. It's identical to ChargesTotalEQ.
+func ChargesTotal(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChargesTotal, v))
+}
+
+// DiscountsTotal applies equality check predicate on the "discounts_total" field. It's identical to DiscountsTotalEQ.
+func DiscountsTotal(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldDiscountsTotal, v))
+}
+
+// Total applies equality check predicate on the "total" field. It's identical to TotalEQ.
+func Total(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTotal, v))
+}
+
 // InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
 func InvoiceID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
@@ -482,6 +517,286 @@ func DescriptionEqualFold(v string) predicate.BillingInvoiceLine {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// AmountEQ applies the EQ predicate on the "amount" field.
+func AmountEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldAmount, v))
+}
+
+// AmountNEQ applies the NEQ predicate on the "amount" field.
+func AmountNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldAmount, v))
+}
+
+// AmountIn applies the In predicate on the "amount" field.
+func AmountIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldAmount, vs...))
+}
+
+// AmountNotIn applies the NotIn predicate on the "amount" field.
+func AmountNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldAmount, vs...))
+}
+
+// AmountGT applies the GT predicate on the "amount" field.
+func AmountGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldAmount, v))
+}
+
+// AmountGTE applies the GTE predicate on the "amount" field.
+func AmountGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldAmount, v))
+}
+
+// AmountLT applies the LT predicate on the "amount" field.
+func AmountLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldAmount, v))
+}
+
+// AmountLTE applies the LTE predicate on the "amount" field.
+func AmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldAmount, v))
+}
+
+// TaxesTotalEQ applies the EQ predicate on the "taxes_total" field.
+func TaxesTotalEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTaxesTotal, v))
+}
+
+// TaxesTotalNEQ applies the NEQ predicate on the "taxes_total" field.
+func TaxesTotalNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldTaxesTotal, v))
+}
+
+// TaxesTotalIn applies the In predicate on the "taxes_total" field.
+func TaxesTotalIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldTaxesTotal, vs...))
+}
+
+// TaxesTotalNotIn applies the NotIn predicate on the "taxes_total" field.
+func TaxesTotalNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldTaxesTotal, vs...))
+}
+
+// TaxesTotalGT applies the GT predicate on the "taxes_total" field.
+func TaxesTotalGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldTaxesTotal, v))
+}
+
+// TaxesTotalGTE applies the GTE predicate on the "taxes_total" field.
+func TaxesTotalGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldTaxesTotal, v))
+}
+
+// TaxesTotalLT applies the LT predicate on the "taxes_total" field.
+func TaxesTotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldTaxesTotal, v))
+}
+
+// TaxesTotalLTE applies the LTE predicate on the "taxes_total" field.
+func TaxesTotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTaxesTotal, v))
+}
+
+// TaxesInclusiveTotalEQ applies the EQ predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalNEQ applies the NEQ predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalIn applies the In predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldTaxesInclusiveTotal, vs...))
+}
+
+// TaxesInclusiveTotalNotIn applies the NotIn predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldTaxesInclusiveTotal, vs...))
+}
+
+// TaxesInclusiveTotalGT applies the GT predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalGTE applies the GTE predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalLT applies the LT predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalLTE applies the LTE predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalEQ applies the EQ predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalNEQ applies the NEQ predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalIn applies the In predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldTaxesExclusiveTotal, vs...))
+}
+
+// TaxesExclusiveTotalNotIn applies the NotIn predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldTaxesExclusiveTotal, vs...))
+}
+
+// TaxesExclusiveTotalGT applies the GT predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalGTE applies the GTE predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalLT applies the LT predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalLTE applies the LTE predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTaxesExclusiveTotal, v))
+}
+
+// ChargesTotalEQ applies the EQ predicate on the "charges_total" field.
+func ChargesTotalEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChargesTotal, v))
+}
+
+// ChargesTotalNEQ applies the NEQ predicate on the "charges_total" field.
+func ChargesTotalNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldChargesTotal, v))
+}
+
+// ChargesTotalIn applies the In predicate on the "charges_total" field.
+func ChargesTotalIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldChargesTotal, vs...))
+}
+
+// ChargesTotalNotIn applies the NotIn predicate on the "charges_total" field.
+func ChargesTotalNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldChargesTotal, vs...))
+}
+
+// ChargesTotalGT applies the GT predicate on the "charges_total" field.
+func ChargesTotalGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldChargesTotal, v))
+}
+
+// ChargesTotalGTE applies the GTE predicate on the "charges_total" field.
+func ChargesTotalGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldChargesTotal, v))
+}
+
+// ChargesTotalLT applies the LT predicate on the "charges_total" field.
+func ChargesTotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldChargesTotal, v))
+}
+
+// ChargesTotalLTE applies the LTE predicate on the "charges_total" field.
+func ChargesTotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldChargesTotal, v))
+}
+
+// DiscountsTotalEQ applies the EQ predicate on the "discounts_total" field.
+func DiscountsTotalEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalNEQ applies the NEQ predicate on the "discounts_total" field.
+func DiscountsTotalNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalIn applies the In predicate on the "discounts_total" field.
+func DiscountsTotalIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldDiscountsTotal, vs...))
+}
+
+// DiscountsTotalNotIn applies the NotIn predicate on the "discounts_total" field.
+func DiscountsTotalNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldDiscountsTotal, vs...))
+}
+
+// DiscountsTotalGT applies the GT predicate on the "discounts_total" field.
+func DiscountsTotalGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalGTE applies the GTE predicate on the "discounts_total" field.
+func DiscountsTotalGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalLT applies the LT predicate on the "discounts_total" field.
+func DiscountsTotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalLTE applies the LTE predicate on the "discounts_total" field.
+func DiscountsTotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldDiscountsTotal, v))
+}
+
+// TotalEQ applies the EQ predicate on the "total" field.
+func TotalEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTotal, v))
+}
+
+// TotalNEQ applies the NEQ predicate on the "total" field.
+func TotalNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldTotal, v))
+}
+
+// TotalIn applies the In predicate on the "total" field.
+func TotalIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldTotal, vs...))
+}
+
+// TotalNotIn applies the NotIn predicate on the "total" field.
+func TotalNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldTotal, vs...))
+}
+
+// TotalGT applies the GT predicate on the "total" field.
+func TotalGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldTotal, v))
+}
+
+// TotalGTE applies the GTE predicate on the "total" field.
+func TotalGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldTotal, v))
+}
+
+// TotalLT applies the LT predicate on the "total" field.
+func TotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldTotal, v))
+}
+
+// TotalLTE applies the LTE predicate on the "total" field.
+func TotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTotal, v))
 }
 
 // InvoiceIDEQ applies the EQ predicate on the "invoice_id" field.

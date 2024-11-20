@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
@@ -228,6 +229,43 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 	}
 }
 
+type TotalsMixin struct {
+	mixin.Schema
+}
+
+func (m TotalsMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+		field.Other("taxes_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+		field.Other("taxes_inclusive_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+		field.Other("taxes_exclusive_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+		field.Other("charges_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+		field.Other("discounts_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+		field.Other("total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+	}
+}
+
 type BillingInvoiceLine struct {
 	ent.Schema
 }
@@ -235,6 +273,7 @@ type BillingInvoiceLine struct {
 func (BillingInvoiceLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.ResourceMixin{},
+		TotalsMixin{},
 	}
 }
 
@@ -348,6 +387,9 @@ func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
+		field.Enum("category").
+			GoType(billingentity.FlatFeeCategory("")).
+			Default(string(billingentity.FlatFeeCategoryRegular)),
 	}
 }
 
@@ -450,6 +492,7 @@ func (BillingInvoice) Mixin() []ent.Mixin {
 		entutils.CustomerAddressMixin{
 			FieldPrefix: "customer",
 		},
+		TotalsMixin{},
 	}
 }
 

@@ -237,6 +237,10 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, lineSrv *lineserv
 		if err := line.SnapshotQuantity(ctx, &invoice); err != nil {
 			return fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 		}
+
+		if err := line.UpdateTotals(); err != nil {
+			return fmt.Errorf("line[%s]: updating totals: %w", line.ID(), err)
+		}
 	}
 
 	_, err = lineSrv.UpsertLines(ctx, invoice.Namespace, invoiceLines...)

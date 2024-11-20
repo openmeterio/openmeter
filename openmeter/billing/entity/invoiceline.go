@@ -120,7 +120,7 @@ type LineBase struct {
 
 	TaxConfig *TaxConfig `json:"taxOverrides,omitempty"`
 
-	Total alpacadecimal.Decimal `json:"total"`
+	Totals Totals `json:"totals"`
 }
 
 func (i LineBase) Equal(other LineBase) bool {
@@ -178,10 +178,27 @@ func (i LineBase) Clone(line *Line) LineBase {
 	return out
 }
 
+type FlatFeeCategory string
+
+const (
+	// FlatFeeCategoryRegular is a regular flat fee, that is based on the usage or a subscription.
+	FlatFeeCategoryRegular FlatFeeCategory = "regular"
+	// FlatFeeCategoryCommitment is a flat fee that is based on a commitment such as min spend.
+	FlatFeeCategoryCommitment FlatFeeCategory = "commitment"
+)
+
+func (FlatFeeCategory) Values() []string {
+	return []string{
+		string(FlatFeeCategoryRegular),
+		string(FlatFeeCategoryCommitment),
+	}
+}
+
 type FlatFeeLine struct {
 	ConfigID      string                `json:"configId"`
 	PerUnitAmount alpacadecimal.Decimal `json:"perUnitAmount"`
 	PaymentTerm   plan.PaymentTermType  `json:"paymentTerm"`
+	Category      FlatFeeCategory       `json:"category"`
 
 	Quantity alpacadecimal.Decimal `json:"quantity"`
 }
