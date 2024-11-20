@@ -87,6 +87,38 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 			"plan.key", params.Key,
 		)
 
+		// Check if there is already a Plan with the same Key
+		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
+			Page: pagination.Page{
+				PageSize:   1000,
+				PageNumber: 1,
+			},
+			OrderBy:        plan.OrderByVersion,
+			Order:          plan.OrderAsc,
+			Namespaces:     []string{params.Namespace},
+			Keys:           []string{params.Key},
+			IncludeDeleted: true,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list all versions of the Plan: %w", err)
+		}
+
+		// If there are Plan versions with the same Key do:
+		// * check their statuses to ensure that new plan with the same Key is created only
+		//   if there is no version in Draft status
+		// * calculate the version number for the new Plan based by incrementing the last version
+		if len(allVersions.Items) >= 0 {
+			for _, p := range allVersions.Items {
+				if p.DeletedAt == nil && p.Status() == plan.DraftStatus {
+					return nil, fmt.Errorf("only a single draft version is allowed for Plan")
+				}
+
+				if p.Version >= params.Version {
+					params.Version = p.Version + 1
+				}
+			}
+		}
+
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
@@ -490,7 +522,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		nextVersion := 1
 		var match, stop bool
 		for _, p := range allVersions.Items {
-			if p.Status() == plan.DraftStatus {
+			if p.DeletedAt == nil && p.Status() == plan.DraftStatus {
 				return nil, fmt.Errorf("only a single draft version is allowed for Plan")
 			}
 
