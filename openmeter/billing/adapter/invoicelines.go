@@ -24,7 +24,7 @@ import (
 
 var _ billing.InvoiceLineAdapter = (*adapter)(nil)
 
-func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.CreateInvoiceLinesAdapterInput) ([]*billingentity.Line, error) {
+func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.UpsertInvoiceLinesAdapterInput) ([]*billingentity.Line, error) {
 	// Given that the input's content is spread across multiple tables, we need to
 	// handle the upserting of the data in a more complex way. We will first upsert
 	// all items that yield an ID into their parent structs then we will create the
@@ -45,7 +45,7 @@ func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Create
 		}
 	}
 
-	input := &billing.CreateInvoiceLinesAdapterInput{
+	input := &billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: inputIn.Namespace,
 		Lines: lo.Map(inputIn.Lines, func(line *billingentity.Line, _ int) *billingentity.Line {
 			return line.Clone()
@@ -428,7 +428,7 @@ func (r *adapter) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 		}
 	}
 
-	upsertedLines, err := r.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+	upsertedLines, err := r.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: input.Namespace,
 		Lines:     []*billingentity.Line{lo.ToPtr(billingentity.Line(input))},
 	})

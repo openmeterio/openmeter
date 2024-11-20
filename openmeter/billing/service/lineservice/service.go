@@ -136,7 +136,7 @@ func (s *Service) UpsertLines(ctx context.Context, ns string, lines ...Line) (Li
 
 	newLines, err := s.BillingAdapter.UpsertInvoiceLines(
 		ctx,
-		billing.CreateInvoiceLinesAdapterInput{
+		billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines: lo.Map(lines, func(line Line, _ int) *billingentity.Line {
 				return line.ToEntity()

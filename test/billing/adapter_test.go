@@ -118,7 +118,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 				FeatureKey: "test",
 			},
 		}
-		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines: []*billingentity.Line{
 				parentLineIn,
@@ -183,7 +183,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		parentLine.Children = billingentity.LineChildren{}
 
 		// TODO[later]: We should allow for partial child syncs instead of specifying all children
-		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines: []*billingentity.Line{
 				splitPre,
@@ -238,7 +238,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		newLastLine.Name = "Test Line Split 3"
 
 		// Let's upsert
-		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines: []*billingentity.Line{
 				splitPost,
@@ -406,7 +406,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		}),
 	}
 
-	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
 		Lines:     linesIn,
 	})
@@ -478,7 +478,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		lines[2].Children = billingentity.NewLineChildren([]*billingentity.Line{})
 
 		// When we persist the changes
-		lines, err = s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+		lines, err = s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines:     lines,
 		})
@@ -544,7 +544,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		)
 
 		// When we persist the changes
-		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines:     []*billingentity.Line{lines[0]},
 		})
@@ -589,7 +589,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 		// When we update the line with an invalid updatedAt
 		line.UpdatedAt = time.Now().Add(-time.Hour)
-		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
 			Lines:     []*billingentity.Line{line},
 		})
@@ -665,7 +665,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 		},
 	})
 
-	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
 		Lines:     []*billingentity.Line{lineIn},
 	})
@@ -714,7 +714,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 		[]*billingentity.Line{childLine},
 	)
 
-	updatedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+	updatedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
 		Lines:     []*billingentity.Line{updateLineIn},
 	})

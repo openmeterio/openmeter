@@ -136,7 +136,7 @@ func (l lineBase) IsFirstInPeriod() bool {
 
 func (l lineBase) Save(ctx context.Context) (Line, error) {
 	lines, err := l.service.BillingAdapter.UpsertInvoiceLines(ctx,
-		billing.CreateInvoiceLinesAdapterInput{
+		billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: l.line.Namespace,
 			Lines:     []*billingentity.Line{l.line},
 		})

@@ -79,7 +79,7 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			}
 
 			// Create the invoice Lines
-			createdLines, err := txAdapter.UpsertInvoiceLines(ctx, billing.CreateInvoiceLinesAdapterInput{
+			createdLines, err := txAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 				Namespace: input.Namespace,
 				Lines:     lines.ToEntities(),
 			})

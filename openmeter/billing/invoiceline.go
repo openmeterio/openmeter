@@ -32,12 +32,12 @@ func (c CreateInvoiceLinesInput) Validate() error {
 	return nil
 }
 
-type CreateInvoiceLinesAdapterInput struct {
+type UpsertInvoiceLinesAdapterInput struct {
 	Namespace string
 	Lines     []*billingentity.Line
 }
 
-func (c CreateInvoiceLinesAdapterInput) Validate() error {
+func (c UpsertInvoiceLinesAdapterInput) Validate() error {
 	if c.Namespace == "" {
 		return errors.New("namespace is required")
 	}
