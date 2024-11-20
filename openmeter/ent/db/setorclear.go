@@ -686,6 +686,62 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *plan.TaxConfig)
 	return u.SetTaxConfig(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDescription(value *string) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
 func (u *BillingInvoiceValidationIssueUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

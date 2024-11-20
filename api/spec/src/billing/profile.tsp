@@ -218,6 +218,8 @@ model WorkflowCollectionSettings {
   /**
    * When to collect the pending line items into an invoice.
    */
+
+  // TODO: make it an union type
   alignment?: CollectionAlignment = CollectionAlignment.subscription;
 
   /**

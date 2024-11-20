@@ -443,6 +443,54 @@ var _ pagination.Paginator[*BillingInvoiceLine] = (*BillingInvoiceLineQuery)(nil
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (bild *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineDiscount], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	bild.ctx.Offset = &zero
+	bild.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := bild.Clone()
+	pagedQuery := bild
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*BillingInvoiceLineDiscount]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*BillingInvoiceLineDiscount] = (*BillingInvoiceLineDiscountQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (biublc *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceUsageBasedLineConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

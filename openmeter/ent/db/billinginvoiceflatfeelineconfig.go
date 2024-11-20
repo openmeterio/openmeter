@@ -19,9 +19,9 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
-	// Amount holds the value of the "amount" field.
-	Amount       alpacadecimal.Decimal `json:"amount,omitempty"`
-	selectValues sql.SelectValues
+	// PerUnitAmount holds the value of the "per_unit_amount" field.
+	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
+	selectValues  sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -29,7 +29,7 @@ func (*BillingInvoiceFlatFeeLineConfig) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoiceflatfeelineconfig.FieldAmount:
+		case billinginvoiceflatfeelineconfig.FieldPerUnitAmount:
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoiceflatfeelineconfig.FieldID, billinginvoiceflatfeelineconfig.FieldNamespace:
 			values[i] = new(sql.NullString)
@@ -60,11 +60,11 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, va
 			} else if value.Valid {
 				bifflc.Namespace = value.String
 			}
-		case billinginvoiceflatfeelineconfig.FieldAmount:
+		case billinginvoiceflatfeelineconfig.FieldPerUnitAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field amount", values[i])
+				return fmt.Errorf("unexpected type %T for field per_unit_amount", values[i])
 			} else if value != nil {
-				bifflc.Amount = *value
+				bifflc.PerUnitAmount = *value
 			}
 		default:
 			bifflc.selectValues.Set(columns[i], values[i])
@@ -105,8 +105,8 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(bifflc.Namespace)
 	builder.WriteString(", ")
-	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", bifflc.Amount))
+	builder.WriteString("per_unit_amount=")
+	builder.WriteString(fmt.Sprintf("%v", bifflc.PerUnitAmount))
 	builder.WriteByte(')')
 	return builder.String()
 }

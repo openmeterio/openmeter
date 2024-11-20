@@ -19,6 +19,7 @@ func errorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[billingentity.ConflictError](ctx, http.StatusConflict, err, w, billingentity.EncodeValidationIssues) ||
 			commonhttp.HandleErrorIfTypeMatches[billingentity.ValidationError](ctx, http.StatusBadRequest, err, w, billingentity.EncodeValidationIssues) ||
 			commonhttp.HandleErrorIfTypeMatches[billingentity.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w, billingentity.EncodeValidationIssues) ||
+			commonhttp.HandleErrorIfTypeMatches[billingentity.ValidationIssue](ctx, http.StatusBadRequest, err, w, billingentity.EncodeValidationIssues) ||
 			// dependency: customer
 			commonhttp.HandleErrorIfTypeMatches[customerentity.NotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customerentity.ValidationError](ctx, http.StatusBadRequest, err, w) ||

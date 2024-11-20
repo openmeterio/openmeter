@@ -1,4 +1,4 @@
-h1:nNI84NHBjgpPTHvGiMKoFzjeZ2i54iBqh0bjK2v5meA=
+h1:rp2j5M8bq7Ie8vpwulre2i3N21dFfLp64F+UV22sg14=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -49,3 +49,5 @@ h1:nNI84NHBjgpPTHvGiMKoFzjeZ2i54iBqh0bjK2v5meA=
 20241119131528_plan.up.sql h1:kvYEz4rMQUIw72ErGJhe8V3UBjf9cDq0EwjgkbjbMa4=
 20241119154436_plan.down.sql h1:3q7glRiCSH9A0O6VMRJnrRQVpTC+tB8lt2DL2fUH1I0=
 20241119154436_plan.up.sql h1:eCxxxIQGNeOZrtaXCO+Bm0daJLTK0B5HcoqnGA5tI0M=
+20241120145625_billing-discounts.down.sql h1:/dxp5cZ3iud9CpG9/WiJZ0v8L3U2gwUdNCBZBQOGOZY=
+20241120145625_billing-discounts.up.sql h1:9/WNzgyVnVTpqx9XB/2kBHNXMRL90/E3rG+yylPu5fc=

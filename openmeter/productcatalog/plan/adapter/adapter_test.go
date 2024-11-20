@@ -109,6 +109,15 @@ var planV1Input = plan.CreatePlanInput{
 										Amount: decimal.NewFromInt(50),
 									},
 								},
+								{
+									UpToAmount: nil,
+									FlatPrice: &plan.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(5),
+									},
+									UnitPrice: &plan.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(25),
+									},
+								},
 							},
 							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 							MaximumAmount: nil,
@@ -348,6 +357,15 @@ func TestPostgresAdapter(t *testing.T) {
 										},
 										UnitPrice: &plan.PriceTierUnitPrice{
 											Amount: decimal.NewFromInt(50),
+										},
+									},
+									{
+										UpToAmount: nil,
+										FlatPrice: &plan.PriceTierFlatPrice{
+											Amount: decimal.NewFromInt(75),
+										},
+										UnitPrice: &plan.PriceTierUnitPrice{
+											Amount: decimal.NewFromInt(25),
 										},
 									},
 								},

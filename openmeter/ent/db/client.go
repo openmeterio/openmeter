@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -68,6 +69,8 @@ type Client struct {
 	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
 	BillingInvoiceLine *BillingInvoiceLineClient
+	// BillingInvoiceLineDiscount is the client for interacting with the BillingInvoiceLineDiscount builders.
+	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
 	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
@@ -122,6 +125,7 @@ func (c *Client) init() {
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
 	c.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(c.config)
 	c.BillingInvoiceLine = NewBillingInvoiceLineClient(c.config)
+	c.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(c.config)
 	c.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(c.config)
 	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
@@ -240,6 +244,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
 		BillingInvoiceFlatFeeLineConfig:    NewBillingInvoiceFlatFeeLineConfigClient(cfg),
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
+		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
@@ -285,6 +290,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
 		BillingInvoiceFlatFeeLineConfig:    NewBillingInvoiceFlatFeeLineConfigClient(cfg),
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
+		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
@@ -333,11 +339,12 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.AppCustomer, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
 		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig,
-		c.BillingInvoiceLine, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.UsageReset,
+		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
+		c.PlanRateCard, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -349,11 +356,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.AppCustomer, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
 		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig,
-		c.BillingInvoiceLine, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.UsageReset,
+		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
+		c.PlanRateCard, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -380,6 +388,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingInvoiceFlatFeeLineConfig.mutate(ctx, m)
 	case *BillingInvoiceLineMutation:
 		return c.BillingInvoiceLine.mutate(ctx, m)
+	case *BillingInvoiceLineDiscountMutation:
+		return c.BillingInvoiceLineDiscount.mutate(ctx, m)
 	case *BillingInvoiceUsageBasedLineConfigMutation:
 		return c.BillingInvoiceUsageBasedLineConfig.mutate(ctx, m)
 	case *BillingInvoiceValidationIssueMutation:
@@ -2039,15 +2049,31 @@ func (c *BillingInvoiceLineClient) QueryParentLine(bil *BillingInvoiceLine) *Bil
 	return query
 }
 
-// QueryChildLines queries the child_lines edge of a BillingInvoiceLine.
-func (c *BillingInvoiceLineClient) QueryChildLines(bil *BillingInvoiceLine) *BillingInvoiceLineQuery {
+// QueryDetailedLines queries the detailed_lines edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QueryDetailedLines(bil *BillingInvoiceLine) *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := bil.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChildLinesTable, billinginvoiceline.ChildLinesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.DetailedLinesTable, billinginvoiceline.DetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLineDiscounts queries the line_discounts edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QueryLineDiscounts(bil *BillingInvoiceLine) *BillingInvoiceLineDiscountQuery {
+	query := (&BillingInvoiceLineDiscountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bil.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(billinginvoicelinediscount.Table, billinginvoicelinediscount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.LineDiscountsTable, billinginvoiceline.LineDiscountsColumn),
 		)
 		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
 		return fromV, nil
@@ -2077,6 +2103,155 @@ func (c *BillingInvoiceLineClient) mutate(ctx context.Context, m *BillingInvoice
 		return (&BillingInvoiceLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingInvoiceLine mutation op: %q", m.Op())
+	}
+}
+
+// BillingInvoiceLineDiscountClient is a client for the BillingInvoiceLineDiscount schema.
+type BillingInvoiceLineDiscountClient struct {
+	config
+}
+
+// NewBillingInvoiceLineDiscountClient returns a client for the BillingInvoiceLineDiscount from the given config.
+func NewBillingInvoiceLineDiscountClient(c config) *BillingInvoiceLineDiscountClient {
+	return &BillingInvoiceLineDiscountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billinginvoicelinediscount.Hooks(f(g(h())))`.
+func (c *BillingInvoiceLineDiscountClient) Use(hooks ...Hook) {
+	c.hooks.BillingInvoiceLineDiscount = append(c.hooks.BillingInvoiceLineDiscount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billinginvoicelinediscount.Intercept(f(g(h())))`.
+func (c *BillingInvoiceLineDiscountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingInvoiceLineDiscount = append(c.inters.BillingInvoiceLineDiscount, interceptors...)
+}
+
+// Create returns a builder for creating a BillingInvoiceLineDiscount entity.
+func (c *BillingInvoiceLineDiscountClient) Create() *BillingInvoiceLineDiscountCreate {
+	mutation := newBillingInvoiceLineDiscountMutation(c.config, OpCreate)
+	return &BillingInvoiceLineDiscountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingInvoiceLineDiscount entities.
+func (c *BillingInvoiceLineDiscountClient) CreateBulk(builders ...*BillingInvoiceLineDiscountCreate) *BillingInvoiceLineDiscountCreateBulk {
+	return &BillingInvoiceLineDiscountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingInvoiceLineDiscountClient) MapCreateBulk(slice any, setFunc func(*BillingInvoiceLineDiscountCreate, int)) *BillingInvoiceLineDiscountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingInvoiceLineDiscountCreateBulk{err: fmt.Errorf("calling to BillingInvoiceLineDiscountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingInvoiceLineDiscountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingInvoiceLineDiscountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingInvoiceLineDiscount.
+func (c *BillingInvoiceLineDiscountClient) Update() *BillingInvoiceLineDiscountUpdate {
+	mutation := newBillingInvoiceLineDiscountMutation(c.config, OpUpdate)
+	return &BillingInvoiceLineDiscountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingInvoiceLineDiscountClient) UpdateOne(bild *BillingInvoiceLineDiscount) *BillingInvoiceLineDiscountUpdateOne {
+	mutation := newBillingInvoiceLineDiscountMutation(c.config, OpUpdateOne, withBillingInvoiceLineDiscount(bild))
+	return &BillingInvoiceLineDiscountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingInvoiceLineDiscountClient) UpdateOneID(id string) *BillingInvoiceLineDiscountUpdateOne {
+	mutation := newBillingInvoiceLineDiscountMutation(c.config, OpUpdateOne, withBillingInvoiceLineDiscountID(id))
+	return &BillingInvoiceLineDiscountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingInvoiceLineDiscount.
+func (c *BillingInvoiceLineDiscountClient) Delete() *BillingInvoiceLineDiscountDelete {
+	mutation := newBillingInvoiceLineDiscountMutation(c.config, OpDelete)
+	return &BillingInvoiceLineDiscountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingInvoiceLineDiscountClient) DeleteOne(bild *BillingInvoiceLineDiscount) *BillingInvoiceLineDiscountDeleteOne {
+	return c.DeleteOneID(bild.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingInvoiceLineDiscountClient) DeleteOneID(id string) *BillingInvoiceLineDiscountDeleteOne {
+	builder := c.Delete().Where(billinginvoicelinediscount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingInvoiceLineDiscountDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingInvoiceLineDiscount.
+func (c *BillingInvoiceLineDiscountClient) Query() *BillingInvoiceLineDiscountQuery {
+	return &BillingInvoiceLineDiscountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingInvoiceLineDiscount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingInvoiceLineDiscount entity by its id.
+func (c *BillingInvoiceLineDiscountClient) Get(ctx context.Context, id string) (*BillingInvoiceLineDiscount, error) {
+	return c.Query().Where(billinginvoicelinediscount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingInvoiceLineDiscountClient) GetX(ctx context.Context, id string) *BillingInvoiceLineDiscount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBillingInvoiceLine queries the billing_invoice_line edge of a BillingInvoiceLineDiscount.
+func (c *BillingInvoiceLineDiscountClient) QueryBillingInvoiceLine(bild *BillingInvoiceLineDiscount) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bild.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicelinediscount.Table, billinginvoicelinediscount.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicelinediscount.BillingInvoiceLineTable, billinginvoicelinediscount.BillingInvoiceLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(bild.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingInvoiceLineDiscountClient) Hooks() []Hook {
+	return c.hooks.BillingInvoiceLineDiscount
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingInvoiceLineDiscountClient) Interceptors() []Interceptor {
+	return c.inters.BillingInvoiceLineDiscount
+}
+
+func (c *BillingInvoiceLineDiscountClient) mutate(ctx context.Context, m *BillingInvoiceLineDiscountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingInvoiceLineDiscountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingInvoiceLineDiscountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingInvoiceLineDiscountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingInvoiceLineDiscountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingInvoiceLineDiscount mutation op: %q", m.Op())
 	}
 }
 
@@ -4874,20 +5049,22 @@ type (
 	hooks struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerOverride, BillingInvoice, BillingInvoiceFlatFeeLineConfig,
-		BillingInvoiceLine, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanPhase, PlanRateCard, UsageReset []ent.Hook
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingProfile, BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement,
+		Feature, Grant, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanPhase,
+		PlanRateCard, UsageReset []ent.Hook
 	}
 	inters struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerOverride, BillingInvoice, BillingInvoiceFlatFeeLineConfig,
-		BillingInvoiceLine, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanPhase, PlanRateCard, UsageReset []ent.Interceptor
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingProfile, BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement,
+		Feature, Grant, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanPhase,
+		PlanRateCard, UsageReset []ent.Interceptor
 	}
 )
 

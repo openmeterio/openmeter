@@ -146,6 +146,15 @@ func TestPlanService(t *testing.T) {
 												Amount: decimal.NewFromInt(50),
 											},
 										},
+										{
+											UpToAmount: nil,
+											FlatPrice: &plan.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(75),
+											},
+											UnitPrice: &plan.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(25),
+											},
+										},
 									},
 									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 									MaximumAmount: nil,
@@ -213,6 +222,15 @@ func TestPlanService(t *testing.T) {
 													},
 													UnitPrice: &plan.PriceTierUnitPrice{
 														Amount: decimal.NewFromInt(25),
+													},
+												},
+												{
+													UpToAmount: nil,
+													FlatPrice: &plan.PriceTierFlatPrice{
+														Amount: decimal.NewFromInt(25),
+													},
+													UnitPrice: &plan.PriceTierUnitPrice{
+														Amount: decimal.NewFromInt(12),
 													},
 												},
 											},
@@ -533,6 +551,15 @@ func TestPlanService(t *testing.T) {
 												Amount: decimal.NewFromInt(50),
 											},
 										},
+										{
+											UpToAmount: nil,
+											FlatPrice: &plan.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(75),
+											},
+											UnitPrice: &plan.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(25),
+											},
+										},
 									},
 									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 									MaximumAmount: nil,
@@ -596,6 +623,15 @@ func TestPlanService(t *testing.T) {
 												},
 												UnitPrice: &plan.PriceTierUnitPrice{
 													Amount: decimal.NewFromInt(50),
+												},
+											},
+											{
+												UpToAmount: nil,
+												FlatPrice: &plan.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(75),
+												},
+												UnitPrice: &plan.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(25),
 												},
 											},
 										},
@@ -776,6 +812,15 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 										},
 										UnitPrice: &plan.PriceTierUnitPrice{
 											Amount: decimal.NewFromInt(50),
+										},
+									},
+									{
+										UpToAmount: nil,
+										FlatPrice: &plan.PriceTierFlatPrice{
+											Amount: decimal.NewFromInt(75),
+										},
+										UnitPrice: &plan.PriceTierUnitPrice{
+											Amount: decimal.NewFromInt(25),
 										},
 									},
 								},

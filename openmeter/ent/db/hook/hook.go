@@ -117,6 +117,18 @@ func (f BillingInvoiceLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceLineMutation", m)
 }
 
+// The BillingInvoiceLineDiscountFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceLineDiscount mutator.
+type BillingInvoiceLineDiscountFunc func(context.Context, *db.BillingInvoiceLineDiscountMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceLineDiscountFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceLineDiscountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceLineDiscountMutation", m)
+}
+
 // The BillingInvoiceUsageBasedLineConfigFunc type is an adapter to allow the use of ordinary
 // function as BillingInvoiceUsageBasedLineConfig mutator.
 type BillingInvoiceUsageBasedLineConfigFunc func(context.Context, *db.BillingInvoiceUsageBasedLineConfigMutation) (db.Value, error)

@@ -16,7 +16,7 @@ import (
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
-func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) (*billing.CreateInvoiceLinesResponse, error) {
+func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billingentity.Line, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Namespace
 		input.Lines[i].Status = billingentity.InvoiceLineStatusValid
@@ -35,7 +35,7 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
 		},
-		func(ctx context.Context, txAdapter billing.Adapter) (*billing.CreateInvoiceLinesResponse, error) {
+		func(ctx context.Context, txAdapter billing.Adapter) ([]*billingentity.Line, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
 				Namespace:  input.Namespace,
@@ -61,7 +61,7 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 					return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
 				}
 
-				lineService, err := lineSrv.FromEntity(updateResult.Line)
+				lineService, err := lineSrv.FromEntity(&updateResult.Line)
 				if err != nil {
 					return nil, fmt.Errorf("creating line service[%d]: %w", i, err)
 				}
@@ -79,7 +79,10 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			}
 
 			// Create the invoice Lines
-			createdLines, err := txAdapter.CreateInvoiceLines(ctx, lines.ToEntities())
+			createdLines, err := txAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+				Namespace: input.Namespace,
+				Lines:     lines.ToEntities(),
+			})
 			if err != nil {
 				return nil, fmt.Errorf("creating invoice Line: %w", err)
 			}
@@ -231,17 +234,14 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, lineSrv *lineserv
 
 	// Let's create the sub lines as per the meters
 	for _, line := range invoiceLines {
-		snapshot, err := line.SnapshotQuantity(ctx, &invoice)
-		if err != nil {
+		if err := line.SnapshotQuantity(ctx, &invoice); err != nil {
 			return fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 		}
+	}
 
-		// TODO[OM-980]: detailed lines
-
-		_, err = snapshot.Line.Save(ctx)
-		if err != nil {
-			return fmt.Errorf("line[%s]: saving line: %w", line.ID(), err)
-		}
+	_, err = lineSrv.UpsertLines(ctx, invoice.Namespace, invoiceLines...)
+	if err != nil {
+		return fmt.Errorf("upserting lines: %w", err)
 	}
 
 	return nil

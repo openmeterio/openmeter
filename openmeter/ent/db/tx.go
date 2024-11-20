@@ -32,6 +32,8 @@ type Tx struct {
 	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
 	BillingInvoiceLine *BillingInvoiceLineClient
+	// BillingInvoiceLineDiscount is the client for interacting with the BillingInvoiceLineDiscount builders.
+	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
 	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
@@ -206,6 +208,7 @@ func (tx *Tx) init() {
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
 	tx.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(tx.config)
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
+	tx.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(tx.config)
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)

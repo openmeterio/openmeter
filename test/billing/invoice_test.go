@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -38,7 +39,7 @@ func TestInvoicing(t *testing.T) {
 
 func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	namespace := "ns-create-invoice-workflow"
-	now := time.Now().Truncate(time.Microsecond)
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 	periodEnd := now.Add(-time.Hour)
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
 	issueAt := now.Add(-time.Minute)
@@ -106,8 +107,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		billingProfile = *profile
 	})
 
-	var items []billingentity.Line
-	var HUFItem billingentity.Line
+	var items []*billingentity.Line
+	var HUFItem *billingentity.Line
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
@@ -134,8 +135,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							},
 						},
 						FlatFee: billingentity.FlatFeeLine{
-							Amount:   alpacadecimal.NewFromFloat(100),
-							Quantity: alpacadecimal.NewFromFloat(1),
+							PerUnitAmount: alpacadecimal.NewFromFloat(100),
+							Quantity:      alpacadecimal.NewFromFloat(1),
 						},
 					},
 					{
@@ -150,8 +151,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							Currency: currencyx.Code(currency.HUF),
 						},
 						FlatFee: billingentity.FlatFeeLine{
-							Amount:   alpacadecimal.NewFromFloat(200),
-							Quantity: alpacadecimal.NewFromFloat(3),
+							PerUnitAmount: alpacadecimal.NewFromFloat(200),
+							Quantity:      alpacadecimal.NewFromFloat(3),
 						},
 					},
 					{
@@ -167,7 +168,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						},
 						UsageBased: billingentity.UsageBasedLine{
 							Price: plan.NewPriceFrom(plan.TieredPrice{
-								Mode: plan.VolumeTieredPrice,
+								Mode: plan.GraduatedTieredPrice,
 								Tiers: []plan.PriceTier{
 									{
 										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
@@ -190,7 +191,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		// Then we should have the items created
 		require.NoError(s.T(), err)
-		items = res.Lines
+		items = res
 
 		// Then we should have an usd invoice automatically created
 		usdInvoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
@@ -209,7 +210,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), usdInvoices.Items, 1)
 		usdInvoice := usdInvoices.Items[0]
 
-		expectedUSDLine := billingentity.Line{
+		expectedUSDLine := &billingentity.Line{
 			LineBase: billingentity.LineBase{
 				ID:        items[0].ID,
 				Namespace: namespace,
@@ -217,7 +218,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Period: billingentity.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
 
 				InvoiceID: usdInvoice.ID,
-				InvoiceAt: issueAt,
+				InvoiceAt: issueAt.In(time.UTC),
 
 				Type: billingentity.InvoiceLineTypeFee,
 
@@ -226,22 +227,22 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				Status: billingentity.InvoiceLineStatusValid,
 
-				CreatedAt: usdInvoice.Lines[0].CreatedAt,
-				UpdatedAt: usdInvoice.Lines[0].UpdatedAt,
+				CreatedAt: usdInvoice.Lines[0].CreatedAt.In(time.UTC),
+				UpdatedAt: usdInvoice.Lines[0].UpdatedAt.In(time.UTC),
 
 				Metadata: map[string]string{
 					"key": "value",
 				},
 			},
 			FlatFee: billingentity.FlatFeeLine{
-				Amount:   alpacadecimal.NewFromFloat(100),
-				Quantity: alpacadecimal.NewFromFloat(1),
+				ConfigID:      usdInvoice.Lines[0].FlatFee.ConfigID,
+				PerUnitAmount: alpacadecimal.NewFromFloat(100),
+				Quantity:      alpacadecimal.NewFromFloat(1),
 			},
 		}
 		// Let's make sure that the workflow config is cloned
 		require.NotEqual(s.T(), usdInvoice.Workflow.Config.ID, billingProfile.WorkflowConfig.ID)
-
-		require.Equal(s.T(), usdInvoice, billingentity.Invoice{
+		expectedInvoice := billingentity.Invoice{
 			Namespace: namespace,
 			ID:        usdInvoice.ID,
 
@@ -280,16 +281,20 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			},
 			Supplier: billingProfile.Supplier,
 
-			Lines: []billingentity.Line{expectedUSDLine},
+			Lines: []*billingentity.Line{expectedUSDLine},
 
 			ExpandedFields: billingentity.InvoiceExpandAll,
-		})
+		}
+
+		require.Equal(s.T(),
+			expectedInvoice.RemoveMetaForCompare(),
+			usdInvoice.RemoveMetaForCompare())
 
 		require.Len(s.T(), items, 3)
 		// Validate that the create returns the expected items
 		items[0].CreatedAt = expectedUSDLine.CreatedAt
 		items[0].UpdatedAt = expectedUSDLine.UpdatedAt
-		require.Equal(s.T(), items[0], expectedUSDLine)
+		require.Equal(s.T(), items[0].RemoveMetaForCompare(), expectedUSDLine.RemoveMetaForCompare())
 		require.NotEmpty(s.T(), items[1].ID)
 
 		HUFItem = items[1]
@@ -318,13 +323,13 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		// Then we have two line items for the invoice
 		require.Len(s.T(), hufInvoices.Items[0].Lines, 2)
 
-		_, found := lo.Find(hufInvoices.Items[0].Lines, func(l billingentity.Line) bool {
+		_, found := lo.Find(hufInvoices.Items[0].Lines, func(l *billingentity.Line) bool {
 			return l.Type == billingentity.InvoiceLineTypeFee
 		})
 		require.True(s.T(), found, "manual fee item is present")
 
 		// Then we should have the tiered price present
-		tieredLine, found := lo.Find(hufInvoices.Items[0].Lines, func(l billingentity.Line) bool {
+		tieredLine, found := lo.Find(hufInvoices.Items[0].Lines, func(l *billingentity.Line) bool {
 			return l.Type == billingentity.InvoiceLineTypeUsageBased
 		})
 
@@ -336,7 +341,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Equal(s.T(),
 			tieredPrice,
 			plan.TieredPrice{
-				Mode: plan.VolumeTieredPrice,
+				Mode: plan.GraduatedTieredPrice,
 				Tiers: []plan.PriceTier{
 					{
 						UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
@@ -490,8 +495,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 						},
 					},
 					FlatFee: billingentity.FlatFeeLine{
-						Amount:   alpacadecimal.NewFromFloat(100),
-						Quantity: alpacadecimal.NewFromFloat(1),
+						PerUnitAmount: alpacadecimal.NewFromFloat(100),
+						Quantity:      alpacadecimal.NewFromFloat(1),
 					},
 				},
 				{
@@ -507,8 +512,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 						Currency: currencyx.Code(currency.USD),
 					},
 					FlatFee: billingentity.FlatFeeLine{
-						Amount:   alpacadecimal.NewFromFloat(200),
-						Quantity: alpacadecimal.NewFromFloat(3),
+						PerUnitAmount: alpacadecimal.NewFromFloat(200),
+						Quantity:      alpacadecimal.NewFromFloat(3),
 					},
 				},
 			},
@@ -516,17 +521,17 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	// Then we should have the items created
 	require.NoError(s.T(), err)
-	require.Len(s.T(), res.Lines, 2)
-	line1ID := res.Lines[0].ID
-	line2ID := res.Lines[1].ID
+	require.Len(s.T(), res, 2)
+	line1ID := res[0].ID
+	line2ID := res[1].ID
 	require.NotEmpty(s.T(), line1ID)
 	require.NotEmpty(s.T(), line2ID)
 
 	// Expect that a single gathering invoice has been created
-	require.Equal(s.T(), res.Lines[0].InvoiceID, res.Lines[1].InvoiceID)
+	require.Equal(s.T(), res[0].InvoiceID, res[1].InvoiceID)
 	gatheringInvoiceID := billingentity.InvoiceID{
 		Namespace: namespace,
-		ID:        res.Lines[0].InvoiceID,
+		ID:        res[0].InvoiceID,
 	}
 
 	s.Run("Creating invoice in the future fails", func() {
@@ -687,8 +692,8 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 						},
 					},
 					FlatFee: billingentity.FlatFeeLine{
-						Amount:   alpacadecimal.NewFromFloat(100),
-						Quantity: alpacadecimal.NewFromFloat(1),
+						PerUnitAmount: alpacadecimal.NewFromFloat(100),
+						Quantity:      alpacadecimal.NewFromFloat(1),
 					},
 				},
 				{
@@ -704,17 +709,17 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 						Currency: currencyx.Code(currency.USD),
 					},
 					FlatFee: billingentity.FlatFeeLine{
-						Amount:   alpacadecimal.NewFromFloat(200),
-						Quantity: alpacadecimal.NewFromFloat(3),
+						PerUnitAmount: alpacadecimal.NewFromFloat(200),
+						Quantity:      alpacadecimal.NewFromFloat(3),
 					},
 				},
 			},
 		})
 
 	require.NoError(s.T(), err)
-	require.Len(s.T(), res.Lines, 2)
-	line1ID := res.Lines[0].ID
-	line2ID := res.Lines[1].ID
+	require.Len(s.T(), res, 2)
+	line1ID := res[0].ID
+	line2ID := res[1].ID
 	require.NotEmpty(s.T(), line1ID)
 	require.NotEmpty(s.T(), line2ID)
 
@@ -1251,13 +1256,13 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		},
 		{
 			Namespace:   namespace,
-			Slug:        "tiered-volume",
+			Slug:        "tiered-graduated",
 			WindowSize:  models.WindowSizeMinute,
 			Aggregation: models.MeterAggregationSum,
 		},
 		{
 			Namespace:   namespace,
-			Slug:        "tiered-graduated",
+			Slug:        "tiered-volume",
 			WindowSize:  models.WindowSizeMinute,
 			Aggregation: models.MeterAggregationSum,
 		},
@@ -1266,11 +1271,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
-	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-volume", "tiered-graduated"} {
+	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-graduated", "tiered-volume"} {
 		s.MockStreamingConnector.AddSimpleEvent(slug, 0, periodStart.Add(-time.Minute))
 	}
 
-	s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 10, periodStart)
 	defer s.MockStreamingConnector.Reset()
 
 	// Let's create the features
@@ -1289,17 +1293,17 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			Key:       "flat-per-usage",
 			MeterSlug: lo.ToPtr("flat-per-usage"),
 		})),
-		tieredVolume: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
-			Namespace: namespace,
-			Name:      "tiered-volume",
-			Key:       "tiered-volume",
-			MeterSlug: lo.ToPtr("tiered-volume"),
-		})),
 		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-graduated",
 			Key:       "tiered-graduated",
 			MeterSlug: lo.ToPtr("tiered-graduated"),
+		})),
+		tieredVolume: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "tiered-volume",
+			Key:       "tiered-volume",
+			MeterSlug: lo.ToPtr("tiered-volume"),
 		})),
 	}
 
@@ -1358,7 +1362,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						UsageBased: billingentity.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
 							Price: plan.NewPriceFrom(plan.UnitPrice{
-								Amount: alpacadecimal.NewFromFloat(100),
+								Amount:        alpacadecimal.NewFromFloat(100),
+								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 							}),
 						},
 					},
@@ -1375,40 +1380,6 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 							Price: plan.NewPriceFrom(plan.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: plan.InArrearsPaymentTerm,
-							}),
-						},
-					},
-					{
-						LineBase: billingentity.LineBase{
-							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered volume",
-						},
-						UsageBased: billingentity.UsageBasedLine{
-							FeatureKey: features.tieredVolume.Key,
-							Price: plan.NewPriceFrom(plan.TieredPrice{
-								Mode: plan.VolumeTieredPrice,
-								Tiers: []plan.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &plan.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(100),
-										},
-									},
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &plan.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(90),
-										},
-									},
-									{
-										UnitPrice: &plan.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(80),
-										},
-									},
-								},
 							}),
 						},
 					},
@@ -1446,20 +1417,55 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 							}),
 						},
 					},
+					{
+						LineBase: billingentity.LineBase{
+							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							Currency:  currencyx.Code(currency.USD),
+							Type:      billingentity.InvoiceLineTypeUsageBased,
+							Name:      "UBP - Tiered volume",
+						},
+						UsageBased: billingentity.UsageBasedLine{
+							FeatureKey: features.tieredVolume.Key,
+							Price: plan.NewPriceFrom(plan.TieredPrice{
+								Mode: plan.VolumeTieredPrice,
+								Tiers: []plan.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+										UnitPrice: &plan.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(100),
+										},
+									},
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+										UnitPrice: &plan.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(90),
+										},
+									},
+									{
+										UnitPrice: &plan.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(80),
+										},
+									},
+								},
+								MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+							}),
+						},
+					},
 				},
 			},
 		)
 		require.NoError(s.T(), err)
-		require.Len(s.T(), pendingLines.Lines, 4)
+		require.Len(s.T(), pendingLines, 4)
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range pendingLines.Lines {
+		for _, line := range pendingLines {
 			require.Equal(s.T(),
-				line.Period,
 				billingentity.Period{
 					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
 					End:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:00Z")),
 				},
+				line.Period,
 				"period should be truncated to 1 min resolution",
 			)
 
@@ -1471,10 +1477,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		}
 
 		lines = ubpPendingLines{
-			flatPerUnit:     &pendingLines.Lines[0],
-			flatPerUsage:    &pendingLines.Lines[1],
-			tieredVolume:    &pendingLines.Lines[2],
-			tieredGraduated: &pendingLines.Lines[3],
+			flatPerUnit:     pendingLines[0],
+			flatPerUsage:    pendingLines[1],
+			tieredGraduated: pendingLines[2],
+			tieredVolume:    pendingLines[3],
 		}
 	})
 
@@ -1490,6 +1496,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	})
 
 	s.Run("create mid period invoice", func() {
+		// Usage
+		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 10, periodStart)
+
+		// Period
 		asOf := periodStart.Add(time.Hour)
 		out, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerEntity.GetID(),
@@ -1503,16 +1513,16 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// Let's resolve the lines by parent
 		flatPerUnit := s.lineWithParent(out[0].Lines, lines.flatPerUnit.ID)
 		flatPerUsage := s.lineWithParent(out[0].Lines, lines.flatPerUsage.ID)
-		tieredVolume := s.lineWithParent(out[0].Lines, lines.tieredVolume.ID)
+		tieredGraduated := s.lineWithParent(out[0].Lines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
-		// - the graduated item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l billingentity.Line, _ int) string {
+		// - the volume item as that must be invoiced in arreas
+		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l *billingentity.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
 			flatPerUsage.ID,
-			tieredVolume.ID,
+			tieredGraduated.ID,
 		})
 
 		expectedPeriod := billingentity.Period{
@@ -1524,23 +1534,37 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		}
 
 		// Let's validate the output of the split itself
-		tieredVolumeChildren := s.getLineChildLines(ctx, namespace, lines.tieredVolume.ID)
-		require.True(s.T(), tieredVolumeChildren.ParentLine.Period.Equal(lines.tieredVolume.Period))
+		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
+		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
-		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredVolumeChildren.ParentLine.Status, "parent should be split [id=%s]", tieredVolumeChildren.ParentLine.ID)
-		require.Len(s.T(), tieredVolumeChildren.ChildLines, 2, "there should be to child lines [id=%s]", tieredVolumeChildren.ParentLine.ID)
-		require.True(s.T(), tieredVolumeChildren.ChildLines[0].Period.Equal(billingentity.Period{
+		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 2, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billingentity.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[0].InvoiceAt.Equal(periodStart.Add(time.Hour).Truncate(time.Minute)), "first child should be issued at the end of parent's period")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[1].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].InvoiceAt.Equal(periodStart.Add(time.Hour).Truncate(time.Minute)), "first child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billingentity.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "second child period should be until the end of parent's period")
+
+		// Let's validate detailed line items
+		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.UnitPriceUsageChildUniqueReferenceID: {
+					Quantity:      10,
+					PerUnitAmount: 100,
+				},
+			},
+		})
 	})
 
 	s.Run("create mid period invoice - pt2", func() {
+		// Usage
+		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 20, periodStart.Add(time.Minute*100))
+		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*100))
+
 		asOf := periodStart.Add(2 * time.Hour)
 		out, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerEntity.GetID(),
@@ -1554,16 +1578,16 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// Let's resolve the lines by parent
 		flatPerUnit := s.lineWithParent(out[0].Lines, lines.flatPerUnit.ID)
 		flatPerUsage := s.lineWithParent(out[0].Lines, lines.flatPerUsage.ID)
-		tieredVolume := s.lineWithParent(out[0].Lines, lines.tieredVolume.ID)
+		tieredGraduated := s.lineWithParent(out[0].Lines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
-		// - the graduated item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l billingentity.Line, _ int) string {
+		// - the volume item as that must be invoiced in arreas
+		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l *billingentity.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
 			flatPerUsage.ID,
-			tieredVolume.ID,
+			tieredGraduated.ID,
 		})
 
 		expectedPeriod := billingentity.Period{
@@ -1575,26 +1599,57 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		}
 
 		// Let's validate the output of the split itself
-		tieredVolumeChildren := s.getLineChildLines(ctx, namespace, lines.tieredVolume.ID)
-		require.True(s.T(), tieredVolumeChildren.ParentLine.Period.Equal(lines.tieredVolume.Period))
-		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredVolumeChildren.ParentLine.Status, "parent should be split [id=%s]", tieredVolumeChildren.ParentLine.ID)
-		require.Len(s.T(), tieredVolumeChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredVolumeChildren.ParentLine.ID)
-		require.True(s.T(), tieredVolumeChildren.ChildLines[0].Period.Equal(billingentity.Period{
+		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
+		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
+		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billingentity.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[1].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billingentity.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[2].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billingentity.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
+
+		// Detailed lines
+		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.UnitPriceUsageChildUniqueReferenceID: {
+					Quantity:      20,
+					PerUnitAmount: 100,
+					Discounts: map[string]float64{
+						billingentity.LineMaximumSpendReferenceID: 1000,
+					},
+				},
+			},
+		})
+
+		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
+			Details: map[string]feeLineExpect{
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
+					Quantity:      10,
+					PerUnitAmount: 100,
+				},
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+					Quantity:      5,
+					PerUnitAmount: 90,
+				},
+			},
+		})
 	})
 
 	s.Run("create end of period invoice", func() {
+		// Usage
+		afterPreviousTest := periodStart.Add(3 * time.Hour)
+		s.MockStreamingConnector.AddSimpleEvent("tiered-volume", 25, afterPreviousTest)
+		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, afterPreviousTest)
+
 		asOf := periodEnd
 		out, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
 			Customer: customerEntity.GetID(),
@@ -1608,53 +1663,90 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// Let's resolve the lines by parent
 		flatPerUnit := s.lineWithParent(out[0].Lines, lines.flatPerUnit.ID)
 		flatPerUsage := s.lineWithParent(out[0].Lines, lines.flatPerUsage.ID)
-		tieredVolume := s.lineWithParent(out[0].Lines, lines.tieredVolume.ID)
-		tieredGraduated, tieredGraduatedFound := lo.Find(out[0].Lines, func(l billingentity.Line) bool {
-			return l.ID == lines.tieredGraduated.ID
+		tieredGraduated := s.lineWithParent(out[0].Lines, lines.tieredGraduated.ID)
+		tieredVolume, tieredVolumeFound := lo.Find(out[0].Lines, func(l *billingentity.Line) bool {
+			return l.ID == lines.tieredVolume.ID
 		})
-		require.True(s.T(), tieredGraduatedFound, "tiered graduated line should be present")
-		require.Equal(s.T(), tieredGraduated.ID, lines.tieredGraduated.ID, "tiered graduated line should be the same (no split occurred)")
+		require.True(s.T(), tieredVolumeFound, "tiered volume line should be present")
+		require.Equal(s.T(), tieredVolume.ID, lines.tieredVolume.ID, "tiered volume line should be the same (no split occurred)")
 
-		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l *billingentity.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
 			flatPerUsage.ID,
-			tieredVolume.ID,
-			lines.tieredGraduated.ID,
+			tieredGraduated.ID,
+			lines.tieredVolume.ID,
 		})
 
 		expectedPeriod := billingentity.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}
-		for _, line := range []billingentity.Line{flatPerUnit, flatPerUsage, tieredVolume} {
+		for _, line := range []*billingentity.Line{flatPerUnit, flatPerUsage, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
-		require.True(s.T(), tieredGraduated.Period.Equal(lines.tieredGraduated.Period), "period should be unchanged for the tiered graduated line")
+		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.Period), "period should be unchanged for the tiered volume line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
-		tieredVolumeChildren := s.getLineChildLines(ctx, namespace, lines.tieredVolume.ID)
-		require.True(s.T(), tieredVolumeChildren.ParentLine.Period.Equal(lines.tieredVolume.Period))
-		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredVolumeChildren.ParentLine.Status, "parent should be split [id=%s]", tieredVolumeChildren.ParentLine.ID)
-		require.Len(s.T(), tieredVolumeChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredVolumeChildren.ParentLine.ID)
-		require.True(s.T(), tieredVolumeChildren.ChildLines[0].Period.Equal(billingentity.Period{
+		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
+		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
+		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billingentity.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[1].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billingentity.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredVolumeChildren.ChildLines[2].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billingentity.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
+
+		// Details
+		requireDetailedLines(s.T(), flatPerUsage, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.FlatPriceChildUniqueReferenceID: {
+					Quantity:      1,
+					PerUnitAmount: 100,
+				},
+			},
+		})
+
+		requireDetailedLines(s.T(), tieredVolume, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.VolumeUnitPriceChildUniqueReferenceID: {
+					Quantity:      25,
+					PerUnitAmount: 80,
+				},
+				lineservice.VolumeMinSpendChildUniqueReferenceID: {
+					Quantity:      1,
+					PerUnitAmount: 1000,
+				},
+			},
+		})
+
+		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
+			Details: map[string]feeLineExpect{
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+					Quantity:      5,
+					PerUnitAmount: 90,
+				},
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 3): {
+					Quantity:      10,
+					PerUnitAmount: 80,
+				},
+			},
+		})
 	})
 }
 
-func (s *InvoicingTestSuite) lineWithParent(lines []billingentity.Line, parentID string) billingentity.Line {
+func (s *InvoicingTestSuite) lineWithParent(lines []*billingentity.Line, parentID string) *billingentity.Line {
+	s.T().Helper()
 	for _, line := range lines {
 		if line.ParentLineID != nil && *line.ParentLineID == parentID {
 			return line
@@ -1662,12 +1754,12 @@ func (s *InvoicingTestSuite) lineWithParent(lines []billingentity.Line, parentID
 	}
 
 	require.Fail(s.T(), "line with parent not found")
-	return billingentity.Line{}
+	return nil
 }
 
 type getChlildLinesResponse struct {
-	ParentLine billingentity.Line
-	ChildLines []billingentity.Line
+	ParentLine *billingentity.Line
+	ChildLines []*billingentity.Line
 }
 
 func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, parentID string) getChlildLinesResponse {
@@ -1692,7 +1784,7 @@ func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, p
 		}
 	}
 
-	slices.SortFunc(response.ChildLines, func(a, b billingentity.Line) int {
+	slices.SortFunc(response.ChildLines, func(a, b *billingentity.Line) int {
 		switch {
 		case a.Period.Start.Equal(b.Period.Start):
 			return 0
@@ -1710,13 +1802,58 @@ func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, p
 type ubpPendingLines struct {
 	flatPerUnit     *billingentity.Line
 	flatPerUsage    *billingentity.Line
-	tieredVolume    *billingentity.Line
 	tieredGraduated *billingentity.Line
+	tieredVolume    *billingentity.Line
 }
 
 type ubpFeatures struct {
 	flatPerUnit     feature.Feature
 	flatPerUsage    feature.Feature
-	tieredVolume    feature.Feature
 	tieredGraduated feature.Feature
+	tieredVolume    feature.Feature
+}
+
+type lineExpectations struct {
+	Details map[string]feeLineExpect
+}
+
+type feeLineExpect struct {
+	Quantity      float64
+	PerUnitAmount float64
+	Discounts     map[string]float64
+}
+
+func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations lineExpectations) {
+	t.Helper()
+	require.NotNil(t, line)
+	children := line.Children.Get()
+
+	require.Len(t, children, len(expectations.Details))
+
+	detailsById := lo.GroupBy(children, func(l *billingentity.Line) string {
+		return *l.ChildUniqueReferenceID
+	})
+
+	for key, expect := range expectations.Details {
+		require.Contains(t, detailsById, key, "detail %s should be present", key)
+		detail := detailsById[key][0]
+
+		require.Equal(t, detail.Type, billingentity.InvoiceLineTypeFee, "line type should be fee")
+		require.Equal(t, expect.Quantity, detail.FlatFee.Quantity.InexactFloat64(), "quantity should match")
+		require.Equal(t, expect.PerUnitAmount, detail.FlatFee.PerUnitAmount.InexactFloat64(), "per unit amount should match")
+
+		discounts := detail.Discounts.Get()
+		require.Len(t, discounts, len(expect.Discounts), "discounts should match")
+
+		discountsById := lo.GroupBy(discounts, func(d billingentity.LineDiscount) string {
+			return *d.ChildUniqueReferenceID
+		})
+
+		for discountType, discountExpect := range expect.Discounts {
+			require.Contains(t, discountsById, discountType, "discount %s should be present", discountType)
+			discount := discountsById[discountType][0]
+
+			require.Equal(t, discountExpect, discount.Amount.InexactFloat64(), "discount amount should match")
+		}
+	}
 }

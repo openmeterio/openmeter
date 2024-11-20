@@ -10,14 +10,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type UpdateInput struct {
-	ParentLine  *Line
+	ParentLine  models.Optional[*billingentity.Line]
 	PeriodStart time.Time
 	PeriodEnd   time.Time
 	InvoiceAt   time.Time
 	Status      billingentity.InvoiceLineStatus
+
+	// PreventChildChanges is used to prevent any child changes to the line by the adapter.
+	PreventChildChanges bool
 }
 
 func (i UpdateInput) apply(line *billingentity.Line) {
@@ -36,6 +40,10 @@ func (i UpdateInput) apply(line *billingentity.Line) {
 	if i.Status != "" {
 		line.Status = i.Status
 	}
+
+	if i.PreventChildChanges {
+		line.Children = billingentity.LineChildren{}
+	}
 }
 
 type SplitResult struct {
@@ -44,13 +52,15 @@ type SplitResult struct {
 }
 
 type LineBase interface {
-	ToEntity() billingentity.Line
+	ToEntity() *billingentity.Line
 	ID() string
 	InvoiceID() string
 	Currency() currencyx.Code
 	Period() billingentity.Period
 	Status() billingentity.InvoiceLineStatus
 	HasParent() bool
+	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
+	IsLastInPeriod() bool
 
 	CloneForCreate(in UpdateInput) Line
 	Update(in UpdateInput) Line
@@ -70,11 +80,11 @@ type LineBase interface {
 var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
-	line    billingentity.Line
+	line    *billingentity.Line
 	service *Service
 }
 
-func (l lineBase) ToEntity() billingentity.Line {
+func (l lineBase) ToEntity() *billingentity.Line {
 	return l.line
 }
 
@@ -112,13 +122,29 @@ func (l lineBase) Validate(ctx context.Context, invoice *billingentity.Invoice) 
 	return nil
 }
 
+func (l lineBase) IsLastInPeriod() bool {
+	return (l.line.Status == billingentity.InvoiceLineStatusValid && // We only care about valid lines
+		(l.line.ParentLineID == nil || // Either we haven't split the line
+			l.line.Period.End.Equal(l.line.ParentLine.Period.End))) // Or we have split the line and this is the last split
+}
+
+func (l lineBase) IsFirstInPeriod() bool {
+	return (l.line.Status == billingentity.InvoiceLineStatusValid && // We only care about valid lines
+		(l.line.ParentLineID == nil || // Either we haven't split the line
+			l.line.Period.Start.Equal(l.line.ParentLine.Period.Start))) // Or we have split the line and this is the last split
+}
+
 func (l lineBase) Save(ctx context.Context) (Line, error) {
-	line, err := l.service.BillingAdapter.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineAdapterInput(l.line))
+	lines, err := l.service.BillingAdapter.UpsertInvoiceLines(ctx,
+		billing.UpsertInvoiceLinesAdapterInput{
+			Namespace: l.line.Namespace,
+			Lines:     []*billingentity.Line{l.line},
+		})
 	if err != nil {
 		return nil, fmt.Errorf("updating invoice line: %w", err)
 	}
 
-	return l.service.FromEntity(line)
+	return l.service.FromEntity(lines[0])
 }
 
 func (l lineBase) Service() *Service {
@@ -126,11 +152,14 @@ func (l lineBase) Service() *Service {
 }
 
 func (l lineBase) CloneForCreate(in UpdateInput) Line {
-	l.line.ID = ""
-	l.line.CreatedAt = time.Time{}
-	l.line.UpdatedAt = time.Time{}
+	outEntity := l.line.CloneWithoutDependencies()
+	outEntity.ID = ""
+	outEntity.CreatedAt = time.Time{}
+	outEntity.UpdatedAt = time.Time{}
 
-	return l.update(in)
+	out, _ := l.service.FromEntity(outEntity)
+
+	return out.Update(in)
 }
 
 func (l lineBase) Update(in UpdateInput) Line {
@@ -138,17 +167,17 @@ func (l lineBase) Update(in UpdateInput) Line {
 }
 
 func (l lineBase) update(in UpdateInput) Line {
-	in.apply(&l.line)
+	in.apply(l.line)
 
-	// Let's update the parent line
-	if in.ParentLine != nil {
-		newParentLine := *in.ParentLine
-		if newParentLine == nil {
+	if in.ParentLine.IsPresent() {
+		parentLine := in.ParentLine.Get()
+		// Let's update the parent line
+		if parentLine != nil {
+			l.line.ParentLineID = lo.ToPtr(parentLine.ID)
+			l.line.ParentLine = parentLine
+		} else {
 			l.line.ParentLineID = nil
 			l.line.ParentLine = nil
-		} else {
-			l.line.ParentLineID = lo.ToPtr(newParentLine.ID())
-			l.line.ParentLine = lo.ToPtr(newParentLine.ToEntity())
 		}
 	}
 
@@ -158,6 +187,7 @@ func (l lineBase) update(in UpdateInput) Line {
 	return svc
 }
 
+// TODO[later]: We should rely on UpsertInvoiceLines and do this in bulk.
 func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, error) {
 	// We only split valid lines; split etc. lines are not supported
 	if l.line.Status != billingentity.InvoiceLineStatusValid {
@@ -170,7 +200,8 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 	if !l.HasParent() {
 		parentLine, err := l.Update(UpdateInput{
-			Status: billingentity.InvoiceLineStatusSplit,
+			Status:              billingentity.InvoiceLineStatusSplit,
+			PreventChildChanges: true,
 		}).Save(ctx)
 		if err != nil {
 			return SplitResult{}, fmt.Errorf("saving parent line: %w", err)
@@ -178,19 +209,19 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 		// Let's create the child lines
 		preSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine: &parentLine,
+			ParentLine: models.OptionalWithValue(parentLine.ToEntity()),
 			Status:     billingentity.InvoiceLineStatusValid,
 			PeriodEnd:  splitAt,
 			InvoiceAt:  splitAt,
 		})
 
 		postSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine:  &parentLine,
+			ParentLine:  models.OptionalWithValue(parentLine.ToEntity()),
 			Status:      billingentity.InvoiceLineStatusValid,
 			PeriodStart: splitAt,
 		})
 
-		splitLines, err := l.service.CreateLines(ctx, preSplitAtLine, postSplitAtLine)
+		splitLines, err := l.service.UpsertLines(ctx, l.line.Namespace, preSplitAtLine, postSplitAtLine)
 		if err != nil {
 			return SplitResult{}, fmt.Errorf("creating split lines: %w", err)
 		}
@@ -202,17 +233,14 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 	}
 
 	// We have alredy split the line once, we just need to create a new line and update the existing line
-	postSplitAtLine := l.CloneForCreate(UpdateInput{
+	postSplitAtLine, err := l.CloneForCreate(UpdateInput{
 		Status:      billingentity.InvoiceLineStatusValid,
 		PeriodStart: splitAt,
-	})
-
-	createdLines, err := l.service.CreateLines(ctx, postSplitAtLine)
+		ParentLine:  models.OptionalWithValue(l.line.ParentLine),
+	}).Save(ctx)
 	if err != nil {
 		return SplitResult{}, fmt.Errorf("creating split lines: %w", err)
 	}
-
-	postSplitAtLine = createdLines[0]
 
 	preSplitAtLine, err := l.Update(UpdateInput{
 		PeriodEnd: splitAt,

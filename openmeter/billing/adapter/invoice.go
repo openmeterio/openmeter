@@ -17,10 +17,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -58,11 +58,16 @@ func (r *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 		return billingentity.Invoice{}, err
 	}
 
-	return mapInvoiceFromDB(*invoice, in.Expand)
+	return r.mapInvoiceFromDB(ctx, *invoice, in.Expand)
 }
 
 func (r *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery) *db.BillingInvoiceQuery {
 	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		q = q.Where(
+			billinginvoiceline.DeletedAtIsNil(),
+			// Detailed lines are sub-lines of a line and should not be included in the top-level invoice
+			billinginvoiceline.StatusIn(billingentity.InvoiceLineStatusValid),
+		)
 		r.expandLineItems(q)
 	})
 }
@@ -198,7 +203,7 @@ func (r *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 
 	result := make([]billingentity.Invoice, 0, len(paged.Items))
 	for _, invoice := range paged.Items {
-		mapped, err := mapInvoiceFromDB(*invoice, input.Expand)
+		mapped, err := r.mapInvoiceFromDB(ctx, *invoice, input.Expand)
 		if err != nil {
 			return response, err
 		}
@@ -284,7 +289,7 @@ func (r *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 	// Let's add required edges for mapping
 	newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-	return mapInvoiceFromDB(*newInvoice, billingentity.InvoiceExpandAll)
+	return r.mapInvoiceFromDB(ctx, *newInvoice, billingentity.InvoiceExpandAll)
 }
 
 type lineCountQueryOut struct {
@@ -448,14 +453,15 @@ func (r *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 	}
 
 	if in.ExpandedFields.Lines {
-		// TODO[later]: line updates (with changed flag)
+		// TODO[OM-982]: line updates
+		// Remove this as we don't need it
 		r.logger.WarnContext(ctx, "line updates are not yet implemented")
 	}
 
 	return nil
 }
 
-func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExpand) (billingentity.Invoice, error) {
+func (r *adapter) mapInvoiceFromDB(ctx context.Context, invoice db.BillingInvoice, expand billingentity.InvoiceExpand) (billingentity.Invoice, error) {
 	res := billingentity.Invoice{
 		ID:          invoice.ID,
 		Namespace:   invoice.Namespace,
@@ -497,10 +503,10 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExp
 			UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
 		},
 		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
-		IssuedAt:  invoice.IssuedAt,
-		CreatedAt: invoice.CreatedAt,
-		UpdatedAt: invoice.UpdatedAt,
-		DeletedAt: invoice.DeletedAt,
+		IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
+		CreatedAt: invoice.CreatedAt.In(time.UTC),
+		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
+		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
 
 		ExpandedFields: expand,
 	}
@@ -530,9 +536,7 @@ func mapInvoiceFromDB(invoice db.BillingInvoice, expand billingentity.InvoiceExp
 	}
 
 	if len(invoice.Edges.BillingInvoiceLines) > 0 {
-		mappedLines, err := slicesx.MapWithErr(invoice.Edges.BillingInvoiceLines, func(line *db.BillingInvoiceLine) (billingentity.Line, error) {
-			return mapInvoiceLineFromDB(line)
-		})
+		mappedLines, err := r.mapInvoiceLineFromDB(ctx, invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billingentity.Invoice{}, err
 		}
@@ -548,7 +552,7 @@ func mapPeriodFromDB(start, end *time.Time) *billingentity.Period {
 		return nil
 	}
 	return &billingentity.Period{
-		Start: *start,
-		End:   *end,
+		Start: start.In(time.UTC),
+		End:   end.In(time.UTC),
 	}
 }

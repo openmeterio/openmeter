@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -31,7 +32,8 @@ type BillingInvoiceLineQuery struct {
 	withFlatFeeLine    *BillingInvoiceFlatFeeLineConfigQuery
 	withUsageBasedLine *BillingInvoiceUsageBasedLineConfigQuery
 	withParentLine     *BillingInvoiceLineQuery
-	withChildLines     *BillingInvoiceLineQuery
+	withDetailedLines  *BillingInvoiceLineQuery
+	withLineDiscounts  *BillingInvoiceLineDiscountQuery
 	withFKs            bool
 	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -158,8 +160,8 @@ func (bilq *BillingInvoiceLineQuery) QueryParentLine() *BillingInvoiceLineQuery 
 	return query
 }
 
-// QueryChildLines chains the current query on the "child_lines" edge.
-func (bilq *BillingInvoiceLineQuery) QueryChildLines() *BillingInvoiceLineQuery {
+// QueryDetailedLines chains the current query on the "detailed_lines" edge.
+func (bilq *BillingInvoiceLineQuery) QueryDetailedLines() *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: bilq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := bilq.prepareQuery(ctx); err != nil {
@@ -172,7 +174,29 @@ func (bilq *BillingInvoiceLineQuery) QueryChildLines() *BillingInvoiceLineQuery 
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChildLinesTable, billinginvoiceline.ChildLinesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.DetailedLinesTable, billinginvoiceline.DetailedLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryLineDiscounts chains the current query on the "line_discounts" edge.
+func (bilq *BillingInvoiceLineQuery) QueryLineDiscounts() *BillingInvoiceLineDiscountQuery {
+	query := (&BillingInvoiceLineDiscountClient{config: bilq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := bilq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := bilq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(billinginvoicelinediscount.Table, billinginvoicelinediscount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.LineDiscountsTable, billinginvoiceline.LineDiscountsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
 		return fromU, nil
@@ -376,7 +400,8 @@ func (bilq *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		withFlatFeeLine:    bilq.withFlatFeeLine.Clone(),
 		withUsageBasedLine: bilq.withUsageBasedLine.Clone(),
 		withParentLine:     bilq.withParentLine.Clone(),
-		withChildLines:     bilq.withChildLines.Clone(),
+		withDetailedLines:  bilq.withDetailedLines.Clone(),
+		withLineDiscounts:  bilq.withLineDiscounts.Clone(),
 		// clone intermediate query.
 		sql:  bilq.sql.Clone(),
 		path: bilq.path,
@@ -427,14 +452,25 @@ func (bilq *BillingInvoiceLineQuery) WithParentLine(opts ...func(*BillingInvoice
 	return bilq
 }
 
-// WithChildLines tells the query-builder to eager-load the nodes that are connected to
-// the "child_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (bilq *BillingInvoiceLineQuery) WithChildLines(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceLineQuery {
+// WithDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithDetailedLines(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: bilq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bilq.withChildLines = query
+	bilq.withDetailedLines = query
+	return bilq
+}
+
+// WithLineDiscounts tells the query-builder to eager-load the nodes that are connected to
+// the "line_discounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithLineDiscounts(opts ...func(*BillingInvoiceLineDiscountQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineDiscountClient{config: bilq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	bilq.withLineDiscounts = query
 	return bilq
 }
 
@@ -517,12 +553,13 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = bilq.withFKs
 		_spec       = bilq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			bilq.withBillingInvoice != nil,
 			bilq.withFlatFeeLine != nil,
 			bilq.withUsageBasedLine != nil,
 			bilq.withParentLine != nil,
-			bilq.withChildLines != nil,
+			bilq.withDetailedLines != nil,
+			bilq.withLineDiscounts != nil,
 		}
 	)
 	if bilq.withFlatFeeLine != nil || bilq.withUsageBasedLine != nil {
@@ -576,10 +613,21 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 			return nil, err
 		}
 	}
-	if query := bilq.withChildLines; query != nil {
-		if err := bilq.loadChildLines(ctx, query, nodes,
-			func(n *BillingInvoiceLine) { n.Edges.ChildLines = []*BillingInvoiceLine{} },
-			func(n *BillingInvoiceLine, e *BillingInvoiceLine) { n.Edges.ChildLines = append(n.Edges.ChildLines, e) }); err != nil {
+	if query := bilq.withDetailedLines; query != nil {
+		if err := bilq.loadDetailedLines(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.DetailedLines = []*BillingInvoiceLine{} },
+			func(n *BillingInvoiceLine, e *BillingInvoiceLine) {
+				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := bilq.withLineDiscounts; query != nil {
+		if err := bilq.loadLineDiscounts(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.LineDiscounts = []*BillingInvoiceLineDiscount{} },
+			func(n *BillingInvoiceLine, e *BillingInvoiceLineDiscount) {
+				n.Edges.LineDiscounts = append(n.Edges.LineDiscounts, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -711,7 +759,7 @@ func (bilq *BillingInvoiceLineQuery) loadParentLine(ctx context.Context, query *
 	}
 	return nil
 }
-func (bilq *BillingInvoiceLineQuery) loadChildLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLine)) error {
+func (bilq *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingInvoiceLine)
 	for i := range nodes {
@@ -726,7 +774,7 @@ func (bilq *BillingInvoiceLineQuery) loadChildLines(ctx context.Context, query *
 		query.ctx.AppendFieldOnce(billinginvoiceline.FieldParentLineID)
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(billinginvoiceline.ChildLinesColumn), fks...))
+		s.Where(sql.InValues(s.C(billinginvoiceline.DetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -740,6 +788,36 @@ func (bilq *BillingInvoiceLineQuery) loadChildLines(ctx context.Context, query *
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "parent_line_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (bilq *BillingInvoiceLineQuery) loadLineDiscounts(ctx context.Context, query *BillingInvoiceLineDiscountQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLineDiscount)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicelinediscount.FieldLineID)
+	}
+	query.Where(predicate.BillingInvoiceLineDiscount(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.LineDiscountsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LineID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

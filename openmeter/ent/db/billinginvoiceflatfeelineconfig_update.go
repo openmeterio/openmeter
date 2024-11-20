@@ -28,16 +28,16 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) Where(ps ...predicate.Bill
 	return bifflcu
 }
 
-// SetAmount sets the "amount" field.
-func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdate {
-	bifflcu.mutation.SetAmount(a)
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetPerUnitAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdate {
+	bifflcu.mutation.SetPerUnitAmount(a)
 	return bifflcu
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdate {
+// SetNillablePerUnitAmount sets the "per_unit_amount" field if the given value is not nil.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillablePerUnitAmount(a *alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdate {
 	if a != nil {
-		bifflcu.SetAmount(*a)
+		bifflcu.SetPerUnitAmount(*a)
 	}
 	return bifflcu
 }
@@ -83,8 +83,8 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) sqlSave(ctx context.Contex
 			}
 		}
 	}
-	if value, ok := bifflcu.mutation.Amount(); ok {
-		_spec.SetField(billinginvoiceflatfeelineconfig.FieldAmount, field.TypeOther, value)
+	if value, ok := bifflcu.mutation.PerUnitAmount(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, field.TypeOther, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bifflcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -106,16 +106,16 @@ type BillingInvoiceFlatFeeLineConfigUpdateOne struct {
 	mutation *BillingInvoiceFlatFeeLineConfigMutation
 }
 
-// SetAmount sets the "amount" field.
-func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdateOne {
-	bifflcuo.mutation.SetAmount(a)
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetPerUnitAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	bifflcuo.mutation.SetPerUnitAmount(a)
 	return bifflcuo
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+// SetNillablePerUnitAmount sets the "per_unit_amount" field if the given value is not nil.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillablePerUnitAmount(a *alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	if a != nil {
-		bifflcuo.SetAmount(*a)
+		bifflcuo.SetPerUnitAmount(*a)
 	}
 	return bifflcuo
 }
@@ -191,8 +191,8 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) sqlSave(ctx context.Co
 			}
 		}
 	}
-	if value, ok := bifflcuo.mutation.Amount(); ok {
-		_spec.SetField(billinginvoiceflatfeelineconfig.FieldAmount, field.TypeOther, value)
+	if value, ok := bifflcuo.mutation.PerUnitAmount(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, field.TypeOther, value)
 	}
 	_node = &BillingInvoiceFlatFeeLineConfig{config: bifflcuo.config}
 	_spec.Assign = _node.assignValues

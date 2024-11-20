@@ -59,6 +59,8 @@ type BillingInvoiceLine struct {
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig plan.TaxConfig `json:"tax_config,omitempty"`
+	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
+	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`
@@ -77,11 +79,13 @@ type BillingInvoiceLineEdges struct {
 	UsageBasedLine *BillingInvoiceUsageBasedLineConfig `json:"usage_based_line,omitempty"`
 	// ParentLine holds the value of the parent_line edge.
 	ParentLine *BillingInvoiceLine `json:"parent_line,omitempty"`
-	// ChildLines holds the value of the child_lines edge.
-	ChildLines []*BillingInvoiceLine `json:"child_lines,omitempty"`
+	// DetailedLines holds the value of the detailed_lines edge.
+	DetailedLines []*BillingInvoiceLine `json:"detailed_lines,omitempty"`
+	// LineDiscounts holds the value of the line_discounts edge.
+	LineDiscounts []*BillingInvoiceLineDiscount `json:"line_discounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -128,13 +132,22 @@ func (e BillingInvoiceLineEdges) ParentLineOrErr() (*BillingInvoiceLine, error) 
 	return nil, &NotLoadedError{edge: "parent_line"}
 }
 
-// ChildLinesOrErr returns the ChildLines value or an error if the edge
+// DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e BillingInvoiceLineEdges) ChildLinesOrErr() ([]*BillingInvoiceLine, error) {
+func (e BillingInvoiceLineEdges) DetailedLinesOrErr() ([]*BillingInvoiceLine, error) {
 	if e.loadedTypes[4] {
-		return e.ChildLines, nil
+		return e.DetailedLines, nil
 	}
-	return nil, &NotLoadedError{edge: "child_lines"}
+	return nil, &NotLoadedError{edge: "detailed_lines"}
+}
+
+// LineDiscountsOrErr returns the LineDiscounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) LineDiscountsOrErr() ([]*BillingInvoiceLineDiscount, error) {
+	if e.loadedTypes[5] {
+		return e.LineDiscounts, nil
+	}
+	return nil, &NotLoadedError{edge: "line_discounts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -146,7 +159,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldChildUniqueReferenceID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -285,6 +298,13 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
 			}
+		case billinginvoiceline.FieldChildUniqueReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
+			} else if value.Valid {
+				bil.ChildUniqueReferenceID = new(string)
+				*bil.ChildUniqueReferenceID = value.String
+			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
@@ -332,9 +352,14 @@ func (bil *BillingInvoiceLine) QueryParentLine() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceLineClient(bil.config).QueryParentLine(bil)
 }
 
-// QueryChildLines queries the "child_lines" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryChildLines() *BillingInvoiceLineQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryChildLines(bil)
+// QueryDetailedLines queries the "detailed_lines" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryDetailedLines() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryDetailedLines(bil)
+}
+
+// QueryLineDiscounts queries the "line_discounts" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryLineDiscounts() *BillingInvoiceLineDiscountQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryLineDiscounts(bil)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.
@@ -418,6 +443,11 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", bil.TaxConfig))
+	builder.WriteString(", ")
+	if v := bil.ChildUniqueReferenceID; v != nil {
+		builder.WriteString("child_unique_reference_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

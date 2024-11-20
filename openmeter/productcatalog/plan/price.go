@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -310,7 +311,9 @@ func (u UnitPrice) Validate() error {
 }
 
 const (
-	VolumeTieredPrice    TieredPriceMode = "volume"
+	// In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
+	VolumeTieredPrice TieredPriceMode = "volume"
+	// In `graduated` tiering, pricing can change as the quantity grows.
 	GraduatedTieredPrice TieredPriceMode = "graduated"
 )
 
@@ -364,8 +367,17 @@ func (t TieredPrice) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid TieredPrice mode: %s", t.Mode))
 	}
 
+	if len(t.Tiers) == 0 {
+		errs = append(errs, errors.New("at least one PriceTier must be provided"))
+	}
+
 	upToAmounts := make(map[string]struct{}, len(t.Tiers))
+	tierOpenEndedPresent := false
 	for _, tier := range t.Tiers {
+		if tier.UpToAmount == nil {
+			tierOpenEndedPresent = true
+		}
+
 		uta := lo.FromPtrOr(tier.UpToAmount, decimal.Zero)
 		if !uta.IsZero() {
 			if _, ok := upToAmounts[uta.String()]; ok {
@@ -379,6 +391,10 @@ func (t TieredPrice) Validate() error {
 		if err := tier.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid PriceTier: %w", err))
 		}
+	}
+
+	if !tierOpenEndedPresent {
+		errs = append(errs, errors.New("at least one PriceTier must be open-ended"))
 	}
 
 	minAmount := lo.FromPtrOr(t.MinimumAmount, decimal.Zero)
@@ -402,6 +418,31 @@ func (t TieredPrice) Validate() error {
 	}
 
 	return nil
+}
+
+func (t TieredPrice) WithSortedTiers() TieredPrice {
+	out := t
+	out.Tiers = make([]PriceTier, len(t.Tiers))
+	copy(out.Tiers, t.Tiers)
+
+	// Sort tiers by UpToAmount in ascending order
+	slices.SortFunc(out.Tiers, func(a, b PriceTier) int {
+		if a.UpToAmount == nil && b.UpToAmount == nil {
+			return 0
+		}
+
+		if a.UpToAmount == nil {
+			return 1
+		}
+
+		if b.UpToAmount == nil {
+			return -1
+		}
+
+		return a.UpToAmount.Cmp(*b.UpToAmount)
+	})
+
+	return out
 }
 
 var _ Validator = (*PriceTier)(nil)

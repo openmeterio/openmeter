@@ -3,6 +3,7 @@ package billingadapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -276,9 +278,9 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile,
 		Description: dbProfile.Description,
 		Metadata:    dbProfile.Metadata,
 
-		CreatedAt: dbProfile.CreatedAt,
-		UpdatedAt: dbProfile.UpdatedAt,
-		DeletedAt: dbProfile.DeletedAt,
+		CreatedAt: dbProfile.CreatedAt.In(time.UTC),
+		UpdatedAt: dbProfile.UpdatedAt.In(time.UTC),
+		DeletedAt: convert.TimePtrIn(dbProfile.DeletedAt, time.UTC),
 
 		Supplier: billingentity.SupplierContact{
 			Name: dbProfile.SupplierName,
@@ -308,9 +310,9 @@ func mapWorkflowConfigToDB(wc billingentity.WorkflowConfig) *db.BillingWorkflowC
 	return &db.BillingWorkflowConfig{
 		ID: wc.ID,
 
-		CreatedAt: wc.CreatedAt,
-		UpdatedAt: wc.UpdatedAt,
-		DeletedAt: wc.DeletedAt,
+		CreatedAt: wc.CreatedAt.In(time.UTC),
+		UpdatedAt: wc.UpdatedAt.In(time.UTC),
+		DeletedAt: convert.TimePtrIn(wc.DeletedAt, time.UTC),
 
 		CollectionAlignment:     wc.Collection.Alignment,
 		LineCollectionPeriod:    wc.Collection.Interval.ISOString(),
@@ -340,9 +342,9 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billingentity.Work
 	return billingentity.WorkflowConfig{
 		ID: dbWC.ID,
 
-		CreatedAt: dbWC.CreatedAt,
-		UpdatedAt: dbWC.UpdatedAt,
-		DeletedAt: dbWC.DeletedAt,
+		CreatedAt: dbWC.CreatedAt.In(time.UTC),
+		UpdatedAt: dbWC.UpdatedAt.In(time.UTC),
+		DeletedAt: convert.TimePtrIn(dbWC.DeletedAt, time.UTC),
 
 		Collection: billingentity.CollectionConfig{
 			Alignment: dbWC.CollectionAlignment,

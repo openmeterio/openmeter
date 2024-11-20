@@ -119,7 +119,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 
 	// Let's calculate [parent.start ... line.end] values
 	upToLineEnd := meterQueryParams
-	upToLineEnd.From = &in.Line.Period.Start
+	upToLineEnd.From = &in.ParentLine.Period.Start
 	upToLineEnd.To = &in.Line.Period.End
 
 	upToLineEndResult, err := s.StreamingConnector.QueryMeter(

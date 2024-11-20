@@ -50,6 +50,8 @@ const (
 	FieldQuantity = "quantity"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
+	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
@@ -58,8 +60,10 @@ const (
 	EdgeUsageBasedLine = "usage_based_line"
 	// EdgeParentLine holds the string denoting the parent_line edge name in mutations.
 	EdgeParentLine = "parent_line"
-	// EdgeChildLines holds the string denoting the child_lines edge name in mutations.
-	EdgeChildLines = "child_lines"
+	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
+	EdgeDetailedLines = "detailed_lines"
+	// EdgeLineDiscounts holds the string denoting the line_discounts edge name in mutations.
+	EdgeLineDiscounts = "line_discounts"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -87,10 +91,17 @@ const (
 	ParentLineTable = "billing_invoice_lines"
 	// ParentLineColumn is the table column denoting the parent_line relation/edge.
 	ParentLineColumn = "parent_line_id"
-	// ChildLinesTable is the table that holds the child_lines relation/edge.
-	ChildLinesTable = "billing_invoice_lines"
-	// ChildLinesColumn is the table column denoting the child_lines relation/edge.
-	ChildLinesColumn = "parent_line_id"
+	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
+	DetailedLinesTable = "billing_invoice_lines"
+	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
+	DetailedLinesColumn = "parent_line_id"
+	// LineDiscountsTable is the table that holds the line_discounts relation/edge.
+	LineDiscountsTable = "billing_invoice_line_discounts"
+	// LineDiscountsInverseTable is the table name for the BillingInvoiceLineDiscount entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicelinediscount" package.
+	LineDiscountsInverseTable = "billing_invoice_line_discounts"
+	// LineDiscountsColumn is the table column denoting the line_discounts relation/edge.
+	LineDiscountsColumn = "line_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -113,6 +124,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldQuantity,
 	FieldTaxConfig,
+	FieldChildUniqueReferenceID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
@@ -165,7 +177,7 @@ func TypeValidator(_type billingentity.InvoiceLineType) error {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s billingentity.InvoiceLineStatus) error {
 	switch s {
-	case "valid", "split":
+	case "valid", "split", "detailed":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceline: invalid enum value for status field: %q", s)
@@ -255,6 +267,11 @@ func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
 }
 
+// ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
+func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
+}
+
 // ByBillingInvoiceField orders the results by billing_invoice field.
 func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -283,17 +300,31 @@ func ByParentLineField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByChildLinesCount orders the results by child_lines count.
-func ByChildLinesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByDetailedLinesCount orders the results by detailed_lines count.
+func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChildLinesStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newDetailedLinesStep(), opts...)
 	}
 }
 
-// ByChildLines orders the results by child_lines terms.
-func ByChildLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByDetailedLines orders the results by detailed_lines terms.
+func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChildLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByLineDiscountsCount orders the results by line_discounts count.
+func ByLineDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newLineDiscountsStep(), opts...)
+	}
+}
+
+// ByLineDiscounts orders the results by line_discounts terms.
+func ByLineDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLineDiscountsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newBillingInvoiceStep() *sqlgraph.Step {
@@ -324,10 +355,17 @@ func newParentLineStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, ParentLineTable, ParentLineColumn),
 	)
 }
-func newChildLinesStep() *sqlgraph.Step {
+func newDetailedLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChildLinesTable, ChildLinesColumn),
+		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+	)
+}
+func newLineDiscountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LineDiscountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LineDiscountsTable, LineDiscountsColumn),
 	)
 }

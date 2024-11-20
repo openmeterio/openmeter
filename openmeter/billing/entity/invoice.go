@@ -170,7 +170,7 @@ type Invoice struct {
 	Workflow *InvoiceWorkflow `json:"workflow,omitempty"`
 
 	// Line items
-	Lines []Line `json:"lines,omitempty"`
+	Lines []*Line `json:"lines,omitempty"`
 
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
 
@@ -198,6 +198,20 @@ func (i *Invoice) HasCriticalValidationIssues() bool {
 	})
 
 	return found
+}
+
+// RemoveMetaForCompare returns a copy of the invoice without the fields that are not relevant for higher level
+// tests that compare invoices. What gets removed:
+// - Line's DB state
+// - Line's dependencies are marked as resolved
+// - Parent pointers are removed
+func (i Invoice) RemoveMetaForCompare() Invoice {
+	invoice := i
+	invoice.Lines = lo.Map(i.Lines, func(line *Line, _ int) *Line {
+		return line.RemoveMetaForCompare()
+	})
+
+	return invoice
 }
 
 type InvoiceAction string
