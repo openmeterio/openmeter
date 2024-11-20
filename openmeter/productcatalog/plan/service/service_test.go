@@ -27,7 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
-func TestService(t *testing.T) {
+func TestPlanService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
