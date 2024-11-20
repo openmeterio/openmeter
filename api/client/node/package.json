@@ -34,7 +34,7 @@
     "build": "duel",
     "generate": "rimraf ./schemas && openapi-typescript '../../openapi.cloud.yaml' --output schemas/openapi.ts && prettier --write schemas/",
     "pretest": "pnpm run build",
-    "test": "vitest --run",
+    "test": "TZ=utc vitest --run",
     "test:watch": "vitest --watch",
     "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run test && pnpm run lint"
   },

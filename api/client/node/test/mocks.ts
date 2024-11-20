@@ -10,7 +10,7 @@ import {
   EntitlementGrantCreateInput,
 } from '../clients/grant.js'
 import { Subject } from '../clients/subject.js'
-import { Event, Meter, WindowSize } from '../index.js'
+import { Event, IngestedEvent, Meter, WindowSize } from '../index.js'
 
 export const mockEvent: Event = {
   specversion: '1.0',
@@ -22,6 +22,22 @@ export const mockEvent: Event = {
   data: {
     api_calls: 1,
   },
+}
+
+export const mockIngestedEvent: IngestedEvent = {
+  event: {
+    specversion: '1.0',
+    id: 'id-1',
+    source: 'my-app',
+    type: 'my-type',
+    subject: 'my-awesome-user-id',
+    time: new Date('2023-01-01').toISOString(),
+    data: {
+      api_calls: 1,
+    },
+  },
+  ingestedAt: new Date('2023-01-01').toISOString(),
+  storedAt: new Date('2023-01-01').toISOString(),
 }
 
 export const mockMeter: Meter = {
@@ -76,10 +92,15 @@ export const mockCreateEntitlementInput: EntitlementCreateInputs = {
     interval: 'MONTH',
   },
   issueAfterReset: 10000000,
+  isSoftLimit: false,
+  isUnlimited: false,
+  issueAfterResetPriority: 1,
+  preserveOverageAtReset: false,
 }
 
 export const mockEntitlement: Entitlement = {
-  type: 'metered',
+  ...mockCreateEntitlementInput,
+
   id: 'entitlement-1',
   featureId: mockFeature.id,
   featureKey: mockFeature.key,
@@ -93,7 +114,6 @@ export const mockEntitlement: Entitlement = {
     to: '2024-01-01T00:00:00Z',
   },
   measureUsageFrom: '2024-01-01T00:00:00Z',
-  issueAfterReset: mockCreateEntitlementInput.issueAfterReset,
   lastReset: '2024-01-01T00:00:00Z',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
