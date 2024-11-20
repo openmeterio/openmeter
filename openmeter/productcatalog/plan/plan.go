@@ -64,28 +64,24 @@ func (p Plan) Validate() error {
 	var errs []error
 
 	if err := p.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid currency code: %s", err))
+		errs = append(errs, fmt.Errorf("invalid Currency: %s", err))
 	}
 
 	if p.Status() == InvalidStatus {
-		errs = append(errs, fmt.Errorf("invalid effective time range: to is before from"))
+		errs = append(errs, fmt.Errorf("invalid Status"))
 	}
 
-	// Check if there are multiple plan phase with the same startAfter which is not allowed.
+	// Check if there are multiple plan phase with the same startAfter which is not allowed
 	startAfters := make(map[datex.ISOString]Phase)
 	for _, phase := range p.Phases {
 		startAfter := phase.StartAfter.ISOString()
 
 		if _, ok := startAfters[startAfter]; ok {
-			errs = append(errs, fmt.Errorf("multiple plan phases have the same startAfter which is not allowed: %q", phase.Name))
-		}
-
-		if phase.Namespace != p.Namespace {
-			errs = append(errs, fmt.Errorf("invalid phase %q: namespace mismatch %s", phase.Key, phase.Namespace))
+			errs = append(errs, fmt.Errorf("multiple PlanPhases have the same startAfter which is not allowed: %q", phase.Name))
 		}
 
 		if err := phase.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid phase %q: %s", phase.Name, err))
+			errs = append(errs, fmt.Errorf("invalid PlanPhase %q: %s", phase.Name, err))
 		}
 	}
 

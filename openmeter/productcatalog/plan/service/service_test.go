@@ -27,7 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
-func TestPlanService(t *testing.T) {
+func TestService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -345,7 +345,7 @@ func TestPlanService(t *testing.T) {
 					t.Run("Remove", func(t *testing.T) {
 						updateInput := plan.UpdatePlanInput{
 							NamespacedID: models.NamespacedID{
-								Namespace: planInput.Namespace,
+								Namespace: nextPlan.Namespace,
 								ID:        nextPlan.ID,
 							},
 							Phases: lo.ToPtr([]plan.Phase{}),
@@ -362,7 +362,7 @@ func TestPlanService(t *testing.T) {
 						reAddPhases := slices.Clone(draftPlan.Phases)
 						updateInput := plan.UpdatePlanInput{
 							NamespacedID: models.NamespacedID{
-								Namespace: planInput.Namespace,
+								Namespace: nextPlan.Namespace,
 								ID:        nextPlan.ID,
 							},
 							Phases: lo.ToPtr(reAddPhases),
@@ -376,7 +376,6 @@ func TestPlanService(t *testing.T) {
 					})
 				})
 
-				var publishedNextPlan *plan.Plan
 				t.Run("Publish", func(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
@@ -391,7 +390,7 @@ func TestPlanService(t *testing.T) {
 						},
 					}
 
-					publishedNextPlan, err = env.Plan.PublishPlan(ctx, publishInput)
+					publishedNextPlan, err := env.Plan.PublishPlan(ctx, publishInput)
 					require.NoErrorf(t, err, "publishing draft Plan must not fail")
 					require.NotNil(t, publishedNextPlan, "published Plan must not be empty")
 					require.NotNil(t, publishedNextPlan.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
@@ -409,46 +408,43 @@ func TestPlanService(t *testing.T) {
 					require.NotNil(t, prevPlan, "previous Plan version must not be empty")
 
 					assert.Equalf(t, plan.ArchivedStatus, prevPlan.Status(), "Plan Status mismatch: expected=%s, actual=%s", plan.ArchivedStatus, prevPlan.Status())
-				})
 
-				var archivedPlan *plan.Plan
-				t.Run("Archive", func(t *testing.T) {
-					archiveAt := time.Now().Truncate(time.Microsecond)
+					t.Run("Archive", func(t *testing.T) {
+						archiveAt := time.Now().Truncate(time.Microsecond)
 
-					archiveInput := plan.ArchivePlanInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: nextPlan.Namespace,
-							ID:        nextPlan.ID,
-						},
-						EffectiveTo: archiveAt,
-					}
+						archiveInput := plan.ArchivePlanInput{
+							NamespacedID: models.NamespacedID{
+								Namespace: nextPlan.Namespace,
+								ID:        nextPlan.ID,
+							},
+							EffectiveTo: archiveAt,
+						}
 
-					archivedPlan, err = env.Plan.ArchivePlan(ctx, archiveInput)
-					require.NoErrorf(t, err, "archiving Plan must not fail")
-					require.NotNil(t, archivedPlan, "archived Plan must not be empty")
-					require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
+						archivedPlan, err := env.Plan.ArchivePlan(ctx, archiveInput)
+						require.NoErrorf(t, err, "archiving Plan must not fail")
+						require.NotNil(t, archivedPlan, "archived Plan must not be empty")
+						require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
 
-					assert.Equalf(t, archiveAt, *archivedPlan.EffectiveTo, "EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlan.EffectiveTo)
-					assert.Equalf(t, plan.ArchivedStatus, archivedPlan.Status(), "Status mismatch for archived Plan: expected=%s, actual=%s", plan.ArchivedStatus, archivedPlan.Status())
+						assert.Equalf(t, archiveAt, *archivedPlan.EffectiveTo, "EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlan.EffectiveTo)
+						assert.Equalf(t, plan.ArchivedStatus, archivedPlan.Status(), "Status mismatch for archived Plan: expected=%s, actual=%s", plan.ArchivedStatus, archivedPlan.Status())
+					})
 				})
 
 				t.Run("Delete", func(t *testing.T) {
 					deleteInput := plan.DeletePlanInput{
 						NamespacedID: models.NamespacedID{
-							Namespace: archivedPlan.Namespace,
-							ID:        archivedPlan.ID,
+							Namespace: nextPlan.Namespace,
+							ID:        nextPlan.ID,
 						},
 					}
 
 					err = env.Plan.DeletePlan(ctx, deleteInput)
 					require.NoErrorf(t, err, "deleting Plan must not fail")
-					require.NotNil(t, archivedPlan, "archived Plan must not be empty")
-					require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
 
 					deletedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
 						NamespacedID: models.NamespacedID{
-							Namespace: archivedPlan.Namespace,
-							ID:        archivedPlan.ID,
+							Namespace: nextPlan.Namespace,
+							ID:        nextPlan.ID,
 						},
 					})
 					require.NoErrorf(t, err, "getting deleted Plan version must not fail")
@@ -717,7 +713,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 				Name:        "Trial",
 				Description: lo.ToPtr("Trial phase"),
 				Metadata:    map[string]string{"name": "trial"},
-				StartAfter:  MonthPeriod,
+				StartAfter:  datex.MustParse(t, "P0D"),
 				RateCards: []plan.RateCard{
 					plan.NewRateCardFrom(plan.FlatFeeRateCard{
 						RateCardMeta: plan.RateCardMeta{

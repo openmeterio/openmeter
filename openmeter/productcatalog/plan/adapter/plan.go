@@ -416,6 +416,8 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 
 		if len(diffResult.Remove) > 0 {
 			for _, deleteInput := range diffResult.Remove {
+				deleteInput.Namespace = params.Namespace
+				deleteInput.PlanID = p.ID
 				err = a.DeletePhase(ctx, deleteInput)
 				if err != nil {
 					return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
@@ -440,6 +442,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		if len(diffResult.Add) > 0 {
 			for _, createInput := range diffResult.Add {
 				createInput.Namespace = params.Namespace
+				createInput.PlanID = p.ID
 
 				phase, err := a.CreatePhase(ctx, createInput)
 				if err != nil {
