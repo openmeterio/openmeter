@@ -71,7 +71,7 @@ type invoiceLineDiff struct {
 	// AffectedLineIDs contains the list of line IDs that are affected by the diff, even if they
 	// are not updated. We can use this to update the UpdatedAt of the lines if any of the dependant
 	// entities are updated.
-	AffectedLineIDs set.Set[string]
+	AffectedLineIDs *set.Set[string]
 
 	// ChildrenDiff contains the diff for the children of the line, we need to make this two-staged
 	// as first we need to make sure that the parent line IDs of the children are correct, and then

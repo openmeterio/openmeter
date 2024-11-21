@@ -218,7 +218,7 @@ func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 	// Step 4b: Taxes (TODO[later]: implement)
 
 	// Step 5: Update updated_at for all the affected lines
-	if len(lineDiffs.AffectedLineIDs) > 0 {
+	if !lineDiffs.AffectedLineIDs.IsEmpty() {
 		err := r.db.BillingInvoiceLine.Update().
 			SetUpdatedAt(clock.Now().In(time.UTC)).
 			Where(billinginvoiceline.IDIn(lineDiffs.AffectedLineIDs.AsSlice()...)).
