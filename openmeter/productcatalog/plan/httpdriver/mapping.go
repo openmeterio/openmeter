@@ -367,6 +367,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 		err = result.FromRateCardStaticEntitlement(api.RateCardStaticEntitlement{
 			Metadata: lo.EmptyableToPtr(static.Metadata),
 			Type:     api.RateCardStaticEntitlementTypeStatic,
+			Config:   static.Config,
 		})
 		if err != nil {
 			return result, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)

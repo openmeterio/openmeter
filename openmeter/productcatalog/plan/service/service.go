@@ -35,9 +35,6 @@ func New(config Config) (plan.Service, error) {
 	}, nil
 }
 
-// TODO(chrisgacsal): use transactional client for adapter operations
-// FIXME: handling Discounts
-
 var _ plan.Service = (*service)(nil)
 
 type service struct {

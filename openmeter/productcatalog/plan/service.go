@@ -423,6 +423,9 @@ type CreatePhaseInput struct {
 
 	// RateCards
 	RateCards []RateCard `json:"rateCards,omitempty"`
+
+	// Discounts
+	Discounts []Discount `json:"discounts,omitempty"`
 }
 
 func (i CreatePhaseInput) Validate() error {
@@ -538,6 +541,9 @@ type UpdatePhaseInput struct {
 
 	// RateCards
 	RateCards *[]RateCard `json:"rateCards,omitempty"`
+
+	// Discounts
+	Discounts *[]Discount `json:"discounts,omitempty"`
 }
 
 // StrictEqual implements the Equaler interface.
@@ -569,6 +575,12 @@ func (i UpdatePhaseInput) Equal(p Phase) bool {
 
 	if i.Metadata != nil && !MetadataEqual(*i.Metadata, p.Metadata) {
 		return false
+	}
+
+	if i.Discounts != nil {
+		if ok, _ := DiscountsEqual(*i.Discounts, p.Discounts); !ok {
+			return false
+		}
 	}
 
 	if i.PlanID != p.PlanID {
