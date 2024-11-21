@@ -34,7 +34,7 @@ type Phase struct {
 	RateCards []RateCard `json:"rateCards"`
 
 	// Discounts
-	Discounts []Discount `json:"discounts"`
+	Discounts []Discount `json:"discounts,omitempty"`
 
 	// PlanID
 	PlanID string `json:"-"`

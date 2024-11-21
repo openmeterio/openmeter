@@ -79,6 +79,7 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 		Description: p.Description,
 		Metadata:    p.Metadata,
 		PlanID:      p.PlanID,
+		Discounts:   p.Discounts,
 	}
 
 	// Set Interval

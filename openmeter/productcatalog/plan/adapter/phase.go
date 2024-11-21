@@ -124,6 +124,7 @@ func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput)
 			SetMetadata(params.Metadata).
 			SetStartAfter(params.StartAfter.ISOString()).
 			SetPlanID(params.PlanID).
+			SetDiscounts(params.Discounts).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
@@ -360,6 +361,11 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 			if params.StartAfter != nil {
 				query = query.SetStartAfter(params.StartAfter.ISOString())
 				p.StartAfter = *params.StartAfter
+			}
+
+			if params.Discounts != nil {
+				query = query.SetDiscounts(*params.Discounts)
+				p.Discounts = *params.Discounts
 			}
 
 			err = query.Exec(ctx)

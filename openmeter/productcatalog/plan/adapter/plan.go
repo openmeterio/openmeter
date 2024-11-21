@@ -168,6 +168,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 				StartAfter:  phase.StartAfter,
 				PlanID:      p.ID,
 				RateCards:   phase.RateCards,
+				Discounts:   phase.Discounts,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create PlanPhase for Plan: %w", err)
@@ -520,6 +521,7 @@ func planPhasesDiff(requested, actual []plan.Phase) (planPhasesDiffResult, error
 			StartAfter:  &phase.StartAfter,
 			PlanID:      phase.PlanID,
 			RateCards:   &phase.RateCards,
+			Discounts:   &phase.Discounts,
 		}
 	}
 
@@ -545,6 +547,7 @@ func planPhasesDiff(requested, actual []plan.Phase) (planPhasesDiffResult, error
 				StartAfter:  lo.FromPtrOr(input.StartAfter, datex.Period{}),
 				PlanID:      input.PlanID,
 				RateCards:   lo.FromPtrOr(input.RateCards, nil),
+				Discounts:   lo.FromPtrOr(input.Discounts, nil),
 			})
 			phasesVisited[phaseKey] = struct{}{}
 
@@ -576,16 +579,14 @@ func planPhasesDiff(requested, actual []plan.Phase) (planPhasesDiffResult, error
 	}
 
 	// Collect phases to be deleted
-	if len(phasesVisited) != len(phaseMap) {
-		for phaseKey, phase := range phaseMap {
-			if _, ok := phasesVisited[phaseKey]; !ok {
-				result.Remove = append(result.Remove, plan.DeletePhaseInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: phase.Namespace,
-						ID:        phase.ID,
-					},
-				})
-			}
+	for phaseKey, phase := range phaseMap {
+		if _, ok := phasesVisited[phaseKey]; !ok {
+			result.Remove = append(result.Remove, plan.DeletePhaseInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: phase.Namespace,
+					ID:        phase.ID,
+				},
+			})
 		}
 	}
 
