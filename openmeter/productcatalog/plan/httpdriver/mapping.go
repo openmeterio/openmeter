@@ -80,7 +80,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 			}
 
 			d := api.Discount{
-				RateCards:  lo.ToPtr(percentage.RateCards),
+				RateCards:  lo.EmptyableToPtr(percentage.RateCards),
 				Percentage: float32(percentage.Percentage.InexactFloat64()),
 				Type:       api.DiscountPercentageTypePercentage,
 			}
