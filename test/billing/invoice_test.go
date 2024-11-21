@@ -1563,7 +1563,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1000,
 			Total:  1000,
-		}, flatPerUnit.Children.Get()[0].Totals)
+		}, flatPerUnit.Children.MustGet()[0].Totals)
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1000,
@@ -1883,7 +1883,7 @@ type feeLineExpect struct {
 func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations lineExpectations) {
 	t.Helper()
 	require.NotNil(t, line)
-	children := line.Children.Get()
+	children := line.Children.MustGet()
 
 	require.Len(t, children, len(expectations.Details))
 
@@ -1899,7 +1899,7 @@ func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations l
 		require.Equal(t, expect.Quantity, detail.FlatFee.Quantity.InexactFloat64(), "quantity should match")
 		require.Equal(t, expect.PerUnitAmount, detail.FlatFee.PerUnitAmount.InexactFloat64(), "per unit amount should match")
 
-		discounts := detail.Discounts.Get()
+		discounts := detail.Discounts.MustGet()
 		require.Len(t, discounts, len(expect.Discounts), "discounts should match")
 
 		discountsById := lo.GroupBy(discounts, func(d billingentity.LineDiscount) string {

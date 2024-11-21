@@ -138,7 +138,7 @@ func diffInvoiceLines(lines []*billingentity.Line) (*invoiceLineDiff, error) {
 		}
 
 		// Any child of a new item is also new => let's create them
-		for _, child := range workItem.Children.Get() {
+		for _, child := range workItem.Children.OrEmpty() {
 			diff.ChildrenDiff.LineBase.NeedsCreate(child)
 			switch child.Type {
 			case billingentity.InvoiceLineTypeFee:
@@ -161,8 +161,8 @@ func diffInvoiceLines(lines []*billingentity.Line) (*invoiceLineDiff, error) {
 		}
 
 		if err := getChildrenActions(
-			childUpdate.DBState.Children.Get(),
-			childUpdate.Children.Get(),
+			childUpdate.DBState.Children.OrEmpty(),
+			childUpdate.Children.OrEmpty(),
 			diff.ChildrenDiff,
 		); err != nil {
 			outErr = errors.Join(outErr, err)
@@ -294,14 +294,14 @@ func handleLineDependantEntities(line *billingentity.Line, lineOperation operati
 func handleLineDiscounts(line *billingentity.Line, lineOperation operation, out *invoiceLineDiff) error {
 	switch lineOperation {
 	case operationCreate:
-		for _, discount := range line.Discounts.Get() {
+		for _, discount := range line.Discounts.OrEmpty() {
 			out.Discounts.NeedsCreate(discountWithLine{
 				Discount: discount,
 				Line:     line,
 			})
 		}
 	case operationDelete:
-		for _, discount := range line.Discounts.Get() {
+		for _, discount := range line.Discounts.OrEmpty() {
 			out.Discounts.NeedsDelete(discountWithLine{
 				Discount: discount,
 				Line:     line,
@@ -318,7 +318,7 @@ func handleLineDiscountUpdate(line *billingentity.Line, out *invoiceLineDiff) er
 	// We need to figure out what we need to update
 	currentDiscountIDs := lo.GroupBy(
 		lo.Filter(
-			line.Discounts.Get(),
+			line.Discounts.OrEmpty(),
 			func(d billingentity.LineDiscount, _ int) bool {
 				return d.ID != ""
 			},
@@ -328,11 +328,11 @@ func handleLineDiscountUpdate(line *billingentity.Line, out *invoiceLineDiff) er
 		},
 	)
 
-	dbDiscountIDs := lo.GroupBy(line.DBState.Discounts.Get(), func(d billingentity.LineDiscount) string {
+	dbDiscountIDs := lo.GroupBy(line.DBState.Discounts.OrEmpty(), func(d billingentity.LineDiscount) string {
 		return d.ID
 	})
 
-	for _, dbDiscount := range line.DBState.Discounts.Get() {
+	for _, dbDiscount := range line.DBState.Discounts.OrEmpty() {
 		if _, ok := currentDiscountIDs[dbDiscount.ID]; !ok {
 			// We need to delete this discount
 			out.Discounts.NeedsDelete(discountWithLine{
@@ -344,7 +344,7 @@ func handleLineDiscountUpdate(line *billingentity.Line, out *invoiceLineDiff) er
 		}
 	}
 
-	for _, currentDiscount := range line.Discounts.Get() {
+	for _, currentDiscount := range line.Discounts.OrEmpty() {
 		if currentDiscount.ID == "" {
 			// We need to create this discount
 			out.Discounts.NeedsCreate(discountWithLine{

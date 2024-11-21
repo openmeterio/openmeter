@@ -8,10 +8,10 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type InvoiceLineType string
@@ -254,21 +254,21 @@ func (i Line) WithoutDBState() *Line {
 func (i Line) RemoveMetaForCompare() *Line {
 	out := i.Clone()
 
-	if !out.Discounts.IsPresent() || len(out.Discounts.Get()) == 0 {
+	if !out.Discounts.IsPresent() || len(out.Discounts.OrEmpty()) == 0 {
 		out.Discounts = NewLineDiscounts(nil)
 	}
 
-	if !out.Children.IsPresent() || len(out.Children.Get()) == 0 {
+	if !out.Children.IsPresent() || len(out.Children.OrEmpty()) == 0 {
 		out.Children = NewLineChildren(nil)
 	}
 
-	for _, child := range out.Children.Get() {
+	for _, child := range out.Children.OrEmpty() {
 		child.ParentLine = out
-		if !child.Discounts.IsPresent() || len(child.Discounts.Get()) == 0 {
+		if !child.Discounts.IsPresent() || len(child.Discounts.OrEmpty()) == 0 {
 			child.Discounts = NewLineDiscounts(nil)
 		}
 
-		if !child.Children.IsPresent() || len(child.Children.Get()) == 0 {
+		if !child.Children.IsPresent() || len(child.Children.OrEmpty()) == 0 {
 			child.Children = NewLineChildren(nil)
 		}
 	}
@@ -320,7 +320,7 @@ func (i Line) Validate() error {
 			return errors.New("detailed lines are not allowed for detailed lines (e.g. no nesting is allowed)")
 		}
 
-		for j, detailedLine := range i.Children.Get() {
+		for j, detailedLine := range i.Children.OrEmpty() {
 			if err := detailedLine.Validate(); err != nil {
 				return fmt.Errorf("detailedLines[%d]: %w", j, err)
 			}
@@ -383,21 +383,38 @@ func (i Line) ValidateUsageBased() error {
 
 // TODO[OM-1016]: For events we need a json marshaler
 type LineChildren struct {
-	slicesx.OptionalSlice[*Line]
+	mo.Option[[]*Line]
 }
 
 func NewLineChildren(children []*Line) LineChildren {
-	return LineChildren{slicesx.NewOptionalSlice(children)}
+	// Note: this helps with test equality checks
+	if len(children) == 0 {
+		children = nil
+	}
+
+	return LineChildren{mo.Some(children)}
 }
 
 func (c LineChildren) Map(fn func(*Line) *Line) LineChildren {
+	if !c.IsPresent() {
+		return c
+	}
+
 	return LineChildren{
-		c.OptionalSlice.Map(fn),
+		mo.Some(
+			lo.Map(c.OrEmpty(), func(item *Line, _ int) *Line {
+				return fn(item)
+			}),
+		),
 	}
 }
 
+func (c *LineChildren) Append(l ...*Line) {
+	c.Option = mo.Some(append(c.OrEmpty(), l...))
+}
+
 func (c LineChildren) GetByID(id string) *Line {
-	return lo.FindOrElse(c.Get(), nil, func(line *Line) bool {
+	return lo.FindOrElse(c.Option.OrEmpty(), nil, func(line *Line) bool {
 		return line.ID == id
 	})
 }
@@ -408,9 +425,11 @@ func (c *LineChildren) RemoveByID(id string) bool {
 		return false
 	}
 
-	c.OptionalSlice = c.OptionalSlice.Filter(func(l *Line) bool {
-		return l.ID != id
-	})
+	c.Option = mo.Some(
+		lo.Filter(c.Option.OrEmpty(), func(l *Line, _ int) bool {
+			return l.ID != id
+		}),
+	)
 
 	return true
 }
@@ -426,7 +445,7 @@ func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
 		return line.Clone()
 	})
 
-	existingItems := c.Children.Get()
+	existingItems := c.Children.OrEmpty()
 	childrenRefToLine := make(map[string]*Line, len(existingItems))
 
 	for _, child := range existingItems {
@@ -512,16 +531,27 @@ func (i LineDiscount) Equal(other LineDiscount) bool {
 
 // TODO[OM-1016]: For events we need a json marshaler
 type LineDiscounts struct {
-	slicesx.OptionalSlice[LineDiscount]
+	mo.Option[[]LineDiscount]
 }
 
 func NewLineDiscounts(discounts []LineDiscount) LineDiscounts {
-	return LineDiscounts{slicesx.NewOptionalSlice(discounts)}
+	// Note: this helps with test equality checks
+	if len(discounts) == 0 {
+		discounts = nil
+	}
+
+	return LineDiscounts{mo.Some(discounts)}
 }
 
 func (c LineDiscounts) Map(fn func(LineDiscount) LineDiscount) LineDiscounts {
+	if !c.IsPresent() {
+		return c
+	}
+
 	return LineDiscounts{
-		c.OptionalSlice.Map(fn),
+		mo.Some(lo.Map(c.OrEmpty(), func(item LineDiscount, _ int) LineDiscount {
+			return fn(item)
+		})),
 	}
 }
 
@@ -530,12 +560,12 @@ func (c LineDiscounts) ChildrenWithIDReuse(l LineDiscounts) LineDiscounts {
 		return l
 	}
 
-	clonedNewItems := lo.Map(l.Get(), func(item LineDiscount, _ int) LineDiscount {
+	clonedNewItems := lo.Map(l.OrEmpty(), func(item LineDiscount, _ int) LineDiscount {
 		return item
 	})
 
 	existingItemsByType := lo.GroupBy(
-		lo.Filter(c.Get(), func(item LineDiscount, _ int) bool {
+		lo.Filter(c.OrEmpty(), func(item LineDiscount, _ int) bool {
 			return item.ChildUniqueReferenceID != nil
 		}),
 		func(item LineDiscount) string {

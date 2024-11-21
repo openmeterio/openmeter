@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type UpdateInput struct {
-	ParentLine  models.Optional[*billingentity.Line]
+	ParentLine  mo.Option[*billingentity.Line]
 	PeriodStart time.Time
 	PeriodEnd   time.Time
 	InvoiceAt   time.Time
@@ -171,7 +171,7 @@ func (l lineBase) update(in UpdateInput) Line {
 	in.apply(l.line)
 
 	if in.ParentLine.IsPresent() {
-		parentLine := in.ParentLine.Get()
+		parentLine := in.ParentLine.OrEmpty()
 		// Let's update the parent line
 		if parentLine != nil {
 			l.line.ParentLineID = lo.ToPtr(parentLine.ID)
@@ -210,14 +210,14 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 		// Let's create the child lines
 		preSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine: models.OptionalWithValue(parentLine.ToEntity()),
+			ParentLine: mo.Some(parentLine.ToEntity()),
 			Status:     billingentity.InvoiceLineStatusValid,
 			PeriodEnd:  splitAt,
 			InvoiceAt:  splitAt,
 		})
 
 		postSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine:  models.OptionalWithValue(parentLine.ToEntity()),
+			ParentLine:  mo.Some(parentLine.ToEntity()),
 			Status:      billingentity.InvoiceLineStatusValid,
 			PeriodStart: splitAt,
 		})
@@ -237,7 +237,7 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 	postSplitAtLine, err := l.CloneForCreate(UpdateInput{
 		Status:      billingentity.InvoiceLineStatusValid,
 		PeriodStart: splitAt,
-		ParentLine:  models.OptionalWithValue(l.line.ParentLine),
+		ParentLine:  mo.Some(l.line.ParentLine),
 	}).Save(ctx)
 	if err != nil {
 		return SplitResult{}, fmt.Errorf("creating split lines: %w", err)

@@ -174,7 +174,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		changedLine.ID = ""
 		changedLine.Description = lo.ToPtr("2.3")
 
-		discounts := changedLine.Discounts.Get()
+		discounts := changedLine.Discounts.MustGet()
 		discounts[0].Description = lo.ToPtr("D2.1.3")
 		changedLine.Discounts = billingentity.NewLineDiscounts(discounts)
 
@@ -224,7 +224,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		discounts := base[1].Children.GetByID("2.1").Discounts.Get()
+		discounts := base[1].Children.GetByID("2.1").Discounts.MustGet()
 		discounts[0].Amount = alpacadecimal.NewFromFloat(10)
 		base[1].Children.GetByID("2.1").Discounts = billingentity.NewLineDiscounts(discounts)
 
@@ -245,7 +245,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		discounts := base[1].Children.GetByID("2.1").Discounts.Get()
+		discounts := base[1].Children.GetByID("2.1").Discounts.MustGet()
 		discounts[0].ID = ""
 		discounts[0].Description = lo.ToPtr("D2.1.2")
 		base[1].Children.GetByID("2.1").Discounts = billingentity.NewLineDiscounts(discounts)
@@ -343,7 +343,7 @@ func cloneLines(lines []*billingentity.Line) []*billingentity.Line {
 
 func fixParentReferences(lines []*billingentity.Line) []*billingentity.Line {
 	for _, line := range lines {
-		for _, child := range line.Children.Get() {
+		for _, child := range line.Children.OrEmpty() {
 			child.ParentLineID = lo.ToPtr(line.ID)
 			child.ParentLine = line
 		}
