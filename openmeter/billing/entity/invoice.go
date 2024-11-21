@@ -174,6 +174,8 @@ type Invoice struct {
 
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
 
+	Totals Totals `json:"totals"`
+
 	// private fields required by the service
 	Changed        bool          `json:"-"`
 	ExpandedFields InvoiceExpand `json:"-"`

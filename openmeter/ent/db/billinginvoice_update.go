@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -349,6 +350,104 @@ func (biu *BillingInvoiceUpdate) SetNillableCustomerAddressPhoneNumber(s *string
 // ClearCustomerAddressPhoneNumber clears the value of the "customer_address_phone_number" field.
 func (biu *BillingInvoiceUpdate) ClearCustomerAddressPhoneNumber() *BillingInvoiceUpdate {
 	biu.mutation.ClearCustomerAddressPhoneNumber()
+	return biu
+}
+
+// SetAmount sets the "amount" field.
+func (biu *BillingInvoiceUpdate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetAmount(a)
+	return biu
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetAmount(*a)
+	}
+	return biu
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (biu *BillingInvoiceUpdate) SetTaxesTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetTaxesTotal(a)
+	return biu
+}
+
+// SetNillableTaxesTotal sets the "taxes_total" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableTaxesTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetTaxesTotal(*a)
+	}
+	return biu
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (biu *BillingInvoiceUpdate) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetTaxesInclusiveTotal(a)
+	return biu
+}
+
+// SetNillableTaxesInclusiveTotal sets the "taxes_inclusive_total" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableTaxesInclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetTaxesInclusiveTotal(*a)
+	}
+	return biu
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (biu *BillingInvoiceUpdate) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetTaxesExclusiveTotal(a)
+	return biu
+}
+
+// SetNillableTaxesExclusiveTotal sets the "taxes_exclusive_total" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableTaxesExclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetTaxesExclusiveTotal(*a)
+	}
+	return biu
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (biu *BillingInvoiceUpdate) SetChargesTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetChargesTotal(a)
+	return biu
+}
+
+// SetNillableChargesTotal sets the "charges_total" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableChargesTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetChargesTotal(*a)
+	}
+	return biu
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (biu *BillingInvoiceUpdate) SetDiscountsTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetDiscountsTotal(a)
+	return biu
+}
+
+// SetNillableDiscountsTotal sets the "discounts_total" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableDiscountsTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetDiscountsTotal(*a)
+	}
+	return biu
+}
+
+// SetTotal sets the "total" field.
+func (biu *BillingInvoiceUpdate) SetTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	biu.mutation.SetTotal(a)
+	return biu
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if a != nil {
+		biu.SetTotal(*a)
+	}
 	return biu
 }
 
@@ -927,6 +1026,27 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if biu.mutation.CustomerAddressPhoneNumberCleared() {
 		_spec.ClearField(billinginvoice.FieldCustomerAddressPhoneNumber, field.TypeString)
 	}
+	if value, ok := biu.mutation.Amount(); ok {
+		_spec.SetField(billinginvoice.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := biu.mutation.TaxesTotal(); ok {
+		_spec.SetField(billinginvoice.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := biu.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billinginvoice.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := biu.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billinginvoice.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := biu.mutation.ChargesTotal(); ok {
+		_spec.SetField(billinginvoice.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := biu.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billinginvoice.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := biu.mutation.Total(); ok {
+		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
+	}
 	if value, ok := biu.mutation.SupplierName(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)
 	}
@@ -1456,6 +1576,104 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableCustomerAddressPhoneNumber(s *st
 // ClearCustomerAddressPhoneNumber clears the value of the "customer_address_phone_number" field.
 func (biuo *BillingInvoiceUpdateOne) ClearCustomerAddressPhoneNumber() *BillingInvoiceUpdateOne {
 	biuo.mutation.ClearCustomerAddressPhoneNumber()
+	return biuo
+}
+
+// SetAmount sets the "amount" field.
+func (biuo *BillingInvoiceUpdateOne) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetAmount(a)
+	return biuo
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetAmount(*a)
+	}
+	return biuo
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (biuo *BillingInvoiceUpdateOne) SetTaxesTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetTaxesTotal(a)
+	return biuo
+}
+
+// SetNillableTaxesTotal sets the "taxes_total" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableTaxesTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetTaxesTotal(*a)
+	}
+	return biuo
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (biuo *BillingInvoiceUpdateOne) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetTaxesInclusiveTotal(a)
+	return biuo
+}
+
+// SetNillableTaxesInclusiveTotal sets the "taxes_inclusive_total" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableTaxesInclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetTaxesInclusiveTotal(*a)
+	}
+	return biuo
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (biuo *BillingInvoiceUpdateOne) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetTaxesExclusiveTotal(a)
+	return biuo
+}
+
+// SetNillableTaxesExclusiveTotal sets the "taxes_exclusive_total" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableTaxesExclusiveTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetTaxesExclusiveTotal(*a)
+	}
+	return biuo
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (biuo *BillingInvoiceUpdateOne) SetChargesTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetChargesTotal(a)
+	return biuo
+}
+
+// SetNillableChargesTotal sets the "charges_total" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableChargesTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetChargesTotal(*a)
+	}
+	return biuo
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (biuo *BillingInvoiceUpdateOne) SetDiscountsTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetDiscountsTotal(a)
+	return biuo
+}
+
+// SetNillableDiscountsTotal sets the "discounts_total" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableDiscountsTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetDiscountsTotal(*a)
+	}
+	return biuo
+}
+
+// SetTotal sets the "total" field.
+func (biuo *BillingInvoiceUpdateOne) SetTotal(a alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetTotal(a)
+	return biuo
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableTotal(a *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if a != nil {
+		biuo.SetTotal(*a)
+	}
 	return biuo
 }
 
@@ -2063,6 +2281,27 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.CustomerAddressPhoneNumberCleared() {
 		_spec.ClearField(billinginvoice.FieldCustomerAddressPhoneNumber, field.TypeString)
+	}
+	if value, ok := biuo.mutation.Amount(); ok {
+		_spec.SetField(billinginvoice.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := biuo.mutation.TaxesTotal(); ok {
+		_spec.SetField(billinginvoice.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := biuo.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billinginvoice.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := biuo.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billinginvoice.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := biuo.mutation.ChargesTotal(); ok {
+		_spec.SetField(billinginvoice.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := biuo.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billinginvoice.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := biuo.mutation.Total(); ok {
+		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
 	}
 	if value, ok := biuo.mutation.SupplierName(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)

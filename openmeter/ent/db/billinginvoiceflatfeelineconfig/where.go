@@ -5,6 +5,7 @@ package billinginvoiceflatfeelineconfig
 import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -176,6 +177,36 @@ func PerUnitAmountLT(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLin
 // PerUnitAmountLTE applies the LTE predicate on the "per_unit_amount" field.
 func PerUnitAmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLineConfig {
 	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldLTE(FieldPerUnitAmount, v))
+}
+
+// CategoryEQ applies the EQ predicate on the "category" field.
+func CategoryEQ(v billingentity.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+	vc := v
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldCategory, vc))
+}
+
+// CategoryNEQ applies the NEQ predicate on the "category" field.
+func CategoryNEQ(v billingentity.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+	vc := v
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNEQ(FieldCategory, vc))
+}
+
+// CategoryIn applies the In predicate on the "category" field.
+func CategoryIn(vs ...billingentity.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldIn(FieldCategory, v...))
+}
+
+// CategoryNotIn applies the NotIn predicate on the "category" field.
+func CategoryNotIn(vs ...billingentity.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNotIn(FieldCategory, v...))
 }
 
 // And groups predicates with the AND operator between them.

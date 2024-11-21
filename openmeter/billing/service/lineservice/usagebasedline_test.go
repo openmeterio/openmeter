@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type testLineMode string
@@ -36,19 +38,25 @@ type ubpCalculationTestCase struct {
 
 func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	t.Helper()
+
+	usdCurrencyCalc, err := currencyx.Code(currency.USD).Calculator()
+	require.NoError(t, err)
+
 	l := usageBasedLine{
 		lineBase: lineBase{
 			line: &billingentity.Line{
 				LineBase: billingentity.LineBase{
-					ID:     "fake-line",
-					Type:   billingentity.InvoiceLineTypeUsageBased,
-					Status: billingentity.InvoiceLineStatusValid,
-					Name:   "feature",
+					Currency: "USD",
+					ID:       "fake-line",
+					Type:     billingentity.InvoiceLineTypeUsageBased,
+					Status:   billingentity.InvoiceLineStatusValid,
+					Name:     "feature",
 				},
 				UsageBased: billingentity.UsageBasedLine{
 					Price: tc.price,
 				},
 			},
+			currency: usdCurrencyCalc,
 		},
 	}
 
@@ -252,6 +260,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
+					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -291,6 +300,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
+					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -637,6 +647,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
+					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -690,6 +701,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
+					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -925,6 +937,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
+					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -949,6 +962,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 					PaymentTerm:            plan.InArrearsPaymentTerm,
+					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -1025,6 +1039,9 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 }
 
 func TestAddDiscountForOverage(t *testing.T) {
+	currency, err := currencyx.Code(currency.USD).Calculator()
+	require.NoError(t, err)
+
 	l := newDetailedLineInput{
 		PerUnitAmount: alpacadecimal.NewFromFloat(100),
 		Quantity:      alpacadecimal.NewFromFloat(10),
@@ -1035,9 +1052,43 @@ func TestAddDiscountForOverage(t *testing.T) {
 			MaxSpend:               alpacadecimal.NewFromFloat(10000),
 			BilledAmountBeforeLine: alpacadecimal.NewFromFloat(9000),
 			// Total $10000 => No max spend is reached
+			Currency: currency,
 		})
 
 		require.Equal(t, l, lineWithDiscount)
+	})
+
+	// currency rounding
+	t.Run("no overage", func(t *testing.T) {
+		lineWithDiscount := l.AddDiscountForOverage(addDiscountInput{
+			MaxSpend:               alpacadecimal.NewFromFloat(10000.001),
+			BilledAmountBeforeLine: alpacadecimal.NewFromFloat(9000.001),
+			// Total $10000 => No max spend is reached
+			Currency: currency,
+		})
+
+		require.Equal(t, l, lineWithDiscount)
+	})
+
+	t.Run("overage, rounding", func(t *testing.T) {
+		lineWithDiscount := l.AddDiscountForOverage(addDiscountInput{
+			MaxSpend:               alpacadecimal.NewFromFloat(10000.001),
+			BilledAmountBeforeLine: alpacadecimal.NewFromFloat(9000.01123),
+			// Total $10000 => No max spend is reached
+			Currency: currency,
+		})
+
+		require.Equal(t, newDetailedLineInput{
+			PerUnitAmount: alpacadecimal.NewFromFloat(100),
+			Quantity:      alpacadecimal.NewFromFloat(10),
+			Discounts: []billingentity.LineDiscount{
+				{
+					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+					Amount:                 alpacadecimal.NewFromFloat(0.01),
+					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+				},
+			},
+		}, lineWithDiscount)
 	})
 
 	t.Run("overage and some valid charges", func(t *testing.T) {
@@ -1045,6 +1096,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			MaxSpend:               alpacadecimal.NewFromFloat(10000),
 			BilledAmountBeforeLine: alpacadecimal.NewFromFloat(9600),
 			// Total $10000 => $500 discount
+			Currency: currency,
 		})
 
 		require.Equal(t, newDetailedLineInput{
@@ -1065,6 +1117,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			MaxSpend:               alpacadecimal.NewFromFloat(10000),
 			BilledAmountBeforeLine: alpacadecimal.NewFromFloat(10000),
 			// Total $10000 => $1000 discount
+			Currency: currency,
 		})
 
 		require.Equal(t, newDetailedLineInput{
@@ -1085,6 +1138,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			MaxSpend:               alpacadecimal.NewFromFloat(10000),
 			BilledAmountBeforeLine: alpacadecimal.NewFromFloat(20000),
 			// Total $10000 => $1000 discount
+			Currency: currency,
 		})
 
 		require.Equal(t, newDetailedLineInput{
@@ -1168,6 +1222,7 @@ func getTotalAmountForGraduatedTieredPrice(t *testing.T, qty alpacadecimal.Decim
 	err := tieredPriceCalculator(tieredPriceCalculatorInput{
 		TieredPrice: price,
 		ToQty:       qty,
+		Currency:    lo.Must(currencyx.Code(currency.USD).Calculator()),
 
 		FinalizerFn: func(t alpacadecimal.Decimal) error {
 			total = t
@@ -1204,6 +1259,8 @@ func (m *mockableTieredPriceCalculator) FinalizerFn(t alpacadecimal.Decimal) err
 }
 
 func TestTieredPriceCalculator(t *testing.T) {
+	currency := lo.Must(currencyx.Code(currency.USD).Calculator())
+
 	testIn := plan.TieredPrice{
 		Mode: plan.GraduatedTieredPrice,
 		Tiers: []plan.PriceTier{
@@ -1289,9 +1346,11 @@ func TestTieredPriceCalculator(t *testing.T) {
 
 		require.NoError(t, tieredPriceCalculator(
 			tieredPriceCalculatorInput{
-				TieredPrice:        testIn,
-				FromQty:            alpacadecimal.NewFromFloat(3), // exclusive
-				ToQty:              alpacadecimal.NewFromFloat(7), // inclusive
+				TieredPrice: testIn,
+				FromQty:     alpacadecimal.NewFromFloat(3), // exclusive
+				ToQty:       alpacadecimal.NewFromFloat(7), // inclusive
+				Currency:    currency,
+
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
 				IntrospectRangesFn: introspectTieredPriceRangesFn(t),
@@ -1341,9 +1400,11 @@ func TestTieredPriceCalculator(t *testing.T) {
 
 		require.NoError(t, tieredPriceCalculator(
 			tieredPriceCalculatorInput{
-				TieredPrice:        testIn,
-				FromQty:            alpacadecimal.NewFromFloat(12), // exclusive
-				ToQty:              alpacadecimal.NewFromFloat(20), // inclusive
+				TieredPrice: testIn,
+				FromQty:     alpacadecimal.NewFromFloat(12), // exclusive
+				ToQty:       alpacadecimal.NewFromFloat(20), // inclusive
+				Currency:    currency,
+
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
 				IntrospectRangesFn: introspectTieredPriceRangesFn(t),
@@ -1374,9 +1435,11 @@ func TestTieredPriceCalculator(t *testing.T) {
 
 		require.NoError(t, tieredPriceCalculator(
 			tieredPriceCalculatorInput{
-				TieredPrice:        testIn,
-				FromQty:            alpacadecimal.NewFromFloat(5),  // exclusive
-				ToQty:              alpacadecimal.NewFromFloat(10), // inclusive
+				TieredPrice: testIn,
+				FromQty:     alpacadecimal.NewFromFloat(5),  // exclusive
+				ToQty:       alpacadecimal.NewFromFloat(10), // inclusive
+				Currency:    currency,
+
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
 				IntrospectRangesFn: introspectTieredPriceRangesFn(t),
@@ -1410,9 +1473,11 @@ func TestTieredPriceCalculator(t *testing.T) {
 
 		require.NoError(t, tieredPriceCalculator(
 			tieredPriceCalculatorInput{
-				TieredPrice:        testIn,
-				FromQty:            alpacadecimal.NewFromFloat(6), // exclusive
-				ToQty:              alpacadecimal.NewFromFloat(7), // inclusive
+				TieredPrice: testIn,
+				FromQty:     alpacadecimal.NewFromFloat(6), // exclusive
+				ToQty:       alpacadecimal.NewFromFloat(7), // inclusive
+				Currency:    currency,
+
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
 				IntrospectRangesFn: introspectTieredPriceRangesFn(t),
@@ -1433,9 +1498,11 @@ func TestTieredPriceCalculator(t *testing.T) {
 
 		require.NoError(t, tieredPriceCalculator(
 			tieredPriceCalculatorInput{
-				TieredPrice:        testIn,
-				FromQty:            alpacadecimal.NewFromFloat(6), // exclusive
-				ToQty:              alpacadecimal.NewFromFloat(6), // inclusive
+				TieredPrice: testIn,
+				FromQty:     alpacadecimal.NewFromFloat(6), // exclusive
+				ToQty:       alpacadecimal.NewFromFloat(6), // inclusive
+				Currency:    currency,
+
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
 				IntrospectRangesFn: introspectTieredPriceRangesFn(t),

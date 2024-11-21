@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -38,6 +39,20 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetPerUnitAmount(a alpacad
 func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillablePerUnitAmount(a *alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdate {
 	if a != nil {
 		bifflcu.SetPerUnitAmount(*a)
+	}
+	return bifflcu
+}
+
+// SetCategory sets the "category" field.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetCategory(bfc billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
+	bifflcu.mutation.SetCategory(bfc)
+	return bifflcu
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableCategory(bfc *billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
+	if bfc != nil {
+		bifflcu.SetCategory(*bfc)
 	}
 	return bifflcu
 }
@@ -74,7 +89,20 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) ExecX(ctx context.Context)
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) check() error {
+	if v, ok := bifflcu.mutation.Category(); ok {
+		if err := billinginvoiceflatfeelineconfig.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.category": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := bifflcu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.Columns, sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString))
 	if ps := bifflcu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -85,6 +113,9 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) sqlSave(ctx context.Contex
 	}
 	if value, ok := bifflcu.mutation.PerUnitAmount(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, field.TypeOther, value)
+	}
+	if value, ok := bifflcu.mutation.Category(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldCategory, field.TypeEnum, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bifflcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -116,6 +147,20 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetPerUnitAmount(a alp
 func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillablePerUnitAmount(a *alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	if a != nil {
 		bifflcuo.SetPerUnitAmount(*a)
+	}
+	return bifflcuo
+}
+
+// SetCategory sets the "category" field.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetCategory(bfc billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	bifflcuo.mutation.SetCategory(bfc)
+	return bifflcuo
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableCategory(bfc *billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	if bfc != nil {
+		bifflcuo.SetCategory(*bfc)
 	}
 	return bifflcuo
 }
@@ -165,7 +210,20 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) ExecX(ctx context.Cont
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) check() error {
+	if v, ok := bifflcuo.mutation.Category(); ok {
+		if err := billinginvoiceflatfeelineconfig.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.category": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceFlatFeeLineConfig, err error) {
+	if err := bifflcuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.Columns, sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString))
 	id, ok := bifflcuo.mutation.ID()
 	if !ok {
@@ -193,6 +251,9 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) sqlSave(ctx context.Co
 	}
 	if value, ok := bifflcuo.mutation.PerUnitAmount(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, field.TypeOther, value)
+	}
+	if value, ok := bifflcuo.mutation.Category(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldCategory, field.TypeEnum, value)
 	}
 	_node = &BillingInvoiceFlatFeeLineConfig{config: bifflcuo.config}
 	_spec.Assign = _node.assignValues

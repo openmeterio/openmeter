@@ -3,7 +3,10 @@
 package billinginvoiceflatfeelineconfig
 
 import (
+	"fmt"
+
 	"entgo.io/ent/dialect/sql"
+	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 )
 
 const (
@@ -15,6 +18,8 @@ const (
 	FieldNamespace = "namespace"
 	// FieldPerUnitAmount holds the string denoting the per_unit_amount field in the database.
 	FieldPerUnitAmount = "per_unit_amount"
+	// FieldCategory holds the string denoting the category field in the database.
+	FieldCategory = "category"
 	// Table holds the table name of the billinginvoiceflatfeelineconfig in the database.
 	Table = "billing_invoice_flat_fee_line_configs"
 )
@@ -24,6 +29,7 @@ var Columns = []string{
 	FieldID,
 	FieldNamespace,
 	FieldPerUnitAmount,
+	FieldCategory,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -43,6 +49,18 @@ var (
 	DefaultID func() string
 )
 
+const DefaultCategory billingentity.FlatFeeCategory = "regular"
+
+// CategoryValidator is a validator for the "category" field enum values. It is called by the builders before save.
+func CategoryValidator(c billingentity.FlatFeeCategory) error {
+	switch c {
+	case "regular", "commitment":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceflatfeelineconfig: invalid enum value for category field: %q", c)
+	}
+}
+
 // OrderOption defines the ordering options for the BillingInvoiceFlatFeeLineConfig queries.
 type OrderOption func(*sql.Selector)
 
@@ -59,4 +77,9 @@ func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 // ByPerUnitAmount orders the results by the per_unit_amount field.
 func ByPerUnitAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPerUnitAmount, opts...).ToFunc()
+}
+
+// ByCategory orders the results by the category field.
+func ByCategory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCategory, opts...).ToFunc()
 }

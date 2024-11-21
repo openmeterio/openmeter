@@ -94,7 +94,15 @@ func (r *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
 				SetMetadata(line.Metadata).
-				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID)
+				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
+				// Totals
+				SetAmount(line.Totals.Amount).
+				SetChargesTotal(line.Totals.ChargesTotal).
+				SetDiscountsTotal(line.Totals.DiscountsTotal).
+				SetTaxesTotal(line.Totals.TaxesTotal).
+				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
+				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
+				SetTotal(line.Totals.Total)
 
 			if line.TaxConfig != nil {
 				create = create.SetTaxConfig(*line.TaxConfig)

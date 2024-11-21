@@ -39,6 +39,20 @@ type BillingInvoiceLine struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// Amount holds the value of the "amount" field.
+	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	// TaxesTotal holds the value of the "taxes_total" field.
+	TaxesTotal alpacadecimal.Decimal `json:"taxes_total,omitempty"`
+	// TaxesInclusiveTotal holds the value of the "taxes_inclusive_total" field.
+	TaxesInclusiveTotal alpacadecimal.Decimal `json:"taxes_inclusive_total,omitempty"`
+	// TaxesExclusiveTotal holds the value of the "taxes_exclusive_total" field.
+	TaxesExclusiveTotal alpacadecimal.Decimal `json:"taxes_exclusive_total,omitempty"`
+	// ChargesTotal holds the value of the "charges_total" field.
+	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
+	// DiscountsTotal holds the value of the "discounts_total" field.
+	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// Total holds the value of the "total" field.
+	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// ParentLineID holds the value of the "parent_line_id" field.
@@ -159,6 +173,8 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
 			values[i] = new([]byte)
+		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
+			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldChildUniqueReferenceID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
@@ -233,6 +249,48 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				bil.Description = new(string)
 				*bil.Description = value.String
+			}
+		case billinginvoiceline.FieldAmount:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field amount", values[i])
+			} else if value != nil {
+				bil.Amount = *value
+			}
+		case billinginvoiceline.FieldTaxesTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_total", values[i])
+			} else if value != nil {
+				bil.TaxesTotal = *value
+			}
+		case billinginvoiceline.FieldTaxesInclusiveTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_inclusive_total", values[i])
+			} else if value != nil {
+				bil.TaxesInclusiveTotal = *value
+			}
+		case billinginvoiceline.FieldTaxesExclusiveTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_exclusive_total", values[i])
+			} else if value != nil {
+				bil.TaxesExclusiveTotal = *value
+			}
+		case billinginvoiceline.FieldChargesTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field charges_total", values[i])
+			} else if value != nil {
+				bil.ChargesTotal = *value
+			}
+		case billinginvoiceline.FieldDiscountsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
+			} else if value != nil {
+				bil.DiscountsTotal = *value
+			}
+		case billinginvoiceline.FieldTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field total", values[i])
+			} else if value != nil {
+				bil.Total = *value
 			}
 		case billinginvoiceline.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -409,6 +467,27 @@ func (bil *BillingInvoiceLine) String() string {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("amount=")
+	builder.WriteString(fmt.Sprintf("%v", bil.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_total=")
+	builder.WriteString(fmt.Sprintf("%v", bil.TaxesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_inclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", bil.TaxesInclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_exclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", bil.TaxesExclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("charges_total=")
+	builder.WriteString(fmt.Sprintf("%v", bil.ChargesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("discounts_total=")
+	builder.WriteString(fmt.Sprintf("%v", bil.DiscountsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("total=")
+	builder.WriteString(fmt.Sprintf("%v", bil.Total))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
 	builder.WriteString(bil.InvoiceID)

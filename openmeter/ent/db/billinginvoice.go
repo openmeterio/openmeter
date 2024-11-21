@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -64,6 +65,20 @@ type BillingInvoice struct {
 	CustomerAddressLine2 *string `json:"customer_address_line2,omitempty"`
 	// CustomerAddressPhoneNumber holds the value of the "customer_address_phone_number" field.
 	CustomerAddressPhoneNumber *string `json:"customer_address_phone_number,omitempty"`
+	// Amount holds the value of the "amount" field.
+	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	// TaxesTotal holds the value of the "taxes_total" field.
+	TaxesTotal alpacadecimal.Decimal `json:"taxes_total,omitempty"`
+	// TaxesInclusiveTotal holds the value of the "taxes_inclusive_total" field.
+	TaxesInclusiveTotal alpacadecimal.Decimal `json:"taxes_inclusive_total,omitempty"`
+	// TaxesExclusiveTotal holds the value of the "taxes_exclusive_total" field.
+	TaxesExclusiveTotal alpacadecimal.Decimal `json:"taxes_exclusive_total,omitempty"`
+	// ChargesTotal holds the value of the "charges_total" field.
+	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
+	// DiscountsTotal holds the value of the "discounts_total" field.
+	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// Total holds the value of the "total" field.
+	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// SupplierName holds the value of the "supplier_name" field.
 	SupplierName string `json:"supplier_name,omitempty"`
 	// SupplierTaxCode holds the value of the "supplier_tax_code" field.
@@ -228,6 +243,8 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoice.FieldMetadata, billinginvoice.FieldCustomerUsageAttribution:
 			values[i] = new([]byte)
+		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
+			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldCustomerTimezone, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
@@ -383,6 +400,48 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.CustomerAddressPhoneNumber = new(string)
 				*bi.CustomerAddressPhoneNumber = value.String
+			}
+		case billinginvoice.FieldAmount:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field amount", values[i])
+			} else if value != nil {
+				bi.Amount = *value
+			}
+		case billinginvoice.FieldTaxesTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_total", values[i])
+			} else if value != nil {
+				bi.TaxesTotal = *value
+			}
+		case billinginvoice.FieldTaxesInclusiveTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_inclusive_total", values[i])
+			} else if value != nil {
+				bi.TaxesInclusiveTotal = *value
+			}
+		case billinginvoice.FieldTaxesExclusiveTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_exclusive_total", values[i])
+			} else if value != nil {
+				bi.TaxesExclusiveTotal = *value
+			}
+		case billinginvoice.FieldChargesTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field charges_total", values[i])
+			} else if value != nil {
+				bi.ChargesTotal = *value
+			}
+		case billinginvoice.FieldDiscountsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
+			} else if value != nil {
+				bi.DiscountsTotal = *value
+			}
+		case billinginvoice.FieldTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field total", values[i])
+			} else if value != nil {
+				bi.Total = *value
 			}
 		case billinginvoice.FieldSupplierName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -690,6 +749,27 @@ func (bi *BillingInvoice) String() string {
 		builder.WriteString("customer_address_phone_number=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("amount=")
+	builder.WriteString(fmt.Sprintf("%v", bi.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_total=")
+	builder.WriteString(fmt.Sprintf("%v", bi.TaxesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_inclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", bi.TaxesInclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_exclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", bi.TaxesExclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("charges_total=")
+	builder.WriteString(fmt.Sprintf("%v", bi.ChargesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("discounts_total=")
+	builder.WriteString(fmt.Sprintf("%v", bi.DiscountsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("total=")
+	builder.WriteString(fmt.Sprintf("%v", bi.Total))
 	builder.WriteString(", ")
 	builder.WriteString("supplier_name=")
 	builder.WriteString(bi.SupplierName)

@@ -281,6 +281,14 @@ func (r *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		SetNillableSupplierAddressPhoneNumber(supplier.Address.PhoneNumber).
 		SetSupplierName(supplier.Name).
 		SetNillableSupplierTaxCode(supplier.TaxCode).
+		// Totals
+		SetAmount(input.Totals.Amount).
+		SetChargesTotal(input.Totals.ChargesTotal).
+		SetDiscountsTotal(input.Totals.DiscountsTotal).
+		SetTaxesTotal(input.Totals.TaxesTotal).
+		SetTaxesExclusiveTotal(input.Totals.TaxesExclusiveTotal).
+		SetTaxesInclusiveTotal(input.Totals.TaxesInclusiveTotal).
+		SetTotal(input.Totals.Total).
 		Save(ctx)
 	if err != nil {
 		return billing.CreateInvoiceAdapterRespone{}, err
@@ -394,7 +402,15 @@ func (r *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		SetOrClearDescription(in.Description).
 		SetOrClearDueAt(in.DueAt).
 		SetOrClearDraftUntil(in.DraftUntil).
-		SetOrClearIssuedAt(in.IssuedAt)
+		SetOrClearIssuedAt(in.IssuedAt).
+		// Totals
+		SetAmount(in.Totals.Amount).
+		SetChargesTotal(in.Totals.ChargesTotal).
+		SetDiscountsTotal(in.Totals.DiscountsTotal).
+		SetTaxesTotal(in.Totals.TaxesTotal).
+		SetTaxesExclusiveTotal(in.Totals.TaxesExclusiveTotal).
+		SetTaxesInclusiveTotal(in.Totals.TaxesInclusiveTotal).
+		SetTotal(in.Totals.Total)
 
 	if in.Period != nil {
 		updateQuery = updateQuery.
@@ -507,6 +523,16 @@ func (r *adapter) mapInvoiceFromDB(ctx context.Context, invoice db.BillingInvoic
 		CreatedAt: invoice.CreatedAt.In(time.UTC),
 		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+
+		Totals: billingentity.Totals{
+			Amount:              invoice.Amount,
+			ChargesTotal:        invoice.ChargesTotal,
+			DiscountsTotal:      invoice.DiscountsTotal,
+			TaxesTotal:          invoice.TaxesTotal,
+			TaxesExclusiveTotal: invoice.TaxesExclusiveTotal,
+			TaxesInclusiveTotal: invoice.TaxesInclusiveTotal,
+			Total:               invoice.Total,
+		},
 
 		ExpandedFields: expand,
 	}

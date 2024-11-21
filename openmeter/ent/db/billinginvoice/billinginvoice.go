@@ -54,6 +54,20 @@ const (
 	FieldCustomerAddressLine2 = "customer_address_line2"
 	// FieldCustomerAddressPhoneNumber holds the string denoting the customer_address_phone_number field in the database.
 	FieldCustomerAddressPhoneNumber = "customer_address_phone_number"
+	// FieldAmount holds the string denoting the amount field in the database.
+	FieldAmount = "amount"
+	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
+	FieldTaxesTotal = "taxes_total"
+	// FieldTaxesInclusiveTotal holds the string denoting the taxes_inclusive_total field in the database.
+	FieldTaxesInclusiveTotal = "taxes_inclusive_total"
+	// FieldTaxesExclusiveTotal holds the string denoting the taxes_exclusive_total field in the database.
+	FieldTaxesExclusiveTotal = "taxes_exclusive_total"
+	// FieldChargesTotal holds the string denoting the charges_total field in the database.
+	FieldChargesTotal = "charges_total"
+	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
+	FieldDiscountsTotal = "discounts_total"
+	// FieldTotal holds the string denoting the total field in the database.
+	FieldTotal = "total"
 	// FieldSupplierName holds the string denoting the supplier_name field in the database.
 	FieldSupplierName = "supplier_name"
 	// FieldSupplierTaxCode holds the string denoting the supplier_tax_code field in the database.
@@ -196,6 +210,13 @@ var Columns = []string{
 	FieldCustomerAddressLine1,
 	FieldCustomerAddressLine2,
 	FieldCustomerAddressPhoneNumber,
+	FieldAmount,
+	FieldTaxesTotal,
+	FieldTaxesInclusiveTotal,
+	FieldTaxesExclusiveTotal,
+	FieldChargesTotal,
+	FieldDiscountsTotal,
+	FieldTotal,
 	FieldSupplierName,
 	FieldSupplierTaxCode,
 	FieldCustomerName,
@@ -373,6 +394,41 @@ func ByCustomerAddressLine2(opts ...sql.OrderTermOption) OrderOption {
 // ByCustomerAddressPhoneNumber orders the results by the customer_address_phone_number field.
 func ByCustomerAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCustomerAddressPhoneNumber, opts...).ToFunc()
+}
+
+// ByAmount orders the results by the amount field.
+func ByAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+}
+
+// ByTaxesTotal orders the results by the taxes_total field.
+func ByTaxesTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxesTotal, opts...).ToFunc()
+}
+
+// ByTaxesInclusiveTotal orders the results by the taxes_inclusive_total field.
+func ByTaxesInclusiveTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxesInclusiveTotal, opts...).ToFunc()
+}
+
+// ByTaxesExclusiveTotal orders the results by the taxes_exclusive_total field.
+func ByTaxesExclusiveTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxesExclusiveTotal, opts...).ToFunc()
+}
+
+// ByChargesTotal orders the results by the charges_total field.
+func ByChargesTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChargesTotal, opts...).ToFunc()
+}
+
+// ByDiscountsTotal orders the results by the discounts_total field.
+func ByDiscountsTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiscountsTotal, opts...).ToFunc()
+}
+
+// ByTotal orders the results by the total field.
+func ByTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
 // BySupplierName orders the results by the supplier_name field.

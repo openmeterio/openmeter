@@ -10,6 +10,7 @@ import (
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -120,6 +121,37 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 	}
 }
 
+func (l usageBasedLine) UpdateTotals() error {
+	// Calculate the line totals
+	for _, line := range l.line.Children.Get() {
+		lineSvc, err := l.service.FromEntity(line)
+		if err != nil {
+			return fmt.Errorf("creating line service: %w", err)
+		}
+
+		if err := lineSvc.UpdateTotals(); err != nil {
+			return fmt.Errorf("updating totals for line[%s]: %w", line.ID, err)
+		}
+	}
+
+	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
+	// The usageBasedLine will never be syncorinzed directly to stripe or other apps, only the detailed lines.
+	//
+	// Given that the external systems will have their own logic for calculating the totals, we cannot expect
+	// any custom logic implemented here to be carried over to the external systems.
+
+	// UBP line's value is the sum of all the children
+	res := billingentity.Totals{}
+
+	res = res.Add(lo.Map(l.line.Children.Get(), func(l *billingentity.Line, _ int) billingentity.Totals {
+		return l.Totals
+	})...)
+
+	l.line.LineBase.Totals = res
+
+	return nil
+}
+
 func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) error {
 	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
@@ -222,7 +254,8 @@ func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse,
 
 func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageResponse, unitPrice plan.UnitPrice) (newDetailedLinesInput, error) {
 	out := make(newDetailedLinesInput, 0, 2)
-	totalPreUsageAmount := usage.PreLinePeriodQty.Mul(unitPrice.Amount)
+	totalPreUsageAmount := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(unitPrice.Amount))
+	totalUsageAmount := l.currency.RoundToPrecision(usage.LinePeriodQty.Add(usage.PreLinePeriodQty).Mul(unitPrice.Amount))
 
 	if usage.LinePeriodQty.IsPositive() {
 		usageLine := newDetailedLineInput{
@@ -238,6 +271,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 			usageLine = usageLine.AddDiscountForOverage(addDiscountInput{
 				BilledAmountBeforeLine: totalPreUsageAmount,
 				MaxSpend:               *unitPrice.MaximumAmount,
+				Currency:               l.currency,
 			})
 		}
 
@@ -246,8 +280,9 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 
 	// Minimum spend is always billed arrears
 	if l.IsLastInPeriod() && unitPrice.MinimumAmount != nil {
-		totalUsageAmount := totalPreUsageAmount.Add(out.Sum())
-		if totalUsageAmount.LessThan(*unitPrice.MinimumAmount) {
+		normalizedMinimumAmount := l.currency.RoundToPrecision(*unitPrice.MinimumAmount)
+
+		if totalUsageAmount.LessThan(normalizedMinimumAmount) {
 			period := l.line.Period
 			if l.line.ParentLine != nil {
 				period = l.line.ParentLine.Period
@@ -256,11 +291,12 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 			out = append(out, newDetailedLineInput{
 				Name:          fmt.Sprintf("%s: minimum spend", l.line.Name),
 				Quantity:      alpacadecimal.NewFromFloat(1),
-				PerUnitAmount: unitPrice.MinimumAmount.Sub(totalUsageAmount),
+				PerUnitAmount: normalizedMinimumAmount.Sub(totalUsageAmount),
 				// Min spend is always billed for the whole period
 				Period:                 &period,
 				ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 				PaymentTerm:            plan.InArrearsPaymentTerm,
+				Category:               billingentity.FlatFeeCategoryCommitment,
 			})
 		}
 	}
@@ -298,8 +334,9 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 
 		if price.MaximumAmount != nil {
 			line = line.AddDiscountForOverage(addDiscountInput{
-				BilledAmountBeforeLine: out.Sum(),
+				BilledAmountBeforeLine: out.Sum(l.currency),
 				MaxSpend:               *price.MaximumAmount,
+				Currency:               l.currency,
 			})
 		}
 		out = append(out, line)
@@ -316,24 +353,30 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 
 		if price.MaximumAmount != nil {
 			line = line.AddDiscountForOverage(addDiscountInput{
-				BilledAmountBeforeLine: out.Sum(),
+				BilledAmountBeforeLine: out.Sum(l.currency),
 				MaxSpend:               *price.MaximumAmount,
+				Currency:               l.currency,
 			})
 		}
 
 		out = append(out, line)
 	}
 
-	total := out.Sum()
+	total := out.Sum(l.currency)
 
-	if price.MinimumAmount != nil && total.LessThan(*price.MinimumAmount) {
-		out = append(out, newDetailedLineInput{
-			Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
-			Quantity:               alpacadecimal.NewFromFloat(1),
-			PerUnitAmount:          price.MinimumAmount.Sub(total),
-			ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
-			PaymentTerm:            plan.InArrearsPaymentTerm,
-		})
+	if price.MinimumAmount != nil {
+		normalizedMinimumAmount := l.currency.RoundToPrecision(*price.MinimumAmount)
+
+		if total.LessThan(normalizedMinimumAmount) {
+			out = append(out, newDetailedLineInput{
+				Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
+				Quantity:               alpacadecimal.NewFromFloat(1),
+				PerUnitAmount:          normalizedMinimumAmount.Sub(total),
+				ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
+				PaymentTerm:            plan.InArrearsPaymentTerm,
+				Category:               billingentity.FlatFeeCategoryCommitment,
+			})
+		}
 	}
 
 	return out, nil
@@ -365,6 +408,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 		TieredPrice: price,
 		FromQty:     usage.PreLinePeriodQty,
 		ToQty:       usage.LinePeriodQty.Add(usage.PreLinePeriodQty),
+		Currency:    l.currency,
 		TierCallbackFn: func(in tierCallbackInput) error {
 			billedAmount := in.PreviousTotalAmount
 
@@ -383,6 +427,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 					newLine = newLine.AddDiscountForOverage(addDiscountInput{
 						BilledAmountBeforeLine: billedAmount,
 						MaxSpend:               *price.MaximumAmount,
+						Currency:               l.currency,
 					})
 				}
 
@@ -405,6 +450,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 					newLine = newLine.AddDiscountForOverage(addDiscountInput{
 						BilledAmountBeforeLine: billedAmount,
 						MaxSpend:               *price.MaximumAmount,
+						Currency:               l.currency,
 					})
 				}
 
@@ -413,14 +459,19 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 			return nil
 		},
 		FinalizerFn: func(periodTotal alpacadecimal.Decimal) error {
-			if l.IsLastInPeriod() && price.MinimumAmount != nil && periodTotal.LessThan(*price.MinimumAmount) {
-				out = append(out, newDetailedLineInput{
-					Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
-					Quantity:               alpacadecimal.NewFromFloat(1),
-					PerUnitAmount:          price.MinimumAmount.Sub(periodTotal),
-					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
-				})
+			if l.IsLastInPeriod() && price.MinimumAmount != nil {
+				normalizedMinimumAmount := l.currency.RoundToPrecision(*price.MinimumAmount)
+
+				if periodTotal.LessThan(normalizedMinimumAmount) {
+					out = append(out, newDetailedLineInput{
+						Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
+						Quantity:               alpacadecimal.NewFromFloat(1),
+						PerUnitAmount:          normalizedMinimumAmount.Sub(periodTotal),
+						ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
+						PaymentTerm:            plan.InArrearsPaymentTerm,
+						Category:               billingentity.FlatFeeCategoryCommitment,
+					})
+				}
 			}
 
 			return nil
@@ -457,6 +508,8 @@ type tieredPriceCalculatorInput struct {
 	// ToQty is the quantity that we are going to bill for this tiered price (inclusive)
 	ToQty alpacadecimal.Decimal
 
+	Currency currencyx.Calculator
+
 	TierCallbackFn     func(tierCallbackInput) error
 	FinalizerFn        func(total alpacadecimal.Decimal) error
 	IntrospectRangesFn func(ranges []tierRange)
@@ -481,6 +534,10 @@ func (i tieredPriceCalculatorInput) Validate() error {
 
 	if i.ToQty.LessThan(i.FromQty) {
 		return fmt.Errorf("to quantity must be greater or equal to from quantity")
+	}
+
+	if i.Currency.Currency == "" {
+		return fmt.Errorf("currency calculator is required")
 	}
 
 	return nil
@@ -608,11 +665,11 @@ func tieredPriceCalculator(in tieredPriceCalculatorInput) error {
 
 		// Let's update totals
 		if qtyRange.Tier.FlatPrice != nil && qtyRange.AtTierBoundary {
-			total = total.Add(qtyRange.Tier.FlatPrice.Amount)
+			total = total.Add(in.Currency.RoundToPrecision(qtyRange.Tier.FlatPrice.Amount))
 		}
 
 		if qtyRange.Tier.UnitPrice != nil {
-			total = total.Add(qtyRange.ToQty.Sub(qtyRange.FromQty).Mul(qtyRange.Tier.UnitPrice.Amount))
+			total = total.Add(in.Currency.RoundToPrecision(qtyRange.ToQty.Sub(qtyRange.FromQty).Mul(qtyRange.Tier.UnitPrice.Amount)))
 		}
 
 		// We should only calculate totals up to in.ToQty (given tiers are open-ended we cannot have a full upper bound
@@ -633,11 +690,11 @@ func tieredPriceCalculator(in tieredPriceCalculatorInput) error {
 
 type newDetailedLinesInput []newDetailedLineInput
 
-func (i newDetailedLinesInput) Sum() alpacadecimal.Decimal {
+func (i newDetailedLinesInput) Sum(currency currencyx.Calculator) alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 
 	for _, in := range i {
-		sum = sum.Add(in.PerUnitAmount.Mul(in.Quantity))
+		sum = sum.Add(currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity)))
 
 		for _, discount := range in.Discounts {
 			sum = sum.Sub(discount.Amount)
@@ -654,7 +711,8 @@ type newDetailedLineInput struct {
 	ChildUniqueReferenceID string                `json:"childUniqueReferenceID"`
 	Period                 *billingentity.Period `json:"period,omitempty"`
 	// PaymentTerm is the payment term for the detailed line, defaults to arrears
-	PaymentTerm plan.PaymentTermType `json:"paymentTerm,omitempty"`
+	PaymentTerm plan.PaymentTermType          `json:"paymentTerm,omitempty"`
+	Category    billingentity.FlatFeeCategory `json:"category,omitempty"`
 
 	Discounts []billingentity.LineDiscount `json:"discounts,omitempty"`
 }
@@ -682,31 +740,35 @@ func (i newDetailedLineInput) Validate() error {
 type addDiscountInput struct {
 	BilledAmountBeforeLine alpacadecimal.Decimal
 	MaxSpend               alpacadecimal.Decimal
+	Currency               currencyx.Calculator
 }
 
 func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDetailedLineInput {
-	lineTotal := i.PerUnitAmount.Mul(i.Quantity)
-	currentBillableAmount := in.BilledAmountBeforeLine.Add(lineTotal)
+	normalizedPreUsage := in.Currency.RoundToPrecision(in.BilledAmountBeforeLine)
+	lineTotal := in.Currency.RoundToPrecision(i.PerUnitAmount.Mul(i.Quantity))
+	totalBillableAmount := normalizedPreUsage.Add(lineTotal)
 
-	if currentBillableAmount.LessThanOrEqual(in.MaxSpend) {
+	normalizedMaxSpend := in.Currency.RoundToPrecision(in.MaxSpend)
+
+	if totalBillableAmount.LessThanOrEqual(normalizedMaxSpend) {
 		// Nothing to do here
 		return i
 	}
 
-	if currentBillableAmount.GreaterThanOrEqual(in.MaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(in.MaxSpend) {
+	if totalBillableAmount.GreaterThanOrEqual(normalizedMaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(normalizedMaxSpend) {
 		// 100% discount
 		i.Discounts = append(i.Discounts, billingentity.LineDiscount{
 			Amount:                 lineTotal,
-			Description:            formatMaximumSpendDiscountDescription(in.MaxSpend),
+			Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
 			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 		})
 		return i
 	}
 
-	discountAmount := currentBillableAmount.Sub(in.MaxSpend)
+	discountAmount := totalBillableAmount.Sub(normalizedMaxSpend)
 	i.Discounts = append(i.Discounts, billingentity.LineDiscount{
 		Amount:                 discountAmount,
-		Description:            formatMaximumSpendDiscountDescription(in.MaxSpend),
+		Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
 		ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
 	})
 
@@ -724,7 +786,11 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 			period = *in.Period
 		}
 
-		return &billingentity.Line{
+		if in.Category == "" {
+			in.Category = billingentity.FlatFeeCategoryRegular
+		}
+
+		line := &billingentity.Line{
 			LineBase: billingentity.LineBase{
 				Namespace:              l.line.Namespace,
 				Type:                   billingentity.InvoiceLineTypeFee,
@@ -742,13 +808,20 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, plan.InArrearsPaymentTerm),
 				PerUnitAmount: in.PerUnitAmount,
 				Quantity:      in.Quantity,
+				Category:      in.Category,
 			},
 			Discounts: billingentity.NewLineDiscounts(in.Discounts),
-		}, nil
+		}
+
+		if err := line.Validate(); err != nil {
+			return nil, err
+		}
+
+		return line, nil
 	})
 }
 
 func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string {
-	// TODO[later]: currency formatting
+	// TODO[OM-1019]: currency formatting!
 	return lo.ToPtr(fmt.Sprintf("Maximum spend discount for charges over %s", amount))
 }
