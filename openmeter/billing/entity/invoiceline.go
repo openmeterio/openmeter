@@ -441,6 +441,23 @@ func (c *LineChildren) RemoveByID(id string) bool {
 	return true
 }
 
+func (c *LineChildren) ReplaceByID(id string, newLine *Line) bool {
+	if c.IsAbsent() {
+		return false
+	}
+
+	lines := c.OrEmpty()
+
+	for i, line := range lines {
+		if line.ID == id {
+			lines[i] = newLine
+			return true
+		}
+	}
+
+	return false
+}
+
 // ChildrenWithIDReuse returns a new LineChildren instance with the given lines. If the line has a child
 // with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
 func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
@@ -491,9 +508,10 @@ type Price = plan.Price
 type UsageBasedLine struct {
 	ConfigID string `json:"configId"`
 
-	Price      Price                  `json:"price"`
-	FeatureKey string                 `json:"featureKey"`
-	Quantity   *alpacadecimal.Decimal `json:"quantity"`
+	Price                 Price                  `json:"price"`
+	FeatureKey            string                 `json:"featureKey"`
+	Quantity              *alpacadecimal.Decimal `json:"quantity"`
+	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other UsageBasedLine) bool {

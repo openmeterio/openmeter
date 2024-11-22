@@ -12,7 +12,6 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -211,6 +210,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), usdInvoices.Items, 1)
 		usdInvoice := usdInvoices.Items[0]
 
+		usdInvoiceLine := usdInvoice.Lines.MustGet()[0]
 		expectedUSDLine := &billingentity.Line{
 			LineBase: billingentity.LineBase{
 				ID:        items[0].ID,
@@ -228,15 +228,15 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				Status: billingentity.InvoiceLineStatusValid,
 
-				CreatedAt: usdInvoice.Lines[0].CreatedAt.In(time.UTC),
-				UpdatedAt: usdInvoice.Lines[0].UpdatedAt.In(time.UTC),
+				CreatedAt: usdInvoiceLine.CreatedAt.In(time.UTC),
+				UpdatedAt: usdInvoiceLine.UpdatedAt.In(time.UTC),
 
 				Metadata: map[string]string{
 					"key": "value",
 				},
 			},
 			FlatFee: billingentity.FlatFeeLine{
-				ConfigID:      usdInvoice.Lines[0].FlatFee.ConfigID,
+				ConfigID:      usdInvoiceLine.FlatFee.ConfigID,
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
 			},
@@ -244,45 +244,47 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		// Let's make sure that the workflow config is cloned
 		require.NotEqual(s.T(), usdInvoice.Workflow.Config.ID, billingProfile.WorkflowConfig.ID)
 		expectedInvoice := billingentity.Invoice{
-			Namespace: namespace,
-			ID:        usdInvoice.ID,
+			InvoiceBase: billingentity.InvoiceBase{
+				Namespace: namespace,
+				ID:        usdInvoice.ID,
 
-			Type:          billingentity.InvoiceTypeStandard,
-			Currency:      currencyx.Code(currency.USD),
-			Status:        billingentity.InvoiceStatusGathering,
-			StatusDetails: billingentity.InvoiceStatusDetails{},
+				Type:          billingentity.InvoiceTypeStandard,
+				Currency:      currencyx.Code(currency.USD),
+				Status:        billingentity.InvoiceStatusGathering,
+				StatusDetails: billingentity.InvoiceStatusDetails{},
 
-			CreatedAt: usdInvoice.CreatedAt,
-			UpdatedAt: usdInvoice.UpdatedAt,
+				CreatedAt: usdInvoice.CreatedAt,
+				UpdatedAt: usdInvoice.UpdatedAt,
 
-			Workflow: &billingentity.InvoiceWorkflow{
-				Config: billingentity.WorkflowConfig{
-					ID:        usdInvoice.Workflow.Config.ID,
-					CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
-					UpdatedAt: usdInvoice.Workflow.Config.UpdatedAt,
+				Workflow: &billingentity.InvoiceWorkflow{
+					Config: billingentity.WorkflowConfig{
+						ID:        usdInvoice.Workflow.Config.ID,
+						CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
+						UpdatedAt: usdInvoice.Workflow.Config.UpdatedAt,
 
-					Timezone:   billingProfile.WorkflowConfig.Timezone,
-					Collection: billingProfile.WorkflowConfig.Collection,
-					Invoicing:  billingProfile.WorkflowConfig.Invoicing,
-					Payment:    billingProfile.WorkflowConfig.Payment,
+						Timezone:   billingProfile.WorkflowConfig.Timezone,
+						Collection: billingProfile.WorkflowConfig.Collection,
+						Invoicing:  billingProfile.WorkflowConfig.Invoicing,
+						Payment:    billingProfile.WorkflowConfig.Payment,
+					},
+					SourceBillingProfileID: billingProfile.ID,
+					AppReferences:          *billingProfile.AppReferences,
+					Apps:                   billingProfile.Apps,
 				},
-				SourceBillingProfileID: billingProfile.ID,
-				AppReferences:          *billingProfile.AppReferences,
-				Apps:                   billingProfile.Apps,
+
+				Customer: billingentity.InvoiceCustomer{
+					CustomerID: customerEntity.ID,
+
+					Name:           customerEntity.Name,
+					BillingAddress: customerEntity.BillingAddress,
+					UsageAttribution: billingentity.CustomerUsageAttribution{
+						SubjectKeys: []string{"test"},
+					},
+				},
+				Supplier: billingProfile.Supplier,
 			},
 
-			Customer: billingentity.InvoiceCustomer{
-				CustomerID: customerEntity.ID,
-
-				Name:           customerEntity.Name,
-				BillingAddress: customerEntity.BillingAddress,
-				UsageAttribution: billingentity.CustomerUsageAttribution{
-					SubjectKeys: []string{"test"},
-				},
-			},
-			Supplier: billingProfile.Supplier,
-
-			Lines: []*billingentity.Line{expectedUSDLine},
+			Lines: billingentity.NewLineChildren([]*billingentity.Line{expectedUSDLine}),
 
 			ExpandedFields: billingentity.InvoiceExpandAll,
 		}
@@ -321,16 +323,18 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), hufInvoices.Items, 1)
 
-		// Then we have two line items for the invoice
-		require.Len(s.T(), hufInvoices.Items[0].Lines, 2)
+		hufInvoiceLines := hufInvoices.Items[0].Lines.MustGet()
 
-		_, found := lo.Find(hufInvoices.Items[0].Lines, func(l *billingentity.Line) bool {
+		// Then we have two line items for the invoice
+		require.Len(s.T(), hufInvoiceLines, 2)
+
+		_, found := lo.Find(hufInvoiceLines, func(l *billingentity.Line) bool {
 			return l.Type == billingentity.InvoiceLineTypeFee
 		})
 		require.True(s.T(), found, "manual fee item is present")
 
 		// Then we should have the tiered price present
-		tieredLine, found := lo.Find(hufInvoices.Items[0].Lines, func(l *billingentity.Line) bool {
+		tieredLine, found := lo.Find(hufInvoiceLines, func(l *billingentity.Line) bool {
 			return l.Type == billingentity.InvoiceLineTypeUsageBased
 		})
 
@@ -360,7 +364,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		)
 	})
 
-	s.T().Run("Expand scenarios - no expand", func(t *testing.T) {
+	s.T().Run("Expand scenarios - no  expand", func(t *testing.T) {
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Page: pagination.Page{
 				PageNumber: 1,
@@ -377,30 +381,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), invoices.Items, 1)
 		invoice := invoices.Items[0]
 
-		require.Len(s.T(), invoice.Lines, 0, "no lines should be returned")
-		require.Nil(s.T(), invoice.Workflow, "no workflow should be returned")
-	})
-
-	s.T().Run("Expand scenarios - no app expand", func(t *testing.T) {
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Page: pagination.Page{
-				PageNumber: 1,
-				PageSize:   10,
-			},
-
-			Namespace: namespace,
-			Customers: []string{customerEntity.ID},
-			Expand: billingentity.InvoiceExpand{
-				Workflow: true,
-			},
-			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
-			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
-		})
-		require.NoError(s.T(), err)
-		require.Len(s.T(), invoices.Items, 1)
-		invoice := invoices.Items[0]
-
-		require.Len(s.T(), invoice.Lines, 0, "no lines should be returned")
+		require.False(s.T(), invoice.Lines.IsPresent(), "no lines should be returned")
 		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
 		require.Nil(s.T(), invoice.Workflow.Apps, "apps should not be resolved")
 	})
@@ -415,7 +396,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			Namespace: namespace,
 			Customers: []string{customerEntity.ID},
 			Expand: billingentity.InvoiceExpand{
-				Workflow:     true,
 				WorkflowApps: true,
 			},
 			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
@@ -425,7 +405,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), invoices.Items, 1)
 		invoice := invoices.Items[0]
 
-		require.Len(s.T(), invoice.Lines, 0, "no lines should be returned")
+		require.False(s.T(), invoice.Lines.IsPresent(), "no lines should be returned")
 		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
 		require.NotNil(s.T(), invoice.Workflow.Apps, "apps should  be resolved")
 		require.NotNil(s.T(), invoice.Workflow.Apps.Tax, "apps should be resolved")
@@ -587,8 +567,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.Len(s.T(), invoice, 1)
 
 		// Then we should have item1 added to the invoice
-		require.Len(s.T(), invoice[0].Lines, 1)
-		require.Equal(s.T(), line1ID, invoice[0].Lines[0].ID)
+		require.Len(s.T(), invoice[0].Lines.MustGet(), 1)
+		require.Equal(s.T(), line1ID, invoice[0].Lines.MustGet()[0].ID)
 
 		// Then we expect that the gathering invoice is still present, with item2
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -597,8 +577,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		})
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
-		require.Len(s.T(), gatheringInvoice.Lines, 1)
-		require.Equal(s.T(), line2ID, gatheringInvoice.Lines[0].ID)
+		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 1)
+		require.Equal(s.T(), line2ID, gatheringInvoice.Lines.MustGet()[0].ID)
 	})
 
 	s.Run("When creating an invoice with only item2 included, but bad asof", func() {
@@ -631,8 +611,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.Len(s.T(), invoice, 1)
 
 		// Then we should have item2 added to the invoice
-		require.Len(s.T(), invoice[0].Lines, 1)
-		require.Equal(s.T(), line2ID, invoice[0].Lines[0].ID)
+		require.Len(s.T(), invoice[0].Lines.MustGet(), 1)
+		require.Equal(s.T(), line2ID, invoice[0].Lines.MustGet()[0].ID)
 
 		// Then we expect that the gathering invoice is deleted and empty
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -641,7 +621,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		})
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
-		require.Len(s.T(), gatheringInvoice.Lines, 0, "deleted gathering invoice is empty")
+		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 0, "deleted gathering invoice is empty")
 	})
 }
 
@@ -734,7 +714,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 
 	require.NoError(t, err)
 	require.Len(t, invoice, 1)
-	require.Len(t, invoice[0].Lines, 2)
+	require.Len(t, invoice[0].Lines.MustGet(), 2)
 
 	return invoice[0]
 }
@@ -798,15 +778,6 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, invoice.Status)
-
-				// Advance the invoice, should become Issued
-				invoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
-					ID:        invoice.ID,
-					Namespace: invoice.Namespace,
-				})
-
-				require.NoError(s.T(), err)
 				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
 			},
 			expectedState: billingentity.InvoiceStatusIssued,
@@ -832,17 +803,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 					AvailableActions: []billingentity.InvoiceAction{billingentity.InvoiceActionApprove},
 				}, invoice.StatusDetails)
 
-				// Approve the invoice, should become DraftReadyToIssue
+				// Approve the invoice, should become Issued
 				invoice, err := s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
-					ID:        invoice.ID,
-					Namespace: invoice.Namespace,
-				})
-
-				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftReadyToIssue, invoice.Status)
-
-				// Advance the invoice, should become Issued
-				invoice, err = s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
 					ID:        invoice.ID,
 					Namespace: invoice.Namespace,
 				})
@@ -941,16 +903,14 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			},
 			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
-				defer s.InvoiceCalculator.DisableMock()
+				defer s.InvoiceCalculator.DisableMock(t)
 
 				validationIssueGetter, ok := s.BillingAdapter.(ValidationIssueIntrospector)
 				require.True(t, ok)
 
 				// Given that the app will return a validation error
-				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
-					Return(billingentity.NewValidationError("test1", "validation error")).Once()
-				calcMock.On("Calculate", mock.Anything).
-					Return(nil).Once()
+				mockApp.OnValidateInvoice(billingentity.NewValidationError("test1", "validation error"))
+				calcMock.OnCalculate(nil)
 
 				// When we create a draft invoice
 				invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
@@ -974,7 +934,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Message:   "validation error",
 						Component: "app/sandbox/invoiceCustomers",
 					},
-				}, invoice.ValidationIssues)
+				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				// Then we have the issues captured in the database
 				issues, err := validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
@@ -996,13 +956,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				customerValidationIssueID := issues[0].ID
 				require.NotEmpty(t, customerValidationIssueID)
 
-				// Given that the issue is fixed, but a new one is introduced by editing the invoice
-				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
-					Return(nil).Once()
-				calcMock.On("Calculate", mock.Anything).
-					Return(billingentity.NewValidationError("test2", "validation error")).Once()
+				calcMock.AssertExpectations(t)
+				mockApp.Reset(t)
 
-				// TODO: we should trigger the update of the invoice here, but that's not yet available
+				// Given that the issue is fixed, but a new one is introduced by editing the invoice
+				mockApp.OnValidateInvoice(nil)
+				calcMock.OnCalculate(billingentity.NewValidationError("test2", "validation error"))
+
 				// regardless the state transition will be the same for now.
 				invoice, err = s.BillingService.RetryInvoice(ctx, billing.RetryInvoiceInput{
 					ID:        invoice.ID,
@@ -1026,7 +986,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Message:   "validation error",
 						Component: billingentity.ValidationComponentOpenMeter,
 					},
-				}, invoice.ValidationIssues)
+				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				// Then we have the new issues captured in the database, the old one deleted
 				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
@@ -1068,14 +1028,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					calculationErrorIssue.ValidationIssue,
 				)
 
-				// TODO: validate db storage of validation issues too
-				// Given that both issues are present, both will be reported
-				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
-					Return(billingentity.NewValidationError("test1", "validation error")).Once()
-				calcMock.On("Calculate", mock.Anything).
-					Return(billingentity.NewValidationError("test2", "validation error")).Once()
+				mockApp.Reset(t)
+				calcMock.Reset(t)
 
-				// TODO: we should trigger the update of the invoice here, but that's not yet available
+				// Given that both issues are present, both will be reported
+				mockApp.OnValidateInvoice(billingentity.NewValidationError("test1", "validation error"))
+				calcMock.OnCalculate(billingentity.NewValidationError("test2", "validation error"))
+
 				// regardless the state transition will be the same for now.
 				invoice, err = s.BillingService.RetryInvoice(ctx, billing.RetryInvoiceInput{
 					ID:        invoice.ID,
@@ -1105,7 +1064,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Message:   "validation error",
 						Component: billingentity.ValidationComponentOpenMeter,
 					},
-				}, invoice.ValidationIssues)
+				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				// The database now has both issues active (but no new ones are created)
 				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
@@ -1141,13 +1100,11 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			},
 			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
-				defer s.InvoiceCalculator.DisableMock()
+				defer s.InvoiceCalculator.DisableMock(t)
 
 				// Given that the app will return a validation error
-				mockApp.On("ValidateInvoice", mock.Anything, mock.Anything).
-					Return(billingentity.NewValidationWarning("test1", "validation warning")).Once()
-				calcMock.On("Calculate", mock.Anything).
-					Return(nil).Once()
+				mockApp.OnValidateInvoice(billingentity.NewValidationWarning("test1", "validation warning"))
+				calcMock.OnCalculate(nil)
 
 				// When we create a draft invoice
 				invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
@@ -1156,7 +1113,6 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.NotNil(s.T(), invoice)
 
-				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
 				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
 					AvailableActions: []billingentity.InvoiceAction{},
@@ -1169,7 +1125,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Message:   "validation warning",
 						Component: "app/sandbox/invoiceCustomers",
 					},
-				}, invoice.ValidationIssues)
+				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				return &invoice
 			},
@@ -1217,6 +1173,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 			// When we advance the invoice
 			invoice := tc.advance(t, ctx, namespace, customerEntity, mockApp)
+
+			mockApp.AssertExpectations(t)
 
 			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: billingentity.InvoiceID{
@@ -1509,16 +1467,20 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
-		require.Len(s.T(), out[0].Lines, 3)
+
+		require.Len(s.T(), out[0].ValidationIssues, 0)
+
+		invoiceLines := out[0].Lines.MustGet()
+		require.Len(s.T(), invoiceLines, 3)
 
 		// Let's resolve the lines by parent
-		flatPerUnit := s.lineWithParent(out[0].Lines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineWithParent(out[0].Lines, lines.flatPerUsage.ID)
-		tieredGraduated := s.lineWithParent(out[0].Lines, lines.tieredGraduated.ID)
+		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
+		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
+		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l *billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billingentity.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
@@ -1530,7 +1492,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}
-		for _, line := range out[0].Lines {
+		for _, line := range invoiceLines {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 
@@ -1575,6 +1537,84 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			Amount: 1000,
 			Total:  1000,
 		}, out[0].Totals)
+
+		s.Run("update line item", func() {
+			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
+				// TODO[later]: it will be removed or made optional only for internal use
+				UpdatedAt: flatPerUnit.UpdatedAt,
+				Invoice: billingentity.InvoiceID{
+					Namespace: namespace,
+					ID:        out[0].ID,
+				},
+				LineBase: billing.UpdateInvoiceLineBaseInput{
+					ID:   flatPerUnit.ID,
+					Type: billingentity.InvoiceLineTypeUsageBased,
+				},
+				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
+					Price: mo.Some(plan.NewPriceFrom(plan.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(250),
+					})),
+				},
+			})
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), line)
+
+			// TODO[later]: we need to decide how to handle the situation where the line is updated, but there are split
+			// lines
+			require.Equal(s.T(), float64(250), lo.Must(line.UsageBased.Price.AsUnit()).Amount.InexactFloat64())
+			require.True(s.T(), flatPerUnit.UpdatedAt.Before(line.UpdatedAt), "updated at should be changed")
+			require.True(s.T(), flatPerUnit.CreatedAt.Equal(line.CreatedAt), "created at should not be changed")
+
+			requireTotals(s.T(), expectedTotals{
+				Amount: 2500,
+				Total:  2500,
+			}, line.Totals)
+
+			invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: billingentity.InvoiceID{
+					Namespace: namespace,
+					ID:        out[0].ID,
+				},
+				Expand: billingentity.InvoiceExpand{},
+			})
+			require.NoError(s.T(), err)
+
+			requireTotals(s.T(), expectedTotals{
+				Amount: 2500,
+				Total:  2500,
+			}, invoice.Totals)
+		})
+
+		s.Run("invalid update of a line item", func() {
+			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
+				UpdatedAt: flatPerUnit.UpdatedAt,
+				Invoice: billingentity.InvoiceID{
+					Namespace: namespace,
+					ID:        out[0].ID,
+				},
+				LineBase: billing.UpdateInvoiceLineBaseInput{
+					ID:   flatPerUnit.ID,
+					Type: billingentity.InvoiceLineTypeUsageBased,
+				},
+				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
+					Price: mo.Some(plan.NewPriceFrom(plan.TieredPrice{
+						Mode: plan.VolumeTieredPrice,
+						Tiers: []plan.PriceTier{
+							{
+								UnitPrice: &plan.PriceTierUnitPrice{
+									Amount: alpacadecimal.NewFromFloat(250),
+								},
+							},
+						},
+					})),
+				},
+			})
+
+			require.Error(s.T(), err)
+			require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+			require.ErrorIs(s.T(), err, billingentity.ErrInvoiceLinesNotBillable)
+			require.Nil(s.T(), line)
+		})
 	})
 
 	s.Run("create mid period invoice - pt2", func() {
@@ -1590,16 +1630,20 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
-		require.Len(s.T(), out[0].Lines, 3)
+		require.Len(s.T(), out[0].ValidationIssues, 0)
+
+		invoiceLines := out[0].Lines.MustGet()
+
+		require.Len(s.T(), invoiceLines, 3)
 
 		// Let's resolve the lines by parent
-		flatPerUnit := s.lineWithParent(out[0].Lines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineWithParent(out[0].Lines, lines.flatPerUsage.ID)
-		tieredGraduated := s.lineWithParent(out[0].Lines, lines.tieredGraduated.ID)
+		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
+		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
+		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l *billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billingentity.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
@@ -1611,7 +1655,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}
-		for _, line := range out[0].Lines {
+		for _, line := range invoiceLines {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 
@@ -1693,19 +1737,22 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
-		require.Len(s.T(), out[0].Lines, 4)
+
+		invoiceLines := out[0].Lines.MustGet()
+
+		require.Len(s.T(), invoiceLines, 4)
 
 		// Let's resolve the lines by parent
-		flatPerUnit := s.lineWithParent(out[0].Lines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineWithParent(out[0].Lines, lines.flatPerUsage.ID)
-		tieredGraduated := s.lineWithParent(out[0].Lines, lines.tieredGraduated.ID)
-		tieredVolume, tieredVolumeFound := lo.Find(out[0].Lines, func(l *billingentity.Line) bool {
+		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
+		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
+		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
+		tieredVolume, tieredVolumeFound := lo.Find(invoiceLines, func(l *billingentity.Line) bool {
 			return l.ID == lines.tieredVolume.ID
 		})
 		require.True(s.T(), tieredVolumeFound, "tiered volume line should be present")
 		require.Equal(s.T(), tieredVolume.ID, lines.tieredVolume.ID, "tiered volume line should be the same (no split occurred)")
 
-		require.NotContains(s.T(), lo.Map(out[0].Lines, func(l *billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billingentity.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,

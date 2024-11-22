@@ -742,6 +742,20 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDescription(value *strin
 	return u.SetDescription(*value)
 }
 
+func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if value == nil {
+		return u.ClearPreLinePeriodQuantity()
+	}
+	return u.SetPreLinePeriodQuantity(*value)
+}
+
+func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if value == nil {
+		return u.ClearPreLinePeriodQuantity()
+	}
+	return u.SetPreLinePeriodQuantity(*value)
+}
+
 func (u *BillingInvoiceValidationIssueUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

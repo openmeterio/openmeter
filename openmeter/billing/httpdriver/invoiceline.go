@@ -125,8 +125,7 @@ func (h *handler) GetLine() GetLineHandler {
 			return GetLineRequest{
 				GetInvoiceLineInput: billing.GetInvoiceLineInput{
 					Namespace: ns,
-					InvoiceID: params.InvoiceID,
-					LineID:    params.LineID,
+					ID:        params.LineID,
 				},
 				CustomerID: params.CustomerID,
 			}, nil

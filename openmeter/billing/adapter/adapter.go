@@ -49,7 +49,7 @@ type adapter struct {
 	logger *slog.Logger
 }
 
-func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -59,7 +59,7 @@ func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, e
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) billing.Adapter {
+func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txDb := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 
 	return &adapter{

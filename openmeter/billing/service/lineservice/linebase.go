@@ -75,6 +75,7 @@ type LineBase interface {
 	Split(ctx context.Context, at time.Time) (SplitResult, error)
 
 	Service() *Service
+	ResetTotals()
 }
 
 var _ LineBase = (*lineBase)(nil)
@@ -255,4 +256,8 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 		PreSplitAtLine:  preSplitAtLine,
 		PostSplitAtLine: postSplitAtLine,
 	}, nil
+}
+
+func (l lineBase) ResetTotals() {
+	l.line.Totals = billingentity.Totals{}
 }

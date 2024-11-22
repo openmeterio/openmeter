@@ -1,7 +1,6 @@
 package billingentity
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -46,6 +45,7 @@ const (
 	InvoiceStatusGathering InvoiceStatus = "gathering"
 
 	InvoiceStatusDraftCreated              InvoiceStatus = "draft_created"
+	InvoiceStatusDraftUpdating             InvoiceStatus = "draft_updating"
 	InvoiceStatusDraftManualApprovalNeeded InvoiceStatus = "draft_manual_approval_needed"
 	InvoiceStatusDraftValidating           InvoiceStatus = "draft_validating"
 	InvoiceStatusDraftInvalid              InvoiceStatus = "draft_invalid"
@@ -64,6 +64,7 @@ const (
 var validStatuses = []InvoiceStatus{
 	InvoiceStatusGathering,
 	InvoiceStatusDraftCreated,
+	InvoiceStatusDraftUpdating,
 	InvoiceStatusDraftManualApprovalNeeded,
 	InvoiceStatusDraftValidating,
 	InvoiceStatusDraftInvalid,
@@ -114,28 +115,27 @@ func (i InvoiceID) Validate() error {
 }
 
 type InvoiceExpand struct {
-	Lines        bool
 	Preceding    bool
-	Workflow     bool
 	WorkflowApps bool
+	Lines        bool
 }
 
 var InvoiceExpandAll = InvoiceExpand{
-	Lines:        true,
 	Preceding:    true,
-	Workflow:     true,
 	WorkflowApps: true,
+	Lines:        true,
 }
 
 func (e InvoiceExpand) Validate() error {
-	if !e.Workflow && e.WorkflowApps {
-		return errors.New("workflow.apps can only be expanded when workflow is expanded")
-	}
-
 	return nil
 }
 
-type Invoice struct {
+func (e InvoiceExpand) SetLines(v bool) InvoiceExpand {
+	e.Lines = v
+	return e
+}
+
+type InvoiceBase struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`
 
@@ -168,16 +168,17 @@ type Invoice struct {
 	Customer InvoiceCustomer  `json:"customer"`
 	Supplier SupplierContact  `json:"supplier"`
 	Workflow *InvoiceWorkflow `json:"workflow,omitempty"`
+}
+
+type Invoice struct {
+	InvoiceBase `json:",inline"`
 
 	// Line items
-	Lines []*Line `json:"lines,omitempty"`
-
+	Lines            LineChildren     `json:"lines,omitempty"`
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
-
-	Totals Totals `json:"totals"`
+	Totals           Totals           `json:"totals"`
 
 	// private fields required by the service
-	Changed        bool          `json:"-"`
 	ExpandedFields InvoiceExpand `json:"-"`
 }
 
@@ -209,7 +210,7 @@ func (i *Invoice) HasCriticalValidationIssues() bool {
 // - Parent pointers are removed
 func (i Invoice) RemoveMetaForCompare() Invoice {
 	invoice := i
-	invoice.Lines = lo.Map(i.Lines, func(line *Line, _ int) *Line {
+	invoice.Lines = i.Lines.Map(func(line *Line) *Line {
 		return line.RemoveMetaForCompare()
 	})
 

@@ -79,11 +79,11 @@ func (s *Service) FromEntity(line *billingentity.Line) (Line, error) {
 
 	switch line.Type {
 	case billingentity.InvoiceLineTypeFee:
-		return feeLine{
+		return &feeLine{
 			lineBase: base,
 		}, nil
 	case billingentity.InvoiceLineTypeUsageBased:
-		return usageBasedLine{
+		return &usageBasedLine{
 			lineBase: base,
 		}, nil
 	default:
@@ -173,6 +173,8 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billinge
 		return nil, err
 	}
 
+	invoice.Lines = billingentity.NewLineChildren(append(invoice.Lines.OrEmpty(), lineEntities...))
+
 	return s.FromEntities(lineEntities)
 }
 
@@ -184,6 +186,7 @@ type Line interface {
 	Validate(ctx context.Context, invoice *billingentity.Invoice) error
 	CanBeInvoicedAsOf(context.Context, time.Time) (*billingentity.Period, error)
 	SnapshotQuantity(context.Context, *billingentity.Invoice) error
+	CalculateDetailedLines() error
 	PrepareForCreate(context.Context) (Line, error)
 	UpdateTotals() error
 }

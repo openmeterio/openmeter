@@ -25,7 +25,12 @@ var (
 	ErrCustomerNotFound               = NewValidationError("customer_not_found", "customer not found")
 	ErrCustomerDeleted                = NewValidationError("customer_deleted", "customer has been deleted")
 
+	ErrFieldRequired             = NewValidationError("field_required", "field is required")
+	ErrFieldMustBePositive       = NewValidationError("field_must_be_positive", "field must be positive")
+	ErrFieldMustBePositiveOrZero = NewValidationError("field_must_be_positive_or_zero", "field must be positive or zero")
+
 	ErrInvoiceCannotAdvance      = NewValidationError("invoice_cannot_advance", "invoice cannot advance")
+	ErrInvoiceCannotBeEdited     = NewValidationError("invoice_cannot_be_edited", "invoice cannot be edited in the current state")
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
 	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "some invoice lines are not billable")
 	ErrInvoiceEmpty              = NewValidationError("invoice_empty", "invoice is empty")
@@ -38,6 +43,7 @@ var (
 	ErrInvoiceCreateUBPLineCustomerHasNoSubjects = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer has no subjects")
 	ErrInvoiceCreateUBPLinePeriodIsEmpty         = NewValidationError("invoice_create_ubp_line_period_is_empty", "creating an usage based line: truncated period is empty")
 	ErrInvoiceLineCurrencyMismatch               = NewValidationError("invoice_line_currency_mismatch", "invoice line currency mismatch")
+	ErrInvoiceLineConflict                       = NewValidationError("invoice_line_conflict", "invoice line has been already updated")
 )
 
 var _ error = (*NotFoundError)(nil)

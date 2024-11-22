@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
@@ -24,8 +25,10 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
-	Price        *plan.Price `json:"price,omitempty"`
-	selectValues sql.SelectValues
+	Price *plan.Price `json:"price,omitempty"`
+	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
+	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"pre_line_period_quantity,omitempty"`
+	selectValues          sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -33,6 +36,8 @@ func (*BillingInvoiceUsageBasedLineConfig) scanValues(columns []string) ([]any, 
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceusagebasedlineconfig.FieldID, billinginvoiceusagebasedlineconfig.FieldNamespace, billinginvoiceusagebasedlineconfig.FieldPriceType, billinginvoiceusagebasedlineconfig.FieldFeatureKey:
 			values[i] = new(sql.NullString)
 		case billinginvoiceusagebasedlineconfig.FieldPrice:
@@ -82,6 +87,13 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string,
 			} else {
 				biublc.Price = value
 			}
+		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field pre_line_period_quantity", values[i])
+			} else if value.Valid {
+				biublc.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
+				*biublc.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
+			}
 		default:
 			biublc.selectValues.Set(columns[i], values[i])
 		}
@@ -129,6 +141,11 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", biublc.Price))
+	builder.WriteString(", ")
+	if v := biublc.PreLinePeriodQuantity; v != nil {
+		builder.WriteString("pre_line_period_quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

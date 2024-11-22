@@ -6,7 +6,6 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -16,8 +15,7 @@ type Adapter interface {
 	InvoiceLineAdapter
 	InvoiceAdapter
 
-	Tx(ctx context.Context) (context.Context, transaction.Driver, error)
-	WithTx(ctx context.Context, tx *entutils.TxDriver) Adapter
+	entutils.TxCreator
 }
 
 type ProfileAdapter interface {
@@ -47,8 +45,7 @@ type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*billingentity.Line, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*billingentity.Line, error)
 	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) ([]*billingentity.Line, error)
-	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineAdapterInput) (*billingentity.Line, error)
-	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*billingentity.Line, error)
+	GetInvoiceLine(ctx context.Context, input GetInvoiceLineAdapterInput) (*billingentity.Line, error)
 
 	GetInvoiceLineOwnership(ctx context.Context, input GetInvoiceLineOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
 }
@@ -60,7 +57,7 @@ type InvoiceAdapter interface {
 	DeleteInvoices(ctx context.Context, input DeleteInvoicesAdapterInput) error
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	AssociatedLineCounts(ctx context.Context, input AssociatedLineCountsAdapterInput) (AssociatedLineCountsAdapterResponse, error)
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) error
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (billingentity.Invoice, error)
 
 	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
 }

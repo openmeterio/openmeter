@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -45,6 +46,26 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePriceType(pt
 // SetPrice sets the "price" field.
 func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPrice(pl *plan.Price) *BillingInvoiceUsageBasedLineConfigUpdate {
 	biublcu.mutation.SetPrice(pl)
+	return biublcu
+}
+
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	biublcu.mutation.SetPreLinePeriodQuantity(a)
+	return biublcu
+}
+
+// SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if a != nil {
+		biublcu.SetPreLinePeriodQuantity(*a)
+	}
+	return biublcu
+}
+
+// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
+	biublcu.mutation.ClearPreLinePeriodQuantity()
 	return biublcu
 }
 
@@ -117,6 +138,12 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Con
 		}
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPrice, field.TypeString, vv)
 	}
+	if value, ok := biublcu.mutation.PreLinePeriodQuantity(); ok {
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
+	}
+	if biublcu.mutation.PreLinePeriodQuantityCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, biublcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoiceusagebasedlineconfig.Label}
@@ -154,6 +181,26 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePriceTyp
 // SetPrice sets the "price" field.
 func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPrice(pl *plan.Price) *BillingInvoiceUsageBasedLineConfigUpdateOne {
 	biublcuo.mutation.SetPrice(pl)
+	return biublcuo
+}
+
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	biublcuo.mutation.SetPreLinePeriodQuantity(a)
+	return biublcuo
+}
+
+// SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if a != nil {
+		biublcuo.SetPreLinePeriodQuantity(*a)
+	}
+	return biublcuo
+}
+
+// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	biublcuo.mutation.ClearPreLinePeriodQuantity()
 	return biublcuo
 }
 
@@ -255,6 +302,12 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context
 			return nil, err
 		}
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPrice, field.TypeString, vv)
+	}
+	if value, ok := biublcuo.mutation.PreLinePeriodQuantity(); ok {
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
+	}
+	if biublcuo.mutation.PreLinePeriodQuantityCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
 	_node = &BillingInvoiceUsageBasedLineConfig{config: biublcuo.config}
 	_spec.Assign = _node.assignValues

@@ -102,6 +102,7 @@ interface CustomerInvoicesEndpoints {
     customerId: ULID,
 
     @body
+    @friendlyName("BillingInvoiceLinesCreate")
     request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<Lines>,
   ): {
     @statusCode _: 201;
@@ -307,7 +308,7 @@ interface CustomerInvoiceEndpoints {
   /**
    * Update an invoice line
    */
-  @post
+  @put
   @route("/lines/{lineId}")
   @summary("Update an invoice line")
   @operationId("billingUpdateInvoiceLine")
@@ -317,6 +318,7 @@ interface CustomerInvoiceEndpoints {
     @path invoiceId: ULID,
     @path lineId: ULID,
 
+    // TODO[OM-1021]: Let's use ResourceCreateOrUpdateModel to mark everhthing optional except the Type and UpdatedAt fields
     @body
     request: Invoices.InvoiceLine,
   ): {
@@ -447,15 +449,11 @@ model InvoiceListParams {
  * InvoiceExpand specifies the parts of the invoice to expand in the list output.
  */
 @friendlyName("BillingInvoiceExpand")
-@extension(
-  "x-enum-varnames",
-  ["all", "lines", "preceding", "workflow", "workflowApps"]
-)
+@extension("x-enum-varnames", ["all", "lines", "preceding", "workflowApps"])
 enum InvoiceExpand {
   all: "*",
   lines: "lines",
   preceding: "preceding",
-  workflow: "workflow",
   workflowApps: "workflow.apps",
 }
 

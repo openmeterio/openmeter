@@ -417,6 +417,12 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
 	}
 }
 

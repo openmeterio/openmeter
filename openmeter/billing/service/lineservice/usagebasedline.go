@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var _ Line = usageBasedLine{}
+var _ Line = (*usageBasedLine)(nil)
 
 const (
 	FlatPriceChildUniqueReferenceID         = "flat-price"
@@ -39,7 +39,7 @@ type usageBasedLine struct {
 func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
 	l.line.Period = l.line.Period.Truncate(billingentity.DefaultMeterResolution)
 
-	return l, nil
+	return &l, nil
 }
 
 func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billingentity.Invoice) error {
@@ -74,12 +74,20 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 		}
 
 		if tiered.Mode == plan.VolumeTieredPrice {
-			// Volume tiers are only billable if we have all the data acquired, as otherwise
-			// we might overcharge the customer (if we are at tier bundaries)
-			if !asof.Before(l.line.InvoiceAt) {
+			if l.line.ParentLine != nil {
+				if asof.Before(l.line.ParentLine.Period.End) {
+					return nil, nil
+				}
+
 				return &l.line.Period, nil
 			}
-			return nil, nil
+
+			// Volume tiers are only billable if we have all the data acquired, as otherwise
+			// we might overcharge the customer (if we are at tier bundaries)
+			if asof.Before(l.line.Period.End) {
+				return nil, nil
+			}
+			return &l.line.Period, nil
 		}
 	}
 
@@ -121,7 +129,7 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 	}
 }
 
-func (l usageBasedLine) UpdateTotals() error {
+func (l *usageBasedLine) UpdateTotals() error {
 	// Calculate the line totals
 	for _, line := range l.line.Children.OrEmpty() {
 		lineSvc, err := l.service.FromEntity(line)
@@ -152,7 +160,7 @@ func (l usageBasedLine) UpdateTotals() error {
 	return nil
 }
 
-func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) error {
+func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) error {
 	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
 		return err
@@ -172,8 +180,21 @@ func (l usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingen
 	}
 
 	l.line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
+	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
 
-	newDetailedLinesInput, err := l.calculateDetailedLines(usage)
+	return nil
+}
+
+func (l *usageBasedLine) CalculateDetailedLines() error {
+	if l.line.UsageBased.Quantity == nil || l.line.UsageBased.PreLinePeriodQuantity == nil {
+		// This is an internal logic error, as the snapshotting should have set these values
+		return fmt.Errorf("quantity and pre-line period quantity must be set for line[%s]", l.line.ID)
+	}
+
+	newDetailedLinesInput, err := l.calculateDetailedLines(&featureUsageResponse{
+		LinePeriodQty:    *l.line.UsageBased.Quantity,
+		PreLinePeriodQty: *l.line.UsageBased.PreLinePeriodQuantity,
+	})
 	if err != nil {
 		return err
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -36,8 +37,9 @@ type BaseSuite struct {
 	TestDB   *testutils.TestDB
 	DBClient *db.Client
 
-	BillingAdapter billing.Adapter
-	BillingService billing.Service
+	BillingAdapter    billing.Adapter
+	BillingService    billing.Service
+	InvoiceCalculator *invoicecalc.MockableInvoiceCalculator
 
 	FeatureService         feature.FeatureConnector
 	MeterRepo              *meter.InMemoryRepository
@@ -45,9 +47,8 @@ type BaseSuite struct {
 
 	CustomerService customer.Service
 
-	AppService        app.Service
-	SandboxApp        *appsandbox.MockableFactory
-	InvoiceCalculator *billingservice.MockableInvoiceCalculator
+	AppService app.Service
+	SandboxApp *appsandbox.MockableFactory
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -121,20 +122,20 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 	s.BillingAdapter = billingAdapter
 
-	s.InvoiceCalculator = billingservice.NewMockableCalculator(t)
-
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:            billingAdapter,
 		CustomerService:    s.CustomerService,
 		AppService:         s.AppService,
 		Logger:             slog.Default(),
-		InvoiceCalculator:  s.InvoiceCalculator,
 		FeatureService:     s.FeatureService,
 		MeterRepo:          s.MeterRepo,
 		StreamingConnector: s.MockStreamingConnector,
 	})
 	require.NoError(t, err)
-	s.BillingService = billingService
+
+	s.InvoiceCalculator = invoicecalc.NewMockableCalculator(t, billingService.InvoiceCalculator())
+
+	s.BillingService = billingService.WithInvoiceCalculator(s.InvoiceCalculator)
 }
 
 func (s *BaseSuite) installSandboxApp(t *testing.T, ns string) appentity.App {

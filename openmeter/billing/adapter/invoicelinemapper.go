@@ -175,10 +175,11 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			return invoiceLine, fmt.Errorf("manual usage based line is missing")
 		}
 		invoiceLine.UsageBased = billingentity.UsageBasedLine{
-			ConfigID:   ubpLine.ID,
-			FeatureKey: ubpLine.FeatureKey,
-			Price:      *ubpLine.Price,
-			Quantity:   dbLine.Quantity,
+			ConfigID:              ubpLine.ID,
+			FeatureKey:            ubpLine.FeatureKey,
+			Price:                 *ubpLine.Price,
+			Quantity:              dbLine.Quantity,
+			PreLinePeriodQuantity: ubpLine.PreLinePeriodQuantity,
 		}
 	default:
 		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)

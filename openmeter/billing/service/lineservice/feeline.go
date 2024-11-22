@@ -10,14 +10,14 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 )
 
-var _ Line = feeLine{}
+var _ Line = (*feeLine)(nil)
 
 type feeLine struct {
 	lineBase
 }
 
 func (l feeLine) PrepareForCreate(context.Context) (Line, error) {
-	return l, nil
+	return &l, nil
 }
 
 func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billingentity.Period, error) {
@@ -32,7 +32,11 @@ func (l feeLine) SnapshotQuantity(context.Context, *billingentity.Invoice) error
 	return nil
 }
 
-func (l feeLine) UpdateTotals() error {
+func (l feeLine) CalculateDetailedLines() error {
+	return nil
+}
+
+func (l *feeLine) UpdateTotals() error {
 	// Calculate the line totals
 	calc, err := l.line.Currency.Calculator()
 	if err != nil {

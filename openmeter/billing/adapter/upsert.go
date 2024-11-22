@@ -8,7 +8,7 @@ import (
 )
 
 type upsertInput[T any, CreateBulkType any] struct {
-	Create      func(T) (CreateBulkType, error)
+	Create      func(*entdb.Client, T) (CreateBulkType, error)
 	UpsertItems func(context.Context, *entdb.Client, []CreateBulkType) error
 	Delete      func(context.Context, *entdb.Client, []T) error
 }
@@ -31,7 +31,9 @@ func upsertWithOptions[T any, CreateBulkType any](ctx context.Context, db *entdb
 	upsertItems := make([]CreateBulkType, 0, len(itemDiff.ToCreate)+len(itemDiff.ToUpdate))
 
 	if len(itemDiff.ToCreate) > 0 {
-		toCreate, err := slicesx.MapWithErr(itemDiff.ToCreate, opts.Create)
+		toCreate, err := slicesx.MapWithErr(itemDiff.ToCreate, func(item T) (CreateBulkType, error) {
+			return opts.Create(db, item)
+		})
 		if err != nil {
 			return err
 		}
@@ -40,7 +42,9 @@ func upsertWithOptions[T any, CreateBulkType any](ctx context.Context, db *entdb
 	}
 
 	if len(itemDiff.ToUpdate) > 0 {
-		toUpdate, err := slicesx.MapWithErr(itemDiff.ToUpdate, opts.Create)
+		toUpdate, err := slicesx.MapWithErr(itemDiff.ToUpdate, func(item T) (CreateBulkType, error) {
+			return opts.Create(db, item)
+		})
 		if err != nil {
 			return err
 		}

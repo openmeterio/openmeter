@@ -4,6 +4,7 @@ package billinginvoiceusagebasedlineconfig
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
@@ -71,6 +72,11 @@ func Namespace(v string) predicate.BillingInvoiceUsageBasedLineConfig {
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
 func FeatureKey(v string) predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldFeatureKey, v))
+}
+
+// PreLinePeriodQuantity applies equality check predicate on the "pre_line_period_quantity" field. It's identical to PreLinePeriodQuantityEQ.
+func PreLinePeriodQuantity(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldPreLinePeriodQuantity, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -231,6 +237,56 @@ func FeatureKeyEqualFold(v string) predicate.BillingInvoiceUsageBasedLineConfig 
 // FeatureKeyContainsFold applies the ContainsFold predicate on the "feature_key" field.
 func FeatureKeyContainsFold(v string) predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldContainsFold(FieldFeatureKey, v))
+}
+
+// PreLinePeriodQuantityEQ applies the EQ predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldPreLinePeriodQuantity, v))
+}
+
+// PreLinePeriodQuantityNEQ applies the NEQ predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNEQ(FieldPreLinePeriodQuantity, v))
+}
+
+// PreLinePeriodQuantityIn applies the In predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIn(FieldPreLinePeriodQuantity, vs...))
+}
+
+// PreLinePeriodQuantityNotIn applies the NotIn predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotIn(FieldPreLinePeriodQuantity, vs...))
+}
+
+// PreLinePeriodQuantityGT applies the GT predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityGT(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGT(FieldPreLinePeriodQuantity, v))
+}
+
+// PreLinePeriodQuantityGTE applies the GTE predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGTE(FieldPreLinePeriodQuantity, v))
+}
+
+// PreLinePeriodQuantityLT applies the LT predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityLT(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLT(FieldPreLinePeriodQuantity, v))
+}
+
+// PreLinePeriodQuantityLTE applies the LTE predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLTE(FieldPreLinePeriodQuantity, v))
+}
+
+// PreLinePeriodQuantityIsNil applies the IsNil predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldPreLinePeriodQuantity))
+}
+
+// PreLinePeriodQuantityNotNil applies the NotNil predicate on the "pre_line_period_quantity" field.
+func PreLinePeriodQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldPreLinePeriodQuantity))
 }
 
 // And groups predicates with the AND operator between them.

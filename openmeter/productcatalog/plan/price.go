@@ -156,7 +156,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func (p *Price) Validate() error {
+func (p Price) Validate() error {
 	switch p.t {
 	case FlatPriceType:
 		return p.flat.Validate()

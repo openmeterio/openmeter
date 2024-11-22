@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
+	"github.com/samber/mo"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -18,7 +18,11 @@ type AppFactory interface {
 }
 
 type MockApp struct {
-	mock.Mock
+	validateCustomerResponse mo.Option[error]
+	validateCustomerCalled   bool
+
+	validateInvoiceResponse       mo.Option[error]
+	validateInvoiceResponseCalled bool
 }
 
 func NewMockApp(_ *testing.T) *MockApp {
@@ -26,15 +30,45 @@ func NewMockApp(_ *testing.T) *MockApp {
 }
 
 func (m *MockApp) ValidateCustomer(appID string, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
-	args := m.Called(appID, customer, capabilities)
+	m.validateCustomerCalled = true
+	return m.validateCustomerResponse.MustGet()
+}
 
-	return args.Error(0)
+func (m *MockApp) OnValidateCustomer(err error) {
+	m.validateCustomerResponse = mo.Some(err)
 }
 
 func (m *MockApp) ValidateInvoice(appID string, invoice billingentity.Invoice) error {
-	args := m.Called(appID, invoice)
+	m.validateInvoiceResponseCalled = true
+	return m.validateInvoiceResponse.MustGet()
+}
 
-	return args.Error(0)
+func (m *MockApp) OnValidateInvoice(err error) {
+	m.validateInvoiceResponse = mo.Some(err)
+}
+
+func (m *MockApp) Reset(t *testing.T) {
+	t.Helper()
+
+	m.AssertExpectations(t)
+
+	m.validateCustomerResponse = mo.None[error]()
+	m.validateCustomerCalled = false
+
+	m.validateInvoiceResponse = mo.None[error]()
+	m.validateInvoiceResponseCalled = false
+}
+
+func (m *MockApp) AssertExpectations(t *testing.T) {
+	t.Helper()
+
+	if m.validateCustomerResponse.IsPresent() && !m.validateCustomerCalled {
+		t.Errorf("expected ValidateCustomer to be called")
+	}
+
+	if m.validateInvoiceResponse.IsPresent() && !m.validateInvoiceResponseCalled {
+		t.Errorf("expected ValidateInvoice to be called")
+	}
 }
 
 func (m *MockApp) NewApp(_ context.Context, app appentitybase.AppBase) (appentity.App, error) {

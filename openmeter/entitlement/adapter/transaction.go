@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// We implement entuitls.TxUser[T] and entuitls.TxCreator here
+// We implement entuitls.TxUser[T] and entutils.TxCreator here
 // There ought to be a better way....
 
 func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {

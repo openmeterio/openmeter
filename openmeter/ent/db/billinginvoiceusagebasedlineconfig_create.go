@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 )
@@ -44,6 +45,20 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetFeatureKey(s string)
 // SetPrice sets the "price" field.
 func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPrice(pl *plan.Price) *BillingInvoiceUsageBasedLineConfigCreate {
 	biublcc.mutation.SetPrice(pl)
+	return biublcc
+}
+
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	biublcc.mutation.SetPreLinePeriodQuantity(a)
+	return biublcc
+}
+
+// SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
+func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	if a != nil {
+		biublcc.SetPreLinePeriodQuantity(*a)
+	}
 	return biublcc
 }
 
@@ -195,6 +210,10 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingI
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
+	if value, ok := biublcc.mutation.PreLinePeriodQuantity(); ok {
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
+		_node.PreLinePeriodQuantity = &value
+	}
 	return _node, _spec, nil
 }
 
@@ -268,6 +287,24 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetPrice(v *plan.Price) *Bill
 // UpdatePrice sets the "price" field to the value that was provided on create.
 func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdatePrice() *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.SetExcluded(billinginvoiceusagebasedlineconfig.FieldPrice)
+	return u
+}
+
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.Set(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, v)
+	return u
+}
+
+// UpdatePreLinePeriodQuantity sets the "pre_line_period_quantity" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdatePreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetExcluded(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
+	return u
+}
+
+// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetNull(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
 	return u
 }
 
@@ -350,6 +387,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetPrice(v *plan.Price) *B
 func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdatePrice() *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.UpdatePrice()
+	})
+}
+
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetPreLinePeriodQuantity(v)
+	})
+}
+
+// UpdatePreLinePeriodQuantity sets the "pre_line_period_quantity" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdatePreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdatePreLinePeriodQuantity()
+	})
+}
+
+// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearPreLinePeriodQuantity()
 	})
 }
 
@@ -602,6 +660,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetPrice(v *plan.Price) *
 func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdatePrice() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.UpdatePrice()
+	})
+}
+
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetPreLinePeriodQuantity(v)
+	})
+}
+
+// UpdatePreLinePeriodQuantity sets the "pre_line_period_quantity" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdatePreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdatePreLinePeriodQuantity()
+	})
+}
+
+// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearPreLinePeriodQuantity()
 	})
 }
 

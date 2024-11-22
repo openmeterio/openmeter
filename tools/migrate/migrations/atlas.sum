@@ -1,4 +1,4 @@
-h1:7rOVxhuQmahPePLe6IJE8dxFbOcQWkMQglyLWYoSB/g=
+h1:XCE7gEkSwkZlLYYAshKSZDghrvIgKCu3l1KmXaAlQls=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -55,3 +55,5 @@ h1:7rOVxhuQmahPePLe6IJE8dxFbOcQWkMQglyLWYoSB/g=
 20241120145625_billing-discounts.up.sql h1:5V38PkmVFoCN7CNuOkdYwcjkWbo22IZNVo4BYy8VFqk=
 20241121145549_billing-totals.down.sql h1:NNL7TfC5ayUIB7BnK/R9OQkHGyWmPg0qjLYuFN/pDg8=
 20241121145549_billing-totals.up.sql h1:q+c7OjXCY/cZOS3pZs24S2BnzQXVUiC1Wn7XXeryi44=
+20241126151128_billing-ubp-pre-qty-save.down.sql h1:Nca8iyJUlTULWKfVd0aM75Bw/zaG7+Drh8RzmfNwZI8=
+20241126151128_billing-ubp-pre-qty-save.up.sql h1:HT31T/QYhzmM6WXT4fgBz5ICI83JjFLdnFC8scxNZoU=

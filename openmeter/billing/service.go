@@ -34,6 +34,7 @@ type CustomerOverrideService interface {
 type InvoiceLineService interface {
 	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*billingentity.Line, error)
 	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*billingentity.Line, error)
+	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*billingentity.Line, error)
 
 	ValidateLineOwnership(ctx context.Context, input ValidateLineOwnershipInput) error
 }
