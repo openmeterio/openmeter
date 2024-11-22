@@ -18,9 +18,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
+var _ InvoiceLineHandler = (*handler)(nil)
+
 type (
 	CreateLineByCustomerRequest  = billing.CreateInvoiceLinesInput
-	CreateLineByCustomerResponse = api.BillingCreateLineResult
+	CreateLineByCustomerResponse = api.BillingInvoiceLines
 	CreateLineByCustomerHandler  httptransport.HandlerWithArgs[CreateLineByCustomerRequest, CreateLineByCustomerResponse, string]
 )
 
@@ -40,8 +42,13 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 				return CreateLineByCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			lines := make([]billingentity.Line, 0, len(body.Lines))
-			for _, line := range body.Lines {
+			if body.Lines == nil || len(*body.Lines) == 0 {
+				return CreateLineByCustomerRequest{}, billingentity.ValidationError{
+					Err: fmt.Errorf("no lines provided"),
+				}
+			}
+			lines := make([]billingentity.Line, 0, len(*body.Lines))
+			for _, line := range *body.Lines {
 				line, err := mapCreateLineToEntity(line, ns)
 				if err != nil {
 					return CreateLineByCustomerRequest{}, fmt.Errorf("failed to map line: %w", err)
@@ -79,6 +86,63 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("billingCreateLineByCustomer"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type (
+	GetLineRequest struct {
+		GetInvoiceLineInput billing.GetInvoiceLineInput
+		CustomerID          string
+	}
+	GetLineResponse = api.BillingInvoiceLine
+	GetLineParams   struct {
+		CustomerID string
+		InvoiceID  string
+		LineID     string
+	}
+	GetLineHandler = httptransport.HandlerWithArgs[GetLineRequest, GetLineResponse, GetLineParams]
+)
+
+func (h *handler) GetLine() GetLineHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetLineParams) (GetLineRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetLineRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			if err := h.service.ValidateLineOwnership(ctx, billing.ValidateLineOwnershipInput{
+				Namespace:  ns,
+				CustomerID: params.CustomerID,
+				LineID:     params.LineID,
+				InvoiceID:  params.InvoiceID,
+			}); err != nil {
+				return GetLineRequest{}, billingentity.NotFoundError{Err: err}
+			}
+
+			return GetLineRequest{
+				GetInvoiceLineInput: billing.GetInvoiceLineInput{
+					Namespace: ns,
+					InvoiceID: params.InvoiceID,
+					LineID:    params.LineID,
+				},
+				CustomerID: params.CustomerID,
+			}, nil
+		},
+		func(ctx context.Context, request GetLineRequest) (GetLineResponse, error) {
+			line, err := h.service.GetInvoiceLine(ctx, request.GetInvoiceLineInput)
+			if err != nil {
+				return GetLineResponse{}, fmt.Errorf("failed to get invoice line: %w", err)
+			}
+
+			return mapBillingLineToAPI(line)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetLineResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("billingGetLine"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
@@ -170,7 +234,7 @@ func mapCreateUsageBasedLineToEntity(line api.BillingUsageBasedLineCreateItem, n
 
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
-			Type:        billingentity.InvoiceLineTypeFee,
+			Type:        billingentity.InvoiceLineTypeUsageBased,
 			Description: line.Description,
 
 			InvoiceID: invoiceId,
@@ -218,7 +282,32 @@ func mapBillingLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, erro
 	}
 }
 
+func mapChildLinesToAPI(optChildren billingentity.LineChildren) (*[]api.BillingInvoiceLine, error) {
+	if optChildren.IsAbsent() {
+		return nil, nil
+	}
+
+	children := optChildren.OrEmpty()
+
+	out := make([]api.BillingInvoiceLine, 0, len(children))
+
+	for _, child := range children {
+		mappedLine, err := mapBillingLineToAPI(child)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map child line: %w", err)
+		}
+		out = append(out, mappedLine)
+	}
+
+	return &out, nil
+}
+
 func mapFeeLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, error) {
+	children, err := mapChildLinesToAPI(line.Children)
+	if err != nil {
+		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
+	}
+
 	feeLine := api.BillingFlatFeeLine{
 		Type: api.BillingFlatFeeLineTypeFlatFee,
 		Id:   line.ID,
@@ -229,6 +318,7 @@ func mapFeeLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, error) {
 		InvoiceAt: line.InvoiceAt,
 
 		Currency: string(line.Currency),
+		Status:   api.BillingLineStatus(line.Status),
 
 		Description: line.Description,
 		Name:        line.Name,
@@ -246,10 +336,14 @@ func mapFeeLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, error) {
 		PerUnitAmount: line.FlatFee.PerUnitAmount.String(),
 		Quantity:      line.FlatFee.Quantity.String(),
 		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
+
+		Discounts: mapDiscountsToAPI(line.Discounts),
+		Totals:    mapTotalsToAPI(line.Totals),
+		Children:  children,
 	}
 
 	out := api.BillingInvoiceLine{}
-	err := out.FromBillingFlatFeeLine(feeLine)
+	err = out.FromBillingFlatFeeLine(feeLine)
 	if err != nil {
 		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map fee line: %w", err)
 	}
@@ -263,6 +357,11 @@ func mapUsageBasedLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, e
 		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
+	children, err := mapChildLinesToAPI(line.Children)
+	if err != nil {
+		return api.BillingInvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
+	}
+
 	ubpLine := api.BillingUsageBasedLine{
 		Type: api.BillingUsageBasedLineTypeUsageBased,
 		Id:   line.ID,
@@ -273,6 +372,7 @@ func mapUsageBasedLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, e
 		InvoiceAt: line.InvoiceAt,
 
 		Currency: string(line.Currency),
+		Status:   api.BillingLineStatus(line.Status),
 
 		Description: line.Description,
 		Name:        line.Name,
@@ -292,6 +392,10 @@ func mapUsageBasedLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, e
 		FeatureKey: line.UsageBased.FeatureKey,
 		Quantity:   decimalPtrToStringPtr(line.UsageBased.Quantity),
 		Price:      price,
+
+		Discounts: mapDiscountsToAPI(line.Discounts),
+		Children:  children,
+		Totals:    mapTotalsToAPI(line.Totals),
 	}
 
 	out := api.BillingInvoiceLine{}
@@ -301,6 +405,36 @@ func mapUsageBasedLineToAPI(line *billingentity.Line) (api.BillingInvoiceLine, e
 	}
 
 	return out, nil
+}
+
+func mapDiscountsToAPI(optDiscounts billingentity.LineDiscounts) *[]api.BillingLineDiscount {
+	if optDiscounts.IsAbsent() {
+		return nil
+	}
+
+	discounts := optDiscounts.OrEmpty()
+
+	out := make([]api.BillingLineDiscount, 0, len(discounts))
+
+	for _, discount := range discounts {
+		out = append(out, mapDiscountToAPI(discount))
+	}
+
+	return &out
+}
+
+func mapDiscountToAPI(discount billingentity.LineDiscount) api.BillingLineDiscount {
+	return api.BillingLineDiscount{
+		Id: discount.ID,
+
+		CreatedAt: discount.CreatedAt,
+		DeletedAt: discount.DeletedAt,
+		UpdatedAt: discount.UpdatedAt,
+
+		Description: discount.Description,
+		Amount:      discount.Amount.String(),
+		Code:        discount.ChildUniqueReferenceID,
+	}
 }
 
 func decimalPtrToStringPtr(d *alpacadecimal.Decimal) *string {

@@ -100,3 +100,54 @@ func (i AssociateLinesToInvoiceAdapterInput) Validate() error {
 }
 
 type UpdateInvoiceLineAdapterInput billingentity.Line
+
+type GetInvoiceLineInput struct {
+	Namespace string
+	LineID    string
+	InvoiceID string
+}
+
+func (g GetInvoiceLineInput) Validate() error {
+	if g.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if g.LineID == "" {
+		return errors.New("line id is required")
+	}
+
+	if g.InvoiceID == "" {
+		return errors.New("invoice id is required")
+	}
+
+	return nil
+}
+
+type GetInvoiceLineOwnershipAdapterInput = billingentity.LineID
+
+type ValidateLineOwnershipInput struct {
+	Namespace  string
+	LineID     string
+	InvoiceID  string
+	CustomerID string
+}
+
+func (v ValidateLineOwnershipInput) Validate() error {
+	if v.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if v.LineID == "" {
+		return errors.New("line id is required")
+	}
+
+	if v.InvoiceID == "" {
+		return errors.New("invoice id is required")
+	}
+
+	if v.CustomerID == "" {
+		return errors.New("customer id is required")
+	}
+
+	return nil
+}

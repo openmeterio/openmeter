@@ -12,7 +12,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+type LineID models.NamespacedID
+
+func (i LineID) Validate() error {
+	return models.NamespacedID(i).Validate()
+}
 
 type InvoiceLineType string
 

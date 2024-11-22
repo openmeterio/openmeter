@@ -500,3 +500,70 @@ func (r *adapter) fetchLines(ctx context.Context, ns string, lineIDs []string) (
 
 	return r.mapInvoiceLineFromDB(ctx, dbLinesInSameOrder)
 }
+
+func (r *adapter) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLineInput) (*billingentity.Line, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	query := r.db.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.Namespace(input.Namespace)).
+		Where(billinginvoiceline.ID(input.LineID))
+
+	query = r.expandLineItems(query)
+
+	dbLine, err := query.First(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetching line: %w", err)
+	}
+
+	if dbLine.InvoiceID != input.InvoiceID {
+		return nil, billingentity.NotFoundError{
+			Err: fmt.Errorf("line not found: %s", input.LineID),
+		}
+	}
+
+	mappedLines, err := r.mapInvoiceLineFromDB(ctx, []*db.BillingInvoiceLine{dbLine})
+	if err != nil {
+		return nil, fmt.Errorf("mapping line: %w", err)
+	}
+
+	if len(mappedLines) != 1 {
+		return nil, billingentity.NotFoundError{
+			Err: fmt.Errorf("line not found: %s", input.LineID),
+		}
+	}
+
+	return mappedLines[0], nil
+}
+
+func (r *adapter) GetInvoiceLineOwnership(ctx context.Context, in billing.GetInvoiceLineOwnershipAdapterInput) (billing.GetOwnershipAdapterResponse, error) {
+	if err := in.Validate(); err != nil {
+		return billing.GetOwnershipAdapterResponse{}, billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	dbInvoice, err := r.db.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.ID(in.ID)).
+		Where(billinginvoiceline.Namespace(in.Namespace)).
+		WithBillingInvoice().
+		First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return billing.GetOwnershipAdapterResponse{}, billingentity.NotFoundError{
+				Entity: billingentity.EntityInvoice,
+				ID:     in.ID,
+				Err:    err,
+			}
+		}
+
+		return billing.GetOwnershipAdapterResponse{}, err
+	}
+
+	return billing.GetOwnershipAdapterResponse{
+		Namespace:  dbInvoice.Namespace,
+		InvoiceID:  dbInvoice.InvoiceID,
+		CustomerID: dbInvoice.Edges.BillingInvoice.CustomerID,
+	}, nil
+}

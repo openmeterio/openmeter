@@ -115,7 +115,7 @@ model Profile {
    * For updates this field must be set to the last update time to detect conflicts.
    */
   @summary("Last update time of the resource")
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   updatedAt: DateTime;
 
   @summary("The name and contact information for the supplier this billing profile represents")
@@ -125,7 +125,7 @@ model Profile {
   workflow: Workflow;
 
   @summary("The applications used by this billing profile")
-  @visibility("read", "query")
+  @visibility("read")
   apps: ProfileAppsOrReference;
 
   @summary("Is this the default profile?")

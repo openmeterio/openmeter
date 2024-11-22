@@ -422,7 +422,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingCustomerWorkflowOverrideCreate'
+              $ref: '#/components/schemas/BillingCustomerWorkflowOverride'
       x-internal: true
     get:
       operationId: billingGetCustomerOverrideById
@@ -697,7 +697,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingInvoiceCreateInput'
+              $ref: '#/components/schemas/BillingInvoiceCreate'
       x-internal: true
     get:
       operationId: billingListInvoicesByCustomer
@@ -1077,6 +1077,84 @@ paths:
         - Billing (Experimental)
       x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId}:
+    get:
+      operationId: billingGetInvoiceLine
+      summary: Get an invoice line
+      description: Get an invoice line
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceLine'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      x-internal: true
     delete:
       operationId: billingDeleteInvoiceLine
       summary: Delete an invoice line
@@ -1151,7 +1229,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-    put:
+    post:
       operationId: billingUpdateInvoiceLine
       summary: Update an invoice line
       description: Update an invoice line
@@ -1233,7 +1311,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingInvoiceLineCreateOrUpdate'
+              $ref: '#/components/schemas/BillingInvoiceLineCreate'
       x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry:
     post:
@@ -1498,7 +1576,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingCreateLineResult'
+                $ref: '#/components/schemas/BillingInvoiceLines'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -1542,7 +1620,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingCreateLinesRequest'
+              $ref: '#/components/schemas/LinesUpdate'
       x-internal: true
   /api/v1/billing/profile:
     get:
@@ -1873,7 +1951,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingProfileCreateOrUpdate'
+              $ref: '#/components/schemas/BillingProfile'
       x-internal: true
   /api/v1/customers:
     post:
@@ -7728,28 +7806,6 @@ components:
           description: The entitlement balance at the start of the period.
           readOnly: true
       description: The balance history window.
-    BillingCreateLineResult:
-      type: object
-      required:
-        - lines
-      properties:
-        lines:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingInvoiceLine'
-          title: The created line items
-      description: Response for creating a pending charge
-    BillingCreateLinesRequest:
-      type: object
-      required:
-        - lines
-      properties:
-        lines:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingInvoiceLineCreateItem'
-          title: The line to create
-      description: CreateLinesRequest is the request for creating manual line items.
     BillingCreditNoteOriginalInvoiceRef:
       type: object
       required:
@@ -7770,6 +7826,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceNumber'
           title: (Serial) Number of the referenced document.
+          readOnly: true
         url:
           type: string
           format: uri
@@ -7872,27 +7929,17 @@ components:
           title: ID
           readOnly: true
         taxApp:
-          $ref: '#/components/schemas/App'
+          allOf:
+            - $ref: '#/components/schemas/App'
+          readOnly: true
         invoicingApp:
-          $ref: '#/components/schemas/App'
+          allOf:
+            - $ref: '#/components/schemas/App'
+          readOnly: true
         paymentApp:
-          $ref: '#/components/schemas/App'
-      description: Customer specific workflow overrides.
-    BillingCustomerWorkflowOverrideCreate:
-      type: object
-      properties:
-        collection:
           allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
-          title: The collection settings for this workflow
-        invoicing:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowInvoicingSettings'
-          title: The invoicing settings for this workflow
-        payment:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
-          title: The payment settings for this workflow
+            - $ref: '#/components/schemas/App'
+          readOnly: true
       description: Customer specific workflow overrides.
     BillingDocumentRef:
       type: object
@@ -7941,7 +7988,7 @@ components:
         - id
         - status
         - currency
-        - total
+        - totals
         - period
         - invoiceAt
         - type
@@ -7993,17 +8040,21 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
         status:
-          $ref: '#/components/schemas/BillingLineStatus'
+          allOf:
+            - $ref: '#/components/schemas/BillingLineStatus'
+          readOnly: true
         discounts:
           type: array
           items:
             $ref: '#/components/schemas/BillingLineDiscount'
           title: Discounts applied to this line.
+          readOnly: true
         charges:
           type: array
           items:
             $ref: '#/components/schemas/BillingLineCharge'
           title: Charges applied to this line.
+          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceReference'
@@ -8017,17 +8068,96 @@ components:
           items:
             $ref: '#/components/schemas/BillingTaxItem'
           title: Map of taxes to be applied and used in the invoice totals.
+          readOnly: true
         taxConfig:
           type: object
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           nullable: true
           title: Tax config specify the tax configuration for this line.
-        total:
+        children:
+          nullable: true
+          title: The lines detailing the item or service sold.
+          readOnly: true
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLine'
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceTotals'
+          title: Totals for this line.
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - flat_fee
+        perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          title: Total sum of the line, including discounts and charges.
-          readOnly: true
+          title: Price of the item being sold.
+        paymentTerm:
+          allOf:
+            - $ref: '#/components/schemas/PricePaymentTerm'
+          title: Payment term of the line.
+          default: in_advance
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
+      description: BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
+    BillingFlatFeeLineCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - period
+        - invoiceAt
+        - type
+        - perUnitAmount
+        - quantity
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceReference'
+          title: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          title: The currency of this line
+        taxConfig:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          nullable: true
+          title: Tax config specify the tax configuration for this line.
         period:
           allOf:
             - $ref: '#/components/schemas/BillingPeriod'
@@ -8085,103 +8215,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineDiscount'
-          title: Discounts applied to this line.
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineCharge'
-          title: Charges applied to this line.
-        invoice:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceReference'
-          title: The invoice this item belongs to.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          title: The currency of this line
-        taxConfig:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          nullable: true
-          title: Tax config specify the tax configuration for this line.
-        period:
-          allOf:
-            - $ref: '#/components/schemas/BillingPeriod'
-          title: Period of the line item applies to for revenue recognition pruposes.
-        invoiceAt:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          title: The time this line item should be invoiced.
-        type:
-          type: string
-          enum:
-            - flat_fee
-        perUnitAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Price of the item being sold.
-        paymentTerm:
-          allOf:
-            - $ref: '#/components/schemas/PricePaymentTerm'
-          title: Payment term of the line.
-          default: in_advance
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Quantity of the item being sold.
-      description: BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
-    BillingFlatFeeLineCreateOrUpdate:
-      type: object
-      required:
-        - name
-        - id
-        - currency
-        - period
-        - invoiceAt
-        - type
-        - perUnitAmount
-        - quantity
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        id:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineDiscount'
-          title: Discounts applied to this line.
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineCharge'
-          title: Charges applied to this line.
         invoice:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceReference'
@@ -8233,6 +8266,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingDocumentRefType'
           title: Type of the document referenced.
+          readOnly: true
         reason:
           type: string
           title: Human readable description on why this reference is here or needs to be used.
@@ -8302,7 +8336,9 @@ components:
             For updates the updatedAt field is used to detect conflicts.
           title: Last Update Time
         type:
-          $ref: '#/components/schemas/BillingInvoiceType'
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceType'
+          readOnly: true
         supplier:
           allOf:
             - $ref: '#/components/schemas/BillingParty'
@@ -8323,27 +8359,33 @@ components:
             whole organization or unique for the customer, or in multi (stripe) account setups unique for the
             account.
           title: (Serial) Number of the invoice
+          readOnly: true
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
           title: Currency for all invoice totals.
+          readOnly: true
         preceding:
           type: array
           items:
             $ref: '#/components/schemas/BillingDocumentRef'
           title: Key information regarding previous invoices and potentially details as to why they were corrected.
+          readOnly: true
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceTotals'
           title: Summary of all the invoice totals, including taxes (calculated).
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceStatus'
           title: The status of the invoice.
+          readOnly: true
         statusDetails:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceStatusDetails'
           title: The details of the current invoice status
+          readOnly: true
         issuedAt:
           type: string
           format: date-time
@@ -8355,6 +8397,7 @@ components:
             - draft, gathering: The time the invoice will be issued based on the workflow settings.
             - issued: The time the invoice was issued.
           title: The time the invoice was issued.
+          readOnly: true
         draftUntil:
           type: string
           format: date-time
@@ -8372,6 +8415,7 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
           title: Due time of the fulfillment of the invoice.
+          readOnly: true
         period:
           allOf:
             - $ref: '#/components/schemas/BillingPeriod'
@@ -8385,6 +8429,7 @@ components:
 
             If the invoice was voided, this field will be set to the time the invoice was voided.
           title: The time the invoice was voided.
+          readOnly: true
         workflow:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceWorkflowSettings'
@@ -8399,20 +8444,24 @@ components:
           items:
             $ref: '#/components/schemas/BillingInvoiceLine'
           title: List of invoice lines representing each of the items sold to the customer.
+          readOnly: true
         discounts:
           type: array
           items:
             $ref: '#/components/schemas/BillingInvoiceDiscount'
           title: Discounts or allowances applied to the complete invoice.
+          readOnly: true
         payment:
           allOf:
             - $ref: '#/components/schemas/BillingInvoicePayment'
           title: Information on when, how, and to whom the invoice should be paid.
+          readOnly: true
         validationIssues:
           type: array
           items:
             $ref: '#/components/schemas/BillingValidationIssue'
           title: Validation issues reported by the invoice workflow.
+          readOnly: true
       description: Invoice represents an invoice in the system.
     BillingInvoiceAction:
       type: string
@@ -8423,10 +8472,10 @@ components:
         - retry
         - void
       description: BillingInvoiceAction represents the actions that can be performed on an invoice.
-    BillingInvoiceCreateInput:
+    BillingInvoiceCreate:
       type: object
       properties:
-        IncludePendingLines:
+        includePendingLines:
           type: array
           items:
             type: string
@@ -8438,7 +8487,7 @@ components:
             - all line items that have invoice_at < asOf will be included
             - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
             of the billing cycle
-        AsOf:
+        asOf:
           type: string
           format: date-time
           example: 2023-01-01T01:01:01.001Z
@@ -8447,7 +8496,7 @@ components:
 
             If not provided, the current time is used.
       description: |-
-        BillingInvoiceCreateInput is the input for creating an invoice.
+        BillingInvoiceCreate is the input for creating an invoice.
 
         Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
         operation. Empty invoices are not allowed.
@@ -8519,6 +8568,16 @@ components:
           usage_based: '#/components/schemas/BillingUsageBasedLine'
           flat_fee: '#/components/schemas/BillingFlatFeeLine'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLineCreate:
+      anyOf:
+        - $ref: '#/components/schemas/BillingUsageBasedLineCreate'
+        - $ref: '#/components/schemas/BillingFlatFeeLineCreate'
+      discriminator:
+        propertyName: type
+        mapping:
+          usage_based: '#/components/schemas/BillingUsageBasedLineCreate'
+          flat_fee: '#/components/schemas/BillingFlatFeeLineCreate'
+      description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
     BillingInvoiceLineCreateItem:
       anyOf:
         - $ref: '#/components/schemas/BillingUsageBasedLineCreateItem'
@@ -8529,16 +8588,17 @@ components:
           usage_based: '#/components/schemas/BillingUsageBasedLineCreateItem'
           flat_fee: '#/components/schemas/BillingFlatFeeLineCreateItem'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
-    BillingInvoiceLineCreateOrUpdate:
-      anyOf:
-        - $ref: '#/components/schemas/BillingUsageBasedLineCreateOrUpdate'
-        - $ref: '#/components/schemas/BillingFlatFeeLineCreateOrUpdate'
-      discriminator:
-        propertyName: type
-        mapping:
-          usage_based: '#/components/schemas/BillingUsageBasedLineCreateOrUpdate'
-          flat_fee: '#/components/schemas/BillingFlatFeeLineCreateOrUpdate'
-      description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLines:
+      type: object
+      required:
+        - lines
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLine'
+          title: The line to create
+      description: CreateLinesRequest is the request for creating manual line items.
     BillingInvoiceNumber:
       type: string
       example: INV-2024-01-01-01
@@ -8581,6 +8641,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceNumber'
           title: The number of the invoice.
+          readOnly: true
       description: Reference to an invoice.
     BillingInvoiceStatus:
       type: string
@@ -8621,55 +8682,42 @@ components:
     BillingInvoiceTotals:
       type: object
       required:
-        - sum
+        - amount
+        - chargesTotal
+        - discountsTotal
+        - taxesInclusiveTotal
+        - taxesExclusiveTotal
+        - taxesTotal
         - total
-        - totalWithTax
-        - payable
       properties:
-        sum:
+        amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          title: Sum of all line item sums
-        discount:
+          title: The total value of the line before taxes, discounts and commitments.
+        chargesTotal:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          title: Sum of all document level discounts
-        charge:
+          title: The amount of value of the line that are due to additional charges.
+        discountsTotal:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          title: Sum of all document level charges
-        taxIncluded:
+          title: The amount of value of the line that are due to discounts.
+        taxesInclusiveTotal:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          title: If prices include tax, this is the total tax included in the price.
+          title: The total amount of taxes that are included in the line.
+        taxesExclusiveTotal:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: The total amount of taxes that are added on top of amount from the line.
+        taxesTotal:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: The total amount of taxes for this line.
         total:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          title: Sum of all line sums minus the discounts, plus the charges, without tax.
-        tax:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Total amount of tax to apply to the invoice.
-        totalWithTax:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Grand total after all taxes have been applied.
-        rounding:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Rounding amount to apply to the invoice in case the total and payable amounts don't quite match.
-        payable:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Total amount to be paid after applying taxes and outlays.
-        advance:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Total amount already paid in advance.
-        due:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: How much actually needs to be paid now.
+          title: The total amount value of the line after taxes, discounts and commitments.
       description: Totals contains the summaries of all calculations for the invoice.
     BillingInvoiceType:
       type: string
@@ -8708,6 +8756,7 @@ components:
         timezone:
           type: string
           title: Timezone of the invoice's date fields.
+          readOnly: true
       description: |-
         InvoiceWorkflowSettings represents the workflow settings used by the invoice.
 
@@ -8716,8 +8765,39 @@ components:
     BillingLineCharge:
       type: object
       required:
+        - createdAt
+        - updatedAt
+        - id
         - amount
       properties:
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          title: ID of the entity
+          readOnly: true
         percent:
           allOf:
             - $ref: '#/components/schemas/Percentage'
@@ -8731,15 +8811,46 @@ components:
         code:
           type: string
           title: Reason code.
-        reason:
+        description:
           type: string
           title: Text description as to why the discount was applied.
       description: LineCharge represents an amount added to the line, and will be applied before taxes.
     BillingLineDiscount:
       type: object
       required:
+        - createdAt
+        - updatedAt
+        - id
         - amount
       properties:
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          title: ID of the entity
+          readOnly: true
         percent:
           allOf:
             - $ref: '#/components/schemas/Percentage'
@@ -8753,7 +8864,7 @@ components:
         code:
           type: string
           title: Reason code.
-        reason:
+        description:
           type: string
           title: Text description as to why the discount was applied.
       description: LineDiscount represents an amount deducted from the line, and will be applied before taxes.
@@ -8944,6 +9055,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingProfileAppsOrReference'
           title: The applications used by this billing profile
+          readOnly: true
         default:
           type: boolean
           title: Is this the default profile?
@@ -9050,54 +9162,6 @@ components:
         apps:
           $ref: '#/components/schemas/BillingProfileCreateAppsInput'
       description: ProfileCreateInput represents the input for creating a billing profile
-    BillingProfileCreateOrUpdate:
-      type: object
-      required:
-        - name
-        - updatedAt
-        - supplier
-        - workflow
-        - default
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: |-
-            When the resource was last updated.
-
-            For updates this field must be set to the last update time to detect conflicts.
-          title: Last update time of the resource
-        supplier:
-          allOf:
-            - $ref: '#/components/schemas/BillingParty'
-          title: The name and contact information for the supplier this billing profile represents
-        workflow:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflow'
-          title: The billing workflow settings for this profile
-        default:
-          type: boolean
-          title: Is this the default profile?
-      description: Profile represents a billing profile
     BillingProfileExpand:
       type: string
       enum:
@@ -9170,7 +9234,7 @@ components:
         - id
         - status
         - currency
-        - total
+        - totals
         - period
         - invoiceAt
         - type
@@ -9222,17 +9286,21 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
         status:
-          $ref: '#/components/schemas/BillingLineStatus'
+          allOf:
+            - $ref: '#/components/schemas/BillingLineStatus'
+          readOnly: true
         discounts:
           type: array
           items:
             $ref: '#/components/schemas/BillingLineDiscount'
           title: Discounts applied to this line.
+          readOnly: true
         charges:
           type: array
           items:
             $ref: '#/components/schemas/BillingLineCharge'
           title: Charges applied to this line.
+          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceReference'
@@ -9246,16 +9314,24 @@ components:
           items:
             $ref: '#/components/schemas/BillingTaxItem'
           title: Map of taxes to be applied and used in the invoice totals.
+          readOnly: true
         taxConfig:
           type: object
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           nullable: true
           title: Tax config specify the tax configuration for this line.
-        total:
+        children:
+          nullable: true
+          title: The lines detailing the item or service sold.
+          readOnly: true
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLine'
+        totals:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
-          title: Total sum of the line, including discounts and charges.
+            - $ref: '#/components/schemas/BillingInvoiceTotals'
+          title: Totals for this line.
           readOnly: true
         period:
           allOf:
@@ -9284,6 +9360,74 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           title: Quantity of the item being sold.
+          readOnly: true
+      description: UsageBasedLine represents a line item that is sold to the customer based on usage.
+    BillingUsageBasedLineCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - period
+        - invoiceAt
+        - type
+        - price
+        - featureKey
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceReference'
+          title: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          title: The currency of this line
+        taxConfig:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          nullable: true
+          title: Tax config specify the tax configuration for this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - usage_based
+        price:
+          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A key is a unique string that is used to identify a resource.
+          title: The feature that the usage is based on.
       description: UsageBasedLine represents a line item that is sold to the customer based on usage.
     BillingUsageBasedLineCreateItem:
       type: object
@@ -9314,99 +9458,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineDiscount'
-          title: Discounts applied to this line.
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineCharge'
-          title: Charges applied to this line.
-        invoice:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceReference'
-          title: The invoice this item belongs to.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          title: The currency of this line
-        taxConfig:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          nullable: true
-          title: Tax config specify the tax configuration for this line.
-        period:
-          allOf:
-            - $ref: '#/components/schemas/BillingPeriod'
-          title: Period of the line item applies to for revenue recognition pruposes.
-        invoiceAt:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          title: The time this line item should be invoiced.
-        type:
-          type: string
-          enum:
-            - usage_based
-        price:
-          $ref: '#/components/schemas/RateCardUsageBasedPrice'
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A key is a unique string that is used to identify a resource.
-          title: The feature that the usage is based on.
-      description: UsageBasedLine represents a line item that is sold to the customer based on usage.
-    BillingUsageBasedLineCreateOrUpdate:
-      type: object
-      required:
-        - name
-        - id
-        - currency
-        - period
-        - invoiceAt
-        - type
-        - price
-        - featureKey
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        id:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineDiscount'
-          title: Discounts applied to this line.
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineCharge'
-          title: Charges applied to this line.
         invoice:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceReference'
@@ -11647,6 +11698,15 @@ components:
             $ref: '#/components/schemas/BillingInvoice'
           description: The items in the current page.
       description: Paginated response
+    LinesUpdate:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLineCreateItem'
+          title: The line to create
+      description: Resource create or update operation model.
     ListAppsRequest:
       type: object
       properties:

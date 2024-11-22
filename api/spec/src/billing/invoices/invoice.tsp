@@ -57,15 +57,15 @@ model Invoice {
   @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   updatedAt: DateTime;
 
-  @visibility("read", "query")
+  @visibility("read")
   type: InvoiceType;
 
   @summary("The taxable entity supplying the goods or services.")
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   supplier: Party;
 
   @summary("Legal entity receiving the goods or services.")
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   customer: Party;
 
   /**
@@ -78,26 +78,26 @@ model Invoice {
    * account.
    */
   @summary("(Serial) Number of the invoice")
-  @visibility("read", "query")
+  @visibility("read")
   number?: InvoiceNumber;
 
   @summary("Currency for all invoice totals.")
-  @visibility("read", "query")
+  @visibility("read")
   currency: CurrencyCode;
 
   @summary("Key information regarding previous invoices and potentially details as to why they were corrected.")
-  @visibility("read", "query") // We only populate this for voided invoices
+  @visibility("read") // We only populate this for voided invoices
   preceding?: DocumentRef[];
 
   @summary("Summary of all the invoice totals, including taxes (calculated).")
-  @visibility("read", "query")
+  @visibility("read")
   totals: Totals;
 
-  @visibility("read", "query")
+  @visibility("read")
   @summary("The status of the invoice.")
   status: InvoiceStatus;
 
-  @visibility("read", "query")
+  @visibility("read")
   @summary("The details of the current invoice status")
   statusDetails: InvoiceStatusDetails;
 
@@ -109,7 +109,7 @@ model Invoice {
    * - issued: The time the invoice was issued.
    */
   @summary("The time the invoice was issued.")
-  @visibility("read", "query")
+  @visibility("read")
   issuedAt?: DateTime;
 
   /**
@@ -120,11 +120,11 @@ model Invoice {
    * If manual approval is required, the draftUntil time is set.
    */
   @summary("The time until the invoice is in draft status.")
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   draftUntil?: DateTime;
 
   @summary("Due time of the fulfillment of the invoice.")
-  @visibility("read", "query")
+  @visibility("read")
   dueAt?: DateTime;
 
   @summary("The period the invoice covers. If the invoice has no line items, it's not set.")
@@ -136,7 +136,7 @@ model Invoice {
    * If the invoice was voided, this field will be set to the time the invoice was voided.
    */
   @summary("The time the invoice was voided.")
-  @visibility("read", "query")
+  @visibility("read")
   voidedAt?: DateTime;
 
   /**
@@ -146,26 +146,23 @@ model Invoice {
    * field is optional as it should be explicitly requested with expand options.
    */
   @summary("The workflow settings associated with this invoice")
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   workflow?: InvoiceWorkflowSettings;
 
   @summary("List of invoice lines representing each of the items sold to the customer.")
-  @visibility("read", "query") // Seperate API endpoint is available for updating
-  // TODO: we might want to group this by subscription, so that we don't have to add individual references
-  // per line item, however that poses a problem, when a manually added line-item is added, as that should also be
-  // bound to a subscription.
+  @visibility("read") // Seperate API endpoint is available for updating
   lines?: InvoiceLine[];
 
   @summary("Discounts or allowances applied to the complete invoice.")
-  @visibility("read", "query") // Seperate API endpoint is available for updating
+  @visibility("read") // Seperate API endpoint is available for updating
   discounts?: Discount[];
 
   @summary("Information on when, how, and to whom the invoice should be paid.")
-  @visibility("read", "query") // Seperate API endpoint is available for updating
+  @visibility("read") // Seperate API endpoint is available for updating
   payment?: Payment;
 
   @summary("Validation issues reported by the invoice workflow.")
-  @visibility("read", "query")
+  @visibility("read")
   validationIssues?: ValidationIssue[];
 }
 
@@ -235,7 +232,7 @@ model InvoiceWorkflowSettings {
   workflow: OpenMeter.Billing.WorkflowSettings;
 
   @summary("Timezone of the invoice's date fields.")
-  @visibility("read", "query")
+  @visibility("read")
   timezone: string;
 }
 
@@ -387,18 +384,20 @@ enum LineStatus {
 model Line {
   ...OmitProperties<global.Resource, "id">;
 
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   id: ULID;
 
   type: LineTypes;
 
-  @visibility("read", "query")
+  @visibility("read")
   status: LineStatus;
 
   @summary("Discounts applied to this line.")
+  @visibility("read")
   discounts?: LineDiscount[];
 
   @summary("Charges applied to this line.")
+  @visibility("read")
   charges?: LineCharge[];
 
   @summary("The invoice this item belongs to.")
@@ -408,15 +407,19 @@ model Line {
   currency: CurrencyCode;
 
   @summary("Map of taxes to be applied and used in the invoice totals.")
-  @visibility("read", "query") // Tax is handled by the tax provider, we only need to show the output of that here
+  @visibility("read") // Tax is handled by the tax provider, we only need to show the output of that here
   taxes?: TaxItem[];
 
   @summary("Tax config specify the tax configuration for this line.")
   taxConfig?: OpenMeter.ProductCatalog.TaxConfig | null;
 
   @visibility("read")
-  @summary("Total sum of the line, including discounts and charges.")
-  total: Numeric;
+  @summary("The lines detailing the item or service sold.")
+  children?: InvoiceLine[] | null;
+
+  @visibility("read")
+  @summary("Totals for this line.")
+  totals: Totals;
 
   @summary("Period of the line item applies to for revenue recognition pruposes.")
   period: Period;
@@ -433,6 +436,7 @@ model InvoiceReference {
   @summary("The ID of the invoice.")
   id: ULID;
 
+  @visibility("read")
   @summary("The number of the invoice.")
   number?: InvoiceNumber;
 }
@@ -464,7 +468,7 @@ model UsageBasedLine {
   featureKey: Key;
 
   @summary("Quantity of the item being sold.")
-  @visibility("read", "query")
+  @visibility("read")
   quantity?: Numeric;
 }
 
@@ -491,6 +495,12 @@ model FlatFeeLine {
  */
 @friendlyName("BillingGenericCharge")
 model GenericCharge {
+  ...ResourceTimestamps;
+
+  @summary("ID of the entity")
+  @visibility("read")
+  id: ULID;
+
   /**
    * Percentage if fixed amount not applied
    */
@@ -507,10 +517,7 @@ model GenericCharge {
   code?: string;
 
   @summary("Text description as to why the discount was applied.")
-  reason?: string;
-
-  // TODO: Add fields required for referencing the charge/discount in the plan if it is coming from
-  // there.
+  description?: string;
 }
 
 /**
@@ -539,38 +546,26 @@ model LineCharge {
  */
 @friendlyName("BillingInvoiceTotals")
 model Totals {
-  @summary("Sum of all line item sums")
-  sum: Money;
+  @summary("The total value of the line before taxes, discounts and commitments.")
+  amount: Numeric;
 
-  @summary("Sum of all document level discounts")
-  discount?: Money;
+  @summary("The amount of value of the line that are due to additional charges.")
+  chargesTotal: Numeric;
 
-  @summary("Sum of all document level charges")
-  charge?: Money;
+  @summary("The amount of value of the line that are due to discounts.")
+  discountsTotal: Numeric;
 
-  @summary("If prices include tax, this is the total tax included in the price.")
-  taxIncluded?: Money;
+  @summary("The total amount of taxes that are included in the line.")
+  taxesInclusiveTotal: Numeric;
 
-  @summary("Sum of all line sums minus the discounts, plus the charges, without tax.")
-  total: Money;
+  @summary("The total amount of taxes that are added on top of amount from the line.")
+  taxesExclusiveTotal: Numeric;
 
-  @summary("Total amount of tax to apply to the invoice.")
-  tax?: Money;
+  @summary("The total amount of taxes for this line.")
+  taxesTotal: Numeric;
 
-  @summary("Grand total after all taxes have been applied.")
-  totalWithTax: Money;
-
-  @summary("Rounding amount to apply to the invoice in case the total and payable amounts don't quite match.")
-  rounding?: Money;
-
-  @summary("Total amount to be paid after applying taxes and outlays.")
-  payable: Money;
-
-  @summary("Total amount already paid in advance.")
-  advance?: Money;
-
-  @summary("How much actually needs to be paid now.")
-  due?: Money;
+  @summary("The total amount value of the line after taxes, discounts and commitments.")
+  total: Numeric;
 }
 
 /*

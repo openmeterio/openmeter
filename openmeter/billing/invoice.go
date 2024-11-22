@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/api"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -145,7 +147,7 @@ type CreateInvoiceAdapterRespone = billingentity.Invoice
 type CreateInvoiceInput struct {
 	Customer customerentity.CustomerID
 
-	IncludePendingLines []string
+	IncludePendingLines mo.Option[[]string]
 	AsOf                *time.Time
 }
 
@@ -172,3 +174,33 @@ type (
 )
 
 type UpdateInvoiceAdapterInput = billingentity.Invoice
+
+type ValidateInvoiceOwnershipInput struct {
+	Namespace  string
+	InvoiceID  string
+	CustomerID string
+}
+
+func (i ValidateInvoiceOwnershipInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.InvoiceID == "" {
+		return errors.New("invoice ID is required")
+	}
+
+	if i.CustomerID == "" {
+		return errors.New("customer ID is required")
+	}
+
+	return nil
+}
+
+type GetInvoiceOwnershipAdapterInput = billingentity.InvoiceID
+
+type GetOwnershipAdapterResponse struct {
+	Namespace  string
+	InvoiceID  string
+	CustomerID string
+}

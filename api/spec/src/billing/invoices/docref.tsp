@@ -26,7 +26,7 @@ enum DocumentRefType {
 @friendlyName("BillingGenericDocumentRef")
 model GenericDocumentRef {
   @summary("Type of the document referenced.")
-  @visibility("read", "query")
+  @visibility("read")
   type: DocumentRefType;
 
   @summary("Human readable description on why this reference is here or needs to be used.")
@@ -47,7 +47,7 @@ model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
   issuedAt?: DateTime;
 
   @summary("(Serial) Number of the referenced document.")
-  @visibility("read", "query")
+  @visibility("read")
   number?: InvoiceNumber;
 
   @summary("Link to the source document.")

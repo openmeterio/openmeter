@@ -23,9 +23,12 @@ var (
 	ErrCustomerOverrideConflict       = NewValidationError("customer_override_conflict", "customer override has been already updated conflict")
 	ErrCustomerOverrideAlreadyDeleted = NewValidationError("customer_override_deleted", "customer override already deleted")
 	ErrCustomerNotFound               = NewValidationError("customer_not_found", "customer not found")
+	ErrCustomerDeleted                = NewValidationError("customer_deleted", "customer has been deleted")
 
 	ErrInvoiceCannotAdvance      = NewValidationError("invoice_cannot_advance", "invoice cannot advance")
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
+	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "some invoice lines are not billable")
+	ErrInvoiceEmpty              = NewValidationError("invoice_empty", "invoice is empty")
 
 	ErrInvoiceLineFeatureHasNoMeters             = NewValidationError("invoice_line_feature_has_no_meters", "usage based invoice line: feature has no meters")
 	ErrInvoiceLineVolumeSplitNotSupported        = NewValidationError("invoice_line_graduated_split_not_supported", "graduated tiered pricing is not supported for split periods")

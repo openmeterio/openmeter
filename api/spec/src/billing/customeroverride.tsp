@@ -115,18 +115,18 @@ model CustomerWorkflowOverride {
   // Note: these are only available for read, as provider override is not supported via the customer override.
   // to do that the customer should be assocatied with a new billing profile instead.
 
-  @visibility("read", "query")
+  @visibility("read")
   taxApp: OpenMeter.App.App;
 
   /*
    * The invoicing app used for this workflow
    */
-  @visibility("read", "query")
+  @visibility("read")
   invoicingApp: OpenMeter.App.App;
 
   /*
    * The payment app used for this workflow
    */
-  @visibility("read", "query")
+  @visibility("read")
   paymentApp: OpenMeter.App.App;
 }

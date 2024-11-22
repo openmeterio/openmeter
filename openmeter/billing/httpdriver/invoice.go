@@ -7,14 +7,18 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+var _ InvoiceHandler = (*handler)(nil)
 
 type (
 	ListInvoicesRequest  = billing.ListInvoicesInput
@@ -91,6 +95,225 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 	)
 }
 
+type (
+	CreateInvoiceRequest  = billing.CreateInvoiceInput
+	CreateInvoiceResponse = []api.BillingInvoice
+	CreateInvoiceHandler  httptransport.HandlerWithArgs[CreateInvoiceRequest, CreateInvoiceResponse, string]
+)
+
+func (h *handler) CreateInvoice() CreateInvoiceHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, customerID string) (CreateInvoiceRequest, error) {
+			body := api.BillingCreateInvoiceJSONRequestBody{}
+
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return CreateInvoiceRequest{}, err
+			}
+
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return CreateInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			return CreateInvoiceRequest{
+				Customer: customerentity.CustomerID{
+					ID:        customerID,
+					Namespace: ns,
+				},
+
+				IncludePendingLines: mo.PointerToOption(body.IncludePendingLines),
+				AsOf:                body.AsOf,
+			}, nil
+		},
+		func(ctx context.Context, request CreateInvoiceRequest) (CreateInvoiceResponse, error) {
+			invoices, err := h.service.CreateInvoice(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]api.BillingInvoice, 0, len(invoices))
+
+			for _, invoice := range invoices {
+				invoice, err := mapInvoiceToAPI(invoice)
+				if err != nil {
+					return nil, err
+				}
+
+				out = append(out, invoice)
+			}
+
+			return out, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[CreateInvoiceResponse](http.StatusCreated),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("billingCreateInvoice"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type (
+	GetInvoiceRequest  = billing.GetInvoiceByIdInput
+	GetInvoiceResponse = api.BillingInvoice
+	GetInvoiceParams   struct {
+		CustomerID string
+		InvoiceID  string
+		Expand     []api.BillingInvoiceExpand
+	}
+	GetInvoiceHandler httptransport.HandlerWithArgs[GetInvoiceRequest, GetInvoiceResponse, GetInvoiceParams]
+)
+
+func (h *handler) GetInvoice() GetInvoiceHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetInvoiceParams) (GetInvoiceRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+			if err := h.service.ValidateInvoiceOwnership(ctx, billing.ValidateInvoiceOwnershipInput{
+				Namespace:  ns,
+				InvoiceID:  params.InvoiceID,
+				CustomerID: params.CustomerID,
+			}); err != nil {
+				return GetInvoiceRequest{}, billingentity.NotFoundError{Err: err}
+			}
+
+			return GetInvoiceRequest{
+				Invoice: billingentity.InvoiceID{
+					ID:        params.InvoiceID,
+					Namespace: ns,
+				},
+				Expand: mapInvoiceExpandToEntity(params.Expand),
+			}, nil
+		},
+		func(ctx context.Context, request GetInvoiceRequest) (GetInvoiceResponse, error) {
+			invoice, err := h.service.GetInvoiceByID(ctx, request)
+			if err != nil {
+				return GetInvoiceResponse{}, err
+			}
+
+			return mapInvoiceToAPI(invoice)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("billingGetInvoice"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type ProgressAction string
+
+const (
+	InvoiceProgressActionApprove ProgressAction = "approve"
+	InvoiceProgressActionRetry   ProgressAction = "retry"
+	InvoiceProgressActionAdvance ProgressAction = "advance"
+)
+
+var (
+	InvoiceProgressActions = []ProgressAction{
+		InvoiceProgressActionApprove,
+		InvoiceProgressActionRetry,
+		InvoiceProgressActionAdvance,
+	}
+	invoiceProgressOperationNames = map[ProgressAction]string{
+		InvoiceProgressActionApprove: "Approve",
+		InvoiceProgressActionRetry:   "Retry",
+		InvoiceProgressActionAdvance: "Advance",
+	}
+)
+
+type (
+	ProgressInvoiceRequest struct {
+		Invoice billingentity.InvoiceID
+	}
+	ProgressInvoiceResponse = api.BillingInvoice
+	ProgressInvoiceParams   struct {
+		CustomerID string
+		InvoiceID  string
+	}
+	ProgressInvoiceHandler httptransport.HandlerWithArgs[ProgressInvoiceRequest, ProgressInvoiceResponse, ProgressInvoiceParams]
+)
+
+func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params ProgressInvoiceParams) (ProgressInvoiceRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ProgressInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			if err := h.service.ValidateInvoiceOwnership(ctx, billing.ValidateInvoiceOwnershipInput{
+				Namespace:  ns,
+				InvoiceID:  params.InvoiceID,
+				CustomerID: params.CustomerID,
+			}); err != nil {
+				return ProgressInvoiceRequest{}, billingentity.NotFoundError{Err: err}
+			}
+
+			if !slices.Contains(InvoiceProgressActions, action) {
+				return ProgressInvoiceRequest{}, fmt.Errorf("invalid action: %s", action)
+			}
+
+			return ProgressInvoiceRequest{
+				Invoice: billingentity.InvoiceID{
+					ID:        params.InvoiceID,
+					Namespace: ns,
+				},
+			}, nil
+		},
+		func(ctx context.Context, request ProgressInvoiceRequest) (ProgressInvoiceResponse, error) {
+			var invoice billingentity.Invoice
+			var err error
+
+			switch action {
+			case InvoiceProgressActionApprove:
+				invoice, err = h.service.ApproveInvoice(ctx, request.Invoice)
+			case InvoiceProgressActionRetry:
+				invoice, err = h.service.RetryInvoice(ctx, request.Invoice)
+			case InvoiceProgressActionAdvance:
+				invoice, err = h.service.AdvanceInvoice(ctx, request.Invoice)
+			default:
+				return ProgressInvoiceResponse{}, fmt.Errorf("invalid action: %s", action)
+			}
+
+			if err != nil {
+				return ProgressInvoiceResponse{}, err
+			}
+
+			return mapInvoiceToAPI(invoice)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[ProgressInvoiceResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName(invoiceProgressOperationNames[action]),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+func (h *handler) ConvertListInvoicesByCustomerToListInvoices(customerID string, params api.BillingListInvoicesByCustomerParams) api.BillingListInvoicesParams {
+	return api.BillingListInvoicesParams{
+		Customers: lo.ToPtr([]string{customerID}),
+
+		Statuses:         params.Statuses,
+		ExtendedStatuses: params.ExtendedStatuses,
+		IssuedAfter:      params.IssuedAfter,
+		IssuedBefore:     params.IssuedBefore,
+
+		Expand: params.Expand,
+
+		Page:     params.Page,
+		PageSize: params.PageSize,
+		Offset:   params.Offset,
+		Limit:    params.Limit,
+		Order:    params.Order,
+		OrderBy:  params.OrderBy,
+	}
+}
+
 func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 
@@ -141,8 +364,7 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 			}),
 		},
 		Supplier: mapSupplierContactToAPI(invoice.Supplier),
-		// TODO[OM-942]: This needs to be (re)implemented
-		Totals: api.BillingInvoiceTotals{},
+		Totals:   mapTotalsToAPI(invoice.Totals),
 		// TODO[OM-943]: Implement
 		Payment: nil,
 		Type:    api.BillingInvoiceType(invoice.Type),
@@ -234,5 +456,17 @@ func mapInvoiceExpandToEntity(expand []api.BillingInvoiceExpand) billingentity.I
 		Preceding:    slices.Contains(expand, api.BillingInvoiceExpandPreceding),
 		Workflow:     slices.Contains(expand, api.BillingInvoiceExpandWorkflow),
 		WorkflowApps: slices.Contains(expand, api.BillingInvoiceExpandWorkflowApps),
+	}
+}
+
+func mapTotalsToAPI(t billingentity.Totals) api.BillingInvoiceTotals {
+	return api.BillingInvoiceTotals{
+		Amount:              t.Amount.String(),
+		ChargesTotal:        t.ChargesTotal.String(),
+		DiscountsTotal:      t.DiscountsTotal.String(),
+		TaxesInclusiveTotal: t.TaxesInclusiveTotal.String(),
+		TaxesExclusiveTotal: t.TaxesExclusiveTotal.String(),
+		TaxesTotal:          t.TaxesTotal.String(),
+		Total:               t.Total.String(),
 	}
 }
