@@ -3,7 +3,7 @@ package set
 import "sync"
 
 type Set[T comparable] struct {
-	mut     sync.Mutex
+	mu      sync.RWMutex
 	content map[T]struct{}
 }
 
@@ -16,8 +16,8 @@ func New[T comparable](items ...T) *Set[T] {
 }
 
 func (s *Set[T]) Add(items ...T) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for _, item := range items {
 		s.content[item] = struct{}{}
@@ -25,8 +25,8 @@ func (s *Set[T]) Add(items ...T) {
 }
 
 func (s *Set[T]) Remove(items ...T) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for _, item := range items {
 		delete(s.content, item)
@@ -34,8 +34,8 @@ func (s *Set[T]) Remove(items ...T) {
 }
 
 func (s *Set[T]) AsSlice() []T {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	result := make([]T, 0, len(s.content))
 
@@ -47,20 +47,20 @@ func (s *Set[T]) AsSlice() []T {
 }
 
 func (s *Set[T]) IsEmpty() bool {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	return len(s.content) > 0
 }
 
 // Subtract removes all items from a that are also in b
 func Subtract[T comparable](a *Set[T], b ...*Set[T]) *Set[T] {
-	a.mut.Lock()
-	defer a.mut.Unlock()
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	for _, set := range b {
-		set.mut.Lock()
-		defer set.mut.Unlock()
+		set.mu.RLock()
+		defer set.mu.RUnlock()
 	}
 
 	result := Set[T]{
@@ -81,8 +81,8 @@ func Subtract[T comparable](a *Set[T], b ...*Set[T]) *Set[T] {
 
 func Union[T comparable](sets ...*Set[T]) *Set[T] {
 	for _, set := range sets {
-		set.mut.Lock()
-		defer set.mut.Unlock()
+		set.mu.RLock()
+		defer set.mu.RUnlock()
 	}
 
 	outLen := 0
