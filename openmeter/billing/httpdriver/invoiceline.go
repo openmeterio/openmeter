@@ -22,7 +22,7 @@ var _ InvoiceLineHandler = (*handler)(nil)
 
 type (
 	CreateLineByCustomerRequest  = billing.CreateInvoiceLinesInput
-	CreateLineByCustomerResponse = api.BillingCreateLineResult
+	CreateLineByCustomerResponse = api.BillingInvoiceLines
 	CreateLineByCustomerHandler  httptransport.HandlerWithArgs[CreateLineByCustomerRequest, CreateLineByCustomerResponse, string]
 )
 
@@ -42,8 +42,13 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 				return CreateLineByCustomerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			lines := make([]billingentity.Line, 0, len(body.Lines))
-			for _, line := range body.Lines {
+			if body.Lines == nil || len(*body.Lines) == 0 {
+				return CreateLineByCustomerRequest{}, billingentity.ValidationError{
+					Err: fmt.Errorf("no lines provided"),
+				}
+			}
+			lines := make([]billingentity.Line, 0, len(*body.Lines))
+			for _, line := range *body.Lines {
 				line, err := mapCreateLineToEntity(line, ns)
 				if err != nil {
 					return CreateLineByCustomerRequest{}, fmt.Errorf("failed to map line: %w", err)

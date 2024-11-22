@@ -56,10 +56,12 @@ interface CustomerInvoicesEndpoints {
     customerId: ULID,
 
     @body
-    request: InvoiceCreateInput,
+    request: InvoiceCreate,
   ): {
     @statusCode _: 201;
-    @body body: Invoices.Invoice[];
+
+    @body
+    body: Invoices.Invoice[];
   } | OpenMeter.CommonErrors;
 
   /**
@@ -95,9 +97,15 @@ interface CustomerInvoicesEndpoints {
   @summary("Create line items")
   @operationId("billingCreateLineByCustomer")
   @extension("x-internal", true)
-  createLine(@path customerId: ULID, @body request: CreateLinesRequest): {
+  createLine(
+    @path
+    customerId: ULID,
+
+    @body
+    request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<Lines>,
+  ): {
     @statusCode _: 201;
-    @body body: CreateLineResult;
+    @body body: Lines;
   } | OpenMeter.CommonErrors;
 }
 
@@ -299,7 +307,7 @@ interface CustomerInvoiceEndpoints {
   /**
    * Update an invoice line
    */
-  @put
+  @post
   @route("/lines/{lineId}")
   @summary("Update an invoice line")
   @operationId("billingUpdateInvoiceLine")
@@ -308,7 +316,9 @@ interface CustomerInvoiceEndpoints {
     @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
-    @body request: Invoices.InvoiceLine,
+
+    @body
+    request: Invoices.InvoiceLine,
   ): {
     @statusCode _: 200;
     @body body: Invoices.InvoiceLine;
@@ -337,18 +347,9 @@ enum InvoiceOrderBy {
 /**
  * CreateLinesRequest is the request for creating manual line items.
  */
-@friendlyName("BillingCreateLinesRequest")
-model CreateLinesRequest {
+@friendlyName("BillingInvoiceLines")
+model Lines {
   @summary("The line to create")
-  lines: Invoices.InvoiceLine[];
-}
-
-/**
- * Response for creating a pending charge
- */
-@friendlyName("BillingCreateLineResult")
-model CreateLineResult {
-  @summary("The created line items")
   lines: Invoices.InvoiceLine[];
 }
 
@@ -459,25 +460,25 @@ enum InvoiceExpand {
 }
 
 /**
- * BillingInvoiceCreateInput is the input for creating an invoice.
+ * BillingInvoiceCreate is the input for creating an invoice.
  *
  * Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
  * operation. Empty invoices are not allowed.
  */
-@friendlyName("BillingInvoiceCreateInput")
-model InvoiceCreateInput {
+@friendlyName("BillingInvoiceCreate")
+model InvoiceCreate {
   /**
    * The pending line items to include in the invoice, if not provided:
    * - all line items that have invoice_at < asOf will be included
    * - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
    *   of the billing cycle
    */
-  IncludePendingLines?: ULID[];
+  includePendingLines?: ULID[];
 
   /**
    * The time as of which the invoice is created.
    *
    * If not provided, the current time is used.
    */
-  AsOf?: DateTime;
+  asOf?: DateTime;
 }
