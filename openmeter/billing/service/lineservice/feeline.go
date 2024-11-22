@@ -43,7 +43,7 @@ func (l feeLine) UpdateTotals() error {
 	totals := billingentity.Totals{
 		DiscountsTotal: calc.RoundToPrecision(
 			alpacadecimal.Sum(alpacadecimal.Zero,
-				lo.Map(l.line.Discounts.Get(), func(d billingentity.LineDiscount, _ int) alpacadecimal.Decimal {
+				lo.Map(l.line.Discounts.OrEmpty(), func(d billingentity.LineDiscount, _ int) alpacadecimal.Decimal {
 					return d.Amount
 				})...,
 			),

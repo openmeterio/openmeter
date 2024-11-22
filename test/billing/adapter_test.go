@@ -10,6 +10,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -288,7 +289,7 @@ type usageBasedLineInput struct {
 	Invoice                *billingentity.Invoice
 	Name                   string
 	ChildUniqueReferenceID string
-	DetailedLines          models.Optional[[]usageBasedLineInput]
+	DetailedLines          mo.Option[[]usageBasedLineInput]
 }
 
 func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
@@ -319,7 +320,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
 		// Make the line present, but empty (so that it's present even if DetailedLines is only present)
 		out.Children = billingentity.LineChildren{}
 
-		for _, d := range in.DetailedLines.Get() {
+		for _, d := range in.DetailedLines.OrEmpty() {
 			line := newUsageBasedLine(d)
 			line.ParentLineID = lo.ToPtr(out.ID)
 			line.ParentLine = out
@@ -357,7 +358,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			Period:    period,
 			Invoice:   invoice,
 			Name:      "Test Line 1",
-			DetailedLines: models.OptionalWithValue([]usageBasedLineInput{
+			DetailedLines: mo.Some([]usageBasedLineInput{
 				{
 					Namespace:              ns,
 					Period:                 period,
@@ -379,7 +380,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			Period:    period,
 			Invoice:   invoice,
 			Name:      "Test Line 2",
-			DetailedLines: models.OptionalWithValue([]usageBasedLineInput{
+			DetailedLines: mo.Some([]usageBasedLineInput{
 				{
 					Namespace:              ns,
 					Period:                 period,
@@ -394,7 +395,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			Period:    period,
 			Invoice:   invoice,
 			Name:      "Test Line 3",
-			DetailedLines: models.OptionalWithValue([]usageBasedLineInput{
+			DetailedLines: mo.Some([]usageBasedLineInput{
 				{
 					Namespace:              ns,
 					Period:                 period,
@@ -416,31 +417,31 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	// Then the lines are persisted as expected
 	// Line 1
 	require.Equal(s.T(), linesIn[0].Name, lines[0].Name)
-	require.Empty(s.T(), linesIn[0].Children.Get()[0].ID)
-	require.Len(s.T(), lines[0].Children.Get(), 2)
+	require.Empty(s.T(), linesIn[0].Children.MustGet()[0].ID)
+	require.Len(s.T(), lines[0].Children.MustGet(), 2)
 	require.ElementsMatch(s.T(),
-		getUniqReferenceNames(linesIn[0].Children.Get()),
-		getUniqReferenceNames(lines[0].Children.Get()))
+		getUniqReferenceNames(linesIn[0].Children.MustGet()),
+		getUniqReferenceNames(lines[0].Children.MustGet()))
 	require.ElementsMatch(s.T(),
-		getLineNames(linesIn[0].Children.Get()),
-		getLineNames(lines[0].Children.Get()))
+		getLineNames(linesIn[0].Children.MustGet()),
+		getLineNames(lines[0].Children.MustGet()))
 
 	require.Equal(s.T(), linesIn[1].Name, lines[1].Name)
-	require.Len(s.T(), lines[1].Children.Get(), 1)
+	require.Len(s.T(), lines[1].Children.MustGet(), 1)
 	require.ElementsMatch(s.T(),
-		getUniqReferenceNames(linesIn[1].Children.Get()),
-		getUniqReferenceNames(lines[1].Children.Get()))
+		getUniqReferenceNames(linesIn[1].Children.MustGet()),
+		getUniqReferenceNames(lines[1].Children.MustGet()))
 	require.ElementsMatch(s.T(),
-		getLineNames(linesIn[1].Children.Get()),
-		getLineNames(lines[1].Children.Get()))
+		getLineNames(linesIn[1].Children.MustGet()),
+		getLineNames(lines[1].Children.MustGet()))
 
 	require.Equal(s.T(), linesIn[2].Name, lines[2].Name)
 	require.True(s.T(), lines[2].Children.IsPresent())
-	require.Len(s.T(), lines[2].Children.Get(), 1)
+	require.Len(s.T(), lines[2].Children.MustGet(), 1)
 
 	// When we execute an upsert the detailed lines are updated, but not duplicated
 	s.Run("Detailed line upserting", func() {
-		unchangedDetailedLineUpdatedAt := lo.FindOrElse[*billingentity.Line](lines[0].Children.Get(),
+		unchangedDetailedLineUpdatedAt := lo.FindOrElse[*billingentity.Line](lines[0].Children.MustGet(),
 			&billingentity.Line{},
 			func(l *billingentity.Line) bool {
 				return *l.ChildUniqueReferenceID == "ref1"
@@ -462,7 +463,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			PaymentTerm:   plan.InArrearsPaymentTerm,
 		}
 
-		lineChildren := lines[0].Children.Get()
+		lineChildren := lines[0].Children.MustGet()
 		lineChildren = append(lineChildren, newLine)
 		lo.ForEach(lineChildren, func(l *billingentity.Line, _ int) {
 			l.ParentLineID = lo.ToPtr(lines[0].ID)
@@ -486,34 +487,34 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		require.Len(s.T(), lines, 3)
 
 		// Then the lines are persisted as expected
-		require.Len(s.T(), lines[0].Children.Get(), 3)
+		require.Len(s.T(), lines[0].Children.MustGet(), 3)
 		require.ElementsMatch(s.T(),
 			getUniqReferenceNames(lineChildren),
-			getUniqReferenceNames(lines[0].Children.Get()))
+			getUniqReferenceNames(lines[0].Children.MustGet()))
 
-		require.Equal(s.T(), lo.CountBy(lines[0].Children.Get(), func(l *billingentity.Line) bool {
+		require.Equal(s.T(), lo.CountBy(lines[0].Children.MustGet(), func(l *billingentity.Line) bool {
 			return l.ID != ""
 		}), 3, "all lines must have IDs set")
 
 		// Then ref1 has not been changed
-		require.Equal(s.T(), unchangedDetailedLineUpdatedAt, lo.FindOrElse(lines[0].Children.Get(),
+		require.Equal(s.T(), unchangedDetailedLineUpdatedAt, lo.FindOrElse(lines[0].Children.MustGet(),
 			&billingentity.Line{},
 			func(l *billingentity.Line) bool {
 				return *l.ChildUniqueReferenceID == "ref1"
 			}).UpdatedAt)
 
-		require.Len(s.T(), lines[1].Children.Get(), 1)
+		require.Len(s.T(), lines[1].Children.MustGet(), 1)
 		require.ElementsMatch(s.T(),
 			[]string{"ref1"},
-			getUniqReferenceNames(lines[1].Children.Get()))
+			getUniqReferenceNames(lines[1].Children.MustGet()))
 
-		require.Len(s.T(), lines[2].Children.Get(), 0)
+		require.Len(s.T(), lines[2].Children.MustGet(), 0)
 		require.True(s.T(), lines[2].Children.IsPresent())
 	})
 
 	// When we remove a detailed line, the line gets deleted
 	s.Run("Detailed line update (still a removal case)", func() {
-		detailedLines := lines[0].Children.Get()
+		detailedLines := lines[0].Children.MustGet()
 
 		slices.SortFunc(detailedLines, func(a, b *billingentity.Line) int {
 			return strings.Compare(*a.ChildUniqueReferenceID, *b.ChildUniqueReferenceID)
@@ -552,14 +553,14 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		// Then we only get three lines
 		require.NoError(s.T(), err)
 		require.Len(s.T(), lines, 1)
-		require.Len(s.T(), lines[0].Children.Get(), 3)
+		require.Len(s.T(), lines[0].Children.MustGet(), 3)
 
 		require.ElementsMatch(s.T(),
 			getUniqReferenceNames(detailedLines),
-			getUniqReferenceNames(lines[0].Children.Get()))
+			getUniqReferenceNames(lines[0].Children.MustGet()))
 		require.ElementsMatch(s.T(),
 			getLineNames(detailedLines),
-			getLineNames(lines[0].Children.Get()))
+			getLineNames(lines[0].Children.MustGet()))
 
 		// When we query the line's children, we get the 4 lines, one is deleted
 		lines, err = s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
@@ -634,7 +635,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 		Invoice:   invoice,
 		Name:      "Test Line 1",
 
-		DetailedLines: models.OptionalWithValue([]usageBasedLineInput{
+		DetailedLines: mo.Some([]usageBasedLineInput{
 			{
 				Namespace: ns,
 				Period:    period,
@@ -648,7 +649,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	manualDiscountName := "Test Discount 3 - manual"
 
-	lineIn.Children.Get()[0].Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
+	lineIn.Children.MustGet()[0].Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
 		{
 			Amount:                 alpacadecimal.NewFromFloat(10),
 			Description:            lo.ToPtr("Test Discount 1"),
@@ -675,15 +676,15 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	require.Len(s.T(), lines, 1)
 
 	// Then the discounts are persisted as expected
-	persistedDiscounts := lines[0].Children.Get()[0].Discounts.Get()
+	persistedDiscounts := lines[0].Children.MustGet()[0].Discounts.MustGet()
 	require.Len(s.T(), persistedDiscounts, 3)
 
 	discountContents := removeDiscountAdapterFields(persistedDiscounts)
 
-	require.ElementsMatch(s.T(), discountContents, lineIn.Children.Get()[0].Discounts.Get())
+	require.ElementsMatch(s.T(), discountContents, lineIn.Children.MustGet()[0].Discounts.MustGet())
 
 	// Let's update the discounts
-	childLine := lines[0].Children.Get()[0].Clone()
+	childLine := lines[0].Children.MustGet()[0].Clone()
 	childLine.Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
 		// Should get the ID from the original discount by calling the ChildrenWithIDReuse
 		{
@@ -724,10 +725,10 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	require.Len(s.T(), updatedLines, 1)
 
 	previousVersionDiscounts := persistedDiscounts
-	persistedDiscounts = updatedLines[0].Children.Get()[0].Discounts.Get()
+	persistedDiscounts = updatedLines[0].Children.MustGet()[0].Discounts.MustGet()
 	require.Len(s.T(), persistedDiscounts, 3)
 
-	expectedChildLineDiscounts := childLine.Discounts.Get()
+	expectedChildLineDiscounts := childLine.Discounts.MustGet()
 	// Line 0: we expect that the ID is set to the same value
 	previousVersion := lo.FindOrElse(
 		previousVersionDiscounts,
